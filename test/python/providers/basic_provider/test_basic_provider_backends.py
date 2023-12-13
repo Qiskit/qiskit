@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,19 +10,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""BasicAer Backends Test."""
+"""BasicProvider Backends Test."""
 
-from qiskit import BasicAer
-from qiskit.providers.basicaer import BasicAerProvider
+from qiskit.providers.basic_provider.basic_provider import BasicProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.test import providers
 
 
-class TestBasicAerBackends(providers.ProviderTestCase):
-    """Qiskit BasicAer Backends (Object) Tests."""
+class TestBasicProviderBackends(providers.ProviderTestCase):
+    """Qiskit BasicProvider Backends (Object) Tests."""
 
-    provider_cls = BasicAerProvider
-    backend_name = "qasm_simulator"
+    provider_cls = BasicProvider
+    backend_name = "basic_simulator"
 
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names."""
@@ -38,7 +37,7 @@ class TestBasicAerBackends(providers.ProviderTestCase):
                     pass
             return None
 
-        deprecated_names = BasicAer._deprecated_backend_names()
+        deprecated_names = BasicProvider()._deprecated_backend_names()
         for oldname, newname in deprecated_names.items():
             expected = (
                 "WARNING:qiskit.providers.providerutils:Backend '%s' is deprecated. "
@@ -46,15 +45,17 @@ class TestBasicAerBackends(providers.ProviderTestCase):
             )
             with self.subTest(oldname=oldname, newname=newname):
                 with self.assertLogs("qiskit.providers.providerutils", level="WARNING") as context:
-                    resolved_newname = _get_first_available_backend(BasicAer, newname)
-                    real_backend = BasicAer.get_backend(resolved_newname)
-                    self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
+                    resolved_newname = _get_first_available_backend(BasicProvider(), newname)
+                    real_backend = BasicProvider().get_backend(resolved_newname)
+                    self.assertEqual(
+                        BasicProvider().backends(oldname)[0].name(), real_backend.name()
+                    )
                 self.assertEqual(context.output, [expected])
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(QiskitBackendNotFoundError, BasicAer.get_backend, "bad_name")
+        self.assertRaises(QiskitBackendNotFoundError, BasicProvider().get_backend, "bad_name")
 
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""
-        self.assertEqual(BasicAer.backends("bad_name"), [])
+        self.assertEqual(BasicProvider().backends("bad_name"), [])

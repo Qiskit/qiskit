@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,11 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test executing multiple-register circuits on BasicAer."""
+"""Test executing multiple-register circuits on BasicProvider."""
 
-from qiskit import BasicAer, execute
+from qiskit import BasicProvider, execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -37,23 +36,10 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ.compose(meas)
 
-        backend_sim = BasicAer.get_backend("qasm_simulator")
+        backend_sim = BasicProvider.get_backend("basic_simulator")
 
         result = execute(qc, backend_sim, seed_transpiler=34342).result()
         counts = result.get_counts(qc)
-
         target = {"01 10": 1024}
 
-        backend_sim = BasicAer.get_backend("statevector_simulator")
-        result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        state = result.get_statevector(circ)
-
-        backend_sim = BasicAer.get_backend("unitary_simulator")
-        result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        unitary = Operator(result.get_unitary(circ))
-
         self.assertEqual(counts, target)
-        self.assertAlmostEqual(state_fidelity(Statevector.from_label("0110"), state), 1.0, places=7)
-        self.assertAlmostEqual(
-            process_fidelity(Operator.from_label("IXXI"), unitary), 1.0, places=7
-        )

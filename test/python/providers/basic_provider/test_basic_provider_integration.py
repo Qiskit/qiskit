@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,20 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""BasicAer provider integration tests."""
+"""BasicProvider provider integration tests."""
 
 import unittest
 
-from qiskit import BasicAer
+from qiskit import BasicProvider
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit.result import Result
-from qiskit.providers.basicaer import BasicAerError
+from qiskit.providers.basic_provider import BasicProviderError
 from qiskit.test import QiskitTestCase
 
 
-class TestBasicAerIntegration(QiskitTestCase):
-    """Qiskit BasicAer simulator integration tests."""
+class TestBasicProviderIntegration(QiskitTestCase):
+    """Qiskit BasicProvider simulator integration tests."""
 
     def setUp(self):
         super().setUp()
@@ -32,13 +32,13 @@ class TestBasicAerIntegration(QiskitTestCase):
         self._qc1 = QuantumCircuit(qr, cr, name="qc1")
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicProvider.get_backend("basic_simulator")
         self._result1 = execute(self._qc1, self.backend).result()
 
     def test_builtin_simulator_result_fields(self):
         """Test components of a result from a local simulator."""
 
-        self.assertEqual("qasm_simulator", self._result1.backend_name)
+        self.assertEqual("basic_simulator", self._result1.backend_name)
         self.assertIsInstance(self._result1.job_id, str)
         self.assertEqual(self._result1.status, "COMPLETED")
         self.assertEqual(self._result1.results[0].status, "DONE")
@@ -71,11 +71,11 @@ class TestBasicAerIntegration(QiskitTestCase):
         self.assertIsInstance(result, Result)
 
     def test_basicaer_num_qubits(self):
-        """Test BasicAerError is raised if num_qubits too large to simulate."""
+        """Test BasicProviderError is raised if num_qubits too large to simulate."""
         qc = QuantumCircuit(50, 1)
         qc.x(0)
         qc.measure(0, 0)
-        with self.assertRaises(BasicAerError):
+        with self.assertRaises(BasicProviderError):
             execute(qc, self.backend)
 
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,7 +27,7 @@ from ddt import data, ddt, named_data
 import qiskit
 import qiskit.circuit.library as circlib
 from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.parametertable import ParameterReferences, ParameterTable, ParameterView
 from qiskit.circuit.exceptions import CircuitError
@@ -130,7 +130,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         qc_aer = transpile(qc, backend)
         self.assertIn(theta, qc_aer.parameters)
 
@@ -669,7 +669,7 @@ class TestParameters(QiskitTestCase):
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         qc_aer = transpile(qc, backend)
 
         # generate list of circuits
@@ -767,7 +767,7 @@ class TestParameters(QiskitTestCase):
             for i, q in enumerate(qc.qubits[:-1]):
                 qc.cx(qc.qubits[i], qc.qubits[i + 1])
             qc.barrier()
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         qc_aer = transpile(qc, backend)
         for param in theta:
             self.assertIn(param, qc_aer.parameters)
@@ -798,7 +798,7 @@ class TestParameters(QiskitTestCase):
             qc.append(cxs, qargs=qc.qubits[:-1])
             qc.barrier()
 
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         qc_aer = transpile(qc, backend)
         for vec in paramvecs:
             for param in vec:
@@ -891,7 +891,7 @@ class TestParameters(QiskitTestCase):
 
         qobj = assemble(
             circuit,
-            backend=BasicAer.get_backend("qasm_simulator"),
+            backend=BasicProvider.get_backend("basic_simulator"),
             parameter_binds=parameter_values,
         )
 
@@ -923,7 +923,7 @@ class TestParameters(QiskitTestCase):
 
         job = execute(
             circuits,
-            BasicAer.get_backend("unitary_simulator"),
+            BasicProvider.get_backend("basic_simulator"),
             shots=512,
             parameter_binds=[{theta: 1}],
         )
@@ -1122,7 +1122,9 @@ class TestParameters(QiskitTestCase):
                 bound_qc = getattr(unbound_qc, assign_fun)({theta: numpy.pi / 2})
 
                 shots = 1024
-                job = execute(bound_qc, backend=BasicAer.get_backend("qasm_simulator"), shots=shots)
+                job = execute(
+                    bound_qc, backend=BasicProvider.get_backend("basic_simulator"), shots=shots
+                )
                 self.assertDictAlmostEqual(job.result().get_counts(), {"1": shots}, 0.05 * shots)
 
     def test_num_parameters(self):
@@ -1157,7 +1159,7 @@ class TestParameters(QiskitTestCase):
         qc.measure(0, 0)
 
         plist = [{theta: i} for i in range(reps)]
-        simulator = BasicAer.get_backend("qasm_simulator")
+        simulator = BasicProvider.get_backend("basic_simulator")
         result = execute(qc, backend=simulator, parameter_binds=plist).result()
         result_names = {res.name for res in result.results}
         self.assertEqual(reps, len(result_names))

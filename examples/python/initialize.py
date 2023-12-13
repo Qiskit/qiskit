@@ -15,7 +15,7 @@ Example use of the initialize gate to prepare arbitrary pure states.
 """
 
 import math
-from qiskit import QuantumCircuit, execute, BasicAer
+from qiskit import QuantumCircuit, execute, TestProvider
 
 
 ###############################################################
@@ -58,7 +58,7 @@ print("Desired probabilities: ")
 print([format(abs(x * x), ".3f") for x in desired_vector])
 
 # Initialize on local simulator
-sim_backend = BasicAer.get_backend("qasm_simulator")
+sim_backend = TestProvider.get_backend("qasm_simulator")
 job = execute(circuit, sim_backend, shots=shots)
 result = job.result()
 

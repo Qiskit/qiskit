@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,16 +12,16 @@
 
 """Contains a (slow) Python simulator.
 
-It simulates an OpenQASM 2 quantum circuit (an experiment) that has been compiled
+It simulates a quantum circuit (an experiment) that has been compiled
 to run on the simulator. It is exponential in the number of qubits.
 
 The simulator is run using
 
 .. code-block:: python
 
-    QasmSimulatorPy().run(run_input)
+   BasicSimulator().run(run_input)
 
-Where the input is a QuantumCircuit object and the output is a BasicAerJob object, which can
+Where the input is a QuantumCircuit object and the output is a BasicProviderJob object, which can
 later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -40,26 +40,26 @@ from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
-from qiskit.providers.basicaer.basicaerjob import BasicAerJob
-from .exceptions import BasicAerError
-from .basicaertools import single_gate_matrix
-from .basicaertools import SINGLE_QUBIT_GATES
-from .basicaertools import cx_gate_matrix
-from .basicaertools import einsum_vecmul_index
+from qiskit.providers.basic_provider.basic_provider_job import BasicProviderJob
+from .exceptions import BasicProviderError
+from .basic_provider_tools import single_gate_matrix
+from .basic_provider_tools import SINGLE_QUBIT_GATES
+from .basic_provider_tools import cx_gate_matrix
+from .basic_provider_tools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
 
-class QasmSimulatorPy(BackendV1):
-    """Python implementation of an OpenQASM 2 simulator."""
+class BasicSimulator(BackendV1):
+    """Python implementation of a quantum simulator."""
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
     DEFAULT_CONFIGURATION = {
-        "backend_name": "qasm_simulator",
+        "backend_name": "basic_simulator",
         "backend_version": "2.1.0",
         "n_qubits": min(24, MAX_QUBITS_MEMORY),
-        "url": "https://github.com/Qiskit/qiskit-terra",
+        "url": "https://github.com/Qiskit/qiskit",
         "simulator": True,
         "local": True,
         "conditional": True,
@@ -67,7 +67,7 @@ class QasmSimulatorPy(BackendV1):
         "memory": True,
         "max_shots": 0,
         "coupling_map": None,
-        "description": "A python simulator for qasm experiments",
+        "description": "A python simulator for quantum experiments",
         "basis_gates": ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
         "gates": [
             {
@@ -293,7 +293,7 @@ class QasmSimulatorPy(BackendV1):
         length = len(self._initial_statevector)
         required_dim = 2**self._number_of_qubits
         if length != required_dim:
-            raise BasicAerError(
+            raise BasicProviderError(
                 f"initial statevector is incorrect length: {length} != {required_dim}"
             )
 
@@ -320,7 +320,7 @@ class QasmSimulatorPy(BackendV1):
             # Check the initial statevector is normalized
             norm = np.linalg.norm(self._initial_statevector)
             if round(norm, 12) != 1:
-                raise BasicAerError(f"initial statevector is not normalized: norm {norm} != 1")
+                raise BasicProviderError(f"initial statevector is not normalized: norm {norm} != 1")
         # Check for custom chop threshold
         # Replace with custom options
         if "chop_threshold" in backend_options:
@@ -393,7 +393,7 @@ class QasmSimulatorPy(BackendV1):
             backend_options (dict): backend options
 
         Returns:
-            BasicAerJob: derived from BaseJob
+            BasicProviderJob: derived from BaseJob
 
         Additional Information:
             backend_options: Is a dict of options for the backend. It may contain
@@ -424,7 +424,7 @@ class QasmSimulatorPy(BackendV1):
         qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())
-        job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))
+        job = BasicProviderJob(self, job_id, self._run_job(job_id, qobj))
         return job
 
     def _run_job(self, job_id, qobj):
@@ -483,7 +483,7 @@ class QasmSimulatorPy(BackendV1):
                 "time_taken": simulation time of this single experiment
                 }
         Raises:
-            BasicAerError: if an error occurred.
+            BasicProviderError: if an error occurred.
         """
         start = time.time()
         self._number_of_qubits = experiment.config.n_qubits
@@ -604,7 +604,7 @@ class QasmSimulatorPy(BackendV1):
                     elif relation == ">=":
                         outcome = compared >= 0
                     else:
-                        raise BasicAerError("Invalid boolean function relation.")
+                        raise BasicProviderError("Invalid boolean function relation.")
 
                     # Store outcome in register and optionally memory slot
                     regbit = 1 << cregbit
@@ -619,7 +619,7 @@ class QasmSimulatorPy(BackendV1):
                 else:
                     backend = self.name()
                     err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise BasicAerError(err_msg.format(backend, operation.name))
+                    raise BasicProviderError(err_msg.format(backend, operation.name))
 
             # Add final creg data to memory list
             if self._number_of_cmembits > 0:
@@ -661,7 +661,7 @@ class QasmSimulatorPy(BackendV1):
         n_qubits = qobj.config.n_qubits
         max_qubits = self.configuration().n_qubits
         if n_qubits > max_qubits:
-            raise BasicAerError(
+            raise BasicProviderError(
                 f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
                 f'for "{self.name()}".'
             )

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023,
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,7 @@
 import io
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
+from qiskit import BasicProvider
 from qiskit import execute
 from qiskit.tools.monitor import job_monitor
 from qiskit.test import QiskitTestCase
@@ -32,7 +32,7 @@ class TestJobMonitor(QiskitTestCase):
         qc.h(qreg[0])
         qc.cx(qreg[0], qreg[1])
         qc.measure(qreg, creg)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         job_sim = execute([qc] * 10, backend)
         output = io.StringIO()
         job_monitor(job_sim, output=output)

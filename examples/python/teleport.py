@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,14 +18,14 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
+from qiskit import TestProvider
 from qiskit import execute
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = BasicAer.get_backend("qasm_simulator")
+backend = TestProvider.get_backend("test_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.

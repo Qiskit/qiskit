@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,19 +12,19 @@
 
 """
 ====================================================================
-BasicAer: Python-based Simulators (:mod:`qiskit.providers.basicaer`)
+BasicProvider: Python-based Simulators (:mod:`qiskit.providers.basic_provider`)
 ====================================================================
 
-.. currentmodule:: qiskit.providers.basicaer
+.. currentmodule:: qiskit.providers.basic_provider
 
 A module of Python-based quantum simulators.  Simulators are accessed
-via the `BasicAer` provider, e.g.:
+via the `BasicProvider` provider, e.g.:
 
 .. code-block::
 
-   from qiskit import BasicAer
+   from qiskit import BasicProvider
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   backend = BasicProvider.get_backend('basic_simulator')
 
 
 Simulators
@@ -33,9 +33,7 @@ Simulators
 .. autosummary::
    :toctree: ../stubs/
 
-   QasmSimulatorPy
-   StatevectorSimulatorPy
-   UnitarySimulatorPy
+   BasicSimulator
 
 Provider
 ========
@@ -43,7 +41,7 @@ Provider
 .. autosummary::
    :toctree: ../stubs/
 
-   BasicAerProvider
+   BasicProvider
 
 Job Class
 =========
@@ -51,7 +49,7 @@ Job Class
 .. autosummary::
    :toctree: ../stubs/
 
-   BasicAerJob
+   BasicProviderJob
 
 Exceptions
 ==========
@@ -59,15 +57,14 @@ Exceptions
 .. autosummary::
    :toctree: ../stubs/
 
-   BasicAerError
+   BasicProviderError
 """
 
-from .basicaerprovider import BasicAerProvider
-from .basicaerjob import BasicAerJob
-from .qasm_simulator import QasmSimulatorPy
-from .statevector_simulator import StatevectorSimulatorPy
-from .unitary_simulator import UnitarySimulatorPy
-from .exceptions import BasicAerError
+from .basic_provider import BasicProvider
+from .basic_provider_job import BasicProviderJob
+from .basic_simulator import BasicSimulator
+from .exceptions import BasicProviderError
 
 # Global instance to be used as the entry point for convenience.
-BasicAer = BasicAerProvider()
+
+BasicProvider = BasicProvider()

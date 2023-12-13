@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """
-Exception for errors raised by Basic Aer.
+Exception for errors raised by the Test Provider.
 """
 
 from qiskit.exceptions import QiskitError
 
 
-class BasicAerError(QiskitError):
-    """Base class for errors raised by Basic Aer."""
+class BasicProviderError(QiskitError):
+    """Base class for errors raised by the Test Provider."""
 
     def __init__(self, *message):
         """Set the error message."""

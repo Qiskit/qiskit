@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Provider for Basic Aer simulator backends."""
+"""Provider for test simulator backends, formerly known as `BasicAer`."""
 
 from collections import OrderedDict
 import logging
@@ -21,23 +21,21 @@ from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import resolve_backend_name, filter_backends
 
-from .qasm_simulator import QasmSimulatorPy
-from .statevector_simulator import StatevectorSimulatorPy
-from .unitary_simulator import UnitarySimulatorPy
+from .basic_simulator import BasicSimulator
 
 
 logger = logging.getLogger(__name__)
 
-SIMULATORS = [QasmSimulatorPy, StatevectorSimulatorPy, UnitarySimulatorPy]
+SIMULATORS = [BasicSimulator]
 
 
-class BasicAerProvider(ProviderV1):
-    """Provider for Basic Aer backends."""
+class BasicProvider(ProviderV1):
+    """Provider for test simulators."""
 
     def __init__(self):
         super().__init__()
 
-        # Populate the list of Basic Aer backends.
+        # Populate the list of test backends (simulators)
         self._backends = self._verify_backends()
 
     def get_backend(self, name=None, **kwargs):
@@ -78,23 +76,19 @@ class BasicAerProvider(ProviderV1):
     def _deprecated_backend_names():
         """Returns deprecated backend names."""
         return {
-            "qasm_simulator_py": "qasm_simulator",
-            "statevector_simulator_py": "statevector_simulator",
-            "unitary_simulator_py": "unitary_simulator",
-            "local_qasm_simulator_py": "qasm_simulator",
-            "local_statevector_simulator_py": "statevector_simulator",
-            "local_unitary_simulator_py": "unitary_simulator",
-            "local_unitary_simulator": "unitary_simulator",
+            "qasm_simulator_py": "basic_simulator",
+            "qasm_simulator": "basic_simulator",
+            "local_qasm_simulator_py": "basic_simulator",
         }
 
     def _verify_backends(self):
         """
-        Return the Basic Aer backends in `BACKENDS` that are
+        Return the test backends in `BACKENDS` that are
         effectively available (as some of them might depend on the presence
         of an optional dependency or on the existence of a binary).
 
         Returns:
-            dict[str:Backend]: a dict of Basic Aer backend instances for
+            dict[str:Backend]: a dict of test backend instances for
                 the backends that could be instantiated, keyed by backend name.
         """
         ret = OrderedDict()
@@ -124,4 +118,4 @@ class BasicAerProvider(ProviderV1):
         return backend_instance
 
     def __str__(self):
-        return "BasicAer"
+        return "BasicProvider"

@@ -71,7 +71,7 @@ with equal probability.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   from qiskit import BasicProvider, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
@@ -82,7 +82,7 @@ with equal probability.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   backend = BasicProvider.get_backend('basic_simulator')
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 
@@ -100,7 +100,7 @@ always be :math:`|1\\rangle`.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   from qiskit import BasicProvider, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
@@ -115,7 +115,7 @@ always be :math:`|1\\rangle`.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   backend = BasicProvider.get_backend('basic_simulator')
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 

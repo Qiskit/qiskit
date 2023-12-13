@@ -73,7 +73,7 @@ import os
 import sys
 
 from qiskit import execute
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicProvider
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
@@ -110,7 +110,7 @@ class CommonUtilitiesMixin:
 
     def create_backend(self):
         """Returns a Backend."""
-        return BasicAer.get_backend("qasm_simulator")
+        return BasicProvider.get_backend("basic_simulator")
 
     def generate_ground_truth(self, transpiled_result, filename):
         """Generates the expected result into a file.

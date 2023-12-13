@@ -15,7 +15,7 @@
 import unittest
 
 import qiskit
-from qiskit import BasicAer
+from qiskit import BasicProvider
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.quantum_info.analysis import hellinger_fidelity
@@ -35,7 +35,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
@@ -60,7 +60,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [1, -1, -1, 1, -1, 1, 1, -1]
@@ -86,7 +86,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         result = qiskit.execute(qc, backend, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -133,7 +133,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.cx(1, 0)
         qc.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicProvider.get_backend("basic_simulator")
 
         res = qiskit.execute(qc, sim).result()
 
@@ -186,7 +186,7 @@ class TestAnalyzation(QiskitTestCase):
         qc2.cx(1, 0)
         qc2.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicProvider.get_backend("basic_simulator")
 
         res1 = qiskit.execute(qc, sim).result()
         res2 = qiskit.execute(qc2, sim).result()

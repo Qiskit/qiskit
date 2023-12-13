@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit import BasicAer
+from qiskit import BasicProvider
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import QiskitError
 
@@ -58,7 +58,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         qc.measure(qr[1], cr[1])
 
         self.qc = qc
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicProvider.get_backend("basic_simulator")
 
     def test_wo_backend_options(self):
         """without backend options test"""
@@ -135,12 +135,14 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         self.assertTrue(_compare_dict(res_w_noise, res_w_noise_skip_validation))
 
         with self.assertWarns(DeprecationWarning):
-            # BasicAer should fail:
+            # BasicProvider should fail:
             with self.assertRaises(QiskitError):
-                _ = QuantumInstance(BasicAer.get_backend("qasm_simulator"), noise_model=noise_model)
+                _ = QuantumInstance(
+                    BasicProvider.get_backend("basic_simulator"), noise_model=noise_model
+                )
 
             with self.assertRaises(QiskitError):
-                quantum_instance = QuantumInstance(BasicAer.get_backend("qasm_simulator"))
+                quantum_instance = QuantumInstance(BasicProvider.get_backend("basic_simulator"))
                 quantum_instance.set_config(noise_model=noise_model)
 
 

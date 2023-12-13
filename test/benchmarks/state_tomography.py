@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,7 +26,7 @@ class StateTomographyBench:
     timeout = 120.0
 
     def setup(self, _):
-        self.qasm_backend = qiskit.BasicAer.get_backend("qasm_simulator")
+        self.qasm_backend = qiskit.BasicProvider.get_backend("basic_simulator")
 
     def time_state_tomography_bell(self, n_qubits):
         meas_qubits = [n_qubits - 2, n_qubits - 1]
