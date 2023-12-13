@@ -66,17 +66,6 @@ class TestSampler(QiskitTestCase):
             (pqc2, [0, 1, 2, 3, 4, 5, 6, 7], {0: 1898, 1: 6864, 2: 928, 3: 311})
         )  # case 6
 
-        a = ClassicalRegister(1, "a")
-        b = ClassicalRegister(2, "b")
-        c = ClassicalRegister(3, "c")
-
-        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
-        qc.h(range(3))
-        qc.measure([0, 1, 2, 2], [0, 2, 4, 5])
-        self._cases.append(
-            (qc, None, {"a": {0: 5000, 1: 5000}, "b": {0: 5000, 2: 5000}, "c": {0: 5000, 6: 5000}})
-        )  # case 7
-
     def _assert_allclose(self, bitarray: BitArray, target: NDArray | BitArray, rtol=1e-1):
         self.assertEqual(bitarray.shape, target.shape)
         for idx in np.ndindex(bitarray.shape):
@@ -317,9 +306,6 @@ class TestSampler(QiskitTestCase):
         with self.subTest("no classical bits"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc3]).result()
-        with self.subTest("no measurement"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc4]).result()
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc5]).result()
@@ -455,15 +441,76 @@ class TestSampler(QiskitTestCase):
 
     def test_circuit_with_multiple_cregs(self):
         """Test for circuit with multiple classical registers."""
-        qc, _, target = self._cases[7]
-        sampler = Sampler(options=self._options)
-        result = sampler.run([qc]).result()
-        self.assertEqual(len(result), 1)
-        data = result[0].data
-        self.assertEqual(len(astuple(data)), 3)
-        for creg in qc.cregs:
-            self.assertTrue(hasattr(data, creg.name))
-            self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
+        cases = []
+
+        # case 1
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(2, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        qc.measure([0, 1, 2, 2], [0, 2, 4, 5])
+        target = {"a": {0: 5000, 1: 5000}, "b": {0: 5000, 2: 5000}, "c": {0: 5000, 6: 5000}}
+        cases.append(("use all cregs", qc, target))
+
+        # case 2
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(5, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        qc.measure([0, 1, 2, 2], [0, 2, 4, 5])
+        target = {
+            "a": {0: 5000, 1: 5000},
+            "b": {0: 2500, 2: 2500, 24: 2500, 26: 2500},
+            "c": {0: 10000},
+        }
+        cases.append(("use only a and b", qc, target))
+
+        # case 3
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(2, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        qc.measure(1, 5)
+        target = {"a": {0: 10000}, "b": {0: 10000}, "c": {0: 5000, 4: 5000}}
+        cases.append(("use only c", qc, target))
+
+        # case 4
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(2, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        qc.measure([0, 1, 2], [5, 5, 5])
+        target = {"a": {0: 10000}, "b": {0: 10000}, "c": {0: 5000, 4: 5000}}
+        cases.append(("use only c multiple qubits", qc, target))
+
+        # case 5
+        a = ClassicalRegister(1, "a")
+        b = ClassicalRegister(2, "b")
+        c = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(QuantumRegister(3), a, b, c)
+        qc.h(range(3))
+        target = {"a": {0: 10000}, "b": {0: 10000}, "c": {0: 10000}}
+        cases.append(("no measure", qc, target))
+
+        for title, qc, target in cases:
+            with self.subTest(title):
+                sampler = Sampler(options=self._options)
+                result = sampler.run([qc]).result()
+                self.assertEqual(len(result), 1)
+                data = result[0].data
+                self.assertEqual(len(astuple(data)), 3)
+                for creg in qc.cregs:
+                    self.assertTrue(hasattr(data, creg.name))
+                    self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
 
 
 if __name__ == "__main__":

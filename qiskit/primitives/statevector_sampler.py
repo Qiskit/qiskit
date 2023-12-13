@@ -135,7 +135,10 @@ class Sampler(BaseSamplerV2):
                 bound_circuit = bound_circuits[index]
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
                 final_state.seed(seed)
-                samples = final_state.sample_memory(shots=shots, qargs=qargs)
+                if qargs:
+                    samples = final_state.sample_memory(shots=shots, qargs=qargs)
+                else:
+                    samples = [""] * shots
                 samples_array = np.array(
                     [np.fromiter(sample, dtype=np.uint8) for sample in samples]
                 )
@@ -157,20 +160,21 @@ class Sampler(BaseSamplerV2):
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):
+    num_bits_dict = {creg.name: creg.size for creg in circuit.cregs}
     mapping = _final_measurement_mapping(circuit)
     qargs = sorted(set(mapping.values()))
+    qargs_index = {v: k for k, v in enumerate(qargs)}
     circuit = circuit.remove_final_measurements(inplace=False)
     if _has_control_flow(circuit):
         raise QiskitError("StatevectorSampler cannot handle ControlFlowOp")
     if _has_measure(circuit):
         raise QiskitError("StatevectorSampler cannot handle mid-circuit measurements")
-    num_qubits = circuit.num_qubits
-    num_bits_dict = {key[0].name: key[0].size for key in mapping}
     # num_qubits is used as sentinel to fill 0 in _samples_to_packed_array
-    indices = {key: [num_qubits] * val for key, val in num_bits_dict.items()}
+    sentinel = len(qargs)
+    indices = {key: [sentinel] * val for key, val in num_bits_dict.items()}
     for key, qreg in mapping.items():
         creg, ind = key
-        indices[creg.name][ind] = qreg
+        indices[creg.name][ind] = qargs_index[qreg]
     meas_info = [
         _MeasureInfo(
             creg_name=name,
