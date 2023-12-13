@@ -111,8 +111,8 @@ class CommutationChecker:
         # Store result in this session's commutation_library
         # TODO implement LRU cache or similar
         # Rebuild cache if current cache exceeded max size
-        #if self._current_cache_entries >= self._cache_max_entries:
-        #    self.clear_cached_commutations()
+        if self._current_cache_entries >= self._cache_max_entries:
+            self.clear_cached_commutations()
 
         if len(first_params) > 0 or len(second_params) > 0:
             self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
