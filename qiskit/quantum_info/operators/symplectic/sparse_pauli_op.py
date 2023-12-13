@@ -761,7 +761,7 @@ class SparsePauliOp(LinearOp):
         num_qubits = obj.num_qubits
         if num_qubits is None:
             raise QiskitError("Input Operator is not an N-qubit operator.")
-        zx_paulis = decompose_dense(num_qubits, obj.data, tol)
+        zx_paulis = decompose_dense(obj.data, tol)
         # Indirection through `BasePauli` is because we're already supplying the phase in the ZX
         # convention.
         pauli_list = PauliList(BasePauli(zx_paulis.z, zx_paulis.x, zx_paulis.phases))

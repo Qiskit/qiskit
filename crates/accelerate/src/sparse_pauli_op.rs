@@ -93,15 +93,14 @@ pub struct ZXPaulis {
 #[pyfunction]
 pub fn decompose_dense(
     py: Python,
-    num_qubits: usize,
     operator: PyReadonlyArray2<Complex64>,
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
+    let num_qubits = operator.shape()[0].ilog2() as usize;
     let size = 1 << num_qubits;
     if operator.shape() != [size, size] {
         return Err(PyValueError::new_err(format!(
-            "bad input shape for {} qubits: {:?}",
-            num_qubits,
+            "input with shape {:?} cannot be interpreted as a multiqubit operator",
             operator.shape()
         )));
     }
