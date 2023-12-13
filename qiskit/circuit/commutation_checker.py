@@ -350,8 +350,9 @@ def _query_commutation(
     # If we arrive here, there is an entry in the commutation library but it depends on the
     # placement of the operations and also possibly on operation parameters
     if isinstance(commutation, dict):
-        commutation_after_placement = commutation.get(_get_relative_placement(first_qargs, second_qargs),
-                                                      None)
+        commutation_after_placement = commutation.get(
+            _get_relative_placement(first_qargs, second_qargs), None
+        )
         # if we have another dict in commutation_after_placement, commutation depends on params
         if isinstance(commutation_after_placement, dict):
             # Param commutation entry exists and must be a dict
