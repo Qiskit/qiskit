@@ -37,6 +37,7 @@ def _lifted_gaussian(
     center: Union[sym.Symbol, sym.Expr, complex],
     t_zero: Union[sym.Symbol, sym.Expr, complex],
     sigma: Union[sym.Symbol, sym.Expr, complex],
+    rescale_amplitude: Optional[bool] = True,
 ) -> sym.Expr:
     r"""Helper function that returns a lifted Gaussian symbolic equation.
 
@@ -57,11 +58,22 @@ def _lifted_gaussian(
     This sets the endpoints to :math:`0` while preserving the amplitude at the center,
     i.e. :math:`y` is set to :math:`1.0`.
 
+    If ``rescale_amplitude`` is set to ``False``, the output sample :math:`y` is instead
+    modified according to:
+
+        .. math::
+
+        y \mapsto y-y^*,
+
+    such that the amplitude at the center is not preserved.
+
     Args:
         t: Symbol object representing time.
         center: Symbol or expression representing the middle point of the samples.
         t_zero: The value of t at which the pulse is lowered to 0.
         sigma: Symbol or expression representing Gaussian sigma.
+        rescale_amplitude: If ``True`` rescales the amplitude at the center to 1, else
+            doesn't rescale. Defaults to ``True``.
 
     Returns:
         Symbolic equation.
@@ -74,6 +86,9 @@ def _lifted_gaussian(
 
     gauss = sym.exp(-((t_shifted / sigma) ** 2) / 2)
     offset = sym.exp(-((t_offset / sigma) ** 2) / 2)
+
+    if not rescale_amplitude:
+        return gauss - offset
 
     return (gauss - offset) / (1 - offset)
 
@@ -730,16 +745,22 @@ class _PulseType(type):
 
 
 class Gaussian(metaclass=_PulseType):
-    r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
-    mean is centered at the center of the pulse (duration / 2):
+    r"""A lifted and truncated Gaussian pulse.
+
+    Given a Gaussian function whose mean is centered at the center of the pulse (duration / 2):
 
     .. math::
 
-        f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
-        f(x) &= \text{A} \times  \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        g(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
 
-    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling, and
-    :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`.
+    The lifted and rescaled envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \text{A} \times  \frac{g(x) - g(-1)}{R}, \quad 0 \le x < \text{duration}
+
+    where :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`. The rescaling
+    factor :math:`R` is :math:`1-g(-1)` if ``rescale_amplitude`` is ``True`` and :math:`1` otherwise.
     """
 
     alias = "Gaussian"
@@ -752,6 +773,7 @@ class Gaussian(metaclass=_PulseType):
         angle: Optional[ParameterValueType] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
+        rescale_amplitude: Optional[bool] = False,
     ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
@@ -765,6 +787,10 @@ class Gaussian(metaclass=_PulseType):
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            rescale_amplitude: If ``True``, rescale the amplitude such that after lifting the
+                maximal absolute value is the same as ``amp``. If ``False``, no rescaling is
+                performed, and the maximal absolute value will be lower due to the lifting.
+                Default is ``False``.
 
         Returns:
             ScalableSymbolicPulse instance.
@@ -776,7 +802,7 @@ class Gaussian(metaclass=_PulseType):
         _center = _duration / 2
 
         envelope_expr = (
-            _amp * sym.exp(sym.I * _angle) * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+            _amp * sym.exp(sym.I * _angle) * _lifted_gaussian(_t, _center, _duration + 1, _sigma, rescale_amplitude=rescale_amplitude)
         )
 
         consts_expr = _sigma > 0
