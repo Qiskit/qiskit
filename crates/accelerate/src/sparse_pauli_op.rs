@@ -17,6 +17,7 @@ use pyo3::Python;
 
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
+use num_traits::Zero;
 use num_complex::Complex64;
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
 
@@ -212,7 +213,7 @@ fn decompose_dense_inner(
     let mut recurse_if_nonzero = |extra: Pauli, factor: Complex64, values: Array2<Complex64>| {
         let mut is_zero = true;
         for value in values.iter() {
-            if *value != Complex64::new(0.0, 0.0) {
+            if !value.is_zero() {
                 is_zero = false;
                 break;
             }
