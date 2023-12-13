@@ -123,8 +123,7 @@ class Sampler(BaseSamplerV2):
         results = []
         for pub in coerced_pubs:
             circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
-            parameter_values = pub.parameter_values
-            bound_circuits = parameter_values.bind_all(circuit)
+            bound_circuits = pub.parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
                     bound_circuits.shape + (shots, item.num_bytes), dtype=np.uint8

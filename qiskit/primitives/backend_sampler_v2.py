@@ -187,10 +187,8 @@ class BackendSampler(BaseSamplerV2):
 
         results = []
         for pub, circuit in zip(coerced_pubs, self._transpiled_circuits):
-            meas_info, max_num_bits = _analyze_circuit(pub.circuit)
-            max_num_bytes = _min_num_bytes(max_num_bits)
-            parameter_values = pub.parameter_values
-            bound_circuits = parameter_values.bind_all(circuit)
+            meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
+            bound_circuits = pub.parameter_values.bind_all(circuit)
             arrays = {
                 item.creg_name: np.zeros(
                     bound_circuits.shape + (shots, item.num_bytes), dtype=np.uint8
@@ -201,7 +199,7 @@ class BackendSampler(BaseSamplerV2):
             result_memory, _ = _run_circuits(
                 flatten_circuits, self._backend, memory=True, **self.options.execution.__dict__
             )
-            memory_list = _prepare_memory(result_memory, max_num_bits, max_num_bytes)
+            memory_list = _prepare_memory(result_memory, max_num_bytes)
 
             for samples, index in zip(memory_list, np.ndindex(*bound_circuits.shape)):
                 for item in meas_info:
@@ -236,15 +234,19 @@ def _analyze_circuit(circuit: QuantumCircuit) -> Tuple[List[_MeasureInfo], int]:
             )
         )
         start += num_bits
-    return meas_info, start
+    return meas_info, _min_num_bytes(start)
 
 
-def _prepare_memory(results: List[Result], num_bits: int, num_bytes: int) -> NDArray[np.uint8]:
+def _prepare_memory(results: List[Result], num_bytes: int) -> NDArray[np.uint8]:
     lst = []
     for res in results:
         for exp in res.results:
-            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in exp.data.memory)
-            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+            if hasattr(exp.data, "memory"):
+                data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in exp.data.memory)
+                data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+            else:
+                # no measure in a circuit
+                data = np.zeros((exp.shots, num_bytes), dtype=np.uint8)
             lst.append(data)
     ary = np.array(lst, copy=False)
     return np.unpackbits(ary, axis=-1, bitorder="big")
