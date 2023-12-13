@@ -15,7 +15,7 @@
 from __future__ import annotations
 import logging
 import warnings
-from typing import List, Iterable, Any, Dict, Optional, Tuple, Union
+from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
@@ -93,9 +93,8 @@ def convert_to_target(
     # Create instruction property placeholder from backend configuration
     basis_gates = set(getattr(configuration, "basis_gates", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
-    inst_name_map = {}  # type: Dict[str, Instruction]
-    prop_name_map = {}  # type: Dict[str, Union[Dict[Tuple[int, ...], InstructionProperties], None]]
     all_instructions = set.union(basis_gates, set(required))
+    inst_name_map = {}  # type: Dict[str, Instruction]
 
     faulty_ops = set()
     faulty_qubits = set()
@@ -133,17 +132,18 @@ def convert_to_target(
         all_instructions.remove(name)
 
     # Create inst properties placeholder
+    # Without any assignment, properties value is None,
+    # which defines a global instruction that can be applied to any qubit(s).
+    # The None value behaves differently from an empty dictionary.
+    # See API doc of Target.add_instruction for details.
+    prop_name_map = dict.fromkeys(all_instructions)
     for name in all_instructions:
-        if name not in prop_name_map:
-            # Without any assignment, properties value is None,
-            # which defines a global instruction that can be applied to any qubit(s).
-            # The None value behaves differently from an empty dictionary.
-            # See API doc of Target.add_instruction for details.
-            prop_name_map[name] = None
         if name in gate_configs:
             if coupling_map := getattr(gate_configs[name], "coupling_map", None):
                 # Respect operational qubits that gate configuration defines
                 # This ties instruction to particular qubits even without properties information.
+                # Note that each instruction is considered to be ideal unless
+                # its spec (e.g. error, duration) is bound by the properties object.
                 prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
 
     # Populate instruction properties
@@ -176,6 +176,12 @@ def convert_to_target(
                         set.intersection(faulty_qubits, qubits)
                         or not properties.is_gate_operational(name, qubits)
                     ):
+                        try:
+                            # Qubits might be pre-defined by the gate config
+                            # However properties objects says the qubits is non-operational
+                            del prop_name_map[name][qubits]
+                        except KeyError:
+                            pass
                         faulty_ops.add((name, qubits))
                         continue
                     if prop_name_map[name] is None:
@@ -185,6 +191,17 @@ def convert_to_target(
                     prop_name_map[name][qubits] = InstructionProperties(
                         error=_get_value(params, "gate_error"),
                         duration=_get_value(params, "gate_length"),
+                    )
+                if isinstance(prop_name_map[name], dict) and any(
+                    v is None for v in prop_name_map[name].values()
+                ):
+                    # Properties provides gate properties only for subset of qubits
+                    # Associated qubit set might be defined by the gate config here
+                    logger.info(
+                        "Gate properties of instruction %s are not provided for every qubits. "
+                        "This gate is ideal for some qubits and the rest is with finite error. "
+                        "Created backend target may confuse error-aware circuit optimization.",
+                        name,
                     )
             except BackendPropertyError:
                 # This gate doesn't report any property
@@ -202,10 +219,12 @@ def convert_to_target(
                 duration=_get_value(qubit_prop, "readout_length"),
             )
 
-    if add_delay and "delay" not in prop_name_map:
-        prop_name_map["delay"] = {
-            (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
-        }
+    for op in required:
+        # Map required ops to each operational qubit
+        if prop_name_map[op] is None:
+            prop_name_map[op] = {
+                (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
+            }
 
     if defaults:
         inst_sched_map = defaults.instruction_schedule_map
@@ -245,29 +264,22 @@ def convert_to_target(
                         qubits,
                     )
 
-    # Remove 'delay' if add_delay is set to False.
-    if not add_delay:
-        if "delay" in all_instructions:
-            all_instructions.remove("delay")
-
     # Add parsed properties to target
     target = Target(**in_data)
     for inst_name in all_instructions:
+        if inst_name == "delay" and not add_delay:
+            continue
         if inst_name in qiskit_control_flow_mapping:
             # Control flow operator doesn't have gate property.
             target.add_instruction(
                 instruction=qiskit_control_flow_mapping[inst_name],
                 name=inst_name,
             )
-        elif properties is None:
-            target.add_instruction(
-                instruction=inst_name_map[inst_name],
-                name=inst_name,
-            )
         else:
             target.add_instruction(
                 instruction=inst_name_map[inst_name],
                 properties=prop_name_map.get(inst_name, None),
+                name=inst_name,
             )
 
     return target

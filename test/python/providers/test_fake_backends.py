@@ -570,8 +570,11 @@ class TestFakeBackends(QiskitTestCase):
             filter_faulty=True,
             add_delay=False,
         )
-        ops_with_measure = list(backend_v2.target.operation_names) + ["measure"]
-        self.assertSetEqual(ops_with_measure, backend_v1.configuration().basis_gates)
+        ops_with_measure = backend_v2.target.operation_names
+        self.assertCountEqual(
+            ops_with_measure,
+            backend_v1.configuration().basis_gates + ["measure"],
+        )
 
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""
