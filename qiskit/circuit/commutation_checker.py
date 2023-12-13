@@ -135,6 +135,8 @@ class CommutationChecker:
     def clear_cached_commutations(self):
         """Clears the dictionary holding cached commutations"""
         self._current_cache_entries = 0
+        self._cache_miss = 0
+        self._cache_hit = 0
         self._cached_commutations = {}
 
     def check_commutation_entries(
