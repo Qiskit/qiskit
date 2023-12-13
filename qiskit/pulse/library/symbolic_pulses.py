@@ -809,7 +809,7 @@ class Gaussian(metaclass=_PulseType):
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
         return ScalableSymbolicPulse(
-            pulse_type=cls.alias,
+            pulse_type=cls.alias + ("_Rescaled" if rescale_amplitude else ""),
             duration=duration,
             amp=amp,
             angle=angle,
