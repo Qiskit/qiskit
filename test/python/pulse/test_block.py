@@ -14,14 +14,12 @@
 
 """Test cases for the pulse schedule block."""
 import re
-import unittest
 from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
-from qiskit.utils import has_aer
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -371,20 +369,6 @@ class TestBlockOperation(BaseTestBlock):
 
         self.assertEqual(new_sched.name, ref_name)
         self.assertDictEqual(new_sched.metadata, ref_metadata)
-
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
-    def test_execute_block(self):
-        """Test executing a ScheduleBlock on a Pulse backend"""
-
-        with pulse.build(name="test_block") as sched_block:
-            pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
-
-        backend = FakeArmonk()
-        # TODO: Rewrite test to simulate with qiskit-dynamics
-        with self.assertWarns(DeprecationWarning):
-            test_result = backend.run(sched_block).result()
-        self.assertDictEqual(test_result.get_counts(), {"0": 1024})
 
 
 class TestBlockEquality(BaseTestBlock):
@@ -791,11 +775,11 @@ class TestBlockFilter(BaseTestBlock):
             with pulse.align_sequential():
                 pulse.play(self.test_waveform0, self.d0)
                 pulse.delay(5, self.d0)
-
-                with pulse.build(self.backend) as cx_blk:
-                    pulse.cx(0, 1)
-
-                pulse.call(cx_blk)
+                pulse.call(
+                    self.backend.defaults()
+                    .instruction_schedule_map._get_calibration_entry("cx", (0, 1))
+                    .get_schedule()
+                )
 
         for ch in [self.d0, self.d1, pulse.ControlChannel(0)]:
             filtered_blk = self._filter_and_test_consistency(blk, channels=[ch])

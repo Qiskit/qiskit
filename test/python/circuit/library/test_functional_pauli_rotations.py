@@ -84,7 +84,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(polynomial_rotations.draw())
+                _ = str(polynomial_rotations.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             polynomial_rotations.num_state_qubits = 2
@@ -121,7 +121,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(linear_rotation.draw())
+                _ = str(linear_rotation.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             linear_rotation.num_state_qubits = 2
@@ -171,7 +171,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(pw_linear_rotations.draw())
+                _ = str(pw_linear_rotations.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             pw_linear_rotations.num_state_qubits = 2

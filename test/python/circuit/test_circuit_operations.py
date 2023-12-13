@@ -19,6 +19,7 @@ from ddt import data, ddt
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.controlflow import IfElseOp
@@ -391,6 +392,77 @@ class TestCircuitOperations(QiskitTestCase):
         copied = qc.copy_empty_like("copy")
         self.assertEqual(copied.name, "copy")
 
+    def test_copy_variables(self):
+        """Test that a full copy of circuits including variables copies them across."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy()
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual(
+            [instruction.operation for instruction in qc],
+            [instruction.operation for instruction in copied.data],
+        )
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy()
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual(
+            [instruction.operation for instruction in qc],
+            [instruction.operation for instruction in copied.data],
+        )
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
+    def test_copy_empty_variables(self):
+        """Test that an empty copy of circuits including variables copies them across, but does not
+        initialise them."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like()
+        self.assertEqual({a}, set(copied.iter_input_vars()))
+        self.assertEqual({c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_input(b)
+        copied.add_var(d, 0xFF)
+        self.assertEqual({a, b}, set(copied.iter_input_vars()))
+        self.assertEqual({c, d}, set(copied.iter_declared_vars()))
+        self.assertEqual({a}, set(qc.iter_input_vars()))
+        self.assertEqual({c}, set(qc.iter_declared_vars()))
+
+        qc = QuantumCircuit(captures=[b], declarations=[(a, expr.lift(False)), (c, a)])
+        copied = qc.copy_empty_like()
+        self.assertEqual({b}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, c}, set(copied.iter_declared_vars()))
+        self.assertEqual([], list(copied.data))
+
+        # Check that the original circuit is not mutated.
+        copied.add_capture(d)
+        self.assertEqual({b, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({b}, set(qc.iter_captured_vars()))
+
     def test_circuit_copy_rejects_invalid_types(self):
         """Test copy method rejects argument with type other than 'string' and 'None' type."""
         qc = QuantumCircuit(1, 1)
@@ -419,6 +491,27 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(len(qc.data), 0)
         self.assertEqual(len(qc._parameter_table), 0)
+
+    def test_barrier(self):
+        """Test multiple argument forms of barrier."""
+        qr1, qr2 = QuantumRegister(3, "qr1"), QuantumRegister(4, "qr2")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.barrier()  # All qubits.
+        qc.barrier(0, 1)
+        qc.barrier([4, 2])
+        qc.barrier(qr1)
+        qc.barrier(slice(3, 5))
+        qc.barrier({1, 4, 2}, range(5, 7))
+
+        expected = QuantumCircuit(qr1, qr2)
+        expected.append(Barrier(expected.num_qubits), expected.qubits.copy(), [])
+        expected.append(Barrier(2), [expected.qubits[0], expected.qubits[1]], [])
+        expected.append(Barrier(2), [expected.qubits[2], expected.qubits[4]], [])
+        expected.append(Barrier(3), expected.qubits[0:3], [])
+        expected.append(Barrier(2), [expected.qubits[3], expected.qubits[4]], [])
+        expected.append(Barrier(5), [expected.qubits[x] for x in [1, 2, 4, 5, 6]], [])
+
+        self.assertEqual(qc, expected)
 
     def test_measure_active(self):
         """Test measure_active
@@ -1287,11 +1380,11 @@ class TestCircuitPrivateOperations(QiskitTestCase):
         x, y = Parameter("x"), Parameter("y")
         test = QuantumCircuit(1, 1)
         test.rx(y, 0)
-        last_instructions = test.u(x, y, 0, 0)
+        last_instructions = list(test.u(x, y, 0, 0))
         self.assertEqual({x, y}, set(test.parameters))
 
         instruction = test._pop_previous_instruction_in_scope()
-        self.assertEqual(list(last_instructions), [instruction])
+        self.assertEqual(last_instructions, [instruction])
         self.assertEqual({y}, set(test.parameters))
 
     def test_decompose_gate_type(self):

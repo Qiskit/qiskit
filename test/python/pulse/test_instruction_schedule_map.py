@@ -16,7 +16,6 @@ import pickle
 
 import numpy as np
 
-from qiskit.pulse import library
 from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -350,11 +349,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         def test_func(dur: int):
             sched = Schedule()
-            sched += Play(library.constant(int(dur), amp), DriveChannel(0))
+            waveform = Constant(int(dur), amp).get_waveform()
+            sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        expected_sched += Play(library.constant(dur_val, amp), DriveChannel(0))
+        cons_waveform = Constant(dur_val, amp).get_waveform()
+        expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)
@@ -371,11 +372,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
         def test_func(dur: ParameterExpression, t_val: int):
             dur_bound = dur.bind({t_param: t_val})
             sched = Schedule()
-            sched += Play(library.constant(int(float(dur_bound)), amp), DriveChannel(0))
+            waveform = Constant(int(float(dur_bound)), amp).get_waveform()
+            sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        expected_sched += Play(library.constant(10, amp), DriveChannel(0))
+        cons_waveform = Constant(10, amp).get_waveform()
+        expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)

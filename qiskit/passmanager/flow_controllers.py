@@ -133,6 +133,8 @@ class DoWhileController(BaseController):
                 state = yield task
             if not self.do_while(state.property_set):
                 return
+            # Remove stored tasks from the completed task collection for next loop
+            state.workflow_status.completed_passes.difference_update(self.tasks)
         raise PassManagerError("Maximum iteration reached. max_iteration=%i" % max_iteration)
 
 

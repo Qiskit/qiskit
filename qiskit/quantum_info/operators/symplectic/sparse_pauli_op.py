@@ -1101,23 +1101,29 @@ class SparsePauliOp(LinearOp):
         return None if inplace else bound
 
     def apply_layout(
-        self, layout: TranspileLayout | List[int], num_qubits: int | None = None
+        self, layout: TranspileLayout | List[int] | None, num_qubits: int | None = None
     ) -> SparsePauliOp:
         """Apply a transpiler layout to this :class:`~.SparsePauliOp`
 
         Args:
-            layout: Either a :class:`~.TranspileLayout` or a list of integers.
+            layout: Either a :class:`~.TranspileLayout`, a list of integers or None.
+                    If both layout and num_qubits are none, a copy of the operator is
+                    returned.
             num_qubits: The number of qubits to expand the operator to. If not
                 provided then if ``layout`` is a :class:`~.TranspileLayout` the
                 number of the transpiler output circuit qubits will be used by
                 default. If ``layout`` is a list of integers the permutation
-                specified will be applied without any expansion.
+                specified will be applied without any expansion. If layout is
+                None, the operator will be expanded to the given number of qubits.
 
 
         Returns:
             A new :class:`.SparsePauliOp` with the provided layout applied
         """
         from qiskit.transpiler.layout import TranspileLayout
+
+        if layout is None and num_qubits is None:
+            return self.copy()
 
         n_qubits = self.num_qubits
         if isinstance(layout, TranspileLayout):
@@ -1130,8 +1136,10 @@ class SparsePauliOp(LinearOp):
                     f"applied to a {n_qubits} qubit operator"
                 )
             n_qubits = num_qubits
-        if any(x >= n_qubits for x in layout):
+        if layout is not None and any(x >= n_qubits for x in layout):
             raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+        if layout is None:
+            layout = list(range(self.num_qubits))
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
 

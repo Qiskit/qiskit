@@ -37,7 +37,7 @@ class VF2LayoutStopReason(Enum):
 
 
 class VF2Layout(AnalysisPass):
-    """A pass for choosing a Layout of a circuit onto a Coupling graph, as a
+    """A pass for choosing a Layout of a circuit onto a Coupling graph, as
     a subgraph isomorphism problem, solved by VF2++.
 
     If a solution is found that means there is a "perfect layout" and that no
@@ -52,7 +52,7 @@ class VF2Layout(AnalysisPass):
         * ``"nonexistent solution"``: If no perfect layout was found.
         * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
-    By default this pass will construct a heuristic scoring map based on the
+    By default, this pass will construct a heuristic scoring map based on
     the error rates in the provided ``target`` (or ``properties`` if ``target``
     is not provided). However, analysis passes can be run prior to this pass
     and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
@@ -138,6 +138,8 @@ class VF2Layout(AnalysisPass):
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
         im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
+        scoring_edge_list = vf2_utils.build_edge_list(im_graph)
+        scoring_bit_list = vf2_utils.build_bit_list(im_graph, im_graph_node_map)
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
@@ -199,6 +201,8 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 im_graph,
                 self.strict_direction,
+                edge_list=scoring_edge_list,
+                bit_list=scoring_bit_list,
             )
             # If the layout score is 0 we can't do any better and we'll just
             # waste time finding additional mappings that will at best match

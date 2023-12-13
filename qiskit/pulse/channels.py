@@ -96,7 +96,6 @@ class Channel(metaclass=ABCMeta):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = hash((self.__class__.__name__, self._index))
 
     @property
     def index(self) -> Union[int, ParameterExpression]:
@@ -156,7 +155,7 @@ class Channel(metaclass=ABCMeta):
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
-        return self._hash
+        return hash((type(self), self._index))
 
 
 class PulseChannel(Channel, metaclass=ABCMeta):

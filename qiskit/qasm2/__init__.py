@@ -397,19 +397,6 @@ additions on top of the raw specification. Qiskit originally tried to use OpenQA
 serialisation format, and expanded its behaviour as Qiskit expanded.  The new parser under all its
 defaults implements the specification more strictly.
 
-The complete legacy code-paths are
-
-.. code-block:: python
-
-    from qiskit.converters import ast_to_dag, dag_to_circuit
-    from qiskit.qasm import Qasm
-
-    def from_qasm_file(path: str):
-        dag_to_circuit(ast_to_dag(Qasm(filename=path).parse()))
-
-    def from_qasm_str(qasm_str: str):
-        dag_to_circuit(ast_to_dag(Qasm(data=qasm_str).parse()))
-
 In particular, in the legacy importers:
 
 * the `include_path` is effectively:

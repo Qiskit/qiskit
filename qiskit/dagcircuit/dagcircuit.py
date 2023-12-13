@@ -23,7 +23,6 @@ directly from the graph.
 from collections import OrderedDict, defaultdict, deque, namedtuple
 import copy
 import math
-import warnings
 from typing import Dict, Generator, Any, List
 
 import numpy as np
@@ -657,16 +656,8 @@ class DAGCircuit:
             DAGCircuitError: if a leaf node is connected to multiple outputs
 
         """
-        if qargs is None:
-            _warn_none_args()
-            qargs = ()
-        else:
-            qargs = tuple(qargs)
-        if cargs is None:
-            _warn_none_args()
-            cargs = ()
-        else:
-            cargs = tuple(cargs)
+        qargs = tuple(qargs)
+        cargs = tuple(cargs)
 
         if self._operation_may_have_bits(op):
             # This is the slow path; most of the time, this won't happen.
@@ -710,16 +701,8 @@ class DAGCircuit:
         Raises:
             DAGCircuitError: if initial nodes connected to multiple out edges
         """
-        if qargs is None:
-            _warn_none_args()
-            qargs = ()
-        else:
-            qargs = tuple(qargs)
-        if cargs is None:
-            _warn_none_args()
-            cargs = ()
-        else:
-            cargs = tuple(cargs)
+        qargs = tuple(qargs)
+        cargs = tuple(cargs)
 
         if self._operation_may_have_bits(op):
             # This is the slow path; most of the time, this won't happen.
@@ -821,7 +804,7 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
-        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatiblity.
+        # Ensure that the error raised here is a `DAGCircuitError` for backwards compatibility.
         def _reject_new_register(reg):
             raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
 
@@ -1204,7 +1187,7 @@ class DAGCircuit:
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
                 conditional logic already.  This is ignored for :class:`.ControlFlowOp`\\ s (i.e.
-                treated as if it is ``False``); replacements of those must already fulfil the same
+                treated as if it is ``False``); replacements of those must already fulfill the same
                 conditional logic or this function would be close to useless for them.
 
         Returns:
@@ -1917,10 +1900,10 @@ class DAGCircuit:
                 isinstance(node, DAGOpNode)
                 and len(node.qargs) == 1
                 and len(node.cargs) == 0
-                and getattr(node.op, "condition", None) is None
-                and not node.op.is_parameterized()
                 and isinstance(node.op, Gate)
                 and hasattr(node.op, "__array__")
+                and getattr(node.op, "condition", None) is None
+                and not node.op.is_parameterized()
             )
 
         return rx.collect_runs(self._multi_graph, filter_fn)
@@ -2099,8 +2082,12 @@ class DAGCircuit:
         """
         Draws the dag circuit.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
-        `Graphviz <https://www.graphviz.org/>`_ to be installed.
+        This function needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Graphviz is not a python package and can't be pip installed
+        (the ``graphviz`` package on PyPI is a Python interface library for
+        Graphviz and does not actually install Graphviz). You can refer to
+        `the Graphviz documentation <https://www.graphviz.org/download/>`__ on
+        how to install it.
 
         Args:
             scale (float): scaling factor
@@ -2116,12 +2103,3 @@ class DAGCircuit:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
-
-
-def _warn_none_args():
-    warnings.warn(
-        "Passing 'None' as the qubits or clbits of an operation to 'DAGCircuit' methods"
-        " is deprecated since Qiskit 0.45 and will be removed in Qiskit 1.0.  Instead, pass '()'.",
-        DeprecationWarning,
-        stacklevel=3,
-    )
