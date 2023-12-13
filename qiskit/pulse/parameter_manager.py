@@ -219,7 +219,8 @@ class ParameterSetter(NodeVisitor):
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
                     node._params[name] = new_val
-            node.validate_parameters()
+            if not node.disable_validation:
+                node.validate_parameters()
 
         return node
 
