@@ -125,6 +125,8 @@ pub fn decompose_dense(
             coeffs: PyArray1::zeros(py, [0], false).into(),
         })
     } else {
+        // Constructing several arrays of different shapes at once is rather awkward in iterator
+        // logic, so we just loop manually.
         let mut z = Array2::<bool>::uninit([paulis.len(), num_qubits]);
         let mut x = Array2::<bool>::uninit([paulis.len(), num_qubits]);
         let mut phases = Array1::<u8>::uninit(paulis.len());
