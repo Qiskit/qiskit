@@ -51,6 +51,8 @@ class CommutationChecker:
         """
         self._cached_commutations = {}
         self._current_cache_entries = 0
+        self._cache_miss = 0
+        self._cache_hit = 0
 
     def commute(
         self,
@@ -109,8 +111,8 @@ class CommutationChecker:
         # Store result in this session's commutation_library
         # TODO implement LRU cache or similar
         # Rebuild cache if current cache exceeded max size
-        if self._current_cache_entries >= self._cache_max_entries:
-            self.clear_cached_commutations()
+        #if self._current_cache_entries >= self._cache_max_entries:
+        #    self.clear_cached_commutations()
 
         if len(first_params) > 0 or len(second_params) > 0:
             self._cached_commutations.setdefault((first_op.name, second_op.name), {}).setdefault(
@@ -162,6 +164,7 @@ class CommutationChecker:
             second_qargs,
             self._standard_commutations,
         )
+
         if commutation is not None:
             return commutation
 
@@ -172,7 +175,10 @@ class CommutationChecker:
             second_qargs,
             self._cached_commutations,
         )
-
+        if commutation is None:
+            self._cache_miss += 1
+        else:
+            self._cache_hit += 1
         return commutation
 
 
@@ -344,20 +350,18 @@ def _query_commutation(
     # If we arrive here, there is an entry in the commutation library but it depends on the
     # placement of the operations and also possibly on operation parameters
     if isinstance(commutation, dict):
-        placement_commutation = commutation.get(
-            _get_relative_placement(first_qargs, second_qargs), None
-        )
-        if (
-            len(first_op.params) > 0 or len(second_op.params) > 0
-        ) and placement_commutation is not None:
+        commutation_after_placement = commutation.get(_get_relative_placement(first_qargs, second_qargs),
+                                                      None)
+        # if we have another dict in commutation_after_placement, commutation depends on params
+        if isinstance(commutation_after_placement, dict):
             # Param commutation entry exists and must be a dict
-            return placement_commutation.get(
+            return commutation_after_placement.get(
                 (_hashable_parameters(first_op.params), _hashable_parameters(second_op.params)),
                 None,
             )
         else:
             # queried commutation is True, False or None
-            return placement_commutation
+            return commutation_after_placement
     else:
         raise ValueError("Expected commutation to be None, bool or a dict")
 

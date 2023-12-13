@@ -212,6 +212,8 @@ class TestCommutationChecker(QiskitTestCase):
         scc.commute(XGate(), [10], [], NewGateCX(), [10, 5], [])
         scc.commute(XGate(), [5], [], NewGateCX(), [5, 7], [])
         self.assertEqual(len(scc._cached_commutations), 1)
+        self.assertEqual(scc._cache_miss, 1)
+        self.assertEqual(scc._cache_hit, 3)
 
     def test_cache_with_param_gates(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
@@ -228,6 +230,8 @@ class TestCommutationChecker(QiskitTestCase):
         res = scc.commute(RZGate(np.pi / 2), [1], [], XGate(), [1], [])
         self.assertFalse(res)
         self.assertEqual(scc.num_cached_entries(), 3)
+        self.assertEqual(scc._cache_miss, 3)
+        self.assertEqual(scc._cache_hit, 1)
 
     def test_gates_with_parameters(self):
         """Check commutativity between (non-parameterized) gates with parameters."""
