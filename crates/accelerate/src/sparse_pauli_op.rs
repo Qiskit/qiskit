@@ -17,8 +17,8 @@ use pyo3::Python;
 
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
-use num_traits::Zero;
 use num_complex::Complex64;
+use num_traits::Zero;
 use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
 
 /// Find the unique elements of an array.
@@ -97,7 +97,9 @@ pub fn decompose_dense(
     operator: PyReadonlyArray2<Complex64>,
     tolerance: f64,
 ) -> PyResult<ZXPaulis> {
-    let num_qubits = operator.shape()[0].ilog2() as usize;
+    // Can't use `{integer}::ilog2` until Rust 1.67+.
+    let ilog2 = |val: usize| std::mem::size_of::<usize>() * 8 - val.leading_zeros() as usize - 1;
+    let num_qubits = ilog2(operator.shape()[0]);
     let size = 1 << num_qubits;
     if operator.shape() != [size, size] {
         return Err(PyValueError::new_err(format!(
