@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -24,11 +23,11 @@ from pydantic import Field
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.backend import BackendV1, BackendV2
-from qiskit.result import QuasiDistribution, Result
+from qiskit.result import Result
 from qiskit.transpiler.passmanager import PassManager
 
-from .backend_estimator import _prepare_counts, _run_circuits
-from .base import BaseSamplerV2, SamplerResult
+from .backend_estimator import _run_circuits
+from .base import BaseSamplerV2
 from .containers import (
     BasePrimitiveOptions,
     BasePrimitiveOptionsLike,

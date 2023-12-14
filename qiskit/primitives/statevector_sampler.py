@@ -15,7 +15,6 @@ Statevector Sampler class
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -39,7 +38,7 @@ from .containers import (
     make_data_bin,
 )
 from .containers.bit_array import _min_num_bytes
-from .containers.dataclasses import mutable_dataclass
+from .containers.dataclasses import dataclass, mutable_dataclass
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
