@@ -435,7 +435,7 @@ class QASM3Builder:
 
     def build_header(self):
         """Builds a Header"""
-        version = ast.Version("3")
+        version = ast.Version("3.0")
         includes = self.build_includes()
         return ast.Header(version, includes)
 
