@@ -9,7 +9,7 @@ deprecations:
   - |
     The :class:`.CrosstalkAdaptiveSchedule` transpiler pass has been deprecated
     and will be removed in the 1.0.0 release. This pass was not usable any
-    longer because it's internal operation was dependent on custom properties
+    longer because its internal operation was dependent on custom properties
     being set in the :class:`.BackendProperties` payload of a
     :class:`.BackendV1` instance. As no backends are setting these fields
     the pass has been deprecated.
