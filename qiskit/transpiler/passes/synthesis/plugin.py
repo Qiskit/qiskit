@@ -258,7 +258,12 @@ For example::
 creates a high-level synthesis configuration that uses the ``acg`` plugin
 for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
 for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
-:class:`.LinearFunction` objects.
+:class:`.LinearFunction` objects.  The keyword arguments are the :attr:`.Operation.name` fields of
+the relevant objects.  For example, all :class:`.Clifford` operations have the
+:attr:`~.Operation.name` ``clifford``, so this is used as the keyword argument.  You can specify
+any keyword argument here that you have installed plugins to handle, including custom user objects
+if you have plugins installed for them.
+
 For each high-level object, the list of given plugins are tried in sequence until one of them
 succeeds (in the example above, each list only contains a single plugin). In addition to specifying
 a plugin by its name, you can instead pass a ``(name, options)`` tuple, where the second element of
@@ -268,13 +273,13 @@ Once created you then pass this :class:`.HLSConfig` object into the
 ``hls_config`` argument for :func:`.transpile` or :func:`.generate_preset_pass_manager`
 which will use the specified plugins as part of the larger compilation workflow.
 
-To get a list of installed high level synthesis plugins you can use the
-:func:`.high_level_synthesis_plugin_names` function to get the list of plugins
-for a given high level object. For example::
+To get a list of installed high level synthesis plugins for any given :attr:`.Operation.name`, you
+can use the :func:`.high_level_synthesis_plugin_names` function, passing the desired ``name`` as the
+argument::
 
     high_level_synthesis_plugin_names("clifford")
 
-will return a list of all the installed clifford synthesis plugins.
+will return a list of all the installed Clifford synthesis plugins.
 
 Plugin API
 ==========
@@ -639,6 +644,7 @@ def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
         op_name: The operation name to find the installed plugins for. For example,
             if you provide ``"clifford"`` as the input it will find all the installed
             clifford synthesis plugins that can synthesize :class:`.Clifford` objects.
+            The name refers to the :attr:`.Operation.name` attribute of the relevant objects.
 
     Returns:
         A list of installed plugin names for the specified high level operation
