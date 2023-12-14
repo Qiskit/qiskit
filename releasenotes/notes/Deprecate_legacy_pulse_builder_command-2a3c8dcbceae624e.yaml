@@ -1,7 +1,7 @@
 ---
 deprecations:
   - |
-    Deprecated injecting circuit gate operation into the pulse context.
+    Deprecated injecting circuit gate operation into the pulse builder context.
     
     Deprecated
     :func:`~qiskit.pulse.builder.call_gate`,
@@ -11,36 +11,42 @@ deprecations:
     :func:`~qiskit.pulse.builder.u3`,
     :func:`~qiskit.pulse.builder.x`
 
+    If you still wish to inject backend calibrated schedules,
+    you can use following pattern instead of calling gate commands.
+
     .. code-block:: python
 
-      """ Users are encouraged to use gates only in relm of circuits, NOT in pulse(s)
-        Pulse builder should exclusively be used with pulse schedules (like Drag, Gaussian, GaussianSqaure, etc.)
-        Example:"""
-      with pulse.build() as only_pulse_scheds:
-        pulse.play(Drag(180, 0.2, 40, -1.1), DriveChannel(0))
-        pulse.play(Gaussian(160, 0.14, 30), DriveChannel(1))
-        
-      """If a user wishes to get the pulse schedules for a gate.
-      This example shows how to get pulse gate instructions."""
       from qiskit.providers.fake_provider import FakePerth
-      backend=FakePerth()
-      sched=backend.target['x'][(qubit,)].calibration
+      from qiskit import pulse
 
-      # For BackendV1, like FakeNairobi
-      from qiskit.providers.fake_provider import FakeNairobi
-      FakeNairobi().defaults().instruction_schedule_map.get('x', (qubit,))
+      backend = FakePerth()
+      sched = backend.target['x'][(qubit,)].calibration
 
-      """If a user wishes to get the pulse schedules of a QuantumCirucit"""
+      with pulse.build() as only_pulse_scheds:
+        pulse.call(sched)
+
+    Similarly, :class:`.QuantumCircuit` can be injected in the builder context
+    by manually transpiling and scheduling the object.
+
+    .. code-block:: python
+
       from math import pi
+      from qiskit.compiler import schedule, transpile
       qc = QuatumCircuit(2)
       qc.rz(pi/2, 0)
       qc.sx(0)
       qc.rz(pi/2, 0)
       qc.cx(0, 1)
-      
-      from compiler import schedule, transpile
+
       qc_t = transpile(qc, backend)
-      schedule(qc_t, backend)
+      sched = schedule(qc_t, backend)
+      with pulse.build() as only_pulse_scheds:
+          pulse.call(sched)
+
+    In any case we now recommend to write a minimum pulse program
+    with the builder and attach it to :class:`.QuantumCircuit` via the
+    :meth:`.QuantumCircuit.add_calibration` method as a microcode of a
+    gate instruction, rather than writing the entire program with the pulse model.
     
     Deprecated
     :func:`~qiskit.pulse.builder.active_transpiler_settings`
@@ -56,8 +62,4 @@ deprecations:
 
     Deprecated argument of :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`
     
-    Modified related tests in
-    :file:`test/python/pulse/test_builder.py`,
-    :file:`test/python/pulse/test_block.py`
-    :file:`test/python/pulse/test_builder_v2.py`
-    :file:`test/python/transpiler/test_calibrationbuilder.py`
+
