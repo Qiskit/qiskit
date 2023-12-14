@@ -54,7 +54,7 @@ load external plugins via corresponding entry points.
        operate on 1 or 2 qubits.
    * - ``layout``
      - ``qiskit.transpiler.layout``
-     - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``, ``default``
+     - ``trivial``, ``dense``, ``sabre``, ``default``
      - The output from this stage is expected to have the ``layout`` property
        set field set with a :class:`~.Layout` object. Additionally, the circuit is
        typically expected to be embedded so that it is expanded to include all
