@@ -504,13 +504,33 @@ class BasicPrinter:
         self._end_line()
 
     def _visit_SwitchStatement(self, node: ast.SwitchStatement) -> None:
-        if ExperimentalFeatures.SWITCH_CASE_V1 not in self._experimental:
-            raise QASM3ExporterError(
-                "'switch' statements are not stabilised in OpenQASM 3 yet."
-                " To enable experimental support, set the flag"
-                " 'ExperimentalFeatures.SWITCH_CASE_V1' in the 'experimental' keyword"
-                " argument of the printer."
-            )
+        self._start_line()
+        self.stream.write("switch (")
+        self.visit(node.target)
+        self.stream.write(") {")
+        self._end_line()
+        self._current_indent += 1
+        for labels, case in node.cases:
+            if not labels:
+                continue
+            self._start_line()
+            self.stream.write("case ")
+            self._visit_sequence(labels, separator=", ")
+            self.stream.write(" ")
+            self.visit(case)
+            self._end_line()
+        if node.default is not None:
+            self._start_line()
+            self.stream.write("default ")
+            self.visit(node.default)
+            self._end_line()
+        self._current_indent -= 1
+        self._start_line()
+        self.stream.write("}")
+        self._end_line()
+
+    def _visit_SwitchStatementV1(self, node: ast.SwitchStatementV1) -> None:
+        # This is the pre-release syntax, which had lots of extra `break` statements in it.
         self._start_line()
         self.stream.write("switch (")
         self.visit(node.target)
