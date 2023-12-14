@@ -18,7 +18,6 @@ from typing import Sequence
 
 from . import ast
 from .experimental import ExperimentalFeatures
-from .exceptions import QASM3ExporterError
 
 # Precedence and associativity table for prefix, postfix and infix operators.  The rules are a
 # lookup table of two-tuples; the "binding power" of the operator to the left and to the right.

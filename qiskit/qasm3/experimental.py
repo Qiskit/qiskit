@@ -31,7 +31,7 @@ class ExperimentalFeatures(enum.Flag):
 
     These have the output format:
 
-    .. code-block:: qasm3
+    .. code-block::
 
         switch (i) {
             case 0:
@@ -54,7 +54,7 @@ class ExperimentalFeatures(enum.Flag):
     passed, then the parser will instead output using the stabilized syntax, which would render the
     same example above as:
 
-    .. code-block:: qasm3
+    .. code-block::
 
         switch (i) {
             case 0, 1 {
