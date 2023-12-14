@@ -259,7 +259,10 @@ creates a high-level synthesis configuration that uses the ``acg`` plugin
 for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
 for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
 :class:`.LinearFunction` objects.
-For each high-level object, the list of given plugins are tried in sequence until one of them succeeds (in the example above, each list only contains a single plugin). In addition to specifying a plugin by its name, you can instead pass a ``(name, options)`` tuple, where the second element of the tuple is a dictionary containing options for the plugin.
+For each high-level object, the list of given plugins are tried in sequence until one of them
+succeeds (in the example above, each list only contains a single plugin). In addition to specifying
+a plugin by its name, you can instead pass a ``(name, options)`` tuple, where the second element of
+the tuple is a dictionary containing options for the plugin.
 
 Once created you then pass this :class:`.HLSConfig` object into the
 ``hls_config`` argument for :func:`.transpile` or :func:`.generate_preset_pass_manager`
