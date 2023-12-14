@@ -246,6 +246,8 @@ To get the installed list of installed unitary synthesis plugins you can use the
 :func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
 function.
 
+.. _using-high-level-synthesis-plugins:
+
 High-level Synthesis Plugins
 ----------------------------
 
@@ -262,7 +264,8 @@ for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesi
 the relevant objects.  For example, all :class:`.Clifford` operations have the
 :attr:`~.Operation.name` ``clifford``, so this is used as the keyword argument.  You can specify
 any keyword argument here that you have installed plugins to handle, including custom user objects
-if you have plugins installed for them.
+if you have plugins installed for them.  See :class:`.HLSConfig` for more detail on alternate
+formats for configuring the plugins within each argument.
 
 For each high-level object, the list of given plugins are tried in sequence until one of them
 succeeds (in the example above, each list only contains a single plugin). In addition to specifying
