@@ -32,7 +32,7 @@ class TestBasicProviderBackends(providers.ProviderTestCase):
                 backend_names = [backend_names]
             for backend_name in backend_names:
                 try:
-                    return provider.get_backend(backend_name).name()
+                    return provider.get_backend(backend_name).name
                 except QiskitBackendNotFoundError:
                     pass
             return None
@@ -47,9 +47,7 @@ class TestBasicProviderBackends(providers.ProviderTestCase):
                 with self.assertLogs("qiskit.providers.providerutils", level="WARNING") as context:
                     resolved_newname = _get_first_available_backend(BasicProvider(), newname)
                     real_backend = BasicProvider().get_backend(resolved_newname)
-                    self.assertEqual(
-                        BasicProvider().backends(oldname)[0].name(), real_backend.name()
-                    )
+                    self.assertEqual(BasicProvider().backends(oldname)[0].name, real_backend.name)
                 self.assertEqual(context.output, [expected])
 
     def test_aliases_fail(self):

@@ -21,11 +21,14 @@ The simulator is run using
 
    BasicSimulator().run(run_input)
 
-Where the input is a QuantumCircuit object and the output is a BasicProviderJob object, which can
-later be queried for the Result object. The result will contain a 'memory' data
+Where the input is a ``QuantumCircuit`` object and the output is a ``BasicProviderJob object``,
+which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
 
+from __future__ import annotations
+
+import copy
 import uuid
 import time
 import logging
@@ -35,99 +38,83 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit.utils.multiprocessing import local_hardware_info
-from qiskit.providers.models import QasmBackendConfiguration
-from qiskit.result import Result
-from qiskit.providers.backend import BackendV1
+from qiskit.circuit.gate import Gate
+from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.providers import convert_to_target, Provider
+from qiskit.providers.backend import BackendV2
+from qiskit.providers.models import BackendConfiguration, BackendProperties
+from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers.options import Options
-from qiskit.providers.basic_provider.basic_provider_job import BasicProviderJob
-from .exceptions import BasicProviderError
+from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
+from qiskit.result import Result
+from qiskit.transpiler import Target
+from qiskit.utils.multiprocessing import local_hardware_info
+
+from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
 from .basic_provider_tools import SINGLE_QUBIT_GATES
 from .basic_provider_tools import cx_gate_matrix
 from .basic_provider_tools import einsum_vecmul_index
+from .exceptions import BasicProviderError
 
 logger = logging.getLogger(__name__)
 
 
-class BasicSimulator(BackendV1):
-    """Python implementation of a quantum simulator."""
+class BasicSimulator(BackendV2):
+    """Python implementation of a basic (slow, non-efficient) quantum simulator. This implementation
+    was originally based on the :class:`.BackendV1` interface, and later migrated to :class:`.BackendV2`.
+    However, certain legacy methods and properties from :class:`.BackendV1` have been kept for
+    backwards compatibility purposes, these are:
+
+        #. :meth:`.BasicSimulator.configuration`
+        #. :meth:`.BasicSimulator.properties`
+        #. :meth:`.BasicSimulator.status`
+    """
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
-    DEFAULT_CONFIGURATION = {
-        "backend_name": "basic_simulator",
-        "backend_version": "2.1.0",
-        "n_qubits": min(24, MAX_QUBITS_MEMORY),
-        "url": "https://github.com/Qiskit/qiskit",
-        "simulator": True,
-        "local": True,
-        "conditional": True,
-        "open_pulse": False,
-        "memory": True,
-        "max_shots": 0,
-        "coupling_map": None,
-        "description": "A python simulator for quantum experiments",
-        "basis_gates": ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
-        "gates": [
-            {
-                "name": "h",
-                "parameters": [],
-                "qasm_def": "gate h q { U(pi/2,0,pi) q; }",
-            },
-            {
-                "name": "p",
-                "parameters": ["lambda"],
-                "qasm_def": "gate p(lambda) q { U(0,0,lambda) q; }",
-            },
-            {
-                "name": "u",
-                "parameters": ["theta", "phi", "lambda"],
-                "qasm_def": "gate u(theta,phi,lambda) q { U(theta,phi,lambda) q; }",
-            },
-            {
-                "name": "u1",
-                "parameters": ["lambda"],
-                "qasm_def": "gate u1(lambda) q { U(0,0,lambda) q; }",
-            },
-            {
-                "name": "u2",
-                "parameters": ["phi", "lambda"],
-                "qasm_def": "gate u2(phi,lambda) q { U(pi/2,phi,lambda) q; }",
-            },
-            {
-                "name": "u3",
-                "parameters": ["theta", "phi", "lambda"],
-                "qasm_def": "gate u3(theta,phi,lambda) q { U(theta,phi,lambda) q; }",
-            },
-            {"name": "rz", "parameters": ["phi"], "qasm_def": "gate rz(phi) q { U(0,0,phi) q; }"},
-            {
-                "name": "sx",
-                "parameters": [],
-                "qasm_def": "gate sx(phi) q { U(pi/2,7*pi/2,pi/2) q; }",
-            },
-            {"name": "x", "parameters": [], "qasm_def": "gate x q { U(pi,7*pi/2,pi/2) q; }"},
-            {"name": "cx", "parameters": [], "qasm_def": "gate cx c,t { CX c,t; }"},
-            {"name": "id", "parameters": [], "qasm_def": "gate id a { U(0,0,0) a; }"},
-            {"name": "unitary", "parameters": ["matrix"], "qasm_def": "unitary(matrix) q1, q2,..."},
-        ],
-    }
+    def __init__(
+        self,
+        configuration: BackendConfiguration | None = None,
+        provider: Provider | None = None,
+        target: Target | None = None,
+        **fields,
+    ) -> None:
 
-    DEFAULT_OPTIONS = {"initial_statevector": None, "chop_threshold": 1e-15}
+        """Initialize a :class:`.BackendV2`-based :class:`.BasicSimulator`.
 
-    # Class level variable to return the final state at the end of simulation
-    # This should be set to True for the statevector simulator
-    SHOW_FINAL_STATE = False
+        Args:
+            provider (Provider): An optional backwards reference to the
+                :class:`~qiskit.providers.Provider` object that the backend
+                is from.
+            configuration (BackendConfiguration): A backend configuration
+                object to set up the backend. Supported for backwards compatibility
+                with the :class:`.BackendV1` interface.
+            target (Target): An optional target to configure the simulator. If a target is
+                provided, it will override any configuration set
+                via the ``configuration`` input argument.
+            fields: kwargs for the values to use to override the default
+                options.
 
-    def __init__(self, configuration=None, provider=None, **fields):
+        Raises:
+            AttributeError: If a field is specified that's outside the backend's
+                options.
+        """
+
         super().__init__(
-            configuration=(
-                configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)
-            ),
             provider=provider,
+            name="basic_simulator",
+            description="A python simulator for quantum experiments",
+            backend_version="0.1",
             **fields,
         )
-        # Define attributes in __init__.
+
+        self._target = target
+        self._configuration = configuration
+        self._properties = None
+
+        # Internal simulator variables
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
         self._classical_register = 0
@@ -139,11 +126,108 @@ class BasicSimulator(BackendV1):
         self._initial_statevector = self.options.get("initial_statevector")
         self._chop_threshold = self.options.get("chop_threashold")
         self._qobj_config = None
-        # TEMP
         self._sample_measure = False
 
+    @property
+    def max_circuits(self) -> None:
+        return None
+
+    @property
+    def target(self) -> Target:
+
+        if not self._target:
+            if self._configuration is None:
+                return self._build_basic_target()
+            return convert_to_target(self._configuration, self._properties)
+        return self._target
+
+    def _build_basic_target(self) -> Target:
+        """Helper method that returns a minimal target with a basis gate set but
+        no coupling map, instruction properties or calibrations.
+
+        Returns:
+            Target: the configured target.
+        """
+        target = Target(
+            description="Basic Target",
+            num_qubits=min(24, self.MAX_QUBITS_MEMORY),
+        )
+        basis_gates = ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"]
+        required = ["measure", "delay", "reset"]
+        inst_mapping = get_standard_gate_name_mapping()
+        parameters = {"unitary": ["matrix"], "reset": []}
+        for name in basis_gates + required:
+            if name in inst_mapping:
+                instruction = inst_mapping[name]
+            else:
+                instruction = Gate(
+                    name=name,
+                    num_qubits=1 if name == "reset" else 0,
+                    params=list(map(Parameter, parameters.get(name, []))),
+                )
+            target.add_instruction(instruction, properties=None, name=name)
+        return target
+
+    def configuration(self) -> BackendConfiguration:
+        """Return the simulator backend configuration.
+
+        Returns:
+            BackendConfiguration: the configuration for the backend.
+        """
+        # The ``target`` input argument overrides the ``configuration`` if provided:
+        if self._configuration and not self._target:
+            return copy.copy(self._configuration)
+        else:
+            gates = [
+                {
+                    "name": name,
+                    "parameters": self.target.operation_from_name(name).params,
+                }
+                for name in self.target.operation_names
+            ]
+
+            return BackendConfiguration(
+                backend_name=self.name,
+                backend_version=self.backend_version,
+                n_qubits=self.num_qubits,
+                basis_gates=self.target.operation_names,
+                gates=gates,
+                local=True,
+                simulator=True,
+                conditional=True,
+                open_pulse=False,
+                memory=True,
+                max_shots=0,
+                coupling_map=None,
+                description="A python simulator for quantum experiments",
+            )
+
+    def properties(self) -> BackendProperties:
+        """Return the simulator backend properties if set.
+
+        Returns:
+            BackendProperties: The backend properties or ``None`` if the
+                               backend does not have properties set.
+        """
+        properties = copy.copy(self._properties)
+        return properties
+
+    def status(self) -> BackendStatus:
+        """Return the backend status.
+
+        Returns:
+            BackendStatus: the status of the backend.
+        """
+        return BackendStatus(
+            backend_name=self.name,
+            backend_version=self.backend_version,
+            operational=True,
+            pending_jobs=0,
+            status_msg="",
+        )
+
     @classmethod
-    def _default_options(cls):
+    def _default_options(cls) -> Options:
         return Options(
             shots=1024,
             memory=False,
@@ -154,25 +238,40 @@ class BasicSimulator(BackendV1):
             parameter_binds=None,
         )
 
-    def _add_unitary(self, gate, qubits):
-        """Apply an N-qubit unitary matrix.
+    def _set_options(
+        self, qobj_config: QasmQobjConfig | None = None, backend_options: dict | None = None
+    ) -> None:
+        """Set the backend options for all experiments in a qobj"""
+        # Reset default options
+        self._initial_statevector = self.options.get("initial_statevector")
+        self._chop_threshold = self.options.get("chop_threshold")
+        if "backend_options" in backend_options and backend_options["backend_options"]:
+            backend_options = backend_options["backend_options"]
 
-        Args:
-            gate (matrix_like): an N-qubit unitary matrix
-            qubits (list): the list of N-qubits.
-        """
-        # Get the number of qubits
-        num_qubits = len(qubits)
-        # Compute einsum index string for 1-qubit matrix multiplication
-        indexes = einsum_vecmul_index(qubits, self._number_of_qubits)
-        # Convert to complex rank-2N tensor
-        gate_tensor = np.reshape(np.array(gate, dtype=complex), num_qubits * [2, 2])
-        # Apply matrix multiplication
-        self._statevector = np.einsum(
-            indexes, gate_tensor, self._statevector, dtype=complex, casting="no"
-        )
+        # Check for custom initial statevector in backend_options first,
+        # then config second
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
+            self._initial_statevector = np.array(
+                backend_options["initial_statevector"], dtype=complex
+            )
+        elif hasattr(qobj_config, "initial_statevector"):
+            self._initial_statevector = np.array(qobj_config.initial_statevector, dtype=complex)
+        if self._initial_statevector is not None:
+            # Check the initial statevector is normalized
+            norm = np.linalg.norm(self._initial_statevector)
+            if round(norm, 12) != 1:
+                raise BasicProviderError(f"initial statevector is not normalized: norm {norm} != 1")
+        # Check for custom chop threshold
+        # Replace with custom options
+        if "chop_threshold" in backend_options:
+            self._chop_threshold = backend_options["chop_threshold"]
+        elif hasattr(qobj_config, "chop_threshold"):
+            self._chop_threshold = qobj_config.chop_threshold
 
-    def _get_measure_outcome(self, qubit):
+    def _get_measure_outcome(self, qubit: int) -> tuple[str, int]:
         """Simulate the outcome of measurement of a qubit.
 
         Args:
@@ -193,7 +292,75 @@ class BasicSimulator(BackendV1):
         # Else outcome was '1'
         return "1", probabilities[1]
 
-    def _add_sample_measure(self, measure_params, num_samples):
+    def _add_measure(self, qubit: int, cmembit: int, cregbit: int | None = None) -> None:
+        """Apply a measure instruction to a qubit.
+
+        Args:
+            qubit (int): qubit is the qubit measured.
+            cmembit (int): is the classical memory bit to store outcome in.
+            cregbit (int, optional): is the classical register bit to store outcome in.
+        """
+        # get measure outcome
+        outcome, probability = self._get_measure_outcome(qubit)
+        # update classical state
+        membit = 1 << cmembit
+        self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
+
+        if cregbit is not None:
+            regbit = 1 << cregbit
+            self._classical_register = (self._classical_register & (~regbit)) | (
+                int(outcome) << cregbit
+            )
+
+        # update quantum state
+        if outcome == "0":
+            update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
+        else:
+            update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
+        # update classical state
+        self._add_unitary(update_diag, [qubit])
+
+    def _add_unitary(self, gate: np.ndarray, qubits: list[int]) -> None:
+        """Apply an N-qubit unitary matrix.
+
+        Args:
+            gate (matrix_like): an N-qubit unitary matrix
+            qubits (list): the list of N-qubits.
+        """
+        # Get the number of qubits
+        num_qubits = len(qubits)
+        # Compute einsum index string for 1-qubit matrix multiplication
+        indexes = einsum_vecmul_index(qubits, self._number_of_qubits)
+        # Convert to complex rank-2N tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex), num_qubits * [2, 2])
+        # Apply matrix multiplication
+        self._statevector = np.einsum(
+            indexes, gate_tensor, self._statevector, dtype=complex, casting="no"
+        )
+
+    def _add_reset(self, qubit: int) -> None:
+        """Apply a reset instruction to a qubit.
+
+        Args:
+            qubit (int): the qubit being rest
+
+        This is done by doing a simulating a measurement
+        outcome and projecting onto the outcome state while
+        renormalizing.
+        """
+        # get measure outcome
+        outcome, probability = self._get_measure_outcome(qubit)
+        # update quantum state
+        if outcome == "0":
+            update = [[1 / np.sqrt(probability), 0], [0, 0]]
+            self._add_unitary(update, [qubit])
+        else:
+            update = [[0, 1 / np.sqrt(probability)], [0, 0]]
+            self._add_unitary(update, [qubit])
+
+    def _add_sample_measure(
+        self, measure_params: list[list[int, int]], num_samples: int
+    ) -> list[hex]:
         """Generate memory samples from current statevector.
 
         Args:
@@ -236,55 +403,18 @@ class BasicSimulator(BackendV1):
             memory.append(hex(int(value, 2)))
         return memory
 
-    def _add_qasm_measure(self, qubit, cmembit, cregbit=None):
-        """Apply a measure instruction to a qubit.
-
-        Args:
-            qubit (int): qubit is the qubit measured.
-            cmembit (int): is the classical memory bit to store outcome in.
-            cregbit (int, optional): is the classical register bit to store outcome in.
-        """
-        # get measure outcome
-        outcome, probability = self._get_measure_outcome(qubit)
-        # update classical state
-        membit = 1 << cmembit
-        self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
-
-        if cregbit is not None:
-            regbit = 1 << cregbit
-            self._classical_register = (self._classical_register & (~regbit)) | (
-                int(outcome) << cregbit
-            )
-
-        # update quantum state
-        if outcome == "0":
-            update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
+    def _initialize_statevector(self) -> None:
+        """Set the initial statevector for simulation"""
+        if self._initial_statevector is None:
+            # Set to default state of all qubits in |0>
+            self._statevector = np.zeros(2**self._number_of_qubits, dtype=complex)
+            self._statevector[0] = 1
         else:
-            update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
-        # update classical state
-        self._add_unitary(update_diag, [qubit])
+            self._statevector = self._initial_statevector.copy()
+        # Reshape to rank-N tensor
+        self._statevector = np.reshape(self._statevector, self._number_of_qubits * [2])
 
-    def _add_qasm_reset(self, qubit):
-        """Apply a reset instruction to a qubit.
-
-        Args:
-            qubit (int): the qubit being rest
-
-        This is done by doing a simulating a measurement
-        outcome and projecting onto the outcome state while
-        renormalizing.
-        """
-        # get measure outcome
-        outcome, probability = self._get_measure_outcome(qubit)
-        # update quantum state
-        if outcome == "0":
-            update = [[1 / np.sqrt(probability), 0], [0, 0]]
-            self._add_unitary(update, [qubit])
-        else:
-            update = [[0, 1 / np.sqrt(probability)], [0, 0]]
-            self._add_unitary(update, [qubit])
-
-    def _validate_initial_statevector(self):
+    def _validate_initial_statevector(self) -> None:
         """Validate an initial statevector"""
         # If initial statevector isn't set we don't need to validate
         if self._initial_statevector is None:
@@ -297,55 +427,28 @@ class BasicSimulator(BackendV1):
                 f"initial statevector is incorrect length: {length} != {required_dim}"
             )
 
-    def _set_options(self, qobj_config=None, backend_options=None):
-        """Set the backend options for all experiments in a qobj"""
-        # Reset default options
-        self._initial_statevector = self.options.get("initial_statevector")
-        self._chop_threshold = self.options.get("chop_threshold")
-        if "backend_options" in backend_options and backend_options["backend_options"]:
-            backend_options = backend_options["backend_options"]
-
-        # Check for custom initial statevector in backend_options first,
-        # then config second
-        if (
-            "initial_statevector" in backend_options
-            and backend_options["initial_statevector"] is not None
-        ):
-            self._initial_statevector = np.array(
-                backend_options["initial_statevector"], dtype=complex
+    def _validate(self, qobj: QasmQobj) -> None:
+        """Semantic validations of the qobj which cannot be done via schemas."""
+        n_qubits = qobj.config.n_qubits
+        max_qubits = self.configuration().n_qubits
+        if n_qubits > max_qubits:
+            raise BasicProviderError(
+                f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
+                f'for "{self.name}".'
             )
-        elif hasattr(qobj_config, "initial_statevector"):
-            self._initial_statevector = np.array(qobj_config.initial_statevector, dtype=complex)
-        if self._initial_statevector is not None:
-            # Check the initial statevector is normalized
-            norm = np.linalg.norm(self._initial_statevector)
-            if round(norm, 12) != 1:
-                raise BasicProviderError(f"initial statevector is not normalized: norm {norm} != 1")
-        # Check for custom chop threshold
-        # Replace with custom options
-        if "chop_threshold" in backend_options:
-            self._chop_threshold = backend_options["chop_threshold"]
-        elif hasattr(qobj_config, "chop_threshold"):
-            self._chop_threshold = qobj_config.chop_threshold
+        for experiment in qobj.experiments:
+            name = experiment.header.name
+            if experiment.config.memory_slots == 0:
+                logger.warning(
+                    'No classical registers in circuit "%s", counts will be empty.', name
+                )
+            elif "measure" not in [op.name for op in experiment.instructions]:
+                logger.warning(
+                    'No measurements in circuit "%s", classical register will remain all zeros.',
+                    name,
+                )
 
-    def _initialize_statevector(self):
-        """Set the initial statevector for simulation"""
-        if self._initial_statevector is None:
-            # Set to default state of all qubits in |0>
-            self._statevector = np.zeros(2**self._number_of_qubits, dtype=complex)
-            self._statevector[0] = 1
-        else:
-            self._statevector = self._initial_statevector.copy()
-        # Reshape to rank-N tensor
-        self._statevector = np.reshape(self._statevector, self._number_of_qubits * [2])
-
-    def _get_statevector(self):
-        """Return the current statevector"""
-        vec = np.reshape(self._statevector, 2**self._number_of_qubits)
-        vec[abs(vec) < self._chop_threshold] = 0.0
-        return vec
-
-    def _validate_measure_sampling(self, experiment):
+    def _validate_measure_sampling(self, experiment: QasmQobjExperiment) -> None:
         """Determine if measure sampling is allowed for an experiment
 
         Args:
@@ -385,49 +488,7 @@ class BasicSimulator(BackendV1):
             # measure sampling is allowed
             self._sample_measure = True
 
-    def run(self, run_input, **backend_options):
-        """Run on the backend.
-
-        Args:
-            run_input (QuantumCircuit or list): payload of the experiment
-            backend_options (dict): backend options
-
-        Returns:
-            BasicProviderJob: derived from BaseJob
-
-        Additional Information:
-            backend_options: Is a dict of options for the backend. It may contain
-                * "initial_statevector": vector_like
-
-            The "initial_statevector" option specifies a custom initial
-            initial statevector for the simulator to be used instead of the all
-            zero state. This size of this vector must be correct for the number
-            of qubits in ``run_input`` parameter.
-
-            Example::
-
-                backend_options = {
-                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
-                }
-        """
-        from qiskit.compiler import assemble
-
-        out_options = {}
-        for key in backend_options:
-            if not hasattr(self.options, key):
-                warnings.warn(
-                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
-                )
-            else:
-                out_options[key] = backend_options[key]
-        qobj = assemble(run_input, self, **out_options)
-        qobj_options = qobj.config
-        self._set_options(qobj_config=qobj_options, backend_options=backend_options)
-        job_id = str(uuid.uuid4())
-        job = BasicProviderJob(self, job_id, self._run_job(job_id, qobj))
-        return job
-
-    def _run_job(self, job_id, qobj):
+    def _run_job(self, job_id: str, qobj: QasmQobj) -> Result:
         """Run experiments in qobj
 
         Args:
@@ -447,8 +508,8 @@ class BasicSimulator(BackendV1):
             result_list.append(self.run_experiment(experiment))
         end = time.time()
         result = {
-            "backend_name": self.name(),
-            "backend_version": self._configuration.backend_version,
+            "backend_name": self.name,
+            "backend_version": self.backend_version,
             "qobj_id": qobj.qobj_id,
             "job_id": job_id,
             "results": result_list,
@@ -460,7 +521,7 @@ class BasicSimulator(BackendV1):
 
         return Result.from_dict(result)
 
-    def run_experiment(self, experiment):
+    def run_experiment(self, experiment: QasmQobjExperiment) -> dict[str, ...]:
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
@@ -493,8 +554,10 @@ class BasicSimulator(BackendV1):
         self._classical_register = 0
         self._sample_measure = False
         global_phase = experiment.header.global_phase
+
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
+
         # Get the seed looking in circuit, qobj, and then random.
         if hasattr(experiment.config, "seed_simulator"):
             seed_simulator = experiment.config.seed_simulator
@@ -542,7 +605,6 @@ class BasicSimulator(BackendV1):
                             value >>= 1
                         if value != int(operation.conditional.val, 16):
                             continue
-
                 # Check if single  gate
                 if operation.name == "unitary":
                     qubits = operation.qubits
@@ -564,7 +626,7 @@ class BasicSimulator(BackendV1):
                 # Check if reset
                 elif operation.name == "reset":
                     qubit = operation.qubits[0]
-                    self._add_qasm_reset(qubit)
+                    self._add_reset(qubit)
                 # Check if barrier
                 elif operation.name == "barrier":
                     pass
@@ -580,7 +642,7 @@ class BasicSimulator(BackendV1):
                         measure_sample_ops.append((qubit, cmembit))
                     else:
                         # If not sampling perform measurement as normal
-                        self._add_qasm_measure(qubit, cmembit, cregbit)
+                        self._add_measure(qubit, cmembit, cregbit)
                 elif operation.name == "bfunc":
                     mask = int(operation.mask, 16)
                     relation = operation.relation
@@ -617,7 +679,7 @@ class BasicSimulator(BackendV1):
                             int(outcome) << cmembit
                         )
                 else:
-                    backend = self.name()
+                    backend = self.name
                     err_msg = '{0} encountered unrecognized operation "{1}"'
                     raise BasicProviderError(err_msg.format(backend, operation.name))
 
@@ -636,14 +698,6 @@ class BasicSimulator(BackendV1):
         # Optionally add memory list
         if self._memory:
             data["memory"] = memory
-        # Optionally add final statevector
-        if self.SHOW_FINAL_STATE:
-            data["statevector"] = self._get_statevector()
-            # Remove empty counts and memory for statevector simulator
-            if not data["counts"]:
-                data.pop("counts")
-            if "memory" in data and not data["memory"]:
-                data.pop("memory")
         end = time.time()
         return {
             "name": experiment.header.name,
@@ -656,23 +710,46 @@ class BasicSimulator(BackendV1):
             "header": experiment.header.to_dict(),
         }
 
-    def _validate(self, qobj):
-        """Semantic validations of the qobj which cannot be done via schemas."""
-        n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
-        if n_qubits > max_qubits:
-            raise BasicProviderError(
-                f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
-                f'for "{self.name()}".'
-            )
-        for experiment in qobj.experiments:
-            name = experiment.header.name
-            if experiment.config.memory_slots == 0:
-                logger.warning(
-                    'No classical registers in circuit "%s", counts will be empty.', name
+    def run(
+        self, run_input: QuantumCircuit | list[QuantumCircuit], **backend_options
+    ) -> BasicProviderJob:
+        """Run on the backend.
+
+        Args:
+            run_input (QuantumCircuit or list): payload of the experiment
+            backend_options (dict): backend options
+
+        Returns:
+            BasicProviderJob: derived from BaseJob
+
+        Additional Information:
+            backend_options: Is a dict of options for the backend. It may contain
+                * "initial_statevector": vector_like
+
+            The "initial_statevector" option specifies a custom initial
+            initial statevector for the simulator to be used instead of the all
+            zero state. This size of this vector must be correct for the number
+            of qubits in ``run_input`` parameter.
+
+            Example::
+
+                backend_options = {
+                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+                }
+        """
+        from qiskit.compiler import assemble
+
+        out_options = {}
+        for key in backend_options:
+            if not hasattr(self.options, key):
+                warnings.warn(
+                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
                 )
-            elif "measure" not in [op.name for op in experiment.instructions]:
-                logger.warning(
-                    'No measurements in circuit "%s", classical register will remain all zeros.',
-                    name,
-                )
+            else:
+                out_options[key] = backend_options[key]
+        qobj = assemble(run_input, self, **out_options)
+        qobj_options = qobj.config
+        self._set_options(qobj_config=qobj_options, backend_options=backend_options)
+        job_id = str(uuid.uuid4())
+        job = BasicProviderJob(self, job_id, self._run_job(job_id, qobj))
+        return job

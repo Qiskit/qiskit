@@ -63,8 +63,8 @@ class TestSynthesis(CheckDecompositions):
         decomposer = TwoQubitBasisDecomposer(UnitaryGate(basis_unitary))
         self.check_exact_decomposition(random_unitary(4, seed=seeds[4]).data, decomposer)
 
-    @given(strategies.tuples(*[rotation] * 6), seed)
-    def test_cx_equivalence_0cx_random(self, rnd, seed):
+    @given(strategies.tuples(*[rotation] * 6))
+    def test_cx_equivalence_0cx_random(self, rnd):
         """Check random circuits with  0 cx gates locally equivalent to identity."""
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -75,8 +75,8 @@ class TestSynthesis(CheckDecompositions):
         unitary = Operator(qc)
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
 
-    @given(strategies.tuples(*[rotation] * 12), seed)
-    def test_cx_equivalence_1cx_random(self, rnd, seed):
+    @given(strategies.tuples(*[rotation] * 12))
+    def test_cx_equivalence_1cx_random(self, rnd):
         """Check random circuits with 1 cx gates locally equivalent to a cx."""
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -92,8 +92,8 @@ class TestSynthesis(CheckDecompositions):
         unitary = Operator(qc)
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
 
-    @given(strategies.tuples(*[rotation] * 18), seed)
-    def test_cx_equivalence_2cx_random(self, rnd, seed):
+    @given(strategies.tuples(*[rotation] * 18))
+    def test_cx_equivalence_2cx_random(self, rnd):
         """Check random circuits with 2 cx gates locally equivalent to some circuit with 2 cx."""
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
@@ -114,8 +114,8 @@ class TestSynthesis(CheckDecompositions):
         unitary = Operator(qc)
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
 
-    @given(strategies.tuples(*[rotation] * 24), seed)
-    def test_cx_equivalence_3cx_random(self, rnd, seed):
+    @given(strategies.tuples(*[rotation] * 24))
+    def test_cx_equivalence_3cx_random(self, rnd):
         """Check random circuits with 3 cx gates are outside the 0, 1, and 2 qubit regions."""
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)

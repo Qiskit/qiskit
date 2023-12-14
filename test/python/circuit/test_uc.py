@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,7 +25,7 @@ from scipy.linalg import block_diag
 
 from qiskit.circuit.library.generalized_gates import UCGate
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicProvider, execute
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile

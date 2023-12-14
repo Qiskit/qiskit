@@ -19,7 +19,7 @@ from math import pi
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase

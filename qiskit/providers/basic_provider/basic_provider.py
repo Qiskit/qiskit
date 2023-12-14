@@ -13,10 +13,13 @@
 
 """Provider for test simulator backends, formerly known as `BasicAer`."""
 
+from collections.abc import Callable
 from collections import OrderedDict
+
 import logging
 
 from qiskit.exceptions import QiskitError
+from qiskit.providers.backend import Backend
 from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import resolve_backend_name, filter_backends
@@ -32,13 +35,13 @@ SIMULATORS = [BasicSimulator]
 class BasicProvider(ProviderV1):
     """Provider for test simulators."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         # Populate the list of test backends (simulators)
         self._backends = self._verify_backends()
 
-    def get_backend(self, name=None, **kwargs):
+    def get_backend(self, name: str | None = None, **kwargs) -> Backend:
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution
@@ -56,7 +59,9 @@ class BasicProvider(ProviderV1):
 
         return super().get_backend(name=name, **kwargs)
 
-    def backends(self, name=None, filters=None, **kwargs):
+    def backends(
+        self, name: str | None = None, filters: Callable | None = None, **kwargs
+    ) -> list[Backend]:
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution
@@ -66,14 +71,20 @@ class BasicProvider(ProviderV1):
                 resolved_name = resolve_backend_name(
                     name, backends, self._deprecated_backend_names(), {}
                 )
-                backends = [backend for backend in backends if backend.name() == resolved_name]
+                new_backends = []
+                for backend in backends:
+                    if backend.version == 1 and backend.name() == resolved_name:
+                        new_backends.append(backend)
+                    elif backend.version == 2 and backend.name == resolved_name:
+                        new_backends.append(backend)
+                backends = new_backends
             except LookupError:
                 return []
 
         return filter_backends(backends, filters=filters, **kwargs)
 
     @staticmethod
-    def _deprecated_backend_names():
+    def _deprecated_backend_names() -> dict[str, str]:
         """Returns deprecated backend names."""
         return {
             "qasm_simulator_py": "basic_simulator",
@@ -81,7 +92,7 @@ class BasicProvider(ProviderV1):
             "local_qasm_simulator_py": "basic_simulator",
         }
 
-    def _verify_backends(self):
+    def _verify_backends(self) -> OrderedDict[str, Backend]:
         """
         Return the test backends in `BACKENDS` that are
         effectively available (as some of them might depend on the presence
@@ -94,11 +105,11 @@ class BasicProvider(ProviderV1):
         ret = OrderedDict()
         for backend_cls in SIMULATORS:
             backend_instance = self._get_backend_instance(backend_cls)
-            backend_name = backend_instance.name()
+            backend_name = backend_instance.name
             ret[backend_name] = backend_instance
         return ret
 
-    def _get_backend_instance(self, backend_cls):
+    def _get_backend_instance(self, backend_cls: type[Backend]) -> Backend:
         """
         Return an instance of a backend from its class.
 
@@ -117,5 +128,5 @@ class BasicProvider(ProviderV1):
 
         return backend_instance
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "BasicProvider"

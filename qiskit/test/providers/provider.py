@@ -56,4 +56,7 @@ class ProviderTestCase(QiskitTestCase):
     def test_get_backend(self):
         """Test getting a backend from the provider."""
         backend = self.provider.get_backend(name=self.backend_name)
-        self.assertEqual(backend.name(), self.backend_name)
+        if backend.version == 1:
+            self.assertEqual(backend.name(), self.backend_name)
+        else:
+            self.assertEqual(backend.name, self.backend_name)

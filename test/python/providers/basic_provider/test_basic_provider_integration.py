@@ -43,7 +43,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         self.assertEqual(self._result1.status, "COMPLETED")
         self.assertEqual(self._result1.results[0].status, "DONE")
 
-    def test_basicaer_execute(self):
+    def test_basicprovider_execute(self):
         """Test Compiler and run."""
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -56,7 +56,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         result = job.result()
         self.assertIsInstance(result, Result)
 
-    def test_basicaer_execute_two(self):
+    def test_basicprovider_execute_two(self):
         """Test Compiler and run."""
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -70,13 +70,13 @@ class TestBasicProviderIntegration(QiskitTestCase):
         result = job.result()
         self.assertIsInstance(result, Result)
 
-    def test_basicaer_num_qubits(self):
+    def test_basicprovider_num_qubits(self):
         """Test BasicProviderError is raised if num_qubits too large to simulate."""
         qc = QuantumCircuit(50, 1)
         qc.x(0)
         qc.measure(0, 0)
         with self.assertRaises(BasicProviderError):
-            execute(qc, self.backend)
+            self.backend.run(qc)
 
 
 if __name__ == "__main__":
