@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Utilities for providers."""
+from __future__ import annotations
 
 import logging
 from collections.abc import Callable
