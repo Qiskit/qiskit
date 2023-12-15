@@ -55,6 +55,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
          in the transpiler architecture it is best passed around between passes
          by being set in `property_set`.
     """
+
     @deprecate_func(
         "0.46",
         package_name="qiskit",
