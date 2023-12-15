@@ -13,6 +13,8 @@
 
 """Provider for test simulator backends, formerly known as `BasicAer`."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from collections import OrderedDict
 
