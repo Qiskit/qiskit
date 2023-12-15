@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """
-Exception for errors raised by the Test Provider.
+Exception for errors raised by the Basic Provider.
 """
 
 from qiskit.exceptions import QiskitError
 
 
 class BasicProviderError(QiskitError):
-    """Base class for errors raised by the Test Provider."""
+    """Base class for errors raised by the Basic Provider."""
 
     def __init__(self, *message):
         """Set the error message."""
