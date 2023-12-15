@@ -52,7 +52,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
     @deprecate_func(
-        "0.46",
+        since="0.46",
         package_name="qiskit",
         removal_timeline="in the 1.0.0 release",
     )

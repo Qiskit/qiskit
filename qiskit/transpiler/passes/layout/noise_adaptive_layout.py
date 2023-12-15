@@ -57,7 +57,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
     """
 
     @deprecate_func(
-        "0.46",
+        since="0.46",
         package_name="qiskit",
         removal_timeline="in the 1.0.0 release",
     )
