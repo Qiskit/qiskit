@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,7 @@ Example use of the initialize gate to prepare arbitrary pure states.
 """
 
 import math
-from qiskit import QuantumCircuit, execute, TestProvider
+from qiskit import QuantumCircuit, execute, BasicProvider
 
 
 ###############################################################
@@ -58,7 +58,7 @@ print("Desired probabilities: ")
 print([format(abs(x * x), ".3f") for x in desired_vector])
 
 # Initialize on local simulator
-sim_backend = TestProvider.get_backend("qasm_simulator")
+sim_backend = BasicProvider.get_backend("basic_simulator")
 job = execute(circuit, sim_backend, shots=shots)
 result = job.result()
 

@@ -18,14 +18,14 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import TestProvider
+from qiskit import BasicProvider
 from qiskit import execute
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = TestProvider.get_backend("test_simulator")
+backend = BasicProvider.get_backend("basic_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.

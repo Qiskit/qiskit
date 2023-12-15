@@ -75,7 +75,7 @@ class TestBasicSimulator(providers.BackendTestCase):
         """Check Total Job Submission Time is logged"""
         self.assertExecuteLog("Total Job Submission Time")
 
-    def test_qasm_simulator_single_shot(self):
+    def test_basic_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
         result = self.backend.run(
@@ -154,7 +154,7 @@ class TestBasicSimulator(providers.BackendTestCase):
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
 
-    def test_qasm_simulator(self):
+    def test_basic_simulator(self):
         """Test data counts output for single circuit run against reference."""
         result = self.backend.run(
             self.transpiled_circuit, shots=1000, seed_simulator=self.seed
