@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from collections import OrderedDict
+from typing import Type
 
 import logging
 
@@ -111,7 +112,7 @@ class BasicProvider(ProviderV1):
             ret[backend_name] = backend_instance
         return ret
 
-    def _get_backend_instance(self, backend_cls: type[Backend]) -> Backend:
+    def _get_backend_instance(self, backend_cls: Type[Backend]) -> Backend:
         """
         Return an instance of a backend from its class.
 
