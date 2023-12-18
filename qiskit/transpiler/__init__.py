@@ -1266,10 +1266,10 @@ from qiskit.passmanager import (
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager.compilation_status import PropertySet
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1277,7 +1277,6 @@ from .exceptions import (
     LayoutError,
     CircuitTooWideForTarget,
 )
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
