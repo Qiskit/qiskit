@@ -150,6 +150,28 @@ class AnnotatedOperation(Operation):
                 raise CircuitError(f"Unknown modifier {modifier}.")
         return operator
 
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        ctrl_state: int | str | None = None,
+    ):
+        """
+        Return the controlled version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
+            ctrl_state: The control state in decimal or as a bitstring
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+
+        Returns:
+            Controlled version of the given operation.
+        """
+        return AnnotatedOperation(
+            self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        )
+
 
 def _canonicalize_modifiers(modifiers):
     """

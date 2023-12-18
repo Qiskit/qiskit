@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from .annotated_operation import AnnotatedOperation, ControlModifier
 from .instruction import Instruction
 
 
@@ -107,7 +108,10 @@ class Gate(Instruction):
         label: str | None = None,
         ctrl_state: int | str | None = None,
     ):
-        """Return controlled version of gate. See :class:`.ControlledGate` for usage.
+        """
+        Return the controlled version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
 
         Args:
             num_ctrl_qubits: number of controls to add to gate (default: ``1``)
@@ -116,17 +120,11 @@ class Gate(Instruction):
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
 
         Returns:
-            qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses ``num_ctrl_qubits-1`` ancilla qubits so returns a gate of size
-            ``num_qubits + 2*num_ctrl_qubits - 1``.
-
-        Raises:
-            QiskitError: unrecognized mode or invalid ctrl_state
+            Controlled version of the given operation.
         """
-        # pylint: disable=cyclic-import
-        from .add_control import add_control
-
-        return add_control(self, num_ctrl_qubits, label, ctrl_state)
+        return AnnotatedOperation(
+            self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        )
 
     @staticmethod
     def _broadcast_single_argument(qarg: list) -> Iterator[tuple[list, list]]:
