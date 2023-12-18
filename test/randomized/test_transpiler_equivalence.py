@@ -144,7 +144,6 @@ layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
     None,
     "trivial",
     "dense",
-    "noise_adaptive",
     "sabre",
 ]
 routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [

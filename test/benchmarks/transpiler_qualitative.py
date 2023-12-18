@@ -21,7 +21,7 @@ from qiskit.test.mock import FakeToronto
 
 
 class TranspilerQualitativeBench:
-    params = ([0, 1, 2, 3], ["stochastic", "sabre"], ["dense", "noise_adaptive", "sabre"])
+    params = ([0, 1, 2, 3], ["stochastic", "sabre"], ["dense", "sabre"])
     param_names = ["optimization level", "routing method", "layout method"]
     timeout = 600
 

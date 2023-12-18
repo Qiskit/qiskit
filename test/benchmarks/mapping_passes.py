@@ -150,9 +150,6 @@ class PassBenchmarks:
     def time_set_layout(self, _, __):
         SetLayout(self.layout).run(self.fresh_dag)
 
-    def time_noise_adaptive_layout(self, _, __):
-        NoiseAdaptiveLayout(self.backend_props).run(self.fresh_dag)
-
     def time_sabre_layout(self, _, __):
         SabreLayout(self.coupling_map, seed=42).run(self.fresh_dag)
 
