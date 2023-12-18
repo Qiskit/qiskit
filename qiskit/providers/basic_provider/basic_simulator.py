@@ -134,11 +134,11 @@ class BasicSimulator(BackendV2):
 
     @property
     def target(self) -> Target:
-
         if not self._target:
             if self._configuration is None:
-                return self._build_basic_target()
-            return convert_to_target(self._configuration, self._properties)
+                self._target = self._build_basic_target()
+            else:
+                self._target = convert_to_target(self._configuration, self._properties)
         return self._target
 
     def _build_basic_target(self) -> Target:
@@ -154,8 +154,8 @@ class BasicSimulator(BackendV2):
         )
         basis_gates = ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"]
         required = ["measure", "delay", "reset"]
+        parameters = {"unitary": ["matrix"]}
         inst_mapping = get_standard_gate_name_mapping()
-        parameters = {"unitary": ["matrix"], "reset": []}
         for name in basis_gates + required:
             if name in inst_mapping:
                 instruction = inst_mapping[name]
@@ -186,7 +186,7 @@ class BasicSimulator(BackendV2):
                 for name in self.target.operation_names
             ]
 
-            return BackendConfiguration(
+            self._configuration = BackendConfiguration(
                 backend_name=self.name,
                 backend_version=self.backend_version,
                 n_qubits=self.num_qubits,
@@ -201,6 +201,7 @@ class BasicSimulator(BackendV2):
                 coupling_map=None,
                 description="A python simulator for quantum experiments",
             )
+            return copy.copy(self._configuration)
 
     def properties(self) -> BackendProperties:
         """Return the simulator backend properties if set.
