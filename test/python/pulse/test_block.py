@@ -777,7 +777,8 @@ class TestBlockFilter(BaseTestBlock):
                 pulse.delay(5, self.d0)
 
                 with pulse.build(self.backend) as cx_blk:
-                    pulse.cx(0, 1)
+                    with self.assertWarns(DeprecationWarning):
+                        pulse.cx(0, 1)
 
                 pulse.call(cx_blk)
 
