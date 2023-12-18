@@ -43,7 +43,7 @@ Linear-Phase Synthesis
 
 .. autofunction:: synth_cz_depth_line_mr
 .. autofunction:: synth_cx_cz_depth_line_my
- .. autofunction:: synth_cnot_phase_aam
+.. autofunction:: synth_cnot_phase_aam
 
 Permutation Synthesis
 =====================
