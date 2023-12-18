@@ -177,31 +177,31 @@ class BasicSimulator(BackendV2):
         # The ``target`` input argument overrides the ``configuration`` if provided:
         if self._configuration and not self._target:
             return copy.copy(self._configuration)
-        else:
-            gates = [
-                {
-                    "name": name,
-                    "parameters": self.target.operation_from_name(name).params,
-                }
-                for name in self.target.operation_names
-            ]
 
-            self._configuration = BackendConfiguration(
-                backend_name=self.name,
-                backend_version=self.backend_version,
-                n_qubits=self.num_qubits,
-                basis_gates=self.target.operation_names,
-                gates=gates,
-                local=True,
-                simulator=True,
-                conditional=True,
-                open_pulse=False,
-                memory=True,
-                max_shots=0,
-                coupling_map=None,
-                description="A python simulator for quantum experiments",
-            )
-            return copy.copy(self._configuration)
+        gates = [
+            {
+                "name": name,
+                "parameters": self.target.operation_from_name(name).params,
+            }
+            for name in self.target.operation_names
+        ]
+
+        self._configuration = BackendConfiguration(
+            backend_name=self.name,
+            backend_version=self.backend_version,
+            n_qubits=self.num_qubits,
+            basis_gates=self.target.operation_names,
+            gates=gates,
+            local=True,
+            simulator=True,
+            conditional=True,
+            open_pulse=False,
+            memory=True,
+            max_shots=0,
+            coupling_map=None,
+            description="A python simulator for quantum experiments",
+        )
+        return copy.copy(self._configuration)
 
     def properties(self) -> BackendProperties:
         """Return the simulator backend properties if set.
