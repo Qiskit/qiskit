@@ -1059,7 +1059,7 @@ modeled as follows:
     C ░░░░░░░░░░░░░░░░▒▒░
 
 However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
-this model. In the circuit representation, the corresponding :class:`.pulse.Qubit` is occupied
+this model. In the circuit representation, the corresponding :class:`.circuit.Qubit` is occupied
 by the stimulus microwave signal during the first half of the interval,
 and the :class:`.Clbit` is only occupied at the very end of the interval.
 

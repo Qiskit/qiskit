@@ -224,7 +224,7 @@ def _assemble_instructions(
     for time, instruction in sched.instructions:
 
         if isinstance(instruction, instructions.Play):
-            if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+            if isinstance(instruction.pulse, library.SymbolicPulse):
                 is_backend_supported = True
                 try:
                     pulse_shape = ParametricPulseShapes.from_instance(instruction.pulse).name
