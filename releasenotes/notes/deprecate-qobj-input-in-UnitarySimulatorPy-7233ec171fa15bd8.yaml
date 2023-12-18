@@ -3,8 +3,3 @@ deprecations:
   - |
     :class:`~qiskit.qobj.QasmQobj` input to :meth:`~qiskit.providers.basicaer.UnitarySimulatorPy.run` 
     is now deprecated and will be removed in the next major release.
-
-fixes:
-  - |
-    Documentation languange in ``unitary_simulator.py`` to be more generic to indicate the 
-    suported inputs- :class:`~qiskit.QuantumCircuit`, List or :class:`~qiskit.qobj.QasmQobj`.
