@@ -65,7 +65,7 @@ class PassManager(BasePassManager):
         input_program: QuantumCircuit,
         **kwargs,
     ) -> DAGCircuit:
-        return circuit_to_dag(input_program, copy_operations=False)
+        return circuit_to_dag(input_program, copy_operations=True)
 
     def _passmanager_backend(
         self,
@@ -73,7 +73,7 @@ class PassManager(BasePassManager):
         in_program: QuantumCircuit,
         **kwargs,
     ) -> QuantumCircuit:
-        out_program = dag_to_circuit(passmanager_ir)
+        out_program = dag_to_circuit(passmanager_ir, copy_operations=False)
 
         out_name = kwargs.get("output_name", None)
         if out_name is not None:
@@ -107,6 +107,7 @@ class PassManager(BasePassManager):
         since="0.25",
         additional_msg="'max_iteration' can be set in the constructor.",
         pending=True,
+        package_name="qiskit-terra",
     )
     def append(
         self,
@@ -163,6 +164,7 @@ class PassManager(BasePassManager):
         since="0.25",
         additional_msg="'max_iteration' can be set in the constructor.",
         pending=True,
+        package_name="qiskit-terra",
     )
     def replace(
         self,
@@ -336,7 +338,7 @@ class PassManager(BasePassManager):
 
 
 class StagedPassManager(PassManager):
-    """A Pass manager pipeline built up of individual stages
+    """A pass manager pipeline built from individual stages.
 
     This class enables building a compilation pipeline out of fixed stages.
     Each ``StagedPassManager`` defines a list of stages which are executed in
@@ -347,21 +349,23 @@ class StagedPassManager(PassManager):
     pass manager you are not able to modify the individual passes and are only able
     to modify stages.
 
-    By default instances of ``StagedPassManager`` define a typical full compilation
+    By default, instances of ``StagedPassManager`` define a typical full compilation
     pipeline from an abstract virtual circuit to one that is optimized and
     capable of running on the specified backend. The default pre-defined stages are:
 
-    #. ``init`` - any initial passes that are run before we start embedding the circuit to the backend
-    #. ``layout`` - This stage runs layout and maps the virtual qubits in the
-       circuit to the physical qubits on a backend
-    #. ``routing`` - This stage runs after a layout has been run and will insert any
-       necessary gates to move the qubit states around until it can be run on
-       backend's coupling map.
-    #. ``translation`` - Perform the basis gate translation, in other words translate the gates
-       in the circuit to the target backend's basis set
-    #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
-       optimize the circuit until a condition (such as fixed depth) is reached.
-    #. ``scheduling`` - Any hardware aware scheduling passes
+    #. ``init`` - Initial passes to run before embedding the circuit to the backend.
+    #. ``layout`` - Maps the virtual qubits in the circuit to the physical qubits on
+       the backend.
+    #. ``routing`` - Inserts gates as needed to move the qubit states around until
+       the circuit can be run with the chosen layout on the backend's coupling map.
+    #. ``translation`` - Translates the gates in the circuit to the target backend's
+       basis gate set.
+    #. ``optimization`` - Optimizes the circuit to reduce the cost of executing it.
+       These passes will typically run in a loop until a convergence criteria is met.
+       For example, the convergence criteria might be that the circuit depth does not
+       decrease in successive iterations.
+    #. ``scheduling`` - Hardware-aware passes that schedule the operations in the
+       circuit.
 
     .. note::
 

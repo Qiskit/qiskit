@@ -18,16 +18,20 @@ import unittest.mock
 
 import numpy as np
 
-from qiskit.circuit import Gate
-from qiskit.circuit import Parameter
-from qiskit.circuit import Instruction, InstructionSet
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Qubit, Clbit
-from qiskit.circuit.library.standard_gates.h import HGate
-from qiskit.circuit.library.standard_gates.rz import RZGate
-from qiskit.circuit.library.standard_gates.x import CXGate
-from qiskit.circuit.library.standard_gates.s import SGate
-from qiskit.circuit.library.standard_gates.t import TGate
+from qiskit.circuit import (
+    Gate,
+    Parameter,
+    Instruction,
+    InstructionSet,
+    QuantumCircuit,
+    QuantumRegister,
+    ClassicalRegister,
+    Qubit,
+    Clbit,
+    IfElseOp,
+)
+from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, TGate
+from qiskit.circuit.classical import expr
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
@@ -425,6 +429,26 @@ class TestInstructions(QiskitTestCase):
                 ins2.name, ins2.num_qubits, ins2.num_clbits, ins2.params
             ),
         )
+
+    def test_instruction_condition_bits(self):
+        """Test that the ``condition_bits`` property behaves correctly until it is deprecated and
+        removed."""
+        bits = [Clbit(), Clbit()]
+        cr1 = ClassicalRegister(2, "cr1")
+        cr2 = ClassicalRegister(2, "cr2")
+        body = QuantumCircuit(cr1, cr2, bits)
+
+        def key(bit):
+            return body.find_bit(bit).index
+
+        op = IfElseOp((bits[0], False), body)
+        self.assertEqual(op.condition_bits, [bits[0]])
+
+        op = IfElseOp((cr1, 3), body)
+        self.assertEqual(op.condition_bits, list(cr1))
+
+        op = IfElseOp(expr.logic_and(bits[1], expr.equal(cr2, 3)), body)
+        self.assertEqual(sorted(op.condition_bits, key=key), sorted([bits[1]] + list(cr2), key=key))
 
     def test_instructionset_c_if_direct_resource(self):
         """Test that using :meth:`.InstructionSet.c_if` with an exact classical resource always

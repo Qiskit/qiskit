@@ -75,7 +75,7 @@ def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
-    use_symengine: bool = False,
+    use_symengine: bool = True,
 ):
     """Write QPY binary data to a file
 
@@ -230,6 +230,12 @@ def load(
     # identify file header version
     version = struct.unpack("!6sB", file_obj.read(7))[1]
     file_obj.seek(0)
+
+    if version > common.QPY_VERSION:
+        raise QiskitError(
+            f"The QPY format version being read, {version}, isn't supported by "
+            "this Qiskit version. Please upgrade your version of Qiskit to load this QPY payload"
+        )
 
     if version < 10:
         data = formats.FILE_HEADER._make(
