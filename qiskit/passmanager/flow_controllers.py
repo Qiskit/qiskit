@@ -45,31 +45,6 @@ class FlowControllerLinear(BaseController):
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
 
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="All tasks must be provided at construction time of the controller object.",
-    )
-    def append(
-        self,
-        passes: Task | list[Task],
-    ):
-        """Add new task to pipeline.
-
-        Args:
-            passes: A new task or list of tasks to add.
-        """
-        if not isinstance(passes, Iterable):
-            passes = [passes]
-
-        tasks = list(self.tasks)
-        for task in passes:
-            if not isinstance(task, Task):
-                raise TypeError(
-                    f"New task {task} is not a valid pass manager pass or flow controller."
-                )
-            tasks.append(task)
-        self.tasks = tuple(tasks)
-
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         for task in self.tasks:
             state = yield task
@@ -100,31 +75,6 @@ class DoWhileController(BaseController):
     def passes(self) -> list[Task]:
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="All tasks must be provided at construction time of the controller object.",
-    )
-    def append(
-        self,
-        passes: Task | list[Task],
-    ):
-        """Add new task to pipeline.
-
-        Args:
-            passes: A new task or list of tasks to add.
-        """
-        if not isinstance(passes, Iterable):
-            passes = [passes]
-
-        tasks = list(self.tasks)
-        for task in passes:
-            if not isinstance(task, Task):
-                raise TypeError(
-                    f"New task {task} is not a valid pass manager pass or flow controller."
-                )
-            tasks.append(task)
-        self.tasks = tuple(tasks)
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         max_iteration = self._options.get("max_iteration", 1000)
@@ -160,31 +110,6 @@ class ConditionalController(BaseController):
     def passes(self) -> list[Task]:
         """Alias of tasks for backward compatibility."""
         return list(self.tasks)
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="All tasks must be provided at construction time of the controller object.",
-    )
-    def append(
-        self,
-        passes: Task | list[Task],
-    ):
-        """Add new task to pipeline.
-
-        Args:
-            passes: A new task or list of tasks to add.
-        """
-        if not isinstance(passes, Iterable):
-            passes = [passes]
-
-        tasks = list(self.tasks)
-        for task in passes:
-            if not isinstance(task, Task):
-                raise TypeError(
-                    f"New task {task} is not a valid pass manager pass or flow controller."
-                )
-            tasks.append(task)
-        self.tasks = tuple(tasks)
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         if self.condition(state.property_set):
