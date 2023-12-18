@@ -59,7 +59,6 @@ def cnot_synth(state, section_size=2):
     return synth_cnot_count_full_pmh(state, section_size=section_size)
 
 
-
 @deprecate_func(
     since="0.46.0",
     additional_msg="Instead, use the function ``synth_cnot_phase_aam`` from the module"
