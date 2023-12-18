@@ -585,7 +585,8 @@ the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 If you have made changes to the API documentation, you can run the commands below
 to build documentation locally to review the html output. 
 The easiest and recommended way to build the documentation is to use tox. 
-Once you run any of these command, the output will be located at `docs/_build/html`
+Once you run any of these command, the output will be located at `docs/_build/html`.
+Then, open up the file `index.html` in your browser.
 
 1. using [**tox**](https://tox.readthedocs.io/en/latest/#):
 
