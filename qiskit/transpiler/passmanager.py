@@ -32,7 +32,6 @@ from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
-from .runningpassmanager import RunningPassManager
 
 _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
@@ -230,12 +229,6 @@ class PassManager(BasePassManager):
 
         # When other is not identical type, _pass_sets is also evaluated by self.append.
         return new_passmanager
-
-    def to_flow_controller(self) -> RunningPassManager:
-        # For backward compatibility.
-        # This method will be resolved to the base class and return FlowControllerLinear
-        flatten_tasks = list(self._flatten_tasks(self._tasks))
-        return RunningPassManager(flatten_tasks)
 
     # pylint: disable=arguments-differ
     def run(
