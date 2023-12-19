@@ -424,7 +424,9 @@ class HighLevelSynthesis(TransformationPass):
             synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
             if isinstance(synthesized_op, AnnotatedOperation):
-                raise TranspilerError("HighLevelSynthesis failed to synthesize the base operation of an annotated operation.")
+                raise TranspilerError(
+                    "HighLevelSynthesis failed to synthesize the base operation of an annotated operation."
+                )
 
             for modifier in op.modifiers:
                 # If we have a DAGCircuit at this point, convert it to QuantumCircuit
@@ -441,8 +443,6 @@ class HighLevelSynthesis(TransformationPass):
                     if isinstance(synthesized_op, QuantumCircuit):
                         synthesized_op = synthesized_op.to_gate()
 
-                    assert getattr(synthesized_op, "control", None) is not None
-
                     synthesized_op = synthesized_op.control(
                         num_ctrl_qubits=modifier.num_ctrl_qubits,
                         label=None,
@@ -451,7 +451,9 @@ class HighLevelSynthesis(TransformationPass):
                     )
 
                     if isinstance(synthesized_op, AnnotatedOperation):
-                        raise TranspilerError("HighLevelSynthesis failed to synthesize the control modifier.")
+                        raise TranspilerError(
+                            "HighLevelSynthesis failed to synthesize the control modifier."
+                        )
 
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(synthesized_op)
