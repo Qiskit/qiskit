@@ -17,7 +17,6 @@ import numpy as np
 
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
-from qiskit.utils.deprecation import deprecate_func
 
 
 class AQCSynthesisPlugin(UnitarySynthesisPlugin):
@@ -102,12 +101,6 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         """The plugin does not support coupling maps."""
         return False
 
-    @deprecate_func(
-        since="0.46.0",
-        pending=True,
-        additional_msg="AQCSynthesisPlugin has been moved to qiskit.transpiler.passes.synthesis"
-        "instead use AQCSynthesisPlugin from qiskit.transpiler.passes.synthesis",
-    )
     def run(self, unitary, **options):
 
         # Runtime imports to avoid the overhead of these imports for

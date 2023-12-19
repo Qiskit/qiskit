@@ -31,7 +31,6 @@ The individual classes are:
     :template: autosummary/class_no_inherited_members.rst
 
     AQC
-    AQCSynthesisPlugin
     ApproximateCircuit
     ApproximatingObjective
     CNOTUnitCircuit
@@ -171,7 +170,6 @@ References:
 
 from .approximate import ApproximateCircuit, ApproximatingObjective
 from .aqc import AQC
-from .aqc_plugin import AQCSynthesisPlugin
 from .cnot_structures import make_cnot_network
 from .cnot_unit_circuit import CNOTUnitCircuit
 from .cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
