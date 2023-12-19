@@ -13,6 +13,7 @@
 Look-up table for variable parameters in QuantumCircuit.
 """
 import operator
+import typing
 from collections.abc import MappingView, MutableMapping, MutableSet
 
 
@@ -124,7 +125,7 @@ class ParameterTable(MutableMapping):
             self._table = {}
 
         self._keys = set(self._table)
-        self._names = {x.name for x in self._table}
+        self._names = {x.name: x for x in self._table}
 
     def __getitem__(self, key):
         return self._table[key]
@@ -149,7 +150,7 @@ class ParameterTable(MutableMapping):
 
         self._table[parameter] = refs
         self._keys.add(parameter)
-        self._names.add(parameter.name)
+        self._names[parameter.name] = parameter
 
     def get_keys(self):
         """Return a set of all keys in the parameter table
@@ -165,7 +166,16 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the names in the parameter table
         """
-        return self._names
+        return self._names.keys()
+
+    def parameter_from_name(self, name: str, default: typing.Any = None):
+        """Get a :class:`.Parameter` with references in this table by its string name, or return the
+        default if not present.
+
+        Args:
+            name: the name of the :class:`.Parameter`
+            default: the object that should be returned if the parameter is missing."""
+        return self._names.get(name, default)
 
     def discard_references(self, expression, key):
         """Remove all references to parameters contained within ``expression`` at the given table
@@ -181,7 +191,7 @@ class ParameterTable(MutableMapping):
     def __delitem__(self, key):
         del self._table[key]
         self._keys.discard(key)
-        self._names.discard(key.name)
+        del self._names[key.name]
 
     def __iter__(self):
         return iter(self._table)

@@ -1487,6 +1487,85 @@ class QuantumCircuit:
                     self._parameters = None
 
     @typing.overload
+    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]:
+        ...
+
+    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
+    @typing.overload
+    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter:
+        ...
+
+    # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
+    def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
+        """Retrieve a compile-time parameter that is accessible in this circuit scope by name.
+
+        Args:
+            name: the name of the parameter to retrieve.
+            default: if given, this value will be returned if the parameter is not present.  If it
+                is not given, a :exc:`KeyError` is raised instead.
+
+        Returns:
+            The corresponding parameter.
+
+        Raises:
+            KeyError: if no default is given, but the parameter does not exist in the circuit.
+
+        Examples:
+            Retrieve a parameter by name from a circuit::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                my_param = Parameter("my_param")
+
+                # Create a parametrised circuit.
+                qc = QuantumCircuit(1)
+                qc.rx(my_param, 0)
+
+                # We can use 'my_param' as a parameter, but let's say we've lost the Python object
+                # and need to retrieve it.
+                my_param_again = qc.get_parameter("my_param")
+
+                assert my_param is my_param_again
+
+            Get a variable from a circuit by name, returning some default if it is not present::
+
+                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("unknown_param", None) is None
+
+        See also:
+            :meth:`get_var`
+                A similar method, but for :class:`.expr.Var` run-time variables instead of
+                :class:`.Parameter` compile-time parameters.
+        """
+        if (parameter := self._parameter_table.parameter_from_name(name, None)) is None:
+            if default is Ellipsis:
+                raise KeyError(f"no parameter named '{name}' is present")
+            return default
+        return parameter
+
+    def has_parameter(self, name_or_param: str | Parameter, /) -> bool:
+        """Check whether a parameter object exists in this circuit.
+
+        Args:
+            name_or_param: the parameter, or name of a parameter to check.  If this is a
+                :class:`.Parameter` node, the parameter must be exactly the given one for this
+                function to return ``True``.
+
+        Returns:
+            whether a matching parameter is assignable in this circuit.
+
+        See also:
+            :meth:`QuantumCircuit.get_parameter`
+                Retrive the :class:`.Parameter` instance from this circuit by name.
+            :meth:`QuantumCircuit.has_var`
+                A similar method to this, but for run-time :class:`.expr.Var` variables instead of
+                compile-time :class:`.Parameter`\\ s.
+        """
+        if isinstance(name_or_param, str):
+            return self.get_parameter(name_or_param, None) is not None
+        return self.get_parameter(name_or_param.name) == name_or_param
+
+    @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]:
         ...
 
@@ -1529,6 +1608,11 @@ class QuantumCircuit:
 
                 assert qc.get_var("my_var", None) is my_var
                 assert qc.get_var("unknown_variable", None) is None
+
+        See also:
+            :meth:`get_parameter`
+                A similar method, but for :class:`.Parameter` compile-time parameters instead of
+                :class:`.expr.Var` run-time variables.
         """
         if (out := self._current_scope().get_var(name)) is not None:
             return out
@@ -1548,7 +1632,11 @@ class QuantumCircuit:
             whether a matching variable is accessible.
 
         See also:
-            :meth:`QuantumCircuit.get_var`: retrieve a named variable from a circuit.
+            :meth:`QuantumCircuit.get_var`
+                Retrive the :class:`.expr.Var` instance from this circuit by name.
+            :meth:`QuantumCircuit.has_parameter`
+                A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
+                run-time :class:`.expr.Var` variables.
         """
         if isinstance(name_or_var, str):
             return self.get_var(name_or_var, None) is not None
