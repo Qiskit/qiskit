@@ -2005,6 +2005,32 @@ class TestParameterExpressions(QiskitTestCase):
         bound = x.bind({x: 1 + 1j})
         self.assertEqual(bound.is_real(), False)
 
+    def test_numeric(self):
+        """Tests of the 'numeric' method."""
+        a, b = Parameter("a"), Parameter("b")
+        one_int = (1 + a).assign(a, 0)
+        self.assertIsInstance(one_int.numeric(), int)
+        self.assertEqual(one_int.numeric(), 1)
+        one_float = (1.0 + a).assign(a, 0.0)
+        self.assertIsInstance(one_float.numeric(), float)
+        self.assertEqual(one_float.numeric(), 1.0)
+        one_imaginary = (1j + a).assign(a, 0.0)
+        self.assertIsInstance(one_imaginary.numeric(), complex)
+        self.assertEqual(one_imaginary.numeric(), 1j)
+
+        # This is one particular case where symengine 0.9.2 (and probably others) struggles when
+        # evaluating in the complex domain, but gets the right answer if forced to the real domain.
+        # It appears more commonly because `symengine.Basic.subs` does not simplify the expression
+        # tree eagerly, so the `_symbol_expr` is `0.5 * (0.5)**2`.  Older symengines then introduce
+        # a spurious small imaginary component when evaluating this `Mul(x, Pow(y, z))` pattern in
+        # the complex domain.
+        problem = (0.5 * a * b).assign(b, 0.5).assign(a, 0.5)
+        self.assertIsInstance(problem.numeric(), float)
+        self.assertEqual(problem.numeric(), 0.125)
+
+        with self.assertRaisesRegex(TypeError, "unbound parameters"):
+            (a + b).numeric()
+
 
 class TestParameterEquality(QiskitTestCase):
     """Test equality of Parameters and ParameterExpressions."""
