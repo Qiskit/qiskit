@@ -582,26 +582,20 @@ the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
 ## Building API docs locally
 
-If you have made changes to the API documentation, you can run the commands below
+If you have made changes to the API documentation, you can run the command below
 to build documentation locally to review the html output. 
-The easiest and recommended way to build the documentation is to use tox. 
-Once you run any of these command, the output will be located at `docs/_build/html`.
-Then, open up the file `index.html` in your browser.
-
-1. using [**tox**](https://tox.readthedocs.io/en/latest/#):
+The easiest and recommended way to build the documentation is to use [**tox**](https://tox.readthedocs.io/en/latest/#):
 
 ```
 tox -edocs
 ```
 
-2. using [**sphinx-build**](https://www.sphinx-doc.org/en/master/man/sphinx-build.html):
-
-```
-sphinx-build -b html docs docs/_build/html
-```
+Once you run this command, the output will be located at `docs/_build/html`.
+Then, open up the file `index.html` in your browser.
 
 Sometimes Sphinx can get in a bad cache state. Run `tox -e docs-clean`
 to reset Sphinx's cache.
+
 ## Development cycle
 
 The development cycle for qiskit is all handled in the open using
