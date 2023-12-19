@@ -83,7 +83,7 @@ class Pauli(BasePauli):
     Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
     character. For example ``'XYZ'`` represents
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
-    ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
+    ``'Y'`` on qubit-1, and ``'X'`` on qubit-2.
 
     The string representation can be converted to a ``Pauli`` using the
     class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
