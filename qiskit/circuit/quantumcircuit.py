@@ -3081,15 +3081,7 @@ class QuantumCircuit:
                             target._parameter_table[parameter] = ParameterReferences(())
                         target._parameter_table[parameter].add((operation, index))
                     if not new_parameter.parameters:
-                        if new_parameter.is_real():
-                            new_parameter = (
-                                int(new_parameter)
-                                if new_parameter._symbol_expr.is_integer
-                                else float(new_parameter)
-                            )
-                        else:
-                            new_parameter = complex(new_parameter)
-                        new_parameter = operation.validate_parameter(new_parameter)
+                        new_parameter = operation.validate_parameter(new_parameter.numeric())
                 elif isinstance(assignee, QuantumCircuit):
                     new_parameter = assignee.assign_parameters(
                         {to_bind: bound_value}, inplace=False, flat_input=True
@@ -3130,9 +3122,9 @@ class QuantumCircuit:
                 for to_bind in contained:
                     parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
                 if not parameter.parameters:
-                    parameter = (
-                        int(parameter) if parameter._symbol_expr.is_integer else float(parameter)
-                    )
+                    parameter = parameter.numeric()
+                    if isinstance(parameter, complex):
+                        raise TypeError(f"Calibration cannot use complex number: '{parameter}'")
                 new_parameters[i] = parameter
                 modified = True
             if modified:
