@@ -599,6 +599,7 @@ tox -edocs
 ```
 sphinx-build -b html docs docs/_build/html
 ```
+
 Sometimes Sphinx can get in a bad cache state. Run `tox -e docs-clean`
 to reset Sphinx's cache.
 ## Development cycle
