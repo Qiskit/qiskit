@@ -3163,41 +3163,6 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
-    def bind_parameters(
-        self, values: Union[Mapping[Parameter, float], Sequence[float]]
-    ) -> "QuantumCircuit":
-        """Assign numeric parameters to values yielding a new circuit.
-
-        If the values are given as list or array they are bound to the circuit in the order
-        of :attr:`parameters` (see the docstring for more details).
-
-        To assign new Parameter objects or bind the values in-place, without yielding a new
-        circuit, use the :meth:`assign_parameters` method.
-
-        Args:
-            values: ``{parameter: value, ...}`` or ``[value1, value2, ...]``
-
-        Raises:
-            CircuitError: If values is a dict and contains parameters not present in the circuit.
-            TypeError: If values contains a ParameterExpression.
-
-        Returns:
-            Copy of self with assignment substitution.
-        """
-        if isinstance(values, dict):
-            if any(isinstance(value, ParameterExpression) for value in values.values()):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
-        else:
-            if any(isinstance(value, ParameterExpression) for value in values):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
-
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
         in the circuit.
