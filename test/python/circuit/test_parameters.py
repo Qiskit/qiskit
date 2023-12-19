@@ -12,7 +12,6 @@
 
 """Test circuits with variable parameters."""
 import unittest
-import warnings
 import cmath
 import math
 import copy
@@ -932,7 +931,7 @@ class TestParameters(QiskitTestCase):
         double_qc = qc.compose(qc)
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
 
-        bound_test_qc = qc.assign_parameters({theta: 1})
+        bound_test_qc = test_qc.assign_parameters({theta: 1})
         self.assertEqual(len(bound_test_qc.parameters), 0)
 
     def test_rebinding_instruction_copy(self):
