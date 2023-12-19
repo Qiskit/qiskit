@@ -350,8 +350,8 @@ def _format_key(key: tuple[Parameter | str, ...]):
 
 BindingsArrayLike = Union[
     BindingsArray,
-    NDArray,
-    "Mapping[Parameter, NDArray]",
-    "Sequence[NDArray]",
+    ArrayLike,
+    "Mapping[Parameter, ArrayLike]",
+    "Sequence[ArrayLike]",
     None,
 ]

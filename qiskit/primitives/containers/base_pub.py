@@ -30,7 +30,7 @@ class BasePub:
 
         Args:
             circuit: Quantum circuit object for the pubs.
-            validate: if True, the input data is validated during initizlization.
+            validate: if True, the input data is validated during initialization.
         """
         self._circuit = circuit
         if validate:

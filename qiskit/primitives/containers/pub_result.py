@@ -40,6 +40,6 @@ class PubResult:
         return self._data
 
     @property
-    def metadata(self) -> {}:
+    def metadata(self) -> dict:
         """Metadata for the pub"""
         return self._metadata
