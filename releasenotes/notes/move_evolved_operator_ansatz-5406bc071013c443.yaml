@@ -1,12 +1,9 @@
 ---
-features:
+upgrade:
   - |
-    Added :class:'n_local.EvolvedOperatorAnsatz' in the n_local directory. 
-    The basis of the class :class:'.EvolvedOperatorAnsatz' is NLocal and therefore
-    this is the correct directory.
-deprecations:
-  - |
-    The class :class:`.EvolvedOperatorAnsatz` is now deprecated and will be removed
-    from the codebase in no less than 3 months from the release date. Its functionality
-    was replaced with :class:`n_local.EvolvedOperatorAnsatz`, and can be totally
-    replaced by it. Please use :meth:`.n_local.EvolvedOperatorAnsatz` instead.
+    The class :class:`.EvolvedOperatorAnsatz` has been migrated from
+    :mod:`qiskit.circuit.library` to :mod:`qiskit.circuit.library.n_local` to match
+    the location of its base class. This move has not affected the usual import path
+    of the class: ``from qiskit.circuit.library import EvolvedOperatorAnsatz``, but
+    now it is also accessible doing ``from qiskit.circuit.library.n_local import
+    EvolvedOperatorAnsatz``.
