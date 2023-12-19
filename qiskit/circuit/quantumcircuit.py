@@ -3075,7 +3075,7 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
-        If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
+        If ``parameters`` is passed as a dictionary, the keys should be :class:`.Parameter`
         instances in the current circuit. The values of the dictionary can either be numeric values
         or new parameter objects.
 
@@ -3085,6 +3085,16 @@ class QuantumCircuit:
 
         The values can be assigned to the current circuit object or to a copy of it.
 
+        .. note::
+            When ``parameters`` is given as a mapping, it is permissible to have keys that are
+            strings of the parameter names; these will be looked up using :meth:`get_parameter`.
+            You can also have keys that are :class:`.ParameterVector` instances, and in this case,
+            the dictionary value should be a sequence of values of the same length as the vector.
+
+            If you use either of these cases, you must leave the setting ``flat_input=False``;
+            changing this to ``True`` enables the fast path, where all keys must be
+            :class:`.Parameter` instances.
+
         Args:
             parameters: Either a dictionary or iterable specifying the new parameter values.
             inplace: If False, a copy of the circuit with the bound parameters is returned.
@@ -3092,7 +3102,9 @@ class QuantumCircuit:
             flat_input: If ``True`` and ``parameters`` is a mapping type, it is assumed to be
                 exactly a mapping of ``{parameter: value}``.  By default (``False``), the mapping
                 may also contain :class:`.ParameterVector` keys that point to a corresponding
-                sequence of values, and these will be unrolled during the mapping.
+                sequence of values, and these will be unrolled during the mapping, or string keys,
+                which will be converted to :class:`.Parameter` instances using
+                :meth:`get_parameter`.
             strict: If ``False``, any parameters given in the mapping that are not used in the
                 circuit will be ignored.  If ``True`` (the default), an error will be raised
                 indicating a logic error.
@@ -3270,9 +3282,8 @@ class QuantumCircuit:
         )
         return None if inplace else target
 
-    @staticmethod
     def _unroll_param_dict(
-        parameter_binds: Mapping[Parameter, ParameterValueType]
+        self, parameter_binds: Mapping[Parameter, ParameterValueType]
     ) -> Mapping[Parameter, ParameterValueType]:
         out = {}
         for parameter, value in parameter_binds.items():
@@ -3283,6 +3294,8 @@ class QuantumCircuit:
                         f" but was assigned to {len(value)} values."
                     )
                 out.update(zip(parameter, value))
+            elif isinstance(parameter, str):
+                out[self.get_parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
