@@ -98,6 +98,7 @@ class XGate(SingletonGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-X gate.
 
@@ -108,6 +109,8 @@ class XGate(SingletonGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -219,6 +222,7 @@ class CXGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a controlled-X gate with more control lines.
 
@@ -227,6 +231,8 @@ class CXGate(SingletonControlledGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -389,6 +395,7 @@ class CCXGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
@@ -397,6 +404,8 @@ class CCXGate(SingletonControlledGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -718,6 +727,7 @@ class C3XGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
@@ -726,6 +736,8 @@ class C3XGate(SingletonControlledGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -934,6 +946,7 @@ class C4XGate(SingletonControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
@@ -942,6 +955,8 @@ class C4XGate(SingletonControlledGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -1063,6 +1078,7 @@ class MCXGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a multi-controlled-X gate with more control lines.
 
@@ -1071,6 +1087,8 @@ class MCXGate(ControlledGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.

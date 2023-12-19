@@ -423,6 +423,9 @@ class HighLevelSynthesis(TransformationPass):
             # This results in QuantumCircuit, DAGCircuit or Gate
             synthesized_op, _ = self._recursively_handle_op(op.base_op, qubits=None)
 
+            if isinstance(synthesized_op, AnnotatedOperation):
+                raise TranspilerError("HighLevelSynthesis failed to synthesize the base operation of an annotated operation.")
+
             for modifier in op.modifiers:
                 # If we have a DAGCircuit at this point, convert it to QuantumCircuit
                 if isinstance(synthesized_op, DAGCircuit):
@@ -438,25 +441,17 @@ class HighLevelSynthesis(TransformationPass):
                     if isinstance(synthesized_op, QuantumCircuit):
                         synthesized_op = synthesized_op.to_gate()
 
-                    if getattr(synthesized_op, "control", None) is not None:
-                        # Use instance-specific "control" method when available
-                        synthesized_op = synthesized_op.control(
-                            num_ctrl_qubits=modifier.num_ctrl_qubits,
-                            label=None,
-                            ctrl_state=modifier.ctrl_state,
-                        )
-                    else:
-                        # Add control (this creates a ControlledGate)
+                    assert getattr(synthesized_op, "control", None) is not None
 
-                        # pylint: disable=cyclic-import
-                        from qiskit.circuit.add_control import add_control
+                    synthesized_op = synthesized_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                        annotated=False,
+                    )
 
-                        synthesized_op = add_control(
-                            synthesized_op,
-                            num_ctrl_qubits=modifier.num_ctrl_qubits,
-                            label=None,
-                            ctrl_state=modifier.ctrl_state,
-                        )
+                    if isinstance(synthesized_op, AnnotatedOperation):
+                        raise TranspilerError("HighLevelSynthesis failed to synthesize the control modifier.")
 
                     # Unrolling
                     synthesized_op, _ = self._recursively_handle_op(synthesized_op)

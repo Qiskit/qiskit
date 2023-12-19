@@ -104,6 +104,7 @@ class U3Gate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-U3 gate.
 
@@ -112,6 +113,8 @@ class U3Gate(Gate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
@@ -120,7 +123,7 @@ class U3Gate(Gate):
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
             return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state, annotated=annotated)
 
     def _define(self):
         from qiskit.circuit.quantumcircuit import QuantumCircuit

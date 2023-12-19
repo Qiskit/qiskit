@@ -107,24 +107,39 @@ class Gate(Instruction):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
+        annotated: bool = False,
     ):
         """
         Return the controlled version of itself.
 
-        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+        Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
 
         Args:
             num_ctrl_qubits: number of controls to add to gate (default: ``1``)
-            label: optional gate label
-            ctrl_state: The control state in decimal or as a bitstring
+            label: optional gate label. Ignored if implemented as an annotated
+                operation.
+            ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             Controlled version of the given operation.
+
+        Raises:
+            QiskitError: unrecognized mode or invalid ctrl_state
         """
-        return AnnotatedOperation(
-            self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
-        )
+        if not annotated:
+            # pylint: disable=cyclic-import
+            from .add_control import add_control
+
+            return add_control(self, num_ctrl_qubits, label, ctrl_state)
+
+        else:
+            return AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
 
     @staticmethod
     def _broadcast_single_argument(qarg: list) -> Iterator[tuple[list, list]]:

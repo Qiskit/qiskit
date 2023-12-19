@@ -76,6 +76,7 @@ class RYGate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-RY gate.
 
@@ -84,6 +85,8 @@ class RYGate(Gate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
