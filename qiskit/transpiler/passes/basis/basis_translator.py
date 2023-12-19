@@ -339,7 +339,7 @@ class BasisTranslator(TransformationPass):
                 if not new_phase.parameters:
                     new_phase = new_phase.numeric()
                     if isinstance(new_phase, complex):
-                        raise TranspilerError(f"global phase must be real, but got '{new_phase}'")
+                        raise TranspilerError(f"Global phase must be real, but got '{new_phase}'")
                 bound_target_dag.global_phase = new_phase
         else:
             bound_target_dag = target_dag

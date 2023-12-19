@@ -507,7 +507,7 @@ class ParameterExpression:
         when they are involved.  If you want to assert that all floating-point calculations *were*
         carried out at infinite precision (i.e. :class:`float` could represent every intermediate
         value exactly), you can use :meth:`float.is_integer` to check if the return float represents
-        and integer and cast it using :class:`int` if so.  This would be an unusual pattern;
+        an integer and cast it using :class:`int` if so.  This would be an unusual pattern;
         typically one requires this by only ever using explicitly :class:`~numbers.Rational` objects
         while working with symbolic expressions.
 
@@ -524,7 +524,7 @@ class ParameterExpression:
         """
         if self._parameter_symbols:
             raise TypeError(
-                f"expression with unbound parameters '{self.parameters}' is not numeric"
+                f"Expression with unbound parameters '{self.parameters}' is not numeric"
             )
         if self._symbol_expr.is_integer:
             # Integer evaluation is reliable, as far as we know.

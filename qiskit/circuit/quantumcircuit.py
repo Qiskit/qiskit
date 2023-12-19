@@ -3124,7 +3124,7 @@ class QuantumCircuit:
                 if not parameter.parameters:
                     parameter = parameter.numeric()
                     if isinstance(parameter, complex):
-                        raise TypeError(f"calibration cannot use complex number: '{parameter}'")
+                        raise TypeError(f"Calibration cannot use complex number: '{parameter}'")
                 new_parameters[i] = parameter
                 modified = True
             if modified:
