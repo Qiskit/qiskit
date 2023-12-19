@@ -20,7 +20,7 @@ from itertools import chain
 from typing import Union
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
