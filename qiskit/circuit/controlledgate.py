@@ -210,7 +210,7 @@ class ControlledGate(Gate):
             CircuitError: ctrl_state is invalid.
         """
         self._ctrl_state = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
-        self._open_ctrl = self.ctrl_state < 2 ** self.num_ctrl_qubits - 1
+        self._open_ctrl = self.ctrl_state < 2**self.num_ctrl_qubits - 1
 
     @property
     def params(self):
