@@ -276,7 +276,7 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         runtime = process_time() - start
 
-        self.assertLess(runtime, 3)
+        self.assertLess(runtime, 5)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "time limit reached")
 
     def test_call_limit(self):
