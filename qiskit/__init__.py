@@ -44,16 +44,6 @@ sys.modules[
     "qiskit._accelerate.convert_2q_block_matrix"
 ] = qiskit._accelerate.convert_2q_block_matrix
 
-
-# Extend namespace for backwards compat
-from qiskit import namespace
-
-# Add hook to redirect imports from qiskit.providers.aer* to qiskit_aer*
-# this is necessary for backwards compatibility for users when qiskit-aer
-# and qiskit-terra shared the qiskit namespace
-new_meta_path_finder = namespace.QiskitElementImport("qiskit.providers.aer", "qiskit_aer")
-sys.meta_path = [new_meta_path_finder] + sys.meta_path
-
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
@@ -80,49 +70,6 @@ from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
-
-
-class AerWrapper:
-    """Lazy loading wrapper for Aer provider."""
-
-    def __init__(self):
-        self.aer = None
-
-    def __bool__(self):
-        if self.aer is None:
-            try:
-                from qiskit.providers import aer
-
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
-            except ImportError:
-                return False
-        return True
-
-    def __getattr__(self, attr):
-        if not self.aer:
-            try:
-                from qiskit.providers import aer
-
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
-            except ImportError as ex:
-                raise MissingOptionalLibraryError(
-                    "qiskit-aer", "Aer provider", "pip install qiskit-aer"
-                ) from ex
-        return getattr(self.aer, attr)
 
 
 class IBMQWrapper:
@@ -174,11 +121,9 @@ class IBMQWrapper:
         return getattr(self.ibmq, attr)
 
 
-Aer = AerWrapper()
 IBMQ = IBMQWrapper()
 
 __all__ = [
-    "Aer",
     "AncillaRegister",
     "BasicAer",
     "ClassicalRegister",
