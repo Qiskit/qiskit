@@ -2927,7 +2927,15 @@ class QuantumCircuit:
         return len(self._parameter_table)
 
     def _unsorted_parameters(self) -> set[Parameter]:
-        """Efficiently get all parameters in the circuit, without any sorting overhead."""
+        """Efficiently get all parameters in the circuit, without any sorting overhead.
+
+        .. warning::
+            The returned object may directly view onto the ``ParameterTable`` internals, and so
+            should not be mutated.  This is an internal performance detail.  Code outside of this
+            package should not use this method.
+        """
+        # This should be free, by accessing the actual backing data structure of the table, but that
+        # means that we need to copy it if adding keys from the global phase.
         return self._parameter_table.get_keys()
 
     @overload
@@ -3045,6 +3053,7 @@ class QuantumCircuit:
         # 'target' so we can take advantage of any caching we might be doing.
         if isinstance(parameters, dict):
             raw_mapping = parameters if flat_input else self._unroll_param_dict(parameters)
+            # Remember that we _must not_ mutate the output of `_unsorted_parameters`.
             our_parameters = self._unsorted_parameters()
             if strict and (extras := raw_mapping.keys() - our_parameters):
                 raise CircuitError(
