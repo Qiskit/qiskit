@@ -501,11 +501,11 @@ class _PulseBuilder:
         #: Backend: Backend instance for context builder.
         self._backend = backend
 
-        #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
-        self._backend_ctx_token = None
+        # Token for this ``_PulseBuilder``'s ``ContextVar``.
+        self._backend_ctx_token: contextvars.Token[_PulseBuilder] | None = None
 
-        #: List[ScheduleBlock]: Stack of context.
-        self._context_stack = []
+        # Stack of context.
+        self._context_stack: list[ScheduleBlock] = []
 
         #: str: Name of the output program
         self._name = name

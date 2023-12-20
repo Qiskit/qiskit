@@ -187,7 +187,7 @@ class AlignRight(AlignmentKind):
         return aligned
 
     @staticmethod
-    def _push_right_prepend(this: ScheduleComponent, other: ScheduleComponent) -> Schedule:
+    def _push_right_prepend(this: Schedule, other: ScheduleComponent) -> Schedule:
         """Return ``this`` with ``other`` inserted at the latest possible time
         such that ``other`` ends before it overlaps with any of ``this``.
 
@@ -214,9 +214,7 @@ class AlignRight(AlignmentKind):
             insert_time = this.stop_time - other.stop_time + other.start_time
 
         if insert_time < 0:
-            this.shift(
-                -insert_time, inplace=True
-            )  # TODO: this won't work if this is an Instruction
+            this.shift(-insert_time, inplace=True)
             this.insert(0, other, inplace=True)
         else:
             this.insert(insert_time, other, inplace=True)
