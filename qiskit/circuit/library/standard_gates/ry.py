@@ -40,12 +40,12 @@ class RYGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        RY(\theta) = \exp\left(-i \th Y\right) =
+        RY(\theta) = \exp\left(-i \rotationangle Y\right) =
             \begin{pmatrix}
-                \cos\left(\th\right) & -\sin\left(\th\right) \\
-                \sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -\sin\left(\rotationangle\right) \\
+                \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
@@ -132,15 +132,15 @@ class CRYGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CRY(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0         & 0 & 0 \\
-                0 & \cos\left(\th\right) & 0 & -\sin\left(\th\right) \\
+                0 & \cos\left(\rotationangle\right) & 0 & -\sin\left(\rotationangle\right) \\
                 0 & 0         & 1 & 0 \\
-                0 & \sin\left(\th\right) & 0 & \cos\left(\th\right)
+                0 & \sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -159,15 +159,15 @@ class CRYGate(ControlledGate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CRY(\theta)\ q_1, q_0 =
             |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos\left(\th\right) & -\sin\left(\th\right) \\
-                    0 & 0 & \sin\left(\th\right) & \cos\left(\th\right)
+                    0 & 0 & \cos\left(\rotationangle\right) & -\sin\left(\rotationangle\right) \\
+                    0 & 0 & \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
