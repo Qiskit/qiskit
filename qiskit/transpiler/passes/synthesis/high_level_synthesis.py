@@ -425,7 +425,8 @@ class HighLevelSynthesis(TransformationPass):
 
             if isinstance(synthesized_op, AnnotatedOperation):
                 raise TranspilerError(
-                    "HighLevelSynthesis failed to synthesize the base operation of an annotated operation."
+                    "HighLevelSynthesis failed to synthesize the base operation of"
+                    " an annotated operation."
                 )
 
             for modifier in op.modifiers:
