@@ -15,6 +15,7 @@ from __future__ import annotations
 from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -131,15 +132,24 @@ class U1Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
-        elif ctrl_state is None and num_ctrl_qubits > 1:
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+        if not annotated:
+            if num_ctrl_qubits == 1:
+                gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
+                gate.base_gate.label = self.label
+            elif ctrl_state is None and num_ctrl_qubits > 1:
+                gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+                gate.base_gate.label = self.label
+            else:
+                gate = super().control(
+                    num_ctrl_qubits=num_ctrl_qubits,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                    annotated=annotated,
+                )
         else:
-            return super().control(
-                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
             )
-        gate.base_gate.label = self.label
         return gate
 
     def inverse(self):
@@ -263,11 +273,22 @@ class CU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
-            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        if not annotated:
+            if ctrl_state is None:
+                gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
+                gate.base_gate.label = self.label
+            else:
+                gate = super().control(
+                    num_ctrl_qubits=num_ctrl_qubits,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                    annotated=annotated,
+                )
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
+        return gate
 
     def inverse(self):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
@@ -376,15 +397,20 @@ class MCU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCU1Gate(
-            self.params[0],
-            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-            label=label,
-            ctrl_state=new_ctrl_state,
-        )
-        gate.base_gate.label = self.label
+        if not annotated:
+            ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+            new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+            gate = MCU1Gate(
+                self.params[0],
+                num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                label=label,
+                ctrl_state=new_ctrl_state,
+            )
+            gate.base_gate.label = self.label
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
         return gate
 
     def inverse(self):

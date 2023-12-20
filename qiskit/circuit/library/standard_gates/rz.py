@@ -15,6 +15,7 @@ from cmath import exp
 from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
 
@@ -102,11 +103,22 @@ class RZGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        if not annotated:
+            if num_ctrl_qubits == 1:
+                gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
+                gate.base_gate.label = self.label
+            else:
+                gate = super().control(
+                    num_ctrl_qubits=num_ctrl_qubits,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                    annotated=annotated,
+                )
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
+        return gate
 
     def inverse(self):
         r"""Return inverted RZ gate

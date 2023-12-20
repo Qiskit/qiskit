@@ -19,6 +19,7 @@ import numpy
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
@@ -158,7 +159,7 @@ class UnitaryGate(Gate):
         label: int | None = None,
         ctrl_state: int | str | None = None,
         annotated: bool = False,
-    ) -> ControlledGate:
+    ) -> ControlledGate | AnnotatedOperation:
         """Return controlled version of gate.
 
         Args:
@@ -172,19 +173,25 @@ class UnitaryGate(Gate):
         Returns:
             Controlled version of gate.
         """
-        mat = self.to_matrix()
-        cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-        iso = Isometry(cmat, 0, 0)
-        return ControlledGate(
-            "c-unitary",
-            num_qubits=self.num_qubits + num_ctrl_qubits,
-            params=[mat],
-            label=label,
-            num_ctrl_qubits=num_ctrl_qubits,
-            definition=iso.definition,
-            ctrl_state=ctrl_state,
-            base_gate=self.copy(),
-        )
+        if not annotated:
+            mat = self.to_matrix()
+            cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
+            iso = Isometry(cmat, 0, 0)
+            gate = ControlledGate(
+                "c-unitary",
+                num_qubits=self.num_qubits + num_ctrl_qubits,
+                params=[mat],
+                label=label,
+                num_ctrl_qubits=num_ctrl_qubits,
+                definition=iso.definition,
+                ctrl_state=ctrl_state,
+                base_gate=self.copy(),
+            )
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
+        return gate
 
     def _qasm2_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the

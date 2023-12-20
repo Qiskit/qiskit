@@ -17,6 +17,7 @@ from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -107,18 +108,29 @@ class UGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
-            gate = CUGate(
-                self.params[0],
-                self.params[1],
-                self.params[2],
-                0,
-                label=label,
-                ctrl_state=ctrl_state,
+        if not annotated:
+            if num_ctrl_qubits == 1:
+                gate = CUGate(
+                    self.params[0],
+                    self.params[1],
+                    self.params[2],
+                    0,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                )
+                gate.base_gate.label = self.label
+            else:
+                gate = super().control(
+                    num_ctrl_qubits=num_ctrl_qubits,
+                    label=label,
+                    ctrl_state=ctrl_state,
+                    annotated=annotated,
+                )
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
             )
-            gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        return gate
 
     def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
