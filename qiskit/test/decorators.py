@@ -17,7 +17,6 @@ import collections.abc
 import functools
 import os
 import socket
-import sys
 from typing import Union, Callable, Type, Iterable
 import unittest
 
