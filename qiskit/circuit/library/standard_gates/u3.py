@@ -53,8 +53,9 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos\left(\rotationangle\right)          & -e^{i\lambda}\sin\left(\rotationangle\right) \\
-                e^{i\phi}\sin\left(\rotationangle\right) & e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
+                \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+                e^{i\phi}\sin\left(\rotationangle\right) &
+                e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::

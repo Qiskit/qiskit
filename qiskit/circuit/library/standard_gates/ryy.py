@@ -45,10 +45,10 @@ class RYYGate(Gate):
 
         R_{YY}(\theta) = \exp\left(-i \rotationangle Y{\otimes}Y\right) =
             \begin{pmatrix}
-                \cos\left(\rotationangle\right)   & 0           & 0           & i\sin\left(\rotationangle\right) \\
-                0           & \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) & 0 \\
-                0           & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)   & 0 \\
-                i\sin\left(\rotationangle\right)  & 0           & 0           & \cos\left(\rotationangle\right)
+                \cos\left(\rotationangle\right) & 0 & 0 & i\sin\left(\rotationangle\right) \\
+                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
+                i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     **Examples:**

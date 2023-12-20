@@ -47,10 +47,10 @@ class RZXGate(Gate):
 
         R_{ZX}(\theta)\ q_0, q_1 = \exp\left(-i \frac{\theta}{2} X{\otimes}Z\right) =
             \begin{pmatrix}
-                \cos\left(\rotationangle\right)   & 0          & -i\sin\left(\rotationangle\right)  & 0          \\
-                0           & \cos\left(\rotationangle\right)  & 0            & i\sin\left(\rotationangle\right) \\
-                -i\sin\left(\rotationangle\right) & 0          & \cos\left(\rotationangle\right)    & 0          \\
-                0           & i\sin\left(\rotationangle\right) & 0            & \cos\left(\rotationangle\right)
+                \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & \cos\left(\rotationangle\right) & 0 & i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right) & 0 \\
+                0 & i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
