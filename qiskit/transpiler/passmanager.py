@@ -17,7 +17,7 @@ import inspect
 import io
 import re
 import warnings
-from collections.abc import Iterator, Iterable, Callable
+from collections.abc import Iterator, Iterable, Callable, Sequence
 from functools import wraps
 from typing import Union, List, Any
 
@@ -25,8 +25,8 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task, BaseController
-from qiskit.passmanager.flow_controllers import FlowController
+from qiskit.passmanager.base_tasks import Task, BaseController, GenericPass
+from qiskit.passmanager.flow_controllers import FlowController, FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
@@ -51,9 +51,6 @@ class PassManager(BasePassManager):
             max_iteration: The maximum number of iterations the schedule will be looped if the
                 condition is not met.
         """
-        # For backward compatibility.
-        self._pass_sets = []
-
         super().__init__(
             tasks=passes,
             max_iteration=max_iteration,
@@ -140,15 +137,8 @@ class PassManager(BasePassManager):
         if max_iteration:
             self.max_iteration = max_iteration
 
-        # Backward compatibility as of Terra 0.25
         if isinstance(passes, Task):
             passes = [passes]
-        self._pass_sets.append(
-            {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        )
         if flow_controller_conditions:
             passes = _legacy_build_flow_controller(
                 passes,
@@ -184,16 +174,8 @@ class PassManager(BasePassManager):
         if max_iteration:
             self.max_iteration = max_iteration
 
-        # Backward compatibility as of Terra 0.25
         if isinstance(passes, Task):
             passes = [passes]
-        try:
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        except IndexError as ex:
-            raise PassManagerError(f"Index to replace {index} does not exists") from ex
         if flow_controller_conditions:
             passes = _legacy_build_flow_controller(
                 passes,
@@ -202,33 +184,6 @@ class PassManager(BasePassManager):
             )
 
         super().replace(index, passes)
-
-    def remove(self, index: int) -> None:
-        super().remove(index)
-
-        # Backward compatibility as of Terra 0.25
-        del self._pass_sets[index]
-
-    def __getitem__(self, index):
-        new_passmanager = super().__getitem__(index)
-
-        # Backward compatibility as of Terra 0.25
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
-        return new_passmanager
-
-    def __add__(self, other):
-        new_passmanager = super().__add__(other)
-
-        # Backward compatibility as of Terra 0.25
-        if isinstance(other, self.__class__):
-            new_passmanager._pass_sets = self._pass_sets
-            new_passmanager._pass_sets += other._pass_sets
-
-        # When other is not identical type, _pass_sets is also evaluated by self.append.
-        return new_passmanager
 
     # pylint: disable=arguments-differ
     def run(
@@ -319,15 +274,7 @@ class PassManager(BasePassManager):
         Returns:
             A list of pass sets, as defined in ``append()``.
         """
-        ret = []
-        for pass_set in self._pass_sets:
-            item = {"passes": pass_set["passes"]}
-            if pass_set["flow_controllers"]:
-                item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
-            else:
-                item["flow_controllers"] = {}
-            ret.append(item)
-        return ret
+        return _write_passes_recursive(self._tasks)
 
 
 class StagedPassManager(PassManager):
@@ -455,12 +402,10 @@ class StagedPassManager(PassManager):
 
     def _update_passmanager(self) -> None:
         self._tasks = []
-        self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
                 self._tasks += pm._tasks
-                self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
         if value == self and attr in self.expanded_stages:
@@ -497,10 +442,6 @@ class StagedPassManager(PassManager):
         # It returns instance of self.__class__ which is StagedPassManager.
         new_passmanager = PassManager(max_iteration=self.max_iteration)
         new_passmanager._tasks = self._tasks[index]
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
         return new_passmanager
 
     def __len__(self):
@@ -570,6 +511,100 @@ def _legacy_style_callback(callback: Callable):
         )
 
     return _wrapped_callable
+
+
+def _write_passes_recursive(tasks: BaseController | GenericPass | Sequence):
+    """Write passmanager passes list for visualization.
+
+    Conventionally, conditional flow controllers were initialized through .append() method
+    with keyword arguments.
+
+      pm = PassManager()
+      pm.append([PassA, PassB])
+      pm.append([PassC, PassD], condition=callable)
+      pm.append([PassE])
+
+    This controller kwargs was recorded in flow_controllers field in a pass list entry,
+    when the pass manager outputs the list with .passes() method.
+    Each entry in the pass list takes the following form:
+
+      {
+          "passes": [PassA, PassB],
+          "flow_controllers": {},
+      },
+      {
+          "passes": [PassC, PassD],
+          "flow_controllers": {"condition"},
+      },
+      {
+          "passes": [PassE],
+          "flow_controllers": {},
+      },
+
+    This append pattern is eliminated after Qiskit 1.0, and a user explicitly
+    builds conditional controller like below.
+
+      pm = PassManager(
+        [
+          PassA, PassB, ConditionalController([PassC, PassD]), PassE,
+        ]
+      )
+
+    Note that all passes are linearized in above construction pattern
+    in contrast to the legacy one that uses a nested list to group together
+    the passes appended at the same time.
+
+    Logically two constructions are the same because grouped passes doesn't impact
+    pass execution, but some context of construction might be lost.
+
+    This function loosely imitates the behavior of legacy pass information storage,
+    while building the pass list on the fly by digesting the pass manager instance.
+    """
+    controller = None
+
+    if isinstance(tasks, BaseController):
+        if not isinstance(tasks, FlowControllerLinear):
+            controller = tasks.name
+        # Assume linear pipeline.
+        # Current data structure cannot represent pipeline branching.
+        tasks = getattr(tasks, "tasks", [])
+    if isinstance(tasks, GenericPass):
+        return {
+            "passes": [tasks],
+            "flow_controllers": {},
+        }
+
+    dumped_tasks = []
+    for task in tasks:
+        inner_tasks = _write_passes_recursive(task)
+        if isinstance(inner_tasks, dict):
+            dumped_tasks.append(inner_tasks)
+        else:
+            dumped_tasks.extend(inner_tasks)
+
+    if controller:
+        # Post process if this is controller.
+        if len(dumped_tasks) == 1 and dumped_tasks[0]["flow_controllers"]:
+            # Single nested controller. Merge nested dictionary.
+            return {
+                "passes": dumped_tasks[0]["passes"],
+                "flow_controllers": {controller} | dumped_tasks[0]["flow_controllers"],
+            }
+        else:
+            tmp = {
+                "passes": [],
+                "flow_controllers": {controller},
+            }
+            for dumped_task in dumped_tasks:
+                if not dumped_task["flow_controllers"]:
+                    # Merge
+                    tmp["passes"].extend(dumped_task["passes"])
+                else:
+                    # Partly nested controller.
+                    # Append dict as-is to keep the nested controller name.
+                    tmp["passes"].append(dumped_task)
+            return tmp
+    return dumped_tasks
 
 
 def _legacy_build_flow_controller(

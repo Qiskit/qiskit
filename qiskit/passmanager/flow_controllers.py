@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 class FlowControllerLinear(BaseController):
     """A standard flow controller that runs tasks one after the other."""
 
+    name = "linear"
+
     def __init__(
         self,
         tasks: Task | Iterable[Task] = (),
@@ -56,6 +58,8 @@ class DoWhileController(BaseController):
 
     The given tasks will always run at least once, and on iteration of the loop, all the
     tasks will be run (with the exception of a failure state being set)."""
+
+    name = "do_while"
 
     def __init__(
         self,
@@ -91,6 +95,8 @@ class DoWhileController(BaseController):
 class ConditionalController(BaseController):
     """A flow controller runs the pipeline once if the condition is true, or does nothing if the
     condition is false."""
+
+    name = "condition"
 
     def __init__(
         self,

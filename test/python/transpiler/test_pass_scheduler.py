@@ -592,16 +592,18 @@ class TestUseCases(SchedulerTestCase):
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 
+    name = "do_x_times"
+
     def __init__(self, passes, options, do_x_times, **_):
         super().__init__(options)
-        self.passes = passes
+        self.tasks = passes
         self.do_x_times = do_x_times
 
     # pylint: disable=missing-function-docstring
     def iter_tasks(self, metadata):
         for _ in range(self.do_x_times(metadata.property_set)):
-            for pass_ in self.passes:
-                metadata = yield pass_
+            for task in self.tasks:
+                metadata = yield task
 
 
 class TestControlFlowPlugin(SchedulerTestCase):
@@ -696,8 +698,23 @@ class TestDumpPasses(SchedulerTestCase):
                 "flow_controllers": {},
                 "passes": [
                     PassC_TP_RA_PA(),
+                ],
+            },
+            {
+                "flow_controllers": {},
+                "passes": [
                     PassB_TP_RA_PA(),
+                ],
+            },
+            {
+                "flow_controllers": {},
+                "passes": [
                     PassD_TP_NR_NP(argument1=[1, 2]),
+                ],
+            },
+            {
+                "flow_controllers": {},
+                "passes": [
                     PassB_TP_RA_PA(),
                 ],
             }
@@ -709,7 +726,12 @@ class TestDumpPasses(SchedulerTestCase):
         passmanager = PassManager()
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_x_times", DoXTimesController)
-        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        controller = DoXTimesController(
+            [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+            options=None,
+            do_x_times=lambda x: 3,
+        )
+        passmanager.append(controller)
 
         expected = [
             {"passes": [PassB_TP_RA_PA(), PassC_TP_RA_PA()], "flow_controllers": {"do_x_times"}}

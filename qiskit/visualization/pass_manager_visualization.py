@@ -201,14 +201,25 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
 
     for pass_ in controller_group["passes"]:
 
-        # label is the name of the pass
-        node = pydot.Node(
-            str(component_id),
-            label=str(type(pass_).__name__),
-            color=_get_node_color(pass_, style),
-            shape="rectangle",
-            fontname="helvetica",
-        )
+        if isinstance(pass_, dict):
+            # Partly nested flow controller
+            # TODO recursively inject subgraph into subgraph
+            node = pydot.Node(
+                str(component_id),
+                label="Nested flow controller",
+                color="k",
+                shape="rectangle",
+                fontname="helvetica",
+            )
+        else:
+            # label is the name of the pass
+            node = pydot.Node(
+                str(component_id),
+                label=str(type(pass_).__name__),
+                color=_get_node_color(pass_, style),
+                shape="rectangle",
+                fontname="helvetica",
+            )
 
         subgraph.add_node(node)
         component_id += 1
