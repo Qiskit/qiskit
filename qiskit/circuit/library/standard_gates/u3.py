@@ -49,12 +49,13 @@ class U3Gate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
-                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+                e^{i\phi}\sin\left(\rotationangle\right) &
+                e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -165,16 +166,16 @@ class CU3Gate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CU3(\theta, \phi, \lambda)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
+                0 & \cos(\rotationangle)           & 0 & -e^{i\lambda}\sin(\rotationangle) \\
                 0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)}\cos(\th)
+                0 & e^{i\phi}\sin(\rotationangle)  & 0 & e^{i(\phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
 
     .. note::
@@ -199,8 +200,8 @@ class CU3Gate(ControlledGate):
                 \begin{pmatrix}
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                    0 & 0   & \cos(\rotationangle)          & -e^{i\lambda}\sin(\rotationangle) \\
+                    0 & 0   & e^{i\phi}\sin(\rotationangle) & e^{i(\phi+\lambda)}\cos(\rotationangle)
                 \end{pmatrix}
     """
 
