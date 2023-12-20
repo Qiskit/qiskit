@@ -104,7 +104,7 @@ class ControlledGate(Gate):
         self.num_ctrl_qubits = num_ctrl_qubits
         self.definition = copy.deepcopy(definition)
         self._ctrl_state = None
-        self.open_ctrl = None
+        self._open_ctrl = None
         self.ctrl_state = ctrl_state
         self._name = name
 
@@ -251,15 +251,6 @@ class ControlledGate(Gate):
         if self._definition:
             cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
-
-    @property
-    def _open_ctrl(self) -> bool:
-        """Return whether gate has any open controls"""
-        return self.open_ctrl
-
-    @_open_ctrl.setter
-    def _open_ctrl(self, open_ctrl):
-        self.open_ctrl = open_ctrl
 
     def __eq__(self, other) -> bool:
         return (
