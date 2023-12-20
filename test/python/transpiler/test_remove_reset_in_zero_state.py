@@ -97,7 +97,7 @@ class TestRemoveResetInZeroStateFixedPoint(QiskitTestCase):
         pass_manager.append(
             DoWhileController(
                 [RemoveResetInZeroState(), DAGFixedPoint()],
-                do_while=lambda property_set: not property_set["dag_fixed_point"]
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
             )
         )
         after = pass_manager.run(circuit)

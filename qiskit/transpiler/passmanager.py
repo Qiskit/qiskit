@@ -27,7 +27,6 @@ from qiskit.passmanager.passmanager import BasePassManager
 from qiskit.passmanager.base_tasks import Task, BaseController, GenericPass
 from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -97,58 +96,32 @@ class PassManager(BasePassManager):
 
         return out_program
 
-    @deprecate_arg(
-        name="max_iteration",
-        since="0.25",
-        additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
-    )
     def append(
         self,
         passes: Task | list[Task],
-        max_iteration: int = None,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
 
         Args:
-            passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
-                passes that are controlled by the same flow controller. If a single pass is
-                provided, the pass set will only have that pass a single element.
-                It is also possible to append a :class:`.BaseFlowController` instance and
-                the rest of the parameter will be ignored.
-            max_iteration: max number of iterations of passes.
+            passes: A set of transpiler passes to be added to schedule.
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-        if max_iteration:
-            self.max_iteration = max_iteration
-        super().append(passes)
+        super().append(tasks=passes)
 
-    @deprecate_arg(
-        name="max_iteration",
-        since="0.25",
-        additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
-    )
     def replace(
         self,
         index: int,
         passes: Task | list[Task],
-        max_iteration: int = None,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
         Args:
             index: Pass index to replace, based on the position in passes().
             passes: A pass set to be added to the pass manager schedule.
-            max_iteration: max number of iterations of passes.
         """
-        if max_iteration:
-            self.max_iteration = max_iteration
-        super().replace(index, passes)
+        super().replace(index, tasks=passes)
 
     # pylint: disable=arguments-differ
     def run(
@@ -382,7 +355,6 @@ class StagedPassManager(PassManager):
     def append(
         self,
         passes: Task | list[Task],
-        max_iteration: int = None,
     ) -> None:
         raise NotImplementedError
 
@@ -390,7 +362,6 @@ class StagedPassManager(PassManager):
         self,
         index: int,
         passes: BasePass | list[BasePass],
-        max_iteration: int = None,
     ) -> None:
         raise NotImplementedError
 

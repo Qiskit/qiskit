@@ -569,7 +569,7 @@ class TestUseCases(SchedulerTestCase):
                     nested_conditional,
                     PassF_reduce_dag_property(),
                 ],
-                do_while=lambda property_set: not property_set["property_fixed_point"]
+                do_while=lambda property_set: not property_set["property_fixed_point"],
             )
         )
         expected = [
