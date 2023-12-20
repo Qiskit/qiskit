@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Use of the :attr:`qiskit.Aer` object is deprecated and will be removed in Qiskit 1.0.  You
+    should instead use the same object from the ``qiskit_aer`` namespace, which is a drop-in
+    replacement.
+  - |
+    Importing from ``qiskit.providers.aer`` is deprecated and will stop working in Qiskit 1.0.  You
+    should instead import from ``qiskit_aer``, which is a drop-in replacement.

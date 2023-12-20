@@ -102,34 +102,34 @@ class AerWrapper:
 
     def __bool__(self):
         if self.aer is None:
+            warnings.warn(
+                "The qiskit.Aer entry point will be deprecated in a future release and "
+                "subsequently removed. Instead you should use this "
+                "directly from the root of the qiskit-aer package.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError:
                 return False
         return True
 
     def __getattr__(self, attr):
         if not self.aer:
+            warnings.warn(
+                "The qiskit.Aer entry point will be deprecated in a future release and "
+                "subsequently removed. Instead you should use this "
+                "directly from the root of the qiskit-aer package.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"
@@ -145,40 +145,39 @@ class IBMQWrapper:
 
     def __bool__(self):
         if self.ibmq is None:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
             except ImportError:
                 return False
         return True
 
     def __getattr__(self, attr):
         if not self.ibmq:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                "'qiskit_ibm_provider.IBMProvider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
-                    "'qiskit_ibm_provider.IBMProvider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"

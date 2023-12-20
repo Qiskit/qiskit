@@ -67,7 +67,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_coefficients_correctly_propagated(self):
         """Test that the coefficients in SummedOp and states are correctly used."""
         try:
-            from qiskit.providers.aer import Aer
+            from qiskit_aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
@@ -95,7 +95,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_is_measurement_correctly_propagated(self):
         """Test if is_measurement property of StateFn is propagated to converted StateFn."""
         try:
-            from qiskit.providers.aer import Aer
+            from qiskit_aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
@@ -110,7 +110,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_parameter_binding_on_listop(self):
         """Test passing a ListOp with differing parameters works with the circuit sampler."""
         try:
-            from qiskit.providers.aer import Aer
+            from qiskit_aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
@@ -146,7 +146,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_single_parameter_binds(self):
         """Test passing parameter binds as a dictionary to the circuit sampler."""
         try:
-            from qiskit.providers.aer import Aer
+            from qiskit_aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
@@ -166,7 +166,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_circuit_sampler_caching(self, caching):
         """Test caching all operators works."""
         try:
-            from qiskit.providers.aer import Aer
+            from qiskit_aer import Aer
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
             return
@@ -219,7 +219,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_quantum_instance_with_backend_shots(self):
         """Test sampling a circuit where the backend has shots attached."""
         try:
-            from qiskit.providers.aer import AerSimulator
+            from qiskit_aer import AerSimulator
         except Exception as ex:  # pylint: disable=broad-except
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
 

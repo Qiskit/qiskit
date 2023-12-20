@@ -17,6 +17,7 @@
 import sys
 from importlib.abc import MetaPathFinder, Loader
 import importlib
+import warnings
 
 
 def _new_namespace(fullname, old_namespace, new_package):
@@ -34,6 +35,12 @@ class QiskitLoader(Loader):
         super().__init__()
         self.new_package = new_package
         self.old_namespace = old_namespace
+        warnings.warn(
+            f"Importing from '{self.old_namespace}' is deprecated."
+            f" Import from '{self.new_package}' instead, which should work identically.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
 
     def module_repr(self, module):
         return repr(module)
