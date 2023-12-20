@@ -2930,6 +2930,7 @@ class QuantumCircuit:
         """Efficiently get all parameters in the circuit, without any sorting overhead.
 
         .. warning::
+
             The returned object may directly view onto the ``ParameterTable`` internals, and so
             should not be mutated.  This is an internal performance detail.  Code outside of this
             package should not use this method.
