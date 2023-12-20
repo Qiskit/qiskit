@@ -16,7 +16,6 @@ from __future__ import annotations
 import inspect
 import io
 import re
-import warnings
 from collections.abc import Iterator, Iterable, Callable, Sequence
 from functools import wraps
 from typing import Union, List, Any
@@ -26,7 +25,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.passmanager import BasePassManager
 from qiskit.passmanager.base_tasks import Task, BaseController, GenericPass
-from qiskit.passmanager.flow_controllers import FlowController, FlowControllerLinear
+from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from qiskit.utils.deprecation import deprecate_arg
 from .basepasses import BasePass
@@ -109,7 +108,6 @@ class PassManager(BasePassManager):
         self,
         passes: Task | list[Task],
         max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
 
@@ -120,32 +118,12 @@ class PassManager(BasePassManager):
                 It is also possible to append a :class:`.BaseFlowController` instance and
                 the rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                Following built-in controllers are available by default:
-
-                * do_while: The passes repeat until the callable returns False.  Corresponds to
-                  :class:`.DoWhileController`.
-                * condition: The passes run only if the callable returns True.  Corresponds to
-                  :class:`.ConditionalController`.
-
-                In general, you have more control simply by creating the controller you want and
-                passing it to :meth:`append`.
 
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
         if max_iteration:
             self.max_iteration = max_iteration
-
-        if isinstance(passes, Task):
-            passes = [passes]
-        if flow_controller_conditions:
-            passes = _legacy_build_flow_controller(
-                passes,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
-
         super().append(passes)
 
     @deprecate_arg(
@@ -160,7 +138,6 @@ class PassManager(BasePassManager):
         index: int,
         passes: Task | list[Task],
         max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
 
@@ -168,21 +145,9 @@ class PassManager(BasePassManager):
             index: Pass index to replace, based on the position in passes().
             passes: A pass set to be added to the pass manager schedule.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                See :meth:`qiskit.transpiler.PassManager.append` for details.
         """
         if max_iteration:
             self.max_iteration = max_iteration
-
-        if isinstance(passes, Task):
-            passes = [passes]
-        if flow_controller_conditions:
-            passes = _legacy_build_flow_controller(
-                passes,
-                options={"max_iteration": self.max_iteration},
-                **flow_controller_conditions,
-            )
-
         super().replace(index, passes)
 
     # pylint: disable=arguments-differ
@@ -418,7 +383,6 @@ class StagedPassManager(PassManager):
         self,
         passes: Task | list[Task],
         max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         raise NotImplementedError
 
@@ -427,7 +391,6 @@ class StagedPassManager(PassManager):
         index: int,
         passes: BasePass | list[BasePass],
         max_iteration: int = None,
-        **flow_controller_conditions: Any,
     ) -> None:
         raise NotImplementedError
 
@@ -605,41 +568,3 @@ def _write_passes_recursive(tasks: BaseController | GenericPass | Sequence):
                     tmp["passes"].append(dumped_task)
             return tmp
     return dumped_tasks
-
-
-def _legacy_build_flow_controller(
-    tasks: list[Task],
-    options: dict[str, Any],
-    **flow_controller_conditions,
-) -> BaseController:
-    """A legacy method to build flow controller with keyword arguments.
-
-    Args:
-        tasks: A list of tasks fed into custom flow controllers.
-        options: Option for flow controllers.
-        flow_controller_conditions: Callables keyed on the alias of the flow controller.
-
-    Returns:
-        A built controller.
-    """
-    warnings.warn(
-        "Building a flow controller with keyword arguments is going to be deprecated. "
-        "Custom controllers must be explicitly instantiated and appended to the task list.",
-        PendingDeprecationWarning,
-        stacklevel=3,
-    )
-    if isinstance(tasks, Task):
-        tasks = [tasks]
-    if any(not isinstance(t, Task) for t in tasks):
-        raise TypeError("Added tasks are not all valid pass manager task types.")
-    # Alias in higher hierarchy becomes outer controller.
-    for alias in FlowController.hierarchy[::-1]:
-        if alias not in flow_controller_conditions:
-            continue
-        class_type = FlowController.registered_controllers[alias]
-        init_kwargs = {
-            "options": options,
-            alias: flow_controller_conditions.pop(alias),
-        }
-        tasks = class_type(tasks, **init_kwargs)
-    return tasks
