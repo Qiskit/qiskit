@@ -40,11 +40,11 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
+    "sphinxcontrib.katex",
 ]
 
 templates_path = ["_templates"]
