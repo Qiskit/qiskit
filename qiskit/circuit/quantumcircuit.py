@@ -1008,6 +1008,10 @@ class QuantumCircuit:
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
                     f" match number of qubits in the circuit ({len(other.qubits)})."
                 )
+            if len(set(mapped_qubits)) != len(mapped_qubits):
+                raise CircuitError(
+                    f"Duplicate qubits referenced in 'qubits' parameter: '{mapped_qubits}'"
+                )
             edge_map.update(zip(other.qubits, mapped_qubits))
 
         if clbits is None:
@@ -1018,6 +1022,10 @@ class QuantumCircuit:
                 raise CircuitError(
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
                     f" match number of clbits in the circuit ({len(other.clbits)})."
+                )
+            if len(set(mapped_clbits)) != len(mapped_clbits):
+                raise CircuitError(
+                    f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
