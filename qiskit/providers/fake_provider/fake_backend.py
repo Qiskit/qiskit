@@ -348,7 +348,7 @@ class FakeBackendV2(BackendV2):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:  # pulse job
-            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
+            raise QiskitError("Pulse simulation is currently not supported for fake backends.")
         # circuit job
         if not _optionals.HAS_AER:
             warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
@@ -552,20 +552,12 @@ class FakeBackend(BackendV1):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:
-            if _optionals.HAS_AER:
-                from qiskit_aer import Aer
-                from qiskit_aer.pulse import PulseSystemModel
-
-                system_model = PulseSystemModel.from_backend(self)
-                sim = Aer.get_backend("pulse_simulator")
-                job = sim.run(circuits, system_model=system_model, **kwargs)
-            else:
-                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-        else:
-            if self.sim is None:
-                self._setup_sim()
-            if not _optionals.HAS_AER:
-                warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            self.sim._options = self._options
-            job = self.sim.run(circuits, **kwargs)
+            raise QiskitError("Pulse simulation is currently not supported for fake backends.")
+        # circuit job
+        if not _optionals.HAS_AER:
+            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        if self.sim is None:
+            self._setup_sim()
+        self.sim._options = self._options
+        job = self.sim.run(circuits, **kwargs)
         return job
