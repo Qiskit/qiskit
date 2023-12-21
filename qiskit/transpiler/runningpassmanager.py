@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 class RunningPassManager(FlowControllerLinear):
     """A RunningPassManager is a running pass manager.
 
-    .. deprecate:: 0.46
+    .. deprecated:: 0.46
 
         :class:`.RunningPassManager` is a subclass of :class:`.FlowControllerLinear`
         and these classes are largely equivalent.

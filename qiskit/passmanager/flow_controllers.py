@@ -195,7 +195,7 @@ class ConditionalController(BaseController):
 class FlowController(BaseController):
     """A legacy factory for other flow controllers.
 
-    .. deprecate:: 0.46
+    .. deprecated:: 0.46
 
         This class was deprecated. This will be removed in Qiskit 1.0.
 

@@ -20,7 +20,7 @@ class FencedObject:
     """Given an instance and a list of attributes to fence, raises a TranspilerError when one
     of these attributes is accessed.
 
-    .. deprecate:: 0.46
+    .. deprecated:: 0.46
 
         This class was deprecated. This will be removed in Qiskit 1.0.
     """
@@ -71,7 +71,7 @@ class FencedObject:
 class FencedPropertySet(FencedObject):
     """A property set that cannot be written (via __setitem__)
 
-    .. deprecate:: 0.46
+    .. deprecated:: 0.46
 
         This class was deprecated. This will be removed in Qiskit 1.0.
     """
@@ -83,7 +83,7 @@ class FencedPropertySet(FencedObject):
 class FencedDAGCircuit(FencedObject):
     """A dag circuit that cannot be modified (via remove_op_node)
 
-    .. deprecate:: 0.46
+    .. deprecated:: 0.46
 
         This class was deprecated. This will be removed in Qiskit 1.0.
     """
