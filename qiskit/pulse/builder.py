@@ -413,6 +413,7 @@ from __future__ import annotations
 import contextvars
 import functools
 import itertools
+import sys
 import uuid
 import warnings
 from collections.abc import Generator, Callable, Iterable
@@ -436,6 +437,12 @@ from qiskit.providers.backend import BackendV2
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+
+
+if sys.version_info >= (3, 12):
+    from typing import Unpack
+else:
+    from typing_extensions import Unpack
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR: contextvars.ContextVar["_PulseBuilder"] = contextvars.ContextVar("backend")
@@ -1519,23 +1526,19 @@ def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: s
     append_instruction(instructions.Play(pulse, channel, name=name))
 
 
-_MetaDataType = TypedDict(
-    "_MetaDataType",
-    {
-        "kernel": Optional[configuration.Kernel],
-        "discriminator": Optional[configuration.Discriminator],
-        "mem_slot": Optional[chans.MemorySlot],
-        "reg_slot": Optional[chans.RegisterSlot],
-        "name": Optional[str],
-    },
-)
+class _MetaDataType(TypedDict, total=False):
+    kernel: configuration.Kernel
+    discriminator: configuration.Discriminator
+    mem_slot: chans.MemorySlot
+    reg_slot: chans.RegisterSlot
+    name: str
 
 
 def acquire(
     duration: int,
     qubit_or_channel: int | chans.AcquireChannel,
     register: StorageLocation,
-    **metadata: _MetaDataType,
+    **metadata: Unpack[_MetaDataType],
 ):
     """Acquire for a ``duration`` on a ``channel`` and store the result
     in a ``register``.
