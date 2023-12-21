@@ -60,9 +60,7 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
-    "layout_method": _ControlFlowState(
-        working={"trivial", "dense", "sabre"}, not_working={"noise_adaptive"}
-    ),
+    "layout_method": _ControlFlowState(working={"trivial", "dense", "sabre"}, not_working=set()),
     "routing_method": _ControlFlowState(
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
