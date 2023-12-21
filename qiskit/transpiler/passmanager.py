@@ -104,9 +104,8 @@ class PassManager(BasePassManager):
 
     @deprecate_arg(
         name="max_iteration",
-        since="0.25",
+        since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
         package_name="qiskit-terra",
     )
     def append(
@@ -116,6 +115,12 @@ class PassManager(BasePassManager):
         **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
+
+        .. deprecated:: 0.45
+
+            Creating flow controllers with :code:`flow_controller_conditions` keyword arguments
+            was deprecated. Instead, you must explicitly instantiate a controller
+            and set the controller to :code:`passes` argument.
 
         Args:
             passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
@@ -161,9 +166,8 @@ class PassManager(BasePassManager):
 
     @deprecate_arg(
         name="max_iteration",
-        since="0.25",
+        since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
         package_name="qiskit-terra",
     )
     def replace(
@@ -174,6 +178,12 @@ class PassManager(BasePassManager):
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
+
+        .. deprecated:: 0.45
+
+            Creating flow controllers with :code:`flow_controller_conditions` keyword arguments
+            was deprecated. Instead, you must explicitly instantiate a controller
+            and set the controller to :code:`passes` argument.
 
         Args:
             index: Pass index to replace, based on the position in passes().
@@ -595,9 +605,9 @@ def _legacy_build_flow_controller(
         A built controller.
     """
     warnings.warn(
-        "Building a flow controller with keyword arguments is going to be deprecated. "
+        "Building a flow controller with keyword arguments was deprecated. "
         "Custom controllers must be explicitly instantiated and appended to the task list.",
-        PendingDeprecationWarning,
+        DeprecationWarning,
         stacklevel=3,
     )
     if isinstance(tasks, Task):

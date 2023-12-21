@@ -18,7 +18,12 @@ from .exceptions import TranspilerError
 
 class FencedObject:
     """Given an instance and a list of attributes to fence, raises a TranspilerError when one
-    of these attributes is accessed."""
+    of these attributes is accessed.
+
+    .. deprecate:: 0.46
+
+        This class was deprecated. This will be removed in Qiskit 1.0.
+    """
 
     @deprecate_func(
         since="0.45.0",
@@ -64,14 +69,24 @@ class FencedObject:
 
 
 class FencedPropertySet(FencedObject):
-    """A property set that cannot be written (via __setitem__)"""
+    """A property set that cannot be written (via __setitem__)
+
+    .. deprecate:: 0.46
+
+        This class was deprecated. This will be removed in Qiskit 1.0.
+    """
 
     def __init__(self, property_set_instance):
         super().__init__(property_set_instance, ["__setitem__"])
 
 
 class FencedDAGCircuit(FencedObject):
-    """A dag circuit that cannot be modified (via remove_op_node)"""
+    """A dag circuit that cannot be modified (via remove_op_node)
+
+    .. deprecate:: 0.46
+
+        This class was deprecated. This will be removed in Qiskit 1.0.
+    """
 
     # FIXME: add more fenced methods of the dag after dagcircuit rewrite
     def __init__(self, dag_circuit_instance):

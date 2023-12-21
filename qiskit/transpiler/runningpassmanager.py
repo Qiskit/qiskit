@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Iterable
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -45,13 +46,28 @@ logger = logging.getLogger(__name__)
 class RunningPassManager(FlowControllerLinear):
     """A RunningPassManager is a running pass manager.
 
-    .. warning::
+    .. deprecate:: 0.46
 
-        :class:`.RunningPassManager` will be deprecated in the future release.
-        As of Qiskit Terra 0.25 this class becomes a subclass of the flow controller
-        with extra methods for backward compatibility.
-        Relying on a subclass of the running pass manager might break your code stack.
+        :class:`.RunningPassManager` is a subclass of :class:`.FlowControllerLinear`
+        and these classes are largely equivalent.
+        This class was deprecated and will be removed in Qiskit 1.0.
     """
+
+    @deprecate_func(
+        since="0.46",
+        additional_msg=(
+            "RunningPassManager is largely identical to the base class "
+            "qiskit.passmanager.flow_controllers.FlowControllerLinear. "
+            "Directly use the base class instead."
+        ),
+    )
+    def __init__(
+        self,
+        passes: Task | Iterable[Task] = (),
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(tasks=passes, options=options)
 
     @deprecate_func(
         since="0.45.0",

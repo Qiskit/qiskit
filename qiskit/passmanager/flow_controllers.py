@@ -195,6 +195,10 @@ class ConditionalController(BaseController):
 class FlowController(BaseController):
     """A legacy factory for other flow controllers.
 
+    .. deprecate:: 0.46
+
+        This class was deprecated. This will be removed in Qiskit 1.0.
+
     .. warning::
 
         This class is primarily for compatibility with legacy versions of Qiskit, and in general,
@@ -237,6 +241,22 @@ class FlowController(BaseController):
         "condition",
         "do_while",
     ]
+
+    @deprecate_func(
+        since="0.46",
+        additional_msg=(
+            "The base class of flow controller is now "
+            "qiskit.passmanager.flow_controllers.BaseController. "
+            "This class exists only for the controller namespace used to map a controller name to"
+            "the corresponding class object, which is used to instantiate a controller with "
+            "keyword argument in PassManager.append method. This pattern was also deprecated."
+        ),
+    )
+    def __init__(
+        self,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(options=options)
 
     @classmethod
     @deprecate_func(
