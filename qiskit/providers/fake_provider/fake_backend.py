@@ -553,6 +553,14 @@ class FakeBackend(BackendV1):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:
+            warnings.warn(
+                "Simulating pulse jobs on fake backends is deprecated as of Qiskit 0.46,"
+                " and the functionality will be removed in Qiskit 1.0, due to Qiskit Aer removing"
+                " its pulse-simulation capabilities in its most recent versions."
+                " You can try using Qiskit Dynamics instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             if _optionals.HAS_AER:
                 import qiskit_aer
                 from qiskit_aer.pulse import PulseSystemModel
