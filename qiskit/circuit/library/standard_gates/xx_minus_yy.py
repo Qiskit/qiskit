@@ -49,15 +49,15 @@ class XXMinusYYGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         R_{XX-YY}(\theta, \beta) q_0, q_1 =
           RZ_1(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX-YY}{2}\right) \cdot RZ_1(-\beta) =
             \begin{pmatrix}
-                \cos\left(\th\right)             & 0 & 0 & -i\sin\left(\th\right)e^{-i\beta}  \\
-                0                     & 1 & 0 & 0  \\
-                0                     & 0 & 1 & 0  \\
-                -i\sin\left(\th\right)e^{i\beta} & 0 & 0 & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & 0 & -i\sin\left(\rotationangle\right)e^{-i\beta} \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                -i\sin\left(\rotationangle\right)e^{i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -79,16 +79,16 @@ class XXMinusYYGate(Gate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             R_{XX-YY}(\theta, \beta) q_1, q_0 =
             RZ_0(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX-YY}{2}\right) \cdot RZ_0(-\beta) =
-                \begin{pmatrix}
-                    \cos\left(\th\right)             & 0 & 0 & -i\sin\left(\th\right)e^{i\beta}  \\
-                    0                     & 1 & 0 & 0  \\
-                    0                     & 0 & 1 & 0  \\
-                    -i\sin\left(\th\right)e^{-i\beta} & 0 & 0 & \cos\left(\th\right)
-                \end{pmatrix}
+            \begin{pmatrix}
+                \cos\left(\rotationangle\right) & 0 & 0 & -i\sin\left(\rotationangle\right)e^{i\beta} \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                -i\sin\left(\rotationangle\right)e^{-i\beta} & 0 & 0 & \cos\left(\rotationangle\right)
+            \end{pmatrix}
     """
 
     def __init__(

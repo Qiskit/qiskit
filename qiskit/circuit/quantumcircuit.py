@@ -437,7 +437,10 @@ class QuantumCircuit:
         else:
             data_input = list(data_input)
         self._data.clear()
+        self._parameters = None
         self._parameter_table = ParameterTable()
+        # Repopulate the parameter table with any global-phase entries.
+        self.global_phase = self.global_phase
         if not data_input:
             return
         if isinstance(data_input[0], CircuitInstruction):
@@ -2411,6 +2414,9 @@ class QuantumCircuit:
         operation_copies = {
             id(instruction.operation): instruction.operation.copy() for instruction in self._data
         }
+        # The special global-phase sentinel doesn't need copying, but this ensures that it'll get
+        # recognised.  The global phase itself was already copied over in 'copy_empty_like`.
+        operation_copies[id(ParameterTable.GLOBAL_PHASE)] = ParameterTable.GLOBAL_PHASE
 
         cpy._parameter_table = ParameterTable(
             {
@@ -2473,6 +2479,10 @@ class QuantumCircuit:
         cpy._vars_capture = self._vars_capture.copy()
 
         cpy._parameter_table = ParameterTable()
+        for parameter in getattr(cpy.global_phase, "parameters", ()):
+            cpy._parameter_table[parameter] = ParameterReferences(
+                [(ParameterTable.GLOBAL_PHASE, None)]
+            )
         cpy._data = CircuitData(self._data.qubits, self._data.clbits)
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
@@ -2489,6 +2499,8 @@ class QuantumCircuit:
         """
         self._data.clear()
         self._parameter_table.clear()
+        # Repopulate the parameter table with any phase symbols.
+        self.global_phase = self.global_phase
 
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
@@ -2825,9 +2837,20 @@ class QuantumCircuit:
         Args:
             angle (float, ParameterExpression): radians
         """
-        if not (isinstance(angle, ParameterExpression) and angle.parameters):
-            # Set the phase to the [0, 2π) interval
-            angle = float(angle) % (2 * np.pi)
+        # If we're currently parametric, we need to throw away the references.  This setter is
+        # called by some subclasses before the inner `_global_phase` is initialised.
+        global_phase_reference = (ParameterTable.GLOBAL_PHASE, None)
+        if isinstance(previous := getattr(self, "_global_phase", None), ParameterExpression):
+            self._parameter_table.discard_references(previous, global_phase_reference)
+
+        if isinstance(angle, ParameterExpression) and angle.parameters:
+            for parameter in angle.parameters:
+                if parameter not in self._parameter_table:
+                    self._parameters = None
+                    self._parameter_table[parameter] = ParameterReferences(())
+                self._parameter_table[parameter].add(global_phase_reference)
+        else:
+            angle = _normalize_global_phase(angle)
         if self._control_flow_scopes:
             self._control_flow_scopes[-1].global_phase = angle
         else:
@@ -2901,10 +2924,7 @@ class QuantumCircuit:
     @property
     def num_parameters(self) -> int:
         """The number of parameter objects in the circuit."""
-        # Avoid a (potential) object creation if we can.
-        if self._parameters is not None:
-            return len(self._parameters)
-        return len(self._unsorted_parameters())
+        return len(self._parameter_table)
 
     def _unsorted_parameters(self) -> set[Parameter]:
         """Efficiently get all parameters in the circuit, without any sorting overhead.
@@ -2917,11 +2937,7 @@ class QuantumCircuit:
         """
         # This should be free, by accessing the actual backing data structure of the table, but that
         # means that we need to copy it if adding keys from the global phase.
-        parameters = self._parameter_table.get_keys()
-        if isinstance(self.global_phase, ParameterExpression):
-            # Deliberate copy.
-            parameters = parameters | self.global_phase.parameters
-        return parameters
+        return self._parameter_table.get_keys()
 
     @overload
     def assign_parameters(
@@ -3073,7 +3089,12 @@ class QuantumCircuit:
             )
             for operation, index in references:
                 seen_operations[id(operation)] = operation
-                assignee = operation.params[index]
+                if operation is ParameterTable.GLOBAL_PHASE:
+                    assignee = target.global_phase
+                    validate = _normalize_global_phase
+                else:
+                    assignee = operation.params[index]
+                    validate = operation.validate_parameter
                 if isinstance(assignee, ParameterExpression):
                     new_parameter = assignee.assign(to_bind, bound_value)
                     for parameter in update_parameters:
@@ -3081,15 +3102,7 @@ class QuantumCircuit:
                             target._parameter_table[parameter] = ParameterReferences(())
                         target._parameter_table[parameter].add((operation, index))
                     if not new_parameter.parameters:
-                        if new_parameter.is_real():
-                            new_parameter = (
-                                int(new_parameter)
-                                if new_parameter._symbol_expr.is_integer
-                                else float(new_parameter)
-                            )
-                        else:
-                            new_parameter = complex(new_parameter)
-                        new_parameter = operation.validate_parameter(new_parameter)
+                        new_parameter = validate(new_parameter.numeric())
                 elif isinstance(assignee, QuantumCircuit):
                     new_parameter = assignee.assign_parameters(
                         {to_bind: bound_value}, inplace=False, flat_input=True
@@ -3099,7 +3112,12 @@ class QuantumCircuit:
                         f"Saw an unknown type during symbolic binding: {assignee}."
                         " This may indicate an internal logic error in symbol tracking."
                     )
-                operation.params[index] = new_parameter
+                if operation is ParameterTable.GLOBAL_PHASE:
+                    # We've already handled parameter table updates in bulk, so we need to skip the
+                    # public setter trying to do it again.
+                    target._global_phase = new_parameter
+                else:
+                    operation.params[index] = new_parameter
 
         # After we've been through everything at the top level, make a single visit to each
         # operation we've seen, rebinding its definition if necessary.
@@ -3110,12 +3128,6 @@ class QuantumCircuit:
                 definition.assign_parameters(
                     parameter_binds.mapping, inplace=True, flat_input=True, strict=False
                 )
-
-        if isinstance(target.global_phase, ParameterExpression):
-            new_phase = target.global_phase
-            for parameter in new_phase.parameters & parameter_binds.mapping.keys():
-                new_phase = new_phase.assign(parameter, parameter_binds.mapping[parameter])
-            target.global_phase = new_phase
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
         # the `ParameterTable`, so we manually reconstruct things.
@@ -3130,9 +3142,9 @@ class QuantumCircuit:
                 for to_bind in contained:
                     parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
                 if not parameter.parameters:
-                    parameter = (
-                        int(parameter) if parameter._symbol_expr.is_integer else float(parameter)
-                    )
+                    parameter = parameter.numeric()
+                    if isinstance(parameter, complex):
+                        raise TypeError(f"Calibration cannot use complex number: '{parameter}'")
                 new_parameters[i] = parameter
                 modified = True
             if modified:
@@ -3170,41 +3182,6 @@ class QuantumCircuit:
             else:
                 out[parameter] = value
         return out
-
-    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
-    def bind_parameters(
-        self, values: Union[Mapping[Parameter, float], Sequence[float]]
-    ) -> "QuantumCircuit":
-        """Assign numeric parameters to values yielding a new circuit.
-
-        If the values are given as list or array they are bound to the circuit in the order
-        of :attr:`parameters` (see the docstring for more details).
-
-        To assign new Parameter objects or bind the values in-place, without yielding a new
-        circuit, use the :meth:`assign_parameters` method.
-
-        Args:
-            values: ``{parameter: value, ...}`` or ``[value1, value2, ...]``
-
-        Raises:
-            CircuitError: If values is a dict and contains parameters not present in the circuit.
-            TypeError: If values contains a ParameterExpression.
-
-        Returns:
-            Copy of self with assignment substitution.
-        """
-        if isinstance(values, dict):
-            if any(isinstance(value, ParameterExpression) for value in values.values()):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
-        else:
-            if any(isinstance(value, ParameterExpression) for value in values):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
@@ -6072,3 +6049,11 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _normalize_global_phase(angle):
+    """Return the normalized form of an angle for use in the global phase.  This coerces to float if
+    possible, and fixes to the interval :math:`[0, 2\\pi)`."""
+    if isinstance(angle, ParameterExpression) and angle.parameters:
+        return angle
+    return float(angle) % (2.0 * np.pi)
