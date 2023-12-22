@@ -24,7 +24,6 @@ from qiskit.transpiler.passes import VF2Layout
 from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
@@ -859,37 +858,6 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
             ),
             condition=_choose_layout_condition,
         )
-        layout += common.generate_embed_passmanager(coupling_map)
-        return layout
-
-
-class NoiseAdaptiveLayoutPassManager(PassManagerStagePlugin):
-    """Plugin class for noise adaptive layout stage."""
-
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        _given_layout = SetLayout(pass_manager_config.initial_layout)
-
-        def _choose_layout_condition(property_set):
-            return not property_set["layout"]
-
-        if pass_manager_config.target is None:
-            coupling_map = pass_manager_config.coupling_map
-        else:
-            coupling_map = pass_manager_config.target
-
-        layout = PassManager()
-        layout.append(_given_layout)
-        if pass_manager_config.target is None:
-            layout.append(
-                NoiseAdaptiveLayout(
-                    pass_manager_config.backend_properties, pass_manager_config.coupling_map
-                ),
-                condition=_choose_layout_condition,
-            )
-        else:
-            layout.append(
-                NoiseAdaptiveLayout(pass_manager_config.target), condition=_choose_layout_condition
-            )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 

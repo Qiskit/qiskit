@@ -530,6 +530,34 @@ class TestFakeBackends(QiskitTestCase):
             for qarg in v2_backend.target.qargs:
                 self.assertNotIn(i, qarg)
 
+    def test_backend_v2_converter_without_delay(self):
+        """Test setting :code:`add_delay`argument of :func:`.BackendV2Converter`
+        to :code:`False`."""
+
+        expected = {
+            (0,),
+            (0, 1),
+            (0, 2),
+            (1,),
+            (1, 0),
+            (1, 2),
+            (2,),
+            (2, 0),
+            (2, 1),
+            (2, 3),
+            (2, 4),
+            (3,),
+            (3, 2),
+            (3, 4),
+            (4,),
+            (4, 2),
+            (4, 3),
+        }
+
+        backend = BackendV2Converter(backend=FakeYorktown(), filter_faulty=True, add_delay=False)
+
+        self.assertEqual(backend.target.qargs, expected)
+
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""
         backend = FakeWashington()

@@ -123,21 +123,6 @@ class TestPresetPassManager(QiskitTestCase):
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(result.num_qubits, circuit.num_qubits)
 
-    @combine(level=[0, 1, 2, 3], name="level{level}")
-    def test_7677(self, level):
-        """Melbourne (with inconsistency configuration/properties) should not fail with noise_adaptive
-        See: https://github.com/Qiskit/qiskit/issues/7677
-        """
-        qc = QuantumCircuit(12)  # circuit has 12 qubits (and only uses 3)
-        qc.cx(1, 8)
-        qc.cx(1, 11)
-        backend = FakeMelbourne()
-
-        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
-
-        self.assertIsInstance(result, QuantumCircuit)
-        self.assertEqual(result.num_qubits, 14)
-
     def test_layout_3239(self, level=3):
         """Test final layout after preset level3 passmanager does not include diagonal gates
         See: https://github.com/Qiskit/qiskit-terra/issues/3239
@@ -361,28 +346,6 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
         self.assertIn("CheckGateDirection", self.passes)
-
-    @data(0, 1, 2, 3)
-    def test_5409(self, level):
-        """The parameter layout_method='noise_adaptive' should be honored
-        See: https://github.com/Qiskit/qiskit-terra/issues/5409
-        """
-        qr = QuantumRegister(5, "q")
-        qc = QuantumCircuit(qr)
-        qc.cx(qr[2], qr[4])
-        backend = FakeMelbourne()
-
-        _ = transpile(
-            qc,
-            backend,
-            layout_method="noise_adaptive",
-            optimization_level=level,
-            callback=self.callback,
-        )
-
-        self.assertIn("SetLayout", self.passes)
-        self.assertIn("ApplyLayout", self.passes)
-        self.assertIn("NoiseAdaptiveLayout", self.passes)
 
     @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
