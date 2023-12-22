@@ -18,7 +18,7 @@ from .pauli_feature_map import PauliFeatureMap
 
 
 class ZZFeatureMap(PauliFeatureMap):
-    """Second-order Pauli-Z evolution circuit.
+    r"""Second-order Pauli-Z evolution circuit.
 
     For 3 qubits and 1 repetition and linear entanglement the circuit is represented by:
 
@@ -33,7 +33,7 @@ class ZZFeatureMap(PauliFeatureMap):
         └───┘└─────────────────┘                                  └───┘└──────────────────────┘└───┘
 
     where ``φ`` is a classical non-linear function, which defaults to ``φ(x) = x`` if and
-    ``φ(x,y) = (pi - x)(pi - y)``.
+    ``φ(x,y) = (\pi - x)(\pi - y)``.
 
     Examples:
 
