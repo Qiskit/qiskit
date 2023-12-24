@@ -26,7 +26,7 @@ from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, Swit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
-from qiskit.circuit.annotated_operation import ControlModifier
+from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
@@ -1136,7 +1136,8 @@ class TextDrawing:
         # AnnotatedOperation with ControlModifier
         mod_control = None
         if getattr(op, "modifiers", None):
-            for modifier in op.modifiers:
+            canonical_modifiers = _canonicalize_modifiers(op.modifiers)
+            for modifier in canonical_modifiers:
                 if isinstance(modifier, ControlModifier):
                     mod_control = modifier
                     break
