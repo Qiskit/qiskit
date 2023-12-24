@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,3 +26,8 @@ class QpyError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
+
+
+class QPYLoadingDeprecatedFeatureWarning(UserWarning):
+    """Visible deprecation warning for QPY loading functions without
+    a stable point in the call stack."""

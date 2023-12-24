@@ -618,12 +618,11 @@ class Instruction(Operation):
     @property
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
+        from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
+
         if self.condition is None:
             return []
-        if isinstance(self.condition[0], Clbit):
-            return [self.condition[0]]
-        else:  # ClassicalRegister
-            return list(self.condition[0])
+        return list(condition_resources(self.condition).clbits)
 
     @property
     def name(self):

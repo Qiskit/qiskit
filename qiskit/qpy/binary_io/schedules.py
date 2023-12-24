@@ -19,20 +19,18 @@ import warnings
 from io import BytesIO
 
 import numpy as np
+import symengine as sym
+from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+    load_basic,
+)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
-from qiskit.qpy.exceptions import QpyError
-from qiskit.utils import optionals as _optional
+from qiskit.qpy.exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from qiskit.pulse.configuration import Kernel, Discriminator
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _read_channel(file_obj, version):
@@ -106,23 +104,15 @@ def _read_discriminator(file_obj, version):
 def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
+    expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("load a symengine expression")
-        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-            load_basic,
-        )
-
-        expr = load_basic(zlib.decompress(expr_bytes))
+        return load_basic(expr_bytes)
     else:
         from sympy import parse_expr
 
-        expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
+        expr_txt = expr_bytes.decode(common.ENCODE)
         expr = parse_expr(expr_txt)
-        if _optional.HAS_SYMENGINE:
-            from symengine import sympify
-
-            return sympify(expr)
-    return expr
+        return sym.sympify(expr)
 
 
 def _read_symbolic_pulse(file_obj, version):
@@ -172,7 +162,7 @@ def _read_symbolic_pulse(file_obj, version):
             "Complex amp support for symbolic library pulses will be deprecated. "
             "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
             " will be converted automatically to float (amp,angle) representation.",
-            PendingDeprecationWarning,
+            QPYLoadingDeprecatedFeatureWarning,
         )
         class_name = "ScalableSymbolicPulse"
 
@@ -404,7 +394,6 @@ def _dumps_symbolic_expr(expr, use_symengine):
     if expr is None:
         return b""
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("dump a symengine expression")
         expr_bytes = expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
@@ -484,7 +473,7 @@ def _dumps_operand(operand, use_symengine):
 def _write_element(file_obj, element, metadata_serializer, use_symengine):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
-        write_schedule_block(file_obj, element, metadata_serializer)
+        write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
     else:
         type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)
