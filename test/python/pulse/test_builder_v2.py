@@ -52,13 +52,15 @@ class TestContextsV2(TestBuilderV2):
         twice_cx_qc.cx(0, 1)
 
         with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=0):
-                builder.call(twice_cx_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(optimization_level=0):
+                    builder.call(twice_cx_qc)
         self.assertNotEqual(len(schedule.instructions), 0)
 
         with pulse.build(self.backend) as schedule:
-            with pulse.transpiler_settings(optimization_level=3):
-                builder.call(twice_cx_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(optimization_level=3):
+                    builder.call(twice_cx_qc)
         self.assertEqual(len(schedule.instructions), 0)
 
     def test_scheduler_settings(self):
@@ -76,9 +78,10 @@ class TestContextsV2(TestBuilderV2):
         x_qc.x(0)
 
         with pulse.build(backend=self.backend) as schedule:
-            with pulse.transpiler_settings(basis_gates=["x"]):
-                with pulse.circuit_scheduler_settings(inst_map=inst_map):
-                    builder.call(x_qc)
+            with self.assertWarns(DeprecationWarning):
+                with pulse.transpiler_settings(basis_gates=["x"]):
+                    with pulse.circuit_scheduler_settings(inst_map=inst_map):
+                        builder.call(x_qc)
 
         self.assertScheduleEqual(schedule, ref_sched)
 
@@ -182,16 +185,18 @@ class TestUtilitiesV2(TestBuilderV2):
     def test_active_transpiler_settings(self):
         """Test setting settings of active builder's transpiler."""
         with pulse.build(self.backend):
-            self.assertFalse(pulse.active_transpiler_settings())
-            with pulse.transpiler_settings(test_setting=1):
-                self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(pulse.active_transpiler_settings())
+                with pulse.transpiler_settings(test_setting=1):
+                    self.assertEqual(pulse.active_transpiler_settings()["test_setting"], 1)
 
     def test_active_circuit_scheduler_settings(self):
         """Test setting settings of active builder's circuit scheduler."""
         with pulse.build(self.backend):
-            self.assertFalse(pulse.active_circuit_scheduler_settings())
-            with pulse.circuit_scheduler_settings(test_setting=1):
-                self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
+            with self.assertWarns(DeprecationWarning):
+                self.assertFalse(pulse.active_circuit_scheduler_settings())
+                with pulse.circuit_scheduler_settings(test_setting=1):
+                    self.assertEqual(pulse.active_circuit_scheduler_settings()["test_setting"], 1)
 
     def test_num_qubits(self):
         """Test builder utility to get number of qubits with backendV2."""
