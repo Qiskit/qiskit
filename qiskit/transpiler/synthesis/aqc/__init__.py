@@ -24,7 +24,10 @@ from qiskit.synthesis.unitary.aqc.approximate import ApproximateCircuit, Approxi
 from qiskit.synthesis.unitary.aqc import AQC
 from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
 from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
-from qiskit.synthesis.unitary.aqc.cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import (
+    CNOTUnitObjective,
+    DefaultCNOTUnitObjective,
+)
 from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 from qiskit.transpiler.passes.synthesis.aqc_plugin import AQCSynthesisPlugin
 
