@@ -12,10 +12,10 @@
 
 r"""
 =====================================================================
-Approximate Quantum Compiler (:mod:`qiskit.transpiler.synthesis.aqc`)
+Approximate Quantum Compiler (:mod:`qiskit.synthesis.unitary.aqc`)
 =====================================================================
 
-.. currentmodule:: qiskit.transpiler.synthesis.aqc
+.. currentmodule:: qiskit.synthesis.unitary.aqc
 
 Implementation of Approximate Quantum Compiler as described in the paper [1].
 
