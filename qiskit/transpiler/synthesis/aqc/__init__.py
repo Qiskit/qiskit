@@ -174,3 +174,4 @@ from .cnot_structures import make_cnot_network
 from .cnot_unit_circuit import CNOTUnitCircuit
 from .cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
 from .fast_gradient.fast_gradient import FastCNOTUnitObjective
+from .aqc_plugin import AQCSynthesisPlugin

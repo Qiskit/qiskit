@@ -12,15 +12,12 @@
 """
 An AQC synthesis plugin to Qiskit's transpiler.
 """
-from functools import partial
-import numpy as np
 
-from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes.synthesis.plugin import UnitarySynthesisPlugin
+from qiskit.transpiler.passes.synthesis import AQCSynthesisPlugin as NewAQCSynthesisPlugin
 from qiskit.utils.deprecation import deprecate_func
 
 
-class AQCSynthesisPlugin(UnitarySynthesisPlugin):
+class AQCSynthesisPlugin(NewAQCSynthesisPlugin):
     """
     An AQC-based Qiskit unitary synthesis plugin.
 
@@ -55,52 +52,14 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         Initial values of angles/parameters to start the optimization process from.
     """
 
-    @property
-    def max_qubits(self):
-        """Maximum number of supported qubits is ``14``."""
-        return 14
-
-    @property
-    def min_qubits(self):
-        """Minimum number of supported qubits is ``3``."""
-        return 3
-
-    @property
-    def supports_natural_direction(self):
-        """The plugin does not support natural direction,
-        it assumes bidirectional two qubit gates."""
-        return False
-
-    @property
-    def supports_pulse_optimize(self):
-        """The plugin does not support optimization of pulses."""
-        return False
-
-    @property
-    def supports_gate_lengths(self):
-        """The plugin does not support gate lengths."""
-        return False
-
-    @property
-    def supports_gate_errors(self):
-        """The plugin does not support gate errors."""
-        return False
-
-    @property
-    def supported_bases(self):
-        """The plugin does not support bases for synthesis."""
-        return None
-
-    @property
-    def supports_basis_gates(self):
-        """The plugin does not support basis gates and by default it synthesizes a circuit using
-        ``["rx", "ry", "rz", "cx"]`` gate basis."""
-        return False
-
-    @property
-    def supports_coupling_map(self):
-        """The plugin does not support coupling maps."""
-        return False
+    @deprecate_func(
+        since="0.46.0",
+        pending=True,
+        additional_msg="AQCSynthesisPlugin has been moved to qiskit.transpiler.passes.synthesis"
+        "instead use AQCSynthesisPlugin from qiskit.transpiler.passes.synthesis",
+    )
+    def __init__(self):
+        super().__init__()
 
     @deprecate_func(
         since="0.46.0",
@@ -109,45 +68,4 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         "instead use AQCSynthesisPlugin from qiskit.transpiler.passes.synthesis",
     )
     def run(self, unitary, **options):
-
-        # Runtime imports to avoid the overhead of these imports for
-        # plugin discovery and only use them if the plugin is run/used
-        from scipy.optimize import minimize
-        from qiskit.transpiler.synthesis.aqc.aqc import AQC
-        from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-        from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-        from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-
-        num_qubits = int(round(np.log2(unitary.shape[0])))
-
-        config = options.get("config") or {}
-
-        network_layout = config.get("network_layout", "spin")
-        connectivity_type = config.get("connectivity_type", "full")
-        depth = config.get("depth", 0)
-
-        cnots = make_cnot_network(
-            num_qubits=num_qubits,
-            network_layout=network_layout,
-            connectivity_type=connectivity_type,
-            depth=depth,
-        )
-
-        default_optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000})
-        optimizer = config.get("optimizer", default_optimizer)
-        seed = config.get("seed")
-        aqc = AQC(optimizer, seed)
-
-        approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots)
-        approximating_objective = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
-
-        initial_point = config.get("initial_point")
-        aqc.compile_unitary(
-            target_matrix=unitary,
-            approximate_circuit=approximate_circuit,
-            approximating_objective=approximating_objective,
-            initial_point=initial_point,
-        )
-
-        dag_circuit = circuit_to_dag(approximate_circuit)
-        return dag_circuit
+        return super().run(unitary, **options)
