@@ -10,17 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Approximate Quantum Compiler - to be deprecated"""
+"""
+=====================================================================
+Approximate Quantum Compiler (:mod:`qiskit.transpiler.synthesis.aqc`)
+=====================================================================
+
+.. currentmodule:: qiskit.transpiler.synthesis.aqc
+"""
 
 import warnings
 
-from .approximate import ApproximateCircuit, ApproximatingObjective
-from .aqc import AQC
-from .cnot_structures import make_cnot_network
-from .cnot_unit_circuit import CNOTUnitCircuit
-from .cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
-from .fast_gradient.fast_gradient import FastCNOTUnitObjective
-from .aqc_plugin import AQCSynthesisPlugin
+from qiskit.synthesis.unitary.aqc.approximate import ApproximateCircuit, ApproximatingObjective
+from qiskit.synthesis.unitary.aqc import AQC
+from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
+from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import CNOTUnitObjective, DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from qiskit.transpiler.passes.synthesis.aqc_plugin import AQCSynthesisPlugin
 
 warnings.warn(
     "The qiskit.transpiler.synthesis.aqc module is pending deprecation since Qiskit 0.46.0. "
