@@ -23,11 +23,11 @@ from scipy.optimize import minimize
 
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.aqc.aqc import AQC
-from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.aqc import AQC
+from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
+from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 
 
 @ddt

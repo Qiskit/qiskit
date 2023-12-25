@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.aqc import make_cnot_network
+from qiskit.synthesis.unitary.aqc import make_cnot_network
 
 
 @ddt

@@ -17,8 +17,8 @@ import unittest
 from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 
 
 class TestGradientAgainstFiniteDiff(QiskitTestCase):

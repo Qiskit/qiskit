@@ -20,9 +20,9 @@ import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
 import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.aqc.elementary_operations import rx_matrix as _rx
-from qiskit.transpiler.synthesis.aqc.elementary_operations import ry_matrix as _ry
-from qiskit.transpiler.synthesis.aqc.elementary_operations import rz_matrix as _rz
+from qiskit.synthesis.unitary.aqc.elementary_operations import rx_matrix as _rx
+from qiskit.synthesis.unitary.aqc.elementary_operations import ry_matrix as _ry
+from qiskit.synthesis.unitary.aqc.elementary_operations import rz_matrix as _rz
 
 
 class TestUtils(QiskitTestCase):
