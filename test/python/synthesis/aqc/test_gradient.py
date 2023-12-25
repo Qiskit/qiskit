@@ -14,7 +14,7 @@ Tests analytical gradient vs the one computed via finite differences.
 """
 
 import unittest
-from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+from test.python.synthesis.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network

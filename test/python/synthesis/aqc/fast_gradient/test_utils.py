@@ -16,7 +16,7 @@ Tests for utility functions.
 
 import unittest
 import random
-import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
+import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
 import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.test import QiskitTestCase
