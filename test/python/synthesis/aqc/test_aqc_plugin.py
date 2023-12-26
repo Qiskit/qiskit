@@ -25,8 +25,6 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis import AQCSynthesisPlugin
 
-# from qiskit.transpiler.synthesis.aqc import AQCSynthesisPlugin as OldAQCSynthesisPlugin
-
 
 class TestAQCSynthesisPlugin(QiskitTestCase):
     """Basic tests of the AQC synthesis plugin."""
@@ -49,8 +47,6 @@ class TestAQCSynthesisPlugin(QiskitTestCase):
         """Basic test of the plugin."""
         plugin = AQCSynthesisPlugin()
         dag = plugin.run(self._target_unitary, config=self._seed_config)
-        # with self.assertWarns(PendingDeprecationWarning):
-        #    _ = OldAQCSynthesisPlugin()
 
         approx_circuit = dag_to_circuit(dag)
         approx_unitary = Operator(approx_circuit).data
