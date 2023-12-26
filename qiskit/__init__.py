@@ -80,10 +80,6 @@ from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
-from .version import QiskitVersion
-
-
-__qiskit_version__ = QiskitVersion()
 
 
 class AerWrapper:

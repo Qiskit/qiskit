@@ -341,6 +341,12 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def __pow__(self, other):
+        return self._apply_operation(pow, other)
+
+    def __rpow__(self, other):
+        return self._apply_operation(pow, other, reflected=True)
+
     def _call(self, ufunc):
         return ParameterExpression(self._parameter_symbols, ufunc(self._symbol_expr))
 
@@ -488,6 +494,52 @@ class ParameterExpression:
                 return True
             return False
         return symbol_expr.is_real
+
+    def numeric(self) -> int | float | complex:
+        """Return a Python number representing this object, using the most restrictive of
+        :class:`int`, :class:`float` and :class:`complex` that is valid for this object.
+
+        In general, an :class:`int` is only returned if the expression only involved symbolic
+        integers.  If floating-point values were used during the evaluation, the return value will
+        be a :class:`float` regardless of whether the represented value is an integer.  This is
+        because floating-point values "infect" symbolic computations by their inexact nature, and
+        symbolic libraries will use inexact floating-point semantics not exact real-number semantics
+        when they are involved.  If you want to assert that all floating-point calculations *were*
+        carried out at infinite precision (i.e. :class:`float` could represent every intermediate
+        value exactly), you can use :meth:`float.is_integer` to check if the return float represents
+        an integer and cast it using :class:`int` if so.  This would be an unusual pattern;
+        typically one requires this by only ever using explicitly :class:`~numbers.Rational` objects
+        while working with symbolic expressions.
+
+        This is more reliable and performant than using :meth:`is_real` followed by calling
+        :class:`float` or :class:`complex`, as in some cases :meth:`is_real` needs to force a
+        floating-point evaluation to determine an accurate result to work around bugs in the
+        upstream symbolic libraries.
+
+        Returns:
+            A Python number representing the object.
+
+        Raises:
+            TypeError: if there are unbound parameters.
+        """
+        if self._parameter_symbols:
+            raise TypeError(
+                f"Expression with unbound parameters '{self.parameters}' is not numeric"
+            )
+        if self._symbol_expr.is_integer:
+            # Integer evaluation is reliable, as far as we know.
+            return int(self._symbol_expr)
+        # We've come across several ways in which symengine's general-purpose evaluators
+        # introduce spurious imaginary components can get involved in the output.  The most
+        # reliable strategy "try it and see" while forcing real floating-point evaluation.
+        try:
+            real_expr = self._symbol_expr.evalf(real=True)
+        except RuntimeError:
+            # Symengine returns `complex` if any imaginary floating-point enters at all, even if
+            # the result is zero.  The best we can do is detect that and decay to a float.
+            out = complex(self._symbol_expr)
+            return out.real if out.imag == 0.0 else out
+        return float(real_expr)
 
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.

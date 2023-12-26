@@ -56,7 +56,7 @@ from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
 import hypothesis.strategies as st
 
-from qiskit import transpile, Aer
+from qiskit import transpile, Aer, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate, Barrier
 from qiskit.providers.fake_provider import (
@@ -144,7 +144,6 @@ layout_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_LAYOUT_METHODS") or [
     None,
     "trivial",
     "dense",
-    "noise_adaptive",
     "sabre",
 ]
 routing_methods = _getenv_list("QISKIT_RANDOMIZED_TEST_ROUTING_METHODS") or [
@@ -338,7 +337,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     @invariant()
     def qasm(self):
         """After each circuit operation, it should be possible to build QASM."""
-        self.qc.qasm()
+        qasm2.dumps(self.qc)
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
     @rule(kwargs=transpiler_conf())
@@ -357,7 +356,7 @@ class QCircuitMachine(RuleBasedStateMachine):
             + ", ".join(f"{key:s}={value!r}" for key, value in kwargs.items() if value is not None)
             + ")"
         )
-        print(f"Evaluating {call} for:\n{self.qc.qasm()}")
+        print(f"Evaluating {call} for:\n{qasm2.dumps(self.qc)}")
 
         shots = 4096
 
@@ -368,7 +367,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         try:
             xpiled_qc = transpile(self.qc, **kwargs)
         except Exception as e:
-            failed_qasm = f"Exception caught during transpilation of circuit: \n{self.qc.qasm()}"
+            failed_qasm = (
+                f"Exception caught during transpilation of circuit: \n{qasm2.dumps(self.qc)}"
+            )
             raise RuntimeError(failed_qasm) from e
 
         xpiled_aer_counts = self.backend.run(xpiled_qc, shots=shots).result().get_counts()
@@ -378,7 +379,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         assert (
             count_differences == ""
         ), "Counts not equivalent: {}\nFailing QASM Input:\n{}\n\nFailing QASM Output:\n{}".format(
-            count_differences, self.qc.qasm(), xpiled_qc.qasm()
+            count_differences, qasm2.dumps(self.qc), qasm2.dumps(xpiled_qc)
         )
 
 

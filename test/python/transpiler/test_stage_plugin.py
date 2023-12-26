@@ -22,6 +22,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import BasicSwapPassManager
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
@@ -113,3 +114,16 @@ class TestBuiltinPlugins(QiskitTestCase):
         backend = QasmSimulatorPy()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
+
+    @combine(
+        optimization_level=list(range(4)),
+    )
+    def test_unitary_synthesis_plugins(self, optimization_level):
+        """Test unitary synthesis plugins"""
+        backend = QasmSimulatorPy()
+        with self.assertRaises(TranspilerError):
+            _ = generate_preset_pass_manager(
+                optimization_level=optimization_level,
+                backend=backend,
+                unitary_synthesis_method="not a method",
+            )

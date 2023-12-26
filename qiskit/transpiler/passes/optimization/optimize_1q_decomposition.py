@@ -173,10 +173,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
+        new_error = 0.0
+        old_error = 0.0
+        if not uncalibrated_and_not_basis_p:
+            new_error = self._error(new_circ, qubit)
+            old_error = self._error(old_run, qubit)
+
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and self._error(new_circ, qubit) < self._error(old_run, qubit))
-            or math.isclose(self._error(new_circ, qubit)[0], 0)
+            or (uncalibrated_p and new_error < old_error)
+            or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
     @control_flow.trivial_recurse

@@ -171,23 +171,35 @@ fn populate_extended_set(
     let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
         IndexMap::with_hasher(ahash::RandomState::default());
     let mut i = 0;
+    let mut visit_now: Vec<NodeIndex> = Vec::new();
     while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
-        for edge in dag.dag.edges_directed(to_visit[i], Direction::Outgoing) {
-            let successor_node = edge.target();
-            let successor_index = successor_node.index();
-            *decremented.entry(successor_index).or_insert(0) += 1;
-            required_predecessors[successor_index] -= 1;
-            if required_predecessors[successor_index] == 0 {
-                if !dag.dag[successor_node].directive
-                    && !dag.node_blocks.contains_key(&successor_index)
-                {
-                    if let [a, b] = dag.dag[successor_node].qubits[..] {
-                        extended_set.push([a.to_phys(layout), b.to_phys(layout)]);
+        // Visit runs of non-2Q gates fully before moving on to children
+        // of 2Q gates. This way, traversal order is a BFS of 2Q gates rather
+        // than of all gates.
+        visit_now.push(to_visit[i]);
+        let mut j = 0;
+        while let Some(node) = visit_now.get(j) {
+            for edge in dag.dag.edges_directed(*node, Direction::Outgoing) {
+                let successor_node = edge.target();
+                let successor_index = successor_node.index();
+                *decremented.entry(successor_index).or_insert(0) += 1;
+                required_predecessors[successor_index] -= 1;
+                if required_predecessors[successor_index] == 0 {
+                    if !dag.dag[successor_node].directive
+                        && !dag.node_blocks.contains_key(&successor_index)
+                    {
+                        if let [a, b] = dag.dag[successor_node].qubits[..] {
+                            extended_set.push([a.to_phys(layout), b.to_phys(layout)]);
+                            to_visit.push(successor_node);
+                            continue;
+                        }
                     }
+                    visit_now.push(successor_node);
                 }
-                to_visit.push(successor_node);
             }
+            j += 1;
         }
+        visit_now.clear();
         i += 1;
     }
     for (node, amount) in decremented.iter() {

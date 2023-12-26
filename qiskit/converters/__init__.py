@@ -21,7 +21,6 @@ Circuit Converters (:mod:`qiskit.converters`)
 .. autofunction:: dag_to_circuit
 .. autofunction:: circuit_to_instruction
 .. autofunction:: circuit_to_gate
-.. autofunction:: ast_to_dag
 .. autofunction:: dagdependency_to_circuit
 .. autofunction:: circuit_to_dagdependency
 .. autofunction:: circuit_to_dagdependency_v2
@@ -34,7 +33,6 @@ from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
 from .circuit_to_instruction import circuit_to_instruction
 from .circuit_to_gate import circuit_to_gate
-from .ast_to_dag import ast_to_dag
 from .circuit_to_dagdependency import circuit_to_dagdependency
 from .circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
 from .dagdependency_to_circuit import dagdependency_to_circuit

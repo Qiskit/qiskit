@@ -271,7 +271,7 @@ def gen_waveform_max_value(
     if isinstance(data.inst, instructions.Play):
         # pulse
         operand = data.inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
@@ -563,7 +563,7 @@ def _parse_waveform(
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
+        if isinstance(operand, pulse.SymbolicPulse):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)

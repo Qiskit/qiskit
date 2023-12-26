@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,6 @@ from ddt import data, ddt, unpack
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
@@ -350,7 +349,6 @@ class TestObservableValidation(QiskitTestCase):
         ("IXYZ", (SparsePauliOp("IXYZ"),)),
         (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
         (
             ["IXYZ", "ZYXI"],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
@@ -361,10 +359,6 @@ class TestObservableValidation(QiskitTestCase):
         ),
         (
             [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
-        ),
-        (
-            [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
     )
