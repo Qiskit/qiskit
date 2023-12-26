@@ -18,7 +18,7 @@ import unittest
 import random
 import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
-import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as myu
+import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.test import QiskitTestCase
 from qiskit.synthesis.unitary.aqc.elementary_operations import rx_matrix as _rx
 from qiskit.synthesis.unitary.aqc.elementary_operations import ry_matrix as _ry
