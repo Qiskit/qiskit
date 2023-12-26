@@ -29,7 +29,7 @@ from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
-from qiskit.qpy.exceptions import QpyError
+from qiskit.qpy.exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from qiskit.pulse.configuration import Kernel, Discriminator
 
 

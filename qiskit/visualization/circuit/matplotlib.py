@@ -36,6 +36,7 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.classical import expr
+from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -1058,6 +1059,15 @@ class MatplotlibDrawer:
                     ]
                     self._condition(node, node_data, wire_map, outer_circuit, cond_xy, glob_data)
 
+                # AnnotatedOperation with ControlModifier
+                mod_control = None
+                if getattr(op, "modifiers", None):
+                    canonical_modifiers = _canonicalize_modifiers(op.modifiers)
+                    for modifier in canonical_modifiers:
+                        if isinstance(modifier, ControlModifier):
+                            mod_control = modifier
+                            break
+
                 # draw measure
                 if isinstance(op, Measure):
                     self._measure(node, node_data, outer_circuit, glob_data)
@@ -1076,8 +1086,8 @@ class MatplotlibDrawer:
                     self._gate(node, node_data, glob_data)
 
                 # draw controlled gates
-                elif isinstance(op, ControlledGate):
-                    self._control_gate(node, node_data, glob_data)
+                elif isinstance(op, ControlledGate) or mod_control:
+                    self._control_gate(node, node_data, glob_data, mod_control)
 
                 # draw multi-qubit gate as final default
                 else:
@@ -1660,17 +1670,18 @@ class MatplotlibDrawer:
 
             fold_level += 1
 
-    def _control_gate(self, node, node_data, glob_data):
+    def _control_gate(self, node, node_data, glob_data, mod_control):
         """Draw a controlled gate"""
         op = node.op
         xy = node_data[node].q_xy
         base_type = getattr(op, "base_gate", None)
         qubit_b = min(xy, key=lambda xy: xy[1])
         qubit_t = max(xy, key=lambda xy: xy[1])
-        num_ctrl_qubits = op.num_ctrl_qubits
+        num_ctrl_qubits = mod_control.num_ctrl_qubits if mod_control else op.num_ctrl_qubits
         num_qargs = len(xy) - num_ctrl_qubits
+        ctrl_state = mod_control.ctrl_state if mod_control else op.ctrl_state
         self._set_ctrl_bits(
-            op.ctrl_state,
+            ctrl_state,
             num_ctrl_qubits,
             xy,
             glob_data,
