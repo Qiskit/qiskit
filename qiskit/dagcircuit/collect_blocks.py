@@ -100,12 +100,12 @@ class BlockCollector:
             if self._collect_from_back:
                 return [
                     self.dag.get_node(pred_id)
-                    for pred_id in self.dag.get_successors(self.dag.node_map[node])
+                    for pred_id in self.dag.get_successors(node._node_id)
                 ]
             else:
                 return [
                     self.dag.get_node(pred_id)
-                    for pred_id in self.dag.get_predecessors(self.dag.node_map[node])
+                    for pred_id in self.dag.get_predecessors(node._node_id)
                 ]
 
     def _direct_succs(self, node):
@@ -122,12 +122,12 @@ class BlockCollector:
             if self._collect_from_back:
                 return [
                     self.dag.get_node(succ_id)
-                    for succ_id in self.dag.get_predecessors(self.dag.node_map[node])
+                    for succ_id in self.dag.get_predecessors(node._node_id)
                 ]
             else:
                 return [
                     self.dag.get_node(succ_id)
-                    for succ_id in self.dag.get_successors(self.dag.node_map[node])
+                    for succ_id in self.dag.get_successors(node._node_id)
                 ]
 
     def _have_uncollected_nodes(self):

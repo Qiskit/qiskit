@@ -116,9 +116,6 @@ class DAGDependencyV2:
 
         self.comm_checker = CommutationChecker()
 
-        # Map of node to node index
-        self.node_map = {}
-
         # Maps of qarg/carg indices
         self.qindices_map = {}
         self.cindices_map = {}
@@ -342,8 +339,7 @@ class DAGDependencyV2:
             cargs=cargs,
             dag=self,
         )
-        node_id = self._multi_graph.add_node(new_node)
-        self.node_map[new_node] = node_id
+        new_node._node_id = self._multi_graph.add_node(new_node)
         self._update_edges()
         self._increment_op(new_node.op)
 
@@ -399,7 +395,7 @@ class DAGDependencyV2:
         Add edges from predecessors to successors.
         """
         self._multi_graph.remove_node_retain_edges(
-            self.node_map[node], use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
+            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
         )
         self._decrement_op(node.op)
 
@@ -505,7 +501,7 @@ class DAGDependencyV2:
         return [
             (src, dest, data)
             for src_node in self._multi_graph.nodes()
-            for (src, dest, data) in self._multi_graph.out_edges(self.node_map[src_node])
+            for (src, dest, data) in self._multi_graph.out_edges(src_node._node_id)
         ]
 
     def get_in_edges(self, node_id):
@@ -606,7 +602,7 @@ class DAGDependencyV2:
         dag.qregs = self.qregs.copy()
 
         for node in self.get_nodes():
-            dag._multi_graph.add_node(node.copy())
+            dag._multi_graph.add_node(node)
         for edges in self.get_all_edges():
             dag._multi_graph.add_edge(edges[0], edges[1], edges[2])
         return dag
@@ -675,7 +671,7 @@ class DAGDependencyV2:
         """
         block_qargs = set()
         block_cargs = set()
-        block_ids = [self.node_map[x] for x in node_block]
+        block_ids = [x._node_id for x in node_block]
 
         # If node block is empty return early
         if not node_block:

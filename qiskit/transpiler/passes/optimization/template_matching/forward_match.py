@@ -335,7 +335,7 @@ class ForwardMatch:
             v = [label, self.circuit_dag_dep.get_node(label)]
 
             # Update the matched_nodes_list with new attribute successor to visit and sort the list.
-            self.matched_nodes_list.append([self.circuit_dag_dep.node_map[v_first], v_first])
+            self.matched_nodes_list.append([v_first._node_id, v_first])
 
             # If the node is blocked and already matched go to the end
             if self.isblocked[v[1]] | (self.matchedwith[v[1]] != []):

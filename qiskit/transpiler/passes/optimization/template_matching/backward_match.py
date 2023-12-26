@@ -171,7 +171,7 @@ class BackwardMatch:
 
         for node in current_dag.get_nodes():
             if (not self.matchedwith[node]) and (not self.isblocked[node]):
-                gate_indices.append(current_dag.node_map[node])
+                gate_indices.append(node._node_id)
         gate_indices.reverse()
         return gate_indices
 
