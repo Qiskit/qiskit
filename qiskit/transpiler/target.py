@@ -1377,7 +1377,7 @@ class Target(Mapping):
             for name in all_instructions:
                 inst = inst_name_map[name]
                 if inst.num_qubits == 1:
-                    prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map.physcial_qubits))
+                    prop_name_map[name] = {(qubit,): None for qubit in coupling_map.physical_qubits}
 
                 elif inst.num_qubits == 2:
                     prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
@@ -1474,15 +1474,15 @@ class Target(Mapping):
                     if not isinstance(qubits, tuple):
                         qubits = (qubits,)
 
-                        if name not in prop_name_map or qubits not in prop_name_map[name]:
-                            logger.info(
-                                "Gate calibration for instruction %s on qubits %s is found "
-                                "in the PulseDefaults payload. However, this entry is not defined in "
-                                "the gate mapping of Target. This calibration is ignored.",
-                                name,
-                                qubits,
-                            )
-                            continue
+                    if name not in prop_name_map or qubits not in prop_name_map[name]:
+                        logger.info(
+                            "Gate calibration for instruction %s on qubits %s is found "
+                            "in the PulseDefaults payload. However, this entry is not defined in "
+                            "the gate mapping of Target. This calibration is ignored.",
+                            name,
+                            qubits,
+                        )
+                        continue
 
                     if (name, qubits) in faulty_ops:
                         continue
