@@ -14,8 +14,6 @@
 =====================================================================
 Approximate Quantum Compiler (:mod:`qiskit.transpiler.synthesis.aqc`)
 =====================================================================
-
-.. currentmodule:: qiskit.transpiler.synthesis.aqc
 """
 
 import warnings

@@ -90,6 +90,9 @@ Basis Change Synthesis
 
 .. autofunction:: synth_qft_line
 
+Unitary Synthesis
+=================
+
 """
 
 from .evolution import (
