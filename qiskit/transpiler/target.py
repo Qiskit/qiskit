@@ -1353,7 +1353,7 @@ class Target(Mapping):
                     "a definition for this operation.",
                     RuntimeWarning,
                 )
-                unsupported_instructions.append(name)
+                unsupported_instructions.update(name)
 
         for name in unsupported_instructions:
             all_instructions.remove(name)
