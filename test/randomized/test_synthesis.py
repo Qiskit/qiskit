@@ -12,7 +12,7 @@
 
 """Randomized tests of quantum synthesis."""
 import unittest
-from test.python.quantum_info.test_synthesis import CheckDecompositions
+from test.python.synthesis.test_synthesis import CheckDecompositions
 from hypothesis import given, strategies, settings
 import numpy as np
 
