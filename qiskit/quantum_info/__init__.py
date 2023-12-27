@@ -117,7 +117,6 @@ Synthesis
    XXDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
-.. autofunction:: decompose_clifford
 """
 
 from __future__ import annotations
@@ -168,6 +167,5 @@ from .synthesis import (
     Quaternion,
     TwoQubitBasisDecomposer,
     XXDecomposer,
-    decompose_clifford,
     two_qubit_cnot_decompose,
 )

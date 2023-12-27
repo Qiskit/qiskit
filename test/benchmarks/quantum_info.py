@@ -20,10 +20,10 @@ import numpy as np
 from qiskit.quantum_info import (
     random_clifford,
     Clifford,
-    decompose_clifford,
     random_pauli,
     SparsePauliOp,
 )
+from qiskit.synthesis import synth_clifford_full
 from qiskit.quantum_info.operators.symplectic.random import random_pauli_list
 from qiskit.quantum_info import random_cnotdihedral, CNOTDihedral
 
@@ -64,7 +64,7 @@ class CliffordDecomposeBench:
     def time_decompose(self, nqubits_length):
         length = int(nqubits_length.split(",")[1])
         for i in range(length):
-            decompose_clifford(self.random_clifford[i])
+            synth_clifford_full(self.random_clifford[i])
 
 
 class RandomCnotDihedralBench:
