@@ -30,12 +30,12 @@ class ExcitationPreserving(TwoLocal):
 
     .. math::
 
-        \newcommand{\th}{\theta/2}
+        \newcommand{\rotationangle}{\theta/2}
 
         \begin{pmatrix}
         1 & 0 & 0 & 0 \\
-        0 & \cos\left(\th\right) & -i\sin\left(\th\right) & 0 \\
-        0 & -i\sin\left(\th\right) & \cos\left(\th\right) & 0 \\
+        0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+        0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
         0 & 0 & 0 & e^{-i\phi}
         \end{pmatrix}
 
