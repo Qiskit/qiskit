@@ -93,6 +93,7 @@ Unitary Synthesis
 =================
 
 .. autofunction:: qs_decomposition
+
 """
 
 from .evolution import (
