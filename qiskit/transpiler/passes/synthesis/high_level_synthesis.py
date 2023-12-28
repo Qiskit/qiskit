@@ -32,6 +32,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
+from qiskit.circuit.library import QftGate
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -45,6 +46,10 @@ from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
     synth_permutation_depth_lnn_kms,
+)
+from qiskit.synthesis.qft import (
+    synth_qft_full,
+    synth_qft_line,
 )
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
@@ -643,4 +648,61 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_acg(high_level_object.pattern)
+        return decomposition
+
+
+class QftSynthesisFull(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using all-to-all connectivity.
+
+    This plugin name is :``qft.full`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QftGate.
+
+        ToDo: add description of supported options.
+        """
+        if not isinstance(high_level_object, QftGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.full` only applies to objects of type QftGate."
+            )
+
+        insert_barriers = options.get("insert_barriers", False)
+        inverse = options.get("inverse", False)
+        name = options.get("name", None)
+
+        decomposition = synth_qft_full(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=high_level_object.do_swaps,
+            approximation_degree=high_level_object.approximation_degree,
+            insert_barriers=insert_barriers,
+            inverse=inverse,
+            name=name,
+        )
+        return decomposition
+
+
+class QftSynthesisLine(HighLevelSynthesisPlugin):
+    """Synthesis plugin for QFT gates using linear connectivity.
+
+    This plugin name is :``qft.line`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+        """Run synthesis for the given QftGate.
+
+        ToDo: add description of supported options.
+        """
+        if not isinstance(high_level_object, QftGate):
+            raise TranspilerError(
+                "The synthesis plugin 'qft.line` only applies to objects of type QftGate."
+            )
+
+        decomposition = synth_qft_line(
+            num_qubits=high_level_object.num_qubits,
+            do_swaps=high_level_object.do_swaps,
+            approximation_degree=high_level_object.approximation_degree,
+        )
         return decomposition

@@ -47,7 +47,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
 from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes.basis import BasisTranslator
-from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
+from qiskit.transpiler.passes.synthesis.plugin import (
+    HighLevelSynthesisPlugin,
+    high_level_synthesis_plugin_names,
+)
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
@@ -1650,6 +1653,15 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         pass_ = HighLevelSynthesis(equivalence_library=EquivalenceLibrary(), basis_gates=["u"])
         expected = QuantumCircuit(2, global_phase=0.5)
         self.assertEqual(pass_(qc), expected)
+
+
+class TestQftSynthesisPlugins(QiskitTestCase):
+    """Tests related to plugins for QftGate."""
+
+    def test_supported_names(self):
+        """Test that there is a default synthesis plugin for QftGates."""
+        supported_plugin_names = high_level_synthesis_plugin_names("qft")
+        self.assertIn("default", supported_plugin_names)
 
 
 if __name__ == "__main__":
