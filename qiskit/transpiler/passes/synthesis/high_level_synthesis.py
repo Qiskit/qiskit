@@ -656,26 +656,41 @@ class QftSynthesisFull(HighLevelSynthesisPlugin):
 
     This plugin name is :``qft.full`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * do_swaps (bool): Whether to include Swap gates at the end of the synthesized
+        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        at the end of the synthesized circuit, which cna in principle be dropped if
+        the ``QftGate`` itself is the last gate in the circuit.
+    * approximation_degree (int): The degree of approximation (0 for no approximation).
+        It is impossible ti implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+        https://arxiv.org/abs/quant-ph/0403071.
+    * insert_barriers (bool): If True, barriers are inserted as visualization improvement.
+    * inverse (bool): If True, the inverse Fourier transform is constructed.
+    * name (str): The name of the circuit.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        """Run synthesis for the given QftGate.
-
-        ToDo: add description of supported options.
-        """
+        """Run synthesis for the given QftGate."""
         if not isinstance(high_level_object, QftGate):
             raise TranspilerError(
                 "The synthesis plugin 'qft.full` only applies to objects of type QftGate."
             )
 
+        do_swaps = options.get("do_swaps")
+        approximation_degree = options.get("approximation_degree")
         insert_barriers = options.get("insert_barriers", False)
         inverse = options.get("inverse", False)
         name = options.get("name", None)
 
         decomposition = synth_qft_full(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=high_level_object.do_swaps,
-            approximation_degree=high_level_object.approximation_degree,
+            do_swaps=do_swaps,
+            approximation_degree=approximation_degree,
             insert_barriers=insert_barriers,
             inverse=inverse,
             name=name,
@@ -688,21 +703,34 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
 
     This plugin name is :``qft.line`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following additional options:
+
+    * do_swaps (bool): whether to include Swap gates at the end of the synthesized
+        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        at the end of the synthesized circuit, which cna in principle be dropped if
+        the ``QftGate`` itself is the last gate in the circuit.
+    * approximation_degree (int): the degree of approximation (0 for no approximation).
+        It is impossible ti implement the QFT approximately by ignoring
+        controlled-phase rotations with the angle is beneath a threshold. This is discussed
+        in more detail in https://arxiv.org/abs/quant-ph/9601018 or
+        https://arxiv.org/abs/quant-ph/0403071.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        """Run synthesis for the given QftGate.
-
-        ToDo: add description of supported options.
-        """
+        """Run synthesis for the given QftGate."""
         if not isinstance(high_level_object, QftGate):
             raise TranspilerError(
                 "The synthesis plugin 'qft.line` only applies to objects of type QftGate."
             )
 
+        do_swaps = options.get("do_swaps")
+        approximation_degree = options.get("approximation_degree")
+
         decomposition = synth_qft_line(
             num_qubits=high_level_object.num_qubits,
-            do_swaps=high_level_object.do_swaps,
-            approximation_degree=high_level_object.approximation_degree,
+            do_swaps=do_swaps,
+            approximation_degree=approximation_degree,
         )
         return decomposition
