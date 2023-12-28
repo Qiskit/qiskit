@@ -38,11 +38,11 @@ def qs_decomposition(
     Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
 
     .. parsed-literal::
-         ┌───┐               ┌───┐     ┌───┐     ┌───┐
-        ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
-         │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
-       /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
-         └───┘          └───┘     └───┘     └───┘     └───┘
+          ┌───┐               ┌───┐     ┌───┐     ┌───┐
+         ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
+          │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
+        /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
+          └───┘          └───┘     └───┘     └───┘     └───┘
 
     The number of CX gates generated with the decomposition without optimizations is,
 
@@ -66,12 +66,10 @@ def qs_decomposition(
 
     Args:
         mat (ndarray): unitary matrix to decompose
-        opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
-            per call. If True CZ gates are left in the output. If desired these can be further decomposed
-            to CX.
-        opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit
-            unitaries into a diagonal gate and a two cx unitary and reduces overal cx count by
-            4^(n-2) - 1.
+        opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cx per call.
+            If True CZ gates are left in the output. If desired these can be further decomposed to CX.
+        opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
+            into a diagonal gate and a two cx unitary and reduces overal cx count by 4^(n-2) - 1.
         decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
             :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
@@ -235,7 +233,7 @@ def _get_ucry_cz(nqubits, angles):
 
 
 def _apply_a2(circ):
-    from qiskit import transpile
+    from qiskit.compiler import transpile
     from qiskit.quantum_info import Operator
     from qiskit.circuit.library.generalized_gates import UnitaryGate
 
