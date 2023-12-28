@@ -45,6 +45,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.utils.deprecation import deprecate_func
 from .tools import pi_check
 
@@ -417,7 +418,7 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
         If the instruction is composite (i.e. has a definition),
@@ -426,6 +427,10 @@ class Instruction(Operation):
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
 
+        Args:
+            annotated: indicates whether the inverse gates can be implemented
+                as annotated gates.
+
         Returns:
             qiskit.circuit.Instruction: a fresh instruction for the inverse
 
@@ -433,6 +438,9 @@ class Instruction(Operation):
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
@@ -456,7 +464,9 @@ class Instruction(Operation):
         inverse_definition = self._definition.copy_empty_like()
         inverse_definition.global_phase = -inverse_definition.global_phase
         for inst in reversed(self._definition):
-            inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
+            inverse_definition._append(
+                inst.operation.inverse(annotated=annotated), inst.qubits, inst.clbits
+            )
         inverse_gate.definition = inverse_definition
         return inverse_gate
 

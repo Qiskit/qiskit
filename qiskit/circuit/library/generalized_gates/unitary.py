@@ -119,7 +119,7 @@ class UnitaryGate(Gate):
         # pylint: disable=unused-argument
         return self.params[0]
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 

@@ -29,7 +29,7 @@ class Delay(Instruction):
 
         super().__init__("delay", 1, 0, params=[duration], unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Special case. Return self."""
         return self
 

@@ -57,7 +57,7 @@ class Snapshot(Instruction):
         instruction.snapshot_type = self._snapshot_type
         return instruction
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Special case. Return self."""
         return Snapshot(self.num_qubits, self.num_clbits, self.params[0], self.params[1])
 

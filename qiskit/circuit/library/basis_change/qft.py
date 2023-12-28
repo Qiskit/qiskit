@@ -203,8 +203,12 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def inverse(self) -> "QFT":
+    def inverse(self, annotated: bool = False) -> "QFT":
         """Invert this circuit.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
 
         Returns:
             The inverted circuit.

@@ -81,7 +81,7 @@ class UGate(Gate):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
         :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
@@ -301,7 +301,7 @@ class CUGate(ControlledGate):
         qc.u(self.params[0] / 2, self.params[1], 0, 1)
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
         :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)

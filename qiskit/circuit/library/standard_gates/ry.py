@@ -109,7 +109,7 @@ class RYGate(Gate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RY gate.
 
         :math:`RY(\lambda)^{\dagger} = RY(-\lambda)`
@@ -237,7 +237,7 @@ class CRYGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse CRY gate (i.e. with the negative rotation angle)."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 

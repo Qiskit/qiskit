@@ -116,7 +116,7 @@ class RZZGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
         return RZZGate(-self.params[0])
 

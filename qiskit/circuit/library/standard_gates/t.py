@@ -78,7 +78,7 @@ class TGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
@@ -141,7 +141,7 @@ class TdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse Tdg gate (i.e. T)."""
         return TGate()
 

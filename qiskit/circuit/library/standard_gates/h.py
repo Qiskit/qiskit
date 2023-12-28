@@ -112,7 +112,7 @@ class HGate(SingletonGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
@@ -234,6 +234,6 @@ class CHGate(SingletonControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse

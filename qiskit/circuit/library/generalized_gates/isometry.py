@@ -127,9 +127,9 @@ class Isometry(Instruction):
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         self.params = []
-        inv = super().inverse()
+        inv = super().inverse(annotated=annotated)
         self.params = [self.iso_data]
         return inv
 

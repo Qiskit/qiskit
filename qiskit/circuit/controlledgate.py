@@ -20,6 +20,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 # pylint: disable=cyclic-import
 from .quantumcircuit import QuantumCircuit
+from .annotated_operation import AnnotatedOperation, InverseModifier
 from .gate import Gate
 from .quantumregister import QuantumRegister
 from ._utils import _ctrl_state_to_int
@@ -266,6 +267,11 @@ class ControlledGate(Gate):
             and self.definition == other.definition
         )
 
-    def inverse(self) -> "ControlledGate":
+    def inverse(self, annotated: bool = False) -> "ControlledGate":
         """Invert this gate by calling inverse on the base gate."""
-        return self.base_gate.inverse().control(self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
+        if not annotated:
+            return self.base_gate.inverse().control(
+                self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+            )
+        else:
+            return AnnotatedOperation(self, InverseModifier())

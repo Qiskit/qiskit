@@ -128,7 +128,7 @@ class YGate(SingletonGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
@@ -231,6 +231,6 @@ class CYGate(SingletonControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CY gate (itself)."""
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse

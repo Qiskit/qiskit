@@ -108,7 +108,7 @@ class RXXGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse RXX gate (i.e. with the negative rotation angle)."""
         return RXXGate(-self.params[0])
 

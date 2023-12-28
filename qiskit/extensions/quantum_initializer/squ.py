@@ -22,6 +22,7 @@ import cmath
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
@@ -63,18 +64,22 @@ class SingleQubitUnitary(Gate):
         # Create new gate
         super().__init__("squ", 1, [unitary_matrix])
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse.
 
         Note that the resulting gate has an empty ``params`` property.
         """
+
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         inverse_gate = Gate(
             name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
         )  # removing the params because arrays are deprecated
 
         definition = QuantumCircuit(*self.definition.qregs)
         for inst in reversed(self._definition):
-            definition._append(inst.replace(operation=inst.operation.inverse()))
+            definition._append(inst.replace(operation=inst.operation.inverse(annotated=annotated)))
         inverse_gate.definition = definition
         return inverse_gate
 

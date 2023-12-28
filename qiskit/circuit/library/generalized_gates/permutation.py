@@ -171,7 +171,7 @@ class PermutationGate(Gate):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Returns the inverse of the permutation."""
 
         # pylint: disable=cyclic-import

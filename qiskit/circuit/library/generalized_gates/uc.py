@@ -31,6 +31,7 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
@@ -109,19 +110,22 @@ class UCGate(Gate):
         super().__init__("multiplexer", int(num_contr) + 1, gate_list)
         self.up_to_diagonal = up_to_diagonal
 
-    def inverse(self) -> Gate:
+    def inverse(self, annotated: bool = False) -> Gate:
         """Return the inverse.
 
         This does not re-compute the decomposition for the multiplexer with the inverse of the
         gates but simply inverts the existing decomposition.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         inverse_gate = Gate(
             name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
         )  # removing the params because arrays are deprecated
 
         definition = QuantumCircuit(*self.definition.qregs)
         for inst in reversed(self._definition):
-            definition._append(inst.replace(operation=inst.operation.inverse()))
+            definition._append(inst.replace(operation=inst.operation.inverse(annotated=annotated)))
 
         definition.global_phase = -self.definition.global_phase
 

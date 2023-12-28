@@ -132,7 +132,7 @@ class ZGate(SingletonGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted Z gate (itself)."""
         return ZGate()  # self-inverse
 
@@ -217,7 +217,7 @@ class CZGate(SingletonControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -304,6 +304,6 @@ class CCZGate(SingletonControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse

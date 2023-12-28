@@ -153,7 +153,7 @@ class XXMinusYYGate(Gate):
 
         self.definition = circuit
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Inverse gate."""
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)

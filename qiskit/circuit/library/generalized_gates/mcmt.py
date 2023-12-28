@@ -158,7 +158,7 @@ class MCMT(QuantumCircuit):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse MCMT circuit, which is itself."""
         return MCMT(self.gate, self.num_ctrl_qubits, self.num_target_qubits)
 
@@ -260,5 +260,5 @@ class MCMTVChain(MCMT):
                 self.ccx(control_qubits[j], ancilla_qubits[i], ancilla_qubits[i + 1])
             self.ccx(control_qubits[0], control_qubits[1], ancilla_qubits[0])
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         return MCMTVChain(self.gate, self.num_ctrl_qubits, self.num_target_qubits)

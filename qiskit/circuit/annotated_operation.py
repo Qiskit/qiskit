@@ -179,6 +179,21 @@ class AnnotatedOperation(Operation):
             self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
         )
 
+    def inverse(self, annotated: bool = False):
+        """
+        Return the inverse version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            annotated: ignored (used for consistency with other inverse methods)
+
+        Returns:
+            Inverse version of the given operation.
+        """
+        # pylint: disable=unused-argument
+        return AnnotatedOperation(self, InverseModifier())
+
 
 def _canonicalize_modifiers(modifiers):
     """
