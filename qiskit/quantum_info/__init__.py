@@ -74,6 +74,11 @@ Measures
 Utility Functions
 =================
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   Quaternion
+
 .. autofunction:: partial_trace
 .. autofunction:: schmidt_decomposition
 .. autofunction:: shannon_entropy
@@ -113,7 +118,6 @@ Synthesis
 
    OneQubitEulerDecomposer
    TwoQubitBasisDecomposer
-   Quaternion
    XXDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
@@ -164,8 +168,8 @@ from .states import (
 )
 from .synthesis import (
     OneQubitEulerDecomposer,
-    Quaternion,
     TwoQubitBasisDecomposer,
     XXDecomposer,
     two_qubit_cnot_decompose,
 )
+from .quaternion import Quaternion

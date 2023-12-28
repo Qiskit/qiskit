@@ -25,7 +25,7 @@ from qiskit.circuit.library.standard_gates.u3 import U3Gate
 from qiskit.circuit import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.quantum_info.synthesis import Quaternion
+from qiskit.quantum_info.quaternion import Quaternion
 from qiskit._accelerate.optimize_1q_gates import compose_u3_rust
 
 _CHOP_THRESHOLD = 1e-15
