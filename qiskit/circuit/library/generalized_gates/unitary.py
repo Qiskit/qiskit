@@ -156,7 +156,7 @@ class UnitaryGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: int | None = None,
+        label: str | None = None,
         ctrl_state: int | str | None = None,
         annotated: bool = False,
     ) -> ControlledGate | AnnotatedOperation:

@@ -155,7 +155,9 @@ class AnnotatedOperation(Operation):
     def control(
         self,
         num_ctrl_qubits: int = 1,
+        label: str | None = None,
         ctrl_state: int | str | None = None,
+        annotated: bool = False,
     ):
         """
         Return the controlled version of itself.
@@ -164,12 +166,15 @@ class AnnotatedOperation(Operation):
 
         Args:
             num_ctrl_qubits: number of controls to add to gate (default: ``1``)
+            label: ignored (used for consistency with other control methods)
             ctrl_state: The control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: ignored (used for consistency with other control methods)
 
         Returns:
             Controlled version of the given operation.
         """
+        # pylint: disable=unused-argument
         return AnnotatedOperation(
             self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
         )
