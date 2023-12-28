@@ -866,7 +866,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 default=None,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 

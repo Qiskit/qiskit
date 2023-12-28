@@ -78,7 +78,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
 )
 
 from qiskit.circuit.library.standard_gates.equivalence_library import _cnot_rxx_decompose
-from qiskit.quantum_info.synthesis import qsd
+from qiskit.synthesis.unitary import qsd
 from qiskit.test import QiskitTestCase
 
 
