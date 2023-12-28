@@ -70,10 +70,10 @@ def qs_decomposition(
             If True CZ gates are left in the output. If desired these can be further decomposed to CX.
         opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
             into a diagonal gate and a two cx unitary and reduces overall cx count by 4^(n-2) - 1.
-        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomser.
+        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomposer.
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses two_qubit_cnot_decompose.
 
-    Return:
+    Returns:
         QuantumCircuit: Decomposed quantum circuit.
     """
     #  _depth (int): Internal use parameter to track recursion depth.
@@ -159,10 +159,10 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     Args:
        um0 (ndarray): applied if MSB is 0
        um1 (ndarray): applied if MSB is 1
-       opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
+       opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
        opt_a2 (bool): whether to try  optimization A.2 from Shende. This decomposes two qubit
-          unitaries into a diagonal gate and a two cx unitary and reduces overal cx count by
+          unitaries into a diagonal gate and a two cx unitary and reduces overall cx count by
           4^(n-2) - 1.
        _depth (int): This is an internal variable to track the recursion depth.
 
@@ -205,7 +205,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformly controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
+    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
     """
     nangles = len(angles)
     qc = QuantumCircuit(nqubits)
