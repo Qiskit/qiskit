@@ -70,10 +70,8 @@ def qs_decomposition(
             If True CZ gates are left in the output. If desired these can be further decomposed to CX.
         opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
             into a diagonal gate and a two cx unitary and reduces overal cx count by 4^(n-2) - 1.
-        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
-            :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
-        decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
-            :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose`
+        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomser.
+        decomposer_2q (None or Object): optional 2Q decomposer. If None, uses two_qubit_cnot_decompose.
 
     Return:
         QuantumCircuit: Decomposed quantum circuit.
@@ -90,7 +88,9 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library.generalized_gates import UnitaryGate  # pylint: disable=cyclic-import
+                from qiskit.circuit.library.generalized_gates import (
+                    UnitaryGate,
+                )  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
