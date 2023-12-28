@@ -1870,11 +1870,15 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def test_basis_gates_qubits_only(self):
         """Test construction with only basis gates."""
         target = Target.from_configuration(["u", "cx"], 3)
-        self.assertEqual(target.operation_names, {"u", "cx"})
+
+        # delay and measure are added automatically.
+        self.assertEqual(target.operation_names, {"u", "cx", "measure", "delay"})
 
     def test_basis_gates_no_qubits(self):
         target = Target.from_configuration(["u", "cx"])
-        self.assertEqual(target.operation_names, {"u", "cx"})
+
+        # delay and measure are added automatically
+        self.assertEqual(target.operation_names, {"u", "cx", "measure", "delay"})
 
     def test_basis_gates_coupling_map(self):
         """Test construction with only basis gates."""
@@ -1884,6 +1888,25 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.operation_names, {"u", "cx"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
+
+    def test_target_has_measure(self):
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        backend = FakeHanoi()
+        configuration = backend.configuration()
+        pulse_defaults = backend.defaults()
+        properties = backend.properties()
+        
+        target = Target.from_configuration(
+                basis_gates = configuration.basis_gates,
+                num_qubits = configuration.num_qubits,
+                coupling_map = CouplingMap(couplinglist=configuration.coupling_map),
+                inst_map = pulse_defaults.instruction_schedule_map,
+                backend_properties = properties,
+                timing_constraints = TimingConstraints(**configuration.timing_constraints)
+                )
+        self.assert(target.instruction_schedule_map().has('measure', 0)
 
     def test_properties(self):
         fake_backend = FakeVigo()
@@ -1949,7 +1972,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         target = Target.from_configuration(
             basis_gates=basis_gates, num_qubits=2, custom_name_mapping=custom_name_mapping
         )
-        self.assertEqual(target.operation_names, {"my_x", "cx"})
+        # delay and measure are added automatically
+        self.assertEqual(target.operation_names, {"my_x", "cx", "delay", "measure"})
 
     def test_missing_custom_basis_no_coupling(self):
         basis_gates = ["my_X", "cx"]
@@ -1965,7 +1989,9 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def test_over_two_qubit_gate_without_coupling(self):
         basis_gates = ["ccx", "cx", "swap", "u"]
         target = Target.from_configuration(basis_gates, 15)
-        self.assertEqual(target.operation_names, {"ccx", "cx", "swap", "u"})
+
+        # delay and measure are added automatically
+        self.assertEqual(target.operation_names, {"ccx", "cx", "swap", "u", "delay", "measure"})
 
     def test_over_two_qubits_with_coupling(self):
         basis_gates = ["ccx", "cx", "swap", "u"]
