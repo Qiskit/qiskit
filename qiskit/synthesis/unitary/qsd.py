@@ -69,7 +69,7 @@ def qs_decomposition(
         opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cx per call.
             If True CZ gates are left in the output. If desired these can be further decomposed to CX.
         opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
-            into a diagonal gate and a two cx unitary and reduces overal cx count by 4^(n-2) - 1.
+            into a diagonal gate and a two cx unitary and reduces overall cx count by 4^(n-2) - 1.
         decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomser.
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses two_qubit_cnot_decompose.
 
@@ -88,7 +88,7 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library.generalized_gates import (
+                from qiskit.circuit.library.generalized_gates.unitary import (
                     UnitaryGate,
                 )  # pylint: disable=cyclic-import
 
@@ -235,7 +235,7 @@ def _get_ucry_cz(nqubits, angles):
 def _apply_a2(circ):
     from qiskit.compiler import transpile
     from qiskit.quantum_info import Operator
-    from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
     ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)
