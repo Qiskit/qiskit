@@ -73,7 +73,7 @@ def qs_decomposition(
         decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
             :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
-            :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose
+            :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose`
 
     Return:
         QuantumCircuit: Decomposed quantum circuit.
@@ -90,7 +90,7 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
+                from qiskit.circuit.library.generalized_gates import UnitaryGate  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
