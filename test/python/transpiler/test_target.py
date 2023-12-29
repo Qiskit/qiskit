@@ -49,6 +49,7 @@ from qiskit.providers.fake_provider import (
     FakeVigo,
     FakeNairobi,
     FakeGeneva,
+    FakeHanoi,
 )
 
 
@@ -1890,23 +1891,20 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
     def test_target_has_measure(self):
-        qc = QuantumCircuit(1, 1)
-        qc.x(0)
-        qc.measure(0, 0)
         backend = FakeHanoi()
         configuration = backend.configuration()
         pulse_defaults = backend.defaults()
         properties = backend.properties()
-        
+
         target = Target.from_configuration(
-                basis_gates = configuration.basis_gates,
-                num_qubits = configuration.num_qubits,
-                coupling_map = CouplingMap(couplinglist=configuration.coupling_map),
-                inst_map = pulse_defaults.instruction_schedule_map,
-                backend_properties = properties,
-                timing_constraints = TimingConstraints(**configuration.timing_constraints)
-                )
-        self.assert(target.instruction_schedule_map().has('measure', 0)
+            basis_gates=configuration.basis_gates,
+            num_qubits=configuration.num_qubits,
+            coupling_map=CouplingMap(couplinglist=configuration.coupling_map),
+            inst_map=pulse_defaults.instruction_schedule_map,
+            backend_properties=properties,
+            timing_constraints=TimingConstraints(**configuration.timing_constraints),
+        )
+        self.assertTrue(target.instruction_schedule_map().has("measure", 0))
 
     def test_properties(self):
         fake_backend = FakeVigo()

@@ -1421,9 +1421,20 @@ class Target(Mapping):
 
                         error = params["gate_error"][0] if "gate_error" in params else None
                         if instruction_durations is not None:
-                            duration = instruction_durations.get(
-                                inst=name, qubits=list(qubits), unit="s", parameters=None
-                            )
+                            try:
+                                duration = instruction_durations.get(
+                                    inst=name, qubits=list(qubits), unit="s", parameters=None
+                                )
+                            except TranspilerError:
+                                warnings.warn(
+                                    f"Duration of instruction {name} on qubits {qubits} is "
+                                    "not found in `InstructionDurations` passed, "
+                                    "falling back to `BackendProperties` to fetch duration",
+                                    RuntimeWarning,
+                                )
+                                duration = (
+                                    params["gate_length"][0] if "gate_length" in params else None
+                                )
                         else:
                             duration = params["gate_length"][0] if "gate_length" in params else None
 
