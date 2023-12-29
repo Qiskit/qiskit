@@ -20,6 +20,7 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.library.pulse import Pulse
+from qiskit.pulse.model import PulseTarget, Frame, MixedFrame
 
 
 class Play(Instruction):
@@ -31,18 +32,48 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
-        """Create a new pulse instruction.
+    def __init__(
+        self,
+        pulse: Pulse,
+        *,
+        target: PulseTarget = None,
+        frame: Frame = None,
+        mixed_frame: MixedFrame = None,
+        channel: PulseChannel = None,
+        name: Optional[str] = None,
+    ):
+        """Create a new pulse play instruction.
+
+        To uniquely identify the mixed frame to which the pulse is applied, the arguments must include
+        exactly one of ``mixed_frame``, ``channel`` or the duo ``target`` and ``frame``.
 
         Args:
             pulse: A pulse waveform description, such as
                    :py:class:`~qiskit.pulse.library.Waveform`.
+            target: The target to which the pulse is applied.
+            frame: The frame characterizing the pulse carrier.
+            mixed_frame: The mixed frame to which the pulse is applied.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
+
+        Raises:
+            PulseError: If the mixed frame is under or over specified.
         """
+        if (target is not None) != (frame is not None):
+            raise PulseError("target and frame must be provided simultaneously")
+        if (channel is not None) + (mixed_frame is not None) + (target is not None) != 1:
+            raise PulseError(
+                "Exactly one of mixed_frame, channel or the duo target and frame has to be provided"
+            )
+
+        if target is not None:
+            mixed_frame = MixedFrame(target, frame)
+        else:
+            mixed_frame = mixed_frame or channel
+
         if name is None:
             name = pulse.name
-        super().__init__(operands=(pulse, channel), name=name)
+        super().__init__(operands=(pulse, mixed_frame), name=name)
 
     def _validate(self):
         """Called after initialization to validate instruction data.
@@ -54,8 +85,10 @@ class Play(Instruction):
         if not isinstance(self.pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
 
-        if not isinstance(self.channel, PulseChannel):
-            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
+        if not isinstance(self.mixed_frame, (PulseChannel, MixedFrame)):
+            raise PulseError(
+                f"Expected a mixed frame or pulse channel, got {self.mixed_frame} instead."
+            )
 
     @property
     def pulse(self) -> Pulse:
@@ -63,14 +96,23 @@ class Play(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> PulseChannel:
+    def channel(self) -> Union[PulseChannel, None]:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on.
+        """
+        if isinstance(self.operands[1], PulseChannel):
+            return self.operands[1]
+        return None
+
+    @property
+    def mixed_frame(self) -> Union[PulseChannel, MixedFrame]:
+        """Return the mixed frame that this instruction is
         scheduled on.
         """
         return self.operands[1]
 
     @property
-    def channels(self) -> Tuple[PulseChannel]:
+    def channels(self) -> Tuple[Union[PulseChannel, None]]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
 
@@ -90,7 +132,7 @@ class Play(Instruction):
             if isinstance(pulse_param_expr, ParameterExpression):
                 parameters = parameters | pulse_param_expr.parameters
 
-        if self.channel.is_parameterized():
+        if self.channel is not None and self.channel.is_parameterized():
             parameters = parameters | self.channel.parameters
 
         return parameters

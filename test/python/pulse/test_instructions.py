@@ -286,9 +286,9 @@ class TestPlay(QiskitTestCase):
         self.duration = 4
         self.pulse_op = library.Waveform([1.0] * self.duration, name="test")
 
-    def test_play(self):
+    def test_play_legacy(self):
         """Test basic play instruction."""
-        play = instructions.Play(self.pulse_op, channels.DriveChannel(1))
+        play = instructions.Play(self.pulse_op, channel=channels.DriveChannel(1))
 
         self.assertIsInstance(play.id, int)
         self.assertEqual(play.name, self.pulse_op.name)
@@ -299,10 +299,51 @@ class TestPlay(QiskitTestCase):
             " DriveChannel(1), name='test')",
         )
 
+    def test_play_new_model(self):
+        """Test basic play instruction."""
+        play = instructions.Play(self.pulse_op, target=pulse.Qubit(0), frame=pulse.QubitFrame(0))
+
+        self.assertIsInstance(play.id, int)
+        self.assertEqual(play.name, self.pulse_op.name)
+        self.assertEqual(play.duration, self.duration)
+        self.assertEqual(play.mixed_frame, pulse.MixedFrame(pulse.Qubit(0), pulse.QubitFrame(0)))
+        self.assertEqual(play.channel, None)
+
     def test_play_non_pulse_ch_raises(self):
         """Test that play instruction on non-pulse channel raises a pulse error."""
         with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, channels.AcquireChannel(0))
+            instructions.Play(self.pulse_op, channel=channels.AcquireChannel(0))
+
+    def test_play_arguments_validation(self):
+        """Test that play instruction raises an error if the arguments don't specify a unique mixed
+        frame"""
+        channel = channels.DriveChannel(0)
+        target = pulse.Qubit(0)
+        frame = pulse.QubitFrame(0)
+        mixed_frame = pulse.MixedFrame(pulse.Qubit(0), pulse.QubitFrame(0))
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channel=channel, frame=frame)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channel=channel, target=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channel=channel, target=target, frame=frame)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, channel=channel, mixed_frame=mixed_frame)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(
+                self.pulse_op, channel=channel, mixed_frame=mixed_frame, target=target
+            )
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(
+                self.pulse_op, channel=channel, mixed_frame=mixed_frame, target=target, frame=frame
+            )
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, target=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, frame=frame)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, target=target, frame=frame)
 
 
 class TestDirectives(QiskitTestCase):
