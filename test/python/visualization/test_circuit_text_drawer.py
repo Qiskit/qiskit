@@ -6348,7 +6348,7 @@ class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
             expected,
         )
 
-    def test_annotated_operation(self):
+    def test_annotated_multi_qubit(self):
         """Test AnnotatedOperation and other non-Instructions."""
         expected = "\n".join(
             [
