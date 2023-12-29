@@ -43,14 +43,14 @@ class RZXGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         R_{ZX}(\theta)\ q_0, q_1 = \exp\left(-i \frac{\theta}{2} X{\otimes}Z\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0          & -i\sin\left(\th\right)  & 0          \\
-                0           & \cos\left(\th\right)  & 0            & i\sin\left(\th\right) \\
-                -i\sin\left(\th\right) & 0          & \cos\left(\th\right)    & 0          \\
-                0           & i\sin\left(\th\right) & 0            & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & \cos\left(\rotationangle\right) & 0 & i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right) & 0 \\
+                0 & i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -71,14 +71,14 @@ class RZXGate(Gate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             R_{ZX}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} Z{\otimes}X) =
                 \begin{pmatrix}
-                    \cos(\th)   & -i\sin(\th) & 0           & 0          \\
-                    -i\sin(\th) & \cos(\th)   & 0           & 0          \\
-                    0           & 0           & \cos(\th)   & i\sin(\th) \\
-                    0           & 0           & i\sin(\th)  & \cos(\th)
+                    \cos(\rotationangle)   & -i\sin(\rotationangle) & 0           & 0          \\
+                    -i\sin(\rotationangle) & \cos(\rotationangle)   & 0           & 0          \\
+                    0           & 0           & \cos(\rotationangle)   & i\sin(\rotationangle) \\
+                    0           & 0           & i\sin(\rotationangle)  & \cos(\rotationangle)
                 \end{pmatrix}
 
         This is a direct sum of RX rotations, so this gate is equivalent to a

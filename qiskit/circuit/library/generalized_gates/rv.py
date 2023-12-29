@@ -36,14 +36,14 @@ class RVGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{|\vec{v}|}
+        \newcommand{\rotationangle}{|\vec{v}|}
         \newcommand{\sinc}{\text{sinc}}
             R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
                 \begin{pmatrix}
-                    \cos\left(\th\right) -i v_z \sinc\left(\th\right)
-                    & -(i v_x + v_y) \sinc\left(\th\right) \\
-                    -(i v_x - v_y) \sinc\left(\th\right)
-                    & \cos\left(\th\right) + i v_z \sinc\left(\th\right)
+                    \cos\left(\rotationangle\right) -i v_z \sinc\left(\rotationangle\right)
+                    & -(i v_x + v_y) \sinc\left(\rotationangle\right) \\
+                    -(i v_x - v_y) \sinc\left(\rotationangle\right)
+                    & \cos\left(\rotationangle\right) + i v_z \sinc\left(\rotationangle\right)
                 \end{pmatrix}
     """
 

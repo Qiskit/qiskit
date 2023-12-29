@@ -40,12 +40,12 @@ class RGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R(\theta, \phi) = e^{-i \th \left(\cos{\phi} x + \sin{\phi} y\right)} =
+        R(\theta, \phi) = e^{-i \rotationangle \left(\cos{\phi} x + \sin{\phi} y\right)} =
             \begin{pmatrix}
-                \cos\left(\th\right) & -i e^{-i \phi} \sin\left(\th\right) \\
-                -i e^{i \phi} \sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -i e^{-i \phi} \sin\left(\rotationangle\right) \\
+                -i e^{i \phi} \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
