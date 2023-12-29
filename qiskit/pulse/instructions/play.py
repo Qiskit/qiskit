@@ -36,10 +36,10 @@ class Play(Instruction):
         self,
         pulse: Pulse,
         *,
-        target: PulseTarget = None,
-        frame: Frame = None,
-        mixed_frame: MixedFrame = None,
-        channel: PulseChannel = None,
+        target: Optional[PulseTarget] = None,
+        frame: Optional[Frame] = None,
+        mixed_frame: Optional[MixedFrame] = None,
+        channel: Optional[PulseChannel] = None,
         name: Optional[str] = None,
     ):
         """Create a new pulse play instruction.
