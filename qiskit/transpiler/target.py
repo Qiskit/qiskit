@@ -1476,8 +1476,8 @@ class Target(Mapping):
                 # Map required ops to each operational qubit
                 if prop_name_map[op] is None:
                     prop_name_map[op] = {
-                            (q,): None for q in range(num_qubits) if q not in faulty_qubits
-                            }
+                        (q,): None for q in range(num_qubits) if q not in faulty_qubits
+                    }
 
         if inst_map is not None and coupling_map is not None:
             for name in inst_map.instructions:
@@ -1512,26 +1512,20 @@ class Target(Mapping):
 
         target = Target(**in_data_target)
 
-        if backend_properties is None and coupling_map is not None:
-            for inst_name in all_instructions:
+        for inst_name in all_instructions:
+            if inst_name in qiskit_control_flow_mapping:
+                # Control flow operator doesn't have gate property.
                 target.add_instruction(
-                    instruction=inst_name_map[inst_name],
+                    instruction=qiskit_control_flow_mapping[inst_name],
                     name=inst_name,
                 )
-        else:
-            for inst_name in all_instructions:
-                if inst_name in qiskit_control_flow_mapping:
-                    # Control flow operator doesn't have gate property.
-                    target.add_instruction(
-                        instruction=qiskit_control_flow_mapping[inst_name],
-                        name=inst_name,
-                    )
-                else:
-                    target.add_instruction(
-                        instruction=inst_name_map[inst_name],
-                        properties=prop_name_map[inst_name],
-                        name=inst_name,
-                    )
+            else:
+                target.add_instruction(
+                    instruction=inst_name_map[inst_name],
+                    properties=prop_name_map.get(inst_name, None),
+                    name=inst_name,
+                )
+
         return target
 
 

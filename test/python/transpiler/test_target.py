@@ -1976,19 +1976,15 @@ class TestTargetFromConfiguration(QiskitTestCase):
 
     def test_missing_custom_basis_no_coupling(self):
         basis_gates = ["my_X", "cx"]
-        msg_no_gate_def = "can be found and is being excluded from the generated target. "
-        "You can provide a definition for this operation in"
-        msg_no_cp_map = "would be ignored"
-        with self.assertRaisesRegex(RuntimeWarning, msg_no_gate_def):
-            with self.assertRaisesRegex(RuntimeWarning, msg_no_cp_mp):
-                Target.from_configuration(basis_gates, num_qubits=4)
+        msg_no_gate_def = ".can be found and is being excluded from the generated target."
+        with self.assertWarnsRegex(RuntimeWarning, msg_no_gate_def):
+            Target.from_configuration(basis_gates, num_qubits=4)
 
     def test_missing_custom_basis_with_coupling(self):
         basis_gates = ["my_X", "cx"]
         cmap = CouplingMap.from_line(3)
-        msg_no_gate_def = "can be found and is being excluded from the generated target. "
-        "You can provide a definition for this operation in"
-        with self.assertRaisesRegex(RuntimeWarning, msg_no_gate_def):
+        msg_no_gate_def = ".can be found and is being excluded from the generated target."
+        with self.assertWarnsRegex(RuntimeWarning, msg_no_gate_def):
             Target.from_configuration(basis_gates, 3, cmap)
 
     def test_over_two_qubit_gate_without_coupling(self):
