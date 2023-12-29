@@ -45,6 +45,7 @@ from qiskit.circuit.library import (
     U3Gate,
     XGate,
     CZGate,
+    CXGate,
     ZGate,
     YGate,
     SGate,
@@ -6342,6 +6343,29 @@ class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
         )
         circuit.append(op1, [0, 1, 2])
         circuit.append(SXGate(), [1])
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
+            expected,
+        )
+
+    def test_annotated_operation(self):
+        """Test AnnotatedOperation and other non-Instructions."""
+        expected = "\n".join(
+            [
+                "                  ",
+                "q_0: ──────o──────",
+                "     ┌─────┴─────┐",
+                "q_1: ┤0          ├",
+                "     │  Cx - Inv │",
+                "q_2: ┤1          ├",
+                "     └─────┬─────┘",
+                "q_3: ──────■──────",
+                "                  ",
+            ]
+        )
+        gate = AnnotatedOperation(CXGate(), [ControlModifier(2, 2), InverseModifier()])
+        circuit = QuantumCircuit(gate.num_qubits)
+        circuit.append(gate, [0, 3, 1, 2])
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", initial_state=False)),
             expected,
