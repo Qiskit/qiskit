@@ -1349,12 +1349,11 @@ class Target(Mapping):
             else:
                 warnings.warn(
                     f"No gate definition for {name} can be found and is being excluded "
-                    "from the generated target. In `custom_name_mapping` you can provide "
-                    "a definition for this operation.",
+                    "from the generated target. You can provide a definition for this "
+                    "operation in ``custom_name_mapping``",
                     RuntimeWarning,
                 )
-                unsupported_instructions.update(name)
-
+                unsupported_instructions.add(name)
         for name in unsupported_instructions:
             all_instructions.remove(name)
 
@@ -1472,12 +1471,13 @@ class Target(Mapping):
                     duration=duration, error=error
                 )
 
-        for op in required_operations:
-            # Map required ops to each operational qubit
-            if prop_name_map[op] is None:
-                prop_name_map[op] = {
-                    (q,): None for q in range(num_qubits) if q not in faulty_qubits
-                }
+        if num_qubits is not None:
+            for op in required_operations:
+                # Map required ops to each operational qubit
+                if prop_name_map[op] is None:
+                    prop_name_map[op] = {
+                            (q,): None for q in range(num_qubits) if q not in faulty_qubits
+                            }
 
         if inst_map is not None and coupling_map is not None:
             for name in inst_map.instructions:

@@ -1886,7 +1886,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
         target = Target.from_configuration(
             ["u", "cx"], 3, CouplingMap.from_ring(3, bidirectional=False)
         )
-        self.assertEqual(target.operation_names, {"u", "cx"})
+        # Measure and Delay are added automatically in operation_names
+        self.assertEqual(target.operation_names, {"u", "cx", "measure", "delay"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
@@ -1975,13 +1976,19 @@ class TestTargetFromConfiguration(QiskitTestCase):
 
     def test_missing_custom_basis_no_coupling(self):
         basis_gates = ["my_X", "cx"]
-        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
-            Target.from_configuration(basis_gates, num_qubits=4)
+        msg_no_gate_def = "can be found and is being excluded from the generated target. "
+        "You can provide a definition for this operation in"
+        msg_no_cp_map = "would be ignored"
+        with self.assertRaisesRegex(RuntimeWarning, msg_no_gate_def):
+            with self.assertRaisesRegex(RuntimeWarning, msg_no_cp_mp):
+                Target.from_configuration(basis_gates, num_qubits=4)
 
     def test_missing_custom_basis_with_coupling(self):
         basis_gates = ["my_X", "cx"]
         cmap = CouplingMap.from_line(3)
-        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
+        msg_no_gate_def = "can be found and is being excluded from the generated target. "
+        "You can provide a definition for this operation in"
+        with self.assertRaisesRegex(RuntimeWarning, msg_no_gate_def):
             Target.from_configuration(basis_gates, 3, cmap)
 
     def test_over_two_qubit_gate_without_coupling(self):
