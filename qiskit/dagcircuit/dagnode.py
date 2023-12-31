@@ -15,7 +15,7 @@
 
 import itertools
 import uuid
-from typing import Iterable
+from collections.abc import Iterable
 
 from qiskit.circuit import (
     Qubit,
@@ -27,6 +27,7 @@ from qiskit.circuit import (
     SwitchCaseOp,
     ForLoopOp,
     Parameter,
+    Operation,
 )
 from qiskit.circuit.classical import expr
 
@@ -252,7 +253,9 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None):
+    def __init__(
+        self, op: Operation, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None
+    ):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
