@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Set the ``layout`` property to the given layout."""
+from __future__ import annotations
+
 from qiskit.transpiler import Layout, TranspilerError
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -22,7 +24,7 @@ class SetLayout(AnalysisPass):
     of the circuit (Qubit) in increasing order.
     """
 
-    def __init__(self, layout):
+    def __init__(self, layout: Layout | list[int]):
         """SetLayout initializer.
 
         Args:

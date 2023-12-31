@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -99,8 +99,8 @@ class RunningPassManager(FlowControllerLinear):
     def run(
         self,
         circuit: QuantumCircuit,
-        output_name: str = None,
-        callback: Callable = None,
+        output_name: str | None = None,
+        callback: Callable | None = None,
     ) -> QuantumCircuit:
         """Run all the passes on a QuantumCircuit
 
