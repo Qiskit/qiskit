@@ -12,6 +12,7 @@
 
 """Layout selection using the SABRE bidirectional search approach from Li et al.
 """
+from __future__ import annotations
 
 import copy
 import dataclasses
