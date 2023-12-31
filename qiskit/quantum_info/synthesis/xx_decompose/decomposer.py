@@ -25,7 +25,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
+from qiskit.synthesis.one_qubit.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit

@@ -17,7 +17,7 @@ import math
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
 from qiskit.circuit.library.standard_gates import (
     UGate,

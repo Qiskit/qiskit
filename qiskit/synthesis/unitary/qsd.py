@@ -18,7 +18,8 @@ from __future__ import annotations
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
+from qiskit.quantum_info.synthesis import two_qubit_decompose
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit.circuit.library.generalized_gates.ucry import UCRYGate

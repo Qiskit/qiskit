@@ -56,7 +56,7 @@ from qiskit.circuit.library import (
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     TwoQubitWeylIdEquiv,

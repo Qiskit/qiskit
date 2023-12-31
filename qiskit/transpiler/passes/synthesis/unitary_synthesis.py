@@ -24,7 +24,7 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitBasisDecomposer,

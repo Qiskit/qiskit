@@ -13,6 +13,14 @@
 """State and Unitary synthesis methods."""
 
 from __future__ import annotations
+import warnings
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
-from .one_qubit_decompose import OneQubitEulerDecomposer
 from .xx_decompose.decomposer import XXDecomposer
+
+warnings.warn(
+    "The qiskit.quantum_info.synthesis module is pending deprecation since Qiskit 0.46.0."
+    "It will be deprecated in a following release, no sooner than 3 months after the 0.46.0 release.",
+    stacklevel=2,
+    category=PendingDeprecationWarning,
+)

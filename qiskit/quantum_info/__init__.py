@@ -116,7 +116,6 @@ Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   OneQubitEulerDecomposer
    TwoQubitBasisDecomposer
    XXDecomposer
 
@@ -167,7 +166,6 @@ from .states import (
     negativity,
 )
 from .synthesis import (
-    OneQubitEulerDecomposer,
     TwoQubitBasisDecomposer,
     XXDecomposer,
     two_qubit_cnot_decompose,
