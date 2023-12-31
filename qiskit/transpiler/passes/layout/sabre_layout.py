@@ -18,6 +18,7 @@ import dataclasses
 import logging
 import functools
 import time
+from collections.abc import Sequence
 
 import numpy as np
 import rustworkx as rx
@@ -39,6 +40,7 @@ from qiskit._accelerate.sabre import (
     sabre_layout_and_routing,
     Heuristic,
     NeighborTable,
+    SwapMap,
 )
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
@@ -469,6 +471,6 @@ class _DisjointComponent:
     dag: DAGCircuit
     coupling_map: CouplingMap
     initial_layout: NLayout
-    final_permutation: "list[int]"
-    sabre_result: "tuple[SwapMap, Sequence[int], NodeBlockResults]"
-    circuit_to_dag_dict: "dict[int, DAGCircuit]"
+    final_permutation: list[int]
+    sabre_result: tuple[SwapMap, Sequence[int], "NodeBlockResults"]
+    circuit_to_dag_dict: dict[int, DAGCircuit]

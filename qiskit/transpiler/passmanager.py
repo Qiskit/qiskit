@@ -16,9 +16,9 @@ from __future__ import annotations
 import inspect
 import io
 import re
-from collections.abc import Iterator, Iterable, Callable
+from collections.abc import Iterator, Iterable, Callable, Sequence
 from functools import wraps
-from typing import Union, List, Any
+from typing import Any, List, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -39,7 +39,7 @@ class PassManager(BasePassManager):
 
     def __init__(
         self,
-        passes: Task | list[Task] = (),
+        passes: Task | Sequence[Task] = (),
         max_iteration: int = 1000,
     ):
         """Initialize an empty pass manager object.
@@ -128,7 +128,7 @@ class PassManager(BasePassManager):
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable = None,
+        callback: Callable[..., Any] | None = None,
         num_processes: int = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
@@ -390,7 +390,7 @@ class StagedPassManager(PassManager):
         self,
         circuits: _CircuitsT,
         output_name: str | None = None,
-        callback: Callable | None = None,
+        callback: Callable[..., Any] | None = None,
         num_processes: int = None,
     ) -> _CircuitsT:
         self._update_passmanager()
