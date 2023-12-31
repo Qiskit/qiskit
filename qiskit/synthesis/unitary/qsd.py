@@ -67,9 +67,7 @@ def qs_decomposition(
     Args:
         mat (ndarray): unitary matrix to decompose
         opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cx per call.
-            If True CZ gates are left in the output. If desired these can be further decomposed to CX.
-        opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
-            into a diagonal gate and a two cx unitary and reduces overall cx count by 4^(n-2) - 1.
+        opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries.
         decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomposer.
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses two_qubit_cnot_decompose.
 
