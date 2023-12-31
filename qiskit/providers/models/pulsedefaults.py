@@ -12,7 +12,9 @@
 
 
 """Model and schema for pulse defaults."""
-from typing import Any, Dict, List
+from __future__ import annotations
+
+from typing import Any
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, PulseQobjDef
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
@@ -98,9 +100,11 @@ class Command:
         name: Pulse command name.
     """
 
-    _data = {}
+    _data: dict[str, Any] = {}
 
-    def __init__(self, name: str, qubits=None, sequence=None, **kwargs):
+    def __init__(
+        self, name: str, qubits=None, sequence: PulseQobjInstruction | None = None, **kwargs
+    ):
         """Initialize a Command object
 
         Args:
@@ -123,7 +127,7 @@ class Command:
         except KeyError as ex:
             raise AttributeError(f"Attribute {name} is not defined") from ex
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """Return a dictionary format representation of the Command.
 
         Returns:
@@ -170,14 +174,14 @@ class PulseDefaults:
 
     def __init__(
         self,
-        qubit_freq_est: List[float],
-        meas_freq_est: List[float],
+        qubit_freq_est: list[float],
+        meas_freq_est: list[float],
         buffer: int,
-        pulse_library: List[PulseLibraryItem],
-        cmd_def: List[Command],
-        meas_kernel: MeasurementKernel = None,
-        discriminator: Discriminator = None,
-        **kwargs: Dict[str, Any],
+        pulse_library: list[PulseLibraryItem],
+        cmd_def: list[Command],
+        meas_kernel: MeasurementKernel | None = None,
+        discriminator: Discriminator | None = None,
+        **kwargs: dict[str, Any],
     ):
         """
         Validate and reformat transport layer inputs to initialize.

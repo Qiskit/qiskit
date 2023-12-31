@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for job status."""
+from __future__ import annotations
 
 
 class JobStatus:
@@ -22,7 +23,7 @@ class JobStatus:
         status_msg (str): status message.
     """
 
-    _data = {}
+    _data: dict[str, str] = {}
 
     def __init__(self, job_id, status, status_msg, **kwargs):
         self._data = {}
@@ -32,7 +33,7 @@ class JobStatus:
         self._data.update(kwargs)
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data: dict[str, str]) -> "JobStatus":
         """Create a new JobStatus object from a dictionary.
 
         Args:
@@ -45,7 +46,7 @@ class JobStatus:
         """
         return cls(**data)
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str]:
         """Return a dictionary format representation of the JobStatus.
 
         Returns:

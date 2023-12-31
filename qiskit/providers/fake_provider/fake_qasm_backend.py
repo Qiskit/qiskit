@@ -13,6 +13,7 @@
 """
 Fake backend abstract class for mock backends.
 """
+from __future__ import annotations
 
 import json
 import os
@@ -30,7 +31,7 @@ from .fake_backend import FakeBackend
 class FakeQasmBackend(FakeBackend):
     """A fake OpenQASM backend."""
 
-    dirname = None
+    dirname: str = None
     conf_filename = None
     props_filename = None
     backend_name = None
@@ -38,7 +39,7 @@ class FakeQasmBackend(FakeBackend):
     def __init__(self):
         configuration = self._get_conf_from_json()
         self._defaults = None
-        self._properties = None
+        self._properties: BackendProperties | None = None
         super().__init__(configuration)
 
     def properties(self):
@@ -63,7 +64,7 @@ class FakeQasmBackend(FakeBackend):
         decode_backend_properties(props)
         self._properties = BackendProperties.from_dict(props)
 
-    def _load_json(self, filename):
+    def _load_json(self, filename) -> dict:
         with open(os.path.join(self.dirname, filename)) as f_json:
             the_json = json.load(f_json)
         return the_json

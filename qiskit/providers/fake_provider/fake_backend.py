@@ -15,14 +15,14 @@
 """
 Base class for dummy backends.
 """
+from __future__ import annotations
 
 import warnings
 import collections
 import json
 import os
 import re
-
-from typing import List, Iterable
+from collections.abc import Iterable
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
@@ -42,7 +42,7 @@ from .utils.json_decoder import (
 
 
 class _Credentials:
-    def __init__(self, token="123456", url="https://"):
+    def __init__(self, token: str = "123456", url: str = "https://"):
         self.token = token
         self.url = url
         self.hub = "hub"
@@ -98,7 +98,7 @@ class FakeBackendV2(BackendV2):
         }
         identifier_pattern = re.compile(r"\D+(?P<index>\d+)")
 
-        channels_map = {
+        channels_map: dict[str, dict[tuple, list]] = {
             "acquire": collections.defaultdict(list),
             "drive": collections.defaultdict(list),
             "measure": collections.defaultdict(list),
@@ -220,7 +220,7 @@ class FakeBackendV2(BackendV2):
             return None
 
     @property
-    def meas_map(self) -> List[List[int]]:
+    def meas_map(self) -> list[list[int]]:
         """Return the grouping of measurements which are multiplexed
         This is required to be implemented if the backend supports Pulse
         scheduling.

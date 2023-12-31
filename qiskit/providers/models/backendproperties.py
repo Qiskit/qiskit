@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """Backend Properties classes."""
+from __future__ import annotations
 
 import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from collections.abc import Iterable
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
@@ -31,7 +32,7 @@ class Nduv:
         value: value.
     """
 
-    def __init__(self, date, name, unit, value):
+    def __init__(self, date: datetime.datetime, name: str, unit: str, value: float):
         """Initialize a new name-date-unit-value object
 
         Args:
@@ -94,7 +95,7 @@ class GateProperties:
 
     _data = {}
 
-    def __init__(self, qubits, gate, parameters, **kwargs):
+    def __init__(self, qubits: list[int], gate: str, parameters: list[Nduv], **kwargs):
         """Initialize a new :class:`GateProperties` object
 
         Args:
@@ -171,7 +172,14 @@ class BackendProperties:
     _data = {}
 
     def __init__(
-        self, backend_name, backend_version, last_update_date, qubits, gates, general, **kwargs
+        self,
+        backend_name: str,
+        backend_version: str,
+        last_update_date: datetime.datetime | str,
+        qubits: list[list[Nduv]],
+        gates: list[GateProperties],
+        general: list[Nduv],
+        **kwargs,
     ):
         """Initialize a BackendProperties instance.
 
@@ -198,15 +206,17 @@ class BackendProperties:
         self.qubits = qubits
         self.gates = gates
 
-        self._qubits = {}
+        self._qubits: dict[int, dict[str, tuple[float, datetime.datetime]]] = {}
         for qubit, props in enumerate(qubits):
-            formatted_props = {}
+            formatted_props: dict[str, tuple[float, datetime.datetime]] = {}
             for prop in props:
                 value = self._apply_prefix(prop.value, prop.unit)
                 formatted_props[prop.name] = (value, prop.date)
                 self._qubits[qubit] = formatted_props
 
-        self._gates = {}
+        self._gates: dict[
+            str, dict[tuple[int, ...], dict[str, tuple[float, datetime.datetime]]]
+        ] = {}
         for gate in gates:
             if gate.gate not in self._gates:
                 self._gates[gate.gate] = {}
@@ -279,8 +289,8 @@ class BackendProperties:
         return False
 
     def gate_property(
-        self, gate: str, qubits: Union[int, Iterable[int]] = None, name: str = None
-    ) -> Tuple[Any, datetime.datetime]:
+        self, gate: str, qubits: int | Iterable[int] | None = None, name: str | None = None
+    ) -> tuple[float, datetime.datetime] | dict[tuple[int, ...], tuple[float, datetime.datetime]]:
         """
         Return the property of the given gate.
 
@@ -326,7 +336,7 @@ class BackendProperties:
                 faulty.append(gate)
         return faulty
 
-    def is_gate_operational(self, gate: str, qubits: Union[int, Iterable[int]] = None) -> bool:
+    def is_gate_operational(self, gate: str, qubits: int | Iterable[int] | None = None) -> bool:
         """
         Return the operational status of the given gate.
 
@@ -343,7 +353,7 @@ class BackendProperties:
             return bool(properties["operational"][0])
         return True  # if property operational not existent, then True.
 
-    def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
+    def gate_error(self, gate: str, qubits: int | Iterable[int]) -> float:
         """
         Return gate error estimates from backend properties.
 
@@ -356,7 +366,7 @@ class BackendProperties:
         """
         return self.gate_property(gate, qubits, "gate_error")[0]  # Throw away datetime at index 1
 
-    def gate_length(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
+    def gate_length(self, gate: str, qubits: int | Iterable[int]) -> float:
         """
         Return the duration of the gate in units of seconds.
 
@@ -369,7 +379,9 @@ class BackendProperties:
         """
         return self.gate_property(gate, qubits, "gate_length")[0]  # Throw away datetime at index 1
 
-    def qubit_property(self, qubit: int, name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(
+        self, qubit: int, name: str | None = None
+    ) -> tuple[float, datetime.datetime] | dict[str, tuple[float, datetime.datetime]]:
         """
         Return the property of the given qubit.
 

@@ -13,16 +13,20 @@
 # pylint: disable=invalid-name
 
 """Backend abstract interface for providers."""
+from __future__ import annotations
 
-
+import typing
 from abc import ABC
 from abc import abstractmethod
 import datetime
-from typing import List, Union, Iterable, Tuple
+from collections.abc import Iterable
 
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
+
+if typing.TYPE_CHECKING:
+    from qiskit.providers.models import BackendConfiguration, BackendProperties
 
 
 class Backend:
@@ -34,7 +38,7 @@ class Backend:
     directly.
     """
 
-    version = 0
+    version: str | int = 0
 
 
 class BackendV1(Backend, ABC):
@@ -69,9 +73,9 @@ class BackendV1(Backend, ABC):
     .. automethod:: _default_options
     """
 
-    version = 1
+    version: str | int = 1
 
-    def __init__(self, configuration, provider=None, **fields):
+    def __init__(self, configuration: BackendConfiguration, provider=None, **fields):
         """Initialize a backend class
 
         Args:
@@ -138,7 +142,7 @@ class BackendV1(Backend, ABC):
                 raise AttributeError("Options field %s is not valid for this backend" % field)
         self._options.update_options(**fields)
 
-    def configuration(self):
+    def configuration(self) -> BackendConfiguration:
         """Return the backend configuration.
 
         Returns:
@@ -146,7 +150,7 @@ class BackendV1(Backend, ABC):
         """
         return self._configuration
 
-    def properties(self):
+    def properties(self) -> BackendProperties | None:
         """Return the backend properties.
 
         Returns:
@@ -323,11 +327,11 @@ class BackendV2(Backend, ABC):
 
     def __init__(
         self,
-        provider: Provider = None,
-        name: str = None,
-        description: str = None,
-        online_date: datetime.datetime = None,
-        backend_version: str = None,
+        provider: Provider | None = None,
+        name: str | None = None,
+        description: str | None = None,
+        online_date: datetime.datetime | None = None,
+        backend_version: str | None = None,
         **fields,
     ):
         """Initialize a BackendV2 based backend
@@ -373,17 +377,17 @@ class BackendV2(Backend, ABC):
         self._coupling_map = None
 
     @property
-    def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
+    def instructions(self) -> list[tuple[Instruction, tuple[int, ...]]]:
         """A list of Instruction tuples on the backend of the form ``(instruction, (qubits)``"""
         return self.target.instructions
 
     @property
-    def operations(self) -> List[Instruction]:
+    def operations(self) -> list[Instruction]:
         """A list of :class:`~qiskit.circuit.Instruction` instances that the backend supports."""
         return list(self.target.operations)
 
     @property
-    def operation_names(self) -> List[str]:
+    def operation_names(self) -> list[str]:
         """A list of instruction names that the backend supports."""
         return list(self.target.operation_names)
 
@@ -440,7 +444,7 @@ class BackendV2(Backend, ABC):
         pass
 
     @property
-    def dt(self) -> Union[float, None]:
+    def dt(self) -> float | None:
         """Return the system time resolution of input signals
 
         This is required to be implemented if the backend supports Pulse
@@ -466,7 +470,7 @@ class BackendV2(Backend, ABC):
         raise NotImplementedError
 
     @property
-    def meas_map(self) -> List[List[int]]:
+    def meas_map(self) -> list[list[int]]:
         """Return the grouping of measurements which are multiplexed
 
         This is required to be implemented if the backend supports Pulse
@@ -487,9 +491,7 @@ class BackendV2(Backend, ABC):
         instructions defined in this backend's target."""
         return self.target.instruction_schedule_map()
 
-    def qubit_properties(
-        self, qubit: Union[int, List[int]]
-    ) -> Union[QubitProperties, List[QubitProperties]]:
+    def qubit_properties(self, qubit: int | list[int]) -> QubitProperties | list[QubitProperties]:
         """Return QubitProperties for a given qubit.
 
         If there are no defined or the backend doesn't support querying these
