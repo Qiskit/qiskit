@@ -1189,7 +1189,22 @@ class TextDrawing:
             )
             gates, controlled_top, controlled_bot, controlled_edge, rest = controls_array
             if mod_control:
-                gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+                if len(rest) == 1:
+                    gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+                else:
+                    top_connect = "┴" if controlled_top else None
+                    bot_connect = "┬" if controlled_bot else None
+                    indexes = layer.set_qu_multibox(
+                        rest,
+                        gate_text,
+                        conditional=conditional,
+                        controlled_edge=controlled_edge,
+                        top_connect=top_connect,
+                        bot_connect=bot_connect,
+                    )
+                    for index in range(min(indexes), max(indexes) + 1):
+                        # Dummy element to connect the multibox with the bullets
+                        current_cons.append((index, DrawElement("")))
             elif base_gate.name == "z":
                 # cz
                 gates.append(Bullet(conditional=conditional))
