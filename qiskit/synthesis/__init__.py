@@ -105,6 +105,11 @@ One-qubit Synthesis
 Two-qubits Synthesis
 ====================
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   XXDecomposer
+
 """
 
 from .evolution import (
@@ -144,3 +149,4 @@ from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approxima
 from .qft import synth_qft_line
 from .unitary.qsd import qs_decomposition
 from .one_qubit import OneQubitEulerDecomposer
+from .two_qubits.xx_decompose import XXDecomposer

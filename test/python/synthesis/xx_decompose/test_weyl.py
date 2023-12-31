@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.xx_decompose.weyl import (
+from qiskit.synthesis.two_qubits.xx_decompose.weyl import (
     apply_reflection,
     apply_shift,
     canonical_rotation_circuit,

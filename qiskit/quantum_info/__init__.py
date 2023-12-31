@@ -117,7 +117,6 @@ Synthesis
    :toctree: ../stubs/
 
    TwoQubitBasisDecomposer
-   XXDecomposer
 
 .. autofunction:: two_qubit_cnot_decompose
 """
@@ -167,7 +166,6 @@ from .states import (
 )
 from .synthesis import (
     TwoQubitBasisDecomposer,
-    XXDecomposer,
     two_qubit_cnot_decompose,
 )
 from .quaternion import Quaternion

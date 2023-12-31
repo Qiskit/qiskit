@@ -15,8 +15,8 @@
 from __future__ import annotations
 import warnings
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
+from qiskit.synthesis.two_qubits.xx_decompose import XXDecomposer
 from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
-from .xx_decompose.decomposer import XXDecomposer
 
 warnings.warn(
     "The qiskit.quantum_info.synthesis module is pending deprecation since Qiskit 0.46.0."
