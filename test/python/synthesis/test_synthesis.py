@@ -57,7 +57,7 @@ from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.two_qubits.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     TwoQubitWeylIdEquiv,
     TwoQubitWeylSWAPEquiv,
@@ -148,7 +148,7 @@ class CheckDecompositions(QiskitTestCase):
     @contextlib.contextmanager
     def assertDebugOnly(self):  # FIXME: when at python 3.10+ replace with assertNoLogs
         """Context manager, asserts log is emitted at level DEBUG but no higher"""
-        with self.assertLogs("qiskit.quantum_info.synthesis", "DEBUG") as ctx:
+        with self.assertLogs("qiskit.synthesis", "DEBUG") as ctx:
             yield
         for i in range(len(ctx.records)):
             self.assertLessEqual(

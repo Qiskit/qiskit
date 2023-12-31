@@ -110,15 +110,6 @@ Analysis
 
    Z2Symmetries
 
-Synthesis
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   TwoQubitBasisDecomposer
-
-.. autofunction:: two_qubit_cnot_decompose
 """
 
 from __future__ import annotations
@@ -163,9 +154,5 @@ from .states import (
     shannon_entropy,
     state_fidelity,
     negativity,
-)
-from .synthesis import (
-    TwoQubitBasisDecomposer,
-    two_qubit_cnot_decompose,
 )
 from .quaternion import Quaternion

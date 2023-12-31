@@ -109,6 +109,7 @@ Two-qubits Synthesis
    :toctree: ../stubs/
 
    XXDecomposer
+   TwoQubitBasisDecomposer
 
 """
 
@@ -150,3 +151,4 @@ from .qft import synth_qft_line
 from .unitary.qsd import qs_decomposition
 from .one_qubit import OneQubitEulerDecomposer
 from .two_qubits.xx_decompose import XXDecomposer
+from .two_qubits.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose

@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RZGate, UnitaryGate
 import qiskit.quantum_info.operators
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.synthesis.two_qubits.weyl import weyl_coordinates
 from qiskit.synthesis.two_qubits.xx_decompose.circuits import (
     decompose_xxyy_into_xxyy_xx,
     xx_circuit_step,
