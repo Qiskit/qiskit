@@ -14,7 +14,6 @@
 """
 
 import math
-import heapq
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import Dict, List
 
@@ -217,10 +216,6 @@ class DAGDependencyV2:
         params = tuple(params)
         return (qubits, params) in self.calibrations[node.op.name]
 
-    def to_rustworkx(self):
-        """Returns the DAGDependencyV2 in rustworkx format."""
-        return self._multi_graph
-
     def size(self):
         """Returns the number of gates in the circuit"""
         return len(self._multi_graph)
@@ -360,45 +355,6 @@ class DAGDependencyV2:
             self.qindices_map[new_node] = []
             self.cindices_map[new_node] = []
 
-    def remove_all_ops_named(self, opname):
-        """Remove all operation nodes with the given name."""
-        for n in self.named_nodes(opname):
-            self.remove_op_node(n)
-
-    def named_nodes(self, *names):
-        """Get the set of "op" nodes with the given name."""
-        named_nodes = []
-        for node in self._multi_graph.nodes():
-            if isinstance(node, DAGOpNode) and node.op.name in names:
-                named_nodes.append(node)
-        return named_nodes
-
-    def _increment_op(self, op):
-        if op.name in self._op_names:
-            self._op_names[op.name] += 1
-        else:
-            self._op_names[op.name] = 1
-
-    def _decrement_op(self, op):
-        if self._op_names[op.name] == 1:
-            del self._op_names[op.name]
-        else:
-            self._op_names[op.name] -= 1
-
-    def count_ops(self):
-        """Count the occurrences of operation names."""
-        return self._op_names
-
-    def remove_op_node(self, node):
-        """Remove an operation node n.
-
-        Add edges from predecessors to successors.
-        """
-        self._multi_graph.remove_node_retain_edges(
-            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
-        )
-        self._decrement_op(node.op)
-
     def _update_edges(self):
         """
         Updates DagDependencyV2 by adding edges to the newly added node (max_node)
@@ -438,22 +394,15 @@ class DAGDependencyV2:
                     # as not reaching max_node.
                     self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
 
-                    predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                    predecessor_ids = self.predecessor_indices(prev_node_id)
                     for predecessor_id in predecessor_ids:
                         reachable[predecessor_id] = False
             else:
                 # If prev_node cannot reach max_node, then none of its predecessors can
                 # reach max_node either.
-                predecessor_ids = self._multi_graph.predecessor_indices(prev_node_id)
+                predecessor_ids = self.predecessor_indices(prev_node_id)
                 for predecessor_id in predecessor_ids:
                     reachable[predecessor_id] = False
-
-    def get_nodes(self):
-        """
-        Returns:
-            generator(dict): iterator over all the nodes.
-        """
-        return iter(self._multi_graph.nodes())
 
     def get_node(self, node_id):
         """
@@ -465,116 +414,51 @@ class DAGDependencyV2:
         """
         return self._multi_graph.get_node_data(node_id)
 
-    def _add_multi_graph_edge(self, src_id, dest_id, data):
+    def remove_all_ops_named(self, opname):
+        """Remove all operation nodes with the given name."""
+        for n in self.named_nodes(opname):
+            self.remove_op_node(n)
+
+    def named_nodes(self, *names):
+        """Get the set of "op" nodes with the given name."""
+        named_nodes = []
+        for node in self._multi_graph.nodes():
+            if isinstance(node, DAGOpNode) and node.op.name in names:
+                named_nodes.append(node)
+        return named_nodes
+
+    def _increment_op(self, op):
+        if op.name in self._op_names:
+            self._op_names[op.name] += 1
+        else:
+            self._op_names[op.name] = 1
+
+    def _decrement_op(self, op):
+        if self._op_names[op.name] == 1:
+            del self._op_names[op.name]
+        else:
+            self._op_names[op.name] -= 1
+
+    def count_ops(self):
+        """Count the occurrences of operation names."""
+        return self._op_names
+
+    def remove_op_node(self, node):
+        """Remove an operation node n.
+
+        Add edges from predecessors to successors.
         """
-        Function to add an edge from given data (dict) between two nodes.
+        self._multi_graph.remove_node_retain_edges(
+            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
+        )
+        self._decrement_op(node.op)
 
-        Args:
-            src_id (int): label of the first node.
-            dest_id (int): label of the second node.
-            data (dict): data contained on the edge.
-
+    def op_nodes(self):
         """
-        self._multi_graph.add_edge(src_id, dest_id, data)
-
-    def get_edges(self, src_id, dest_id):
-        """
-        Edge enumeration between two nodes through method get_all_edge_data.
-
-        Args:
-            src_id (int): label of the first node.
-            dest_id (int): label of the second node.
-
         Returns:
-            List: corresponding to all edges between the two nodes.
+            generator(dict): iterator over all the nodes.
         """
-        return self._multi_graph.get_all_edge_data(src_id, dest_id)
-
-    def get_all_edges(self):
-        """
-        Enumeration of all edges.
-
-        Returns:
-            List: corresponding to the label.
-        """
-
-        return [
-            (src, dest, data)
-            for src_node in self._multi_graph.nodes()
-            for (src, dest, data) in self._multi_graph.out_edges(src_node._node_id)
-        ]
-
-    def get_in_edges(self, node_id):
-        """
-        Enumeration of all incoming edges for a given node.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: corresponding incoming edges data.
-        """
-        return self._multi_graph.in_edges(node_id)
-
-    def get_out_edges(self, node_id):
-        """
-        Enumeration of all outgoing edges for a given node.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: corresponding outgoing edges data.
-        """
-        return self._multi_graph.out_edges(node_id)
-
-    def get_successors(self, node_id):
-        """
-        Node id's of direct successors of a given node as sorted list.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: all successor id's as a sorted list
-        """
-        return sorted(self._multi_graph.successor_indices(node_id))
-
-    def get_predecessors(self, node_id):
-        """
-        Node id's of direct predecessors of a given node as a sorted list.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: all predecessor id's as a sorted list
-        """
-        return sorted(self._multi_graph.predecessor_indices(node_id))
-
-    def get_descendants(self, node_id):
-        """
-        Node id's of descendants of a given node as a list.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: all descendant id's as a list
-        """
-        return list(rx.descendants(self._multi_graph, node_id))
-
-    def get_ancestors(self, node_id):
-        """
-        Node id's of ancestors of a given node as a list.
-
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            List: all ancestor id's as a list
-        """
-        return list(rx.ancestors(self._multi_graph, node_id))
+        return iter(self._multi_graph.nodes())
 
     def topological_nodes(self):
         """
@@ -589,6 +473,93 @@ class DAGDependencyV2:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
+    def successors(self, node):
+        """Returns iterator of the successors of a node as DAGOpNodes."""
+        return iter(self._multi_graph.successors(node._node_id))
+
+    def predecessors(self, node):
+        """Returns iterator of the predecessors of a node as DAGOpNodes."""
+        return iter(self._multi_graph.predecessors(node._node_id))
+
+    def successor_indices(self, node_id):
+        """Returns list of the indices of the successors of a node."""
+        # TODO: deprecate or remove this when template code no longer is based on node_id's
+        return sorted(self._multi_graph.successor_indices(node_id))
+
+    def predecessor_indices(self, node_id):
+        """Returns list of the indices of the predecessors of a node."""
+        # TODO: deprecate or remove this when template code no longer is based on node_id's
+        return sorted(self._multi_graph.predecessor_indices(node_id))
+
+    def is_successor(self, node, node_succ):
+        """Checks if a second node is in the successors of node."""
+        return self._multi_graph.has_edge(node._node_id, node_succ._node_id)
+
+    def is_predecessor(self, node, node_pred):
+        """Checks if a second node is in the predecessors of node."""
+        return self._multi_graph.has_edge(node_pred._node_id, node._node_id)
+
+    def quantum_predecessors(self, node):
+        """Returns iterator of the predecessors of a node that are
+        connected by a quantum edge as DAGOpNodes."""
+        return iter(
+            self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
+
+    def classical_predecessors(self, node):
+        """Returns iterator of the predecessors of a node that are
+        connected by a classical edge as DAGOpNodes."""
+        return iter(
+            self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )
+        )
+
+    def ancestors(self, node):
+        """Returns set of the ancestors of a node as DAGOpNodes."""
+        return {self._multi_graph[x] for x in rx.ancestors(self._multi_graph, node._node_id)}
+
+    def descendants(self, node):
+        """Returns set of the descendants of a node as DAGOpNodes."""
+        return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
+
+    def ancestor_indices(self, node_id):
+        """Returns set of the indices of the ancestors of a node."""
+        # TODO: deprecate or remove this when template code no longer is based on node_id's
+        return list(rx.ancestors(self._multi_graph, node_id))
+
+    def descendant_indices(self, node_id):
+        """Returns set of the indices of the descendants of a node."""
+        # TODO: deprecate or remove this when template code no longer is based on node_id's
+        return list(rx.descendants(self._multi_graph, node_id))
+
+    def bfs_successors(self, node):
+        """
+        Returns an iterator of tuples of (DAGOpNode, [DAGOpNodes]) where the DAGOpNode is the
+        current node and [DAGOpNode] is its successors in  BFS order.
+        """
+        return iter(rx.bfs_successors(self._multi_graph, node._node_id))
+
+    def quantum_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a quantum edge as DAGOpnodes."""
+        return iter(
+            self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
+            )
+        )
+
+    def classical_successors(self, node):
+        """Returns iterator of the successors of a node that are
+        connected by a classical edge as DAGOpNodes."""
+        return iter(
+            self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )
+        )
+
     def copy(self):
         """
         Function to copy a DAGDependencyV2 object.
@@ -601,7 +572,7 @@ class DAGDependencyV2:
         dag.cregs = self.cregs.copy()
         dag.qregs = self.qregs.copy()
 
-        for node in self.get_nodes():
+        for node in self.op_nodes():
             dag._multi_graph.add_node(node)
         for edges in self.get_all_edges():
             dag._multi_graph.add_edge(edges[0], edges[1], edges[2])

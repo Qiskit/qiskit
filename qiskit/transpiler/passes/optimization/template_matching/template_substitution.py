@@ -50,7 +50,7 @@ class SubstitutionConfig:
 
     def has_parameters(self):
         """Ensure that the template does not have parameters."""
-        for node in self.template_dag_dep.get_nodes():
+        for node in self.template_dag_dep.op_nodes():
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     return True
@@ -138,7 +138,7 @@ class TemplateSubstitution:
         """
         ancestors = set()
         for node_id in circuit_sublist:
-            ancestors = ancestors | set(self.circuit_dag_dep.get_ancestors(node_id))
+            ancestors = ancestors | set(self.circuit_dag_dep.ancestor_indices(node_id))
 
         exclude = set()
         for elem in self.substitution_list[:index]:
@@ -205,12 +205,12 @@ class TemplateSubstitution:
 
         pred = set()
         for index in template_sublist:
-            pred = pred | set(self.template_dag_dep.get_ancestors(index))
+            pred = pred | set(self.template_dag_dep.ancestor_indices(index))
         pred = list(pred - set(template_sublist))
 
         succ = set()
         for index in template_sublist:
-            succ = succ | set(self.template_dag_dep.get_descendants(index))
+            succ = succ | set(self.template_dag_dep.descendant_indices(index))
         succ = list(succ - set(template_sublist))
 
         comm = list(set(template_list) - set(pred) - set(succ))
@@ -249,7 +249,7 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             ancestors = set()
             for match in scenario.circuit_config:
-                ancestors = ancestors | set(self.circuit_dag_dep.get_ancestors(match))
+                ancestors = ancestors | set(self.circuit_dag_dep.ancestor_indices(match))
             ancestors = ancestors - set(scenario.circuit_config)
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
@@ -275,7 +275,7 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             ancestors = set()
             for index in scenario.circuit_config:
-                ancestors = ancestors | set(self.circuit_dag_dep.get_ancestors(index))
+                ancestors = ancestors | set(self.circuit_dag_dep.ancestor_indices(index))
             list_ancestors.append(ancestors)
 
         # Check if two groups of matches are incompatible.
@@ -551,7 +551,7 @@ class TemplateSubstitution:
                 node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
-        for node in template_dag_dep.get_nodes():
+        for node in template_dag_dep.op_nodes():
             sub_node_params = []
             for param_exp in node.op.params:
                 if isinstance(param_exp, ParameterExpression):
@@ -602,7 +602,7 @@ class TemplateSubstitution:
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}
 
-        for node in template_dag_dep.get_nodes():
+        for node in template_dag_dep.op_nodes():
             bound_params = []
             for param_exp in node.op.params:
                 if isinstance(param_exp, ParameterExpression):
@@ -626,13 +626,13 @@ class TemplateSubstitution:
         parameters in the circuit.
         """
         template_params = set()
-        for param_list in (node.op.params for node in template.get_nodes()):
+        for param_list in (node.op.params for node in template.op_nodes()):
             for param_exp in param_list:
                 if isinstance(param_exp, ParameterExpression):
                     template_params.update(param_exp.parameters)
 
         circuit_params = set()
-        for param_list in (node.op.params for node in self.circuit_dag_dep.get_nodes()):
+        for param_list in (node.op.params for node in self.circuit_dag_dep.op_nodes()):
             for param_exp in param_list:
                 if isinstance(param_exp, ParameterExpression):
                     circuit_params.update(param_exp.parameters)

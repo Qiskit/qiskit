@@ -212,12 +212,12 @@ class TemplateMatching:
         """
         template_nodes = range(node_id_t + 1, self.template_dag_dep.size())
         circuit_nodes = range(0, self.circuit_dag_dep.size())
-        descendants_template = self.template_dag_dep.get_descendants(node_id_t)
+        descendants_template = self.template_dag_dep.descendant_indices(node_id_t)
 
         counter = 1
         qubit_set = set(self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(node_id_c)])
         if 2 * len(descendants_template) > len(template_nodes):
-            descendants = self.circuit_dag_dep.get_descendants(node_id_t)
+            descendants = self.circuit_dag_dep.descendant_indices(node_id_t)
             for succ in descendants:
                 qarg = self.circuit_dag_dep.qindices_map[self.circuit_dag_dep.get_node(succ)]
                 if (len(qubit_set | set(qarg))) <= n_qubits_t and counter <= length:
@@ -229,7 +229,7 @@ class TemplateMatching:
 
         else:
             not_descendants = list(
-                set(circuit_nodes) - set(self.circuit_dag_dep.get_descendants(node_id_c))
+                set(circuit_nodes) - set(self.circuit_dag_dep.descendant_indices(node_id_c))
             )
             candidate = [
                 not_descendants[j]

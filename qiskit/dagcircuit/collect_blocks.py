@@ -16,8 +16,7 @@ into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependencyV2
-from .exceptions import DAGCircuitError
+from . import DAGOpNode
 
 
 class BlockCollector:
@@ -52,15 +51,6 @@ class BlockCollector:
         self._in_degree = None
         self._collect_from_back = False
 
-        if isinstance(dag, DAGCircuit):
-            self.is_dag_dependency = False
-
-        elif isinstance(dag, DAGDependencyV2):
-            self.is_dag_dependency = True
-
-        else:
-            raise DAGCircuitError("not a DAG.")
-
     def _setup_in_degrees(self):
         """For an efficient implementation, for every node we keep the number of its
         unprocessed immediate predecessors (called ``_in_degree``). This ``_in_degree``
@@ -73,62 +63,31 @@ class BlockCollector:
         """
         self._pending_nodes = []
         self._in_degree = {}
-        for node in self._op_nodes():
+        for node in self.dag.op_nodes():
             deg = len(self._direct_preds(node))
             self._in_degree[node] = deg
             if deg == 0:
                 self._pending_nodes.append(node)
-
-    def _op_nodes(self):
-        """Returns DAG nodes."""
-        if not self.is_dag_dependency:
-            return self.dag.op_nodes()
-        else:
-            return self.dag.get_nodes()
 
     def _direct_preds(self, node):
         """Returns direct predecessors of a node. This function takes into account the
         direction of collecting blocks, that is node's predecessors when collecting
         backwards are the direct successors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
-            if self._collect_from_back:
-                return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
-            else:
-                return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+        if self._collect_from_back:
+            return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.get_successors(node._node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(pred_id)
-                    for pred_id in self.dag.get_predecessors(node._node_id)
-                ]
+            return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
 
     def _direct_succs(self, node):
         """Returns direct successors of a node. This function takes into account the
         direction of collecting blocks, that is node's successors when collecting
         backwards are the direct predecessors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
-            if self._collect_from_back:
-                return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
-            else:
-                return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+        if self._collect_from_back:
+            return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
         else:
-            if self._collect_from_back:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.get_predecessors(node._node_id)
-                ]
-            else:
-                return [
-                    self.dag.get_node(succ_id)
-                    for succ_id in self.dag.get_successors(node._node_id)
-                ]
+            return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""

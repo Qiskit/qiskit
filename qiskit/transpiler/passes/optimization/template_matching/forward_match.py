@@ -89,9 +89,8 @@ class ForwardMatch:
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
-                self.successorstovisit[
-                    self.circuit_dag_dep.get_node(i)
-                ] = self.circuit_dag_dep.get_successors(i)
+                node = self.circuit_dag_dep.get_node(i)
+                self.successorstovisit[node] = self.circuit_dag_dep.successor_indices(i)
 
     def _init_matched_with(self):
         """
@@ -154,7 +153,7 @@ class ForwardMatch:
             pred.sort()
         pred.remove(node_id_t)
 
-        node_id_t_succs = self.template_dag_dep.get_successors(node_id_t)
+        node_id_t_succs = self.template_dag_dep.successor_indices(node_id_t)
         if node_id_t_succs:
             maximal_index = node_id_t_succs[-1]
             pred_copy = pred.copy()
@@ -164,9 +163,9 @@ class ForwardMatch:
 
         block = []
         for node_id in pred:
-            for succ in self.template_dag_dep.get_successors(node_id):
+            for succ in self.template_dag_dep.successor_indices(node_id):
                 if succ not in matches:
-                    descs = self.template_dag_dep.get_descendants(succ)
+                    descs = self.template_dag_dep.descendant_indices(succ)
                     block = block + descs
         self.candidates = list(set(set(node_id_t_succs) - set(matches) - set(block)))
 
@@ -391,7 +390,7 @@ class ForwardMatch:
                     self.match.append([i, label])
 
                     # Potential successors to visit (circuit) for a given match.
-                    potential = self.circuit_dag_dep.get_successors(label)
+                    potential = self.circuit_dag_dep.successor_indices(label)
 
                     # If the potential successors to visit are blocked or match, it is removed.
                     for potential_id in potential:
@@ -414,7 +413,7 @@ class ForwardMatch:
             # If no match is found, block the node and all the successors.
             if not match:
                 self.isblocked[v[1]] = True
-                for desc in self.circuit_dag_dep.get_descendants(v[0]):
+                for desc in self.circuit_dag_dep.descendant_indices(v[0]):
                     self.isblocked[self.circuit_dag_dep.get_node(desc)] = True
                     if self.matchedwith[self.circuit_dag_dep.get_node(desc)]:
                         self.match.remove(

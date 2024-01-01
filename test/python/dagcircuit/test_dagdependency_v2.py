@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.dagcircuit import DAGDependencyV2
+from qiskit.dagcircuit import DAGDependencyV2, DAGOpNode
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
@@ -43,8 +43,8 @@ def raise_if_dagdependency_invalid(dag):
         raise DAGDependencyError("multi_graph is not a DAG.")
 
     # Every node should be of type op.
-    for node in dag.get_nodes():
-        if node.type != "op":
+    for node in dag.op_nodes():
+        if not isinstance(node, DAGOpNode):
             raise DAGDependencyError(f"Found node of unexpected type: {node.type}")
 
 
@@ -141,7 +141,7 @@ class TestDagNodeEdge(QiskitTestCase):
         self.dag.add_creg(self.creg)
 
     def test_node(self):
-        """Test the methods add_op_node(), get_node() and get_nodes()"""
+        """Test the methods add_op_node(), get_node() and op_nodes()"""
         circuit = QuantumCircuit(self.qreg, self.creg)
 
         circuit.h(self.qreg[0])
@@ -156,7 +156,7 @@ class TestDagNodeEdge(QiskitTestCase):
         )
         self.assertIsInstance(self.dag.get_node(1).op, Measure)
 
-        nodes = list(self.dag.get_nodes())
+        nodes = list(self.dag.op_nodes())
         self.assertEqual(len(list(nodes)), 2)
 
         for node in nodes:
@@ -167,32 +167,6 @@ class TestDagNodeEdge(QiskitTestCase):
 
         self.assertIsInstance(node_1.op, Measure)
         self.assertIsInstance(node_2.op, HGate)
-
-    def test_add_edge(self):
-        """Test that add_edge(), get_edges(), get_all_edges(),
-        get_in_edges() and get_out_edges()."""
-        circuit = QuantumCircuit(self.qreg, self.creg)
-        circuit.h(self.qreg[0])
-        circuit.x(self.qreg[1])
-        circuit.cx(self.qreg[1], self.qreg[0])
-        circuit.measure(self.qreg[0], self.creg[0])
-
-        self.dag = circuit_to_dagdependency_v2(circuit)
-
-        second_edge = self.dag.get_edges(1, 2)
-        self.assertEqual(second_edge[0]["commute"], False)
-
-        all_edges = self.dag.get_all_edges()
-        self.assertEqual(len(all_edges), 3)
-
-        for edges in all_edges:
-            self.assertEqual(edges[2]["commute"], False)
-
-        in_edges = self.dag.get_in_edges(2)
-        self.assertEqual(len(list(in_edges)), 2)
-
-        out_edges = self.dag.get_out_edges(2)
-        self.assertEqual(len(list(out_edges)), 1)
 
 
 class TestDagNodeSelection(QiskitTestCase):
@@ -219,28 +193,28 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.dag = circuit_to_dagdependency_v2(circuit)
 
-        dir_successors_second = self.dag.get_successors(1)
+        dir_successors_second = sorted(self.dag.successor_indices(1))
         self.assertEqual(dir_successors_second, [2, 4])
 
-        dir_successors_fourth = self.dag.get_successors(3)
+        dir_successors_fourth = sorted(self.dag.successor_indices(3))
         self.assertEqual(dir_successors_fourth, [])
 
-        successors_second = self.dag.get_descendants(1)
+        successors_second = sorted(self.dag.descendant_indices(1))
         self.assertEqual(successors_second, [2, 4, 5])
 
-        successors_fourth = self.dag.get_descendants(3)
+        successors_fourth = sorted(self.dag.descendant_indices(3))
         self.assertEqual(successors_fourth, [])
 
-        dir_predecessors_sixth = self.dag.get_predecessors(5)
+        dir_predecessors_sixth = sorted(self.dag.predecessor_indices(5))
         self.assertEqual(dir_predecessors_sixth, [2, 4])
 
-        dir_predecessors_fourth = self.dag.get_predecessors(3)
+        dir_predecessors_fourth = sorted(self.dag.predecessor_indices(3))
         self.assertEqual(dir_predecessors_fourth, [])
 
-        predecessors_sixth = self.dag.get_ancestors(5)
+        predecessors_sixth = sorted(self.dag.ancestor_indices(5))
         self.assertEqual(predecessors_sixth, [0, 1, 2, 4])
 
-        predecessors_fourth = self.dag.get_ancestors(3)
+        predecessors_fourth = sorted(self.dag.ancestor_indices(3))
         self.assertEqual(predecessors_fourth, [])
 
 
