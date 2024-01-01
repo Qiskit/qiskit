@@ -83,8 +83,6 @@ pub fn sampled_expval_complex(
         .enumerate()
         .map(|(idx, string)| coeff_arr[idx] * Complex64::new(bitstring_expval(&dist, string), 0.))
         .sum();
-    //println!("zebwasere");
-    //dbg!("heelo");
     Ok(out)
 }
 
