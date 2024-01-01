@@ -108,8 +108,8 @@ Two-qubits Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   XXDecomposer
    TwoQubitBasisDecomposer
+   XXDecomposer
 
 """
 
