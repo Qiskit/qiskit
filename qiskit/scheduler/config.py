@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Scheduling container classes."""
-
+from __future__ import annotations
 
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.utils import format_meas_map
