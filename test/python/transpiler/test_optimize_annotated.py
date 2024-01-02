@@ -1,0 +1,101 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2024.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Test OptimizeAnnotated pass"""
+
+import unittest
+
+from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.library import SwapGate, CXGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier, _canonicalize_modifiers
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import OptimizeAnnotated
+from qiskit.converters import circuit_to_dag
+from qiskit.test import QiskitTestCase
+
+
+class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
+    """Test optimizations related to annotated operations."""
+
+    def test_combine_modifiers(self):
+        """Test that the pass correctly combines modifiers."""
+        gate1 = AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(2), PowerModifier(4), InverseModifier(), ControlModifier(1), PowerModifier(-0.5)])
+        gate2 = AnnotatedOperation(SwapGate(), [InverseModifier(), InverseModifier()])
+        gate3 = AnnotatedOperation(AnnotatedOperation(CXGate(), ControlModifier(2)), ControlModifier(1))
+        gate4 = AnnotatedOperation(AnnotatedOperation(SwapGate(), InverseModifier()), InverseModifier())
+        gate5 = CXGate()
+
+        gate1_expected = AnnotatedOperation(SwapGate(), [InverseModifier(), PowerModifier(2), ControlModifier(3)])
+        gate2_expected = SwapGate()
+        gate3_expected = AnnotatedOperation(CXGate(), ControlModifier(3))
+        gate4_expected = SwapGate()
+        gate5_expected = CXGate()
+
+        qc = QuantumCircuit(6)
+        qc.append(gate1, [3, 2, 4, 0, 5])
+        qc.append(gate2, [1, 5])
+        qc.append(gate3, [5, 4, 3, 2, 1])
+        qc.append(gate4, [1, 2])
+        qc.append(gate5, [4, 2])
+
+        qc_optimized = OptimizeAnnotated()(qc)
+
+        qc_expected = QuantumCircuit(6)
+        qc_expected.append(gate1_expected, [3, 2, 4, 0, 5])
+        qc_expected.append(gate2_expected, [1, 5])
+        qc_expected.append(gate3_expected, [5, 4, 3, 2, 1])
+        qc_expected.append(gate4_expected, [1, 2])
+        qc_expected.append(gate5_expected, [4, 2])
+
+        self.assertEqual(qc_optimized, qc_expected)
+
+    def test_optimize_definitions(self):
+        """Test that the pass descends into gate definitions when basis_gates are defined."""
+        qc_def = QuantumCircuit(3)
+        qc_def.cx(0, 2)
+        qc_def.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
+        qc_def.append(AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]), [0, 1, 2])
+
+        expected_qc_def_optimized = QuantumCircuit(3)
+        expected_qc_def_optimized.cx(0, 2)
+        expected_qc_def_optimized.cx(0, 1)
+        expected_qc_def_optimized.append(AnnotatedOperation(SwapGate(), ControlModifier(1)), [0, 1, 2])
+
+        gate = Gate("custom_gate", 3, [])
+        gate.definition = qc_def
+
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.append(gate, [0, 1, 3])
+
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+        self.assertEqual(qc_optimized[1].operation.definition, expected_qc_def_optimized)
+
+    def test_do_not_optimize_definitions_without_basis_gates(self):
+        """Test that the pass does not descent into gate definitions when either the target not basis_gates
+        are defined.
+        """
+        qc_def = QuantumCircuit(3)
+        qc_def.cx(0, 2)
+        qc_def.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
+        qc_def.append(AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]), [0, 1, 2])
+
+        gate = Gate("custom_gate", 3, [])
+        gate.definition = qc_def
+
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.append(gate, [0, 1, 3])
+
+        qc_optimized = OptimizeAnnotated()(qc)
+        self.assertEqual(qc_optimized[1].operation.definition, qc_def)
+
