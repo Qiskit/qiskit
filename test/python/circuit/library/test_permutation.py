@@ -162,7 +162,8 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
             "permutation__2_4_3_0_1_ q0[0],q0[1],q0[2],q0[3],q0[4];\n"
             "h q0[0];\n"
         )
-        self.assertEqual(expected_qasm, circuit.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, circuit.qasm())
 
     def test_qpy(self):
         """Test qpy for circuits with permutations."""
