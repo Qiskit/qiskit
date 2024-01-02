@@ -12,14 +12,15 @@
 
 """Test OptimizeAnnotated pass"""
 
-import unittest
-
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.library import SwapGate, CXGate
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier, _canonicalize_modifiers
-from qiskit.transpiler import PassManager
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
+)
 from qiskit.transpiler.passes import OptimizeAnnotated
-from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 
 
@@ -28,13 +29,29 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
     def test_combine_modifiers(self):
         """Test that the pass correctly combines modifiers."""
-        gate1 = AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(2), PowerModifier(4), InverseModifier(), ControlModifier(1), PowerModifier(-0.5)])
+        gate1 = AnnotatedOperation(
+            SwapGate(),
+            [
+                InverseModifier(),
+                ControlModifier(2),
+                PowerModifier(4),
+                InverseModifier(),
+                ControlModifier(1),
+                PowerModifier(-0.5),
+            ],
+        )
         gate2 = AnnotatedOperation(SwapGate(), [InverseModifier(), InverseModifier()])
-        gate3 = AnnotatedOperation(AnnotatedOperation(CXGate(), ControlModifier(2)), ControlModifier(1))
-        gate4 = AnnotatedOperation(AnnotatedOperation(SwapGate(), InverseModifier()), InverseModifier())
+        gate3 = AnnotatedOperation(
+            AnnotatedOperation(CXGate(), ControlModifier(2)), ControlModifier(1)
+        )
+        gate4 = AnnotatedOperation(
+            AnnotatedOperation(SwapGate(), InverseModifier()), InverseModifier()
+        )
         gate5 = CXGate()
 
-        gate1_expected = AnnotatedOperation(SwapGate(), [InverseModifier(), PowerModifier(2), ControlModifier(3)])
+        gate1_expected = AnnotatedOperation(
+            SwapGate(), [InverseModifier(), PowerModifier(2), ControlModifier(3)]
+        )
         gate2_expected = SwapGate()
         gate3_expected = AnnotatedOperation(CXGate(), ControlModifier(3))
         gate4_expected = SwapGate()
@@ -63,12 +80,19 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_def = QuantumCircuit(3)
         qc_def.cx(0, 2)
         qc_def.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
-        qc_def.append(AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]), [0, 1, 2])
+        qc_def.append(
+            AnnotatedOperation(
+                SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]
+            ),
+            [0, 1, 2],
+        )
 
         expected_qc_def_optimized = QuantumCircuit(3)
         expected_qc_def_optimized.cx(0, 2)
         expected_qc_def_optimized.cx(0, 1)
-        expected_qc_def_optimized.append(AnnotatedOperation(SwapGate(), ControlModifier(1)), [0, 1, 2])
+        expected_qc_def_optimized.append(
+            AnnotatedOperation(SwapGate(), ControlModifier(1)), [0, 1, 2]
+        )
 
         gate = Gate("custom_gate", 3, [])
         gate.definition = qc_def
@@ -87,7 +111,12 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_def = QuantumCircuit(3)
         qc_def.cx(0, 2)
         qc_def.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
-        qc_def.append(AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]), [0, 1, 2])
+        qc_def.append(
+            AnnotatedOperation(
+                SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]
+            ),
+            [0, 1, 2],
+        )
 
         gate = Gate("custom_gate", 3, [])
         gate.definition = qc_def
@@ -99,3 +128,42 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_optimized = OptimizeAnnotated()(qc)
         self.assertEqual(qc_optimized[1].operation.definition, qc_def)
 
+    def test_if_else(self):
+        """Test optimizations with if-else block."""
+
+        true_body = QuantumCircuit(3)
+        true_body.h(0)
+        true_body.append(
+            AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1]
+        )
+        false_body = QuantumCircuit(3)
+        false_body.append(
+            AnnotatedOperation(
+                SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]
+            ),
+            [0, 1, 2],
+        )
+
+        qc = QuantumCircuit(3, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.if_else((0, True), true_body, false_body, [0, 1, 2], [])
+
+        qc_optimized = OptimizeAnnotated()(qc)
+
+        expected_true_body_optimized = QuantumCircuit(3)
+        expected_true_body_optimized.h(0)
+        expected_true_body_optimized.append(CXGate(), [0, 1])
+        expected_false_body_optimized = QuantumCircuit(3)
+        expected_false_body_optimized.append(
+            AnnotatedOperation(SwapGate(), ControlModifier(1)), [0, 1, 2]
+        )
+
+        expected_qc = QuantumCircuit(3, 1)
+        expected_qc.h(0)
+        expected_qc.measure(0, 0)
+        expected_qc.if_else(
+            (0, True), expected_true_body_optimized, expected_false_body_optimized, [0, 1, 2], []
+        )
+
+        self.assertEqual(qc_optimized, expected_qc)

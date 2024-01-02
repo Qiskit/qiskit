@@ -12,11 +12,11 @@
 
 """Optimize annotated operations on a circuit."""
 
-from typing import Optional, Union, List, Tuple
+from typing import Optional, List, Tuple
 
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.annotated_operation import AnnotatedOperation, _canonicalize_modifiers
-from qiskit.circuit import EquivalenceLibrary, ControlledGate, Operation
+from qiskit.circuit import EquivalenceLibrary, ControlledGate, Operation, ControlFlowOp
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -77,6 +77,11 @@ class OptimizeAnnotated(TransformationPass):
         Optimizes annotated operations.
         Returns True if did something.
         """
+        # Handle control-flow
+        for node in dag.op_nodes():
+            if isinstance(node.op, ControlFlowOp):
+                node.op = control_flow.map_blocks(self.run, node.op)
+
         # First, optimize every node in the DAG.
         dag, opt1 = self._canonicalize(dag)
 
