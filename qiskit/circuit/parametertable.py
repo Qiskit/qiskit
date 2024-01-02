@@ -12,6 +12,7 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
+import operator
 from collections.abc import MappingView, MutableMapping, MutableSet
 
 
@@ -21,6 +22,9 @@ class ParameterReferences(MutableSet):
     testing is overridden such that items that are otherwise value-wise equal
     are still considered distinct if their ``instruction``\\ s are referentially
     distinct.
+
+    In the case of the special value :attr:`.ParameterTable.GLOBAL_PHASE` for ``instruction``, the
+    ``param_index`` should be ``None``.
     """
 
     def _instance_key(self, ref):
@@ -83,6 +87,24 @@ class ParameterTable(MutableMapping):
 
     __slots__ = ["_table", "_keys", "_names"]
 
+    class _GlobalPhaseSentinel:
+        __slots__ = ()
+
+        def __copy__(self):
+            return self
+
+        def __deepcopy__(self, memo=None):
+            return self
+
+        def __reduce__(self):
+            return (operator.attrgetter("GLOBAL_PHASE"), (ParameterTable,))
+
+        def __repr__(self):
+            return "<global-phase sentinel>"
+
+    GLOBAL_PHASE = _GlobalPhaseSentinel()
+    """Tracking object to indicate that a reference refers to the global phase of a circuit."""
+
     def __init__(self, mapping=None):
         """Create a new instance, initialized with ``mapping`` if provided.
 
@@ -144,6 +166,17 @@ class ParameterTable(MutableMapping):
             set: A set of all the names in the parameter table
         """
         return self._names
+
+    def discard_references(self, expression, key):
+        """Remove all references to parameters contained within ``expression`` at the given table
+        ``key``.  This also discards parameter entries from the table if they have no further
+        references.  No action is taken if the object is not tracked."""
+        for parameter in expression.parameters:
+            if (refs := self._table.get(parameter)) is not None:
+                if len(refs) == 1:
+                    del self[parameter]
+                else:
+                    refs.discard(key)
 
     def __delitem__(self, key):
         del self._table[key]
