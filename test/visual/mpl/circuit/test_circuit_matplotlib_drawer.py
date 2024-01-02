@@ -2044,6 +2044,34 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
+    def test_switch_case_op_empty_default(self):
+        """Test the SwitchCaseOp with empty default case"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                pass
+        circuit.h(0)
+
+        fname = "switch_case_empty_default.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
     def test_if_with_expression(self):
         """Test the IfElseOp with an expression"""
         qr = QuantumRegister(3, "qr")
