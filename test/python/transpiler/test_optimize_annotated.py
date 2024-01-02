@@ -105,8 +105,9 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         self.assertEqual(qc_optimized[1].operation.definition, expected_qc_def_optimized)
 
     def test_do_not_optimize_definitions_without_basis_gates(self):
-        """Test that the pass does not descent into gate definitions when either the target not basis_gates
-        are defined.
+        """
+        Test that the pass does not descend into gate definitions when either the
+        target not basis_gates are defined.
         """
         qc_def = QuantumCircuit(3)
         qc_def.cx(0, 2)

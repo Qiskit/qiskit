@@ -148,14 +148,14 @@ class OptimizeAnnotated(TransformationPass):
             definition = op.definition
         except TypeError as err:
             raise TranspilerError(
-                f"OptimizeAnnotated was unable to extract definition for {node.op.name}: {err}"
+                f"OptimizeAnnotated was unable to extract definition for {op.name}: {err}"
             ) from err
         except AttributeError:
             # definition is None
             definition = None
 
         if definition is None:
-            raise TranspilerError(f"OptimizeAnnotated was unable to optimize {node.op}.")
+            raise TranspilerError(f"OptimizeAnnotated was unable to optimize {op}.")
 
         definition_dag = circuit_to_dag(definition, copy_operations=False)
         definition_dag, opt = self._run_inner(definition_dag)
