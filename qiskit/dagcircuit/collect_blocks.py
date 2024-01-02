@@ -16,20 +16,20 @@ into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode
+from . import DAGOpNode, DAGCircuit, DAGDependency, DAGDependencyV2, DAGCircuitError
 
 
 class BlockCollector:
     """This class implements various strategies of dividing a DAG (direct acyclic graph)
-    into blocks of nodes that satisfy certain criteria. It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
-    DagDependency takes into account commutativity between nodes.
+    into blocks of nodes that satisfy certain criteria. It works with the
+    :class:`~qiskit.dagcircuit.DAGCircuit`, :class:`~qiskit.dagcircuit.DAGDependency`
+    or :class:`~qiskit.dagcircuit.DAGDependencyV2` representations of a DAG, where
+    DagDependency and DAGDependencyV2 take into account commutativity between nodes.
 
-    Collecting nodes from DAGDependency generally leads to more optimal results, but is
-    slower, as it requires to construct a DAGDependency beforehand. Thus, DAGCircuit should
-    be used with lower transpiler settings, and DAGDependency should be used with higher
-    transpiler settings.
+    Collecting nodes from a DAG dependency generally leads to more optimal results,
+    but is slower, as it requires to construct a DAG dependency beforehand. Thus,
+    DAGCircuit should be used with lower transpiler settings, and DAGDependency or
+    DAGDependencyV2 should be used with higher transpiler settings.
 
     In general, there are multiple ways to collect maximal blocks. The approaches used
     here are of the form 'starting from the input nodes of a DAG, greedily collect
@@ -40,7 +40,7 @@ class BlockCollector:
     def __init__(self, dag):
         """
         Args:
-            dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+            dag (Union[DAGCircuit, DAGDependency, DAGDependencyV2]): The input DAG.
 
         Raises:
             DAGCircuitError: the input object is not a DAG.
@@ -50,6 +50,15 @@ class BlockCollector:
         self._pending_nodes = None
         self._in_degree = None
         self._collect_from_back = False
+
+        if isinstance(dag, (DAGCircuit, DAGDependencyV2)):
+            self.is_v1_dag_dependency = False
+
+        elif isinstance(dag, DAGDependency):
+            self.is_v1_dag_dependency = True
+
+        else:
+            raise DAGCircuitError("not a DAG.")
 
     def _setup_in_degrees(self):
         """For an efficient implementation, for every node we keep the number of its
@@ -74,20 +83,44 @@ class BlockCollector:
         direction of collecting blocks, that is node's predecessors when collecting
         backwards are the direct successors of a node in the DAG.
         """
-        if self._collect_from_back:
-            return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
+        if not self.is_v1_dag_dependency:
+            if self._collect_from_back:
+                return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
+            else:
+                return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
         else:
-            return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+            if self._collect_from_back:
+                return [
+                    self.dag.get_node(pred_id)
+                    for pred_id in self.dag.direct_successors(node.node_id)
+                ]
+            else:
+                return [
+                    self.dag.get_node(pred_id)
+                    for pred_id in self.dag.direct_predecessors(node.node_id)
+                ]
 
     def _direct_succs(self, node):
         """Returns direct successors of a node. This function takes into account the
         direction of collecting blocks, that is node's successors when collecting
         backwards are the direct predecessors of a node in the DAG.
         """
-        if self._collect_from_back:
-            return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
+        if not self.is_v1_dag_dependency:
+            if self._collect_from_back:
+                return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
+            else:
+                return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
         else:
-            return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+            if self._collect_from_back:
+                return [
+                    self.dag.get_node(succ_id)
+                    for succ_id in self.dag.direct_predecessors(node.node_id)
+                ]
+            else:
+                return [
+                    self.dag.get_node(succ_id)
+                    for succ_id in self.dag.direct_successors(node.node_id)
+                ]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
@@ -277,9 +310,9 @@ def split_block_into_layers(block):
 
 class BlockCollapser:
     """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
-    :class:`~qiskit.dagcircuit.DAGCircuit` and
-    :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
+     in a DAG (direct acyclic graph). It works with the
+    :class:`~qiskit.dagcircuit.DAGCircuit`, :class:`~qiskit.dagcircuit.DAGDependency`
+    or :class:`~qiskit.dagcircuit.DAGDependencyV2` DAG representations.
     """
 
     def __init__(self, dag):
