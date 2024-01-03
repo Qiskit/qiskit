@@ -90,7 +90,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
         def node_attr_func(node):
             if "DAGDependencyV2" in type_str:
-                nid_str = str(dag.node_map[node])
+                nid_str = str(node._node_id)
             else:
                 nid_str = str(node.node_id)
             if style == "plain":

@@ -414,11 +414,6 @@ class DAGDependencyV2:
         """
         return self._multi_graph.get_node_data(node_id)
 
-    def remove_all_ops_named(self, opname):
-        """Remove all operation nodes with the given name."""
-        for n in self.named_nodes(opname):
-            self.remove_op_node(n)
-
     def named_nodes(self, *names):
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
@@ -442,16 +437,6 @@ class DAGDependencyV2:
     def count_ops(self):
         """Count the occurrences of operation names."""
         return self._op_names
-
-    def remove_op_node(self, node):
-        """Remove an operation node n.
-
-        Add edges from predecessors to successors.
-        """
-        self._multi_graph.remove_node_retain_edges(
-            node._node_id, use_outgoing=False, condition=lambda edge1, edge2: edge1 == edge2
-        )
-        self._decrement_op(node.op)
 
     def op_nodes(self):
         """
@@ -566,7 +551,6 @@ class DAGDependencyV2:
         Returns:
             DAGDependencyV2: a copy of a DAGDependencyV2 object.
         """
-
         dag = DAGDependencyV2()
         dag.name = self.name
         dag.cregs = self.cregs.copy()
