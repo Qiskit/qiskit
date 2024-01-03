@@ -109,7 +109,9 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         from qiskit.transpiler.synthesis.aqc.aqc import AQC
         from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
         from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-        from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+        from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import (
+            FastCNOTUnitObjective,
+        )
 
         num_qubits = int(round(np.log2(unitary.shape[0])))
 
