@@ -72,11 +72,18 @@ class BlockCollector:
         """
         self._pending_nodes = []
         self._in_degree = {}
-        for node in self.dag.op_nodes():
+        for node in self._op_nodes():
             deg = len(self._direct_preds(node))
             self._in_degree[node] = deg
             if deg == 0:
                 self._pending_nodes.append(node)
+
+    def _op_nodes(self):
+        """Returns DAG nodes."""
+        if not self.is_v1_dag_dependency:
+            return self.dag.op_nodes()
+        else:
+            return self.dag.get_nodes()
 
     def _direct_preds(self, node):
         """Returns direct predecessors of a node. This function takes into account the
