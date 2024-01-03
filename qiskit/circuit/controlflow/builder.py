@@ -429,9 +429,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         if not self._allow_jumps:
             self._raise_on_jump(instruction.operation)
         for b in instruction.qubits:
-            self.instructions.add_qubit(b)
+            self.instructions.add_qubit(b, strict=False)
         for b in instruction.clbits:
-            self.instructions.add_clbit(b)
+            self.instructions.add_clbit(b, strict=False)
         self._instructions.append(instruction)
         return instruction
 
@@ -442,9 +442,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             data.foreach_op(self._raise_on_jump)
         qubits, clbits = data.active_bits()
         for b in qubits:
-            self.instructions.add_qubit(b)
+            self.instructions.add_qubit(b, strict=False)
         for b in clbits:
-            self.instructions.add_clbit(b)
+            self.instructions.add_clbit(b, strict=False)
         self.instructions.extend(data)
 
     def resolve_classical_resource(self, specifier):
@@ -531,9 +531,9 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
         """
         for bit in bits:
             if isinstance(bit, Qubit):
-                self.instructions.add_qubit(bit)
+                self.instructions.add_qubit(bit, strict=False)
             elif isinstance(bit, Clbit):
-                self.instructions.add_clbit(bit)
+                self.instructions.add_clbit(bit, strict=False)
             else:
                 raise TypeError(f"Can only add qubits or classical bits, but received '{bit}'.")
 

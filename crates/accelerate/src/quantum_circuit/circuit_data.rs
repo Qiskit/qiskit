@@ -185,12 +185,12 @@ impl CircuitData {
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
-                self_.add_qubit(py, bit?)?;
+                self_.add_qubit(py, bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
             for bit in clbits.iter()? {
-                self_.add_clbit(py, bit?)?;
+                self_.add_clbit(py, bit?, true)?;
             }
         }
         if let Some(data) = data {
@@ -246,7 +246,13 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.Qubit`): The qubit to register.
-    pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
+    ///     strict (bool): When set, raises an error if ``bit`` is already present.
+    ///
+    /// Raises:
+    ///     ValueError: The specified ``bit`` is already present and flag ``strict``
+    ///         was provided.
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny, strict: bool) -> PyResult<()> {
         let idx: BitType = self.qubits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of qubits in the circuit has exceeded the maximum capacity",
@@ -259,6 +265,11 @@ impl CircuitData {
         {
             self.qubits_native.push(bit.into_py(py));
             self.qubits = PyList::new(py, &self.qubits_native).into_py(py);
+        } else if strict {
+            return Err(PyValueError::new_err(format!(
+                "Existing bit {:?} cannot be re-added in strict mode.",
+                bit
+            )));
         }
         Ok(())
     }
@@ -267,7 +278,13 @@ impl CircuitData {
     ///
     /// Args:
     ///     bit (:class:`.Clbit`): The clbit to register.
-    pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny) -> PyResult<()> {
+    ///     strict (bool): When set, raises an error if ``bit`` is already present.
+    ///
+    /// Raises:
+    ///     ValueError: The specified ``bit`` is already present and flag ``strict``
+    ///         was provided.
+    #[pyo3(signature = (bit, *, strict=true))]
+    pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny, strict: bool) -> PyResult<()> {
         let idx: BitType = self.clbits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of clbits in the circuit has exceeded the maximum capacity",
@@ -280,6 +297,11 @@ impl CircuitData {
         {
             self.clbits_native.push(bit.into_py(py));
             self.clbits = PyList::new(py, &self.clbits_native).into_py(py);
+        } else if strict {
+            return Err(PyValueError::new_err(format!(
+                "Existing bit {:?} cannot be re-added in strict mode.",
+                bit
+            )));
         }
         Ok(())
     }

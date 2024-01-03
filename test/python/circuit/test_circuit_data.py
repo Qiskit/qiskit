@@ -41,9 +41,13 @@ class TestQuantumCircuitData(QiskitTestCase):
         data.add_qubit(qr[1])
         self.assertEqual(data.qubits, list(qr))
 
-        # Make sure re-adding is allowed and does not
-        # change order.
-        data.add_qubit(qr[0])
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_qubit(qr[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_qubit(qr[0], strict=False)
         self.assertEqual(data.qubits, list(qr))
 
     def test_add_qubit_new_style(self):
@@ -53,9 +57,13 @@ class TestQuantumCircuitData(QiskitTestCase):
         data.add_qubit(qubits[1])
         self.assertEqual(data.qubits, qubits)
 
-        # Make sure re-adding is allowed and does not
-        # change order.
-        data.add_qubit(qubits[0])
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_qubit(qubits[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_qubit(qubits[0], strict=False)
         self.assertEqual(data.qubits, qubits)
 
     def test_add_clbit(self):
@@ -65,9 +73,13 @@ class TestQuantumCircuitData(QiskitTestCase):
         data.add_clbit(cr[1])
         self.assertEqual(data.clbits, list(cr))
 
-        # Make sure re-adding is allowed and does not
-        # change order.
-        data.add_clbit(cr[0])
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_clbit(cr[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_clbit(cr[0], strict=False)
         self.assertEqual(data.clbits, list(cr))
 
     def test_add_clbit_new_style(self):
@@ -77,9 +89,13 @@ class TestQuantumCircuitData(QiskitTestCase):
         data.add_clbit(clbits[1])
         self.assertEqual(data.clbits, clbits)
 
-        # Make sure re-adding is allowed and does not
-        # change order.
-        data.add_clbit(clbits[0])
+        # Test re-adding is disallowed by default.
+        with self.assertRaisesRegex(ValueError, "Existing bit"):
+            data.add_clbit(clbits[0])
+
+        # Make sure re-adding is allowed in non-strict mode
+        # and does not change order.
+        data.add_clbit(clbits[0], strict=False)
         self.assertEqual(data.clbits, clbits)
 
     def test_copy(self):
