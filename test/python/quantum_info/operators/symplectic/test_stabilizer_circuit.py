@@ -9,16 +9,14 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=invalid-name
 """Tests for stabilizer_to_circuit function."""
+from __future__ import annotations
 
 import unittest
 
-from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic.stabilizer_circuit import stabilizer_to_circuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli, StabilizerState
 from qiskit.quantum_info.operators import Clifford
 
 from qiskit.test import QiskitTestCase
@@ -35,14 +33,11 @@ class TestStabilizerCircuits(QiskitTestCase):
         """
         circuit = stabilizer_to_circuit(stabilizer_list, **kwargs)
         clifford = Clifford(circuit)
+        state = StabilizerState(circuit)
         for stabilizer in stabilizer_list:
             composed = clifford.compose(Pauli(stabilizer).to_instruction())
-
-            # We test only stabilizers since destabilizers are not unique
-            # This depends on the assumption that stabilizers are not changed
-            # after applying one of the stabilizers
-            # Ideally, we'd test for circuit equivalence
-            self.assertTrue(matrix_equal(clifford.stab, composed.stab))
+            # Test that the stabilizer is a stabilizer of the state by applying it to state
+            self.assertTrue(state.equiv(StabilizerState(composed)))
 
     def test_stabilizer_to_circuit_simple(self):
         """Simple test case"""
