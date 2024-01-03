@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Directives are hints to the pulse compiler for how to process its input programs."""
+from __future__ import annotations
+
 from abc import ABC
-from typing import Optional, Tuple
 
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
@@ -34,7 +35,7 @@ class Directive(instruction.Instruction, ABC):
 class RelativeBarrier(Directive):
     """Pulse ``RelativeBarrier`` directive."""
 
-    def __init__(self, *channels: chans.Channel, name: Optional[str] = None):
+    def __init__(self, *channels: chans.Channel, name: str | None = None):
         """Create a relative barrier directive.
 
         The barrier directive blocks instructions within the same schedule
@@ -48,11 +49,11 @@ class RelativeBarrier(Directive):
         super().__init__(operands=tuple(channels), name=name)
 
     @property
-    def channels(self) -> Tuple[chans.Channel]:
+    def channels(self) -> tuple[chans.Channel, ...]:
         """Returns the channels that this schedule uses."""
         return self.operands
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Verify two barriers are equivalent."""
         return isinstance(other, type(self)) and set(self.channels) == set(other.channels)
 
@@ -105,7 +106,7 @@ class TimeBlockade(Directive):
         self,
         duration: int,
         channel: chans.Channel,
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         """Create a time blockade directive.
 
@@ -135,7 +136,7 @@ class TimeBlockade(Directive):
         return self.operands[1]
 
     @property
-    def channels(self) -> Tuple[chans.Channel]:
+    def channels(self) -> tuple[chans.Channel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
 

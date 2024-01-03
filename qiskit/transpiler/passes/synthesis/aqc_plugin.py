@@ -109,7 +109,7 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         from qiskit.synthesis.unitary.aqc import AQC
         from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
         from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
-        from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+        from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 
         num_qubits = int(round(np.log2(unitary.shape[0])))
 
@@ -132,7 +132,7 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         aqc = AQC(optimizer, seed)
 
         approximate_circuit = CNOTUnitCircuit(num_qubits=num_qubits, cnots=cnots)
-        approximating_objective = DefaultCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
+        approximating_objective = FastCNOTUnitObjective(num_qubits=num_qubits, cnots=cnots)
 
         initial_point = config.get("initial_point")
         aqc.compile_unitary(
