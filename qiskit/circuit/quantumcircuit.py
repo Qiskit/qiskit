@@ -1468,13 +1468,15 @@ class QuantumCircuit:
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
         self._data.append(instruction)
-        if isinstance(instruction.operation, Instruction):
-            self._update_parameter_table(instruction.operation)
+        self._track_operation(instruction.operation)
+        return instruction.operation if old_style else instruction
 
-        # mark as normal circuit if a new instruction is added
+    def _track_operation(self, operation: Operation):
+        """Sync all non-data-list internal data structures for a newly tracked operation."""
+        if isinstance(operation, Instruction):
+            self._update_parameter_table(operation)
         self.duration = None
         self.unit = "dt"
-        return instruction.operation if old_style else instruction
 
     def _update_parameter_table(self, instruction: Instruction):
         for param_index, param in enumerate(instruction.params):
@@ -5932,12 +5934,8 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
         return self.circuit._append(instruction)
 
     def extend(self, data: CircuitData):
-        def update_param(op):
-            if isinstance(op, Instruction):
-                self.circuit._update_parameter_table(op)
-
         self.circuit._data.extend(data)
-        data.foreach_op(update_param)
+        data.foreach_op(self.circuit._track_operation)
 
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
