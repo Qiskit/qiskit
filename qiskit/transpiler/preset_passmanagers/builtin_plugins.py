@@ -513,7 +513,9 @@ class OptimizationPassManager(PassManagerStagePlugin):
             else:
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
-            unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
             # Build nested Flow controllers
             def _unroll_condition(property_set):
                 return not property_set["all_gates_in_basis"]

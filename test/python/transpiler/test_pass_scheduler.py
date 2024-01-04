@@ -696,7 +696,8 @@ class TestDumpPasses(SchedulerTestCase):
             {"flow_controllers": {}, "passes": [PassC_TP_RA_PA()]},
             {"flow_controllers": {}, "passes": [PassB_TP_RA_PA()]},
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_passes_in_linear(self):
         """Dump passes in the same FlowControllerLinear"""
@@ -720,7 +721,8 @@ class TestDumpPasses(SchedulerTestCase):
                 ],
             }
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
@@ -734,7 +736,8 @@ class TestDumpPasses(SchedulerTestCase):
         expected = [
             {"passes": [PassB_TP_RA_PA(), PassC_TP_RA_PA()], "flow_controllers": {"do_x_times"}}
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_conditional_and_loop(self):
         """Dump passes with a conditional and a loop."""
@@ -759,7 +762,8 @@ class TestDumpPasses(SchedulerTestCase):
                 "flow_controllers": {"condition", "do_while"},
             },
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
 
 class StreamHandlerRaiseException(StreamHandler):

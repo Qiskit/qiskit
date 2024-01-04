@@ -17,6 +17,7 @@ flow controller, and coloured based on the type of pass.
 import os
 import inspect
 import tempfile
+import warnings
 
 from qiskit.utils import optionals as _optionals
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
@@ -74,7 +75,9 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     import pydot
 
-    passes = pass_manager.passes()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        passes = pass_manager.passes()
 
     if not style:
         style = DEFAULT_STYLE
@@ -174,7 +177,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         stage = getattr(pass_manager, st)
 
         if stage is not None:
-            passes = stage.passes()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=DeprecationWarning)
+                passes = stage.passes()
             stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
             for controller_group in passes:
                 subgraph, component_id, prev_node = draw_subgraph(

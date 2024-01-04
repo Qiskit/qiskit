@@ -36,25 +36,28 @@ class TestStagedPassManager(QiskitTestCase):
                 routing=PassManager([Unroller(["u", "cx"])]),
                 scheduling=PassManager([Depth()]),
             )
-        self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Optimize1qGates", "Unroller", "Depth"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+                ["Optimize1qGates", "Unroller", "Depth"],
+            )
 
     def test_inplace_edit(self):
         spm = StagedPassManager(stages=["single_stage"])
         spm.single_stage = PassManager([Optimize1qGates(), Depth()])
-        self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Optimize1qGates", "Depth"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+                ["Optimize1qGates", "Depth"],
+            )
         with self.assertWarns(DeprecationWarning):
             spm.single_stage.append(Unroller(["u"]))
         spm.single_stage.append(Depth())
-        self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Optimize1qGates", "Depth", "Unroller", "Depth"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+                ["Optimize1qGates", "Depth", "Unroller", "Depth"],
+            )
 
     def test_invalid_stage(self):
         with self.assertRaises(AttributeError):
@@ -62,10 +65,11 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_pre_phase_is_valid_stage(self):
         spm = StagedPassManager(stages=["init"], pre_init=PassManager([Depth()]))
-        self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
-            ["Depth"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+                ["Depth"],
+            )
 
     def test_append_extend_not_implemented(self):
         spm = StagedPassManager()
@@ -110,16 +114,17 @@ class TestStagedPassManager(QiskitTestCase):
         spm = StagedPassManager(
             stages, pre_alpha=pre_alpha, alpha=alpha, post_alpha=post_alpha, omega=omega
         )
-        passes = [
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-            *omega.passes(),
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-        ]
-        self.assertEqual(spm.passes(), passes)
+        with self.assertWarns(DeprecationWarning):
+            passes = [
+                *pre_alpha.passes(),
+                *alpha.passes(),
+                *post_alpha.passes(),
+                *omega.passes(),
+                *pre_alpha.passes(),
+                *alpha.passes(),
+                *post_alpha.passes(),
+            ]
+            self.assertEqual(spm.passes(), passes)
 
     def test_edit_stages(self):
         spm = StagedPassManager()

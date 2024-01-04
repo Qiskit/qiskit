@@ -28,7 +28,7 @@ from qiskit.passmanager.passmanager import BasePassManager
 from qiskit.passmanager.base_tasks import Task, BaseController
 from qiskit.passmanager.flow_controllers import FlowController
 from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -332,6 +332,13 @@ class PassManager(BasePassManager):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
+    @deprecate_func(
+        since="0.46",
+        additional_msg=(
+            "Use .to_flow_controller().tasks instead. "
+            "This returns a sequence of linearized base task instances in tuple format."
+        ),
+    )
     def passes(self) -> list[dict[str, BasePass]]:
         """Return a list structure of the appended passes and its options.
 
