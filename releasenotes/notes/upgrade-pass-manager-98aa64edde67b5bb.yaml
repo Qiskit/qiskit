@@ -51,48 +51,19 @@ upgrade:
     when the controller instance is created.
 
   - |
-    The structure of pass list that :meth:`~qiskit.transpiler.PassManager.passes` returns
-    was updated. Previously the passes appended together was grouped in the pass list,
-    but this list is now flattened. Also nested controller is now represented by a
-    nested dictionary. For example,
+    Removed methods :meth:`qiskit.transpiler.PassManager.passes` and
+    :meth:`qiskit.transpiler.StagedPassManager.passes` that generates
+    a representation of inset passes in the form of list of dictionary,
+    however, this format doesn't efficiently represent more complicated pass pipeline,
+    which may include conditional branching and nested conditions.
+    Instead of using this representation, please use following pattern
 
-    .. code-block::
-      [
-        {
-          "passes": [PassA, PassB],
-          "flow_controllers": {}
-        },
-        {
-          "passes": [PassC, ConditionalController],
-          "flow_controllers": {"do_while"}
-        },
-      ]
+    .. code-block:: python
 
-    This pass list might become
+      pm = PassManager(...)
+      pm.to_flow_controller().tasks
 
-    .. code-block::
-      [
-        {
-          "passes": [PassA],
-          "flow_controllers": {}
-        },
-        {
-          "passes": [PassB],
-          "flow_controllers": {}
-        },
-        {
-          "passes": [
-            PassC,
-            {
-              "passes": [PassD],
-              "flow_controllers": {"condition"},
-            }
-          ],
-          "flow_controllers": {"do_while"}
-        },
-      ]
-
-    This is just a difference in notation. Two constructions are logically the same.
+    This directly returns a linearized base task instances in tuple format.
 
   - |
     The max_iteration argument was removed from :meth:`qiskit.transpiler.PassManager.append`

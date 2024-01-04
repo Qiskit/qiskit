@@ -16,7 +16,7 @@ from __future__ import annotations
 import inspect
 import io
 import re
-from collections.abc import Iterator, Iterable, Callable, Sequence
+from collections.abc import Iterator, Iterable, Callable
 from functools import wraps
 from typing import Union, List, Any
 
@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.passmanager import BasePassManager
-from qiskit.passmanager.base_tasks import Task, BaseController, GenericPass
+from qiskit.passmanager.base_tasks import Task
 from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
@@ -206,14 +206,6 @@ class PassManager(BasePassManager):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
-    def passes(self) -> list[dict[str, BasePass]]:
-        """Return a list structure of the appended passes and its options.
-
-        Returns:
-            A list of pass sets, as defined in ``append()``.
-        """
-        return _write_passes_recursive(self._tasks)
-
 
 class StagedPassManager(PassManager):
     """A pass manager pipeline built from individual stages.
@@ -388,10 +380,6 @@ class StagedPassManager(PassManager):
     def __add__(self, other):
         raise NotImplementedError
 
-    def passes(self) -> list[dict[str, BasePass]]:
-        self._update_passmanager()
-        return super().passes()
-
     def run(
         self,
         circuits: _CircuitsT,
@@ -400,6 +388,10 @@ class StagedPassManager(PassManager):
     ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
+
+    def to_flow_controller(self) -> FlowControllerLinear:
+        self._update_passmanager()
+        return super().to_flow_controller()
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the staged pass manager."""
@@ -445,97 +437,3 @@ def _legacy_style_callback(callback: Callable):
         )
 
     return _wrapped_callable
-
-
-def _write_passes_recursive(tasks: BaseController | GenericPass | Sequence):
-    """Write passmanager passes list for visualization.
-
-    Conventionally, conditional flow controllers were initialized through .append() method
-    with keyword arguments.
-
-      pm = PassManager()
-      pm.append([PassA, PassB])
-      pm.append([PassC, PassD], condition=callable)
-      pm.append([PassE])
-
-    This controller kwargs was recorded in flow_controllers field in a pass list entry,
-    when the pass manager outputs the list with .passes() method.
-    Each entry in the pass list takes the following form:
-
-      {
-          "passes": [PassA, PassB],
-          "flow_controllers": {},
-      },
-      {
-          "passes": [PassC, PassD],
-          "flow_controllers": {"condition"},
-      },
-      {
-          "passes": [PassE],
-          "flow_controllers": {},
-      },
-
-    This append pattern is eliminated after Qiskit 1.0, and a user explicitly
-    builds conditional controller like below.
-
-      pm = PassManager(
-        [
-          PassA, PassB, ConditionalController([PassC, PassD]), PassE,
-        ]
-      )
-
-    Note that all passes are linearized in above construction pattern
-    in contrast to the legacy one that uses a nested list to group together
-    the passes appended at the same time.
-
-    Logically two constructions are the same because grouped passes doesn't impact
-    pass execution, but some context of construction might be lost.
-
-    This function loosely imitates the behavior of legacy pass information storage,
-    while building the pass list on the fly by digesting the pass manager instance.
-    """
-    controller = None
-
-    if isinstance(tasks, BaseController):
-        if not isinstance(tasks, FlowControllerLinear):
-            controller = tasks.name
-        # Assume linear pipeline.
-        # Current data structure cannot represent pipeline branching.
-        tasks = getattr(tasks, "tasks", [])
-    if isinstance(tasks, GenericPass):
-        return {
-            "passes": [tasks],
-            "flow_controllers": {},
-        }
-
-    dumped_tasks = []
-    for task in tasks:
-        inner_tasks = _write_passes_recursive(task)
-        if isinstance(inner_tasks, dict):
-            dumped_tasks.append(inner_tasks)
-        else:
-            dumped_tasks.extend(inner_tasks)
-
-    if controller:
-        # Post process if this is controller.
-        if len(dumped_tasks) == 1 and dumped_tasks[0]["flow_controllers"]:
-            # Single nested controller. Merge nested dictionary.
-            return {
-                "passes": dumped_tasks[0]["passes"],
-                "flow_controllers": {controller} | dumped_tasks[0]["flow_controllers"],
-            }
-        else:
-            tmp = {
-                "passes": [],
-                "flow_controllers": {controller},
-            }
-            for dumped_task in dumped_tasks:
-                if not dumped_task["flow_controllers"]:
-                    # Merge
-                    tmp["passes"].extend(dumped_task["passes"])
-                else:
-                    # Partly nested controller.
-                    # Append dict as-is to keep the nested controller name.
-                    tmp["passes"].append(dumped_task)
-            return tmp
-    return dumped_tasks

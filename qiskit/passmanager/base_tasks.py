@@ -162,9 +162,6 @@ class BaseController(Task, ABC):
     and a controller itself doesn't provide any subroutine to modify the input IR.
     """
 
-    name: str = "flow_controller"
-    """Name of this controller. This information might be used for visualization."""
-
     def __init__(
         self,
         options: dict[str, Any] | None = None,

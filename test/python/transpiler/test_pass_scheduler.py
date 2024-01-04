@@ -632,12 +632,8 @@ class TestDumpPasses(SchedulerTestCase):
         passmanager = PassManager()
         passmanager.append(PassC_TP_RA_PA())
         passmanager.append(PassB_TP_RA_PA())
-
-        expected = [
-            {"flow_controllers": {}, "passes": [PassC_TP_RA_PA()]},
-            {"flow_controllers": {}, "passes": [PassB_TP_RA_PA()]},
-        ]
-        self.assertEqual(expected, passmanager.passes())
+        expected = PassC_TP_RA_PA(), PassB_TP_RA_PA()
+        self.assertEqual(expected, passmanager.to_flow_controller().tasks)
 
     def test_passes_in_linear(self):
         """Dump passes in the same FlowControllerLinear"""
@@ -649,65 +645,34 @@ class TestDumpPasses(SchedulerTestCase):
                 PassB_TP_RA_PA(),
             ]
         )
-
-        expected = [
-            {
-                "flow_controllers": {},
-                "passes": [
-                    PassC_TP_RA_PA(),
-                ],
-            },
-            {
-                "flow_controllers": {},
-                "passes": [
-                    PassB_TP_RA_PA(),
-                ],
-            },
-            {
-                "flow_controllers": {},
-                "passes": [
-                    PassD_TP_NR_NP(argument1=[1, 2]),
-                ],
-            },
-            {
-                "flow_controllers": {},
-                "passes": [
-                    PassB_TP_RA_PA(),
-                ],
-            },
-        ]
-        self.assertEqual(expected, passmanager.passes())
+        expected = (
+            PassC_TP_RA_PA(),
+            PassB_TP_RA_PA(),
+            PassD_TP_NR_NP(argument1=[1, 2]),
+            PassB_TP_RA_PA(),
+        )
+        self.assertEqual(expected, passmanager.to_flow_controller().tasks)
 
     def test_conditional_and_loop(self):
         """Dump passes with a conditional and a loop."""
-        passmanager = PassManager()
-        passmanager.append(PassE_AP_NR_NP(True))
-        passmanager.append(
-            ConditionalController(
-                DoWhileController(
-                    [
-                        PassK_check_fixed_point_property(),
-                        PassA_TP_NR_NP(),
-                        PassF_reduce_dag_property(),
-                    ],
-                    do_while=lambda property_set: not property_set["property_fixed_point"],
-                ),
-                condition=lambda property_set: property_set["property_fixed_point"],
-            )
-        )
-
-        expected = [
-            {"passes": [PassE_AP_NR_NP(True)], "flow_controllers": {}},
-            {
-                "passes": [
+        nested_controller = ConditionalController(
+            DoWhileController(
+                [
                     PassK_check_fixed_point_property(),
                     PassA_TP_NR_NP(),
                     PassF_reduce_dag_property(),
                 ],
-                "flow_controllers": {"condition", "do_while"},
-            },
-        ]
-        self.assertEqual(expected, passmanager.passes())
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            ),
+            condition=lambda property_set: property_set["property_fixed_point"],
+        )
+
+        passmanager = PassManager()
+        passmanager.append(PassE_AP_NR_NP(True))
+        passmanager.append(nested_controller)
+
+        expected = (PassE_AP_NR_NP(True), nested_controller)
+        self.assertEqual(expected, passmanager.to_flow_controller().tasks)
 
 
 class StreamHandlerRaiseException(StreamHandler):
