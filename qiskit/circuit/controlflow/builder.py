@@ -440,11 +440,14 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
             raise CircuitError(self._forbidden_message)
         if not self._allow_jumps:
             data.foreach_op(self._raise_on_jump)
-        qubits, clbits = data.active_bits()
-        for b in qubits:
-            self.instructions.add_qubit(b, strict=False)
-        for b in clbits:
-            self.instructions.add_clbit(b, strict=False)
+        active_qubits, active_clbits = data.active_bits()
+        # Add bits in deterministic order.
+        for b in data.qubits:
+            if b in active_qubits:
+                self.instructions.add_qubit(b, strict=False)
+        for b in data.clbits:
+            if b in active_clbits:
+                self.instructions.add_clbit(b, strict=False)
         self.instructions.extend(data)
 
     def resolve_classical_resource(self, specifier):

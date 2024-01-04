@@ -147,9 +147,7 @@ class TestQuantumCircuitData(QiskitTestCase):
 
         expected_qubits = {qr[0], qr[3]}
         expected_clbits = {cr[1], cr[4]}
-        actual = data.active_bits()
-        actual_qubits = set(actual[0])
-        actual_clbits = set(actual[1])
+        actual_qubits, actual_clbits = data.active_bits()
         self.assertEqual(actual_qubits, expected_qubits)
         self.assertEqual(actual_clbits, expected_clbits)
 

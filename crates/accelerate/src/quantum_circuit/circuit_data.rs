@@ -14,10 +14,9 @@ use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
 use hashbrown::HashMap;
-use indexmap::IndexSet;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyIterator, PyList, PySlice, PyTuple, PyType};
+use pyo3::types::{PyIterator, PyList, PySet, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 
@@ -337,34 +336,20 @@ impl CircuitData {
     /// that appear in at least one instruction's bit lists.
     ///
     /// Returns:
-    ///     tuple[list[:class:`.Qubit`], list[:class:`.Clbit`]]: The active qubits and clbits.
-    pub fn active_bits(&self, py: Python<'_>) -> Py<PyTuple> {
-        let mut qubits: IndexSet<BitType> = IndexSet::with_capacity(self.qubits_native.len());
-        let mut clbits: IndexSet<BitType> = IndexSet::with_capacity(self.clbits_native.len());
+    ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
+    pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
+        let qubits = PySet::empty(py)?;
+        let clbits = PySet::empty(py)?;
         for inst in self.data.iter() {
             for b in self.intern_context.lookup(inst.qubits_id).iter() {
-                qubits.insert(*b);
+                qubits.add(self.qubits_native[*b as usize].clone_ref(py))?;
             }
             for b in self.intern_context.lookup(inst.clbits_id).iter() {
-                clbits.insert(*b);
+                clbits.add(self.clbits_native[*b as usize].clone_ref(py))?;
             }
         }
 
-        (
-            PyList::new(
-                py,
-                qubits
-                    .into_iter()
-                    .map(|b| self.qubits_native[b as usize].clone_ref(py)),
-            ),
-            PyList::new(
-                py,
-                clbits
-                    .into_iter()
-                    .map(|b| self.clbits_native[b as usize].clone_ref(py)),
-            ),
-        )
-            .into_py(py)
+        Ok((qubits, clbits).into_py(py))
     }
 
     /// Invokes callable ``func`` with each instruction's operation.
