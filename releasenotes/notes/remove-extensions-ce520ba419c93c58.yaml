@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Remove the ``qiskit.extensions`` module, which has been pending deprecation since the 0.45 release
+    and has been fully deprecated in the 0.46 release.
+    Most objects have been moved to :mod:`qiskit.circuit.library`, see the release notes of
+    the 0.45 release for more details.
