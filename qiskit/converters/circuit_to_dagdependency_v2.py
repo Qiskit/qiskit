@@ -41,5 +41,6 @@ def circuit_to_dagdependency_v2(circuit):
         dagdependency.add_op_node(instruction.operation, instruction.qubits, instruction.clbits)
 
     dagdependency.calibrations = circuit.calibrations
+    dagdependency.global_phase = circuit.global_phase
 
     return dagdependency

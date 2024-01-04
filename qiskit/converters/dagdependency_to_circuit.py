@@ -31,9 +31,9 @@ def dagdependency_to_circuit(dagdependency):
         *dagdependency.qregs.values(),
         *dagdependency.cregs.values(),
         name=name,
+        global_phase=dagdependency.global_phase,
     )
     circuit.metadata = dagdependency.metadata
-
     circuit.calibrations = dagdependency.calibrations
 
     for node in dagdependency.topological_nodes():
