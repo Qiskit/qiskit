@@ -19,9 +19,9 @@ from abc import ABC
 from collections.abc import Iterator, Sequence
 from dataclasses import fields
 from typing import Any, Dict
+from warnings import warn
 
 from numpy import ndarray
-
 
 ExperimentData = Dict[str, Any]
 
@@ -45,6 +45,12 @@ class BasePrimitiveResult(ABC):
             TypeError: If one of the data fields is not a Sequence or ``numpy.ndarray``.
             ValueError: Inconsistent number of experiments across data fields.
         """
+        warn(
+            "The class ``BasePrimitiveResult`` is deprecated as of qiskit 0.46.0. "
+            "It will be removed no earlier than 3 months after the release date. "
+            "Use PrimitiveResult in PrimitiveV2 instead.",
+            DeprecationWarning,
+        )
         for value in self._field_values:  # type: Sequence
             # TODO: enforce all data fields to be tuples instead of sequences
             if not isinstance(value, (Sequence, ndarray)) or isinstance(value, (str, bytes)):

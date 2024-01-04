@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    PrimitivesV1 has been deprecated. Use PrimitivesV2 instead.

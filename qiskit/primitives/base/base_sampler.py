@@ -100,6 +100,7 @@ class BaseSampler(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
+    @deprecate_func(since="0.46.0", additional_msg="Use BaseSamplerV2 instead.")
     def __init__(
         self,
         *,

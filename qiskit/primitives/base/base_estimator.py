@@ -86,15 +86,15 @@ from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
-from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
-from .base_primitive import BasePrimitive
 from . import validation
+from .base_primitive import BasePrimitive
 
 T = TypeVar("T", bound=Job)
 
@@ -107,6 +107,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
     __hash__ = None
 
+    @deprecate_func(since="0.46.0", additional_msg="Use BaseEstimatorV2 instead.")
     def __init__(
         self,
         *,

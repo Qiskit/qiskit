@@ -24,15 +24,11 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
-from .utils import (
-    _circuit_key,
-    _observable_key,
-    bound_circuit_to_instruction,
-    init_observable,
-)
+from .utils import _circuit_key, _observable_key, bound_circuit_to_instruction, init_observable
 
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
@@ -51,6 +47,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
           this option is ignored.
     """
 
+    @deprecate_func(since="0.46.0", additional_msg="Use StatevectorEstimator instead.")
     def __init__(self, *, options: dict | None = None):
         """
         Args:
