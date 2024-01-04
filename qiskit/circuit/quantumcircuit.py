@@ -4472,11 +4472,12 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
-    def prepare_state(self, 
+    def prepare_state(
+        self,
         state: Statevector | Sequence[complex] | str | int,
         qubits: Sequence[QubitSpecifier] | None = None,
         label: str | None = None,
-        normalize: bool = False
+        normalize: bool = False,
     ) -> InstructionSet:
         r"""Prepare qubits in a specific state.
 
@@ -4573,7 +4574,7 @@ class QuantumCircuit:
                      └───────────────────────────────────────────┘
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.library.data_preparation import StatePreparation 
+        from qiskit.circuit.library.data_preparation import StatePreparation
 
         if qubits is None:
             qubits = self.qubits

@@ -413,4 +413,3 @@ class StatePreparation(Gate):
             circuit.append(CXGate(), [msb, lsb])
 
         return circuit
-
