@@ -120,6 +120,3 @@ class ConditionalController(BaseController):
         if self.condition(state.property_set):
             for task in self.tasks:
                 state = yield task
-
-
-FlowController = BaseController

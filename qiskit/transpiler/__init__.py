@@ -1253,7 +1253,6 @@ Exceptions
 
 # For backward compatibility
 from qiskit.passmanager import (
-    FlowController,
     ConditionalController,
     DoWhileController,
 )
