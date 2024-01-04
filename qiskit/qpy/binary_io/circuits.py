@@ -41,7 +41,6 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
-
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
@@ -282,8 +281,6 @@ def _read_instruction(
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
         gate_class = getattr(circuit_mod, gate_name)
-    elif hasattr(extensions, gate_name):
-        gate_class = getattr(extensions, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
     else:

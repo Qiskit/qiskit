@@ -44,6 +44,7 @@ from qiskit.circuit.library import (
     UCRYGate,
     UCRZGate,
     UnitaryGate,
+    DiagonalGate,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
@@ -1456,9 +1457,10 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
+        diag = DiagonalGate([1, -1, -1, 1])
+
         qc = QuantumCircuit(2)
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.diagonal([1, -1, -1, 1], [0, 1])
+        qc.append(diag, [0, 1])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)
