@@ -372,7 +372,7 @@ impl CircuitData {
     ///     func (Callable[[int, :class:`~.Operation`], None]):
     ///         The callable to invoke.
     #[pyo3(signature = (func))]
-    pub fn enumerate_ops(&self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+    pub fn foreach_op_indexed(&self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
             func.call1((index, inst.op.as_ref(py)))?;
         }
@@ -421,7 +421,7 @@ impl CircuitData {
     ///     Instruction operations themselves are NOT adjusted.
     ///     To modify bits referenced by an operation, use
     ///     :meth:`~.CircuitData.foreach_op` or
-    ///     :meth:`~.CircuitData.enumerate_ops` or
+    ///     :meth:`~.CircuitData.foreach_op_indexed` or
     ///     :meth:`~.CircuitData.map_ops` to adjust the operations manually
     ///     after calling this method.
     ///

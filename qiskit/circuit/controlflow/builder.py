@@ -657,7 +657,7 @@ class ControlFlowBuilderBlock(CircuitScopeInterface):
                         out.add_register(register)
 
         # Update registers and bits of 'out'.
-        self._instructions.enumerate_ops(update_registers)
+        self._instructions.foreach_op_indexed(update_registers)
 
         # Create the concrete instruction listing.
         out_data = self._instructions.copy()
