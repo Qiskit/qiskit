@@ -99,7 +99,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         regs.append(creg)
 
     clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
-    operation_map = {}
+    operation_map = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
     def fix_condition(op):
         original_id = id(op)

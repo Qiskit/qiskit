@@ -2428,11 +2428,10 @@ class QuantumCircuit:
         cpy = self.copy_empty_like(name)
         cpy._data = self._data.copy()
 
-        operation_copies = {}
-    
-		# The special global-phase sentinel doesn't need copying, but this ensures that it'll get
-        # recognised.  The global phase itself was already copied over in 'copy_empty_like`.
-        operation_copies[id(ParameterTable.GLOBAL_PHASE)] = ParameterTable.GLOBAL_PHASE
+        # The special global-phase sentinel doesn't need copying, but it's
+        # added here to ensure it's recognised. The global phase itself was
+        # already copied over in `copy_empty_like`.
+        operation_copies = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
         def memo_copy(op):
             if (out := operation_copies.get(id(op))) is not None:
