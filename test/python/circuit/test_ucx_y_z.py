@@ -14,7 +14,6 @@
 
 import itertools
 import unittest
-from ddt import ddt, data
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -41,7 +40,6 @@ angles_list = [
 rot_axis_list = ["X", "Y", "Z"]
 
 
-@ddt
 class TestUCRXYZ(QiskitTestCase):
     """Qiskit tests for UCRXGate, UCRYGate and UCRZGate rotations gates."""
 

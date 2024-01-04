@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.x import CXGate, XGate
 from qiskit.circuit.library.standard_gates.h import HGate

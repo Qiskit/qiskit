@@ -16,7 +16,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
+from qiskit import QuantumCircuit, BasicAer, execute, assemble
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
