@@ -168,7 +168,7 @@ class WhileLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         self._circuit.append(
             WhileLoopOp(self._condition, body, label=self._label),
             body.qubits,
