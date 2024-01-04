@@ -22,5 +22,3 @@ from qiskit.circuit.library import (
     Isometry,
     Initialize,
 )
-
-from .squ import SingleQubitUnitary

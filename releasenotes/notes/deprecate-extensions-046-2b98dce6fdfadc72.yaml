@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    Deprecated the :mod:`qiskit.extensions` module, which has been pending deprecation since the 0.45 release.
+    Most objects have been moved to :mod:`qiskit.circuit.library`, see the release notes of 0.45 for more details.
