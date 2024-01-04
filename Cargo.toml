@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/*"]
+resolver = "2"
 
 [workspace.package]
 version = "1.0.0"
@@ -10,7 +11,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 # This doesn't set `extension-module` as a shared feature because we need to be able to disable it
 # during Rust-only testing (see # https://github.com/PyO3/pyo3/issues/340).
-pyo3 = { version = "0.20.0", features = ["abi3-py38"] }
+pyo3 = { version = "0.20.1", features = ["abi3-py38"] }
 
 [profile.release]
 lto = 'fat'

@@ -177,9 +177,8 @@ class FakeBackendV2(BackendV2):
                 defaults = PulseDefaults.from_dict(self._defs_dict)
 
             self._target = convert_to_target(
-                conf, props, defaults, add_delay=True, filter_faulty=True
+                configuration=conf, properties=props, defaults=defaults
             )
-
         return self._target
 
     @property

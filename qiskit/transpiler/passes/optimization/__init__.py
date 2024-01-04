@@ -25,7 +25,6 @@ from .optimize_1q_commutation import Optimize1qGatesSimpleCommutation
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .remove_reset_in_zero_state import RemoveResetInZeroState
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
-from .crosstalk_adaptive_schedule import CrosstalkAdaptiveSchedule
 from .hoare_opt import HoareOptimizer
 from .template_optimization import TemplateOptimization
 from .inverse_cancellation import InverseCancellation
