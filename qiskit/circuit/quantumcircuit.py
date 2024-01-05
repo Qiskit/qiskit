@@ -1556,7 +1556,7 @@ class QuantumCircuit:
 
         See also:
             :meth:`QuantumCircuit.get_parameter`
-                Retrive the :class:`.Parameter` instance from this circuit by name.
+                Retrieve the :class:`.Parameter` instance from this circuit by name.
             :meth:`QuantumCircuit.has_var`
                 A similar method to this, but for run-time :class:`.expr.Var` variables instead of
                 compile-time :class:`.Parameter`\\ s.
@@ -1633,7 +1633,7 @@ class QuantumCircuit:
 
         See also:
             :meth:`QuantumCircuit.get_var`
-                Retrive the :class:`.expr.Var` instance from this circuit by name.
+                Retrieve the :class:`.expr.Var` instance from this circuit by name.
             :meth:`QuantumCircuit.has_parameter`
                 A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
                 run-time :class:`.expr.Var` variables.
