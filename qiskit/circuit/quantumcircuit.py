@@ -567,12 +567,12 @@ class QuantumCircuit:
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
-        result._data = CircuitData(
-            copy.deepcopy(self._data.qubits, memo),
-            copy.deepcopy(self._data.clbits, memo),
-            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data),
-            reserve=len(self._data),
+        result._data = self._data.copy()
+        result._data.replace_bits(
+            qubits=copy.deepcopy(self._data.qubits, memo),
+            clbits=copy.deepcopy(self._data.clbits, memo),
         )
+        result._data.map_ops(lambda op: copy.deepcopy(op, memo))
         return result
 
     @classmethod
@@ -954,6 +954,8 @@ class QuantumCircuit:
             )
 
         dest = self if inplace else self.copy()
+        dest.duration = None
+        dest.unit = "dt"
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
         # has to be strictly larger. This allows composing final measurements onto unitary circuits.
@@ -988,18 +990,33 @@ class QuantumCircuit:
                     dest._append(instruction)
             else:
                 dest.append(other, qargs=qubits, cargs=clbits)
-            if inplace:
-                return None
-            return dest
+            return None if inplace else dest
 
         if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        # number of qubits and clbits must match number in circuit or None
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
+
+        dest.global_phase += other.global_phase
+
+        if not other.data:
+            # Nothing left to do. Plus, accessing 'data' here is necessary
+            # to trigger any lazy building since we now access '_data'
+            # directly.
+            return None if inplace else dest
+
+        # The 'qubits' and 'clbits' used for 'dest'.
+        mapped_qubits: list[Qubit]
+        mapped_clbits: list[Clbit]
+
+        # Maps bits in 'other' to bits in 'dest'. Used only for
+        # adjusting bits in variables (e.g. condition and target).
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
+            mapped_qubits = dest.qubits
             edge_map.update(zip(other.qubits, dest.qubits))
         else:
             mapped_qubits = dest.qbit_argument_conversion(qubits)
@@ -1015,6 +1032,7 @@ class QuantumCircuit:
             edge_map.update(zip(other.qubits, mapped_qubits))
 
         if clbits is None:
+            mapped_clbits = dest.clbits
             edge_map.update(zip(other.clbits, dest.clbits))
         else:
             mapped_clbits = dest.cbit_argument_conversion(clbits)
@@ -1032,34 +1050,30 @@ class QuantumCircuit:
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
         )
-        mapped_instrs: CircuitData = CircuitData(dest.qubits, dest.clbits, reserve=len(other.data))
-        for instr in other.data:
-            n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
-            n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
-            n_op = instr.operation.copy()
+
+        def map_vars(op):
+            n_op = op.copy()
             if (condition := getattr(n_op, "condition", None)) is not None:
                 n_op.condition = variable_mapper.map_condition(condition)
             if isinstance(n_op, SwitchCaseOp):
                 n_op.target = variable_mapper.map_target(n_op.target)
-            mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
+            return n_op
 
+        mapped_instrs: CircuitData = other._data.copy()
+        mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
+        mapped_instrs.map_ops(map_vars)
+
+        append_existing = None
         if front:
-            # adjust new instrs before original ones and update all parameters
-            mapped_instrs.extend(dest._data)
+            append_existing = dest._data.copy()
             dest.clear()
+
         circuit_scope = dest._current_scope()
-        for instr in mapped_instrs:
-            circuit_scope.append(instr)
+        circuit_scope.extend(mapped_instrs)
+        if append_existing:
+            circuit_scope.extend(append_existing)
 
-        for gate, cals in other.calibrations.items():
-            dest._calibrations[gate].update(cals)
-
-        dest.global_phase += other.global_phase
-
-        if inplace:
-            return None
-
-        return dest
+        return None if inplace else dest
 
     def tensor(self, other: "QuantumCircuit", inplace: bool = False) -> Optional["QuantumCircuit"]:
         """Tensor ``self`` with ``other``.
@@ -1465,16 +1479,18 @@ class QuantumCircuit:
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
         self._data.append(instruction)
-        if isinstance(instruction.operation, Instruction):
-            self._update_parameter_table(instruction)
-
-        # mark as normal circuit if a new instruction is added
-        self.duration = None
-        self.unit = "dt"
+        self._track_operation(instruction.operation)
         return instruction.operation if old_style else instruction
 
-    def _update_parameter_table(self, instruction: CircuitInstruction):
-        for param_index, param in enumerate(instruction.operation.params):
+    def _track_operation(self, operation: Operation):
+        """Sync all non-data-list internal data structures for a newly tracked operation."""
+        if isinstance(operation, Instruction):
+            self._update_parameter_table(operation)
+        self.duration = None
+        self.unit = "dt"
+
+    def _update_parameter_table(self, instruction: Instruction):
+        for param_index, param in enumerate(instruction.params):
             if isinstance(param, (ParameterExpression, QuantumCircuit)):
                 # Scoped constructs like the control-flow ops use QuantumCircuit as a parameter.
                 atomic_parameters = set(param.parameters)
@@ -1483,12 +1499,12 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    self._parameter_table[parameter].add((instruction.operation, param_index))
+                    self._parameter_table[parameter].add((instruction, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
                     self._parameter_table[parameter] = ParameterReferences(
-                        ((instruction.operation, param_index),)
+                        ((instruction, param_index),)
                     )
 
                     # clear cache if new parameter is added
@@ -2418,14 +2434,21 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
         cpy = self.copy_empty_like(name)
+        cpy._data = self._data.copy()
 
-        operation_copies = {
-            id(instruction.operation): instruction.operation.copy() for instruction in self._data
-        }
-        # The special global-phase sentinel doesn't need copying, but this ensures that it'll get
-        # recognised.  The global phase itself was already copied over in 'copy_empty_like`.
-        operation_copies[id(ParameterTable.GLOBAL_PHASE)] = ParameterTable.GLOBAL_PHASE
+        # The special global-phase sentinel doesn't need copying, but it's
+        # added here to ensure it's recognised. The global phase itself was
+        # already copied over in `copy_empty_like`.
+        operation_copies = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
+        def memo_copy(op):
+            if (out := operation_copies.get(id(op))) is not None:
+                return out
+            copied = op.copy()
+            operation_copies[id(op)] = copied
+            return copied
+
+        cpy._data.map_ops(memo_copy)
         cpy._parameter_table = ParameterTable(
             {
                 param: ParameterReferences(
@@ -2435,13 +2458,6 @@ class QuantumCircuit:
                 for param in self._parameter_table
             }
         )
-
-        cpy._data.reserve(len(self._data))
-        cpy._data.extend(
-            instruction.replace(operation=operation_copies[id(instruction.operation)])
-            for instruction in self._data
-        )
-
         return cpy
 
     def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
@@ -5901,6 +5917,10 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def append(self, instruction):
         # QuantumCircuit._append is semi-public, so we just call back to it.
         return self.circuit._append(instruction)
+
+    def extend(self, data: CircuitData):
+        self.circuit._data.extend(data)
+        data.foreach_op(self.circuit._track_operation)
 
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
