@@ -170,7 +170,7 @@ class ParameterTable(MutableMapping):
 
     def parameter_from_name(self, name: str, default: typing.Any = None):
         """Get a :class:`.Parameter` with references in this table by its string name.
-        
+
         If the parameter is not present, return the ``default`` value.
 
         Args:
