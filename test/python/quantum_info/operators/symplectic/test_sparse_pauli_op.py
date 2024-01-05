@@ -1050,12 +1050,14 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
         backend = FakeNairobiV2()
         backend.set_options(seed_simulator=123)
-        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        with self.assertWarns(DeprecationWarning):
+            estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
         transpiled_psi = transpile(psi, backend, optimization_level=3)
         permuted_op = op.apply_layout(transpiled_psi.layout)
-        job = estimator.run(transpiled_psi, permuted_op, thetas)
-        res = job.result().values
+        with self.assertWarns(DeprecationWarning):
+            job = estimator.run(transpiled_psi, permuted_op, thetas)
+            res = job.result().values
         np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
 
     def test_apply_layout_invalid_qubits_list(self):
