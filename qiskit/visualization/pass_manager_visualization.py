@@ -194,11 +194,11 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
     import pydot
 
     # label is the name of the flow controller parameter
-    label = f"[{idx}]"
+    label = f"[{idx}] "
     if isinstance(controller_group, BaseController) and not isinstance(
         controller_group, FlowControllerLinear
     ):
-        label += f" {controller_group.__class__.__name__}"
+        label += f"{controller_group.__class__.__name__}"
 
     # create the subgraph for this controller
     subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
