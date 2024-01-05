@@ -4350,22 +4350,19 @@ class QuantumCircuit:
         :meth:`.initialize` it does not reset the qubits first.
 
         Args:
-            state:
-                * Statevector: Statevector to initialize to.
-                * list: vector of complex amplitudes to initialize to.
-                * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
-                to the qubit index to be applied to. Example label '01' initializes the qubit zero to
-                :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
-                * int: an integer that is used as a bitmap indicating which qubits to initialize
-                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+            state: The state to initialize to, can be either of the following.
 
-            qubits:
-                * QuantumRegister: A list of qubits to be initialized [Default: None].
-                * Qubit: Single qubit to be initialized [Default: None].
-                * int: Index of qubit to be initialized [Default: None].
-                * list: Indexes of qubits to be initialized [Default: None].
+                * Statevector or vector of complex amplitudes to initialize to.
+                * Labels of basis states of the Pauli eigenstates Z, X, Y. See
+                  :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
+                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * An integer that is used as a bitmap indicating which qubits to initialize to
+                  :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
+                  2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
+            qubits: Qubits to initialize. If ``None`` the initialization is applied to all qubits in
+                the circuit.
             label: An optional label for the gate
             normalize: Whether to normalize an input array to a unit vector.
 
@@ -4454,7 +4451,7 @@ class QuantumCircuit:
 
     def initialize(
         self,
-        params: Sequence[complex] | str | int,
+        params: Statevector | Sequence[complex] | str | int,
         qubits: Sequence[QubitSpecifier] | None = None,
         normalize: bool = False,
     ):
