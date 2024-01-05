@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    InstructionDurations.from_backend now returns an instance of any subclass 
-    of InstructionDurations instead of the base class. 
+    :meth:`.InstructionDurations.from_backend` now returns an instance of any subclass 
+    of :class:`.InstructionDurations` instead of the base class. 
