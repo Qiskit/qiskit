@@ -21,7 +21,9 @@ from qiskit import user_config
 
 
 class DefaultStyle:
-    """Creates a Default Style dictionary that contains numerous options that define the style of the output circuit visualization. The style dict is used by the mpl or latex output.
+    """Creates a Default Style dictionary that contains numerous options that
+    define the style of the output circuit visualization. The style dict is used
+    by the mpl or latex output.
 
     Args:
         name (str): the name of the style. The name can be set to ``iqp``,
