@@ -43,7 +43,7 @@ from qiskit.transpiler.passes.optimization import (
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
-from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.circuit.library.standard_gates import (
@@ -69,20 +69,63 @@ class DefaultInitPassManager(PassManagerStagePlugin):
     """Plugin class for default init stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-
-        any_layout_or_coupling_map = (
-            pass_manager_config.initial_layout
-            or pass_manager_config.coupling_map
-            or (
-                pass_manager_config.target is not None
-                and pass_manager_config.target.build_coupling_map() is not None
-            )
-        )
-
         if optimization_level == 0:
-            if not any_layout_or_coupling_map:
-                return None
-            return common.generate_unroll_3q(
+            init = None
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init = common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                )
+        elif optimization_level in {1, 2}:
+            init = PassManager()
+            if (
+                pass_manager_config.initial_layout
+                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.target is not None
+                    and pass_manager_config.target.build_coupling_map() is not None
+                )
+            ):
+                init += common.generate_unroll_3q(
+                    pass_manager_config.target,
+                    pass_manager_config.basis_gates,
+                    pass_manager_config.approximation_degree,
+                    pass_manager_config.unitary_synthesis_method,
+                    pass_manager_config.unitary_synthesis_plugin_config,
+                    pass_manager_config.hls_config,
+                )
+            init.append(
+                InverseCancellation(
+                    [
+                        CXGate(),
+                        ECRGate(),
+                        CZGate(),
+                        CYGate(),
+                        XGate(),
+                        YGate(),
+                        ZGate(),
+                        HGate(),
+                        SwapGate(),
+                        (TGate(), TdgGate()),
+                        (SGate(), SdgGate()),
+                        (SXGate(), SXdgGate()),
+                    ]
+                )
+            )
+
+        elif optimization_level == 3:
+            init = common.generate_unroll_3q(
                 pass_manager_config.target,
                 pass_manager_config.basis_gates,
                 pass_manager_config.approximation_degree,
@@ -90,59 +133,30 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 pass_manager_config.unitary_synthesis_plugin_config,
                 pass_manager_config.hls_config,
             )
-
-        _inv_cancellation = InverseCancellation(
-            [
-                CXGate(),
-                ECRGate(),
-                CZGate(),
-                CYGate(),
-                XGate(),
-                YGate(),
-                ZGate(),
-                HGate(),
-                SwapGate(),
-                (TGate(), TdgGate()),
-                (SGate(), SdgGate()),
-                (SXGate(), SXdgGate()),
-            ]
-        )
-
-        if optimization_level in {1, 2}:
-            if any_layout_or_coupling_map:
-                return PassManager(
+            init.append(OptimizeSwapBeforeMeasure())
+            init.append(RemoveDiagonalGatesBeforeMeasure())
+            init.append(
+                InverseCancellation(
                     [
-                        common.generate_unroll_3q(
-                            pass_manager_config.target,
-                            pass_manager_config.basis_gates,
-                            pass_manager_config.approximation_degree,
-                            pass_manager_config.unitary_synthesis_method,
-                            pass_manager_config.unitary_synthesis_plugin_config,
-                            pass_manager_config.hls_config,
-                        ).to_flow_controller(),
-                        _inv_cancellation,
+                        CXGate(),
+                        ECRGate(),
+                        CZGate(),
+                        CYGate(),
+                        XGate(),
+                        YGate(),
+                        ZGate(),
+                        HGate(),
+                        SwapGate(),
+                        (TGate(), TdgGate()),
+                        (SGate(), SdgGate()),
+                        (SXGate(), SXdgGate()),
                     ]
                 )
-            return PassManager(_inv_cancellation)
-
-        if optimization_level == 3:
-            return PassManager(
-                [
-                    common.generate_unroll_3q(
-                        pass_manager_config.target,
-                        pass_manager_config.basis_gates,
-                        pass_manager_config.approximation_degree,
-                        pass_manager_config.unitary_synthesis_method,
-                        pass_manager_config.unitary_synthesis_plugin_config,
-                        pass_manager_config.hls_config,
-                    ).to_flow_controller(),
-                    OptimizeSwapBeforeMeasure(),
-                    RemoveDiagonalGatesBeforeMeasure(),
-                    _inv_cancellation,
-                ]
             )
 
-        raise TranspilerError(f"Invalid optimization level {optimization_level}")
+        else:
+            return TranspilerError(f"Invalid optimization level {optimization_level}")
+        return init
 
 
 class BasisTranslatorPassManager(PassManagerStagePlugin):
@@ -495,175 +509,119 @@ class OptimizationPassManager(PassManagerStagePlugin):
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
         """Build pass manager for optimization stage."""
-        if optimization_level == 0:
-            return None
-
         # Obtain the translation method required for this pass to work
-        plugin_manager = PassManagerStagePluginManager()
-        translation = plugin_manager.get_passmanager_stage(
-            "translation",
-            pass_manager_config.translation_method or "translator",
-            pass_manager_config,
-            optimization_level=optimization_level,
-        )
-        _unroll = translation.to_flow_controller()
-
-        def _unroll_condition(property_set):
-            return not property_set["all_gates_in_basis"]
-
-        if optimization_level == 1:
-
-            def _opt_control(property_set):
-                return not (property_set["depth_fixed_point"] and property_set["size_fixed_point"])
-
-            _depth_size_check = [
-                Depth(recurse=True),
-                FixedPoint("depth"),
-                Size(recurse=True),
-                FixedPoint("size"),
-            ]
-            return PassManager(
-                [
-                    *_depth_size_check,
-                    DoWhileController(
-                        [
-                            # Optimization
-                            Optimize1qGatesDecomposition(
-                                basis=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            InverseCancellation(
-                                [
-                                    CXGate(),
-                                    ECRGate(),
-                                    CZGate(),
-                                    CYGate(),
-                                    XGate(),
-                                    YGate(),
-                                    ZGate(),
-                                    HGate(),
-                                    SwapGate(),
-                                    (TGate(), TdgGate()),
-                                    (SGate(), SdgGate()),
-                                    (SXGate(), SXdgGate()),
-                                ]
-                            ),
-                            # Check if any gate is not in the basis, and if so, run unroll passes
-                            GatesInBasis(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            ConditionalController(
-                                _unroll,
-                                condition=_unroll_condition,
-                            ),
-                            # Check depth and size to update condition
-                            *_depth_size_check,
-                        ],
-                        do_while=_opt_control,
-                    ),
-                ]
-            )
-
-        if optimization_level == 2:
-
-            def _opt_control(property_set):
-                return not (property_set["depth_fixed_point"] and property_set["size_fixed_point"])
-
-            _depth_size_check = [
-                Depth(recurse=True),
-                FixedPoint("depth"),
-                Size(recurse=True),
-                FixedPoint("size"),
-            ]
-            return PassManager(
-                [
-                    *_depth_size_check,
-                    DoWhileController(
-                        [
-                            # Optimization
-                            Optimize1qGatesDecomposition(
-                                basis=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            CommutativeCancellation(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            # Check if any gate is not in the basis, and if so, run unroll passes
-                            GatesInBasis(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            ConditionalController(
-                                _unroll,
-                                condition=_unroll_condition,
-                            ),
-                            # Check depth and size to update condition
-                            *_depth_size_check,
-                        ],
-                        do_while=_opt_control,
-                    ),
-                ]
-            )
-
-        if optimization_level == 3:
-
-            def _opt_control(property_set):
-                return not property_set["optimization_loop_minimum_point"]
-
+        translation_method = pass_manager_config.translation_method or "translator"
+        optimization = PassManager()
+        if optimization_level != 0:
+            plugin_manager = PassManagerStagePluginManager()
+            _depth_check = [Depth(recurse=True), FixedPoint("depth")]
+            _size_check = [Size(recurse=True), FixedPoint("size")]
+            # Minimum point check for optimization level 3.
             _minimum_point_check = [
                 Depth(recurse=True),
                 Size(recurse=True),
                 MinimumPoint(["depth", "size"], "optimization_loop"),
             ]
-            return PassManager(
-                [
-                    *_minimum_point_check,
-                    DoWhileController(
+
+            def _opt_control(property_set):
+                return (not property_set["depth_fixed_point"]) or (
+                    not property_set["size_fixed_point"]
+                )
+
+            translation = plugin_manager.get_passmanager_stage(
+                "translation",
+                translation_method,
+                pass_manager_config,
+                optimization_level=optimization_level,
+            )
+            if optimization_level == 1:
+                # Steps for optimization level 1
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    InverseCancellation(
                         [
-                            # Optimization
-                            Collect2qBlocks(),
-                            ConsolidateBlocks(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                                approximation_degree=pass_manager_config.approximation_degree,
-                            ),
-                            UnitarySynthesis(
-                                pass_manager_config.basis_gates,
-                                approximation_degree=pass_manager_config.approximation_degree,
-                                coupling_map=pass_manager_config.coupling_map,
-                                backend_props=pass_manager_config.backend_properties,
-                                method=pass_manager_config.unitary_synthesis_method,
-                                plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-                                target=pass_manager_config.target,
-                            ),
-                            Optimize1qGatesDecomposition(
-                                basis=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            CommutativeCancellation(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            # Check if any gate is not in the basis, and if so, run unroll passes
-                            GatesInBasis(
-                                basis_gates=pass_manager_config.basis_gates,
-                                target=pass_manager_config.target,
-                            ),
-                            ConditionalController(
-                                _unroll,
-                                condition=_unroll_condition,
-                            ),
-                            # Check depth and size to update condition
-                            *_minimum_point_check,
-                        ],
-                        do_while=_opt_control,
+                            CXGate(),
+                            ECRGate(),
+                            CZGate(),
+                            CYGate(),
+                            XGate(),
+                            YGate(),
+                            ZGate(),
+                            HGate(),
+                            SwapGate(),
+                            (TGate(), TdgGate()),
+                            (SGate(), SdgGate()),
+                            (SXGate(), SXdgGate()),
+                        ]
                     ),
                 ]
-            )
+            elif optimization_level == 2:
+                # Steps for optimization level 2
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                    ),
+                ]
+            elif optimization_level == 3:
+                # Steps for optimization level 3
+                _opt = [
+                    Collect2qBlocks(),
+                    ConsolidateBlocks(
+                        basis_gates=pass_manager_config.basis_gates,
+                        target=pass_manager_config.target,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                    ),
+                    UnitarySynthesis(
+                        pass_manager_config.basis_gates,
+                        approximation_degree=pass_manager_config.approximation_degree,
+                        coupling_map=pass_manager_config.coupling_map,
+                        backend_props=pass_manager_config.backend_properties,
+                        method=pass_manager_config.unitary_synthesis_method,
+                        plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                        target=pass_manager_config.target,
+                    ),
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                ]
 
-        raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+                def _opt_control(property_set):
+                    return not property_set["optimization_loop_minimum_point"]
+
+            else:
+                raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
+
+            unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+            # Build nested Flow controllers
+            def _unroll_condition(property_set):
+                return not property_set["all_gates_in_basis"]
+
+            # Check if any gate is not in the basis, and if so, run unroll passes
+            _unroll_if_out_of_basis = [
+                GatesInBasis(pass_manager_config.basis_gates, target=pass_manager_config.target),
+                ConditionalController(unroll, condition=_unroll_condition),
+            ]
+
+            if optimization_level == 3:
+                optimization.append(_minimum_point_check)
+            else:
+                optimization.append(_depth_check + _size_check)
+            opt_loop = (
+                _opt + _unroll_if_out_of_basis + _minimum_point_check
+                if optimization_level == 3
+                else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
+            )
+            optimization.append(opt_loop, do_while=_opt_control)
+            return optimization
+        else:
+            return None
 
 
 class AlapSchedulingPassManager(PassManagerStagePlugin):
@@ -721,25 +679,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
     """Plugin class for default layout stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
         def _choose_layout_condition(property_set):
             return not property_set["layout"]
-
-        if pass_manager_config.target is None:
-            coupling_map = pass_manager_config.coupling_map
-        else:
-            coupling_map = pass_manager_config.target
-
-        if optimization_level == 0:
-            return PassManager(
-                [
-                    SetLayout(pass_manager_config.initial_layout),
-                    ConditionalController(
-                        TrivialLayout(coupling_map),
-                        condition=_choose_layout_condition,
-                    ),
-                    common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-                ]
-            )
 
         def _layout_not_perfect(property_set):
             """Return ``True`` if the first attempt at layout has been checked and found to be
@@ -761,7 +704,22 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         def _swap_mapped(property_set):
             return property_set["final_layout"] is None
 
-        if optimization_level == 1:
+        if pass_manager_config.target is None:
+            coupling_map = pass_manager_config.coupling_map
+        else:
+            coupling_map = pass_manager_config.target
+
+        layout = PassManager()
+        layout.append(_given_layout)
+        if optimization_level == 0:
+            layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+            layout += common.generate_embed_passmanager(coupling_map)
+            return layout
+        elif optimization_level == 1:
+            layout.append(
+                [TrivialLayout(coupling_map), CheckMap(coupling_map)],
+                condition=_choose_layout_condition,
+            )
             choose_layout_1 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=pass_manager_config.seed_transpiler,
@@ -770,6 +728,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
+            layout.append(choose_layout_1, condition=_layout_not_perfect)
             choose_layout_2 = SabreLayout(
                 coupling_map,
                 max_iterations=2,
@@ -779,34 +738,16 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
-            return PassManager(
+            layout.append(
                 [
-                    SetLayout(pass_manager_config.initial_layout),
-                    ConditionalController(
-                        [TrivialLayout(coupling_map), CheckMap(coupling_map)],
-                        condition=_choose_layout_condition,
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
                     ),
-                    ConditionalController(
-                        choose_layout_1,
-                        condition=_layout_not_perfect,
-                    ),
-                    ConditionalController(
-                        [
-                            BarrierBeforeFinalMeasurements(
-                                "qiskit.transpiler.internal.routing.protection.barrier"
-                            ),
-                            choose_layout_2,
-                        ],
-                        condition=_vf2_match_not_found,
-                    ),
-                    ConditionalController(
-                        common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-                        condition=_swap_mapped,
-                    ),
-                ]
+                    choose_layout_2,
+                ],
+                condition=_vf2_match_not_found,
             )
-
-        if optimization_level == 2:
+        elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=pass_manager_config.seed_transpiler,
@@ -815,6 +756,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=25000,  # Limits layout scoring to < 10s on ~400 qubit devices
             )
+            layout.append(choose_layout_0, condition=_choose_layout_condition)
             choose_layout_1 = SabreLayout(
                 coupling_map,
                 max_iterations=2,
@@ -824,30 +766,16 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
-            return PassManager(
+            layout.append(
                 [
-                    SetLayout(pass_manager_config.initial_layout),
-                    ConditionalController(
-                        choose_layout_0,
-                        condition=_choose_layout_condition,
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
                     ),
-                    ConditionalController(
-                        [
-                            BarrierBeforeFinalMeasurements(
-                                "qiskit.transpiler.internal.routing.protection.barrier"
-                            ),
-                            choose_layout_1,
-                        ],
-                        condition=_vf2_match_not_found,
-                    ),
-                    ConditionalController(
-                        common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-                        condition=_swap_mapped,
-                    ),
-                ]
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
-
-        if optimization_level == 3:
+        elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=pass_manager_config.seed_transpiler,
@@ -856,6 +784,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
             )
+            layout.append(choose_layout_0, condition=_choose_layout_condition)
             choose_layout_1 = SabreLayout(
                 coupling_map,
                 max_iterations=4,
@@ -865,36 +794,31 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
-            return PassManager(
+            layout.append(
                 [
-                    SetLayout(pass_manager_config.initial_layout),
-                    ConditionalController(
-                        choose_layout_0,
-                        condition=_choose_layout_condition,
+                    BarrierBeforeFinalMeasurements(
+                        "qiskit.transpiler.internal.routing.protection.barrier"
                     ),
-                    ConditionalController(
-                        [
-                            BarrierBeforeFinalMeasurements(
-                                "qiskit.transpiler.internal.routing.protection.barrier"
-                            ),
-                            choose_layout_1,
-                        ],
-                        condition=_vf2_match_not_found,
-                    ),
-                    ConditionalController(
-                        common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-                        condition=_swap_mapped,
-                    ),
-                ]
+                    choose_layout_1,
+                ],
+                condition=_vf2_match_not_found,
             )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
 
-        raise TranspilerError(f"Invalid optimization level: {optimization_level}")
+        embed = common.generate_embed_passmanager(coupling_map)
+        layout.append(
+            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+        )
+        return layout
 
 
 class TrivialLayoutPassManager(PassManagerStagePlugin):
     """Plugin class for trivial layout stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
         def _choose_layout_condition(property_set):
             return not property_set["layout"]
 
@@ -903,16 +827,10 @@ class TrivialLayoutPassManager(PassManagerStagePlugin):
         else:
             coupling_map = pass_manager_config.target
 
-        layout = PassManager(
-            [
-                SetLayout(pass_manager_config.initial_layout),
-                ConditionalController(
-                    TrivialLayout(coupling_map),
-                    condition=_choose_layout_condition,
-                ),
-                common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-            ]
-        )
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+        layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
 
@@ -920,6 +838,8 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
     """Plugin class for dense layout stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
         def _choose_layout_condition(property_set):
             return not property_set["layout"]
 
@@ -928,26 +848,26 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
         else:
             coupling_map = pass_manager_config.target
 
-        return PassManager(
-            [
-                SetLayout(pass_manager_config.initial_layout),
-                ConditionalController(
-                    DenseLayout(
-                        coupling_map=pass_manager_config.coupling_map,
-                        backend_prop=pass_manager_config.backend_properties,
-                        target=pass_manager_config.target,
-                    ),
-                    condition=_choose_layout_condition,
-                ),
-                common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-            ]
+        layout = PassManager()
+        layout.append(_given_layout)
+        layout.append(
+            DenseLayout(
+                coupling_map=pass_manager_config.coupling_map,
+                backend_prop=pass_manager_config.backend_properties,
+                target=pass_manager_config.target,
+            ),
+            condition=_choose_layout_condition,
         )
+        layout += common.generate_embed_passmanager(coupling_map)
+        return layout
 
 
 class SabreLayoutPassManager(PassManagerStagePlugin):
     """Plugin class for sabre layout stage."""
 
     def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
+        _given_layout = SetLayout(pass_manager_config.initial_layout)
+
         def _choose_layout_condition(property_set):
             return not property_set["layout"]
 
@@ -959,50 +879,61 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         else:
             coupling_map = pass_manager_config.target
 
-        sabre_configs = {
-            0: {
-                "max_iterations": 1,
-                "swap_trials": 5,
-                "layout_trials": 5,
-            },
-            1: {
-                "max_iterations": 2,
-                "swap_trials": 5,
-                "layout_trials": 5,
-            },
-            2: {
-                "max_iterations": 2,
-                "swap_trials": 10,
-                "layout_trials": 10,
-            },
-            3: {
-                "max_iterations": 4,
-                "swap_trials": 20,
-                "layout_trials": 20,
-            },
-        }
-
-        return PassManager(
+        layout = PassManager()
+        layout.append(_given_layout)
+        if optimization_level == 0:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=1,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 1:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=5,
+                layout_trials=5,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 2:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=2,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=10,
+                layout_trials=10,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        elif optimization_level == 3:
+            layout_pass = SabreLayout(
+                coupling_map,
+                max_iterations=4,
+                seed=pass_manager_config.seed_transpiler,
+                swap_trials=20,
+                layout_trials=20,
+                skip_routing=pass_manager_config.routing_method is not None
+                and pass_manager_config.routing_method != "sabre",
+            )
+        else:
+            raise TranspilerError(f"Invalid optimization level: {optimization_level}")
+        layout.append(
             [
-                SetLayout(pass_manager_config.initial_layout),
-                ConditionalController(
-                    [
-                        BarrierBeforeFinalMeasurements(
-                            "qiskit.transpiler.internal.routing.protection.barrier"
-                        ),
-                        SabreLayout(
-                            coupling_map,
-                            **sabre_configs[optimization_level],
-                            seed=pass_manager_config.seed_transpiler,
-                            skip_routing=pass_manager_config.routing_method is not None
-                            and pass_manager_config.routing_method != "sabre",
-                        ),
-                    ],
-                    condition=_choose_layout_condition,
+                BarrierBeforeFinalMeasurements(
+                    "qiskit.transpiler.internal.routing.protection.barrier"
                 ),
-                ConditionalController(
-                    common.generate_embed_passmanager(coupling_map).to_flow_controller(),
-                    condition=_swap_mapped,
-                ),
-            ]
+                layout_pass,
+            ],
+            condition=_choose_layout_condition,
         )
+        embed = common.generate_embed_passmanager(coupling_map)
+        layout.append(
+            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+        )
+        return layout

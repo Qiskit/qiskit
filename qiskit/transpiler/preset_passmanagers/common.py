@@ -20,7 +20,6 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.deprecation import deprecate_func
 
-from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
@@ -145,58 +144,36 @@ def generate_control_flow_options_check(
                     f" Got {option}='{given}', but the entire {stage} stage is not supported."
                 )
             bad_options.append(option)
-
-    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
-
-    pm = PassManager(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
+    out = PassManager()
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
-        pm.append(
-            ConditionalController(
-                Error(message),
-                condition=_has_control_flow,
-            )
-        )
-    pm.append(
-        ConditionalController(
-            Error(backend_control.message),
-            condition=backend_control.condition,
-        )
-    )
-    return pm
+        out.append(Error(message), condition=_has_control_flow)
+    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
+    out.append(Error(backend_control.message), condition=backend_control.condition)
+    return out
 
 
 def generate_error_on_control_flow(message):
     """Get a pass manager that always raises an error if control flow is present in a given
     circuit."""
-    return PassManager(
-        [
-            ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False),
-            ConditionalController(
-                Error(message),
-                condition=_has_control_flow,
-            ),
-        ]
-    )
+    out = PassManager()
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(Error(message), condition=_has_control_flow)
+    return out
 
 
 def if_has_control_flow_else(if_present, if_absent):
     """Generate a pass manager that will run the passes in ``if_present`` if the given circuit
     has control-flow operations in it, and those in ``if_absent`` if it doesn't."""
-    return PassManager(
-        [
-            ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False),
-            ConditionalController(
-                if_present.to_flow_controller()
-                if isinstance(if_present, PassManager)
-                else if_present,
-                condition=_has_control_flow,
-            ),
-            ConditionalController(
-                if_absent.to_flow_controller() if isinstance(if_absent, PassManager) else if_absent,
-                condition=_without_control_flow,
-            ),
-        ]
-    )
+    if isinstance(if_present, PassManager):
+        if_present = if_present.to_flow_controller()
+    if isinstance(if_absent, PassManager):
+        if_absent = if_absent.to_flow_controller()
+    out = PassManager()
+    out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
+    out.append(if_present, condition=_has_control_flow)
+    out.append(if_absent, condition=_without_control_flow)
+    return out
 
 
 def generate_unroll_3q(
@@ -227,43 +204,35 @@ def generate_unroll_3q(
     Returns:
         PassManager: The unroll 3q or more pass manager
     """
-    if basis_gates is None and target is None:
-        # If there are no target instructions revert to using unroll3qormore so
-        # routing works.
-        _unroll = Unroll3qOrMore(
+    unroll_3q = PassManager()
+    unroll_3q.append(
+        UnitarySynthesis(
+            basis_gates,
+            approximation_degree=approximation_degree,
+            method=unitary_synthesis_method,
+            min_qubits=3,
+            plugin_config=unitary_synthesis_plugin_config,
             target=target,
-            basis_gates=basis_gates,
         )
-    else:
-        _unroll = BasisTranslator(
-            equivalence_library=sel,
-            target_basis=basis_gates,
+    )
+    unroll_3q.append(
+        HighLevelSynthesis(
+            hls_config=hls_config,
+            coupling_map=None,
             target=target,
+            use_qubit_indices=False,
+            equivalence_library=sel,
+            basis_gates=basis_gates,
             min_qubits=3,
         )
-
-    return PassManager(
-        [
-            UnitarySynthesis(
-                basis_gates,
-                approximation_degree=approximation_degree,
-                method=unitary_synthesis_method,
-                min_qubits=3,
-                plugin_config=unitary_synthesis_plugin_config,
-                target=target,
-            ),
-            HighLevelSynthesis(
-                hls_config=hls_config,
-                coupling_map=None,
-                target=target,
-                use_qubit_indices=False,
-                equivalence_library=sel,
-                basis_gates=basis_gates,
-                min_qubits=3,
-            ),
-            _unroll,
-        ]
     )
+    # If there are no target instructions revert to using unroll3qormore so
+    # routing works.
+    if basis_gates is None and target is None:
+        unroll_3q.append(Unroll3qOrMore(target, basis_gates))
+    else:
+        unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
+    return unroll_3q
 
 
 def generate_embed_passmanager(coupling_map):
@@ -348,8 +317,43 @@ def generate_routing_passmanager(
                 return True
         return False
 
+    routing = PassManager()
+    if target is not None:
+        routing.append(CheckMap(target, property_set_field="routing_not_needed"))
+    else:
+        routing.append(CheckMap(coupling_map, property_set_field="routing_not_needed"))
+
     def _swap_condition(property_set):
         return not property_set["routing_not_needed"]
+
+    if use_barrier_before_measurement:
+        routing.append(
+            [
+                BarrierBeforeFinalMeasurements(
+                    label="qiskit.transpiler.internal.routing.protection.barrier"
+                ),
+                routing_pass,
+            ],
+            condition=_swap_condition,
+        )
+    else:
+        routing.append([routing_pass], condition=_swap_condition)
+
+    is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+    if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
+        routing.append(
+            VF2PostLayout(
+                target,
+                coupling_map,
+                backend_properties,
+                seed_transpiler,
+                call_limit=vf2_call_limit,
+                max_trials=vf2_max_trials,
+                strict_direction=False,
+            ),
+            condition=_run_post_layout_condition,
+        )
+        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
 
     def filter_fn(node):
         return (
@@ -357,50 +361,9 @@ def generate_routing_passmanager(
             != "qiskit.transpiler.internal.routing.protection.barrier"
         )
 
-    if use_barrier_before_measurement:
-        routing_pass = [
-            BarrierBeforeFinalMeasurements(
-                label="qiskit.transpiler.internal.routing.protection.barrier"
-            ),
-            routing_pass,
-        ]
+    routing.append([FilterOpNodes(filter_fn)])
 
-    if (target is not None or backend_properties is not None) and vf2_call_limit and vf2_max_trials:
-        post_layout = [
-            ConditionalController(
-                VF2PostLayout(
-                    target,
-                    coupling_map,
-                    backend_properties,
-                    seed_transpiler,
-                    call_limit=vf2_call_limit,
-                    max_trials=vf2_max_trials,
-                    strict_direction=False,
-                ),
-                condition=_run_post_layout_condition,
-            ),
-            ConditionalController(
-                ApplyLayout(),
-                condition=_apply_post_layout_condition,
-            ),
-        ]
-    else:
-        post_layout = []
-
-    return PassManager(
-        [
-            CheckMap(
-                target or coupling_map,
-                property_set_field="routing_not_needed",
-            ),
-            ConditionalController(
-                routing_pass,
-                condition=_swap_condition,
-            ),
-            *post_layout,
-            FilterOpNodes(filter_fn),
-        ]
-    )
+    return routing
 
 
 def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_zero=False):
@@ -418,25 +381,17 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
         PassManager: The pass manager
 
     """
-    pm = PassManager()
-
+    pre_opt = PassManager()
     if coupling_map:
+        pre_opt.append(CheckGateDirection(coupling_map, target=target))
 
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        pm.append(
-            [
-                CheckGateDirection(coupling_map, target=target),
-                ConditionalController(
-                    GateDirection(coupling_map, target=target),
-                    condition=_direction_condition,
-                ),
-            ]
-        )
+        pre_opt.append([GateDirection(coupling_map, target=target)], condition=_direction_condition)
     if remove_reset_in_zero:
-        pm.append(RemoveResetInZeroState())
-    return pm
+        pre_opt.append(RemoveResetInZeroState())
+    return pre_opt
 
 
 def generate_translation_passmanager(
@@ -482,86 +437,78 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "unroller":
-        return PassManager(
-            [
-                Unroller(basis=basis_gates, target=target),
-            ]
-        )
-    if method == "translator":
-        return PassManager(
-            [
-                # Use unitary synthesis for basis aware decomposition of
-                # UnitaryGates before custom unrolling
-                UnitarySynthesis(
-                    basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    equivalence_library=sel,
-                    basis_gates=basis_gates,
-                ),
-                BasisTranslator(sel, basis_gates, target),
-            ]
-        )
-    if method == "synthesis":
-        return PassManager(
-            [
-                # # Use unitary synthesis for basis aware decomposition of
-                # UnitaryGates > 2q before collection
-                UnitarySynthesis(
-                    basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    min_qubits=3,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                    min_qubits=3,
-                ),
-                Unroll3qOrMore(target=target, basis_gates=basis_gates),
-                Collect2qBlocks(),
-                Collect1qRuns(),
-                ConsolidateBlocks(
-                    basis_gates=basis_gates,
-                    target=target,
-                    approximation_degree=approximation_degree,
-                ),
-                UnitarySynthesis(
-                    basis_gates=basis_gates,
-                    approximation_degree=approximation_degree,
-                    coupling_map=coupling_map,
-                    backend_props=backend_props,
-                    plugin_config=unitary_synthesis_plugin_config,
-                    method=unitary_synthesis_method,
-                    target=target,
-                ),
-                HighLevelSynthesis(
-                    hls_config=hls_config,
-                    coupling_map=coupling_map,
-                    target=target,
-                    use_qubit_indices=True,
-                    basis_gates=basis_gates,
-                ),
-            ]
-        )
-    raise TranspilerError("Invalid translation method %s." % method)
+        unroll = [Unroller(basis=basis_gates, target=target)]
+    elif method == "translator":
+        unroll = [
+            # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates before custom unrolling
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
+            ),
+            BasisTranslator(sel, basis_gates, target),
+        ]
+    elif method == "synthesis":
+        unroll = [
+            # # Use unitary synthesis for basis aware decomposition of
+            # UnitaryGates > 2q before collection
+            UnitarySynthesis(
+                basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                min_qubits=3,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
+            ),
+            Unroll3qOrMore(target=target, basis_gates=basis_gates),
+            Collect2qBlocks(),
+            Collect1qRuns(),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
+            UnitarySynthesis(
+                basis_gates=basis_gates,
+                approximation_degree=approximation_degree,
+                coupling_map=coupling_map,
+                backend_props=backend_props,
+                plugin_config=unitary_synthesis_plugin_config,
+                method=unitary_synthesis_method,
+                target=target,
+            ),
+            HighLevelSynthesis(
+                hls_config=hls_config,
+                coupling_map=coupling_map,
+                target=target,
+                use_qubit_indices=True,
+                basis_gates=basis_gates,
+            ),
+        ]
+    else:
+        raise TranspilerError("Invalid translation method %s." % method)
+    return PassManager(unroll)
 
 
 def generate_scheduling(
@@ -584,77 +531,66 @@ def generate_scheduling(
     Raises:
         TranspilerError: If the ``scheduling_method`` kwarg is not a valid value
     """
+    scheduling = PassManager()
+    if inst_map and inst_map.has_custom_gate():
+        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
-        # Do scheduling
-        schedule_opts = {
+        # Do scheduling after unit conversion.
+        scheduler = {
             "alap": ALAPScheduleAnalysis,
             "as_late_as_possible": ALAPScheduleAnalysis,
             "asap": ASAPScheduleAnalysis,
             "as_soon_as_possible": ASAPScheduleAnalysis,
         }
+        scheduling.append(TimeUnitConversion(instruction_durations, target=target))
         try:
-            _scheduling_passes = [
-                TimeUnitConversion(instruction_durations, target=target),
-                schedule_opts[scheduling_method](instruction_durations, target=target),
-            ]
+            scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
         # No scheduling. But do unit conversion for delays.
-
         def _contains_delay(property_set):
             return property_set["contains_delay"]
 
-        _scheduling_passes = [
-            ContainsInstruction("delay"),
-            ConditionalController(
-                TimeUnitConversion(instruction_durations, target=target),
-                condition=_contains_delay,
-            ),
-        ]
-    else:
-        _scheduling_passes = []
-
+        scheduling.append(ContainsInstruction("delay"))
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1
         or timing_constraints.acquire_alignment != 1
         or timing_constraints.pulse_alignment != 1
     ):
+        # Run alignment analysis regardless of scheduling.
 
         def _require_alignment(property_set):
             return property_set["reschedule_required"]
 
-        _alignment_passes = [
+        scheduling.append(
             InstructionDurationCheck(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
+            )
+        )
+        scheduling.append(
+            ConstrainedReschedule(
+                acquire_alignment=timing_constraints.acquire_alignment,
+                pulse_alignment=timing_constraints.pulse_alignment,
             ),
-            ConditionalController(
-                ConstrainedReschedule(
-                    acquire_alignment=timing_constraints.acquire_alignment,
-                    pulse_alignment=timing_constraints.pulse_alignment,
-                ),
-                condition=_require_alignment,
-            ),
+            condition=_require_alignment,
+        )
+        scheduling.append(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,
                 min_length=timing_constraints.min_length,
-            ),
-        ]
-    else:
-        _alignment_passes = []
-
-    pm = PassManager()
-
-    if inst_map and inst_map.has_custom_gate():
-        # Call pulse gate pass to apply custom calibration
-        pm.append(PulseGates(inst_map=inst_map, target=target))
-    pm.append(_scheduling_passes + _alignment_passes)
+            )
+        )
     if scheduling_method:
         # Call padding pass if circuit is scheduled
-        pm.append(PadDelay(target=target))
-    return pm
+        scheduling.append(PadDelay(target=target))
+
+    return scheduling
 
 
 @deprecate_func(
