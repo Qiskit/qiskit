@@ -37,7 +37,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -297,6 +297,8 @@ def _read_instruction(
         label = None
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition, *params, label=label)
+    elif gate_name == "clifford":
+        gate = Clifford(params[0])
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -578,7 +580,11 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 # pylint: disable=too-many-boolean-expressions
 def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
-    gate_class_name = instruction.operation.base_class.__name__
+    gate_class = getattr(instruction.operation, "base_class", None)
+    if gate_class is not None:
+        gate_class_name = gate_class.__name__
+    else:
+        gate_class_name = instruction.operation.name
     custom_operations_list = []
     if (
         (
@@ -628,7 +634,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
-    label = getattr(instruction.operation, "label")
+    label = getattr(instruction.operation, "label", None)
     if label:
         label_raw = label.encode(common.ENCODE)
     else:
@@ -641,6 +647,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
         ]
+    elif isinstance(instruction.operation, Clifford):
+        instruction_params = [instruction.operation.tableau]
     else:
         instruction_params = instruction.operation.params
 
