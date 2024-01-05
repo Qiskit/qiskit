@@ -580,9 +580,8 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 # pylint: disable=too-many-boolean-expressions
 def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
-    gate_class = getattr(instruction.operation, "base_class", None)
-    if gate_class is not None:
-        gate_class_name = gate_class.__name__
+    if isinstance(instruction.operation, Instruction):
+        gate_class_name = instruction.operation.base_class.__name__
     else:
         gate_class_name = instruction.operation.name
     custom_operations_list = []
