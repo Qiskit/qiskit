@@ -1316,7 +1316,6 @@ class Target(Mapping):
 
         required_operations = {"measure", "delay"}
         all_instructions = set.union(set(basis_gates), required_operations)
-        unsupported_instructions = set()
         faulty_qubits = set()
         faulty_ops = set()
         qiskit_inst_mapping = get_standard_gate_name_mapping()
@@ -1353,9 +1352,7 @@ class Target(Mapping):
                     "operation in ``custom_name_mapping``",
                     RuntimeWarning,
                 )
-                unsupported_instructions.add(name)
-        for name in unsupported_instructions:
-            all_instructions.remove(name)
+                all_instructions.remove(name)
 
         # Create inst properties placeholder
         # Without any assignment, properties value is None,
@@ -1388,20 +1385,27 @@ class Target(Mapping):
                         "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                     )
 
-        # Populate instruction properties
-        if backend_properties is not None and coupling_map is not None:
-            qubit_properties = [
-                QubitProperties(
-                    t1=backend_properties.qubit_property(qubit_idx)["T1"][0],
-                    t2=backend_properties.qubit_property(qubit_idx)["T2"][0],
-                    frequency=backend_properties.qubit_property(qubit_idx)["frequency"][0],
-                )
-                for qubit_idx in range(0, num_qubits)
-            ]
-
-            faulty_qubits = set(backend_properties.faulty_qubits())
+        # Populate QubitProperties
+        if backend_properties is not None and coupling_map is not None and num_qubits is not None:
+            qubit_properties = []
+            for qubit_idx in range(num_qubits):
+                try:
+                    qubit_prop = backend_properties.qubit_property(qubit_idx)
+                    qubit_properties.append(
+                        QubitProperties(
+                            t1=qubit_prop["T1"][0],
+                            t2=qubit_prop["T2"][0],
+                            frequency=qubit_prop["frequency"][0],
+                        )
+                    )
+                except BackendPropertyError:
+                    logger.info("backend does not report qubit property for index %s", qubit_idx)
 
             in_data_target["qubit_properties"] = qubit_properties
+
+        # Populate InstructionProperties
+        if backend_properties is not None and coupling_map is not None:
+            faulty_qubits = set(backend_properties.faulty_qubits())
 
             for name in all_instructions:
                 try:
@@ -1456,11 +1460,10 @@ class Target(Mapping):
                                 name,
                             )
                 except BackendPropertyError:
-                    # This gate doesn't report any property
+                    logger.info("backend does not report any property for gate: %s", name)
                     continue
 
             # Measure instruction property is stored in qubit property
-            prop_name_map["measure"] = {}
             for qubit_idx in range(num_qubits):
                 qubit_prop = backend_properties.qubit_property(qubit_idx)
                 duration = (
@@ -1471,13 +1474,11 @@ class Target(Mapping):
                     duration=duration, error=error
                 )
 
+        # Adding 'Delay' instruction properties
         if num_qubits is not None:
-            for op in required_operations:
-                # Map required ops to each operational qubit
-                if prop_name_map[op] is None:
-                    prop_name_map[op] = {
-                        (q,): None for q in range(num_qubits) if q not in faulty_qubits
-                    }
+            prop_name_map["delay"] = {
+                (q,): None for q in range(num_qubits) if q not in faulty_qubits
+            }
 
         if inst_map is not None and coupling_map is not None:
             for name in inst_map.instructions:

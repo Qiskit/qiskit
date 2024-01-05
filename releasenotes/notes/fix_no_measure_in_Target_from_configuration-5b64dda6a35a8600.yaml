@@ -1,4 +1,10 @@
 ---
+upgrade:
+  - |
+    Added :class:`.QubitProperties` in :class:`.Target`.
+    One can access :class:`.QubitProperties` for a particular :class:`.Target` object by calling it's
+    method :meth:`~.qubit_properties`.
+
 fixes:
   - |
     Fixed an issue with :meth:`~.form_configuration` method in :class:`.Target` when attempting to get
