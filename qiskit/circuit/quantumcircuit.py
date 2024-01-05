@@ -997,21 +997,6 @@ class QuantumCircuit:
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        for gate, cals in other.calibrations.items():
-            dest._calibrations[gate].update(cals)
-
-        dest.global_phase += other.global_phase
-
-        if not other.data:
-            # Nothing left to do. Plus, accessing 'data' here is necessary
-            # to trigger any lazy building since we now access '_data'
-            # directly.
-            return None if inplace else dest
-
-        # The 'qubits' and 'clbits' used for 'dest'.
-        mapped_qubits: list[Qubit]
-        mapped_clbits: list[Clbit]
-
         # Maps bits in 'other' to bits in 'dest'. Used only for
         # adjusting bits in variables (e.g. condition and target).
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
@@ -1046,6 +1031,21 @@ class QuantumCircuit:
                     f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
                 )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
+
+        dest.global_phase += other.global_phase
+
+        if not other.data:
+            # Nothing left to do. Plus, accessing 'data' here is necessary
+            # to trigger any lazy building since we now access '_data'
+            # directly.
+            return None if inplace else dest
+
+        # The 'qubits' and 'clbits' used for 'dest'.
+        mapped_qubits: list[Qubit]
+        mapped_clbits: list[Clbit]
 
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
