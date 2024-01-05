@@ -169,12 +169,14 @@ class ParameterTable(MutableMapping):
         return self._names.keys()
 
     def parameter_from_name(self, name: str, default: typing.Any = None):
-        """Get a :class:`.Parameter` with references in this table by its string name, or return the
-        default if not present.
+        """Get a :class:`.Parameter` with references in this table by its string name.
+        
+        If the parameter is not present, return the ``default`` value.
 
         Args:
-            name: the name of the :class:`.Parameter`
-            default: the object that should be returned if the parameter is missing."""
+            name: The name of the :class:`.Parameter`
+            default: The object that should be returned if the parameter is missing.
+        """
         return self._names.get(name, default)
 
     def discard_references(self, expression, key):
