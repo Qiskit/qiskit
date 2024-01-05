@@ -243,8 +243,8 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
             clbits.update(resources.clbits)
             cregs.update(resources.cregs)
         for _, body in self.__cases:
-            qubits |= body.qubits
-            clbits |= body.clbits
+            qubits |= body.qubits()
+            clbits |= body.clbits()
             body_qregs, body_cregs = partition_registers(body.registers)
             qregs |= body_qregs
             cregs |= body_cregs

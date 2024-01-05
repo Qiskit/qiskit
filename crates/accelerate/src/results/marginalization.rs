@@ -132,7 +132,7 @@ pub fn marginal_memory(
     parallel_threshold: usize,
 ) -> PyResult<PyObject> {
     let run_in_parallel = getenv_use_multiple_threads();
-    let first_elem = memory.get(0);
+    let first_elem = memory.first();
     if first_elem.is_none() {
         let res: Vec<String> = Vec::new();
         return Ok(res.to_object(py));
