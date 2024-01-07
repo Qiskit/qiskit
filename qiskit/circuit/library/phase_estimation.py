@@ -24,7 +24,7 @@ class PhaseEstimation(QuantumCircuit):
 
     In the Quantum Phase Estimation (QPE) algorithm [1, 2, 3], the Phase Estimation circuit is used
     to estimate the phase :math:`\phi` of an eigenvalue :math:`e^{2\pi i\phi}` of a unitary operator
-    :math:`U`, provided with the corresponding eigenstate :math:`|psi\rangle`.
+    :math:`U`, provided with the corresponding eigenstate :math:`|\psi\rangle`.
     That is
 
     .. math::
