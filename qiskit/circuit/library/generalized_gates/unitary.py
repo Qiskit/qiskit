@@ -29,7 +29,7 @@ from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 # pylint: disable=cyclic-import
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.synthesis.two_qubits.two_qubit_decompose import two_qubit_cnot_decompose
+from qiskit.synthesis.two_qubit.two_qubit_decompose import two_qubit_cnot_decompose
 
 from .isometry import Isometry
 

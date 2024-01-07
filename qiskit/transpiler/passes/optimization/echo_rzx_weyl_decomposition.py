@@ -123,7 +123,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         # pylint: disable=cyclic-import
         from qiskit.quantum_info import Operator
-        from qiskit.synthesis.two_qubits.two_qubit_decompose import TwoQubitControlledUDecomposer
+        from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitControlledUDecomposer
 
         if len(dag.qregs) > 1:
             raise TranspilerError(

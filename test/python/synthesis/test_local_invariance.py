@@ -20,7 +20,7 @@ from qiskit.execute_function import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.providers.basicaer import UnitarySimulatorPy
-from qiskit.synthesis.two_qubits.local_invariance import two_qubit_local_invariants
+from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
 
 
 class TestLocalInvariance(QiskitTestCase):

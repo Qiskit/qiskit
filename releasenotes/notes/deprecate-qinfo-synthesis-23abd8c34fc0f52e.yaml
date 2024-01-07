@@ -14,7 +14,7 @@ deprecations:
     The class :class:`.Quaternion` has been migrated from :mod:`qiskit.quantum_info.synthesis` to
     :mod:`qiskit.quantum_info`. This move has not affected the usual import path of the class.
 
-    This function has already been deprecated in this release:
+    This function is pending deprecation and will be deprecated in a next release:
 
     * :func:`~.cnot_rxx_decompose`
 

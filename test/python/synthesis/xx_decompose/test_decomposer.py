@@ -24,7 +24,7 @@ from scipy.stats import unitary_group
 import qiskit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.synthesis.two_qubits.xx_decompose.decomposer import (
+from qiskit.synthesis.two_qubit.xx_decompose.decomposer import (
     XXDecomposer,
     TwoQubitWeylDecomposition,
 )

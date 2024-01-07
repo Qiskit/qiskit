@@ -16,8 +16,8 @@ from __future__ import annotations
 import warnings
 
 from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
-from qiskit.synthesis.two_qubits.xx_decompose import XXDecomposer
-from qiskit.synthesis.two_qubits.two_qubit_decompose import (
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
 )

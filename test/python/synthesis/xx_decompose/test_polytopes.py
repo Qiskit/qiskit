@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 from numpy import pi
 
-from qiskit.synthesis.two_qubits.xx_decompose.polytopes import XXPolytope
+from qiskit.synthesis.two_qubit.xx_decompose.polytopes import XXPolytope
 
 EPSILON = 0.001
 

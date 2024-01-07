@@ -18,7 +18,7 @@ from __future__ import annotations
 import scipy
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
-from qiskit.synthesis.two_qubits import two_qubit_decompose
+from qiskit.synthesis.two_qubit import two_qubit_decompose
 from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
@@ -36,7 +36,7 @@ def qs_decomposition(
     _depth=0,
 ):
     r"""
-    Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
+    Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
 
     .. parsed-literal::
           ┌───┐               ┌───┐     ┌───┐     ┌───┐
@@ -70,9 +70,12 @@ def qs_decomposition(
         opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cx per call.
             If True CZ gates are left in the output. If desired these can be further decomposed to CX.
         opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
-            into a diagonal gate and a two cx unitary and reduces overall cx count by 4^(n-2) - 1.
-        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses OneQubitEulerDecomposer.
-        decomposer_2q (None or Object): optional 2Q decomposer. If None, uses two_qubit_cnot_decompose.
+            into a diagonal gate and a two cx unitary and reduces overall cx count by
+            :math:`4^(n-2) - 1`.
+        decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`.
+        decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose`.
 
     Returns:
         QuantumCircuit: Decomposed quantum circuit.

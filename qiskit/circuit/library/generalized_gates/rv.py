@@ -57,7 +57,6 @@ class RVGate(Gate):
             basis (str, optional): basis (see
                 :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
-        # pylint: disable=cyclic-import
         from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
         super().__init__("rv", 1, [v_x, v_y, v_z])

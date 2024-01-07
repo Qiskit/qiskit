@@ -26,7 +26,7 @@ from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
-from qiskit.synthesis.two_qubits.two_qubit_decompose import TwoQubitWeylDecomposition
+from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON

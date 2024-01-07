@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017 - 2023.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
+r"""
 ===========================================
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
@@ -92,9 +92,11 @@ Basis Change Synthesis
 Unitary Synthesis
 =================
 
+Decomposition of general :math:`2^n \times 2^n` unitary matrices for any number of qubits.
+
 .. autofunction:: qs_decomposition
 
-One-qubit Synthesis
+One-Qubit Synthesis
 ===================
 
 .. autosummary::
@@ -102,8 +104,8 @@ One-qubit Synthesis
 
    OneQubitEulerDecomposer
 
-Two-qubits Synthesis
-====================
+Two-Qubit Synthesis
+===================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -150,5 +152,5 @@ from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approxima
 from .qft import synth_qft_line
 from .unitary.qsd import qs_decomposition
 from .one_qubit import OneQubitEulerDecomposer
-from .two_qubits.xx_decompose import XXDecomposer
-from .two_qubits.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
+from .two_qubit.xx_decompose import XXDecomposer
+from .two_qubit.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
