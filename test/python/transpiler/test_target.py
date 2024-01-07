@@ -1883,9 +1883,10 @@ class TestTargetFromConfiguration(QiskitTestCase):
 
     def test_basis_gates_coupling_map(self):
         """Test construction with only basis gates."""
-        target = Target.from_configuration(
-            ["u", "cx"], 3, CouplingMap.from_ring(3, bidirectional=False)
-        )
+        with self.assertWarnsRegex(RuntimeWarning, ".is not found so setting."):
+            target = Target.from_configuration(
+                ["u", "cx"], 3, CouplingMap.from_ring(3, bidirectional=False)
+            )
         # Measure and Delay are added automatically in operation_names
         self.assertEqual(target.operation_names, {"u", "cx", "measure", "delay"})
         self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
@@ -1999,3 +2000,34 @@ class TestTargetFromConfiguration(QiskitTestCase):
         cmap = CouplingMap.from_line(15)
         with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
+
+    def test_durations_only_with_InstructionDurations_passed(self):
+        backend = FakeHanoi()
+        inst_dur = InstructionDurations.from_backend(backend)
+        target = Target.from_configuration(
+            basis_gates=backend.configuration().basis_gates, instruction_durations=inst_dur
+        )
+        self.assertEqual(
+            target["x"][(0,)].duration, backend.properties().gate_length(gate="x", qubits=(0,))
+        )
+
+    def test_warns_no_inst_dur_props_dt_with_inst_map(self):
+        backend = FakeHanoi()
+        with self.assertWarnsRegex(RuntimeWarning, ".set the `dt` argument to set."):
+            Target.from_configuration(
+                basis_gates=backend.configuration().basis_gates,
+                inst_map=backend.defaults().instruction_schedule_map,
+            )
+
+    def test_duration_with_inst_map_dt(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+        pulse_defaults = backend.defaults()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            inst_map=pulse_defaults.instruction_schedule_map,
+            dt=config.dt,
+        )
+        self.assertEqual(
+            target["x"][(0,)].duration, backend.properties().gate_length(gate="x", qubits=(0,))
+        )
