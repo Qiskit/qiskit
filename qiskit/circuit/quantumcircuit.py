@@ -953,9 +953,10 @@ class QuantumCircuit:
                 "Cannot emit a new composed circuit while a control-flow context is active."
             )
 
+        # Avoid mutating `dest` until as much of the error checking as possible is complete, to
+        # avoid an in-place composition getting `self` in a partially mutated state for a simple
+        # error that the user might want to correct in an interactive session.
         dest = self if inplace else self.copy()
-        dest.duration = None
-        dest.unit = "dt"
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
         # has to be strictly larger. This allows composing final measurements onto unitary circuits.
@@ -997,8 +998,9 @@ class QuantumCircuit:
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        # Maps bits in 'other' to bits in 'dest'. Used only for
-        # adjusting bits in variables (e.g. condition and target).
+        # Maps bits in 'other' to bits in 'dest'.
+        mapped_qubits: list[Qubit]
+        mapped_clbits: list[Clbit]
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
             mapped_qubits = dest.qubits
@@ -1035,6 +1037,8 @@ class QuantumCircuit:
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
 
+        dest.duration = None
+        dest.unit = "dt"
         dest.global_phase += other.global_phase
 
         if not other.data:
@@ -1042,10 +1046,6 @@ class QuantumCircuit:
             # to trigger any lazy building since we now access '_data'
             # directly.
             return None if inplace else dest
-
-        # The 'qubits' and 'clbits' used for 'dest'.
-        mapped_qubits: list[Qubit]
-        mapped_clbits: list[Clbit]
 
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
