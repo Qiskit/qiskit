@@ -15,6 +15,9 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
+
+from collections.abc import Collection
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -30,7 +33,6 @@ class StabilizerState(QuantumState):
     """StabilizerState class.
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
-
 
     .. code-block::
 
@@ -58,10 +60,8 @@ class StabilizerState(QuantumState):
         {'00': 0.5, '11': 0.5}
         1
 
-
     Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
     returns state stabilized by the list
-
 
     .. code-block:: python
 
@@ -108,26 +108,26 @@ class StabilizerState(QuantumState):
     @classmethod
     def from_stabilizer_list(
         cls,
-        stabilizer_list: list[str],
+        stabilizers: Collection[str],
         allow_redundant: bool = False,
         allow_underconstrained: bool = False,
     ) -> StabilizerState:
-        """Create stabilizer state from the list of stabilizers.
+        """Create stabilizer state from the collection of stabilizers.
 
         Args:
-            stabilizer_list (list[str]): list of stabilizer strings
+            stabilizers (Collection[str]): list of stabilizer strings
             allow_redundant (bool): allow redundant stabilizers
             allow_underconstrained (bool): allow underconstrained set of stabilizers
 
         Return:
-            StabilizerState: a state stabilized by stabilizer_list.
+            StabilizerState: a state stabilized by stabilizers.
         """
 
         # pylint: disable=cyclic-import
-        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizer_list
+        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
 
-        circuit = synth_circuit_from_stabilizer_list(
-            stabilizer_list,
+        circuit = synth_circuit_from_stabilizers(
+            stabilizers,
             allow_redundant=allow_redundant,
             allow_underconstrained=allow_underconstrained,
         )

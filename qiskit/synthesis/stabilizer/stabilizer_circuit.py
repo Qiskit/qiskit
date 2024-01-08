@@ -14,6 +14,8 @@ Stabilizer to circuit function
 """
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from qiskit.exceptions import QiskitError
 
 from qiskit.circuit import QuantumCircuit
@@ -91,8 +93,8 @@ def _apply_circuit_on_stabilizer(stabilizer: str, circuit: QuantumCircuit) -> st
     return pauli_conjugated.to_label()
 
 
-def synth_circuit_from_stabilizer_list(
-    stabilizer_list: list[str],
+def synth_circuit_from_stabilizers(
+    stabilizers: Collection[str],
     allow_redundant: bool = False,
     allow_underconstrained: bool = False,
     invert: bool = False,
@@ -100,10 +102,12 @@ def synth_circuit_from_stabilizer_list(
     # pylint: disable=line-too-long
     """Synthesis of a circuit that generates state stabilized by the stabilziers
     using Gaussian elimination with Clifford gates.
+    If the stabilizers are underconstrained, and `allow_underconstrained` is `True`,
+    the circuit will output one of the states stabilized by the stabilizers.
     Based on stim implementation.
 
     Args:
-        stabilizer_list (list[str]): list of stabilizer strings
+        stabilizers (Collection[str]): list of stabilizer strings
         allow_redundant (bool): allow redundant stabilizers
         allow_underconstrained (bool): allow underconstrained set of stabilizers
         invert (Boolean): return inverse circuit
@@ -113,8 +117,8 @@ def synth_circuit_from_stabilizer_list(
 
     Raises:
         QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,
-        if the list is underconstrained and `allow_underconstrained` is `False`,
-        or if the list is redundant and `allow_redundant` is `False`.
+                     if the list is underconstrained and `allow_underconstrained` is `False`,
+                     or if the list is redundant and `allow_redundant` is `False`.
 
     Reference:
         1. https://github.com/quantumlib/Stim/blob/c0dd0b1c8125b2096cd54b6f72884a459e47fe3e/src/stim/stabilizers/conversions.inl#L469
@@ -122,9 +126,13 @@ def synth_circuit_from_stabilizer_list(
 
     """
     # verification
+    stabilizer_list = list(stabilizers)
+
     for i, stabilizer in enumerate(stabilizer_list):
         if set(stabilizer) - set("IXYZ+-i"):
             raise QiskitError(f"Stabilizer {i} ({stabilizer}) contains invalid characters")
+        if stabilizer[1] == "i":
+            raise QiskitError(f"Stabilizer {i} ({stabilizer}) has an invalid phase")
     for i in range(len(stabilizer_list)):
         for j in range(i + 1, len(stabilizer_list)):
             if not _check_stabilizers_commutator(stabilizer_list[i], stabilizer_list[j]):

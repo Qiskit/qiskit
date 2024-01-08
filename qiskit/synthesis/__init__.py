@@ -127,7 +127,7 @@ from .cnotdihedral import (
 from .stabilizer import (
     synth_stabilizer_layers,
     synth_stabilizer_depth_lnn,
-    synth_circuit_from_stabilizer_list,
+    synth_circuit_from_stabilizers,
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line

@@ -9,17 +9,19 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Tests for stabilizer_to_circuit function."""
+"""Tests for synth_circuit_from_stabilizers function."""
 from __future__ import annotations
 
 import unittest
+from collections.abc import Collection
+
 from test import combine
 
 from ddt import ddt
 
 import numpy as np
 
-from qiskit.synthesis import synth_circuit_from_stabilizer_list
+from qiskit.synthesis import synth_circuit_from_stabilizers
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, StabilizerState, random_clifford
 from qiskit.quantum_info.operators import Clifford
@@ -29,31 +31,33 @@ from qiskit.test import QiskitTestCase
 
 @ddt
 class TestStabilizerCircuits(QiskitTestCase):
-    """Tests for stabilizer_to_circuit function."""
+    """Tests for synth_circuit_from_stabilizers function."""
 
-    def verify_stabilizers(self, stabilizer_list: list[str], **kwargs):
+    def verify_stabilizers(self, stabilizers: Collection[str], **kwargs) -> None:
         """
-        Verify that circuit generated from stabilizer_list is correct.
-        :param stabilizer_list: list of stabilizer strings
-        :param kwargs: keyword arguments for stabilizer_to_circuit
+        Verify that circuit generated from stabilizers is correct.
+
+        Args:
+            stabilizers (Collection[str]): list of stabilizer strings
+            kwargs: keyword arguments for synth_circuit_from_stabilizer_list
         """
-        circuit = synth_circuit_from_stabilizer_list(stabilizer_list, **kwargs)
+        circuit = synth_circuit_from_stabilizers(stabilizers, **kwargs)
         clifford = Clifford(circuit)
         state = StabilizerState(circuit)
-        for stabilizer in stabilizer_list:
+        for stabilizer in stabilizers:
             composed = clifford.compose(Pauli(stabilizer).to_instruction())
             # Test that the stabilizer is a stabilizer of the state by applying it to state
             self.assertTrue(state.equiv(StabilizerState(composed)))
 
     def test_stabilizer_to_circuit_simple(self):
         """Simple test case"""
-        stabilizer_list = ["+ZXX", "+XYX", "+ZYY"]
-        self.verify_stabilizers(stabilizer_list)
+        stabilizers = {"+ZXX", "+XYX", "+ZYY"}
+        self.verify_stabilizers(stabilizers)
 
     def test_stabilizer_to_circuit_with_sign(self):
         """Simple test case with signs stabilizer"""
-        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
-        self.verify_stabilizers(stabilizer_list)
+        stabilizers = {"ZXX", "-XYX", "+ZYY"}
+        self.verify_stabilizers(stabilizers)
 
     def test_stabilizer_to_circuit_larger(self):
         """Larger test case"""
