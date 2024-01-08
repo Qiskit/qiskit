@@ -68,19 +68,6 @@ Here is an example of using a fake backend for transpilation and simulation.
     run noisy simulations to compare with the real quantum system, please follow steps below to
     generate a simulator mimics a real quantum system with the latest calibration results.
 
-    .. code-block:: python
-
-        from qiskit.providers.ibmq import IBMQ
-        from qiskit.providers.aer import AerSimulator
-
-        # get a real backend from a real provider
-        provider = IBMQ.load_account()
-        backend = provider.get_backend('ibmq_manila')
-
-        # generate a simulator that mimics the real quantum system with the latest calibration results
-        backend_sim = AerSimulator.from_backend(backend)
-
-
 Fake Providers
 ==============
 
