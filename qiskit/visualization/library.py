@@ -16,7 +16,6 @@
 
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_func
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
