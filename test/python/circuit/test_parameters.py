@@ -244,6 +244,18 @@ class TestParameters(QiskitTestCase):
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
 
+    def test_assign_parameters_by_name(self):
+        """Test that parameters can be assigned by name as well as value."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        qc = QuantumCircuit(2, global_phase=a * 2)
+        qc.rx(b + 0.125 * c, 0)
+
+        self.assertEqual(
+            qc.assign_parameters({a: 1, b: 2, c: 3}), qc.assign_parameters({"a": 1, "b": 2, "c": 3})
+        )
+
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
         x = Parameter("x")
@@ -536,7 +548,7 @@ class TestParameters(QiskitTestCase):
         with self.assertRaises(CircuitError):
             qc.assign_parameters({z: [3, 4, 5]})
         with self.assertRaises(CircuitError):
-            qc.assign_parameters({"a_str": 6})
+            qc.assign_parameters({6: 6})
         with self.assertRaises(CircuitError):
             qc.assign_parameters({None: 7})
 
