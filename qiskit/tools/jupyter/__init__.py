@@ -109,6 +109,10 @@ from .copyright import Copyright
 from .monospace import MonospacedOutput
 from .job_watcher import JobWatcher, JobWatcherMagic
 
+warnings.warn(
+    "qiskit.tools.jupyter is deprecated and will be removed in Qiskit 1.0.0", DeprecationWarning, 2
+)
+
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
