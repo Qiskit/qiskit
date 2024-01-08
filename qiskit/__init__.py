@@ -103,9 +103,8 @@ class AerWrapper:
     def __bool__(self):
         if self.aer is None:
             warnings.warn(
-                "The qiskit.Aer entry point will be deprecated in a future release and "
-                "subsequently removed. Instead you should use this "
-                "directly from the root of the qiskit-aer package.",
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -120,9 +119,8 @@ class AerWrapper:
     def __getattr__(self, attr):
         if not self.aer:
             warnings.warn(
-                "The qiskit.Aer entry point will be deprecated in a future release and "
-                "subsequently removed. Instead you should use this "
-                "directly from the root of the qiskit-aer package.",
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
