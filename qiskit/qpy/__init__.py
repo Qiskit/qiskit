@@ -92,6 +92,12 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
+raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
+and how the feature will be internally handled.
+
+.. autoexception:: QPYLoadingDeprecatedFeatureWarning
+
 .. _qpy_format:
 
 **********
@@ -480,7 +486,7 @@ In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping`
 
 With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
 serialized together with :attr:`~.QuantumCircuit.calibrations`, or
-`Pulse Gates <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_.
+`Pulse Gates <https://docs.quantum-computing.ibm.com/build/pulse>`_.
 In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
 packed after the :ref:`qpy_instructions` block.
 
@@ -921,7 +927,7 @@ the :class:`.EvolutionSynthesis` class used by the gate.
 SPARSE_PAULI_OP_LIST_ELEM
 -------------------------
 
-This represents an instance of :class:`.PauliSumOp`.
+This represents an instance of :class:`.SparsePauliOp`.
 
 
 .. code-block:: c
@@ -1335,7 +1341,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
-from .exceptions import QpyError
+from .exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.

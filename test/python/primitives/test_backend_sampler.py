@@ -14,9 +14,10 @@
 
 import math
 import unittest
-from unittest.mock import patch
+from multiprocessing import Manager
+
 from test import combine
-from test.python.transpiler._dummy_passes import DummyTP
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -32,6 +33,18 @@ from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+
+class CallbackPass(DummyAP):
+    """A dummy analysis pass that calls a callback when executed"""
+
+    def __init__(self, message, callback):
+        super().__init__()
+        self.message = message
+        self.callback = callback
+
+    def run(self, dag):
+        self.callback(self.message)
 
 
 @ddt
@@ -117,7 +130,6 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         result = sampler.run([bell, bell, bell]).result()
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -387,24 +399,40 @@ class TestBackendSampler(QiskitTestCase):
         """Test bound pass manager."""
 
         with self.subTest("Test single circuit"):
+            messages = []
 
-            dummy_pass = DummyTP()
+            def callback(msg):
+                messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
-                sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-                _ = sampler.run(self._circuit[0]).result()
-                self.assertEqual(mock_pass.call_count, 1)
+            bound_counter = CallbackPass("bound_pass_manager", callback)
+            bound_pass = PassManager(bound_counter)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run([self._circuit[0]]).result()
+            expected = [
+                "bound_pass_manager",
+            ]
+            self.assertEqual(messages, expected)
 
         with self.subTest("Test circuit batch"):
+            with Manager() as manager:
+                # The multiprocessing manager is used to share data
+                # between different processes. Pass Managers parallelize
+                # execution for batches of circuits, so this is necessary
+                # to keep track of the callback calls for num_circuits > 1
+                messages = manager.list()
 
-            dummy_pass = DummyTP()
+                def callback(msg):  # pylint: disable=function-redefined
+                    messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
+                bound_counter = CallbackPass("bound_pass_manager", callback)
+                bound_pass = PassManager(bound_counter)
                 sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-                self.assertEqual(mock_pass.call_count, 2)
+                expected = [
+                    "bound_pass_manager",
+                    "bound_pass_manager",
+                ]
+                self.assertEqual(list(messages), expected)
 
 
 if __name__ == "__main__":

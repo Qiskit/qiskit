@@ -18,9 +18,6 @@ from __future__ import annotations
 
 import datetime
 import doctest
-import os
-import subprocess
-from pathlib import Path
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -43,17 +40,11 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
-    "nbsphinx",
     "matplotlib.sphinxext.plot_directive",
-    "qiskit_sphinx_theme",
     "reno.sphinxext",
-    "sphinx_design",
-    "sphinx_remove_toctrees",
-    "sphinx_reredirects",
+    "sphinxcontrib.katex",
 ]
 
 templates_path = ["_templates"]
@@ -63,30 +54,8 @@ numfig = True
 # Available keys are 'figure', 'table', 'code-block' and 'section'.  '%s' is the number.
 numfig_format = {"table": "Table %s"}
 
-# Translations configuration.
-translations_list = [
-    ("en", "English"),
-    ("bn_BN", "Bengali"),
-    ("fr_FR", "French"),
-    ("de_DE", "German"),
-    ("ja_JP", "Japanese"),
-    ("ko_KR", "Korean"),
-    ("pt_UN", "Portuguese"),
-    ("es_UN", "Spanish"),
-    ("ta_IN", "Tamil"),
-]
-locale_dirs = ["locale/"]
-gettext_compact = False
-
 # Relative to source directory, affects general discovery, and html_static_path and html_extra_path.
 exclude_patterns = ["_build", "**.ipynb_checkpoints"]
-
-pygments_style = "colorful"
-
-panels_css_variables = {
-    "tabs-color-label-active": "rgb(138, 63, 252)",
-    "tabs-color-label-inactive": "rgb(221, 225, 230)",
-}
 
 
 # This adds the module name to e.g. function API docs. We use the default of True because our
@@ -102,17 +71,8 @@ add_module_names = True
 modindex_common_prefix = ["qiskit."]
 
 # ----------------------------------------------------------------------------------
-# Extlinks
+# Intersphinx
 # ----------------------------------------------------------------------------------
-# Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
-extlinks = {
-    "pull_terra": ("https://github.com/Qiskit/qiskit-terra/pull/%s", "qiskit-terra #%s"),
-    "pull_aer": ("https://github.com/Qiskit/qiskit-aer/pull/%s", "qiskit-aer #%s"),
-    "pull_ibmq-provider": (
-        "https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s",
-        "qiskit-ibmq-provider #%s",
-    ),
-}
 
 intersphinx_mapping = {
     "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
@@ -127,22 +87,8 @@ intersphinx_mapping = {
 # HTML theme
 # ----------------------------------------------------------------------------------
 
-html_theme = "qiskit"
-html_favicon = "images/favicon.ico"
+html_theme = "alabaster"
 html_last_updated_fmt = "%Y/%m/%d"
-html_context = {
-    # Enable segment analytics for qiskit.org/documentation
-    "analytics_enabled": bool(os.getenv("QISKIT_ENABLE_ANALYTICS", "")),
-    "theme_announcement": "🎉 Starting on November 29, 2023, Qiskit Documentation will only live on IBM Quantum",
-    "announcement_url": "https://medium.com/qiskit/important-changes-to-qiskit-documentation-and-learning-resources-7f4e346b19ab",
-    "announcement_url_text": "Learn More",
-}
-html_static_path = ["_static"]
-
-# This speeds up the docs build because it works around the Furo theme's slowdown from the left
-# sidebar when the site has lots of HTML pages. But, it results in a much worse user experience,
-# so we only use it in dev/CI builds.
-remove_from_toctrees = ["stubs/*"]
 
 # ----------------------------------------------------------------------------------
 # Autodoc
@@ -211,86 +157,3 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
-
-
-# ----------------------------------------------------------------------------------
-# Nbsphinx
-# ----------------------------------------------------------------------------------
-
-nbsphinx_timeout = int(os.getenv("QISKIT_CELL_TIMEOUT", "300"))
-nbsphinx_execute = os.getenv("QISKIT_DOCS_BUILD_TUTORIALS", "never")
-nbsphinx_widgets_path = ""
-nbsphinx_thumbnails = {"**": "_static/images/logo.png"}
-
-nbsphinx_prolog = """
-{% set docname = env.doc2path(env.docname, base=None) %}
-
-.. only:: html
-
-    .. role:: raw-html(raw)
-        :format: html
-
-    .. note::
-        This page was generated from `{{ docname }}`__.
-
-    __ https://github.com/Qiskit/qiskit-terra/blob/main/{{ docname }}
-
-"""
-
-
-# ----------------------------------------------------------------------------------
-# Redirects
-# ----------------------------------------------------------------------------------
-
-
-def determine_api_redirects() -> dict[str, str]:
-    """Set up API redirects for functions that we moved to module pages.
-
-    Note that we have redirects in Cloudflare for methods moving to their class page. We
-    could not do this for functions because some functions still have dedicated
-    HTML pages, so we cannot use a generic rule.
-    """
-    lines = Path("api_redirects.txt").read_text().splitlines()
-    result = {}
-    for line in lines:
-        if not line:
-            continue
-        obj_name, new_module_page_name = line.split(" ")
-        # E.g. `../apidoc/assembler.html#qiskit.assembler.assemble_circuits
-        new_url = (
-            "https://qiskit.org/documentation/apidoc/" + f"{new_module_page_name}.html#{obj_name}"
-        )
-        result[f"stubs/{obj_name}"] = new_url
-    return result
-
-
-redirects = determine_api_redirects()
-
-
-# ---------------------------------------------------------------------------------------
-# Prod changes
-# ---------------------------------------------------------------------------------------
-
-if os.getenv("DOCS_PROD_BUILD"):
-    # `viewcode` slows down docs build by about 14 minutes.
-    extensions.append("sphinx.ext.viewcode")
-    # Include all pages in the left sidebar in prod.
-    remove_from_toctrees = []
-
-
-# ---------------------------------------------------------------------------------------
-# Custom extensions
-# ---------------------------------------------------------------------------------------
-
-
-def add_versions_to_config(_app, config):
-    """Add a list of old documentation versions that should have links generated to them into the
-    context, so the theme can use them to generate a sidebar."""
-    # For qiskit 1.0 the docs won't use this mechanism anymore
-    # so just build out the historical version list for the 0.x series
-    versions = ["0.19"] + [f"0.{x}" for x in range(24, 46)]
-    config.html_context["version_list"] = versions
-
-
-def setup(app):
-    app.connect("config-inited", add_versions_to_config)

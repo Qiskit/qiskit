@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added support for using Qiskit with Python 3.12.

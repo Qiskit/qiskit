@@ -25,6 +25,7 @@ import qiskit._accelerate
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
+sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
@@ -79,10 +80,6 @@ from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
-from .version import QiskitVersion
-
-
-__qiskit_version__ = QiskitVersion()
 
 
 class AerWrapper:
