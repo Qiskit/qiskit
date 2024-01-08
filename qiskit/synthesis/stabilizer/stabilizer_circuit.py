@@ -110,10 +110,10 @@ def synth_circuit_from_stabilizers(
         stabilizers (Collection[str]): list of stabilizer strings
         allow_redundant (bool): allow redundant stabilizers
         allow_underconstrained (bool): allow underconstrained set of stabilizers
-        invert (Boolean): return inverse circuit
+        invert (bool): return inverse circuit
 
     Return:
-        QuantumCircuit: a circuit that generates state stabilized by stabilizer_list.
+        QuantumCircuit: a circuit that generates state stabilized by `stabilizers`.
 
     Raises:
         QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,
@@ -125,9 +125,9 @@ def synth_circuit_from_stabilizers(
         2. https://quantumcomputing.stackexchange.com/questions/12721/how-to-calculate-destabilizer-group-of-toric-and-other-codes
 
     """
-    # verification
     stabilizer_list = list(stabilizers)
 
+    # verification
     for i, stabilizer in enumerate(stabilizer_list):
         if set(stabilizer) - set("IXYZ+-i"):
             raise QiskitError(f"Stabilizer {i} ({stabilizer}) contains invalid characters")
