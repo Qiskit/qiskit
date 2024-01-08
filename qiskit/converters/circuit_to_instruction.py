@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a circuit to an instruction."""
-
+from qiskit.circuit.parametertable import ParameterTable, ParameterReferences
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -89,39 +89,53 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
+    qreg, creg = None, None
     if out_instruction.num_qubits > 0:
-        q = QuantumRegister(out_instruction.num_qubits, "q")
-        regs.append(q)
+        qreg = QuantumRegister(out_instruction.num_qubits, "q")
+        regs.append(qreg)
 
     if out_instruction.num_clbits > 0:
-        c = ClassicalRegister(out_instruction.num_clbits, "c")
-        regs.append(c)
+        creg = ClassicalRegister(out_instruction.num_clbits, "c")
+        regs.append(creg)
 
-    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
-    clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
+    clbit_map = {bit: creg[idx] for idx, bit in enumerate(circuit.clbits)}
+    operation_map = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
-    qc = QuantumCircuit(*regs, name=out_instruction.name)
-    qc._data.reserve(len(target.data))
-    for instruction in target._data:
-        rule = instruction.replace(
-            qubits=[qubit_map[y] for y in instruction.qubits],
-            clbits=[clbit_map[y] for y in instruction.clbits],
-        )
+    def fix_condition(op):
+        original_id = id(op)
+        if (out := operation_map.get(original_id)) is not None:
+            return out
 
-        # fix condition
-        condition = getattr(rule.operation, "condition", None)
+        condition = getattr(op, "condition", None)
         if condition:
             reg, val = condition
             if isinstance(reg, Clbit):
-                rule = rule.replace(operation=rule.operation.c_if(clbit_map[reg], val))
-            elif reg.size == c.size:
-                rule = rule.replace(operation=rule.operation.c_if(c, val))
+                op = op.c_if(clbit_map[reg], val)
+            elif reg.size == creg.size:
+                op = op.c_if(creg, val)
             else:
                 raise QiskitError(
                     "Cannot convert condition in circuit with "
                     "multiple classical registers to instruction"
                 )
-        qc._append(rule)
+        operation_map[original_id] = op
+        return op
+
+    data = target._data.copy()
+    data.replace_bits(qubits=qreg, clbits=creg)
+    data.map_ops(fix_condition)
+
+    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    qc._data = data
+    qc._parameter_table = ParameterTable(
+        {
+            param: ParameterReferences(
+                (operation_map[id(operation)], param_index)
+                for operation, param_index in target._parameter_table[param]
+            )
+            for param in target._parameter_table
+        }
+    )
 
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase

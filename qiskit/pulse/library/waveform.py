@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """A pulse that is described by complex-valued sample points."""
-from typing import Dict, List, Optional, Union, Any
+from __future__ import annotations
+from typing import Any
 
 import numpy as np
 
@@ -26,10 +27,10 @@ class Waveform(Pulse):
 
     def __init__(
         self,
-        samples: Union[np.ndarray, List[complex]],
-        name: Optional[str] = None,
+        samples: np.ndarray | list[complex],
+        name: str | None = None,
         epsilon: float = 1e-7,
-        limit_amplitude: Optional[bool] = None,
+        limit_amplitude: bool | None = None,
     ):
         """Create new sample pulse command.
 
@@ -109,11 +110,13 @@ class Waveform(Pulse):
         return False
 
     @property
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self) -> dict[str, Any]:
         """Return a dictionary containing the pulse's parameters."""
         return {}
 
-    def __eq__(self, other: Pulse) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Waveform):
+            return NotImplemented
         return (
             super().__eq__(other)
             and self.samples.shape == other.samples.shape
