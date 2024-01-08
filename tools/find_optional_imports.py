@@ -30,6 +30,7 @@ def _main():
         "scipy.stats",
         "matplotlib",
         "qiskit_aer",
+        "qiskit.providers.aer",
         "qiskit.providers.ibmq",
         "qiskit.ignis",
         "qiskit.aqua",
