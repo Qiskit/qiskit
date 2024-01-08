@@ -2031,3 +2031,102 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(
             target["x"][(0,)].duration, backend.properties().gate_length(gate="x", qubits=(0,))
         )
+
+    def test_measure_from_inst_map_with_dt(self):
+        backend = FakeHanoi()
+        target = Target.from_configuration(
+            basis_gates=backend.configuration().basis_gates,
+            inst_map=backend.defaults().instruction_schedule_map,
+            dt=0.222e-09,
+        )
+        self.assertTrue("measure" in target)
+
+    def test_concurrent_measurement_set_by_inst_map(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            inst_map=backend.defaults().instruction_schedule_map,
+            dt=0.222e-09,
+        )
+        self.assertEqual(target.concurrent_measurements, config.meas_map)
+
+    def test_warns_if_duration_not_in_inst_dur(self):
+        backend = FakeHanoi()
+        with self.assertWarnsRegex(RuntimeWarning, ".passed, falling back to."):
+            Target.from_configuration(
+                basis_gates=backend.configuration().basis_gates,
+                backend_properties=backend.properties(),
+                instruction_durations=InstructionDurations([("x", 0, 1.0)], dt=1.0),
+            )
+
+    def test_inst_dur_overrides_backend_prop_dur(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+        props = backend.properties()
+        inst_dur = InstructionDurations.from_backend(backend)
+        inst_dur.update([("x", [0], 1.0, "s")])
+
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            backend_properties=props,
+            instruction_durations=inst_dur,
+        )
+        self.assertEqual(target["x"][(0,)].duration, 1.0)
+
+    def test_dt_set_by_inst_dur(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            instruction_durations=InstructionDurations.from_backend(backend),
+        )
+        self.assertEqual(target.dt, config.dt)
+
+    def test_set_num_qubits_from_props(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates, backend_properties=backend.properties()
+        )
+        self.assertEqual(target.num_qubits, config.num_qubits)
+
+    def test_set_num_qubits_from_inst_dur(self):
+        backend = FakeHanoi()
+        inst_dur = InstructionDurations.from_backend(backend)
+        config = backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            instruction_durations=inst_dur,
+        )
+        self.assertEqual(target.num_qubits, config.num_qubits)
+
+    def test_set_num_qubits_from_cp_mp(self):
+        backend = FakeHanoi()
+        config = backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            coupling_map=CouplingMap(couplinglist=config.coupling_map),
+        )
+        self.assertEqual(target.num_qubits, config.num_qubits)
+
+    def test_set_num_qubits_from_inst_sched(self):
+        backend = FakeHanoi()
+        pulse_defaults = backend.defaults()
+        config = backend.configuration()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            inst_map=pulse_defaults.instruction_schedule_map,
+            dt=0.22e-09,
+        )
+        self.assertEqual(target.num_qubits, config.num_qubits)
+
+    def test_backend_props_sets_qubit_props(self):
+        backend = FakeHanoi()
+        props = backend.properties()
+        target = Target.from_configuration(
+            basis_gates=backend.configuration().basis_gates,
+            backend_properties=props,
+        )
+        self.assertEqual(target.qubit_properties[0].t1, props.qubit_property(qubit=0)["T1"][0])
