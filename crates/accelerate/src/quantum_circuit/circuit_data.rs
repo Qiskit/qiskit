@@ -184,12 +184,12 @@ impl CircuitData {
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
-                self_.add_qubit(py, bit?, true)?;
+                self_.add_qubit(bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
             for bit in clbits.iter()? {
-                self_.add_clbit(py, bit?, true)?;
+                self_.add_clbit(bit?, true)?;
             }
         }
         if let Some(data) = data {
@@ -213,18 +213,18 @@ impl CircuitData {
         Ok((ty, args, None::<()>, self_.iter()?).into_py(py))
     }
 
-    /// Returns the current sequence of registered :class:`.Qubit`
-    /// instances as a list.
+    /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
     ///
     /// .. note::
     ///
-    ///     This list is not kept in sync with the container.
+    ///     Modifying this list from Python space will invalidate the :class:`CircuitData` data
+    ///     structures.
     ///
     /// Returns:
     ///     list(:class:`.Qubit`): The current sequence of registered qubits.
     #[getter]
-    pub fn qubits(&self, py: Python<'_>) -> PyObject {
-        PyList::new(py, self.qubits.as_ref(py)).into_py(py)
+    pub fn qubits(&self, py: Python<'_>) -> Py<PyList> {
+        self.qubits.clone_ref(py)
     }
 
     /// Returns the current sequence of registered :class:`.Clbit`
@@ -232,13 +232,14 @@ impl CircuitData {
     ///
     /// .. note::
     ///
-    ///     This list is not kept in sync with the container.
+    ///     Modifying this list from Python space will invalidate the :class:`CircuitData` data
+    ///     structures.
     ///
     /// Returns:
     ///     list(:class:`.Clbit`): The current sequence of registered clbits.
     #[getter]
-    pub fn clbits(&self, py: Python<'_>) -> PyObject {
-        PyList::new(py, self.clbits.as_ref(py)).into_py(py)
+    pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
+        self.clbits.clone_ref(py)
     }
 
     /// Registers a :class:`.Qubit` instance.
@@ -251,7 +252,13 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, py: Python<'_>, bit: &PyAny, strict: bool) -> PyResult<()> {
+    pub fn add_qubit(&mut self, bit: &PyAny, strict: bool) -> PyResult<()> {
+        if self.qubits_native.len() != self.qubits.as_ref(bit.py()).len() {
+            return Err(PyRuntimeError::new_err(concat!(
+                "This circuit's 'qubits' list has become out of sync with the circuit data.",
+                " Did something modify it?"
+            )));
+        }
         let idx: BitType = self.qubits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of qubits in the circuit has exceeded the maximum capacity",
@@ -262,8 +269,9 @@ impl CircuitData {
             .try_insert(BitAsKey::new(bit)?, idx)
             .is_ok()
         {
+            let py = bit.py();
             self.qubits_native.push(bit.into_py(py));
-            self.qubits = PyList::new(py, &self.qubits_native).into_py(py);
+            self.qubits.as_ref(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
@@ -283,7 +291,13 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, py: Python<'_>, bit: &PyAny, strict: bool) -> PyResult<()> {
+    pub fn add_clbit(&mut self, bit: &PyAny, strict: bool) -> PyResult<()> {
+        if self.clbits_native.len() != self.clbits.as_ref(bit.py()).len() {
+            return Err(PyRuntimeError::new_err(concat!(
+                "This circuit's 'clbits' list has become out of sync with the circuit data.",
+                " Did something modify it?"
+            )));
+        }
         let idx: BitType = self.clbits_native.len().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of clbits in the circuit has exceeded the maximum capacity",
@@ -294,8 +308,9 @@ impl CircuitData {
             .try_insert(BitAsKey::new(bit)?, idx)
             .is_ok()
         {
+            let py = bit.py();
             self.clbits_native.push(bit.into_py(py));
-            self.clbits = PyList::new(py, &self.clbits_native).into_py(py);
+            self.clbits.as_ref(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
