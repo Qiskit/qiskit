@@ -953,9 +953,10 @@ class QuantumCircuit:
                 "Cannot emit a new composed circuit while a control-flow context is active."
             )
 
+        # Avoid mutating `dest` until as much of the error checking as possible is complete, to
+        # avoid an in-place composition getting `self` in a partially mutated state for a simple
+        # error that the user might want to correct in an interactive session.
         dest = self if inplace else self.copy()
-        dest.duration = None
-        dest.unit = "dt"
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
         # has to be strictly larger. This allows composing final measurements onto unitary circuits.
@@ -997,23 +998,9 @@ class QuantumCircuit:
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        for gate, cals in other.calibrations.items():
-            dest._calibrations[gate].update(cals)
-
-        dest.global_phase += other.global_phase
-
-        if not other.data:
-            # Nothing left to do. Plus, accessing 'data' here is necessary
-            # to trigger any lazy building since we now access '_data'
-            # directly.
-            return None if inplace else dest
-
-        # The 'qubits' and 'clbits' used for 'dest'.
+        # Maps bits in 'other' to bits in 'dest'.
         mapped_qubits: list[Qubit]
         mapped_clbits: list[Clbit]
-
-        # Maps bits in 'other' to bits in 'dest'. Used only for
-        # adjusting bits in variables (e.g. condition and target).
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
             mapped_qubits = dest.qubits
@@ -1024,6 +1011,10 @@ class QuantumCircuit:
                 raise CircuitError(
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
                     f" match number of qubits in the circuit ({len(other.qubits)})."
+                )
+            if len(set(mapped_qubits)) != len(mapped_qubits):
+                raise CircuitError(
+                    f"Duplicate qubits referenced in 'qubits' parameter: '{mapped_qubits}'"
                 )
             edge_map.update(zip(other.qubits, mapped_qubits))
 
@@ -1037,7 +1028,24 @@ class QuantumCircuit:
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
                     f" match number of clbits in the circuit ({len(other.clbits)})."
                 )
+            if len(set(mapped_clbits)) != len(mapped_clbits):
+                raise CircuitError(
+                    f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
+                )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
+
+        dest.duration = None
+        dest.unit = "dt"
+        dest.global_phase += other.global_phase
+
+        if not other.data:
+            # Nothing left to do. Plus, accessing 'data' here is necessary
+            # to trigger any lazy building since we now access '_data'
+            # directly.
+            return None if inplace else dest
 
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
