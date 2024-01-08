@@ -1733,7 +1733,7 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_annotated_operations(self):
         """Test that circuits with annotated operations can be saved and retrieved correctly."""
         op1 = AnnotatedOperation(
-            CXGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]
+            CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
         )
         op2 = AnnotatedOperation(XGate(), InverseModifier())
 
@@ -1762,23 +1762,6 @@ class TestLoadFromQPY(QiskitTestCase):
             dump(circuit, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        self.assertEqual(circuit, new_circuit)
-
-    def test_annotated_operations_iterative(self):
-        """Test that circuits with iterative annotated operations can be saved and
-        retrieved correctly.
-        """
-        op = AnnotatedOperation(CXGate(), PowerModifier(1.4))
-        circuit = QuantumCircuit(4)
-        circuit.h(0)
-        circuit.append(op, [0, 2])
-        circuit.cx(2, 3)
-        with io.BytesIO() as fptr:
-            dump(circuit, fptr)
-            fptr.seek(0)
-            new_circuit = load(fptr)[0]
-        # FIXME: This actually fails because floating-point power slightly changes
-        #        after serialization/deserialization.
         self.assertEqual(circuit, new_circuit)
 
 

@@ -141,7 +141,7 @@ PAULI_EVOLUTION_DEF_SIZE = struct.calcsize(PAULI_EVOLUTION_DEF_PACK)
 
 # Modifier
 MODIFIER_DEF = namedtuple("MODIFIER_DEF", ["type", "num_ctrl_qubits", "ctrl_state", "power"])
-MODIFIER_DEF_PACK = "!1cIIe"
+MODIFIER_DEF_PACK = "!1cIId"
 MODIFIER_DEF_SIZE = struct.calcsize(MODIFIER_DEF_PACK)
 
 # CUSTOM_CIRCUIT_DEF_HEADER
