@@ -21,4 +21,3 @@ from .pauli import Pauli
 from .pauli_list import PauliList
 from .pauli_utils import pauli_basis
 from .sparse_pauli_op import SparsePauliOp
-from .stabilizer_circuit import apply_circuit_on_stabilizer

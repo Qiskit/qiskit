@@ -13,15 +13,21 @@
 from __future__ import annotations
 
 import unittest
+from test import combine
 
-from qiskit.quantum_info.operators.symplectic.stabilizer_circuit import stabilizer_to_circuit
+from ddt import ddt
+
+import numpy as np
+
+from qiskit.synthesis import synth_circuit_from_stabilizer_list
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, StabilizerState
+from qiskit.quantum_info import Pauli, StabilizerState, random_clifford
 from qiskit.quantum_info.operators import Clifford
 
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestStabilizerCircuits(QiskitTestCase):
     """Tests for stabilizer_to_circuit function."""
 
@@ -31,7 +37,7 @@ class TestStabilizerCircuits(QiskitTestCase):
         :param stabilizer_list: list of stabilizer strings
         :param kwargs: keyword arguments for stabilizer_to_circuit
         """
-        circuit = stabilizer_to_circuit(stabilizer_list, **kwargs)
+        circuit = synth_circuit_from_stabilizer_list(stabilizer_list, **kwargs)
         clifford = Clifford(circuit)
         state = StabilizerState(circuit)
         for stabilizer in stabilizer_list:
@@ -41,7 +47,12 @@ class TestStabilizerCircuits(QiskitTestCase):
 
     def test_stabilizer_to_circuit_simple(self):
         """Simple test case"""
-        stabilizer_list = ["ZXX", "XYX", "ZYY"]
+        stabilizer_list = ["+ZXX", "+XYX", "+ZYY"]
+        self.verify_stabilizers(stabilizer_list)
+
+    def test_stabilizer_to_circuit_with_sign(self):
+        """Simple test case with signs stabilizer"""
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
         self.verify_stabilizers(stabilizer_list)
 
     def test_stabilizer_to_circuit_larger(self):
@@ -133,6 +144,20 @@ class TestStabilizerCircuits(QiskitTestCase):
             cm.exception.message,
             f"Stabilizer 1 ({stabilizer_list[1]}) contradicts some of the previous stabilizers",
         )
+
+    @combine(num_qubits=[4, 5, 6, 7])
+    def test_regenerate_clifford(self, num_qubits):
+        """Create circuit from Clifford-generated list of stabilizers and verify that the
+        circuit output is equivalent to the original state."""
+        rng = np.random.default_rng(1234)
+        samples = 10
+        for _ in range(samples):
+            clifford = random_clifford(num_qubits, seed=rng)
+            state = StabilizerState(clifford)
+
+            stabilizer_list = clifford.to_labels(mode="S")
+            state_syn = StabilizerState.from_stabilizer_list(stabilizer_list)
+            self.assertTrue(state.equiv(StabilizerState(state_syn)))
 
 
 if __name__ == "__main__":

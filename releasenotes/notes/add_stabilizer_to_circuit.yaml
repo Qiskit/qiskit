@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add ``stabilizer_to_circuit`` function that, given a list of stabilizers,
-    returns a circuit that outputs the state stabilized by the stabilizers.

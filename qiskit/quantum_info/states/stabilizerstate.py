@@ -95,6 +95,33 @@ class StabilizerState(QuantumState):
         # Initialize
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
+    @classmethod
+    def from_stabilizer_list(
+        cls,
+        stabilizer_list: list[str],
+        allow_redundant: bool = False,
+        allow_underconstrained: bool = False,
+    ) -> StabilizerState:
+        """Create stabilizer state from the list of stabilizers.
+        Args:
+            stabilizer_list (list[str]): list of stabilizer strings
+            allow_redundant (bool): allow redundant stabilizers
+            allow_underconstrained (bool): allow underconstrained set of stabilizers
+
+        Return:
+            StabilizerState: a state stabilized by stabilizer_list.
+        """
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizer_list
+
+        circuit = synth_circuit_from_stabilizer_list(
+            stabilizer_list,
+            allow_redundant=allow_redundant,
+            allow_underconstrained=allow_underconstrained,
+        )
+        return cls(circuit)
+
     def __eq__(self, other):
         return (self._data.stab == other._data.stab).all()
 
