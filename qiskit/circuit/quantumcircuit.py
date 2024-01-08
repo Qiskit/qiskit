@@ -4285,6 +4285,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def diagonal(self, diag, qubit):
         """Attach a diagonal gate to a circuit.
@@ -4333,6 +4334,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.Isometry to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def iso(
         self,
@@ -4402,6 +4404,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def hamiltonian(self, operator, time, qubits, label=None):
         """Apply hamiltonian evolution to qubits.
@@ -4431,6 +4434,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
         """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
@@ -4498,6 +4502,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def ucrx(
         self,
@@ -4558,6 +4563,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def ucry(
         self,
@@ -4618,6 +4624,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
+        removal_timeline="in the 1.0.0 release",
     )
     def ucrz(
         self,

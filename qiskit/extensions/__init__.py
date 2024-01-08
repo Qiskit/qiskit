@@ -62,8 +62,8 @@ from .quantum_initializer import (
 from .simulator import Snapshot
 
 warnings.warn(
-    "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be deprecated "
-    "in a following release, no sooner than 3 months after the 0.46.0 release.",
+    "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be removed "
+    "in the Qiskit 1.0 release.",
     stacklevel=2,
     category=DeprecationWarning,
 )
