@@ -31,9 +31,6 @@ class StabilizerState(QuantumState):
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
 
-    Given a list of stabilizers, :func:`~qiskit.quantum_info.stabilizer_to_circuit`
-    returns (not necessarily unique) circuit that generates the state
-    stabilized by the list, which can be used to initialize StabilizerState.
 
     .. code-block::
 
@@ -60,6 +57,19 @@ class StabilizerState(QuantumState):
         StabilizerState(StabilizerTable: ['+XX', '+ZZ'])
         {'00': 0.5, '11': 0.5}
         1
+
+
+    Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
+    returns state stabilized by the list
+
+
+    .. code-block:: python
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)
+
 
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
@@ -103,6 +113,7 @@ class StabilizerState(QuantumState):
         allow_underconstrained: bool = False,
     ) -> StabilizerState:
         """Create stabilizer state from the list of stabilizers.
+
         Args:
             stabilizer_list (list[str]): list of stabilizer strings
             allow_redundant (bool): allow redundant stabilizers

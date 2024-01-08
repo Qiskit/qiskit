@@ -4,5 +4,6 @@ features:
     Add :func:`qiskit.synthesis.synth_circuit_from_stabilizer_list` function that, given a list
     of stabilizers, returns a circuit that outputs the state stabilized by the stabilizers.
 
+  - |
     Add :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list` method
     that returns a stabilizer state from a list of stabilizers.

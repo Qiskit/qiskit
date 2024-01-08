@@ -25,6 +25,7 @@ from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 def _add_sign(stabilizer: str) -> str:
     """
     Add a sign to stabilizer if it is missing.
+
     Args:
         stabilizer (str): stabilizer string
 
@@ -39,6 +40,7 @@ def _add_sign(stabilizer: str) -> str:
 def _drop_sign(stabilizer: str) -> str:
     """
     Drop sign from stabilizer if it is present.
+
     Args:
         stabilizer (str): stabilizer string
 
@@ -55,6 +57,7 @@ def _drop_sign(stabilizer: str) -> str:
 def _check_stabilizers_commutator(s_1: str, s_2: str) -> bool:
     """
     Check if two stabilizers commute.
+
     Args:
         s_1 (str): stabilizer string
         s_1 (str): stabilizer string
@@ -94,9 +97,11 @@ def synth_circuit_from_stabilizer_list(
     allow_underconstrained: bool = False,
     invert: bool = False,
 ) -> QuantumCircuit:
+    # pylint: disable=line-too-long
     """Synthesis of a circuit that generates state stabilized by the stabilziers
     using Gaussian elimination with Clifford gates.
-    Based on stim implementation [1,2]
+    Based on stim implementation.
+
     Args:
         stabilizer_list (list[str]): list of stabilizer strings
         allow_redundant (bool): allow redundant stabilizers
@@ -107,13 +112,13 @@ def synth_circuit_from_stabilizer_list(
         QuantumCircuit: a circuit that generates state stabilized by stabilizer_list.
 
     Raises:
-        QiskitError: if the stabilizers are invalid, do not commute, or contradict each other.
-        If the list is underconstrained and allow_underconstrained is False.
-        If the list is redundant and allow_redundant is False.
+        QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,
+        if the list is underconstrained and `allow_underconstrained` is `False`,
+        or if the list is redundant and `allow_redundant` is `False`.
 
     Reference:
-        1. https://github.com/quantumlib/Stim/blob/c0dd0b1c8125b2096cd54b6f72884a459e47fe3e/src/stim/stabilizers/conversions.inl#L469 # pylint: disable=line-too-long
-        2. https://quantumcomputing.stackexchange.com/questions/12721/how-to-calculate-destabilizer-group-of-toric-and-other-codes # pylint: disable=line-too-long
+        1. https://github.com/quantumlib/Stim/blob/c0dd0b1c8125b2096cd54b6f72884a459e47fe3e/src/stim/stabilizers/conversions.inl#L469
+        2. https://quantumcomputing.stackexchange.com/questions/12721/how-to-calculate-destabilizer-group-of-toric-and-other-codes
 
     """
     # verification
