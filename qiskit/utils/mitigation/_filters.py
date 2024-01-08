@@ -111,7 +111,7 @@ class MeasurementFilter:
         """
         from scipy.optimize import minimize
         from scipy import linalg as la
-        from .. import parallel_map
+        from .. import parallel_map  # pylint: disable=cyclic-import
 
         # check forms of raw_data
         if isinstance(raw_data, dict):
@@ -365,7 +365,7 @@ class TensoredFilter:
         """
         from scipy.optimize import minimize
         from scipy import linalg as la
-        from .. import parallel_map
+        from .. import parallel_map  # pylint: disable=cyclic-import
 
         all_states = count_keys(self.nqubits)
         num_of_states = 2**self.nqubits
