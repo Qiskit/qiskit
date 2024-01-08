@@ -66,7 +66,6 @@ if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
     from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
-    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -2954,6 +2953,23 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.id as direct replacement.",
+    )
+    def i(self, qubit: QubitSpecifier) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.IGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            qubit: The qubit(s) to apply the gate to.
+
+        Returns:
+            A handle to the instructions created.
+        """
+        return self.id(qubit)
+
     def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
@@ -3538,6 +3554,33 @@ class QuantumCircuit:
             [],
         )
 
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+    )
+    def fredkin(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit1: QubitSpecifier,
+        target_qubit2: QubitSpecifier,
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.CSwapGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit1: The qubit(s) targeted by the gate.
+            target_qubit2: The qubit(s) targeted by the gate.
+
+        Returns:
+            A handle to the instructions created.
+
+        See Also:
+            QuantumCircuit.cswap: the same function with a different name.
+        """
+        return self.cswap(control_qubit, target_qubit1, target_qubit2)
+
     def sx(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXGate`.
 
@@ -3735,6 +3778,34 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
+    def cnot(
+        self,
+        control_qubit: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.CXGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit: The qubit(s) used as the control.
+            target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
+
+        Returns:
+            A handle to the instructions created.
+
+        See Also:
+            QuantumCircuit.cx: the same function with a different name.
+        """
+        return self.cx(control_qubit, target_qubit, label, ctrl_state)
+
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
@@ -3780,6 +3851,30 @@ class QuantumCircuit:
             [control_qubit1, control_qubit2, target_qubit],
             [],
         )
+
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
+    def toffoli(
+        self,
+        control_qubit1: QubitSpecifier,
+        control_qubit2: QubitSpecifier,
+        target_qubit: QubitSpecifier,
+    ) -> InstructionSet:
+        r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubit1: The qubit(s) used as the first control.
+            control_qubit2: The qubit(s) used as the second control.
+            target_qubit: The qubit(s) targeted by the gate.
+
+        Returns:
+            A handle to the instructions created.
+
+        See Also:
+            QuantumCircuit.ccx: the same gate with a different name.
+        """
+        return self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     def mcx(
         self,
@@ -3858,6 +3953,44 @@ class QuantumCircuit:
             ancilla_qubits = []
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
+
+    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
+    def mct(
+        self,
+        control_qubits: Sequence[QubitSpecifier],
+        target_qubit: QubitSpecifier,
+        ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
+        mode: str = "noancilla",
+    ) -> InstructionSet:
+        """Apply :class:`~qiskit.circuit.library.MCXGate`.
+
+        The multi-cX gate can be implemented using different techniques, which use different numbers
+        of ancilla qubits and have varying circuit depth. These modes are:
+
+        - ``'noancilla'``: Requires 0 ancilla qubits.
+        - ``'recursion'``: Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
+        - ``'v-chain'``: Requires 2 less ancillas than the number of control qubits.
+        - ``'v-chain-dirty'``: Same as for the clean ancillas (but the circuit will be longer).
+
+        For the full matrix form of this gate, see the underlying gate documentation.
+
+        Args:
+            control_qubits: The qubits used as the controls.
+            target_qubit: The qubit(s) targeted by the gate.
+            ancilla_qubits: The qubits used as the ancillae, if the mode requires them.
+            mode: The choice of mode, explained further above.
+
+        Returns:
+            A handle to the instructions created.
+
+        Raises:
+            ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
+            AttributeError: if no ancilla qubits are passed, but some are needed.
+
+        See Also:
+            QuantumCircuit.mcx: the same gate with a different name.
+        """
+        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode)
 
     def y(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.YGate`.
@@ -3995,121 +4128,6 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
-    def prepare_state(
-        self,
-        state: Statevector | Sequence[complex] | str | int,
-        qubits: Sequence[QubitSpecifier] | None = None,
-        label: str | None = None,
-        normalize: bool = False,
-    ) -> InstructionSet:
-        r"""Prepare qubits in a specific state.
-
-        This class implements a state preparing unitary. Unlike
-        :meth:`.initialize` it does not reset the qubits first.
-
-        Args:
-            state:
-                * Statevector: Statevector to initialize to.
-                * list: vector of complex amplitudes to initialize to.
-                * str: labels of basis states of the Pauli eigenstates Z, X, Y. See
-                :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with respect
-                to the qubit index to be applied to. Example label '01' initializes the qubit zero to
-                :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
-                * int: an integer that is used as a bitmap indicating which qubits to initialize
-                to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
-                to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
-
-            qubits:
-                * QuantumRegister: A list of qubits to be initialized [Default: None].
-                * Qubit: Single qubit to be initialized [Default: None].
-                * int: Index of qubit to be initialized [Default: None].
-                * list: Indexes of qubits to be initialized [Default: None].
-            label: An optional label for the gate
-            normalize: Whether to normalize an input array to a unit vector.
-
-        Returns:
-            A handle to the instruction that was just initialized
-
-        Examples:
-            Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
-
-            .. code-block::
-
-            import numpy as np
-            from qiskit import QuantumCircuit
-
-            circuit = QuantumCircuit(1)
-            circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
-            circuit.draw()
-
-            output:
-
-            .. parsed-literal::
-
-                     ┌─────────────────────────────────────┐
-                q_0: ┤ State Preparation(0.70711,-0.70711) ├
-                     └─────────────────────────────────────┘
-
-
-            Prepare from a string two qubits in the state :math:`|10\rangle`.
-            The order of the labels is reversed with respect to qubit index.
-            More information about labels for basis states are in
-            :meth:`.Statevector.from_label`.
-
-            .. code-block::
-
-                import numpy as np
-                from qiskit import QuantumCircuit
-
-                circuit = QuantumCircuit(2)
-                circuit.prepare_state('01', circuit.qubits)
-                circuit.draw()
-
-            output:
-
-            .. parsed-literal::
-
-                     ┌─────────────────────────┐
-                q_0: ┤0                        ├
-                     │  State Preparation(0,1) │
-                q_1: ┤1                        ├
-                     └─────────────────────────┘
-
-
-            Initialize two qubits from an array of complex amplitudes
-            .. code-block::
-
-                import numpy as np
-                from qiskit import QuantumCircuit
-
-                circuit = QuantumCircuit(2)
-                circuit.prepare_state([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
-                circuit.draw()
-
-            output:
-
-            .. parsed-literal::
-
-                     ┌───────────────────────────────────────────┐
-                q_0: ┤0                                          ├
-                     │  State Preparation(0,0.70711,-0.70711j,0) │
-                q_1: ┤1                                          ├
-                     └───────────────────────────────────────────┘
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.library.data_preparation import StatePreparation
-
-        if qubits is None:
-            qubits = self.qubits
-        elif isinstance(qubits, (int, np.integer, slice, Qubit)):
-            qubits = [qubits]
-
-        num_qubits = len(qubits) if isinstance(state, int) else None
-
-        return self.append(
-            StatePreparation(state, num_qubits, label=label, normalize=normalize), qubits
-        )
-
     def initialize(
         self,
         params: Sequence[complex] | str | int,
@@ -4119,10 +4137,10 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
+        followed by calling :class:`qiskit.extensions.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`~qiskit.circuit.library.Initialize` instruction.
+        :class:`qiskit.extensions.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.
@@ -4656,6 +4674,115 @@ class QuantumCircuit:
                 "Number of controlled rotations does not correspond to the number of control-qubits."
             )
         return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
+
+    @deprecate_func(
+        since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method."
+    )
+    def squ(
+        self,
+        unitary_matrix,
+        qubit,
+        mode="ZYZ",
+        up_to_diagonal=False,
+    ):
+        """Decompose an arbitrary 2*2 unitary into three rotation gates.
+
+        Note that the decomposition is up to a global phase shift.
+        (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
+        "Quantum computation and quantum information".)
+
+        Args:
+            unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
+            qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
+            mode (string): determines the used decomposition by providing the rotation axes.
+                The allowed modes are: "ZYZ" (default)
+            up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
+                a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
+                diagonal gate d with u = d.dot(u')
+
+        Returns:
+            InstructionSet: The single-qubit unitary instruction attached to the circuit.
+
+        Raises:
+            QiskitError: if the format is wrong; if the array u is not unitary
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
+
+        if isinstance(qubit, QuantumRegister):
+            qubit = qubit[:]
+            if len(qubit) == 1:
+                qubit = qubit[0]
+            else:
+                raise QiskitError(
+                    "The target qubit is a QuantumRegister containing more than one qubit."
+                )
+        # Check if there is one target qubit provided
+        if not isinstance(qubit, Qubit):
+            raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            squ = SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal)
+
+        return self.append(squ, [qubit], [])
+
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
+        "instructions, see "
+        "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
+    )
+    def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
+        """Take a statevector snapshot of the internal simulator representation.
+        Works on all qubits, and prevents reordering (like barrier).
+
+        For other types of snapshots use the Snapshot extension directly.
+
+        Args:
+            label (str): a snapshot label to report the result.
+            snapshot_type (str): the type of the snapshot.
+            qubits (list or None): the qubits to apply snapshot to [Default: None].
+            params (list or None): the parameters for snapshot_type [Default: None].
+
+        Returns:
+            QuantumCircuit: with attached command
+
+        Raises:
+            ExtensionError: malformed command
+        """
+        # pylint: disable-cyclic-import
+        from qiskit.extensions.simulator.snapshot import Snapshot
+        from qiskit.extensions.exceptions import ExtensionError
+
+        # If no qubits are specified we add all qubits so it acts as a barrier
+        # This is needed for full register snapshots like statevector
+        if isinstance(qubits, QuantumRegister):
+            qubits = qubits[:]
+        if not qubits:
+            tuples = []
+            if isinstance(self, QuantumCircuit):
+                for register in self.qregs:
+                    tuples.append(register)
+            if not tuples:
+                raise ExtensionError("no qubits for snapshot")
+            qubits = []
+            for tuple_element in tuples:
+                if isinstance(tuple_element, QuantumRegister):
+                    for j in range(tuple_element.size):
+                        qubits.append(tuple_element[j])
+                else:
+                    qubits.append(tuple_element)
+
+        # catch deprecation warning from instantiating the Snapshot instruction,
+        # as a warning is already triggered from this method
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=DeprecationWarning)
+            snap = Snapshot(
+                label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params
+            )
+
+        return self.append(snap, qubits)
 
     def _push_scope(
         self,

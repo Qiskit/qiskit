@@ -53,11 +53,13 @@ from qiskit.circuit.barrier import Barrier
 from .exceptions import ExtensionError
 from .quantum_initializer import (
     Initialize,
+    SingleQubitUnitary,
     UCPauliRotGate,
     UCRXGate,
     UCRYGate,
     UCRZGate,
 )
+from .simulator import Snapshot
 
 warnings.warn(
     "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be deprecated "

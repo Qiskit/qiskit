@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2017.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,17 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Initialize qubit registers to desired arbitrary state."""
+"""Instructions usable by simulator backends."""
 
-from qiskit.circuit.library import (
-    UCPauliRotGate,
-    UCRZGate,
-    UCRYGate,
-    UCRXGate,
-    DiagonalGate,
-    UCGate,
-    Isometry,
-    Initialize,
-)
-
-from .squ import SingleQubitUnitary
+from .snapshot import Snapshot
