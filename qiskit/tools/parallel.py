@@ -19,5 +19,5 @@ warnings.warn(
     "'qiskit.tools.parallel' is deprecated and is now located at 'qiskit.utils.parallel'. This "
     "path will no longer work in Qiskit 1.0.0",
     DeprecationWarning,
-    2
+    2,
 )

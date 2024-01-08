@@ -53,9 +53,10 @@ from concurrent.futures import ProcessPoolExecutor
 import sys
 
 from qiskit.exceptions import QiskitError
-from .multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
+
+from .multiprocessing import local_hardware_info
 
 
 def get_platform_parallel_default():
