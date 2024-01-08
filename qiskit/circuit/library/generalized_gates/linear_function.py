@@ -19,6 +19,9 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.synthesis.linear import check_invertible_binary_matrix
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 
+# pylint: disable=cyclic-import
+from qiskit.quantum_info import Clifford
+
 
 class LinearFunction(Gate):
     r"""A linear reversible circuit on n qubits.
@@ -62,16 +65,23 @@ class LinearFunction(Gate):
     `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
     """
 
-    def __init__(self, linear, validate_input=False):
+    def __init__(
+        self,
+        linear: list[list]
+        | np.ndarray[bool]
+        | QuantumCircuit
+        | LinearFunction
+        | PermutationGate
+        | Clifford,
+        validate_input: bool = False,
+    ) -> None:
         """Create a new linear function.
 
         Args:
-            linear (list[list] or ndarray[bool] or QuantumCircuit or LinearFunction
-                or PermutationGate or Clifford): data from which a linear function
-                can be constructed. It can be either a nxn matrix (describing the
-                linear transformation), a permutation (which is a special case of
-                a linear function), another linear function, a clifford (when it
-                corresponds to a linear function), or a quantum circuit composed of
+            linear: data from which a linear function can be constructed. It can be either a
+                nxn matrix (describing the linear transformation), a permutation (which is a
+                special case of a linear function), another linear function, a clifford (when
+                it corresponds to a linear function), or a quantum circuit composed of
                 linear gates (CX and SWAP) and other objects described above, including
                 nested subcircuits.
 
@@ -85,9 +95,6 @@ class LinearFunction(Gate):
                 (for example, a Hadamard gate, or a Clifford that does
                 not correspond to a linear function).
         """
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info import Clifford
 
         original_circuit = None
 
