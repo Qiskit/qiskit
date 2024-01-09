@@ -125,6 +125,7 @@ class InstructionDurations:
             except AttributeError:
                 logger.info("Backend Target didn't report any dt")
 
+
         return cls(instruction_durations, dt=dt)
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
