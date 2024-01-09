@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    This enables the support for :class:`.BackendV2` in :meth:`.from_backend`
+    of :class:`.InstructionDurations`.
+    
+    Users can have an object of :class:`.InstructionDurations` using :class:`.BackendV2`
+    with followig code.
+    
+    .. code-block:: python
+      from qiskit.providers.fake_provder import FakePerth
+      from qiskit.transpiler import InstructionDurations
+      backendV2 = FakePerth()
+      
+      inst_dur = InstructionDurations.from_backend(backendV2)
+
+
+
