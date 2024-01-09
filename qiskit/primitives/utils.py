@@ -87,7 +87,7 @@ def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliO
             warnings.warn(
                 "Implicit conversion from a PauliList to a SparsePauliOp with coeffs=1 in"
                 " estimator observable arguments is deprecated as of Qiskit 0.46 and will be"
-                " in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
+                " removed in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
                 " SparsePauliOp(pauli_list) to avoid this warning.",
                 DeprecationWarning,
                 stacklevel=2,
