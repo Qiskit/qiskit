@@ -53,13 +53,16 @@ class EstimatorPub(ShapedMixin):
             precision: a target precision for expectation value estimates.
             validate: if True, the input data is validated during initialization.
         """
-        super().__init__(circuit, validate)
+        self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
         self._precision = precision
 
         # For ShapedMixin
         self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
+
+        if validate:
+            self.validate()
 
     @property
     def observables(self) -> ObservablesArray:
@@ -99,9 +102,12 @@ class EstimatorPub(ShapedMixin):
 
     def validate(self):
         """Validate the pub."""
-        super().validate()
+        if not isinstance(self.circuit, QuantumCircuit):
+            raise TypeError("circuit must be QuantumCircuit.")
+
         self.observables.validate()
         self.parameter_values.validate()
+
         # Cross validate circuits and observables
         for i, observable in enumerate(self.observables):
             num_qubits = len(next(iter(observable)))
@@ -110,6 +116,7 @@ class EstimatorPub(ShapedMixin):
                     f"The number of qubits of the circuit ({self.circuit.num_qubits}) does "
                     f"not match the number of qubits of the {i}-th observable ({num_qubits})."
                 )
+
         # Cross validate circuits and parameter_values
         num_parameters = self.parameter_values.num_parameters
         if num_parameters != self.circuit.num_parameters:
@@ -117,6 +124,7 @@ class EstimatorPub(ShapedMixin):
                 f"The number of values ({num_parameters}) does not match "
                 f"the number of parameters ({self.circuit.num_parameters}) for the circuit."
             )
+
         if self._precision is not None:
             if not isinstance(self._precision, Number):
                 raise TypeError(f"The target precision must be a float, not {type(self._precision)}")
