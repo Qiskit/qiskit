@@ -12,15 +12,18 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
+import logging
 from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
-from qiskit.providers import Backend
+from qiskit.providers import Backend, BackendV1, BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
+
+logger = logging.getLogger(__name__)
 
 
 class InstructionDurations:
@@ -75,26 +78,54 @@ class InstructionDurations:
         Raises:
             TranspilerError: If dt and dtm is different in the backend.
         """
+
         # All durations in seconds in gate_length
         instruction_durations = []
-        backend_properties = backend.properties()
-        if hasattr(backend_properties, "_gates"):
-            for gate, insts in backend_properties._gates.items():
-                for qubits, props in insts.items():
-                    if "gate_length" in props:
-                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                        instruction_durations.append((gate, qubits, gate_length, "s"))
-            for q, props in backend.properties()._qubits.items():
-                if "readout_length" in props:
-                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append(("measure", [q], readout_length, "s"))
+        dt = None
 
-        try:
-            dt = backend.configuration().dt
-        except AttributeError:
-            dt = None
+        # Logic to handle if backend is sub-class of old BackendV1
+        if isinstance(backend, BackendV1):
+            backend_properties = backend.properties()
+            if hasattr(backend_properties, "_gates"):
+                for gate, insts in backend_properties._gates.items():
+                    for qubits, props in insts.items():
+                        if "gate_length" in props:
+                            gate_length = props["gate_length"][0]  # Ignore datetime at index 1
+                            instruction_durations.append((gate, qubits, gate_length, "s"))
+                for q, props in backend.properties()._qubits.items():
+                    if "readout_length" in props:
+                        readout_length = props["readout_length"][0]  # Ignore datetime at index 1
+                        instruction_durations.append(("measure", [q], readout_length, "s"))
 
-        return InstructionDurations(instruction_durations, dt=dt)
+            try:
+                dt = backend.configuration().dt
+            except AttributeError:
+                pass
+
+        # Logic to handle if backend is sub-class is BackendV2
+        elif isinstance(backend, BackendV2):
+            target = backend.target
+            inst_with_no_props = {"delay"}
+            inst_duration = None
+            for name in target.operation_names:
+                for qubits, inst_props in target._gate_map[name].items():
+                    if name in inst_with_no_props:
+                        # Setting the duration for 'delay' to zero.
+                        inst_duration = 0.0
+                    else:
+                        try:
+                            inst_duration = inst_props.duration
+                        except AttributeError:
+                            logger.info("%s on %s did not report any duration", name, qubits)
+                            continue
+                    instruction_durations.append((name, qubits, inst_duration, "s"))
+
+            try:
+                dt = target.dt
+            except AttributeError:
+                logger.info("Backend Target didn't report any dt")
+
+        return cls(instruction_durations, dt=dt)
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
