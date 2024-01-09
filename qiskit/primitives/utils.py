@@ -14,7 +14,6 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
-import warnings
 from collections.abc import Iterable
 
 import numpy as np
@@ -22,9 +21,10 @@ import numpy as np
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.library.data_preparation import Initialize
-from qiskit.quantum_info import SparsePauliOp, Statevector, PauliList
+from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.exceptions import QiskitError
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
@@ -54,6 +54,8 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     Returns:
         The observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
 
+    Raises:
+        QiskitError: when observable type cannot be converted to SparsePauliOp.
     """
 
     if isinstance(observable, SparsePauliOp):
@@ -61,16 +63,7 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
-        if isinstance(observable, PauliList):
-            warnings.warn(
-                "Implicit conversion from a PauliList to a SparsePauliOp with coeffs=1 in"
-                " estimator observable arguments is deprecated as of Qiskit 0.46 and will be"
-                " in Qiskit 1.0. You should explicitly convert to a SparsePauli op using"
-                " SparsePauliOp(pauli_list) to avoid this warning.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        return SparsePauliOp(observable)
+        raise QiskitError(f"observable type not supported: {type(observable)}")
 
 
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
