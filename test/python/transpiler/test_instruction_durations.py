@@ -13,17 +13,17 @@
 # pylint: disable=missing-function-docstring
 
 """Test InstructionDurations class."""
-
+from copy import deepcopy
 from qiskit.circuit import Delay, Parameter
-from qiskit.providers.fake_provider import FakeParis, FakeTokyo
+from qiskit.providers.fake_provider import FakeParis, FakePerth
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 
 from qiskit.test.base import QiskitTestCase
 
 
-class TestInstructionDurationsClass(QiskitTestCase):
-    """Test Test InstructionDurations class."""
+class TestInstructionDurations(QiskitTestCase):
+    """Test InstructionDurations class."""
 
     def test_empty(self):
         durations = InstructionDurations()
@@ -36,40 +36,12 @@ class TestInstructionDurationsClass(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             InstructionDurations(invalid_dic)
 
-    def test_from_backend_for_backend_with_dt(self):
-        backend = FakeParis()
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertGreater(durations.dt, 0)
-        self.assertGreater(durations.get(gate, 0), 0)
-
-    def test_from_backend_for_backend_without_dt(self):
-        backend = FakeTokyo()
-        gate = self._find_gate_with_length(backend)
-        durations = InstructionDurations.from_backend(backend)
-        self.assertIsNone(durations.dt)
-        self.assertGreater(durations.get(gate, 0, "s"), 0)
-        with self.assertRaises(TranspilerError):
-            durations.get(gate, 0)
-
     def test_update_with_parameters(self):
         durations = InstructionDurations(
             [("rzx", (0, 1), 150, (0.5,)), ("rzx", (0, 1), 300, (1.0,))]
         )
-
         self.assertEqual(durations.get("rzx", [0, 1], parameters=[0.5]), 150)
         self.assertEqual(durations.get("rzx", [0, 1], parameters=[1.0]), 300)
-
-    def _find_gate_with_length(self, backend):
-        """Find a gate that has gate length."""
-        props = backend.properties()
-        for gate in props.gates:
-            try:
-                if props.gate_length(gate.gate, 0):
-                    return gate.gate
-            except Exception:  # pylint: disable=broad-except
-                pass
-        raise ValueError("Unable to find a gate with gate length.")
 
     def test_can_get_unbounded_duration_without_unit_conversion(self):
         param = Parameter("t")
@@ -88,3 +60,91 @@ class TestInstructionDurationsClass(QiskitTestCase):
         parameterized_delay = Delay(param, "s")
         with self.assertRaises(TranspilerError):
             InstructionDurations().get(parameterized_delay, 0)
+
+
+class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
+    """Test :meth:`~.from_backend` of :class:`.InstructionDurations` with
+    :class:`.BackendV1`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.backend = FakeParis()
+        self.backend_config = self.backend.configuration()
+        self.backend_props = self.backend.properties()
+        self.example_qubit = (0,)
+        self.example_gate = "x"
+
+        # Setting dt for the copy of backend to be None
+        self.backend_cpy = deepcopy(self.backend)
+        self.backend_cpy.configuration().dt = None
+
+    def test_backend_dt_equals_inst_dur_dt(self):
+        durations = InstructionDurations.from_backend(self.backend)
+        self.assertEqual(durations.dt, self.backend_config.dt)
+
+    def test_backend_gate_length_equals_inst_dur(self):
+        durations = InstructionDurations.from_backend(self.backend)
+        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0])
+        backend_inst_dur = self.backend_props.gate_length(
+            gate=self.example_gate, qubits=self.example_qubit
+        )
+        self.assertEqual(inst_dur_duration, backend_inst_dur)
+
+    def test_backend_without_dt_sets_inst_dur_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        self.assertIsNone(durations.dt)
+
+    def test_get_dur_s_with_dt_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        self.assertEqual(
+            durations.get(self.example_gate, self.example_qubit[0], "s"), 3.5555555555555554e-08
+        )
+
+    def test_raise_dur_get_dt_with_backend_dt_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        with self.assertRaises(TranspilerError):
+            durations.get(self.example_gate, self.example_qubit[0])
+
+
+class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
+    """Test :meth:`~.from_backend` of :class:`.InstructionDurations` with
+    :class:`.BackendV2`"""
+
+    def setUp(self):
+        super().setUp()
+
+        self.backend = FakePerth()
+        self.example_gate = "x"
+        self.example_qubit = (0,)
+
+        # Setting dt for the copy  for BackendV2 to None
+        self.backend_cpy = deepcopy(self.backend)
+        self.backend_cpy.target.dt = None
+
+    def test_backend_dt_equals_inst_dur_dt(self):
+        durations = InstructionDurations.from_backend(self.backend)
+        self.assertEqual(durations.dt, self.backend.dt)
+
+    def test_backend_gate_length_equals_inst_dur(self):
+        durations = InstructionDurations.from_backend(self.backend)
+        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0], "s")
+        backend_inst_dur = self.backend.target._gate_map[self.example_gate][
+            self.example_qubit
+        ].duration
+        self.assertEqual(inst_dur_duration, backend_inst_dur)
+
+    def test_backend_without_dt_sets_inst_dur_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        self.assertIsNone(durations.dt)
+
+    def test_get_dur_s_with_dt_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        self.assertEqual(
+            durations.get(self.example_gate, self.example_qubit[0], "s"), 3.5555555555555554e-08
+        )
+
+    def test_raise_dur_get_dt_with_backend_dt_None(self):
+        durations = InstructionDurations.from_backend(self.backend_cpy)
+        with self.assertRaises(TranspilerError):
+            durations.get(self.example_gate, self.example_qubit[0])
