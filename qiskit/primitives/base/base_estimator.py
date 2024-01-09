@@ -156,6 +156,9 @@ from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
+import numpy as np
+from numpy.typing import NDArray
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
@@ -163,7 +166,7 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers.estimator_pub import EstimatorPubLike
+from ..containers import make_data_bin, DataBin, EstimatorPub, EstimatorPubLike
 from . import validation
 from .base_primitive import BasePrimitive
 
@@ -343,6 +346,12 @@ class BaseEstimatorV2:
             precision: a target precision of mean expectation value estimates.
         """
         self._precision = precision
+
+    @staticmethod
+    def _make_data_bin(pub: EstimatorPub) -> DataBin:
+        # provide a standard way to construct estimator databins to ensure that names match
+        # across implementations
+        return make_data_bin((("evs", NDArray[np.float]), ("stds", NDArray[np.float])), pub.shape)
 
     @property
     def precision(self) -> float | None:
