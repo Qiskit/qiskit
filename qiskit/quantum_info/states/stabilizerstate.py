@@ -95,7 +95,7 @@ class StabilizerState(QuantumState):
         return (self._data.stab == other._data.stab).all()
 
     def __repr__(self):
-        return f"StabilizerState({self._data.stabilizer})"
+        return f"StabilizerState({self._data.to_labels(mode='S')})"
 
     @property
     def clifford(self):

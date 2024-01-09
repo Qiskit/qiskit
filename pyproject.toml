@@ -110,7 +110,6 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPas
 [project.entry-points."qiskit.transpiler.layout"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager"
 dense = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager"
-noise_adaptive = "qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager"
 sabre = "qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager"
 trivial = "qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager"
 
