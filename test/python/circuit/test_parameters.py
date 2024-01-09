@@ -1084,9 +1084,7 @@ class TestParameters(QiskitTestCase):
         bound_qc = unbound_qc.assign_parameters({theta: numpy.pi / 2})
 
         shots = 1024
-        job = execute(
-            bound_qc, backend=BasicProvider.get_backend("basic_simulator"), shots=shots
-        )
+        job = execute(bound_qc, backend=BasicProvider.get_backend("basic_simulator"), shots=shots)
         self.assertDictAlmostEqual(job.result().get_counts(), {"1": shots}, 0.05 * shots)
 
     def test_num_parameters(self):
