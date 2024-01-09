@@ -340,10 +340,10 @@ class BaseEstimatorV2:
     observable combinations.
     """
 
-    def __init__(self, precision: float | None):
+    def __init__(self, precision: float):
         """
         Args:
-            precision: a target precision of mean expectation value estimates.
+            precision: A target precision for expectation value estimates.
         """
         self._precision = precision
 
@@ -355,7 +355,7 @@ class BaseEstimatorV2:
 
     @property
     def precision(self) -> float | None:
-        """The target precision for mean expectation value estimates."""
+        """The target precision for expectation value estimates."""
         return self._precision
 
     @precision.setter
@@ -366,9 +366,8 @@ class BaseEstimatorV2:
     def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
-        Args:
-            pubs: a iterable of pubslike object. Typically, list of tuple
-                ``(QuantumCircuit, observables, parameter_values)``
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or 
+            ``(circuit, observables, parameter_values)``.
 
         Returns:
             A job object that contains results.

@@ -30,8 +30,9 @@ from .shape import ShapedMixin
 
 
 class EstimatorPub(ShapedMixin):
-    """Primitive Unified Bloc for Estimator.
-    Pub is composed of triple (circuit, observables, parameter_values).
+    """Primitive Unified Bloc for any Estimator primitive.
+    
+    An estimator pub is essentially a triple ``(circuit, observables, parameter_values)``.
     """
 
     __slots__ = ("_circuit", "_observables", "_parameter_values", "_shape")
@@ -46,10 +47,10 @@ class EstimatorPub(ShapedMixin):
         """Initialize an estimator pub.
 
         Args:
-            circuit: a quantum circuit.
-            observables: an observables array.
-            parameter_values: a bindings array.
-            validate: if True, the input data is validated during initialization.
+            circuit: A quantum circuit.
+            observables: An observables array.
+            parameter_values: A bindings array, if the circuit is parametric.
+            validate: Whether to validate arguments during initialization.
         """
         self._circuit = circuit
         self._observables = observables
@@ -63,23 +64,23 @@ class EstimatorPub(ShapedMixin):
 
     @property
     def observables(self) -> ObservablesArray:
-        """An observables array"""
+        """An observables array."""
         return self._observables
 
     @property
     def parameter_values(self) -> BindingsArray:
-        """A bindings array"""
+        """A bindings array."""
         return self._parameter_values
 
     @classmethod
     def coerce(cls, pub: EstimatorPubLike) -> EstimatorPub:
-        """Coerce EstimatorPubLike into EstimatorPub.
+        """Coerce :class:`~.EstimatorPubLike` into :class:`~.EstimatorPub`.
 
         Args:
-            pub: an object to be estimator pub.
+            pub: A compatible object for coersion.
 
         Returns:
-            A coerced estimator pub.
+            An estimator pub.
         """
         if isinstance(pub, EstimatorPub):
             return pub
