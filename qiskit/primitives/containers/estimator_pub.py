@@ -34,14 +34,13 @@ class EstimatorPub(ShapedMixin):
     Pub is composed of triple (circuit, observables, parameter_values).
     """
 
-    __slots__ = ("_circuit", "_observables", "_parameter_values", "_shape", "_precision")
+    __slots__ = ("_circuit", "_observables", "_parameter_values", "_shape")
 
     def __init__(
         self,
         circuit: QuantumCircuit,
         observables: ObservablesArray,
         parameter_values: BindingsArray | None = None,
-        precision: float | None = None,
         validate: bool = False,
     ):
         """Initialize an estimator pub.
@@ -50,13 +49,11 @@ class EstimatorPub(ShapedMixin):
             circuit: a quantum circuit.
             observables: an observables array.
             parameter_values: a bindings array.
-            precision: a target precision for expectation value estimates.
             validate: if True, the input data is validated during initialization.
         """
         self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
-        self._precision = precision
 
         # For ShapedMixin
         self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
@@ -73,11 +70,6 @@ class EstimatorPub(ShapedMixin):
     def parameter_values(self) -> BindingsArray:
         """A bindings array"""
         return self._parameter_values
-    
-    @property
-    def precision(self) -> float | None:
-        """A target precision"""
-        return self._precision
 
     @classmethod
     def coerce(cls, pub: EstimatorPubLike) -> EstimatorPub:
@@ -124,12 +116,6 @@ class EstimatorPub(ShapedMixin):
                 f"The number of values ({num_parameters}) does not match "
                 f"the number of parameters ({self.circuit.num_parameters}) for the circuit."
             )
-
-        if self._precision is not None:
-            if not isinstance(self._precision, Number):
-                raise TypeError(f"The target precision must be a float, not {type(self._precision)}")
-            if self._precision < 0:
-                raise ValueError(f"The target precision ({self._precision}) must be non-negative")
 
 
 EstimatorPubLike = Union[

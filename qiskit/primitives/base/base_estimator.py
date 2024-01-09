@@ -343,12 +343,12 @@ class BaseEstimatorV2:
             precision: a target precision of mean expectation value estimates.
         """
         self._precision = precision
-        
+
     @property
     def precision(self) -> float | None:
         """The target precision for mean expectation value estimates."""
         return self._precision
-    
+
     @precision.setter
     def precision(self, value: float | None):
         self._precision = value
