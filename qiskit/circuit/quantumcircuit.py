@@ -953,9 +953,10 @@ class QuantumCircuit:
                 "Cannot emit a new composed circuit while a control-flow context is active."
             )
 
+        # Avoid mutating `dest` until as much of the error checking as possible is complete, to
+        # avoid an in-place composition getting `self` in a partially mutated state for a simple
+        # error that the user might want to correct in an interactive session.
         dest = self if inplace else self.copy()
-        dest.duration = None
-        dest.unit = "dt"
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
         # has to be strictly larger. This allows composing final measurements onto unitary circuits.
@@ -997,23 +998,9 @@ class QuantumCircuit:
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        for gate, cals in other.calibrations.items():
-            dest._calibrations[gate].update(cals)
-
-        dest.global_phase += other.global_phase
-
-        if not other.data:
-            # Nothing left to do. Plus, accessing 'data' here is necessary
-            # to trigger any lazy building since we now access '_data'
-            # directly.
-            return None if inplace else dest
-
-        # The 'qubits' and 'clbits' used for 'dest'.
+        # Maps bits in 'other' to bits in 'dest'.
         mapped_qubits: list[Qubit]
         mapped_clbits: list[Clbit]
-
-        # Maps bits in 'other' to bits in 'dest'. Used only for
-        # adjusting bits in variables (e.g. condition and target).
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
             mapped_qubits = dest.qubits
@@ -1024,6 +1011,10 @@ class QuantumCircuit:
                 raise CircuitError(
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
                     f" match number of qubits in the circuit ({len(other.qubits)})."
+                )
+            if len(set(mapped_qubits)) != len(mapped_qubits):
+                raise CircuitError(
+                    f"Duplicate qubits referenced in 'qubits' parameter: '{mapped_qubits}'"
                 )
             edge_map.update(zip(other.qubits, mapped_qubits))
 
@@ -1037,7 +1028,24 @@ class QuantumCircuit:
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
                     f" match number of clbits in the circuit ({len(other.clbits)})."
                 )
+            if len(set(mapped_clbits)) != len(mapped_clbits):
+                raise CircuitError(
+                    f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
+                )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
+
+        for gate, cals in other.calibrations.items():
+            dest._calibrations[gate].update(cals)
+
+        dest.duration = None
+        dest.unit = "dt"
+        dest.global_phase += other.global_phase
+
+        if not other.data:
+            # Nothing left to do. Plus, accessing 'data' here is necessary
+            # to trigger any lazy building since we now access '_data'
+            # directly.
+            return None if inplace else dest
 
         variable_mapper = _classical_resource_map.VariableMapper(
             dest.cregs, edge_map, dest.add_register
@@ -1503,6 +1511,85 @@ class QuantumCircuit:
                     self._parameters = None
 
     @typing.overload
+    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]:
+        ...
+
+    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
+    @typing.overload
+    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter:
+        ...
+
+    # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
+    def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
+        """Retrieve a compile-time parameter that is accessible in this circuit scope by name.
+
+        Args:
+            name: the name of the parameter to retrieve.
+            default: if given, this value will be returned if the parameter is not present.  If it
+                is not given, a :exc:`KeyError` is raised instead.
+
+        Returns:
+            The corresponding parameter.
+
+        Raises:
+            KeyError: if no default is given, but the parameter does not exist in the circuit.
+
+        Examples:
+            Retrieve a parameter by name from a circuit::
+
+                from qiskit.circuit import QuantumCircuit, Parameter
+
+                my_param = Parameter("my_param")
+
+                # Create a parametrised circuit.
+                qc = QuantumCircuit(1)
+                qc.rx(my_param, 0)
+
+                # We can use 'my_param' as a parameter, but let's say we've lost the Python object
+                # and need to retrieve it.
+                my_param_again = qc.get_parameter("my_param")
+
+                assert my_param is my_param_again
+
+            Get a variable from a circuit by name, returning some default if it is not present::
+
+                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("unknown_param", None) is None
+
+        See also:
+            :meth:`get_var`
+                A similar method, but for :class:`.expr.Var` run-time variables instead of
+                :class:`.Parameter` compile-time parameters.
+        """
+        if (parameter := self._parameter_table.parameter_from_name(name, None)) is None:
+            if default is Ellipsis:
+                raise KeyError(f"no parameter named '{name}' is present")
+            return default
+        return parameter
+
+    def has_parameter(self, name_or_param: str | Parameter, /) -> bool:
+        """Check whether a parameter object exists in this circuit.
+
+        Args:
+            name_or_param: the parameter, or name of a parameter to check.  If this is a
+                :class:`.Parameter` node, the parameter must be exactly the given one for this
+                function to return ``True``.
+
+        Returns:
+            whether a matching parameter is assignable in this circuit.
+
+        See also:
+            :meth:`QuantumCircuit.get_parameter`
+                Retrieve the :class:`.Parameter` instance from this circuit by name.
+            :meth:`QuantumCircuit.has_var`
+                A similar method to this, but for run-time :class:`.expr.Var` variables instead of
+                compile-time :class:`.Parameter`\\ s.
+        """
+        if isinstance(name_or_param, str):
+            return self.get_parameter(name_or_param, None) is not None
+        return self.get_parameter(name_or_param.name) == name_or_param
+
+    @typing.overload
     def get_var(self, name: str, default: T) -> Union[expr.Var, T]:
         ...
 
@@ -1545,6 +1632,11 @@ class QuantumCircuit:
 
                 assert qc.get_var("my_var", None) is my_var
                 assert qc.get_var("unknown_variable", None) is None
+
+        See also:
+            :meth:`get_parameter`
+                A similar method, but for :class:`.Parameter` compile-time parameters instead of
+                :class:`.expr.Var` run-time variables.
         """
         if (out := self._current_scope().get_var(name)) is not None:
             return out
@@ -1564,7 +1656,11 @@ class QuantumCircuit:
             whether a matching variable is accessible.
 
         See also:
-            :meth:`QuantumCircuit.get_var`: retrieve a named variable from a circuit.
+            :meth:`QuantumCircuit.get_var`
+                Retrieve the :class:`.expr.Var` instance from this circuit by name.
+            :meth:`QuantumCircuit.has_parameter`
+                A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
+                run-time :class:`.expr.Var` variables.
         """
         if isinstance(name_or_var, str):
             return self.get_var(name_or_var, None) is not None
@@ -2987,7 +3083,7 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
-        If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
+        If ``parameters`` is passed as a dictionary, the keys should be :class:`.Parameter`
         instances in the current circuit. The values of the dictionary can either be numeric values
         or new parameter objects.
 
@@ -2997,6 +3093,16 @@ class QuantumCircuit:
 
         The values can be assigned to the current circuit object or to a copy of it.
 
+        .. note::
+            When ``parameters`` is given as a mapping, it is permissible to have keys that are
+            strings of the parameter names; these will be looked up using :meth:`get_parameter`.
+            You can also have keys that are :class:`.ParameterVector` instances, and in this case,
+            the dictionary value should be a sequence of values of the same length as the vector.
+
+            If you use either of these cases, you must leave the setting ``flat_input=False``;
+            changing this to ``True`` enables the fast path, where all keys must be
+            :class:`.Parameter` instances.
+
         Args:
             parameters: Either a dictionary or iterable specifying the new parameter values.
             inplace: If False, a copy of the circuit with the bound parameters is returned.
@@ -3004,7 +3110,9 @@ class QuantumCircuit:
             flat_input: If ``True`` and ``parameters`` is a mapping type, it is assumed to be
                 exactly a mapping of ``{parameter: value}``.  By default (``False``), the mapping
                 may also contain :class:`.ParameterVector` keys that point to a corresponding
-                sequence of values, and these will be unrolled during the mapping.
+                sequence of values, and these will be unrolled during the mapping, or string keys,
+                which will be converted to :class:`.Parameter` instances using
+                :meth:`get_parameter`.
             strict: If ``False``, any parameters given in the mapping that are not used in the
                 circuit will be ignored.  If ``True`` (the default), an error will be raised
                 indicating a logic error.
@@ -3182,9 +3290,8 @@ class QuantumCircuit:
         )
         return None if inplace else target
 
-    @staticmethod
     def _unroll_param_dict(
-        parameter_binds: Mapping[Parameter, ParameterValueType]
+        self, parameter_binds: Mapping[Parameter, ParameterValueType]
     ) -> Mapping[Parameter, ParameterValueType]:
         out = {}
         for parameter, value in parameter_binds.items():
@@ -3195,6 +3302,8 @@ class QuantumCircuit:
                         f" but was assigned to {len(value)} values."
                     )
                 out.update(zip(parameter, value))
+            elif isinstance(parameter, str):
+                out[self.get_parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
