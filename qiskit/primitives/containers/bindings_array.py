@@ -34,7 +34,7 @@ class BindingsArray(ShapedMixin):
     r"""Stores parameter binding value sets for a :class:`qiskit.QuantumCircuit`.
 
     A single parameter binding set provides numeric values to bind to a circuit with free
-    class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued
+    :class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued
     collection of such sets. The simplest example is a 0-d array consisting of a single
     parameter binding set, whereas an n-d array of parameter binding sets represents an
     n-d sweep over values.
@@ -73,7 +73,7 @@ class BindingsArray(ShapedMixin):
         kwvals: Mapping[ParameterLike, Iterable[ParameterValueType]] | ArrayLike | None = None,
         shape: ShapeInput | None = None,
     ):
-        """
+        r"""
         Initialize a ``BindingsArray``. It can take parameter vectors and dictionaries.
 
         The ``shape`` argument does not need to be provided whenever it can unambiguously
