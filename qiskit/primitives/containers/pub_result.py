@@ -36,10 +36,10 @@ class PubResult:
 
     @property
     def data(self) -> DataBin:
-        """Result data for the pub"""
+        """Result data for the pub."""
         return self._data
 
     @property
     def metadata(self) -> dict:
-        """Metadata for the pub"""
+        """Metadata for the pub."""
         return self._metadata

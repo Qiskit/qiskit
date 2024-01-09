@@ -31,27 +31,24 @@ ParameterLike = Union[Parameter, str]
 
 
 class BindingsArray(ShapedMixin):
-    r"""Stores many possible parameter binding values for a :class:`qiskit.QuantumCircuit`.
-
-    Similar to a ``inspect.BoundArguments`` instance, which stores arguments that can be bound to a
-    compatible Python function, this class stores both values without names, so that their ordering
-    is important, as well as values attached to ``qiskit.circuit.Parameters``. However, a dense
-    rectangular array of possible values is stored for each parameter, so that this class is akin to
-    an object-array of ``inspect.BoundArguments``.
+    r"""Stores parameter binding value sets for a :class:`qiskit.QuantumCircuit`.
+    
+    A single parameter binding set provides numeric values to bind to a circuit with free 
+    class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued 
+    collection of such sets. The simplest example is a 0-d array consisting of a single 
+    parameter binding set, whereas an n-d array of parameter binding sets represents an 
+    n-d sweep over values.
 
     The storage format is a list of arrays, ``[vals0, vals1, ...]``, as well as a dictionary of
-    arrays attached to parameters, ``{params0: kwvals0, ...}``. Crucially, the last dimension of
-    each array indexes one or more parameters. For example, if the last dimension of ``vals1`` is
-    25, then it represents an array of possible binding values for 25 distinct parameters, where its
-    leading shape is the array :attr:`~.shape` of its binding array. This implies a degeneracy of the
-    storage format: ``[vals, vals1[..., :10], vals1[..., 10:], ...]`` is exactly equivalent to
-    ``[vals0, vals1, ...]`` in the bindings it specifies. This complication has been included to
-    satisfy two competing constraints:
-
-        * Arrays with different dtypes cannot be concatenated into a single array, so that multiple
-          arrays are required for generality.
-        * It is extremely convenient to put everything into a small number of big arrays, when
-          possible.
+    arrays attached to parameters, ``{params0: kwvals0, ...}``. A convention is used 
+    where the last dimension of each array indexes (a subset of) circuit parameters. For 
+    example, if the last dimension of ``vals1`` is 25, then it represents an array of 
+    possible binding values for 25 distinct parameters, where its leading shape is the 
+    array :attr:`~.shape` of its binding array. This implies a degeneracy of the storage 
+    format: ``[vals, vals1[..., :10], vals1[..., 10:], ...]`` is exactly equivalent to 
+    ``[vals0, vals1, ...]`` in the bindings it specifies. This allows flexibility about whether 
+    values for different parameters are stored in one big array, or across several smaller 
+    arrays. It also allows different parameters to use different dtypes.
 
     .. code-block:: python
 
@@ -90,7 +87,7 @@ class BindingsArray(ShapedMixin):
               it is assumed that the last dimension is over many parameters.
             * Multiple arrays are given whose shapes differ only in the last dimension size.
             * Some array is given in ``kwvals`` where the key contains multiple
-              :class:`~.Parameter` s, whose length the last dimension of the array must therefore match.
+              :class:`~.Parameter`\s, whose length the last dimension of the array must therefore match.
 
         Args:
             vals: One or more arrays, where the last index of each corresponds to
@@ -164,7 +161,7 @@ class BindingsArray(ShapedMixin):
         return self._vals
 
     def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
-        """Return the circuit bound to the values at the provided index.
+        """Return a new circuit bound to the values at the provided index.
 
         Args:
             circuit: The circuit to bind.
@@ -244,7 +241,7 @@ class BindingsArray(ShapedMixin):
         """Coerce an input that is :class:`~BindingsArrayLike` into a new :class:`~BindingsArray`.
 
         Args:
-            bindings_array: an object to be bindings array.
+            bindings_array: An object to be bindings array.
 
         Returns:
             A new bindings array.
