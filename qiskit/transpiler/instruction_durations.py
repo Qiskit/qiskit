@@ -12,7 +12,6 @@
 
 """Durations of instructions, one of transpiler configurations."""
 from __future__ import annotations
-import logging
 from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
@@ -22,8 +21,6 @@ from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend, BackendV1, BackendV2
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils.units import apply_prefix
-
-logger = logging.getLogger(__name__)
 
 
 class InstructionDurations:
