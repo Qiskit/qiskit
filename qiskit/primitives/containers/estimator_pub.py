@@ -18,7 +18,6 @@ Estimator Pub class
 from __future__ import annotations
 
 from typing import Tuple, Union
-from numbers import Number
 
 import numpy as np
 
@@ -31,7 +30,7 @@ from .shape import ShapedMixin
 
 class EstimatorPub(ShapedMixin):
     """Primitive Unified Bloc for any Estimator primitive.
-    
+
     An estimator pub is essentially a triple ``(circuit, observables, parameter_values)``.
     """
 
@@ -52,6 +51,7 @@ class EstimatorPub(ShapedMixin):
             parameter_values: A bindings array, if the circuit is parametric.
             validate: Whether to validate arguments during initialization.
         """
+        super().__init__()
         self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()

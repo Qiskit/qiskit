@@ -366,7 +366,7 @@ class BaseEstimatorV2:
     def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or 
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
             ``(circuit, observables, parameter_values)``.
 
         Returns:
