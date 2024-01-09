@@ -12,14 +12,18 @@
 
 """Job abstract interface."""
 
+from __future__ import annotations
+
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Optional, Generic, TypeVar
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
+
+T = TypeVar("T")
 
 
 class Job:
@@ -34,7 +38,7 @@ class Job:
     version = 0
 
 
-class JobV1(Job, ABC):
+class JobV1(Job, ABC, Generic[T]):
     """Class to handle jobs
 
     This first version of the Backend abstract class is written to be mostly
@@ -128,7 +132,7 @@ class JobV1(Job, ABC):
         pass
 
     @abstractmethod
-    def result(self):
+    def result(self) -> T:
         """Return the results of the job."""
         pass
 
@@ -137,6 +141,6 @@ class JobV1(Job, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def status(self):
+    def status(self) -> JobStatus:
         """Return the status of the job, among the values of ``JobStatus``."""
         pass
