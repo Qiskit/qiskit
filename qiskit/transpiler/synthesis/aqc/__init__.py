@@ -35,3 +35,29 @@ warnings.warn(
     stacklevel=2,
     category=PendingDeprecationWarning,
 )
+
+_DEPRECATED_NAMES = {
+    "AQC": "qiskit.synthesis.unitary.aqc",
+    "ApproximateCircuit": "qiskit.synthesis.unitary.aqc",
+    "ApproximatingObjective": "qiskit.synthesis.unitary.aqc",
+    "CNOTUnitCircuit": "qiskit.synthesis.unitary.aqc",
+    "CNOTUnitObjective": "qiskit.synthesis.unitary.aqc",
+    "DefaultCNOTUnitObjective": "qiskit.synthesis.unitary.aqc",
+    "FastCNOTUnitObjective": "qiskit.synthesis.unitary.aqc",
+    "AQCSynthesisPlugin": "qiskit.transpiler.passes.synthesis",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        import importlib
+
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit 0.46"
+            f" and will be removed in 1.0.  Import from '{module_name}' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
