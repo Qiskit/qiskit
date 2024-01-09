@@ -2,6 +2,8 @@
 
 set -x
 
+merged_path=$1
+
 python -c 'import sys;assert sys.platform == "win32"'
 is_win=$?
 
@@ -26,4 +28,4 @@ QISKIT_PARALLEL=FALSE stestr run --abbreviate
 
 deactivate
 
-${HOME}/.rustup/toolchains/*x86_64*/lib/rustlib/x86_64*/bin/llvm-profdata merge -o /tmp/pgo-data/merged.profdata /tmp/pgo-data
+${HOME}/.rustup/toolchains/*x86_64*/lib/rustlib/x86_64*/bin/llvm-profdata merge -o $merged_path /tmp/pgo-data

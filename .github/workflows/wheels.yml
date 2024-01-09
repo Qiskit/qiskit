@@ -25,8 +25,8 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
         env:
-          CIBW_BEFORE_BUILD: 'bash ./tools/build_pgo.sh'
-          CIBW_BEFORE_BUILD_WINDOWS: 'bash ./tools/build_pgo.sh && cp /tmp/pgo-data/merged.profdata ~/.'
+          CIBW_BEFORE_BUILD: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata'
+          CIBW_BEFORE_BUILD_WINDOWS: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata && cp /tmp/pgo-data/merged.profdata ~/.'
           CIBW_ENVIRONMENT: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
           CIBW_ENVIRONMENT_LINUX: 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
           CIBW_ENVIRONMENT_WINDOWS: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=c:\\Users\\runneradmin\\merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
