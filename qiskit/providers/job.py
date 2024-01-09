@@ -12,8 +12,6 @@
 
 """Job abstract interface."""
 
-from __future__ import annotations
-
 import time
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Generic, TypeVar
