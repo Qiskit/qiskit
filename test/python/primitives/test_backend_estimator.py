@@ -410,6 +410,7 @@ class TestBackendEstimator(QiskitTestCase):
             else:
                 self.assertEqual(value, -1)
 
+    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_circuit_with_measurement(self):
         """Test estimator with a dynamic circuit"""
@@ -428,6 +429,7 @@ class TestBackendEstimator(QiskitTestCase):
         result = estimator.run(bell, observable).result()
         self.assertAlmostEqual(result.values[0], 1, places=1)
 
+    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_dynamic_circuit(self):
         """Test estimator with a dynamic circuit"""

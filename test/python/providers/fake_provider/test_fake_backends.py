@@ -40,8 +40,9 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
 
     def setUp(self) -> None:
         self.backend = ConfigurableFakeBackend("Tashkent", n_qubits=4)
+        super().setUp()
 
-    @unittest.skip("Skipped until qiskit-aer#741 is fixed and released")
+    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_transpile_schedule_and_assemble(self):
         """Test transpile, schedule and assemble on generated backend."""
@@ -69,6 +70,7 @@ class GeneratedFakeBackendsTest(QiskitTestCase):
 class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
+    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs(self):
         """Fake backends honor kwargs passed."""
@@ -83,6 +85,7 @@ class FakeBackendsTest(QiskitTestCase):
 
         self.assertEqual(sum(raw_counts.values()), 1000)
 
+    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backend_v2_noise_model_always_present(self):
         """Test that FakeBackendV2 instances always run with noise."""
