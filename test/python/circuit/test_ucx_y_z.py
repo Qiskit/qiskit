@@ -57,7 +57,7 @@ class TestUCRXYZ(QiskitTestCase):
                 q = QuantumRegister(num_contr + 1)
                 qc = QuantumCircuit(q)
                 if use_method:
-                    with self.assertWarns(PendingDeprecationWarning):
+                    with self.assertWarns(DeprecationWarning):
                         getattr(qc, methods[rot_axis])(angles, q[1 : num_contr + 1], q[0])
                 else:
                     gate = gates[rot_axis](angles)
