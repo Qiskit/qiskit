@@ -14,7 +14,7 @@
 
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Generic, TypeVar
+from typing import Callable, Generic, Optional, TypeVar
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
