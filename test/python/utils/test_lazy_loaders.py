@@ -355,7 +355,7 @@ class TestLazyDependencyTester(QiskitTestCase):
         """Check that the module raising an `ImportError` other than being not found is warned
         against."""
 
-        # pylint: disable=missing-class-docstring,missing-function-docstring
+        # pylint: disable=missing-class-docstring,missing-function-docstring,abstract-method
 
         class RaisesImportErrorOnLoad(importlib.abc.Loader):
             def __init__(self, name):
@@ -381,7 +381,7 @@ class TestLazyDependencyTester(QiskitTestCase):
         (such as a module trying to import parts of Terra that don't exist any more) is caught and
         warned against, rather than silently caught as an expected `ModuleNotFoundError`."""
 
-        # pylint: disable=missing-class-docstring,missing-function-docstring
+        # pylint: disable=missing-class-docstring,missing-function-docstring,abstract-method
 
         class ImportsBadModule(importlib.abc.Loader):
             def create_module(self, spec):
