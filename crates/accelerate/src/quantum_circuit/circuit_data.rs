@@ -215,9 +215,9 @@ impl CircuitData {
 
     /// Returns the current sequence of registered :class:`.Qubit` instances as a list.
     ///
-    /// .. note::
+    /// .. warning::
     ///
-    ///     Modifying this list from Python space will invalidate the :class:`CircuitData` data
+    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
     ///     structures.
     ///
     /// Returns:
@@ -230,9 +230,9 @@ impl CircuitData {
     /// Returns the current sequence of registered :class:`.Clbit`
     /// instances as a list.
     ///
-    /// .. note::
+    /// .. warning::
     ///
-    ///     Modifying this list from Python space will invalidate the :class:`CircuitData` data
+    ///     Do not modify this list yourself.  It will invalidate the :class:`CircuitData` data
     ///     structures.
     ///
     /// Returns:
