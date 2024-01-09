@@ -85,7 +85,7 @@ class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
 
     def test_backend_gate_length_equals_inst_dur(self):
         durations = InstructionDurations.from_backend(self.backend)
-        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0])
+        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0], "s")
         backend_inst_dur = self.backend_props.gate_length(
             gate=self.example_gate, qubits=self.example_qubit
         )
@@ -128,7 +128,9 @@ class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
 
     def test_backend_gate_length_equals_inst_dur(self):
         durations = InstructionDurations.from_backend(self.backend)
-        inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0], "s")
+        inst_dur_duration = durations.get(
+            inst=self.example_gate, qubits=self.example_qubit[0], unit="s"
+        )
         backend_inst_dur = self.backend.target._gate_map[self.example_gate][
             self.example_qubit
         ].duration

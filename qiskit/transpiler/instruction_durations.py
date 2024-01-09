@@ -81,7 +81,7 @@ class InstructionDurations:
 
         # All durations in seconds in gate_length
         instruction_durations = []
-        dt = None
+        return_durations = None
 
         # Logic to handle if backend is sub-class of old BackendV1
         if isinstance(backend, BackendV1):
@@ -100,33 +100,15 @@ class InstructionDurations:
             try:
                 dt = backend.configuration().dt
             except AttributeError:
-                pass
+                dt = None
+
+            return_durations = cls(instruction_durations, dt=dt)
 
         # Logic to handle if backend is sub-class is BackendV2
         elif isinstance(backend, BackendV2):
-            target = backend.target
-            inst_with_no_props = {"delay"}
-            inst_duration = None
-            for name in target.operation_names:
-                for qubits, inst_props in target._gate_map[name].items():
-                    if name in inst_with_no_props:
-                        # Setting the duration for 'delay' to zero.
-                        inst_duration = 0.0
-                    else:
-                        try:
-                            inst_duration = inst_props.duration
-                        except AttributeError:
-                            logger.info("%s on %s did not report any duration", name, qubits)
-                            continue
-                    instruction_durations.append((name, qubits, inst_duration, "s"))
+            return_durations = backend.target.durations()
 
-            try:
-                dt = target.dt
-            except AttributeError:
-                logger.info("Backend Target didn't report any dt")
-
-
-        return cls(instruction_durations, dt=dt)
+        return return_durations
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
