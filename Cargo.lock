@@ -304,7 +304,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset",
+<<<<<<< HEAD
  "indexmap 2.1.0",
+=======
+ "indexmap 2.0.0",
+>>>>>>> 937e45dd8 (Update Cargo.lock)
 ]
 
 [[package]]
@@ -427,9 +431,15 @@ dependencies = [
 
 [[package]]
 name = "quote"
+<<<<<<< HEAD
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "291ec9ab5efd934aaf503a6466c5d5251535d108ee747472c3977cc5acc868ef"
+=======
+version = "1.0.33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5267fca4496028628a95160fc423a33e8b2e6af8a5302579e322e4b520293cae"
+>>>>>>> 937e45dd8 (Update Cargo.lock)
 dependencies = [
  "proc-macro2",
 ]
@@ -663,6 +673,7 @@ name = "windows_x86_64_msvc"
 version = "0.48.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed94fce61571a4006852b7389a063ab983c02eb1bb37b47f8272ce92d06d9538"
+<<<<<<< HEAD
 
 [[package]]
 name = "zerocopy"
@@ -683,3 +694,5 @@ dependencies = [
  "quote",
  "syn",
 ]
+=======
+>>>>>>> 937e45dd8 (Update Cargo.lock)
