@@ -292,9 +292,11 @@ class LazyImportTester(LazyDependencyManager):
             try:
                 imported = importlib.import_module(module)
             except ModuleNotFoundError as exc:
-                if exc.name == module:
-                    # If the module that wasn't found is the one we were explicitly searching for,
-                    # then it's just not installed.
+                failed_parts = exc.name.split(".")
+                target_parts = module.split(".")
+                if failed_parts == target_parts[: len(failed_parts)]:
+                    # If the module that wasn't found is the one we were explicitly searching for
+                    # (or one of its parents), then it's just not installed.
                     return False
                 # Otherwise, we _did_ find the module, it just didn't import, which is a problem.
                 failed_modules[module] = exc

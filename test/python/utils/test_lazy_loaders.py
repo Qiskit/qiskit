@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib.abc
 import importlib.util
 import sys
+import warnings
 from unittest import mock
 
 import ddt
@@ -97,6 +98,23 @@ class TestLazyDependencyTester(QiskitTestCase):
         self.assertFalse(bool(test_generator()))
         if test_generator():
             self.fail("did not evaluate false")
+
+    def test_submodule_import_detects_false_correctly(self):
+        """Test that a lazy import of a submodule where the parent is not available still generates
+        a silent failure."""
+
+        # The idea here is that the base package is what will fail the import, and the corresponding
+        # `ImportError.name` won't be the same as the full path we were trying to import.  We want
+        # to make sure that the "was it found and failed to import?" handling is correct in this
+        # case.
+        def checker():
+            return LazyImportTester("_qiskit_module_does_not_exist_.submodule")
+
+        # Just in case something else is allowing the warnings, but they should be forbidden by
+        # default.
+        with warnings.catch_warnings(record=True) as log:
+            self.assertFalse(checker())
+        self.assertEqual(log, [])
 
     @ddt.data(available_importer, available_process, unavailable_importer, unavailable_process)
     def test_check_occurs_once(self, test_generator):
