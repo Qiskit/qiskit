@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,22 +32,22 @@ ParameterLike = Union[Parameter, str]
 
 class BindingsArray(ShapedMixin):
     r"""Stores parameter binding value sets for a :class:`qiskit.QuantumCircuit`.
-    
-    A single parameter binding set provides numeric values to bind to a circuit with free 
-    class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued 
-    collection of such sets. The simplest example is a 0-d array consisting of a single 
-    parameter binding set, whereas an n-d array of parameter binding sets represents an 
+
+    A single parameter binding set provides numeric values to bind to a circuit with free
+    class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued
+    collection of such sets. The simplest example is a 0-d array consisting of a single
+    parameter binding set, whereas an n-d array of parameter binding sets represents an
     n-d sweep over values.
 
     The storage format is a list of arrays, ``[vals0, vals1, ...]``, as well as a dictionary of
-    arrays attached to parameters, ``{params0: kwvals0, ...}``. A convention is used 
-    where the last dimension of each array indexes (a subset of) circuit parameters. For 
-    example, if the last dimension of ``vals1`` is 25, then it represents an array of 
-    possible binding values for 25 distinct parameters, where its leading shape is the 
-    array :attr:`~.shape` of its binding array. This implies a degeneracy of the storage 
-    format: ``[vals, vals1[..., :10], vals1[..., 10:], ...]`` is exactly equivalent to 
-    ``[vals0, vals1, ...]`` in the bindings it specifies. This allows flexibility about whether 
-    values for different parameters are stored in one big array, or across several smaller 
+    arrays attached to parameters, ``{params0: kwvals0, ...}``. A convention is used
+    where the last dimension of each array indexes (a subset of) circuit parameters. For
+    example, if the last dimension of ``vals1`` is 25, then it represents an array of
+    possible binding values for 25 distinct parameters, where its leading shape is the
+    array :attr:`~.shape` of its binding array. This implies a degeneracy of the storage
+    format: ``[vals, vals1[..., :10], vals1[..., 10:], ...]`` is exactly equivalent to
+    ``[vals0, vals1, ...]`` in the bindings it specifies. This allows flexibility about whether
+    values for different parameters are stored in one big array, or across several smaller
     arrays. It also allows different parameters to use different dtypes.
 
     .. code-block:: python
