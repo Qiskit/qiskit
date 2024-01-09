@@ -8,3 +8,6 @@ features:
     commutation checker was added, that can be used to cache commutations computed during one qiskit
     execution. Addresses `#8020 <https://github.com/Qiskit/qiskit-terra/issues/8020>` and
     `#7101 <https://github.com/Qiskit/qiskit-terra/issues/7101>`
+  - |
+    Adds a `SessionCommutationChecker`, i.e. a commutation checker with commutations that are cached
+    consistently during the runtime of a python execution.

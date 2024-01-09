@@ -45,10 +45,9 @@ class CommutationChecker:
         else:
             self._standard_commutations = standard_gate_commutations
         self._cache_max_entries = cache_max_entries
-        """
-            self._cached_commutation has the same structure as standard_gate_commutations, i.e. a
-            dict[pair of gate names][relative placement][tuple of gate parameters] := True/False
-        """
+
+        # self._cached_commutation has the same structure as standard_gate_commutations, i.e. a
+        # dict[pair of gate names][relative placement][tuple of gate parameters] := True/False
         self._cached_commutations = {}
         self._current_cache_entries = 0
         self._cache_miss = 0
@@ -185,11 +184,7 @@ class CommutationChecker:
 
 
 def _hashable_parameters(params):
-    """Convert the parameters of a gate into a hashable format for lookup in a dictionary.
-
-    This aims to be fast in common cases, and is not intended to work outside of the lifetime of a
-    single commutation pass; it does not handle mutable state correctly if the state is actually
-    changed."""
+    """Convert the parameters of a gate into a hashable format for lookup in a dictionary."""
     try:
         hash(params)
         return params
@@ -269,11 +264,13 @@ def _get_relative_placement(first_qargs: List[Qubit], second_qargs: List[Qubit])
         second_qargs (DAGOpNode): second gate
 
     Return:
-        A tuple that describes the relative qubit placement: E.g.
+        A tuple that describes the relative qubit placement. The relative placement is defined by the
+        gate qubit arrangements as q2^{-1}[q1[i]] where q1[i] is the ith qubit of the first gate and
+        q2^{-1}[q] returns the qubit index of qubit q in the second gate (possibly 'None'). E.g.
         _get_relative_placement(CX(0, 1), CX(1, 2)) would return (None, 0) as there is no overlap on
         the first qubit of the first gate but there is an overlap on the second qubit of the first gate,
-        i.e. qubit 0 of the second gate. Likewise,
-        _get_relative_placement(CX(1, 2), CX(0, 1)) would return (1, None)
+        i.e. qubit 0 of the second gate. Likewise, _get_relative_placement(CX(1, 2), CX(0, 1)) would
+        return (1, None)
     """
     qubits_g2 = {q_g1: i_g1 for i_g1, q_g1 in enumerate(second_qargs)}
     return tuple(qubits_g2.get(q_g0, None) for q_g0 in first_qargs)
