@@ -73,7 +73,7 @@ Stabilizer State Synthesis
 
 .. autofunction:: synth_stabilizer_layers
 .. autofunction:: synth_stabilizer_depth_lnn
-.. autofunction:: synth_circuit_from_stabilizer_list
+.. autofunction:: synth_circuit_from_stabilizers
 
 Discrete Basis Synthesis
 ========================
