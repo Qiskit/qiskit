@@ -184,12 +184,12 @@ impl CircuitData {
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
-                self_.add_qubit(bit?, true)?;
+                self_.add_qubit(py, bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
             for bit in clbits.iter()? {
-                self_.add_clbit(bit?, true)?;
+                self_.add_clbit(py, bit?, true)?;
             }
         }
         if let Some(data) = data {
@@ -252,7 +252,7 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, bit: &PyAny, strict: bool) -> PyResult<()> {
+    pub fn add_qubit(&mut self, py: Python, bit: &PyAny, strict: bool) -> PyResult<()> {
         if self.qubits_native.len() != self.qubits.as_ref(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'qubits' list has become out of sync with the circuit data.",
@@ -269,7 +269,6 @@ impl CircuitData {
             .try_insert(BitAsKey::new(bit)?, idx)
             .is_ok()
         {
-            let py = bit.py();
             self.qubits_native.push(bit.into_py(py));
             self.qubits.as_ref(py).append(bit)?;
         } else if strict {
@@ -291,7 +290,7 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, bit: &PyAny, strict: bool) -> PyResult<()> {
+    pub fn add_clbit(&mut self, py: Python, bit: &PyAny, strict: bool) -> PyResult<()> {
         if self.clbits_native.len() != self.clbits.as_ref(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'clbits' list has become out of sync with the circuit data.",
@@ -308,7 +307,6 @@ impl CircuitData {
             .try_insert(BitAsKey::new(bit)?, idx)
             .is_ok()
         {
-            let py = bit.py();
             self.clbits_native.push(bit.into_py(py));
             self.clbits.as_ref(py).append(bit)?;
         } else if strict {
