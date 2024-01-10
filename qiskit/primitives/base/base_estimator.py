@@ -338,14 +338,11 @@ class BaseEstimatorV2:
 
     An estimator estimates expectation values for provided quantum circuit and
     observable combinations.
-    """
 
-    def __init__(self, precision: float):
-        """
-        Args:
-            precision: A target precision for expectation value estimates.
-        """
-        self._precision = precision
+    An Estimator implementation must treat the :meth:`.run` method ``precision=None``
+    kwarg as using a default ``precision`` value.  The default value and methods to
+    set it can be determined by the Estimator implementor.
+    """
 
     @staticmethod
     def _make_data_bin(pub: EstimatorPub) -> DataBin:
@@ -353,21 +350,17 @@ class BaseEstimatorV2:
         # across implementations
         return make_data_bin((("evs", NDArray[np.float]), ("stds", NDArray[np.float])), pub.shape)
 
-    @property
-    def precision(self) -> float | None:
-        """The target precision for expectation value estimates."""
-        return self._precision
-
-    @precision.setter
-    def precision(self, value: float | None):
-        self._precision = value
-
     @abstractmethod
-    def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
+    def run(self, pubs: Iterable[EstimatorPubLike], precision: float | None = None) -> Job:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
+        Args:
             pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
-            ``(circuit, observables, parameter_values)``.
+                  ``(circuit, observables, parameter_values)``.
+            precision: The target precision for expectation value estimates of each
+                       run :class:`.EstimatorPub` that does not specify its own
+                       precision. If None the estimator's default precision value
+                       will be used.
 
         Returns:
             A job object that contains results.
