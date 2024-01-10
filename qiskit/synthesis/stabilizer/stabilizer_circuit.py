@@ -109,9 +109,9 @@ def synth_circuit_from_stabilizers(
     Args:
         stabilizers (Collection[str]): list of stabilizer strings
         allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
-                                can be products of the others)
+            can be products of the others)
         allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
-                                       the stabilizers do not specify a unique state)
+            the stabilizers do not specify a unique state)
         invert (bool): return inverse circuit
 
     Return:

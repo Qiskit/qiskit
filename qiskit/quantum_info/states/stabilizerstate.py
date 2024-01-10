@@ -115,11 +115,11 @@ class StabilizerState(QuantumState):
         """Create a stabilizer state from the collection of stabilizers.
 
         Args:
-        stabilizers (Collection[str]): list of stabilizer strings
-        allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
-            can be products of the others)
-        allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
-            the stabilizers do not specify a unique state)
+            stabilizers (Collection[str]): list of stabilizer strings
+            allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                                    can be products of the others)
+            allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                                           the stabilizers do not specify a unique state)
 
         Return:
             StabilizerState: a state stabilized by stabilizers.
