@@ -70,8 +70,9 @@ class TestEstimatorGradient(QiskitTestCase):
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
         op = Operator.from_label("Z")
-        value = gradient.run([qc], [op], [param]).result().gradients[0]
-        self.assertAlmostEqual(value[0], correct_result, 3)
+        with self.assertWarns(DeprecationWarning):
+            value = gradient.run([qc], [op], [param]).result().gradients[0]
+            self.assertAlmostEqual(value[0], correct_result, 3)
 
     @data(*gradient_factories)
     def test_single_circuit_observable(self, grad):

@@ -51,7 +51,6 @@ def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None):
 
 
 PAULI_OP = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
-OP = Operator(PAULI_OP.to_matrix())
 
 
 @ddt
@@ -66,8 +65,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             algorithm_globals.random_seed = 42
 
-    @data(PAULI_OP, OP)
-    def test_exact_sampler(self, op):
+    def test_exact_sampler(self):
         """Test the VQE on BasicAer's statevector simulator."""
         thetas = ParameterVector("th", 4)
         ansatz = QuantumCircuit(2)
@@ -84,7 +82,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         initial_point[-ansatz.num_qubits :] = np.pi / 2
 
         vqe = SamplingVQE(Sampler(), ansatz, optimizer, initial_point=initial_point)
-        result = vqe.compute_minimum_eigenvalue(operator=op)
+        result = vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
 
         with self.subTest(msg="test eigenvalue"):
             self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
@@ -105,8 +103,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(result.best_measurement["bitstring"], self.optimal_bitstring)
             self.assertEqual(result.best_measurement["value"], self.optimal_value)
 
-    @data(PAULI_OP, OP)
-    def test_invalid_initial_point(self, op):
+    def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = RealAmplitudes(2, reps=1)
         initial_point = np.array([1])
@@ -114,40 +111,37 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP(), initial_point=initial_point)
 
         with self.assertRaises(ValueError):
-            _ = vqe.compute_minimum_eigenvalue(operator=op)
+            _ = vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
 
-    @data(PAULI_OP, OP)
-    def test_ansatz_resize(self, op):
+    def test_ansatz_resize(self):
         """Test the ansatz is properly resized if it's a blueprint circuit."""
         ansatz = RealAmplitudes(1, reps=1)
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
-        result = vqe.compute_minimum_eigenvalue(operator=op)
+        result = vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
-    @data(PAULI_OP, OP)
-    def test_invalid_ansatz_size(self, op):
+    def test_invalid_ansatz_size(self):
         """Test an error is raised if the ansatz has the wrong number of qubits."""
         ansatz = QuantumCircuit(1)
         ansatz.compose(RealAmplitudes(1, reps=2))
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
 
         with self.assertRaises(AlgorithmError):
-            _ = vqe.compute_minimum_eigenvalue(operator=op)
+            _ = vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
 
-    @data(PAULI_OP, OP)
-    def test_missing_varform_params(self, op):
+    def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
+        op = PAULI_OP
         circuit = QuantumCircuit(op.num_qubits)
         vqe = SamplingVQE(Sampler(), circuit, SLSQP())
         with self.assertRaises(AlgorithmError):
             vqe.compute_minimum_eigenvalue(operator=op)
 
-    @data(PAULI_OP, OP)
-    def test_batch_evaluate_slsqp(self, op):
+    def test_batch_evaluate_slsqp(self):
         """Test batching with SLSQP (as representative of SciPyOptimizer)."""
         optimizer = SLSQP(max_evals_grouped=10)
         vqe = SamplingVQE(Sampler(), RealAmplitudes(), optimizer)
-        result = vqe.compute_minimum_eigenvalue(operator=op)
+        result = vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
         self.assertAlmostEqual(result.eigenvalue, self.optimal_value, places=5)
 
     def test_batch_evaluate_with_qnspsa(self):
@@ -201,9 +195,9 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(Pauli("Z"))
         self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
-    @data(PAULI_OP, OP)
-    def test_auxops(self, op):
+    def test_auxops(self):
         """Test passing auxiliary operators."""
+        op = PAULI_OP
         ansatz = RealAmplitudes(2, reps=1)
         vqe = SamplingVQE(Sampler(), ansatz, SLSQP())
 
@@ -229,8 +223,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = vqe.compute_minimum_eigenvalue(Pauli("X"))
 
-    @data(PAULI_OP, OP)
-    def test_callback(self, op):
+    def test_callback(self):
         """Test the callback on VQE."""
         history = {
             "eval_count": [],
@@ -251,7 +244,7 @@ class TestSamplerVQE(QiskitAlgorithmsTestCase):
             SLSQP(),
             callback=store_intermediate_result,
         )
-        sampling_vqe.compute_minimum_eigenvalue(operator=op)
+        sampling_vqe.compute_minimum_eigenvalue(operator=PAULI_OP)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, complex) for mean in history["mean"]))
