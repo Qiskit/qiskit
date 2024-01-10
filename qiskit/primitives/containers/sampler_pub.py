@@ -49,6 +49,7 @@ class SamplerPub(ShapedMixin):
         Args:
             circuit: a quantum circuit.
             parameter_values: a bindings array.
+            shots: A specific number of shots to run with.
             validate: if True, the input data is validated during initialization.
         """
         super().__init__()
