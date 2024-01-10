@@ -154,8 +154,8 @@ class DefaultStyle:
         default_style_dict = "iqp.json"
         path = Path(__file__).parent / "styles" / default_style_dict
 
-        with open(path, "r") as f:
-            default_style = json.load(f)
+        with open(path, "r") as infile:
+            default_style = json.load(infile)
 
         # set shortcuts, such as "ec" for "edgecolor"
         self.style = StyleDict(**default_style)
