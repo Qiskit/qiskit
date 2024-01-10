@@ -46,6 +46,7 @@ class SamplerPub(ShapedMixin):
             parameter_values: a bindings array.
             validate: if True, the input data is validated during initialization.
         """
+        super().__init__()
         self._circuit = circuit
         self._parameter_values = parameter_values or BindingsArray()
         self._shape = self._parameter_values.shape
