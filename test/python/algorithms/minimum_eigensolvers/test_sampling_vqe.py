@@ -19,7 +19,6 @@ from functools import partial
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
-from ddt import data, ddt
 from scipy.optimize import minimize as scipy_minimize
 
 from qiskit.algorithms import AlgorithmError
@@ -30,7 +29,7 @@ from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes, TwoLocal
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler
-from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 
 
@@ -53,7 +52,6 @@ def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None):
 PAULI_OP = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
 
 
-@ddt
 class TestSamplerVQE(QiskitAlgorithmsTestCase):
     """Test VQE"""
 

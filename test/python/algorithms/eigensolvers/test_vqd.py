@@ -28,7 +28,6 @@ from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler, Estimator
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.quantum_info.operators import Operator
 from qiskit.utils import algorithm_globals
 
 
