@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removed deprecated qiskit jupyter tools from qiskit/tools.

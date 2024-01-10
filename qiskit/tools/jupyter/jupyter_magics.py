@@ -20,11 +20,10 @@ from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
 
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_func
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
-from .library import circuit_library_widget
+
 
 
 def _html_checker(job_var, interval, status, header, _interval_set=False):
@@ -170,21 +169,3 @@ class ProgressBarMagic(Magics):
             raise qiskit.QiskitError("Invalid progress bar type.")
 
         return pbar
-
-
-if _optionals.HAS_MATPLOTLIB and get_ipython():
-
-    @register_line_magic
-    @deprecate_func(
-        since="0.25.0",
-        additional_msg="This was originally only for internal documentation and is no longer used.",
-    )
-    def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:
-        """Displays library information for a quantum circuit.
-
-        Args:
-            circuit: Input quantum circuit.
-        """
-        shell = get_ipython()
-        circ = shell.ev(circuit)
-        circuit_library_widget(circ)
