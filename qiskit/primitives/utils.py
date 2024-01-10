@@ -21,7 +21,7 @@ import numpy as np
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.library.data_preparation import Initialize
-from qiskit.quantum_info import SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp, Statevector, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 from qiskit.exceptions import QiskitError
@@ -63,7 +63,9 @@ def init_observable(observable: BaseOperator | str) -> SparsePauliOp:
     elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
-        raise QiskitError(f"observable type not supported: {type(observable)}")
+        if isinstance(observable, PauliList):
+            raise QiskitError(f"observable type not supported: {type(observable)}")
+        return SparsePauliOp(observable)
 
 
 def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
