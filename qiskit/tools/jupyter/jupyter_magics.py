@@ -14,16 +14,14 @@
 
 import time
 import threading
-from IPython import get_ipython
 from IPython.display import display
 from IPython.core import magic_arguments
-from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
+from IPython.core.magic import cell_magic, line_magic, Magics, magics_class
 
 from qiskit.utils import optionals as _optionals
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
-
 
 
 def _html_checker(job_var, interval, status, header, _interval_set=False):
