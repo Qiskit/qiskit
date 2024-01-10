@@ -46,8 +46,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBackendV2,
     FakeMumbaiFractionalCX,
-    FakeVigo,
-    FakeNairobi,
     FakeGeneva,
     FakeHanoi,
 )
@@ -1880,8 +1878,10 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.backend_num_qubits = self.backend_config.num_qubits
         self.backend_basis_gates = self.backend_config.basis_gates
         self.backend_inst_sched_map = self.pulse_defaults.instruction_schedule_map
-        self.backend_cp_mp = CouplingMap(couplinglist = self.backend_config.coupling_map)
-        self.backend_timing_constraints = TimingConstraints(**self.backend_config.timing_constraints)
+        self.backend_cp_mp = CouplingMap(couplinglist=self.backend_config.coupling_map)
+        self.backend_timing_constraints = TimingConstraints(
+            **self.backend_config.timing_constraints
+        )
         self.backend_meas_map = self.backend_config.meas_map
 
     def test_basis_gates_qubits_only(self):
@@ -1955,7 +1955,9 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.granularity, self.backend_timing_constraints.granularity)
         self.assertEqual(target.min_length, self.backend_timing_constraints.min_length)
         self.assertEqual(target.pulse_alignment, self.backend_timing_constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, self.backend_timing_constraints.acquire_alignment)
+        self.assertEqual(
+            target.acquire_alignment, self.backend_timing_constraints.acquire_alignment
+        )
 
     def test_concurrent_measurements(self):
         target = Target.from_configuration(
@@ -2026,7 +2028,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         )
 
     def test_measure_from_inst_map_with_dt(self):
-        backend = FakeHanoi()
         target = Target.from_configuration(
             basis_gates=self.backend_basis_gates,
             inst_map=self.backend_inst_sched_map,
@@ -2102,4 +2103,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
             basis_gates=self.backend_basis_gates,
             backend_properties=self.backend_props,
         )
-        self.assertEqual(target.qubit_properties[0].t1, self.backend_props.qubit_property(qubit=0)["T1"][0])
+        self.assertEqual(
+            target.qubit_properties[0].t1, self.backend_props.qubit_property(qubit=0)["T1"][0]
+        )
