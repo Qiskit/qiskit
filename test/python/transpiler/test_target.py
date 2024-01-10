@@ -1868,6 +1868,22 @@ class TestInstructionProperties(QiskitTestCase):
 class TestTargetFromConfiguration(QiskitTestCase):
     """Test the from_configuration() constructor."""
 
+    def setUp(self):
+        super().setUp()
+
+        self.backend = FakeHanoi()
+        self.backend_config = self.backend.configuration()
+        self.backend_props = self.backend.properties()
+        self.pulse_defaults = self.backend.defaults()
+
+        self.backend_dt = self.backend_config.dt
+        self.backend_num_qubits = self.backend_config.num_qubits
+        self.backend_basis_gates = self.backend_config.basis_gates
+        self.backend_inst_sched_map = self.pulse_defaults.instruction_schedule_map
+        self.backend_cp_mp = CouplingMap(couplinglist = self.backend_config.coupling_map)
+        self.backend_timing_constraints = TimingConstraints(**self.backend_config.timing_constraints)
+        self.backend_meas_map = self.backend_config.meas_map
+
     def test_basis_gates_qubits_only(self):
         """Test construction with only basis gates."""
         target = Target.from_configuration(["u", "cx"], 3)
@@ -1893,78 +1909,60 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
 
     def test_target_has_measure(self):
-        backend = FakeHanoi()
-        configuration = backend.configuration()
-        pulse_defaults = backend.defaults()
-        properties = backend.properties()
-
         target = Target.from_configuration(
-            basis_gates=configuration.basis_gates,
-            num_qubits=configuration.num_qubits,
-            coupling_map=CouplingMap(couplinglist=configuration.coupling_map),
-            inst_map=pulse_defaults.instruction_schedule_map,
-            backend_properties=properties,
-            timing_constraints=TimingConstraints(**configuration.timing_constraints),
+            basis_gates=self.backend_basis_gates,
+            num_qubits=self.backend_num_qubits,
+            coupling_map=self.backend_cp_mp,
+            inst_map=self.backend_inst_sched_map,
+            backend_properties=self.backend_props,
+            timing_constraints=self.backend_timing_constraints,
         )
         self.assertTrue(target.instruction_schedule_map().has("measure", 0))
 
     def test_properties(self):
-        fake_backend = FakeVigo()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
+            basis_gates=self.backend_basis_gates,
+            num_qubits=self.backend_num_qubits,
+            coupling_map=self.backend_cp_mp,
+            backend_properties=self.backend_props,
         )
         self.assertEqual(0, target["rz"][(0,)].error)
         self.assertEqual(0, target["rz"][(0,)].duration)
 
     def test_properties_with_durations(self):
-        fake_backend = FakeVigo()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
         durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
+            basis_gates=self.backend_basis_gates,
+            num_qubits=self.backend_num_qubits,
+            coupling_map=self.backend_cp_mp,
+            backend_properties=self.backend_props,
             instruction_durations=durations,
-            dt=config.dt,
+            dt=self.backend_dt,
         )
         self.assertEqual(0.5, target["rz"][(0,)].duration)
 
     def test_inst_map(self):
-        fake_backend = FakeNairobi()
-        config = fake_backend.configuration()
-        properties = fake_backend.properties()
-        defaults = fake_backend.defaults()
-        constraints = TimingConstraints(**config.timing_constraints)
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            num_qubits=config.num_qubits,
-            coupling_map=CouplingMap(config.coupling_map),
-            backend_properties=properties,
-            dt=config.dt,
-            inst_map=defaults.instruction_schedule_map,
-            timing_constraints=constraints,
+            basis_gates=self.backend_basis_gates,
+            num_qubits=self.backend_num_qubits,
+            coupling_map=self.backend_cp_mp,
+            backend_properties=self.backend_props,
+            dt=self.backend_dt,
+            inst_map=self.backend_inst_sched_map,
+            timing_constraints=self.backend_timing_constraints,
         )
         self.assertIsNotNone(target["sx"][(0,)].calibration)
-        self.assertEqual(target.granularity, constraints.granularity)
-        self.assertEqual(target.min_length, constraints.min_length)
-        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
+        self.assertEqual(target.granularity, self.backend_timing_constraints.granularity)
+        self.assertEqual(target.min_length, self.backend_timing_constraints.min_length)
+        self.assertEqual(target.pulse_alignment, self.backend_timing_constraints.pulse_alignment)
+        self.assertEqual(target.acquire_alignment, self.backend_timing_constraints.acquire_alignment)
 
     def test_concurrent_measurements(self):
-        fake_backend = FakeVigo()
-        config = fake_backend.configuration()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            concurrent_measurements=config.meas_map,
+            basis_gates=self.backend_basis_gates,
+            concurrent_measurements=self.backend_meas_map,
         )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
+        self.assertEqual(target.concurrent_measurements, self.backend_meas_map)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
@@ -2002,131 +2000,106 @@ class TestTargetFromConfiguration(QiskitTestCase):
             Target.from_configuration(basis_gates, 15, cmap)
 
     def test_durations_only_with_InstructionDurations_passed(self):
-        backend = FakeHanoi()
-        inst_dur = InstructionDurations.from_backend(backend)
+        inst_dur = InstructionDurations.from_backend(self.backend)
         target = Target.from_configuration(
-            basis_gates=backend.configuration().basis_gates, instruction_durations=inst_dur
+            basis_gates=self.backend_basis_gates, instruction_durations=inst_dur
         )
         self.assertEqual(
-            target["x"][(0,)].duration, backend.properties().gate_length(gate="x", qubits=(0,))
+            target["x"][(0,)].duration, self.backend_props.gate_length(gate="x", qubits=(0,))
         )
 
     def test_warns_no_inst_dur_props_dt_with_inst_map(self):
-        backend = FakeHanoi()
         with self.assertWarnsRegex(RuntimeWarning, ".set the `dt` argument to set."):
             Target.from_configuration(
-                basis_gates=backend.configuration().basis_gates,
-                inst_map=backend.defaults().instruction_schedule_map,
+                basis_gates=self.backend_basis_gates,
+                inst_map=self.backend_inst_sched_map,
             )
 
     def test_duration_with_inst_map_dt(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
-        pulse_defaults = backend.defaults()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            inst_map=pulse_defaults.instruction_schedule_map,
-            dt=config.dt,
+            basis_gates=self.backend_basis_gates,
+            inst_map=self.backend_inst_sched_map,
+            dt=self.backend_dt,
         )
         self.assertEqual(
-            target["x"][(0,)].duration, backend.properties().gate_length(gate="x", qubits=(0,))
+            target["x"][(0,)].duration, self.backend_props.gate_length(gate="x", qubits=(0,))
         )
 
     def test_measure_from_inst_map_with_dt(self):
         backend = FakeHanoi()
         target = Target.from_configuration(
-            basis_gates=backend.configuration().basis_gates,
-            inst_map=backend.defaults().instruction_schedule_map,
+            basis_gates=self.backend_basis_gates,
+            inst_map=self.backend_inst_sched_map,
             dt=0.222e-09,
         )
         self.assertTrue("measure" in target)
 
     def test_concurrent_measurement_set_by_inst_map(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            inst_map=backend.defaults().instruction_schedule_map,
+            basis_gates=self.backend_basis_gates,
+            inst_map=self.backend_inst_sched_map,
             dt=0.222e-09,
         )
-        self.assertEqual(target.concurrent_measurements, config.meas_map)
+        self.assertEqual(target.concurrent_measurements, self.backend_meas_map)
 
     def test_warns_if_duration_not_in_inst_dur(self):
-        backend = FakeHanoi()
         with self.assertWarnsRegex(RuntimeWarning, ".passed, falling back to."):
             Target.from_configuration(
-                basis_gates=backend.configuration().basis_gates,
-                backend_properties=backend.properties(),
+                basis_gates=self.backend_basis_gates,
+                backend_properties=self.backend_props,
                 instruction_durations=InstructionDurations([("x", 0, 1.0)], dt=1.0),
             )
 
     def test_inst_dur_overrides_backend_prop_dur(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
-        props = backend.properties()
-        inst_dur = InstructionDurations.from_backend(backend)
+        inst_dur = InstructionDurations.from_backend(self.backend)
         inst_dur.update([("x", [0], 1.0, "s")])
 
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            backend_properties=props,
+            basis_gates=self.backend_basis_gates,
+            backend_properties=self.backend_props,
             instruction_durations=inst_dur,
         )
         self.assertEqual(target["x"][(0,)].duration, 1.0)
 
     def test_dt_set_by_inst_dur(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
-
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            instruction_durations=InstructionDurations.from_backend(backend),
+            basis_gates=self.backend_basis_gates,
+            instruction_durations=InstructionDurations.from_backend(self.backend),
         )
-        self.assertEqual(target.dt, config.dt)
+        self.assertEqual(target.dt, self.backend_dt)
 
     def test_set_num_qubits_from_props(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates, backend_properties=backend.properties()
+            basis_gates=self.backend_basis_gates, backend_properties=self.backend_props
         )
-        self.assertEqual(target.num_qubits, config.num_qubits)
+        self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
     def test_set_num_qubits_from_inst_dur(self):
-        backend = FakeHanoi()
-        inst_dur = InstructionDurations.from_backend(backend)
-        config = backend.configuration()
+        inst_dur = InstructionDurations.from_backend(self.backend)
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
+            basis_gates=self.backend_basis_gates,
             instruction_durations=inst_dur,
         )
-        self.assertEqual(target.num_qubits, config.num_qubits)
+        self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
     def test_set_num_qubits_from_cp_mp(self):
-        backend = FakeHanoi()
-        config = backend.configuration()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            coupling_map=CouplingMap(couplinglist=config.coupling_map),
+            basis_gates=self.backend_basis_gates,
+            coupling_map=self.backend_cp_mp,
         )
-        self.assertEqual(target.num_qubits, config.num_qubits)
+        self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
     def test_set_num_qubits_from_inst_sched(self):
-        backend = FakeHanoi()
-        pulse_defaults = backend.defaults()
-        config = backend.configuration()
         target = Target.from_configuration(
-            basis_gates=config.basis_gates,
-            inst_map=pulse_defaults.instruction_schedule_map,
+            basis_gates=self.backend_basis_gates,
+            inst_map=self.backend_inst_sched_map,
             dt=0.22e-09,
         )
-        self.assertEqual(target.num_qubits, config.num_qubits)
+        self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
     def test_backend_props_sets_qubit_props(self):
-        backend = FakeHanoi()
-        props = backend.properties()
         target = Target.from_configuration(
-            basis_gates=backend.configuration().basis_gates,
-            backend_properties=props,
+            basis_gates=self.backend_basis_gates,
+            backend_properties=self.backend_props,
         )
-        self.assertEqual(target.qubit_properties[0].t1, props.qubit_property(qubit=0)["T1"][0])
+        self.assertEqual(target.qubit_properties[0].t1, self.backend_props.qubit_property(qubit=0)["T1"][0])
