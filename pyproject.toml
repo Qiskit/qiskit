@@ -146,6 +146,7 @@ test-command = "python {project}/examples/python/stochastic_swap.py"
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
 # Some jobs locally override the before-build and environment configuration if a
 # specific job override is needed. For example tier 1 platforms locally override
+# the before-build and environment configuration to enable PGO,
 # see: .github/workflows/wheels.yml for the jobs where this is done
 environment = 'RUSTUP_TOOLCHAIN="stable"'
 
