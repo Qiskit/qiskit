@@ -19,7 +19,6 @@ from ddt import ddt, data
 
 import numpy as np
 
-import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
@@ -271,7 +270,6 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
-
 
 
 @ddt
