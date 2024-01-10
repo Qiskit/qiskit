@@ -28,17 +28,17 @@ class BitArrayTestCase(QiskitTestCase):
 
     @ddt.idata(product([(), (3, 4, 5)], [1, 6], [8, 13, 26]))
     @ddt.unpack
-    def test_container(self, shape, num_samples, num_bits):
+    def test_container(self, shape, num_shots, num_bits):
         """Test the constructor and basic attributes."""
         num_bytes = num_bits // 8 + (num_bits % 8 > 0)
-        size = np.prod(shape).astype(int) * num_samples * num_bytes
-        arr = np.arange(size, dtype=np.uint8).reshape(shape + (num_samples, num_bytes))
+        size = np.prod(shape).astype(int) * num_shots * num_bytes
+        arr = np.arange(size, dtype=np.uint8).reshape(shape + (num_shots, num_bytes))
 
         bit_array = BitArray(arr, num_bits)
         self.assertEqual(bit_array.shape, shape)
         self.assertEqual(bit_array.size, np.prod(shape).astype(int))
         self.assertEqual(bit_array.ndim, len(shape))
-        self.assertEqual(bit_array.num_samples, num_samples)
+        self.assertEqual(bit_array.num_shots, num_shots)
         self.assertEqual(bit_array.num_bits, num_bits)
         self.assertTrue(np.all(bit_array.array == arr))
         self.assertEqual(bit_array.array.shape[-1], num_bytes)
@@ -229,16 +229,16 @@ class BitArrayTestCase(QiskitTestCase):
         ba = BitArray(data, 15)
 
         self.assertEqual(ba.reshape(120, 3).shape, (120, 3))
-        self.assertEqual(ba.reshape(120, 3).num_samples, 32)
+        self.assertEqual(ba.reshape(120, 3).num_shots, 32)
         self.assertEqual(ba.reshape(120, 3).num_bits, 15)
         self.assertTrue(
             np.array_equal(ba.reshape(60, 6).array[2, 3], data.reshape(60, 6, 32, 2)[2, 3])
         )
 
         self.assertEqual(ba.reshape(360 * 32).shape, ())
-        self.assertEqual(ba.reshape(360 * 32).num_samples, 360 * 32)
+        self.assertEqual(ba.reshape(360 * 32).num_shots, 360 * 32)
         self.assertEqual(ba.reshape(360 * 32).num_bits, 15)
 
         self.assertEqual(ba.reshape(360 * 2, 16).shape, (720,))
-        self.assertEqual(ba.reshape(360 * 2, 16).num_samples, 16)
+        self.assertEqual(ba.reshape(360 * 2, 16).num_shots, 16)
         self.assertEqual(ba.reshape(360 * 2, 16).num_bits, 15)

@@ -12,14 +12,6 @@
 
 """
 BitArray
-
-Details
-=======
-
-    We use the word "samples" in reference to the fact that this is a primary data type returned by
-    the Sampler whose job is to supply samples, and whose name we can't easily change.
-    This is certainly confusing because this library uses the word "samples" to also refer to random
-    circuit instances.
 """
 
 from __future__ import annotations
@@ -48,8 +40,8 @@ class BitArray(ShapedMixin):
     """Stores an array of bit values.
 
     This object contains a single, contiguous block of data that represents an array of bitstrings.
-    The last axis is over packed bits, the second last axis is over samples (aka shots), and the
-    preceding axes correspond to the shape of the pub that was executed.
+    The last axis is over packed bits, the second last axis is over shots, and the preceding axes
+    correspond to the shape of the pub that was executed to sample these bits.
     """
 
     def __init__(self, array: NDArray[np.uint8], num_bits: int):
@@ -65,7 +57,7 @@ class BitArray(ShapedMixin):
         super().__init__()
         self._array = np.array(array, copy=False, dtype=np.uint8)
         self._num_bits = num_bits
-        # second last dimension is shots/samples, last dimension is packed bits
+        # second last dimension is shots, last dimension is packed bits
         self._shape = self._array.shape[:-2]
 
         if self._array.ndim < 2:
@@ -77,8 +69,8 @@ class BitArray(ShapedMixin):
         """Validation and broadcasting of two bit arrays before element-wise binary operation."""
         if self.num_bits != other.num_bits:
             raise ValueError(f"'num_bits' must match in {self} and {other}.")
-        self_shape = self.shape + (self.num_samples,)
-        other_shape = other.shape + (other.num_samples,)
+        self_shape = self.shape + (self.num_shots,)
+        other_shape = other.shape + (other.num_shots,)
         try:
             shape = np.broadcast_shapes(self_shape, other_shape) + (self._array.shape[-1],)
         except ValueError as ex:
@@ -108,7 +100,7 @@ class BitArray(ShapedMixin):
         return BitArray(np.bitwise_xor(*self._prepare_broadcastable(other)), self.num_bits)
 
     def __repr__(self):
-        desc = f"<num_samples={self.num_samples}, num_bits={self.num_bits}, shape={self.shape}>"
+        desc = f"<shape={self.shape}, num_shots={self.num_shots}, num_bits={self.num_bits}>"
         return f"BitArray({desc})"
 
     @property
@@ -120,13 +112,13 @@ class BitArray(ShapedMixin):
     def num_bits(self) -> int:
         """The number of bits in the register that this array stores data for.
 
-        For example, a ``ClassicalRegister(5, "meas")`` would have ``num_bits=5``.
+        For example, a ``ClassicalRegister(5, "meas")`` would result in ``num_bits=5``.
         """
         return self._num_bits
 
     @property
-    def num_samples(self) -> int:
-        """The number of samples sampled from the register in each configuration.
+    def num_shots(self) -> int:
+        """The number of shots sampled from the register in each configuration.
 
         More precisely, the length of the second last axis of :attr:`~.array`.
         """
@@ -163,13 +155,13 @@ class BitArray(ShapedMixin):
         """Compute the number of ones appearing in the binary representation of each sample.
 
         Returns:
-            A ``numpy.uint64``-array with shape ``(*shape, num_samples)``.
+            A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
         """
         return _WEIGHT_LOOKUP[self._array].sum(axis=-1)
 
     @staticmethod
     def from_bool_array(
-        array: NDArray[bool], order: Literal["big", "little"] = "big"
+        array: NDArray[np.bool_], order: Literal["big", "little"] = "big"
     ) -> "BitArray":
         """Construct a new bit array from an array of bools.
 
@@ -219,7 +211,7 @@ class BitArray(ShapedMixin):
             A new bit array.
 
         Raises:
-            ValueError: If different mappings have different numbers of samples.
+            ValueError: If different mappings have different numbers of shots.
             ValueError: If no counts dictionaries are supplied.
         """
         if singleton := isinstance(counts, Mapping):
@@ -237,9 +229,9 @@ class BitArray(ShapedMixin):
 
         bit_array = BitArray.from_samples(data, num_bits)
         if not singleton:
-            if bit_array.num_samples % len(counts) > 0:
-                raise ValueError("All of your mappings need to have the same number of samples.")
-            bit_array = bit_array.reshape(len(counts), bit_array.num_samples // len(counts))
+            if bit_array.num_shots % len(counts) > 0:
+                raise ValueError("All of your mappings need to have the same number of shots.")
+            bit_array = bit_array.reshape(len(counts), bit_array.num_shots // len(counts))
         return bit_array
 
     @staticmethod
@@ -248,9 +240,8 @@ class BitArray(ShapedMixin):
     ) -> "BitArray":
         """Construct a new bit array from an iterable of bitstrings, hexstrings, or integers.
 
-        All samples are assumed to be integers if the first one is.
-        Strings are all assumed to be bitstrings whenever the first string doesn't start with
-        ``"0x"``.
+        All samples are assumed to be integers if the first one is. Strings are all assumed to be
+        bitstrings whenever the first string doesn't start with ``"0x"``.
 
         Consider pairing this method with :meth:`~reshape` if your samples represent nested data.
 
@@ -277,6 +268,7 @@ class BitArray(ShapedMixin):
             ints = (int(val, base=base) for val in ints)
 
         if num_bits is None:
+            # we are forced to prematurely look at every iterand in this case
             ints = list(ints)
             num_bits = max(map(int.bit_length, ints))
 
@@ -319,11 +311,11 @@ class BitArray(ShapedMixin):
     def reshape(self, *shape: ShapeInput) -> "BitArray":
         """Return a new reshaped bit array.
 
-        The :attr:`~num_samples` axis is either included or excluded from the reshaping procedure
-        depending on which picture the new shape is compatible with. For example, if this bit array
-        has shape ``(20, 5)`` and ``64`` samples, then a reshape to ``(100,)`` would leave the
-        number of samples intact, whereas a reshape to ``(200, 32)`` would change the number of
-        samples to ``32``.
+        The :attr:`~num_shots` axis is either included or excluded from the reshaping procedure
+        depending on which picture the new shape is compatible with. For example, for a bit array
+        with shape ``(20, 5)`` and ``64`` shots, a reshape to ``(100,)`` would leave the
+        number of shots intact, whereas a reshape to ``(200, 32)`` would change the number of
+        shots to ``32``.
 
         Args:
             *shape: The new desired shape.
@@ -333,12 +325,12 @@ class BitArray(ShapedMixin):
 
         Raises:
             ValueError: If the size corresponding to your new shape is not equal to either
-                :attr:`~size`, or the product of :attr:`~size` and :attr:`~num_samples`.
+                :attr:`~size`, or the product of :attr:`~size` and :attr:`~num_shots`.
         """
         shape = shape_tuple(shape)
         if (size := np.prod(shape, dtype=int)) == self.size:
             shape = shape_tuple(shape, self._array.shape[-2:])
-        elif size == self.size * self.num_samples:
+        elif size == self.size * self.num_shots:
             shape = shape_tuple(shape, self._array.shape[-1:])
         else:
             raise ValueError("Cannot change the size of the array.")
