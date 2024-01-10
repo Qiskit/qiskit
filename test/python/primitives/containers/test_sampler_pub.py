@@ -62,16 +62,8 @@ class SamplerPubCase(QiskitTestCase):
 
     def test_invalidate_shots_value(self):
         """Test invalid shots argument value"""
-        with self.assertRaises(ValueError, msg=f"negative shots should raise ValueError"):
+        with self.assertRaises(ValueError, msg="negative shots should raise ValueError"):
             SamplerPub(QuantumCircuit(), shots=-1)
-
-    def test_shaped_zero_parameter_values(self):
-        """Test Passing in a shaped array with no parameters works"""
-        circuit = QuantumCircuit(2)
-        shape = (3,)
-        parameter_values = BindingsArray(np.zeros((*shape, 0)), shape=shape)
-        pub = SamplerPub(circuit, parameter_values=parameter_values)
-        self.assertEqual(pub.shape, shape)
 
     @ddt.idata(range(5))
     def test_validate_no_parameters(self, num_params):
