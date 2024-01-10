@@ -82,6 +82,17 @@ class TestDelayClass(QiskitTestCase):
         expected.delay(300, 2)
         self.assertEqual(qc, expected)
 
+    def test_delay_set(self):
+        """Test that a set argument to `delay` works."""
+        qc = QuantumCircuit(5)
+        qc.delay(8, {0, 1, 3, 4})
+        expected = QuantumCircuit(5)
+        expected.delay(8, 0)
+        expected.delay(8, 1)
+        expected.delay(8, 3)
+        expected.delay(8, 4)
+        self.assertEqual(qc, expected)
+
     def test_to_matrix_return_identity_matrix(self):
         actual = np.array(Delay(100))
         expected = np.array([[1, 0], [0, 1]], dtype=complex)
