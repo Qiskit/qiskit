@@ -290,6 +290,8 @@ def _read_instruction(
         gate_class = getattr(quantum_initializer, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
+    elif gate_name == "Clifford":
+        pass
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
@@ -297,7 +299,7 @@ def _read_instruction(
         label = None
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition, *params, label=label)
-    elif gate_name == "clifford":
+    elif gate_name == "Clifford":
         gate = Clifford(params[0])
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
@@ -583,7 +585,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
     if isinstance(instruction.operation, Instruction):
         gate_class_name = instruction.operation.base_class.__name__
     else:
-        gate_class_name = instruction.operation.name
+        gate_class_name = instruction.operation.__class__.__name__
+
     custom_operations_list = []
     if (
         (
@@ -592,6 +595,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             and not hasattr(extensions, gate_class_name)
             and not hasattr(quantum_initializer, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
+            and gate_class_name != "Clifford"
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
