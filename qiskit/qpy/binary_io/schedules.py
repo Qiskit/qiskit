@@ -154,7 +154,7 @@ def _read_symbolic_pulse(file_obj, version):
         envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
 
         warnings.warn(
-            f"Library pulses with complex amp are no longer supported."
+            f"Library pulses with complex amp are no longer supported. "
             f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
             UserWarning,
         )
