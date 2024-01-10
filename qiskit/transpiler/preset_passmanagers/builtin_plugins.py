@@ -11,7 +11,9 @@
 # that they have been altered from the originals.
 
 """Built-in transpiler stage plugins for preset pass managers."""
+from __future__ import annotations
 
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BasicSwap
@@ -155,7 +157,9 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
 
         else:
-            return TranspilerError(f"Invalid optimization level {optimization_level}")
+            return TranspilerError(
+                f"Invalid optimization level {optimization_level}"
+            )  # TODO: raise?
         return init
 
 
@@ -536,7 +540,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
             )
             if optimization_level == 1:
                 # Steps for optimization level 1
-                _opt = [
+                _opt: list[BasePass] = [
                     Optimize1qGatesDecomposition(
                         basis=pass_manager_config.basis_gates, target=pass_manager_config.target
                     ),
