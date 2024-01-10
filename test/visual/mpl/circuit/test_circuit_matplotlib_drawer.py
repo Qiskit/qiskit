@@ -71,7 +71,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.threshold = 0.8
+        self.threshold = 0.9999
         self.circuit_drawer = VisualTestUtilities.save_data_wrap(
             circuit_drawer, str(self), RESULT_DIR
         )
