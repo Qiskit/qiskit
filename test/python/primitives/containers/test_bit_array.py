@@ -48,7 +48,7 @@ class BitArrayTestCase(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "at least two axes"):
             BitArray([], 1)
 
-        with self.assertRaisesRegex(ValueError, "3 bytes per sample"):
+        with self.assertRaisesRegex(ValueError, "3 bytes per shot"):
             BitArray(np.empty((2, 3, 4, 5)), 23)
 
     def test_get_counts(self):
