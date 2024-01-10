@@ -47,10 +47,10 @@ class SamplerPub(ShapedMixin):
         """Initialize a sampler pub.
 
         Args:
-            circuit: a quantum circuit.
-            parameter_values: a bindings array.
+            circuit: A quantum circuit.
+            parameter_values: A bindings array.
             shots: A specific number of shots to run with.
-            validate: if True, the input data is validated during initialization.
+            validate: If True, the input data is validated during initialization.
         """
         super().__init__()
         self._circuit = circuit
@@ -77,11 +77,11 @@ class SamplerPub(ShapedMixin):
 
     @classmethod
     def coerce(cls, pub: SamplerPubLike, shots: int | None = None) -> SamplerPub:
-        """Coerce SamplerPubLike into SamplerPub.
+        """Coerce a :class:`~.SamplerPubLike` object into a :class:`~.SamplerPub` instance.
 
         Args:
-            pub: an object to be Sampler pub.
-            shots: an optional default number of shots to use if not
+            pub: An object to coerce.
+            shots: An optional default number of shots to use if not
                    already specified by the pub-like object.
 
         Returns:

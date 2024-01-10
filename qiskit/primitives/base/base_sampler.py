@@ -15,22 +15,21 @@ r"""
 Overview of SamplerV2
 =====================
 
-:class:`~BaseSamplerV2` is a primitive that samples bitstrings from quantum circuits.
+:class:`~BaseSamplerV2` is a primitive that samples outputs of quantum circuits.
 
 Following construction, a sampler is used by calling its :meth:`~.BaseSamplerV2.run` method
 with a list of pubs (Primitive Unified Blocks). Each pub contains two values that, together,
-define a computation unit of work for the sampler to complete:
+define a computational unit of work for the sampler to complete:
 
-* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized, whose final state we
-  define as :math:`\psi(\theta)`,
+* A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
 
-* a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
+* A collection parameter value sets to bind the circuit against if it is parametric.
 
-Running a sampler returns a :class:`~qiskit.provider.JobV1 object, where calling
-the method :meth:`~qiskit.provider.JobV1.result` results in bitstring samples and metadata
+Running a sampler returns a :class:`~qiskit.provider.JobV1` object, where calling
+the method :meth:`~qiskit.provider.JobV1.result` results in output samples and metadata
 for each pub.
 
-Here is an example of how sampler is used.
+Here is an example of how a sampler is used.
 
 
 .. code-block:: python
@@ -39,13 +38,13 @@ Here is an example of how sampler is used.
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
-    # a Bell circuit
+    # create a Bell circuit
     bell = QuantumCircuit(2)
     bell.h(0)
     bell.cx(0, 1)
     bell.measure_all()
 
-    # two parameterized circuits
+    # create two parameterized circuits
     pqc = RealAmplitudes(num_qubits=2, reps=2)
     pqc.measure_all()
     pqc2 = RealAmplitudes(num_qubits=2, reps=3)
@@ -57,12 +56,12 @@ Here is an example of how sampler is used.
     # initialization of the sampler
     sampler = Sampler()
 
-    # Sampler runs a job on the Bell circuit
+    # run a sampler job on the Bell circuit
     job = sampler.run([bell])
     job_result = job.result()
     print(f"The primitive-job finished with result {job_result}"))
 
-    # Sampler runs a job on the parameterized circuits
+    # run a sampler job on the parameterized circuits
     job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}"))
@@ -266,7 +265,7 @@ BaseSampler = BaseSamplerV1
 class BaseSamplerV2:
     """Sampler base class version 2.
 
-    A Sampler returns samples of bitstrings of quantum circuits.
+    A Sampler returns samples of quantum circuit outputs.
 
     A Sampler implementation must treat the :meth:`.run` method ``shots=None`` kwarg
     as using a default ``shots`` value.  The default value and methods to set it can
@@ -275,16 +274,16 @@ class BaseSamplerV2:
 
     @abstractmethod
     def run(self, pubs: Iterable[SamplerPubLike], shots: int | None = None) -> Job:
-        """Run the pubs of samples.
+        """Run and collect samples from each pub.
 
         Args:
-            pubs: an iterable of pub-like object. Typically, list of tuple
-                  ``(QuantumCircuit, parameter_values)``
-            shots: the total number of shots for each run :class:`.SamplerPub`.
-                   that does not specify its own shots. If None the primitives
-                   default shots value will be used.
+            pubs: An iterable of pub-like objects. For example, a list of circuits 
+                  or tuples ``(circuit, parameter_values)``.
+            shots: The total number of shots to sample for each :class:`.SamplerPub`.
+                   that does not specify its own shots. If None, the primitive's
+                   default shots value will be used, which can vary by implementation.
 
         Returns:
-            The job object of Sampler's Result.
+            The job object of Sampler's result.
         """
         pass
