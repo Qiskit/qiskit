@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    Removed deprecated `QuantumCircuit.qasm` function.
+    Removed deprecated `Instruction.qasm` function.
