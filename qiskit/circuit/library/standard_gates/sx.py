@@ -139,7 +139,7 @@ class SXdgGate(SingletonGate):
                         1 & i \\
                         i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}^{\dagger}
+                    = e^{-i \pi/4} \sqrt{X}^{\dagger}
 
     """
 
