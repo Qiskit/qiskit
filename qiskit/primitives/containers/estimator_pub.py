@@ -18,6 +18,7 @@ Estimator Pub class
 from __future__ import annotations
 
 from typing import Tuple, Union
+from numbers import Real
 
 import numpy as np
 
@@ -31,16 +32,20 @@ from .shape import ShapedMixin
 class EstimatorPub(ShapedMixin):
     """Primitive Unified Bloc for any Estimator primitive.
 
-    An estimator pub is essentially a triple ``(circuit, observables, parameter_values)``.
+    An estimator pub is essentially a tuple ``(circuit, observables, parameter_values, precision)``.
+
+    If precision is provided this should be used for the target precision of an
+    estimator, if ``precision=None`` the estimator will determine the target precision.
     """
 
-    __slots__ = ("_circuit", "_observables", "_parameter_values", "_shape")
+    __slots__ = ("_circuit", "_observables", "_parameter_values", "_precision", "_shape")
 
     def __init__(
         self,
         circuit: QuantumCircuit,
         observables: ObservablesArray,
         parameter_values: BindingsArray | None = None,
+        precision: float | None = None,
         validate: bool = False,
     ):
         """Initialize an estimator pub.
@@ -49,18 +54,25 @@ class EstimatorPub(ShapedMixin):
             circuit: A quantum circuit.
             observables: An observables array.
             parameter_values: A bindings array, if the circuit is parametric.
+            precision: An optional target precision for expectation value estimates.
             validate: Whether to validate arguments during initialization.
         """
         super().__init__()
         self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
+        self._precision = precision
 
         # For ShapedMixin
         self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
 
         if validate:
             self.validate()
+
+    @property
+    def circuit(self) -> QuantumCircuit:
+        """A quantum circuit."""
+        return self._circuit
 
     @property
     def observables(self) -> ObservablesArray:
@@ -72,26 +84,49 @@ class EstimatorPub(ShapedMixin):
         """A bindings array."""
         return self._parameter_values
 
+    @property
+    def precision(self) -> float | None:
+        """The target precision for expectation value estimates (optional)."""
+        return self._precision
+
     @classmethod
-    def coerce(cls, pub: EstimatorPubLike) -> EstimatorPub:
+    def coerce(cls, pub: EstimatorPubLike, precision: float | None = None) -> EstimatorPub:
         """Coerce :class:`~.EstimatorPubLike` into :class:`~.EstimatorPub`.
 
         Args:
-            pub: A compatible object for coersion.
+            pub: A compatible object for coercion.
+            precision: an optional default precision to use if not
+                       already specified by the pub-like object.
 
         Returns:
             An estimator pub.
         """
         if isinstance(pub, EstimatorPub):
+            if pub / precision is None and precision is not None:
+                cls(
+                    circuit=pub.circuit,
+                    observables=pub.observables,
+                    parameter_values=pub.parameter_values,
+                    precision=precision,
+                    validate=False,
+                )
             return pub
-        if len(pub) != 2 and len(pub) != 3:
-            raise ValueError(f"The length of pub must be 2 or 3, but length {len(pub)} is given.")
+        if len(pub) not in [2, 3, 4]:
+            raise ValueError(
+                f"The length of pub must be 2, 3 or 4, but length {len(pub)} is given."
+            )
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
-        if len(pub) == 2:
-            return cls(circuit=circuit, observables=observables)
-        parameter_values = BindingsArray.coerce(pub[2])
-        return cls(circuit=circuit, observables=observables, parameter_values=parameter_values)
+        parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 1 else None
+        if len(pub) > 2 and pub[3] is not None:
+            precision = pub[3]
+        return cls(
+            circuit=circuit,
+            observables=observables,
+            parameter_values=parameter_values,
+            precision=precision,
+            validate=False,
+        )
 
     def validate(self):
         """Validate the pub."""
@@ -100,6 +135,12 @@ class EstimatorPub(ShapedMixin):
 
         self.observables.validate()
         self.parameter_values.validate()
+
+        if self.precision is not None:
+            if not isinstance(self.precision, Real):
+                raise TypeError(f"precision must be a real number, not {type(self.precision)}.")
+            if self.precision < 0:
+                raise ValueError("precisions must be non-negative.")
 
         # Cross validate circuits and observables
         for i, observable in enumerate(self.observables):
@@ -120,5 +161,8 @@ class EstimatorPub(ShapedMixin):
 
 
 EstimatorPubLike = Union[
-    EstimatorPub, Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike]
+    EstimatorPub,
+    Tuple[QuantumCircuit, ObservablesArrayLike],
+    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
+    Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
 ]
