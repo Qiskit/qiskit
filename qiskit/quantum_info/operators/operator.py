@@ -21,6 +21,7 @@ import re
 from numbers import Number
 from typing import TYPE_CHECKING
 
+import scipy.linalg
 import numpy as np
 
 from qiskit.circuit.instruction import Instruction
@@ -524,7 +525,7 @@ class Operator(LinearOp):
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
         ret = copy.copy(self)
-        ret._data = np.linalg.matrix_power(self.data, n)
+        ret._data = scipy.linalg.fractional_matrix_power(self.data, n)
         return ret
 
     def tensor(self, other: Operator) -> Operator:
