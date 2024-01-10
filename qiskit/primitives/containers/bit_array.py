@@ -63,7 +63,7 @@ class BitArray(ShapedMixin):
         if self._array.ndim < 2:
             raise ValueError("The input array must have at least two axes.")
         if self._array.shape[-1] != (expected := _min_num_bytes(num_bits)):
-            raise ValueError(f"The input array is expected to have {expected} bytes per sample.")
+            raise ValueError(f"The input array is expected to have {expected} bytes per shot.")
 
     def _prepare_broadcastable(self, other: "BitArray") -> Tuple[NDArray[np.uint8], ...]:
         """Validation and broadcasting of two bit arrays before element-wise binary operation."""
@@ -152,7 +152,7 @@ class BitArray(ShapedMixin):
         return dict(counts)
 
     def bitcount(self) -> NDArray[np.uint64]:
-        """Compute the number of ones appearing in the binary representation of each sample.
+        """Compute the number of ones appearing in the binary representation of each shot.
 
         Returns:
             A ``numpy.uint64``-array with shape ``(*shape, num_shots)``.
@@ -204,8 +204,8 @@ class BitArray(ShapedMixin):
 
         Args:
             counts: One or more counts-like mappings.
-            num_bits: The desired number of bits per sample. If unset, the biggest sample provided
-                is used to determine this value.
+            num_bits: The desired number of bits per shot. If unset, the biggest value found sets
+                this value.
 
         Returns:
             A new bit array.
