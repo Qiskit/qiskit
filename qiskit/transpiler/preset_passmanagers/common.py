@@ -20,6 +20,7 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.deprecation import deprecate_func
 
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
@@ -147,9 +148,11 @@ def generate_control_flow_options_check(
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
-        out.append(Error(message), condition=_has_control_flow)
+        out.append(ConditionalController(Error(message), condition=_has_control_flow))
     backend_control = _InvalidControlFlowForBackend(basis_gates, target)
-    out.append(Error(backend_control.message), condition=backend_control.condition)
+    out.append(
+        ConditionalController(Error(backend_control.message), condition=backend_control.condition)
+    )
     return out
 
 
@@ -158,7 +161,7 @@ def generate_error_on_control_flow(message):
     circuit."""
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(Error(message), condition=_has_control_flow)
+    out.append(ConditionalController(Error(message), condition=_has_control_flow))
     return out
 
 
@@ -171,8 +174,8 @@ def if_has_control_flow_else(if_present, if_absent):
         if_absent = if_absent.to_flow_controller()
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(if_present, condition=_has_control_flow)
-    out.append(if_absent, condition=_without_control_flow)
+    out.append(ConditionalController(if_present, condition=_has_control_flow))
+    out.append(ConditionalController(if_absent, condition=_without_control_flow))
     return out
 
 
@@ -328,32 +331,36 @@ def generate_routing_passmanager(
 
     if use_barrier_before_measurement:
         routing.append(
-            [
-                BarrierBeforeFinalMeasurements(
-                    label="qiskit.transpiler.internal.routing.protection.barrier"
-                ),
-                routing_pass,
-            ],
-            condition=_swap_condition,
+            ConditionalController(
+                [
+                    BarrierBeforeFinalMeasurements(
+                        label="qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    routing_pass,
+                ],
+                condition=_swap_condition,
+            )
         )
     else:
-        routing.append([routing_pass], condition=_swap_condition)
+        routing.append(ConditionalController(routing_pass, condition=_swap_condition))
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
     if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
         routing.append(
-            VF2PostLayout(
-                target,
-                coupling_map,
-                backend_properties,
-                seed_transpiler,
-                call_limit=vf2_call_limit,
-                max_trials=vf2_max_trials,
-                strict_direction=False,
-            ),
-            condition=_run_post_layout_condition,
+            ConditionalController(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=vf2_call_limit,
+                    max_trials=vf2_max_trials,
+                    strict_direction=False,
+                ),
+                condition=_run_post_layout_condition,
+            )
         )
-        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+        routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
 
     def filter_fn(node):
         return (
@@ -388,7 +395,12 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        pre_opt.append([GateDirection(coupling_map, target=target)], condition=_direction_condition)
+        pre_opt.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)],
+                condition=_direction_condition,
+            )
+        )
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
@@ -554,7 +566,9 @@ def generate_scheduling(
 
         scheduling.append(ContainsInstruction("delay"))
         scheduling.append(
-            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+            ConditionalController(
+                TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+            )
         )
     if (
         timing_constraints.granularity != 1
@@ -574,11 +588,13 @@ def generate_scheduling(
             )
         )
         scheduling.append(
-            ConstrainedReschedule(
-                acquire_alignment=timing_constraints.acquire_alignment,
-                pulse_alignment=timing_constraints.pulse_alignment,
-            ),
-            condition=_require_alignment,
+            ConditionalController(
+                ConstrainedReschedule(
+                    acquire_alignment=timing_constraints.acquire_alignment,
+                    pulse_alignment=timing_constraints.pulse_alignment,
+                ),
+                condition=_require_alignment,
+            )
         )
         scheduling.append(
             ValidatePulseGates(
