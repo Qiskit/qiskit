@@ -65,8 +65,8 @@ Here is an example of using a fake backend for transpilation and simulation.
     Please note that the simulation is done using a noise model generated from system snapshots
     obtained in the past (sometimes a few years ago) and the results are not representative of the
     latest behaviours of the real quantum system which the fake backend is mimicking. If you want to
-    run noisy simulations to compare with the real quantum system, please follow steps below to
-    generate a simulator mimics a real quantum system with the latest calibration results.
+    run noisy simulations to compare with the real quantum system you will need to create a noise
+    model from the current properties of the backend manually.
 
 Fake Providers
 ==============

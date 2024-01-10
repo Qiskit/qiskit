@@ -74,7 +74,6 @@ from qiskit.providers.basicaer import BasicAer
 
 _config = _user_config.get_config()
 
-# Moved to after  Aer imports due to import issues
 from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
