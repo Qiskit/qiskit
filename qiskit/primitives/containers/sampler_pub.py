@@ -18,6 +18,7 @@ Sampler Pub class
 from __future__ import annotations
 
 from typing import Tuple, Union
+from numbers import Integral
 
 from qiskit import QuantumCircuit
 
@@ -28,15 +29,19 @@ from .shape import ShapedMixin
 class SamplerPub(ShapedMixin):
     """Pub (Primitive Unified Bloc) for Sampler.
 
-    Pub is composed of double (circuit, parameter_values).
+    Pub is composed of tuple (circuit, parameter_values, shots).
+
+    If shots are provided this number of shots will be run with the sampler,
+    if ``shots=None`` the number of run shots is determined by the sampler.
     """
 
-    __slots__ = ("_circuit", "_parameter_values")
+    __slots__ = ("_circuit", "_parameter_values", "_shots")
 
     def __init__(
         self,
         circuit: QuantumCircuit,
         parameter_values: BindingsArray | None = None,
+        shots: int | None = None,
         validate: bool = False,
     ):
         """Initialize a sampler pub.
@@ -49,36 +54,58 @@ class SamplerPub(ShapedMixin):
         super().__init__()
         self._circuit = circuit
         self._parameter_values = parameter_values or BindingsArray()
+        self._shots = shots
         self._shape = self._parameter_values.shape
         if validate:
             self.validate()
 
     @property
+    def circuit(self) -> QuantumCircuit:
+        """A quantum circuit."""
+        return self._circuit
+
+    @property
     def parameter_values(self) -> BindingsArray:
-        """A bindings array"""
+        """A bindings array."""
         return self._parameter_values
 
+    @property
+    def shots(self) -> int | None:
+        """An specific number of shots to run with (optional)."""
+        return self._shots
+
     @classmethod
-    def coerce(cls, pub: SamplerPubLike) -> SamplerPub:
+    def coerce(cls, pub: SamplerPubLike, shots: int | None = None) -> SamplerPub:
         """Coerce SamplerPubLike into SamplerPub.
 
         Args:
             pub: an object to be Sampler pub.
+            shots: an optional default number of shots to use if not
+                   already specified by the pub-like object.
 
         Returns:
             A coerced sampler pub.
         """
         if isinstance(pub, SamplerPub):
+            if pub.shots is None and shots is not None:
+                return cls(
+                    pub.circuit,
+                    pub.parameter_values,
+                    shots=shots,
+                    validate=False,
+                )
             return pub
         if isinstance(pub, QuantumCircuit):
-            return cls(circuit=pub)
-        if len(pub) not in [1, 2]:
-            raise ValueError(f"The length of pub must be 1 or 2, but length {len(pub)} is given.")
+            return cls(circuit=pub, shots=shots)
+        if len(pub) not in [1, 2, 3]:
+            raise ValueError(
+                f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
+            )
         circuit = pub[0]
-        if len(pub) == 1:
-            return cls(circuit=circuit)
-        parameter_values = BindingsArray.coerce(pub[1])
-        return cls(circuit=circuit, parameter_values=parameter_values)
+        parameter_values = BindingsArray.coerce(pub[1]) if len(pub) > 1 else None
+        if len(pub) > 2 and pub[2] is not None:
+            shots = pub[2]
+        return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=False)
 
     def validate(self):
         """Validate the pub."""
@@ -86,6 +113,12 @@ class SamplerPub(ShapedMixin):
             raise TypeError("circuit must be QuantumCircuit.")
 
         self.parameter_values.validate()
+
+        if self.shots is not None:
+            if not isinstance(self.shots, Integral):
+                raise TypeError("shots must be an integer")
+            if self.shots < 0:
+                raise ValueError("shots must be non-negative")
 
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters
@@ -97,5 +130,9 @@ class SamplerPub(ShapedMixin):
 
 
 SamplerPubLike = Union[
-    SamplerPub, QuantumCircuit, Tuple[QuantumCircuit], Tuple[QuantumCircuit, BindingsArrayLike]
+    SamplerPub,
+    QuantumCircuit,
+    Tuple[QuantumCircuit],
+    Tuple[QuantumCircuit, BindingsArrayLike],
+    Tuple[QuantumCircuit, BindingsArrayLike, Integral],
 ]

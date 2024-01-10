@@ -267,27 +267,22 @@ class BaseSamplerV2:
     """Sampler base class version 2.
 
     A Sampler returns samples of bitstrings of quantum circuits.
+
+    A Sampler implementation must treat the :meth:`.run` method ``shots=None`` kwarg
+    as using a default ``shots`` value.  The default value and methods to set it can
+    be determined by the Sampler implementor.
     """
 
-    def __init__(self, shots: int | None):
-        self._shots = shots
-
-    @property
-    def shots(self) -> int | None:
-        """The target number of total shots for each run :class:`.SamplerPub`."""
-        return self._shots
-
-    @shots.setter
-    def shots(self, value: int | None):
-        self._shots = value
-
     @abstractmethod
-    def run(self, pubs: Iterable[SamplerPubLike]) -> Job:
+    def run(self, pubs: Iterable[SamplerPubLike], shots: int | None = None) -> Job:
         """Run the pubs of samples.
 
         Args:
             pubs: an iterable of pub-like object. Typically, list of tuple
-                ``(QuantumCircuit, parameter_values)``
+                  ``(QuantumCircuit, parameter_values)``
+            shots: the total number of shots for each run :class:`.SamplerPub`.
+                   that does not specify its own shots. If None the primitives
+                   default shots value will be used.
 
         Returns:
             The job object of Sampler's Result.
