@@ -190,12 +190,8 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
     # if some are not provided
     current_style = DefaultStyle().style
 
-    # if the style is a dictionary, update the defaults with the new values
-    if isinstance(style, dict):
-        current_style.update(style)
-
     # if it is the default style, we have already loaded it
-    elif style in ["iqp", "default"]:
+    if style in ["iqp", "default"]:
         pass
 
     # otherwise try to load it
@@ -256,6 +252,12 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                 UserWarning,
                 2,
             )
+
+    # if the style is a dictionary, update the defaults with the new values
+    # this _needs_ to happen after loading by name to cover cases like
+    #   style = {"name": "bw", "edgecolor": "#FF0000"}
+    if isinstance(style, dict):
+        current_style.update(style)
 
     def_font_ratio = current_style["fs"] / current_style["sfs"]
     return current_style, def_font_ratio
