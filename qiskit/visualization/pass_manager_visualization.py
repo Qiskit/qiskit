@@ -27,7 +27,7 @@ DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, pprint=False):
     """
     Draws the pass manager.
 
@@ -91,11 +91,15 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
     for index, controller_group in enumerate(passes):
         subgraph, component_id, prev_node = draw_subgraph(
-            controller_group, component_id, style, prev_node, index
+            controller_group, component_id, style, prev_node, index, False
         )
         graph.add_subgraph(subgraph)
 
-    output = make_output(graph, raw, filename)
+    if pprint:
+        output = "\n".join(_pprint(graph))
+    else:
+        output = make_output(graph, raw, filename)
+
     return output
 
 
@@ -115,7 +119,7 @@ def _get_node_color(pss, style):
 
 @_optionals.HAS_GRAPHVIZ.require_in_call
 @_optionals.HAS_PYDOT.require_in_call
-def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, pprint=False):
     """
     Draws the staged pass manager.
 
@@ -184,7 +188,11 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
                 idx += 1
             graph.add_subgraph(stagegraph)
 
-    output = make_output(graph, raw, filename)
+    if pprint:
+        output = "\n".join(_pprint(graph))
+    else:
+        output = make_output(graph, raw, filename)
+
     return output
 
 
@@ -279,3 +287,21 @@ def make_output(graph, raw, filename):
         if filename:
             image.save(filename, "PNG")
         return image
+
+
+def _pprint(graph, nest=0):
+    """TODO."""
+    output = []
+    subgraphs = graph.get_subgraphs()
+    nodes = graph.get_nodes()
+    if subgraphs:
+        for subgraph in subgraphs:
+            sub_output = _pprint(subgraph, nest + 1)
+            if sub_output:
+                output.append("\t" * nest + subgraph.get_label())
+                output += sub_output
+    elif nodes:
+        for node in nodes:
+            if node.get_shape() == "rectangle":
+                output.append("\t" * nest + node.get_label())
+    return output
