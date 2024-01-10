@@ -21,7 +21,7 @@ from qiskit.providers.backend import Backend
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
 
-T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
 
 
 class Job:
@@ -36,7 +36,7 @@ class Job:
     version = 0
 
 
-class JobV1(Job, ABC, Generic[T]):
+class JobV1(Job, ABC, Generic[T_co]):
     """Class to handle jobs
 
     This first version of the Backend abstract class is written to be mostly
@@ -130,7 +130,7 @@ class JobV1(Job, ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def result(self) -> T:
+    def result(self) -> T_co:
         """Return the results of the job."""
         pass
 
