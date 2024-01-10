@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removed the deprecated :class:`qiskit.pulse.instructions.Call` and associated tests.

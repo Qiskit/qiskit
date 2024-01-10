@@ -811,31 +811,6 @@ class TestBuilderComposition(TestBuilder):
 class TestSubroutineCall(TestBuilder):
     """Test for calling subroutine."""
 
-    def test_call(self):
-        """Test calling schedule instruction."""
-        d0 = pulse.DriveChannel(0)
-        d1 = pulse.DriveChannel(1)
-
-        reference = pulse.Schedule()
-        reference = reference.insert(10, instructions.Delay(10, d0))
-        reference += instructions.Delay(20, d1)
-
-        ref_sched = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            ref_sched += pulse.instructions.Call(reference)
-
-        with pulse.build() as schedule:
-            with pulse.align_right():
-                builder.call(reference)
-
-        self.assertScheduleEqual(schedule, ref_sched)
-
-        with pulse.build() as schedule:
-            with pulse.align_right():
-                pulse.call(reference)
-
-        self.assertScheduleEqual(schedule, ref_sched)
-
     def test_subroutine_not_transformed(self):
         """Test called schedule is not transformed."""
         d0 = pulse.DriveChannel(0)
