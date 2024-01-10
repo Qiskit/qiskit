@@ -240,7 +240,7 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
             parameters["angle"] = np.angle(parameters["amp"])
             parameters["amp"] = np.abs(parameters["amp"])
             warnings.warn(
-                f"ScalableSymbolicPulse with complex amp are no longer supported."
+                f"ScalableSymbolicPulse with complex amp are no longer supported. "
                 f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
                 UserWarning,
             )
