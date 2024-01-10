@@ -135,5 +135,5 @@ SamplerPubLike = Union[
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
-    Tuple[QuantumCircuit, BindingsArrayLike, Integral],
+    Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
 ]

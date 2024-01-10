@@ -277,7 +277,7 @@ class BaseSamplerV2:
         """Run and collect samples from each pub.
 
         Args:
-            pubs: An iterable of pub-like objects. For example, a list of circuits 
+            pubs: An iterable of pub-like objects. For example, a list of circuits
                   or tuples ``(circuit, parameter_values)``.
             shots: The total number of shots to sample for each :class:`.SamplerPub`.
                    that does not specify its own shots. If None, the primitive's
