@@ -100,7 +100,7 @@ def synth_circuit_from_stabilizers(
     invert: bool = False,
 ) -> QuantumCircuit:
     # pylint: disable=line-too-long
-    """Synthesis of a circuit that generates state stabilized by the stabilziers
+    """Synthesis of a circuit that generates a state stabilized by the stabilziers
     using Gaussian elimination with Clifford gates.
     If the stabilizers are underconstrained, and `allow_underconstrained` is `True`,
     the circuit will output one of the states stabilized by the stabilizers.
@@ -108,12 +108,14 @@ def synth_circuit_from_stabilizers(
 
     Args:
         stabilizers (Collection[str]): list of stabilizer strings
-        allow_redundant (bool): allow redundant stabilizers
-        allow_underconstrained (bool): allow underconstrained set of stabilizers
+        allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                                can be products of the others)
+        allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                                       the stabilizers do not specify a unique state)
         invert (bool): return inverse circuit
 
     Return:
-        QuantumCircuit: a circuit that generates state stabilized by `stabilizers`.
+        QuantumCircuit: a circuit that generates a state stabilized by `stabilizers`.
 
     Raises:
         QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,

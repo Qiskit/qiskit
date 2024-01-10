@@ -61,7 +61,7 @@ class StabilizerState(QuantumState):
         1
 
     Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
-    returns state stabilized by the list
+    returns a state stabilized by the list
 
     .. code-block:: python
 
@@ -112,12 +112,14 @@ class StabilizerState(QuantumState):
         allow_redundant: bool = False,
         allow_underconstrained: bool = False,
     ) -> StabilizerState:
-        """Create stabilizer state from the collection of stabilizers.
+        """Create a stabilizer state from the collection of stabilizers.
 
         Args:
             stabilizers (Collection[str]): list of stabilizer strings
-            allow_redundant (bool): allow redundant stabilizers
-            allow_underconstrained (bool): allow underconstrained set of stabilizers
+        allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                                can be products of the others)
+        allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                                       the stabilizers do not specify a unique state)
 
         Return:
             StabilizerState: a state stabilized by stabilizers.

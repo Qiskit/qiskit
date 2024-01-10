@@ -35,7 +35,7 @@ class TestStabilizerCircuits(QiskitTestCase):
 
     def verify_stabilizers(self, stabilizers: Collection[str], **kwargs) -> None:
         """
-        Verify that circuit generated from stabilizers is correct.
+        Verify that the circuit generated from stabilizers is correct.
 
         Args:
             stabilizers (Collection[str]): list of stabilizer strings
@@ -117,7 +117,8 @@ class TestStabilizerCircuits(QiskitTestCase):
         self.verify_stabilizers(stabilizer_list, allow_redundant=True, allow_underconstrained=True)
 
     def test_stabilizer_to_circuit_redundant_swap(self):
-        """Redundant test case that requires to swap qubits"""
+        """Redundant test case that requires to swap qubits during Gaussian elimination
+        (i.e., some pivot is off-diagonal)"""
         stabilizer_list = ["ZZXX", "ZZZZ", "XXXX", "YYYY", "XZXZ"]
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
@@ -151,7 +152,7 @@ class TestStabilizerCircuits(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_regenerate_clifford(self, num_qubits):
-        """Create circuit from Clifford-generated list of stabilizers and verify that the
+        """Create a circuit from Clifford-generated list of stabilizers and verify that the
         circuit output is equivalent to the original state."""
         rng = np.random.default_rng(1234)
         samples = 10
