@@ -71,9 +71,6 @@ class InstructionDurations:
 
         Returns:
             InstructionDurations: The InstructionDurations constructed from backend.
-
-        Raises:
-            TranspilerError: If dt and dtm is different in the backend.
         """
 
         # All durations in seconds in gate_length

@@ -106,6 +106,16 @@ class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             durations.get(self.example_gate, self.example_qubit[0])
 
+    def test_works_unequal_dt_dtm(self):
+        self.backend_cpy.configuration().dt = 1.0
+
+        # This is expcted to fail
+        InstructionDurations.from_backend(self.backend_cpy)
+
+        self.backend_cpy.configuration().dt = None  # Resetting to None
+        # Check if dt and dtm were indeed unequal
+        self.assertNotEqual(self.backend_cpy.configuration().dtm, 1.0)
+
 
 class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
     """Test :meth:`~.from_backend` of :class:`.InstructionDurations` with
@@ -150,3 +160,13 @@ class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
         durations = InstructionDurations.from_backend(self.backend_cpy)
         with self.assertRaises(TranspilerError):
             durations.get(self.example_gate, self.example_qubit[0])
+
+    def test_works_unequal_dt_dtm(self):
+        self.backend_cpy.target.dt = 1.0
+
+        # This is expcted to fail
+        InstructionDurations.from_backend(self.backend_cpy)
+
+        self.backend_cpy.target.dt = None  # Resetting to None
+        # Check if dt and dtm were indeed unequal
+        self.assertNotEqual(self.backend_cpy.dtm, 1.0)

@@ -5,7 +5,7 @@ features:
     of :class:`.InstructionDurations`.
     
     Users can have an object of :class:`.InstructionDurations` using :class:`.BackendV2`
-    with followig code.
+    from :meth:`.from_backend` with followig code.
     
     .. code-block:: python
 
@@ -15,5 +15,8 @@ features:
       
       inst_dur = InstructionDurations.from_backend(backendV2)
 
-
+upgrade:
+  - |
+    Given :code:`dt` and :code:`dtm` for a :class:`.BackendV1` or :class:`.BackendV2` is different,
+    :meth:`~.InstructionDurations.from_backend` does not raise any error.
 
