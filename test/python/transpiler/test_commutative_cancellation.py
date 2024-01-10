@@ -14,6 +14,8 @@
 
 import unittest
 import numpy as np
+
+from qiskit.passmanager import DoWhileController
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -135,9 +137,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rx(np.pi, qr[0])
 
         passmanager = PassManager()
-        passmanager.append(
+        passmanager.append(DoWhileController(
             [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            do_while=lambda property_set: not property_set["size_fixed_point"])
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -409,9 +411,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.x(qr[1])
 
         passmanager = PassManager()
-        passmanager.append(
+        passmanager.append(DoWhileController(
             [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            do_while=lambda property_set: not property_set["size_fixed_point"])
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -452,9 +454,9 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append(
+        passmanager.append(DoWhileController(
             [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            do_while=lambda property_set: not property_set["size_fixed_point"])
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -508,9 +510,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rx(np.pi, qr[9])
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append(
+        passmanager.append(DoWhileController(
             [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            do_while=lambda property_set: not property_set["size_fixed_point"])
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
