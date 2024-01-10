@@ -102,9 +102,17 @@ class PassManager(BasePassManager):
 
         return out_program
 
+    @deprecate_arg(
+        name="max_iteration",
+        since="0.25",
+        additional_msg="'max_iteration' can be set in the constructor.",
+        pending=True,
+        package_name="qiskit-terra",
+    )
     def append(
         self,
         passes: Task | list[Task],
+        max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
@@ -115,6 +123,7 @@ class PassManager(BasePassManager):
                 provided, the pass set will only have that pass a single element.
                 It is also possible to append a :class:`.BaseFlowController` instance and
                 the rest of the parameter will be ignored.
+            max_iteration: max number of iterations of passes.
             flow_controller_conditions: Dictionary of control flow plugins.
                 Following built-in controllers are available by default:
 
@@ -129,6 +138,9 @@ class PassManager(BasePassManager):
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
+        if max_iteration:
+            self.max_iteration = max_iteration
+
         # Backward compatibility as of Terra 0.25
         if isinstance(passes, Task):
             passes = [passes]
@@ -147,10 +159,18 @@ class PassManager(BasePassManager):
 
         super().append(passes)
 
+    @deprecate_arg(
+        name="max_iteration",
+        since="0.25",
+        additional_msg="'max_iteration' can be set in the constructor.",
+        pending=True,
+        package_name="qiskit-terra",
+    )
     def replace(
         self,
         index: int,
         passes: Task | list[Task],
+        max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
@@ -158,9 +178,13 @@ class PassManager(BasePassManager):
         Args:
             index: Pass index to replace, based on the position in passes().
             passes: A pass set to be added to the pass manager schedule.
+            max_iteration: max number of iterations of passes.
             flow_controller_conditions: Dictionary of control flow plugins.
                 See :meth:`qiskit.transpiler.PassManager.append` for details.
         """
+        if max_iteration:
+            self.max_iteration = max_iteration
+
         # Backward compatibility as of Terra 0.25
         if isinstance(passes, Task):
             passes = [passes]

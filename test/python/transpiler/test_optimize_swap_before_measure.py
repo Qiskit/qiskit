@@ -15,7 +15,6 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.passmanager import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
@@ -311,8 +310,9 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         expected.measure(qr[0], cr[0])
 
         pass_manager = PassManager()
-        pass_manager.append(DoWhileController([OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"])
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set["dag_fixed_point"],
         )
         after = pass_manager.run(circuit)
 
@@ -339,8 +339,9 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         expected.measure(qr[0], cr[0])
 
         pass_manager = PassManager()
-        pass_manager.append(DoWhileController([OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"])
+        pass_manager.append(
+            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+            do_while=lambda property_set: not property_set["dag_fixed_point"],
         )
         after = pass_manager.run(circuit)
 

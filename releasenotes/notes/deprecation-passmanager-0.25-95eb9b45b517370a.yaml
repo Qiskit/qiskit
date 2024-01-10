@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removed deprecated function :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits` and its corresponding test.

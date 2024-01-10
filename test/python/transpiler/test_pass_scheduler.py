@@ -135,8 +135,8 @@ class TestUseCases(SchedulerTestCase):
     def test_conditional_passes_true(self):
         """A pass set with a conditional parameter. The callable is True."""
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(ConditionalController(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"])
+        self.passmanager.append(
+            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
         )
         self.assertScheduler(
             self.circuit,
@@ -170,8 +170,8 @@ class TestUseCases(SchedulerTestCase):
     def test_conditional_passes_false(self):
         """A pass set with a conditional parameter. The callable is False."""
         self.passmanager.append(PassE_AP_NR_NP(False))
-        self.passmanager.append(ConditionalController(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"])
+        self.passmanager.append(
+            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
         )
         self.assertScheduler(
             self.circuit,
@@ -183,10 +183,9 @@ class TestUseCases(SchedulerTestCase):
         """Run a conditional first, then a loop."""
         self.passmanager.append(PassE_AP_NR_NP(True))
         self.passmanager.append(
-            ConditionalController(DoWhileController(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"]),
-            condition=lambda property_set: property_set["property"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
+            condition=lambda property_set: property_set["property"],
         )
         self.assertScheduler(
             self.circuit,
@@ -246,10 +245,10 @@ class TestUseCases(SchedulerTestCase):
             FlowController.add_flow_controller("condition", ConditionalController)
 
         self.passmanager.append(PassK_check_fixed_point_property())
-        self.passmanager.append(ConditionalController(DoWhileController(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"]),
-            condition=lambda property_set: not property_set["property_fixed_point"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
+            condition=lambda property_set: not property_set["property_fixed_point"],
         )
         self.assertScheduler(
             self.circuit,
@@ -380,9 +379,9 @@ class TestUseCases(SchedulerTestCase):
 
     def test_fixed_point_pass(self):
         """A pass set with a do_while parameter that checks for a fixed point."""
-        self.passmanager.append(DoWhileController(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
         )
         self.assertScheduler(
             self.circuit,
@@ -492,10 +491,10 @@ class TestUseCases(SchedulerTestCase):
     def test_fixed_point_pass_max_iteration(self):
         """A pass set with a do_while parameter that checks that
         the max_iteration is raised."""
-        self.passmanager.append(DoWhileController(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set["property_fixed_point"],
-            options={'max_iteration': 2})
+            max_iteration=2,
         )
         self.assertSchedulerRaises(
             self.circuit,
@@ -541,11 +540,11 @@ class TestUseCases(SchedulerTestCase):
                 [PassA_TP_NR_NP()], condition=lambda property_set: property_set["property"] >= 5
             )
         ]
-        self.passmanager.append(DoWhileController(
+        self.passmanager.append(
             [PassK_check_fixed_point_property()]
             + nested_conditional
             + [PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
         )
         expected = [
             "run analysis pass PassG_calculates_dag_property",
@@ -615,9 +614,9 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
     def test_control_flow_plugin(self):
         """Adds a control flow plugin with a single parameter and runs it."""
-        self.passmanager.append(DoXTimesController([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-                                                   do_x_times=lambda x: 3,
-                                                   options={}))
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -641,9 +640,10 @@ class TestControlFlowPlugin(SchedulerTestCase):
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_while", DoWhileController)
         self.assertEqual(controllers_length, len(FlowController.registered_controllers))
-        self.passmanager.append(DoWhileController([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+        self.passmanager.append(
+            [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
             do_while=lambda property_set: True,
-            options={'max_iteration':2})
+            max_iteration=2,
         )
         self.assertSchedulerRaises(
             self.circuit,
@@ -707,34 +707,34 @@ class TestDumpPasses(SchedulerTestCase):
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
         passmanager = PassManager()
-        self.maxDiff = None
-        first_pass = DoXTimesController([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-                                              do_x_times=lambda x: 3,
-                                              options={})
-        passmanager.append(first_pass)
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
 
         expected = [
-            {"passes": [first_pass], "flow_controllers": {}}
+            {"passes": [PassB_TP_RA_PA(), PassC_TP_RA_PA()], "flow_controllers": {"do_x_times"}}
         ]
         self.assertEqual(expected, passmanager.passes())
 
     def test_conditional_and_loop(self):
         """Dump passes with a conditional and a loop."""
         passmanager = PassManager()
-        first_pass = PassE_AP_NR_NP(True)
-        second_pass = ConditionalController(DoWhileController(
-                        [PassK_check_fixed_point_property(), PassA_TP_NR_NP(),
-                         PassF_reduce_dag_property()],
-                        do_while=lambda property_set: not property_set["property_fixed_point"]),
-                        condition=lambda property_set: property_set["property_fixed_point"])
-        passmanager.append(first_pass)
-        passmanager.append(second_pass)
+        passmanager.append(PassE_AP_NR_NP(True))
+        passmanager.append(
+            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+            do_while=lambda property_set: not property_set["property_fixed_point"],
+            condition=lambda property_set: property_set["property_fixed_point"],
+        )
 
         expected = [
-            {"passes": [first_pass], "flow_controllers": {}},
+            {"passes": [PassE_AP_NR_NP(True)], "flow_controllers": {}},
             {
-                "passes": [second_pass],
-                "flow_controllers": {},
+                "passes": [
+                    PassK_check_fixed_point_property(),
+                    PassA_TP_NR_NP(),
+                    PassF_reduce_dag_property(),
+                ],
+                "flow_controllers": {"condition", "do_while"},
             },
         ]
         self.assertEqual(expected, passmanager.passes())
@@ -804,9 +804,9 @@ class TestLogPasses(QiskitTestCase):
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
         passmanager = PassManager()
-        passmanager.append(DoXTimesController([PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-                                              do_x_times=lambda x: 3,
-                                              options={}))
+        with self.assertWarns(DeprecationWarning):
+            FlowController.add_flow_controller("do_x_times", DoXTimesController)
+        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertPassLog(
             passmanager,
             [
@@ -824,10 +824,10 @@ class TestLogPasses(QiskitTestCase):
         """Dump passes with a conditional and a loop"""
         passmanager = PassManager()
         passmanager.append(PassE_AP_NR_NP(True))
-        passmanager.append(ConditionalController(DoWhileController(
+        passmanager.append(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"]),
-            condition=lambda property_set: property_set["property_fixed_point"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
+            condition=lambda property_set: property_set["property_fixed_point"],
         )
         self.assertPassLog(passmanager, ["PassE_AP_NR_NP"])
 
@@ -857,8 +857,8 @@ class TestPassManagerReuse(SchedulerTestCase):
     def test_conditional_twice(self):
         """Run a conditional twice."""
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(ConditionalController(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"])
+        self.passmanager.append(
+            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
         )
 
         expected = [
@@ -872,9 +872,9 @@ class TestPassManagerReuse(SchedulerTestCase):
 
     def test_fixed_point_twice(self):
         """A fixed point scheduler, twice."""
-        self.passmanager.append(DoWhileController(
+        self.passmanager.append(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"])
+            do_while=lambda property_set: not property_set["property_fixed_point"],
         )
 
         expected = [
@@ -1071,10 +1071,9 @@ class TestPassManagerSlicing(SchedulerTestCase):
         """test accessing PassManager's conditioned passes by index"""
         self.passmanager.append(PassF_reduce_dag_property())
         self.passmanager.append(
-            DoWhileController(ConditionalController(
             [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            condition=lambda property_set: True),
-            do_while=lambda property_set: not property_set["property_fixed_point"])
+            condition=lambda property_set: True,
+            do_while=lambda property_set: not property_set["property_fixed_point"],
         )
 
         new_passmanager = self.passmanager[1]
@@ -1146,8 +1145,7 @@ class TestPassManagerSlicing(SchedulerTestCase):
         self.passmanager.append(PassB_TP_RA_PA())
         self.passmanager.append(PassE_AP_NR_NP(True))
         self.passmanager.append(
-            ConditionalController(PassA_TP_NR_NP(),
-                                  condition=lambda property_set: property_set["property"])
+            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
         )
         self.passmanager.append(PassB_TP_RA_PA())
 
@@ -1195,8 +1193,8 @@ class TestPassManagerConcatenation(SchedulerTestCase):
         """test adding two pass managers with condition"""
         self.passmanager1.append(PassE_AP_NR_NP(True))
         self.passmanager1.append(PassB_TP_RA_PA())
-        self.passmanager2.append(ConditionalController(
-            PassC_TP_RA_PA(), condition=lambda property_set: property_set["property"])
+        self.passmanager2.append(
+            PassC_TP_RA_PA(), condition=lambda property_set: property_set["property"]
         )
         self.passmanager2.append(PassB_TP_RA_PA())
 
@@ -1248,8 +1246,8 @@ class TestPassManagerConcatenation(SchedulerTestCase):
     def test_adding_list_of_passes_to_passmanager_with_condition(self):
         """test adding a list of passes to a PassManager that have conditions"""
         self.passmanager1.append(PassE_AP_NR_NP(False))
-        self.passmanager1.append(ConditionalController(
-            PassB_TP_RA_PA(), condition=lambda property_set: property_set["property"])
+        self.passmanager1.append(
+            PassB_TP_RA_PA(), condition=lambda property_set: property_set["property"]
         )
 
         self.passmanager1 += PassC_TP_RA_PA()

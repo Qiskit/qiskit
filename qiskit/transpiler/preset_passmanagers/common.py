@@ -18,7 +18,6 @@ from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.passmanager import ConditionalController
 from qiskit.utils.deprecation import deprecate_func
 
 from qiskit.transpiler.passmanager import PassManager
@@ -148,10 +147,9 @@ def generate_control_flow_options_check(
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
-        out.append(ConditionalController(Error(message), condition=_has_control_flow))
+        out.append(Error(message), condition=_has_control_flow)
     backend_control = _InvalidControlFlowForBackend(basis_gates, target)
-    out.append(ConditionalController(Error(backend_control.message),
-                                     condition=backend_control.condition))
+    out.append(Error(backend_control.message), condition=backend_control.condition)
     return out
 
 
@@ -160,7 +158,7 @@ def generate_error_on_control_flow(message):
     circuit."""
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(ConditionalController(Error(message), condition=_has_control_flow))
+    out.append(Error(message), condition=_has_control_flow)
     return out
 
 
@@ -173,8 +171,8 @@ def if_has_control_flow_else(if_present, if_absent):
         if_absent = if_absent.to_flow_controller()
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(ConditionalController(if_present, condition=_has_control_flow))
-    out.append(ConditionalController(if_absent, condition=_without_control_flow))
+    out.append(if_present, condition=_has_control_flow)
+    out.append(if_absent, condition=_without_control_flow)
     return out
 
 
@@ -329,21 +327,22 @@ def generate_routing_passmanager(
         return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
-        routing.append(ConditionalController(
+        routing.append(
             [
                 BarrierBeforeFinalMeasurements(
                     label="qiskit.transpiler.internal.routing.protection.barrier"
                 ),
                 routing_pass,
             ],
-            condition=_swap_condition)
+            condition=_swap_condition,
         )
     else:
-        routing.append(ConditionalController([routing_pass], condition=_swap_condition))
+        routing.append([routing_pass], condition=_swap_condition)
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
     if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
-        routing.append(ConditionalController(VF2PostLayout(
+        routing.append(
+            VF2PostLayout(
                 target,
                 coupling_map,
                 backend_properties,
@@ -352,9 +351,9 @@ def generate_routing_passmanager(
                 max_trials=vf2_max_trials,
                 strict_direction=False,
             ),
-            condition=_run_post_layout_condition)
+            condition=_run_post_layout_condition,
         )
-        routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
+        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
 
     def filter_fn(node):
         return (
@@ -389,8 +388,7 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        pre_opt.append(ConditionalController([GateDirection(coupling_map, target=target)],
-                                             condition=_direction_condition))
+        pre_opt.append([GateDirection(coupling_map, target=target)], condition=_direction_condition)
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
@@ -555,8 +553,8 @@ def generate_scheduling(
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        scheduling.append(ConditionalController(
-            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay)
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
         )
     if (
         timing_constraints.granularity != 1
@@ -575,11 +573,12 @@ def generate_scheduling(
                 pulse_alignment=timing_constraints.pulse_alignment,
             )
         )
-        scheduling.append(ConditionalController(ConstrainedReschedule(
+        scheduling.append(
+            ConstrainedReschedule(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
             ),
-            condition=_require_alignment)
+            condition=_require_alignment,
         )
         scheduling.append(
             ValidatePulseGates(
@@ -592,6 +591,28 @@ def generate_scheduling(
         scheduling.append(PadDelay(target=target))
 
     return scheduling
+
+
+@deprecate_func(
+    additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
+    since="0.25.0",
+    package_name="qiskit-terra",
+)
+def get_vf2_call_limit(
+    optimization_level: int,
+    layout_method: Optional[str] = None,
+    initial_layout: Optional[Layout] = None,
+) -> Optional[int]:
+    """Get the vf2 call limit for vf2 based layout passes."""
+    vf2_call_limit = None
+    if layout_method is None and initial_layout is None:
+        if optimization_level == 1:
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with rustworkx 0.10.2
+        elif optimization_level == 2:
+            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with rustworkx 0.10.2
+        elif optimization_level == 3:
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
+    return vf2_call_limit
 
 
 VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
