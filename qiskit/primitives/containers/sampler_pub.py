@@ -42,7 +42,7 @@ class SamplerPub(ShapedMixin):
         circuit: QuantumCircuit,
         parameter_values: BindingsArray | None = None,
         shots: int | None = None,
-        validate: bool = False,
+        validate: bool = True,
     ):
         """Initialize a sampler pub.
 
@@ -87,17 +87,26 @@ class SamplerPub(ShapedMixin):
         Returns:
             A coerced sampler pub.
         """
+        # Validate shots kwarg if provided
+        if shots is not None:
+            if not isinstance(shots, Integral) or isinstance(shots, bool):
+                raise TypeError("shots must be an integer")
+            if shots < 0:
+                raise ValueError("shots must be non-negative")
+
         if isinstance(pub, SamplerPub):
             if pub.shots is None and shots is not None:
                 return cls(
-                    pub.circuit,
-                    pub.parameter_values,
+                    circuit=pub.circuit,
+                    parameter_values=pub.parameter_values,
                     shots=shots,
-                    validate=False,
+                    validate=False,  # Assume Pub is already validated
                 )
             return pub
+
         if isinstance(pub, QuantumCircuit):
-            return cls(circuit=pub, shots=shots)
+            return cls(circuit=pub, shots=shots, validate=True)
+
         if len(pub) not in [1, 2, 3]:
             raise ValueError(
                 f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
@@ -106,7 +115,7 @@ class SamplerPub(ShapedMixin):
         parameter_values = BindingsArray.coerce(pub[1]) if len(pub) > 1 else None
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
-        return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=False)
+        return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=True)
 
     def validate(self):
         """Validate the pub."""
@@ -116,7 +125,7 @@ class SamplerPub(ShapedMixin):
         self.parameter_values.validate()
 
         if self.shots is not None:
-            if not isinstance(self.shots, Integral):
+            if not isinstance(self.shots, Integral) or isinstance(self.shots, bool):
                 raise TypeError("shots must be an integer")
             if self.shots < 0:
                 raise ValueError("shots must be non-negative")
