@@ -1365,9 +1365,9 @@ class Target(Mapping):
         # See API doc of Target.add_instruction for details.
         prop_name_map = dict.fromkeys(all_instructions)
 
-        # This covers the case when backend_properties is None
-        # The InstructionDurations will be used to set the instructions' duration.
-        # In InstructionProperties.
+        # This covers the case when backend_properties is None and InstructionDuration exists
+        # The InstructionDurations will be used to set the instructions' duration in
+        # InstructionProperties.
         if backend_properties is None and instruction_durations is not None:
             if in_data_target["dt"] is None:
                 in_data_target["dt"] = instruction_durations.dt
@@ -1380,13 +1380,12 @@ class Target(Mapping):
                 if prop_name_map[name] is None:
                     prop_name_map[name] = {}
 
-                # Since, BackendProperties is None, error param cannot be obtained.
+                # Since, BackendProperties is None, instructions' error cannot be obtained.
                 prop_name_map[name][qubits] = InstructionProperties(error=None, duration=duration)
                 if isinstance(prop_name_map[name], dict) and any(
                     v is None for v in prop_name_map[name].values()
                 ):
                     # Properties provides gate properties only for subset of qubits
-                    # Associated qubit set might be defined by the gate config here
                     logger.info(
                         "Gate properties of instruction %s are not provided for every qubits. "
                         "This gate is ideal for some qubits and the rest is with finite error. "
@@ -1399,8 +1398,11 @@ class Target(Mapping):
             faulty_qubits = set(backend_properties.faulty_qubits())
 
             for name in all_instructions:
+
+                # BackendProperties doesn't have gate_property for 'Measure'.
                 if name in required_operations:
                     continue
+
                 try:
                     for qubits, params in backend_properties.gate_property(name).items():
                         if set.intersection(
@@ -1412,6 +1414,8 @@ class Target(Mapping):
                         error = params["gate_error"][0] if "gate_error" in params else None
                         if instruction_durations is not None:
                             try:
+                                # setting unit to 's' becasue 'gate_length' from
+                                # BackendProperties is also reported in 's'.
                                 duration = instruction_durations.get(
                                     inst=name, qubits=list(qubits), unit="s", parameters=None
                                 )
@@ -1419,7 +1423,8 @@ class Target(Mapping):
                                 warnings.warn(
                                     f"Duration of instruction {name} on qubits {qubits} is "
                                     "not found in `InstructionDurations` passed, "
-                                    "falling back to `BackendProperties` to fetch duration",
+                                    "falling back to `BackendProperties` to fetch duration "
+                                    "for this particular gate,qubits combination",
                                     RuntimeWarning,
                                 )
                                 duration = (
@@ -1439,7 +1444,6 @@ class Target(Mapping):
                             v is None for v in prop_name_map[name].values()
                         ):
                             # Properties provides gate properties only for subset of qubits
-                            # Associated qubit set might be defined by the gate config here
                             logger.info(
                                 "Gate properties of instruction %s are not provided for every qubits. "
                                 "This gate is ideal for some qubits and the rest is with finite error. "
@@ -1467,8 +1471,7 @@ class Target(Mapping):
                     duration=duration, error=error
                 )
 
-        # Populate QubitProperties
-        if backend_properties is not None and in_data_target["num_qubits"] is not None:
+            # Populate QubitProperties
             qubit_properties = []
             for qubit_idx in range(in_data_target["num_qubits"]):
                 try:
@@ -1485,6 +1488,8 @@ class Target(Mapping):
 
             in_data_target["qubit_properties"] = qubit_properties
 
+        # If only InstructionScheduleMap is present, 'dt' is required to get the duration of
+        # InstructionProperties in 's'.
         if (
             instruction_durations is None
             and backend_properties is None
@@ -1498,8 +1503,12 @@ class Target(Mapping):
 
         if inst_map is not None:
             for name in inst_map.instructions:
+
+                # Need to ignore some Instruction still reported in
+                # Backend's pulse_defaults (for example 'u').
                 if name not in all_instructions:
                     continue
+
                 for qubits in inst_map.qubits_with_instruction(name):
                     if not isinstance(qubits, tuple):
                         qubits = (qubits,)
@@ -1514,11 +1523,15 @@ class Target(Mapping):
                                 in_data_target["concurrent_measurements"].append(list(qubits))
                                 continue
 
+                        # Creating just a place holder for InstructionProperties
+                        # duration will be set by duration provided by InstructionScheduleMap
+                        # down the line.
                         if prop_name_map[name] is None:
                             prop_name_map[name] = {}
                         prop_name_map[name][qubits] = InstructionProperties(
                             error=None, duration=None
                         )
+
                     elif name not in prop_name_map or qubits not in prop_name_map[name]:
                         logger.info(
                             "Gate calibration for instruction %s on qubits %s is found "
@@ -1547,6 +1560,7 @@ class Target(Mapping):
                     # If duration of instruction is still None, that means
                     # InstructionDurations, BackendProperties is None
                     # So, setting the duration from InstructionScheduleMap
+                    # But, 'dt' is required here to get the durations in 's'.
                     if (
                         prop_name_map[name][qubits].duration is None
                         and in_data_target["dt"] is not None
@@ -1575,9 +1589,13 @@ class Target(Mapping):
 
                 if inst_name_map[name].num_qubits == 1:
                     for qubit in coupling_map.physical_qubits:
+                        # Not setting None, just to keep a place holder for duration, error, and
+                        # calibration. None will indicate that gate is 'ideal'.
                         prop_name_map[name][(qubit,)] = InstructionProperties()
                 elif inst_name_map[name].num_qubits == 2:
                     for edge in coupling_map.get_edges():
+                        # Not setting None, just to keep a place holder for duration, error, and
+                        # calibration. None will indicate that gate is 'ideal'.
                         prop_name_map[name][edge] = InstructionProperties()
                 elif inst_name_map[name].num_qubits > 2:
                     raise TranspilerError(
@@ -1595,6 +1613,8 @@ class Target(Mapping):
         ):
             for gate_name in basis_gates:
                 if inst_name_map[gate_name].num_qubits == 1:
+                    # This line is a bit fragile, if a single-qubit gate not defined for a qubit
+                    # then this logic breaks!. ( Provided that gate sneaks in this if block )
                     in_data_target["num_qubits"] = len(prop_name_map.get(gate_name))
                     break
 
@@ -1604,8 +1624,8 @@ class Target(Mapping):
                 prop_name_map["delay"] = {
                     (q,): None
                     for q in range(in_data_target["num_qubits"])
-                    if q not in faulty_qubits
-                }
+                    if q not in faulty_qubits  # filtering faulty_qubits only works if
+                }  # BackendProperties is present.
 
         target = Target(**in_data_target)
 
