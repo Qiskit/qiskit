@@ -14,13 +14,15 @@
 
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
-from qiskit.result import Result
+
+if TYPE_CHECKING:
+    from qiskit.result import Result
 
 
 class Job:
