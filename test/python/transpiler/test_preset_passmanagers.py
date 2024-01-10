@@ -1296,13 +1296,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1330,13 +1328,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1364,13 +1360,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1398,14 +1392,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        post_translation_pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     def test_generate_preset_pass_manager_with_list_coupling_map(self):
