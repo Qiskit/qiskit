@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Removed deprecated `QuantumCircuit.qasm` function.
