@@ -293,7 +293,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
 
     def qasm(self):
         """
-            Raise an error when trying to convert a placeholder instruction to OpenQASM 2
+        Raise an error when trying to convert a placeholder instruction to OpenQASM 2
         """
         raise CircuitError("Cannot convert a placeholder instruction to OpenQASM 2")
 
