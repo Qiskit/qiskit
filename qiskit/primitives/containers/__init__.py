@@ -16,8 +16,6 @@ Data containers for primitives.
 
 from .bindings_array import BindingsArray
 from .data_bin import make_data_bin
-from .estimator_pub import EstimatorPub, EstimatorPubLike
 from .observables_array import ObservablesArray
-from .options import BasePrimitiveOptions, BasePrimitiveOptionsLike
 from .primitive_result import PrimitiveResult
 from .pub_result import PubResult
