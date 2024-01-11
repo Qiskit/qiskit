@@ -4,6 +4,8 @@ upgrade:
     Added :class:`.QubitProperties` in :class:`.Target`.
     One can access :class:`.QubitProperties` for a particular :class:`.Target` object by calling it's
     method :meth:`~.qubit_properties`.
+    
+    If no mapping is available for a specified :code:`basis_gate`, this raises :class:`.TranspilerError`.
 
 fixes:
   - |

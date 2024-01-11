@@ -1983,12 +1983,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         # delay and measure are added automatically
         self.assertEqual(target.operation_names, {"ccx", "cx", "swap", "u", "delay", "measure"})
 
-    def test_over_two_qubits_with_coupling(self):
-        basis_gates = ["ccx", "cx", "swap", "u"]
-        cmap = CouplingMap.from_line(15)
-        with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
-            Target.from_configuration(basis_gates, 15, cmap)
-
     def test_durations_only_with_InstructionDurations_passed(self):
         target = Target.from_configuration(
             basis_gates=self.backend_basis_gates, instruction_durations=self.backend_inst_durs
@@ -2131,6 +2125,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         )
         self.assertEqual(target["x"][(0,)].duration, 1.0)
 
-    def test_raise_key_error(self):
-        with self.assertRaisesRegex(KeyError, ".is neither present in the standard gate."):
+    def test_raise_TranspilerError_on_undefined_gates(self):
+        with self.assertRaisesRegex(TranspilerError, ".is neither present in the standard gate."):
             Target.from_configuration(basis_gates=["undefined_gate"])

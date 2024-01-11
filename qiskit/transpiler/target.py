@@ -1246,48 +1246,67 @@ class Target(Mapping):
         the :class:`~.Target`. This function provides a simple interface
         to convert those separate objects to a :class:`~.Target`.
 
-        This constructor will use the input from ``basis_gates``, ``num_qubits``,
-        and ``coupling_map`` to build a base model of the backend and the
-        ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs
-        are then queried (in that order) based on that model to look up the properties
-        of each instruction and qubit. If there is an inconsistency between the inputs
-        any extra or conflicting information present in ``instruction_durations``,
-        ``backend_properties``, or ``inst_map`` will be ignored.
+        Given the ``basis_gates`` this constructor will try to collect as much information
+        as possible to build the target from any of the objects ``InstructionDurations``,
+        ``BackendProperties``, ``InstructionScheduleMap``, ``CouplingMap``.
+
+        ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs are then
+        queried (in that order) to extract the duration of instructions.
+
+        ``BackendProperties`` is mandatory to get the error of instructions and qubits'
+        properties.
+
 
         Args:
             basis_gates: The list of basis gate names for the backend. For the
                 target to be created these names must either be in the output
                 from :func:`~.get_standard_gate_name_mapping` or present in the
                 specified ``custom_name_mapping`` argument.
-            num_qubits: The number of qubits supported on the backend.
+
+            num_qubits: The number of qubits supported on the backend. In case not
+                provided, constructor will try to set it with information present
+                in any ``InstructionDurations``, ``BackendProperties``,
+                ``InstructionScheduleMap``, or ``CouplingMap``.
+
             coupling_map: The coupling map representing connectivity constraints
                 on the backend. If specified all gates from ``basis_gates`` will
                 be supported on all qubits (or pairs of qubits).
+                In case Variable width Instructions are present in ``basis_gates``,
+                or ``custom_name_mapping`` argument. The particular gate will be
+                present in the target, but ``BackendProperties`` will provide the
+                information regarding which qubits are equipped with this instruction.
+
             inst_map: The instruction schedule map representing the pulse
-               :class:`~.Schedule` definitions for each instruction. If this
-               is specified ``coupling_map`` must be specified. The
-               ``coupling_map`` is used as the source of truth for connectivity
-               and if ``inst_map`` is used the schedule is looked up based
-               on the instructions from the pair of ``basis_gates`` and
-               ``coupling_map``. If you want to define a custom gate for
-               a particular qubit or qubit pair, you can manually build :class:`.Target`.
+               :class:`~.Schedule` definitions for each instruction.
+               The schedule is looked up based on the instructions from ``basis_gates``.
+               In case both ``InstructionDurations``, and ``BackendProperties`` are not
+               specified the duration for instruction properties will be set from the duration
+               of the schedule provided by InstructionScheduleMap for that gate, qubit
+               combination in that case ``dt`` must be specified.
+
             backend_properties: The :class:`~.BackendProperties` object which is
-                used for instruction properties and qubit properties.
-                If specified and instruction properties are intended to be used
-                then the ``coupling_map`` argument must be specified. This is
-                only used to lookup error rates and durations (unless
-                ``instruction_durations`` is specified which would take
-                precedence) for instructions specified via ``coupling_map`` and
-                ``basis_gates``.
+                used for Qubit Properties and error and durations of instruction properties.
+                In case of durations, ``instruction_durations`` argument if specified, would 
+                take precedence for instructions specified in ``basis_gates``.
+
             instruction_durations: Optional instruction durations for instructions. If specified
                 it will take priority for setting the ``duration`` field in the
                 :class:`~InstructionProperties` objects for the instructions in the target.
-            concurrent_measurements(list): A list of sets of qubits that must be
-                measured together. This must be provided
-                as a nested list like ``[[0, 1], [2, 3, 4]]``.
-            dt: The system time resolution of input signals in seconds
-            timing_constraints: Optional timing constraints to include in the
-                :class:`~.Target`
+                In case ``dt`` is not specified, ``dt`` extracted from this argument will be set
+                as the ``dt`` of the ``Target``.
+
+            concurrent_measurements: A list of lists of qubits that must be  measured together. 
+                This must be provided as a nested list like ``[[0, 1], [2, 3, 4]]``.
+                If this argument is not provided then ``InstructionScheduleMap`` would be used 
+                to extract information to set this argument.
+
+            dt: The system time resolution of input signals in seconds.
+                If not provided then ``InstructionDurations`` is used to extract the information
+                to set this argument. In case this argument is unequal to the ``dt`` provided in
+                ``InstructionDurations`` the latter will take precedence.
+
+            timing_constraints: Optional timing constraints to include in the :class:`~.Target`.
+
             custom_name_mapping: An optional dictionary that maps custom gate/operation names in
                 ``basis_gates`` to an :class:`~.Operation` object representing that
                 gate/operation. By default, most standard gates names are mapped to the
@@ -1299,9 +1318,7 @@ class Target(Mapping):
             Target: the target built from the input configuration
 
         Raises:
-            TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
-            specified.
-            KeyError: If no mapping is available for a specified ``basis_gate``.
+            TranspilerError: If no mapping is available for a specified ``basis_gate``.
         """
 
         granularity = 1
@@ -1346,7 +1363,7 @@ class Target(Mapping):
             if name in qiskit_inst_mapping:
                 inst_name_map[name] = qiskit_inst_mapping[name]
             else:
-                raise KeyError(
+                raise TranspilerError(
                     f"The specified basis gate: {name} is neither present in the standard gate "
                     "names nor in the provided `custom_name_mapping`"
                 )
@@ -1599,18 +1616,11 @@ class Target(Mapping):
                         # calibration. None will indicate that gate is 'ideal'.
                         prop_name_map[name][edge] = InstructionProperties()
                 elif inst_name_map[name].num_qubits > 2:
-                    raise TranspilerError(
-                        f"The specified basis gate: {name} has {inst_name_map[name].num_qubits} "
-                        "qubits. This constructor method only supports fixed width operations "
-                        "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
-                    )
+                    prop_name_map[name] = None
 
         # Setting the num_qubits in case it is None
         if in_data_target["num_qubits"] is None and (
-            instruction_durations is not None
-            or backend_properties is not None
-            or inst_map is not None
-            or coupling_map is not None
+            instruction_durations is not None or inst_map is not None or coupling_map is not None
         ):
             for gate_name in basis_gates:
                 if inst_name_map[gate_name].num_qubits == 1:
