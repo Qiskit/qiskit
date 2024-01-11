@@ -26,6 +26,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
+from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -67,6 +68,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     init_method: Optional[str] = None,
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
+    num_processes: Optional[int] = None,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -257,6 +259,11 @@ def transpile(  # pylint: disable=too-many-return-statements
             to support custom compilation target-specific passes/plugins which support
             backend-specific compilation techniques. If you'd prefer that these defaults were
             not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            num_processes in the user configuration file, and the QISKIT_NUM_PROCS
+            environment variable. If set to None the system default or local user configuration
+            will be used.
 
     Returns:
         The transpiled circuit(s).
@@ -356,76 +363,51 @@ def transpile(  # pylint: disable=too-many-return-statements
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
 
+    # If durations are provided and there is more than one circuit
+    # we need to serialize the execution because the full durations
+    # is dependent on the circuit calibrations which are per circuit
+    circuits_instruction_durations = []
     if instruction_durations or dt:
-        # If durations are provided and there is more than one circuit
-        # we need to serialize the execution because the full durations
-        # is dependent on the circuit calibrations which are per circuit
-        if len(circuits) > 1:
-            out_circuits = []
-            for circuit in circuits:
-                instruction_durations = _parse_instruction_durations(
-                    backend, instruction_durations, dt, circuit
-                )
-                pm = generate_preset_pass_manager(
-                    optimization_level,
-                    backend=backend,
-                    target=target,
-                    basis_gates=basis_gates,
-                    inst_map=inst_map,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    backend_properties=backend_properties,
-                    timing_constraints=timing_constraints,
-                    initial_layout=initial_layout,
-                    layout_method=layout_method,
-                    routing_method=routing_method,
-                    translation_method=translation_method,
-                    scheduling_method=scheduling_method,
-                    approximation_degree=approximation_degree,
-                    seed_transpiler=seed_transpiler,
-                    unitary_synthesis_method=unitary_synthesis_method,
-                    unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-                    hls_config=hls_config,
-                    init_method=init_method,
-                    optimization_method=optimization_method,
-                    _skip_target=_skip_target,
-                )
-                out_circuits.append(pm.run(circuit, callback=callback))
-            for name, circ in zip(output_name, out_circuits):
-                circ.name = name
-                end_time = time()
-            _log_transpile_time(start_time, end_time)
-            return out_circuits
-        else:
-            instruction_durations = _parse_instruction_durations(
-                backend, instruction_durations, dt, circuits[0]
+        for i in range(0, len(circuits)):
+            instruction_duration = _parse_instruction_durations(
+                backend, instruction_durations, dt, circuits[i]
             )
+            pair = (circuits[i], instruction_duration)
+            circuits_instruction_durations.append(pair)
+    else:
+        for i in range(0, len(circuits)):
+            pair = (circuits[i], None)
+            circuits_instruction_durations.append(pair)
 
-    pm = generate_preset_pass_manager(
-        optimization_level,
-        backend=backend,
-        target=target,
-        basis_gates=basis_gates,
-        inst_map=inst_map,
-        coupling_map=coupling_map,
-        instruction_durations=instruction_durations,
-        backend_properties=backend_properties,
-        timing_constraints=timing_constraints,
-        initial_layout=initial_layout,
-        layout_method=layout_method,
-        routing_method=routing_method,
-        translation_method=translation_method,
-        scheduling_method=scheduling_method,
-        approximation_degree=approximation_degree,
-        seed_transpiler=seed_transpiler,
-        unitary_synthesis_method=unitary_synthesis_method,
-        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-        hls_config=hls_config,
-        init_method=init_method,
-        optimization_method=optimization_method,
-        _skip_target=_skip_target,
+    out_circuits = []
+    out_circuits = parallel_map(
+        _run_circuits,
+        values=circuits_instruction_durations,
+        task_args=[
+            callback,
+            optimization_level,
+            backend,
+            target,
+            basis_gates,
+            inst_map,
+            coupling_map,
+            backend_properties,
+            timing_constraints,
+            initial_layout,
+            layout_method,
+            routing_method,
+            translation_method,
+            scheduling_method,
+            approximation_degree,
+            seed_transpiler,
+            unitary_synthesis_method,
+            unitary_synthesis_plugin_config,
+            hls_config,
+            init_method,
+            optimization_method,
+            _skip_target,
+        ],
     )
-    out_circuits = pm.run(circuits, callback=callback)
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
     end_time = time()
@@ -611,3 +593,58 @@ def _parse_timing_constraints(backend, timing_constraints):
         else:
             timing_constraints = backend.target.timing_constraints()
     return timing_constraints
+
+
+def _run_circuits(
+    circuits_instruction_durations,
+    callback,
+    optimization_level,
+    backend=None,
+    target=None,
+    basis_gates=None,
+    inst_map=None,
+    coupling_map=None,
+    backend_properties=None,
+    timing_constraints=None,
+    initial_layout=None,
+    layout_method=None,
+    routing_method=None,
+    translation_method=None,
+    scheduling_method=None,
+    approximation_degree=None,
+    seed_transpiler=None,
+    unitary_synthesis_method="default",
+    unitary_synthesis_plugin_config=None,
+    hls_config=None,
+    init_method=None,
+    optimization_method=None,
+    _skip_target=False,
+):
+    circuit = circuits_instruction_durations[0]
+    instruction_duration = circuits_instruction_durations[1]
+
+    pm = generate_preset_pass_manager(
+        optimization_level,
+        backend=backend,
+        target=target,
+        basis_gates=basis_gates,
+        inst_map=inst_map,
+        coupling_map=coupling_map,
+        instruction_durations=instruction_duration,
+        backend_properties=backend_properties,
+        timing_constraints=timing_constraints,
+        initial_layout=initial_layout,
+        layout_method=layout_method,
+        routing_method=routing_method,
+        translation_method=translation_method,
+        scheduling_method=scheduling_method,
+        approximation_degree=approximation_degree,
+        seed_transpiler=seed_transpiler,
+        unitary_synthesis_method=unitary_synthesis_method,
+        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
+        hls_config=hls_config,
+        init_method=init_method,
+        optimization_method=optimization_method,
+        _skip_target=_skip_target,
+    )
+    return pm.run(circuit, callback=callback)
