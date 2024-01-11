@@ -16,7 +16,7 @@ import time
 
 from unittest.mock import patch
 
-from qiskit.tools.parallel import get_platform_parallel_default, parallel_map
+from qiskit.utils.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.test import QiskitTestCase
