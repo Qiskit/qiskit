@@ -1883,6 +1883,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
             **self.backend_config.timing_constraints
         )
         self.backend_meas_map = self.backend_config.meas_map
+        self.backend_inst_durs = InstructionDurations.from_backend(self.backend)
 
     def test_basis_gates_qubits_only(self):
         """Test construction with only basis gates."""
@@ -1975,19 +1976,6 @@ class TestTargetFromConfiguration(QiskitTestCase):
         # delay and measure are added automatically
         self.assertEqual(target.operation_names, {"my_x", "cx", "delay", "measure"})
 
-    def test_missing_custom_basis_no_coupling(self):
-        basis_gates = ["my_X", "cx"]
-        msg_no_gate_def = ".can be found and is being excluded from the generated target."
-        with self.assertWarnsRegex(RuntimeWarning, msg_no_gate_def):
-            Target.from_configuration(basis_gates, num_qubits=4)
-
-    def test_missing_custom_basis_with_coupling(self):
-        basis_gates = ["my_X", "cx"]
-        cmap = CouplingMap.from_line(3)
-        msg_no_gate_def = ".can be found and is being excluded from the generated target."
-        with self.assertWarnsRegex(RuntimeWarning, msg_no_gate_def):
-            Target.from_configuration(basis_gates, 3, cmap)
-
     def test_over_two_qubit_gate_without_coupling(self):
         basis_gates = ["ccx", "cx", "swap", "u"]
         target = Target.from_configuration(basis_gates, 15)
@@ -2002,9 +1990,8 @@ class TestTargetFromConfiguration(QiskitTestCase):
             Target.from_configuration(basis_gates, 15, cmap)
 
     def test_durations_only_with_InstructionDurations_passed(self):
-        inst_dur = InstructionDurations.from_backend(self.backend)
         target = Target.from_configuration(
-            basis_gates=self.backend_basis_gates, instruction_durations=inst_dur
+            basis_gates=self.backend_basis_gates, instruction_durations=self.backend_inst_durs
         )
         self.assertEqual(
             target["x"][(0,)].duration, self.backend_props.gate_length(gate="x", qubits=(0,))
@@ -2065,7 +2052,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def test_dt_set_by_inst_dur(self):
         target = Target.from_configuration(
             basis_gates=self.backend_basis_gates,
-            instruction_durations=InstructionDurations.from_backend(self.backend),
+            instruction_durations=self.backend_inst_durs,
         )
         self.assertEqual(target.dt, self.backend_dt)
 
@@ -2076,10 +2063,9 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
     def test_set_num_qubits_from_inst_dur(self):
-        inst_dur = InstructionDurations.from_backend(self.backend)
         target = Target.from_configuration(
             basis_gates=self.backend_basis_gates,
-            instruction_durations=inst_dur,
+            instruction_durations=self.backend_inst_durs,
         )
         self.assertEqual(target.num_qubits, self.backend_num_qubits)
 
@@ -2106,3 +2092,45 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(
             target.qubit_properties[0].t1, self.backend_props.qubit_property(qubit=0)["T1"][0]
         )
+
+    def test_inst_dur_overrides_inst_sched_map(self):
+        inst_durs = InstructionDurations.from_backend(self.backend)
+        inst_durs.update([("x", [0], 1.0, "s")])
+        target = Target.from_configuration(
+            basis_gates=self.backend_basis_gates,
+            instruction_durations=inst_durs,
+            inst_map=self.backend_inst_sched_map,
+        )
+        self.assertEqual(target["x"][(0,)].duration, 1.0)
+
+    def test_measure_exists_for_inst_durs(self):
+        target = Target.from_configuration(
+            basis_gates=self.backend_basis_gates,
+            instruction_durations=self.backend_inst_durs,
+        )
+        self.assertTrue("measure" in target)
+
+    def test_inst_durs_dt_overrides_backend_dt_unequal_warns(self):
+        with self.assertWarnsRegex(RuntimeWarning, ".from argument is different from."):
+            target = Target.from_configuration(
+                basis_gates=self.backend_basis_gates,
+                instruction_durations=self.backend_inst_durs,
+                dt=1.0,
+            )
+        self.assertEqual(target.dt, self.backend_inst_durs.dt)
+
+    def test_duration_all_props_inst_durs_inst_sched_map(self):
+        inst_durs = InstructionDurations.from_backend(self.backend)
+        inst_durs.update([("x", [0], 1.0, "s")])
+
+        target = Target.from_configuration(
+            basis_gates=self.backend_basis_gates,
+            backend_properties=self.backend_props,
+            instruction_durations=inst_durs,
+            inst_map=self.backend_inst_sched_map,
+        )
+        self.assertEqual(target["x"][(0,)].duration, 1.0)
+
+    def test_raise_key_error(self):
+        with self.assertRaisesRegex(KeyError, ".is neither present in the standard gate."):
+            Target.from_configuration(basis_gates=["undefined_gate"])

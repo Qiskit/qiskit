@@ -1316,7 +1316,6 @@ class Target(Mapping):
 
         required_operations = {"measure", "delay"}
         all_instructions = set.union(required_operations, set(basis_gates))
-        unsupported_instructions = set()
         faulty_qubits = set()
         faulty_ops = set()
         qiskit_inst_mapping = get_standard_gate_name_mapping()
@@ -1347,16 +1346,10 @@ class Target(Mapping):
             if name in qiskit_inst_mapping:
                 inst_name_map[name] = qiskit_inst_mapping[name]
             else:
-                warnings.warn(
-                    f"No gate definition for {name} can be found and is being excluded "
-                    "from the generated target. You can provide a definition for this "
-                    "operation in ``custom_name_mapping``",
-                    RuntimeWarning,
+                raise KeyError(
+                    f"The specified basis gate: {name} is neither present in the standard gate "
+                    "names nor in the provided `custom_name_mapping`"
                 )
-                unsupported_instructions.add(name)
-
-        for name in unsupported_instructions:
-            all_instructions.remove(name)
 
         # Create inst properties placeholder
         # Without any assignment, properties value is None,
@@ -1371,6 +1364,14 @@ class Target(Mapping):
         if backend_properties is None and instruction_durations is not None:
             if in_data_target["dt"] is None:
                 in_data_target["dt"] = instruction_durations.dt
+            elif in_data_target["dt"] != instruction_durations.dt:
+                warnings.warn(
+                    "`dt` from argument is different from `dt` reported by `InstructionDurations`, so, "
+                    "`dt` from `InstructionDurations` overrides `dt` from argument.",
+                    RuntimeWarning,
+                )
+                in_data_target["dt"] = instruction_durations.dt
+
             for name_qubits, _ in instruction_durations.duration_by_name_qubits.items():
                 name, qubits = name_qubits
                 duration = instruction_durations.get(
@@ -1493,7 +1494,7 @@ class Target(Mapping):
         if (
             instruction_durations is None
             and backend_properties is None
-            and dt is None
+            and in_data_target["dt"] is None
             and inst_map is not None
         ):
             warnings.warn(
