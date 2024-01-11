@@ -29,16 +29,9 @@ It has a built-in event publisher to show the progress of the parallel tasks.
 Monitoring
 ----------
 
-A helper module to get IBM backend information and submitted job status.
-
-.. autofunction:: job_monitor
-.. autofunction:: backend_monitor
-.. autofunction:: backend_overview
-
 .. automodule:: qiskit.tools.events
 
 """
 
 from .parallel import parallel_map
-from .monitor import job_monitor, backend_monitor, backend_overview
 from .events import progressbar

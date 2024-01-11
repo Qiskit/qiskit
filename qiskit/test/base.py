@@ -193,8 +193,6 @@ class QiskitTestCase(BaseQiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Determines if the TestCase is using IBMQ credentials.
-        cls.using_ibmq_credentials = False
         # Set logging to file and stdout if the LOG_LEVEL envar is set.
         cls.log = logging.getLogger(cls.__name__)
         if os.getenv("LOG_LEVEL"):

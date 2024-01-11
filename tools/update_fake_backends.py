@@ -19,7 +19,7 @@ from datetime import datetime
 import json
 import os
 
-from qiskit.providers.ibmq import IBMQ
+from qiskit_ibm_provider import IBMProvider
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
@@ -57,9 +57,7 @@ def _main():
     parser.add_argument("--hub", type=str, default=None)
     parser.add_argument("--group", type=str, default=None)
     args = parser.parse_args()
-    provider = IBMQ.load_account()
-    if args.hub or args.group or args.project:
-        provider = IBMQ.get_provider(hub=args.hub, group=args.group, project=args.project)
+    provider = IBMProvider()
     ibmq_backends = provider.backends()
     for backend in ibmq_backends:
         raw_name = backend.name()
