@@ -16,7 +16,7 @@ Bindings array class
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import chain
+from itertools import chain, islice
 from typing import Union
 
 import numpy as np
@@ -144,6 +144,15 @@ class BindingsArray(ShapedMixin):
         except StopIteration:
             shape = ()
         return BindingsArray(vals, kwvals, shape)
+
+    def __repr__(self):
+        descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
+        if num_kwparams := sum(val.shape[-1] for val in self._kwvals.values()):
+            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
+            if len(names) < num_kwparams:
+                names.append("...")
+            descriptions.append(f"parameters=[{', '.join(names)}]")
+        return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
 
     @property
     def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
