@@ -34,7 +34,6 @@ API Reference
    qpy
    quantum_info
    result
-   tools
    transpiler
    transpiler_passes
    transpiler_preset
