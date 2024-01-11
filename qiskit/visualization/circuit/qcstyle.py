@@ -192,8 +192,8 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
     if isinstance(style, dict):
         style_name = style.get("name", "default")
     elif isinstance(style, str):
-        if style_name.endswith(".json"):
-            style_name = style_name[:-5]
+        if style.endswith(".json"):
+            style_name = style[:-5]
         else:
             style_name = style
     else:
@@ -226,8 +226,8 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                     path_ = Path(config_path) / style_name
                     style_paths.append(path_)
 
-        # check current working directory
-        cwd_path = Path.cwd()
+        # check current directory
+        cwd_path = Path("") / style_name
         style_paths.append(cwd_path)
         # style_path.append(os.path.normpath(os.path.join("", style_name)))
 
@@ -264,6 +264,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                 UserWarning,
                 2,
             )
+            current_style = DefaultStyle().style
 
     # if the style is a dictionary, update the defaults with the new values
     # this _needs_ to happen after loading by name to cover cases like

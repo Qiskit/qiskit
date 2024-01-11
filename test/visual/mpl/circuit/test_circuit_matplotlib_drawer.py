@@ -1040,11 +1040,11 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.u(pi / 2, pi / 2, pi / 2, 1)
         circuit.p(pi / 2, 2)
-        style = {"name": "iqx", "subfontsize": 11}
+        style = {"name": "iqp", "subfontsize": 11}
 
         fname = "subfont.png"
         self.circuit_drawer(circuit, output="mpl", style=style, filename=fname)
-        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
+        self.assertEqual(style, {"name": "iqp", "subfontsize": 11})  # check does not change style
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
