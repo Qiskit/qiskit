@@ -174,7 +174,7 @@ class BitArray(ShapedMixin):
         Returns:
             A new bit array.
         """
-        array = np.array(array, dtype=bool, copy=False)
+        array = np.asarray(array, dtype=bool)
 
         if array.ndim < 2:
             raise ValueError("Expecting at least two dimensions.")
