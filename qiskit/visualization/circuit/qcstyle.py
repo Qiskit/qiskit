@@ -162,39 +162,51 @@ class DefaultStyle:
 
 
 def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
-    """Utility function to load style from json files."""
+    """Utility function to load style from json files.
 
-    # figure out the type of input argument and determine the style name
+    Args:
+        style: Depending on the type, this acts differently:
+            * If a string, it can specify a supported style name (such
+              as "iqp" or "clifford"). It can also specify the name of
+              a custom color scheme stored as JSON file. This JSON file
+              _must_ specify a complete set of colors.
+            * If a dictionary, it may specify the style name via a
+              ``{"name": "<desired style>"}`` entry. If this is not given,
+              the default style will be used. The remaining entries in the
+              dictionary can be used to override certain specs.
+              E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
+              color scheme but set the edgecolor to red.
+    """
+
+    # if the style is not given, try to load the configured default (if set),
+    # or use the default style
     config = user_config.get_config()
     if style is None:
         if config:
             style = config.get("circuit_mpl_style", "default")
         else:
             style = "default"
-    elif isinstance(style, dict):
-        if "name" in style:
-            style_name = style["name"]
+
+    # determine the style name which could also be inside a dictionary, like
+    # style={"name": "clifford", <other settings...>}
+    if isinstance(style, dict):
+        style_name = style.get("name", "default")
     elif isinstance(style, str):
-        style_name = style
         if style_name.endswith(".json"):
             style_name = style_name[:-5]
+        else:
+            style_name = style
     else:
         warn(
             f'Unsupported style parameter "{style}" of type {type(style)}. '
-            'Will use the default "iqp" style.',
+            "Will use the default style.",
             UserWarning,
             2,
         )
+        style_name = "default"
 
-    # load the default style, which will be used to provide default arguments
-    # if some are not provided
-    current_style = DefaultStyle().style
-
-    # if it is the default style, we have already loaded it
-    if style in ["iqp", "default"]:
-        pass
-
-    # otherwise try to load it
+    if style_name in ["iqp", "default"]:
+        current_style = DefaultStyle().style
     else:
         # Search for file in 'styles' dir, then config_path, and finally 'cwd'
         style_name = style_name + ".json"
@@ -227,7 +239,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
                     with open(exp_user) as infile:
                         json_style = json.load(infile)
 
-                    current_style.update(json_style)
+                    current_style = StyleDict(json_style)
                     break
                 except json.JSONDecodeError as err:
                     warn(
