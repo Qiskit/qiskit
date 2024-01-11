@@ -1,0 +1,430 @@
+Metadata-Version: 2.1
+Name: qiskit
+Version: 1.0.0b1
+Summary: An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives.
+Author-email: Qiskit Development Team <qiskit@us.ibm.com>
+License: Copyright 2017 IBM and its contributors
+        
+                                         Apache License
+                                   Version 2.0, January 2004
+                                http://www.apache.org/licenses/
+        
+           TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+        
+           1. Definitions.
+        
+              "License" shall mean the terms and conditions for use, reproduction,
+              and distribution as defined by Sections 1 through 9 of this document.
+        
+              "Licensor" shall mean the copyright owner or entity authorized by
+              the copyright owner that is granting the License.
+        
+              "Legal Entity" shall mean the union of the acting entity and all
+              other entities that control, are controlled by, or are under common
+              control with that entity. For the purposes of this definition,
+              "control" means (i) the power, direct or indirect, to cause the
+              direction or management of such entity, whether by contract or
+              otherwise, or (ii) ownership of fifty percent (50%) or more of the
+              outstanding shares, or (iii) beneficial ownership of such entity.
+        
+              "You" (or "Your") shall mean an individual or Legal Entity
+              exercising permissions granted by this License.
+        
+              "Source" form shall mean the preferred form for making modifications,
+              including but not limited to software source code, documentation
+              source, and configuration files.
+        
+              "Object" form shall mean any form resulting from mechanical
+              transformation or translation of a Source form, including but
+              not limited to compiled object code, generated documentation,
+              and conversions to other media types.
+        
+              "Work" shall mean the work of authorship, whether in Source or
+              Object form, made available under the License, as indicated by a
+              copyright notice that is included in or attached to the work
+              (an example is provided in the Appendix below).
+        
+              "Derivative Works" shall mean any work, whether in Source or Object
+              form, that is based on (or derived from) the Work and for which the
+              editorial revisions, annotations, elaborations, or other modifications
+              represent, as a whole, an original work of authorship. For the purposes
+              of this License, Derivative Works shall not include works that remain
+              separable from, or merely link (or bind by name) to the interfaces of,
+              the Work and Derivative Works thereof.
+        
+              "Contribution" shall mean any work of authorship, including
+              the original version of the Work and any modifications or additions
+              to that Work or Derivative Works thereof, that is intentionally
+              submitted to Licensor for inclusion in the Work by the copyright owner
+              or by an individual or Legal Entity authorized to submit on behalf of
+              the copyright owner. For the purposes of this definition, "submitted"
+              means any form of electronic, verbal, or written communication sent
+              to the Licensor or its representatives, including but not limited to
+              communication on electronic mailing lists, source code control systems,
+              and issue tracking systems that are managed by, or on behalf of, the
+              Licensor for the purpose of discussing and improving the Work, but
+              excluding communication that is conspicuously marked or otherwise
+              designated in writing by the copyright owner as "Not a Contribution."
+        
+              "Contributor" shall mean Licensor and any individual or Legal Entity
+              on behalf of whom a Contribution has been received by Licensor and
+              subsequently incorporated within the Work.
+        
+           2. Grant of Copyright License. Subject to the terms and conditions of
+              this License, each Contributor hereby grants to You a perpetual,
+              worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+              copyright license to reproduce, prepare Derivative Works of,
+              publicly display, publicly perform, sublicense, and distribute the
+              Work and such Derivative Works in Source or Object form.
+        
+           3. Grant of Patent License. Subject to the terms and conditions of
+              this License, each Contributor hereby grants to You a perpetual,
+              worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+              (except as stated in this section) patent license to make, have made,
+              use, offer to sell, sell, import, and otherwise transfer the Work,
+              where such license applies only to those patent claims licensable
+              by such Contributor that are necessarily infringed by their
+              Contribution(s) alone or by combination of their Contribution(s)
+              with the Work to which such Contribution(s) was submitted. If You
+              institute patent litigation against any entity (including a
+              cross-claim or counterclaim in a lawsuit) alleging that the Work
+              or a Contribution incorporated within the Work constitutes direct
+              or contributory patent infringement, then any patent licenses
+              granted to You under this License for that Work shall terminate
+              as of the date such litigation is filed.
+        
+           4. Redistribution. You may reproduce and distribute copies of the
+              Work or Derivative Works thereof in any medium, with or without
+              modifications, and in Source or Object form, provided that You
+              meet the following conditions:
+        
+              (a) You must give any other recipients of the Work or
+                  Derivative Works a copy of this License; and
+        
+              (b) You must cause any modified files to carry prominent notices
+                  stating that You changed the files; and
+        
+              (c) You must retain, in the Source form of any Derivative Works
+                  that You distribute, all copyright, patent, trademark, and
+                  attribution notices from the Source form of the Work,
+                  excluding those notices that do not pertain to any part of
+                  the Derivative Works; and
+        
+              (d) If the Work includes a "NOTICE" text file as part of its
+                  distribution, then any Derivative Works that You distribute must
+                  include a readable copy of the attribution notices contained
+                  within such NOTICE file, excluding those notices that do not
+                  pertain to any part of the Derivative Works, in at least one
+                  of the following places: within a NOTICE text file distributed
+                  as part of the Derivative Works; within the Source form or
+                  documentation, if provided along with the Derivative Works; or,
+                  within a display generated by the Derivative Works, if and
+                  wherever such third-party notices normally appear. The contents
+                  of the NOTICE file are for informational purposes only and
+                  do not modify the License. You may add Your own attribution
+                  notices within Derivative Works that You distribute, alongside
+                  or as an addendum to the NOTICE text from the Work, provided
+                  that such additional attribution notices cannot be construed
+                  as modifying the License.
+        
+              You may add Your own copyright statement to Your modifications and
+              may provide additional or different license terms and conditions
+              for use, reproduction, or distribution of Your modifications, or
+              for any such Derivative Works as a whole, provided Your use,
+              reproduction, and distribution of the Work otherwise complies with
+              the conditions stated in this License.
+        
+           5. Submission of Contributions. Unless You explicitly state otherwise,
+              any Contribution intentionally submitted for inclusion in the Work
+              by You to the Licensor shall be under the terms and conditions of
+              this License, without any additional terms or conditions.
+              Notwithstanding the above, nothing herein shall supersede or modify
+              the terms of any separate license agreement you may have executed
+              with Licensor regarding such Contributions.
+        
+           6. Trademarks. This License does not grant permission to use the trade
+              names, trademarks, service marks, or product names of the Licensor,
+              except as required for reasonable and customary use in describing the
+              origin of the Work and reproducing the content of the NOTICE file.
+        
+           7. Disclaimer of Warranty. Unless required by applicable law or
+              agreed to in writing, Licensor provides the Work (and each
+              Contributor provides its Contributions) on an "AS IS" BASIS,
+              WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+              implied, including, without limitation, any warranties or conditions
+              of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+              PARTICULAR PURPOSE. You are solely responsible for determining the
+              appropriateness of using or redistributing the Work and assume any
+              risks associated with Your exercise of permissions under this License.
+        
+           8. Limitation of Liability. In no event and under no legal theory,
+              whether in tort (including negligence), contract, or otherwise,
+              unless required by applicable law (such as deliberate and grossly
+              negligent acts) or agreed to in writing, shall any Contributor be
+              liable to You for damages, including any direct, indirect, special,
+              incidental, or consequential damages of any character arising as a
+              result of this License or out of the use or inability to use the
+              Work (including but not limited to damages for loss of goodwill,
+              work stoppage, computer failure or malfunction, or any and all
+              other commercial damages or losses), even if such Contributor
+              has been advised of the possibility of such damages.
+        
+           9. Accepting Warranty or Additional Liability. While redistributing
+              the Work or Derivative Works thereof, You may choose to offer,
+              and charge a fee for, acceptance of support, warranty, indemnity,
+              or other liability obligations and/or rights consistent with this
+              License. However, in accepting such obligations, You may act only
+              on Your own behalf and on Your sole responsibility, not on behalf
+              of any other Contributor, and only if You agree to indemnify,
+              defend, and hold each Contributor harmless for any liability
+              incurred by, or claims asserted against, such Contributor by reason
+              of your accepting any such warranty or additional liability.
+        
+           END OF TERMS AND CONDITIONS
+        
+           APPENDIX: How to apply the Apache License to your work.
+        
+              To apply the Apache License to your work, attach the following
+              boilerplate notice, with the fields enclosed by brackets "[]"
+              replaced with your own identifying information. (Don't include
+              the brackets!)  The text should be enclosed in the appropriate
+              comment syntax for the file format. We also recommend that a
+              file or class name and description of purpose be included on the
+              same "printed page" as the copyright notice for easier
+              identification within third-party archives.
+        
+           Copyright 2017 IBM and its contributors.
+        
+           Licensed under the Apache License, Version 2.0 (the "License");
+           you may not use this file except in compliance with the License.
+           You may obtain a copy of the License at
+        
+               http://www.apache.org/licenses/LICENSE-2.0
+        
+           Unless required by applicable law or agreed to in writing, software
+           distributed under the License is distributed on an "AS IS" BASIS,
+           WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+           See the License for the specific language governing permissions and
+           limitations under the License.
+        
+Project-URL: Homepage, https://qiskit.org
+Project-URL: Documentation, https://qiskit.org/documentation
+Project-URL: Repository, https://github.com/Qiskit/qiskit
+Project-URL: Issues, https://github.com/Qiskit/qiskit/issues
+Project-URL: Changelog, https://qiskit.org/documentation/release_notes.html
+Keywords: qiskit,quantum circuit,quantum computing,quantum programming language,quantum,sdk
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: MacOS
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE.txt
+Requires-Dist: rustworkx >=0.13.0
+Requires-Dist: numpy <2,>=1.17
+Requires-Dist: psutil >=5
+Requires-Dist: scipy >=1.5
+Requires-Dist: sympy >=1.3
+Requires-Dist: dill >=0.3
+Requires-Dist: python-dateutil >=2.8.0
+Requires-Dist: stevedore >=3.0.0
+Requires-Dist: symengine !=0.10.0,>=0.9
+Requires-Dist: typing-extensions ; python_version < "3.11"
+Provides-Extra: all
+Requires-Dist: qiskit[crosstalk-pass,csp-layout-pass,qasm3-import,visualization] ; extra == 'all'
+Provides-Extra: crosstalk-pass
+Requires-Dist: z3-solver >=4.7 ; extra == 'crosstalk-pass'
+Provides-Extra: csp-layout-pass
+Requires-Dist: python-constraint >=1.4 ; extra == 'csp-layout-pass'
+Provides-Extra: qasm3-import
+Requires-Dist: qiskit-qasm3-import >=0.1.0 ; extra == 'qasm3-import'
+Provides-Extra: visualization
+Requires-Dist: matplotlib >=3.3 ; extra == 'visualization'
+Requires-Dist: ipywidgets >=7.3.0 ; extra == 'visualization'
+Requires-Dist: pydot ; extra == 'visualization'
+Requires-Dist: Pillow >=4.2.1 ; extra == 'visualization'
+Requires-Dist: pylatexenc >=1.4 ; extra == 'visualization'
+Requires-Dist: seaborn >=0.9.0 ; extra == 'visualization'
+
+# Qiskit
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
+[![Release](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg)](https://github.com/Qiskit/qiskit-terra/releases)
+[![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg)](https://pypi.org/project/qiskit-terra/)
+[![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
+[![Minimum rustc 1.64.0](https://img.shields.io/badge/rustc-1.64.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![Downloads](https://static.pepy.tech/badge/qiskit-terra)](https://pepy.tech/project/qiskit-terra)<!--- long-description-skip-end -->
+[![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
+
+**Qiskit**  is an open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives.
+
+This library is the core component of Qiskit, which contains the building blocks for creating and working with quantum circuits, quantum operators, and primitive functions (sampler and estimator).
+It also contains a transpiler that supports optimizing quantum circuits and a quantum information toolbox for creating advanced quantum operators. 
+
+For more details on how to use Qiskit, refer to the documentation located here:
+
+<https://docs.quantum.ibm.com/>
+
+
+## Installation
+
+We encourage installing Qiskit via ``pip``:
+
+```bash
+pip install qiskit
+```
+
+Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
+
+To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
+
+## Create your first quantum program in Qiskit
+
+Now that Qiskit is installed, it's time to begin working with Qiskit. The essential parts of a quantum program are:
+1. Define and build a quantum circuit that represents the quantum state
+2. Define the classical output by measurements or a set of observable operators
+3. Depending on the output, use the primitive function `sampler` to sample outcomes or the `estimator` to estimate values.
+
+Create an example quantum circuit using the `QuantumCircuit` class:
+
+```python
+import numpy as np
+from qiskit import QuantumCircuit
+
+# 1. A quantum circuit for preparing the quantum state |000> + i |111>
+qc_example = QuantumCircuit(3)
+qc_example.h(0)          # generate superpostion
+qc_example.p(np.pi/2,0)  # add quantum phase
+qc_example.cx(0,1)       # 0th-qubit-Controlled-NOT gate on 1st qubit
+qc_example.cx(0,2)       # 0th-qubit-Controlled-NOT gate on 2nd qubit
+```
+
+This simple example makes an entangled state known as a [GHZ state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state) $(|000\rangle + i|111\rangle)/\sqrt{2}$. It uses the standard quantum gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
+
+Once you've made your first quantum circuit, choose which primitive function you will use. Starting with `sampler`,
+we use `measure_all(inplace=False)` to get a copy of the circuit in which all the qubits are measured:
+
+```python
+# 2. Add the classical output in the form of measurement of all qubits
+qc_measured = qc_example.measure_all(inplace=False)
+
+# 3. Execute using the Sampler primitive
+from qiskit.primitives.sampler import Sampler
+sampler = Sampler()
+job = sampler.run(qc_measured, shots=1000)
+result = job.result()
+print(f" > Quasi probability distribution: {result.quasi_dists}")
+```
+Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `000` 50% of the time and `111` 50% of the time up to statistical fluctuations.  
+To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
+
+```python
+# 2. define the observable to be measured 
+from qiskit.quantum_info import SparsePauliOp
+operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
+
+# 3. Execute using the Estimator primitive
+from qiskit.primitives import Estimator
+estimator = Estimator()
+job = estimator.run(qc_example, operator, shots=1000)
+result = job.result()
+print(f" > Expectation values: {result.values}")
+```
+
+Running this will give the outcome `4`. For fun, try to assign a value of +/- 1 to each single-qubit operator X and Y 
+and see if you can achieve this outcome. (Spoiler alert: this is not possible!)
+
+Using the Qiskit-provided `qiskit.primitives.Sampler` and `qiskit.primitives.Estimator` will not take you very far. The power of quantum computing cannot be simulated 
+on classical computers and you need to use real quantum hardware to scale to larger quantum circuits. However, running a quantum 
+circuit on hardware requires rewriting them to the basis gates and connectivity of the quantum hardware.
+The tool that does this is the [transpiler](https://qiskit.org/documentation/apidoc/transpiler.html) 
+and Qiskit includes transpiler passes for synthesis, optimization, mapping, and scheduling. However, it also includes a
+default compiler which works very well in most examples. The following code will map the example circuit to the `basis_gates = ['cz', 'sx', 'rz']` and a linear chain of qubits $0 \rightarrow 1 \rightarrow 2$ with the `coupling_map =[[0, 1], [1, 2]]`.
+
+```python
+from qiskit import transpile
+qc_transpiled = transpile(qc_example, basis_gates = ['cz', 'sx', 'rz'], coupling_map =[[0, 1], [1, 2]] , optimization_level=3)
+```
+
+For further examples of using Qiskit you can look at the tutorials in the documentation here:
+
+<https://qiskit.org/documentation/tutorials.html>
+
+### Executing your code on real quantum hardware
+
+Qiskit provides an abstraction layer that lets users run quantum circuits on hardware from any vendor that provides a compatible interface. 
+The best way to use Qiskit is with a runtime environment that provides optimized implementations of `sampler` and `estimator` for a given hardware platform. This runtime may involve using pre- and post-processing, such as optimized transpiler passes with error suppression, error mitigation, and, eventually, error correction built in. A runtime implements `qiskit.primitives.BaseSampler` and `qiskit.primitives.BaseEstimator` interfaces. For example,
+some packages that provide implementations of a runtime primitive implementation are:
+
+* https://github.com/Qiskit/qiskit-ibm-runtime
+
+Qiskit also provides a lower-level abstract interface for describing quantum backends. This interface, located in
+``qiskit.providers``, defines an abstract `BackendV2` class that providers can implement to represent their
+hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
+
+* https://github.com/Qiskit/qiskit-ibm-provider
+* https://github.com/qiskit-community/qiskit-ionq
+* https://github.com/qiskit-community/qiskit-aqt-provider
+* https://github.com/qiskit-community/qiskit-braket-provider
+* https://github.com/qiskit-community/qiskit-quantinuum-provider
+* https://github.com/rigetti/qiskit-rigetti
+
+<!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
+
+You can refer to the documentation of these packages for further instructions
+on how to get access and use these systems.
+
+## Contribution Guidelines
+
+If you'd like to contribute to Qiskit, please take a look at our
+[contribution guidelines](CONTRIBUTING.md). By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
+
+We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
+[join the Qiskit Slack community](https://qisk.it/join-slack) for discussion, comments, and questions.
+For questions related to running or using Qiskit, [Stack Overflow has a `qiskit`](https://stackoverflow.com/questions/tagged/qiskit).
+For questions on quantum computing with Qiskit, use the `qiskit` tag in the [Quantum Computing Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit) (please, read first the [guidelines on how to ask](https://quantumcomputing.stackexchange.com/help/how-to-ask) in that forum).
+
+
+## Authors and Citation
+
+Qiskit is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](CITATION.bib).
+
+## Changelog and Release Notes
+
+The changelog for a particular release is dynamically generated and gets
+written to the release page on Github for each release. For example, you can
+find the page for the `0.9.0` release here:
+
+<https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0>
+
+The changelog for the current release can be found in the releases tab:
+[![Releases](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=flat&label=)](https://github.com/Qiskit/qiskit-terra/releases)
+The changelog provides a quick overview of notable changes for a given
+release.
+
+Additionally, as part of each release detailed release notes are written to
+document in detail what has changed as part of a release. This includes any
+documentation on potential breaking changes on upgrade and new features.
+For example, you can find the release notes for the `0.9.0` release in the
+Qiskit documentation here:
+
+https://qiskit.org/documentation/release_notes.html#terra-0-9
+
+## Acknowledgements
+
+We acknowledge partial support for Qiskit development from the DOE Office of Science National Quantum Information Science Research Centers, Co-design Center for Quantum Advantage (C2QA) under contract number DE-SC0012704.
+
+## License
+
+[Apache License 2.0](LICENSE.txt)

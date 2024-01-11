@@ -1,0 +1,49 @@
+[qiskit.synthesis]
+clifford.ag = qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford
+clifford.bm = qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford
+clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford
+clifford.greedy = qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford
+clifford.layers = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford
+clifford.lnn = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford
+linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction
+linear_function.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction
+linear_function.pmh = qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction
+permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation
+permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation
+permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation
+permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation
+
+[qiskit.transpiler.init]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager
+
+[qiskit.transpiler.layout]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultLayoutPassManager
+dense = qiskit.transpiler.preset_passmanagers.builtin_plugins:DenseLayoutPassManager
+noise_adaptive = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoiseAdaptiveLayoutPassManager
+sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreLayoutPassManager
+trivial = qiskit.transpiler.preset_passmanagers.builtin_plugins:TrivialLayoutPassManager
+
+[qiskit.transpiler.optimization]
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:OptimizationPassManager
+
+[qiskit.transpiler.routing]
+basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager
+lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager
+none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager
+sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager
+stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager
+
+[qiskit.transpiler.scheduling]
+alap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AlapSchedulingPassManager
+asap = qiskit.transpiler.preset_passmanagers.builtin_plugins:AsapSchedulingPassManager
+default = qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultSchedulingPassManager
+
+[qiskit.transpiler.translation]
+synthesis = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager
+translator = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager
+unroller = qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager
+
+[qiskit.unitary_synthesis]
+aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin
+default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis
+sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis

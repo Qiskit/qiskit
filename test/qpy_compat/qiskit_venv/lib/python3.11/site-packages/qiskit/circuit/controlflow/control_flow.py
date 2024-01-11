@@ -1,0 +1,52 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2021.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"Container to encapsulate all control flow operations."
+
+from __future__ import annotations
+
+import typing
+from abc import ABC, abstractmethod
+
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.exceptions import CircuitError
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
+
+
+class ControlFlowOp(Instruction, ABC):
+    """Abstract class to encapsulate all control flow operations."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for block in self.blocks:
+            if block.num_input_vars:
+                raise CircuitError("control-flow blocks cannot contain input variables")
+
+    @property
+    @abstractmethod
+    def blocks(self) -> tuple[QuantumCircuit, ...]:
+        """Tuple of QuantumCircuits which may be executed as part of the
+        execution of this ControlFlowOp. May be parameterized by a loop
+        parameter to be resolved at run time.
+        """
+
+    @abstractmethod
+    def replace_blocks(self, blocks: typing.Iterable[QuantumCircuit]) -> ControlFlowOp:
+        """Replace blocks and return new instruction.
+        Args:
+            blocks: Tuple of QuantumCircuits to replace in instruction.
+
+        Returns:
+            New ControlFlowOp with replaced blocks.
+        """

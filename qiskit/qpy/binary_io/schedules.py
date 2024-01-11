@@ -144,6 +144,9 @@ def _read_symbolic_pulse(file_obj, version):
         parameters["angle"] = np.angle(parameters["amp"])
         parameters["amp"] = np.abs(parameters["amp"])
 
+        _amp, _angle = sym.symbols("amp, angle")
+        envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
+
         class_name = "ScalableSymbolicPulse"
 
     duration = value.read_value(file_obj, version, {})
