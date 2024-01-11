@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Provider for test simulator backends, formerly known as `BasicAer`."""
+"""Provider for basic simulator backends, formerly known as `BasicAer`."""
 
 from __future__ import annotations
 

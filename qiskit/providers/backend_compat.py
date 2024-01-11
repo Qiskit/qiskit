@@ -84,7 +84,7 @@ def convert_to_target(
         "switch_case": SwitchCaseOp,
     }
 
-    in_data = {"num_qubits": configuration.n_qubits}
+    in_data = {"num_qubits": getattr(configuration, "n_qubits", None)}
 
     # Parse global configuration properties
     if hasattr(configuration, "dt"):

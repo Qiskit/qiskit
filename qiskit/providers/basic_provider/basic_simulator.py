@@ -21,7 +21,7 @@ The simulator is run using
 
    BasicSimulator().run(run_input)
 
-Where the input is a ``QuantumCircuit`` object and the output is a ``BasicProviderJob object``,
+Where the input is a ``QuantumCircuit`` object and the output is a ``BasicProviderJob`` object,
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -62,10 +62,11 @@ logger = logging.getLogger(__name__)
 
 
 class BasicSimulator(BackendV2):
-    """Python implementation of a basic (slow, non-efficient) quantum simulator. This implementation
-    was originally based on the :class:`.BackendV1` interface, and later migrated to :class:`.BackendV2`.
-    However, certain legacy methods and properties from :class:`.BackendV1` have been kept for
-    backwards compatibility purposes, these are:
+    """Python implementation of a basic (slow, non-efficient) quantum simulator.
+
+    This implementation was originally based on the :class:`.BackendV1` interface, and later
+    migrated to :class:`.BackendV2`. However, certain legacy methods and properties from
+    :class:`.BackendV1` have been kept for backwards compatibility purposes, these are:
 
         #. :meth:`.BasicSimulator.configuration`
         #. :meth:`.BasicSimulator.properties`
@@ -148,9 +149,13 @@ class BasicSimulator(BackendV2):
         Returns:
             Target: the configured target.
         """
+        # Set num_qubits to None so that the transpiler doesn't unnecessarily
+        # resize the circuit to fit a specific (potentially too large)
+        # number of qubits. The number of qubits in the circuits given to the
+        # `run` method will determine the size of the simulated statevector.
         target = Target(
             description="Basic Target",
-            num_qubits=min(24, self.MAX_QUBITS_MEMORY),
+            num_qubits=None,
         )
         basis_gates = ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"]
         required = ["measure", "delay", "reset"]
@@ -172,7 +177,7 @@ class BasicSimulator(BackendV2):
         """Return the simulator backend configuration.
 
         Returns:
-            BackendConfiguration: the configuration for the backend.
+            The configuration for the backend.
         """
         # The ``target`` input argument overrides the ``configuration`` if provided:
         if self._configuration and not self._target:
@@ -737,7 +742,7 @@ class BasicSimulator(BackendV2):
     def _validate(self, qobj: QasmQobj) -> None:
         """Semantic validations of the qobj which cannot be done via schemas."""
         n_qubits = qobj.config.n_qubits
-        max_qubits = self.configuration().n_qubits
+        max_qubits = self.MAX_QUBITS_MEMORY
         if n_qubits > max_qubits:
             raise BasicProviderError(
                 f"Number of qubits {n_qubits} is greater than maximum ({max_qubits}) "
