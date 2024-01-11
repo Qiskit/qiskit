@@ -2234,6 +2234,12 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
+    def test_qcstyle_legacy_import(self):
+        """Test importing from the legacy import location raises a deprecation warning."""
+        with self.assertRaises(DeprecationWarning):
+            # pylint: disable=unused-import
+            from qiskit.visualization.qcstyle import DefaultStyle
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
