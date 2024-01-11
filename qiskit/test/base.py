@@ -28,6 +28,7 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
+from qiskit.exceptions import QiskitWarning
 from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
@@ -201,6 +202,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
+        warnings.filterwarnings("error", category=QiskitWarning)
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
