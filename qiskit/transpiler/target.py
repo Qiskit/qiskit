@@ -1286,7 +1286,7 @@ class Target(Mapping):
 
             backend_properties: The :class:`~.BackendProperties` object which is
                 used for Qubit Properties and error and durations of instruction properties.
-                In case of durations, ``instruction_durations`` argument if specified, would 
+                In case of durations, ``instruction_durations`` argument if specified, would
                 take precedence for instructions specified in ``basis_gates``.
 
             instruction_durations: Optional instruction durations for instructions. If specified
@@ -1295,9 +1295,9 @@ class Target(Mapping):
                 In case ``dt`` is not specified, ``dt`` extracted from this argument will be set
                 as the ``dt`` of the ``Target``.
 
-            concurrent_measurements: A list of lists of qubits that must be  measured together. 
+            concurrent_measurements: A list of lists of qubits that must be  measured together.
                 This must be provided as a nested list like ``[[0, 1], [2, 3, 4]]``.
-                If this argument is not provided then ``InstructionScheduleMap`` would be used 
+                If this argument is not provided then ``InstructionScheduleMap`` would be used
                 to extract information to set this argument.
 
             dt: The system time resolution of input signals in seconds.
