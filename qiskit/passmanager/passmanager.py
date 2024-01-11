@@ -21,7 +21,7 @@ from typing import Any
 
 import dill
 
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear

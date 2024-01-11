@@ -28,8 +28,8 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
+from qiskit.utils.parallel import get_platform_parallel_default
 from qiskit.exceptions import QiskitWarning
-from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call

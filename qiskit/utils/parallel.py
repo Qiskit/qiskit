@@ -54,7 +54,6 @@ import sys
 
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import local_hardware_info
-from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
 
 
@@ -151,13 +150,6 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     if len(values) == 1:
         return [task(values[0], *task_args, **task_kwargs)]
 
-    Publisher().publish("terra.parallel.start", len(values))
-    nfinished = [0]
-
-    def _callback(_):
-        nfinished[0] += 1
-        Publisher().publish("terra.parallel.done", nfinished[0])
-
     # Run in parallel if not Win and not in parallel already
     if (
         num_processes > 1
@@ -172,18 +164,15 @@ def parallel_map(  # pylint: disable=dangerous-default-value
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)
-            Publisher().publish("terra.parallel.done", len(results))
 
         except (KeyboardInterrupt, Exception) as error:
             if isinstance(error, KeyboardInterrupt):
-                Publisher().publish("terra.parallel.finish")
                 os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
                 raise QiskitError("Keyboard interrupt in parallel_map.") from error
             # Otherwise just reset parallel flag and error
             os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
             raise error
 
-        Publisher().publish("terra.parallel.finish")
         os.environ["QISKIT_IN_PARALLEL"] = "FALSE"
         return results
 
@@ -193,6 +182,4 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     for _, value in enumerate(values):
         result = task(value, *task_args, **task_kwargs)
         results.append(result)
-        _callback(0)
-    Publisher().publish("terra.parallel.finish")
     return results
