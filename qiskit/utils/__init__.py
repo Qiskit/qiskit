@@ -33,7 +33,7 @@ Utilities (:mod:`qiskit.utils`)
 Parallel Routines
 -----------------
 A helper function for calling a custom function with python
-``ProcessPoolExecutor``. Tasks can be executed in parallel using this function.
+:class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
 
 .. autofunction:: parallel_map
 
