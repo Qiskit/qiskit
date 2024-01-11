@@ -14,9 +14,6 @@
 """Unit tests for Options."""
 
 
-import numpy as np
-import numpy.typing as npt
-
 from qiskit.primitives.containers import BasePrimitiveOptions
 from qiskit.test import QiskitTestCase
 
