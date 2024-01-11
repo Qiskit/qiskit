@@ -147,9 +147,9 @@ class BindingsArray(ShapedMixin):
 
     def __repr__(self):
         descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
-        if num_kwparams := sum(val.shape[-1] for val in self._kwvals.values()):
+        if num_kwval_params := sum(val.shape[-1] for val in self._kwvals.values()):
             names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
-            if len(names) < num_kwparams:
+            if len(names) < num_kwval_params:
                 names.append("...")
             descriptions.append(f"parameters=[{', '.join(names)}]")
         return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
