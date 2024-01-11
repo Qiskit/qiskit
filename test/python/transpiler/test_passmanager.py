@@ -21,7 +21,12 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U2Gate
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import PassManager, PropertySet, TransformationPass, FlowController
+from qiskit.passmanager.flow_controllers import (
+    FlowControllerLinear,
+    ConditionalController,
+    DoWhileController,
+)
+from qiskit.transpiler import PassManager, PropertySet, TransformationPass
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test import QiskitTestCase
@@ -55,7 +60,8 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        passmanager.append(Unroller(["u2"]))
+        with self.assertWarns(DeprecationWarning):
+            passmanager.append(Unroller(["u2"]))
         passmanager.append(Optimize1qGates())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
@@ -142,20 +148,20 @@ class TestPassManager(QiskitTestCase):
         def make_inner(prefix):
             inner = PassManager()
             inner.append(DummyPass(f"{prefix} 1"))
-            inner.append(DummyPass(f"{prefix} 2"), condition=lambda _: False)
-            inner.append(DummyPass(f"{prefix} 3"), condition=lambda _: True)
-            inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
+            inner.append(ConditionalController(DummyPass(f"{prefix} 2"), condition=lambda _: False))
+            inner.append(ConditionalController(DummyPass(f"{prefix} 3"), condition=lambda _: True))
+            inner.append(DoWhileController(DummyPass(f"{prefix} 4"), do_while=repeat(1)))
             return inner.to_flow_controller()
 
-        self.assertIsInstance(make_inner("test"), FlowController)
+        self.assertIsInstance(make_inner("test"), FlowControllerLinear)
 
         outer = PassManager()
         outer.append(make_inner("first"))
-        outer.append(make_inner("second"), condition=lambda _: False)
+        outer.append(ConditionalController(make_inner("second"), condition=lambda _: False))
         # The intent of this `condition=repeat(1)` is to ensure that the outer condition is only
         # checked once and not flattened into the inner controllers; an inner pass invalidating the
         # condition should not affect subsequent passes once the initial condition was met.
-        outer.append(make_inner("third"), condition=repeat(1))
+        outer.append(ConditionalController(make_inner("third"), condition=repeat(1)))
 
         calls = []
 

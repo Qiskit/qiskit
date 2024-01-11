@@ -41,18 +41,20 @@ class RXGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        RX(\theta) = \exp\left(-i \th X\right) =
+        RX(\theta) = \exp\left(-i \rotationangle X\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                -i\sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RX gate."""
-        super().__init__("rx", 1, [theta], label=label)
+        super().__init__("rx", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -131,15 +133,15 @@ class CRXGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & \cos\left(\th\right) & 0 & -i\sin\left(\th\right) \\
+                0 & \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) \\
                 0 & 0 & 1 & 0 \\
-                0 & -i\sin\left(\th\right) & 0 & \cos\left(\th\right)
+                0 & -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -158,15 +160,15 @@ class CRXGate(ControlledGate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CRX(\theta)\ q_1, q_0 =
             |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                    0 & 0 & -i\sin\left(\th\right) & \cos\left(\th\right)
+                    0 & 0 & \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                    0 & 0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
@@ -175,6 +177,10 @@ class CRXGate(ControlledGate):
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRX gate."""
         super().__init__(
@@ -184,7 +190,7 @@ class CRXGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RXGate(theta),
+            base_gate=RXGate(theta, label=_base_label),
         )
 
     def _define(self):

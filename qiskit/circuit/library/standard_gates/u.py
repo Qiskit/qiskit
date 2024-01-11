@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+import copy
 import math
 from cmath import exp
 from typing import Optional, Union
@@ -19,7 +20,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.exceptions import CircuitError
 
 
 class UGate(Gate):
@@ -40,13 +40,13 @@ class UGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         U(\theta, \phi, \lambda) =
-            \begin{pmatrix}
-                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
-                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
-            \end{pmatrix}
+        \begin{pmatrix}
+            \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+            e^{i\phi}\sin\left(\rotationangle\right) & e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
+        \end{pmatrix}
 
     .. note::
 
@@ -73,9 +73,12 @@ class UGate(Gate):
         phi: ParameterValueType,
         lam: ParameterValueType,
         label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new U gate."""
-        super().__init__("u", 1, [theta, phi, lam], label=label)
+        super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
     def inverse(self):
         r"""Return inverted U gate.
@@ -128,6 +131,43 @@ class UGate(Gate):
         )
 
 
+class _CUGateParams(list):
+    # This awful class is to let `CUGate.params` have its keys settable (as
+    # `QuantumCircuit.assign_parameters` requires), while accounting for the problem that `CUGate`
+    # was defined to have a different number of parameters to its `base_gate`, which breaks
+    # `ControlledGate`'s assumptions, and would make most parametric `CUGate`s invalid.
+    #
+    # It's constructed only as part of the `CUGate.params` getter, and given that the general
+    # circuit model assumes that that's a directly mutable list that _must_ be kept in sync with the
+    # gate's requirements, we don't need this to support arbitrary mutation, just enough for
+    # `QuantumCircuit.assign_parameters` to work.
+
+    __slots__ = ("_gate",)
+
+    def __init__(self, gate):
+        super().__init__(gate._params)
+        self._gate = gate
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        self._gate._params[key] = value
+        # Magic numbers: CUGate has 4 parameters, UGate has 3, with the last of CUGate's missing.
+        if isinstance(key, slice):
+            # We don't need to worry about the case of the slice being used to insert extra / remove
+            # elements because that would be "undefined behaviour" in a gate already, so we're
+            # within our rights to do anything at all.
+            for i, base_key in enumerate(range(*key.indices(4))):
+                if base_key < 0:
+                    base_key = 4 + base_key
+                if base_key < 3:
+                    self._gate.base_gate.params[base_key] = value[i]
+        else:
+            if key < 0:
+                key = 4 + key
+            if key < 3:
+                self._gate.base_gate.params[key] = value
+
+
 class CUGate(ControlledGate):
     r"""Controlled-U gate (4-parameter two-qubit gate).
 
@@ -150,16 +190,18 @@ class CUGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CU(\theta, \phi, \lambda, \gamma)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             e^{i\gamma} U(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0                           & 0 & 0 \\
-                0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                0 & 0                           & 1 & 0 \\
-                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)}\cos(\th)
+                1 & 0 & 0 & 0 \\
+                0 & e^{i\gamma}\cos(\rotationangle) &
+                0 & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+                0 & 0 & 1 & 0 \\
+                0 & e^{i(\gamma+\phi)}\sin(\rotationangle) &
+                0 & e^{i(\gamma+\phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
 
     .. note::
@@ -178,15 +220,17 @@ class CUGate(ControlledGate):
 
         .. math::
 
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
             CU(\theta, \phi, \lambda, \gamma)\ q_1, q_0 =
-                |0\rangle\langle 0| \otimes I +
-                e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
-                \begin{pmatrix}
-                    1 & 0 & 0                             & 0 \\
-                    0 & 1 & 0                             & 0 \\
-                    0 & 0 & e^{i\gamma} \cos(\th)         & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
-                \end{pmatrix}
+            |0\rangle\langle 0| \otimes I +
+            e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
+            \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & e^{i\gamma} \cos(\rotationangle) & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+            0 & 0 &
+            e^{i(\gamma + \phi)}\sin(\rotationangle) & e^{i(\gamma + \phi+\lambda)}\cos(\rotationangle)
+            \end{pmatrix}
     """
 
     def __init__(
@@ -197,6 +241,10 @@ class CUGate(ControlledGate):
         gamma: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CU gate."""
         super().__init__(
@@ -206,7 +254,9 @@ class CUGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=UGate(theta, phi, lam),
+            base_gate=UGate(theta, phi, lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -273,33 +323,20 @@ class CUGate(ControlledGate):
 
     @property
     def params(self):
-        """Get parameters from base_gate.
-
-        Returns:
-            list: List of gate parameters.
-
-        Raises:
-            CircuitError: Controlled gate does not define a base gate
-        """
-        if self.base_gate:
-            # CU has one additional parameter to the U base gate
-            return self.base_gate.params + self._params
-        else:
-            raise CircuitError("Controlled gate does not define base gate for extracting params")
+        return _CUGateParams(self)
 
     @params.setter
     def params(self, parameters):
-        """Set base gate parameters.
+        # We need to skip `ControlledGate` in the inheritance tree, since it defines
+        # that all controlled gates are `(1-|c><c|).1 + |c><c|.base` for control-state `c`, which
+        # this class does _not_ satisfy (so it shouldn't really be a `ControlledGate`).
+        super(ControlledGate, type(self)).params.fset(self, parameters)
+        self.base_gate.params = parameters[:-1]
 
-        Args:
-            parameters (list): The list of parameters to set.
-
-        Raises:
-            CircuitError: If controlled gate does not define a base gate.
-        """
-        # CU has one additional parameter to the U base gate
-        self._params = [parameters[-1]]
-        if self.base_gate:
-            self.base_gate.params = parameters[:-1]
-        else:
-            raise CircuitError("Controlled gate does not define base gate for extracting params")
+    def __deepcopy__(self, memo=None):
+        # We have to override this because `ControlledGate` doesn't copy the `_params` list,
+        # assuming that `params` will be a view onto the base gate's `_params`.
+        memo = memo if memo is not None else {}
+        out = super().__deepcopy__(memo)
+        out._params = copy.deepcopy(out._params, memo)
+        return out

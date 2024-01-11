@@ -22,7 +22,14 @@ from collections import defaultdict
 
 import rustworkx
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
+from qiskit.circuit import (
+    Gate,
+    ParameterVector,
+    QuantumRegister,
+    ControlFlowOp,
+    QuantumCircuit,
+    ParameterExpression,
+)
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.equivalence import Key, NodeData
@@ -195,8 +202,8 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes."
-                    "BasisTranslator.html#translation_errors"
+                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "BasisTranslator#translation-errors"
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
@@ -213,8 +220,8 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.BasisTranslator."
-                "html#translation_errors"
+                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "BasisTranslator#translation-errors"
             )
 
         # Compose found path into a set of instruction substitution rules.
@@ -294,17 +301,46 @@ class BasisTranslator(TransformationPass):
                     node.op.params, node.op.name, target_params, target_dag
                 )
             )
-
         if node.op.params:
-            # Convert target to circ and back to assign_parameters, since
-            # DAGCircuits won't have a ParameterTable.
-            target_circuit = dag_to_circuit(target_dag)
+            parameter_map = dict(zip(target_params, node.op.params))
+            bound_target_dag = target_dag.copy_empty_like()
+            for inner_node in target_dag.topological_op_nodes():
+                if any(isinstance(x, ParameterExpression) for x in inner_node.op.params):
+                    new_op = inner_node.op.copy()
+                    new_params = []
+                    for param in new_op.params:
+                        if not isinstance(param, ParameterExpression):
+                            new_params.append(param)
+                        else:
+                            bind_dict = {x: parameter_map[x] for x in param.parameters}
+                            if any(isinstance(x, ParameterExpression) for x in bind_dict.values()):
+                                new_value = param
+                                for x in bind_dict.items():
+                                    new_value = new_value.assign(*x)
+                            else:
+                                new_value = param.bind(bind_dict)
+                            if not new_value.parameters:
+                                new_value = new_value.numeric()
+                            new_params.append(new_value)
+                    new_op.params = new_params
+                else:
+                    new_op = inner_node.op
+                bound_target_dag.apply_operation_back(new_op, inner_node.qargs, inner_node.cargs)
+            if isinstance(target_dag.global_phase, ParameterExpression):
+                old_phase = target_dag.global_phase
+                bind_dict = {x: parameter_map[x] for x in old_phase.parameters}
+                if any(isinstance(x, ParameterExpression) for x in bind_dict.values()):
+                    new_phase = old_phase
+                    for x in bind_dict.items():
+                        new_phase = new_phase.assign(*x)
 
-            target_circuit.assign_parameters(
-                dict(zip_longest(target_params, node.op.params)), inplace=True
-            )
-
-            bound_target_dag = circuit_to_dag(target_circuit)
+                else:
+                    new_phase = old_phase.bind(bind_dict)
+                if not new_phase.parameters:
+                    new_phase = new_phase.numeric()
+                    if isinstance(new_phase, complex):
+                        raise TranspilerError(f"Global phase must be real, but got '{new_phase}'")
+                bound_target_dag.global_phase = new_phase
         else:
             bound_target_dag = target_dag
 

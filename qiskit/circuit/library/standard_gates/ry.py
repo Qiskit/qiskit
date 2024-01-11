@@ -40,18 +40,20 @@ class RYGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        RY(\theta) = \exp\left(-i \th Y\right) =
+        RY(\theta) = \exp\left(-i \rotationangle Y\right) =
             \begin{pmatrix}
-                \cos\left(\th\right) & -\sin\left(\th\right) \\
-                \sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -\sin\left(\rotationangle\right) \\
+                \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RY gate."""
-        super().__init__("ry", 1, [theta], label=label)
+        super().__init__("ry", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -130,15 +132,15 @@ class CRYGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CRY(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RY(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0         & 0 & 0 \\
-                0 & \cos\left(\th\right) & 0 & -\sin\left(\th\right) \\
+                0 & \cos\left(\rotationangle\right) & 0 & -\sin\left(\rotationangle\right) \\
                 0 & 0         & 1 & 0 \\
-                0 & \sin\left(\th\right) & 0 & \cos\left(\th\right)
+                0 & \sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -157,15 +159,15 @@ class CRYGate(ControlledGate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CRY(\theta)\ q_1, q_0 =
             |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes RY(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos\left(\th\right) & -\sin\left(\th\right) \\
-                    0 & 0 & \sin\left(\th\right) & \cos\left(\th\right)
+                    0 & 0 & \cos\left(\rotationangle\right) & -\sin\left(\rotationangle\right) \\
+                    0 & 0 & \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
@@ -174,6 +176,10 @@ class CRYGate(ControlledGate):
         theta: ParameterValueType,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CRY gate."""
         super().__init__(
@@ -183,7 +189,9 @@ class CRYGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=RYGate(theta),
+            base_gate=RYGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):

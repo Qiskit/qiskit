@@ -40,20 +40,26 @@ class RGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R(\theta, \phi) = e^{-i \th \left(\cos{\phi} x + \sin{\phi} y\right)} =
+        R(\theta, \phi) = e^{-i \rotationangle \left(\cos{\phi} x + \sin{\phi} y\right)} =
             \begin{pmatrix}
-                \cos\left(\th\right) & -i e^{-i \phi} \sin\left(\th\right) \\
-                -i e^{i \phi} \sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -i e^{-i \phi} \sin\left(\rotationangle\right) \\
+                -i e^{i \phi} \sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
     def __init__(
-        self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new r single-qubit gate."""
-        super().__init__("r", 1, [theta, phi], label=label)
+        super().__init__("r", 1, [theta, phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

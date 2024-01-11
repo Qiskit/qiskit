@@ -14,7 +14,6 @@
 
 """Main Qiskit public functionality."""
 
-import pkgutil
 import sys
 import warnings
 
@@ -26,6 +25,7 @@ import qiskit._accelerate
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
+sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
@@ -69,14 +69,6 @@ from qiskit import user_config as _user_config
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 
-# Allow extending this namespace. Please note that currently this line needs
-# to be placed *before* the wrapper imports or any non-import code AND *before*
-# importing the package you want to allow extensions for (in this case `backends`).
-
-# Support for the deprecated extending this namespace.
-# Remove this after 0.46.0 release
-__path__ = pkgutil.extend_path(__path__, __name__)
-
 # Please note these are global instances, not modules.
 from qiskit.providers.basicaer import BasicAer
 
@@ -88,10 +80,6 @@ from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
-from .version import QiskitVersion
-
-
-__qiskit_version__ = QiskitVersion()
 
 
 class AerWrapper:

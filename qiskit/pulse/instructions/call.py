@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Call instruction that represents calling a schedule as a subroutine."""
-
-from typing import Optional, Union, Dict, Tuple, Set
+from __future__ import annotations
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -33,14 +32,15 @@ class Call(instruction.Instruction):
 
     @deprecate_func(
         since="0.25.0",
+        package_name="qiskit-terra",
         additional_msg="Instead, use the pulse builder function "
         "qiskit.pulse.builder.call(subroutine) within an active building context.",
     )
     def __init__(
         self,
         subroutine,
-        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
-        name: Optional[str] = None,
+        value_dict: dict[ParameterExpression, ParameterValueType] | None = None,
+        name: str | None = None,
     ):
         """Define new subroutine.
 
@@ -64,7 +64,9 @@ class Call(instruction.Instruction):
 
         # initialize parameter template
         if subroutine.is_parameterized():
-            self._arguments = {par: value_dict.get(par, par) for par in subroutine.parameters}
+            self._arguments: dict[ParameterExpression, ParameterValueType] = {
+                par: value_dict.get(par, par) for par in subroutine.parameters
+            }
             assigned_subroutine = subroutine.assign_parameters(
                 value_dict=self.arguments, inplace=False
             )
@@ -78,12 +80,12 @@ class Call(instruction.Instruction):
         super().__init__(operands=(subroutine,), name=name or f"{self.prefix}_{subroutine.name}")
 
     @property
-    def duration(self) -> Union[int, ParameterExpression]:
+    def duration(self) -> int | ParameterExpression:
         """Duration of this instruction."""
         return self.subroutine.duration
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> tuple[Channel]:
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
@@ -118,7 +120,7 @@ class Call(instruction.Instruction):
         return subroutine
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set:
         """Unassigned parameters which determine the instruction behavior."""
         params = set()
         for value in self._arguments.values():
@@ -127,12 +129,12 @@ class Call(instruction.Instruction):
         return params
 
     @property
-    def arguments(self) -> Dict[ParameterExpression, ParameterValueType]:
+    def arguments(self) -> dict[ParameterExpression, ParameterValueType]:
         """Parameters dictionary to be assigned to subroutine."""
         return self._arguments
 
     @arguments.setter
-    def arguments(self, new_arguments: Dict[ParameterExpression, ParameterValueType]):
+    def arguments(self, new_arguments: dict[ParameterExpression, ParameterValueType]):
         """Set new arguments.
 
         Args:
@@ -156,7 +158,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: instruction.Instruction) -> bool:
+    def __eq__(self, other: object) -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.

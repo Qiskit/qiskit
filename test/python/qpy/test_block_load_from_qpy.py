@@ -37,7 +37,6 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
@@ -53,10 +52,10 @@ else:
 class QpyScheduleTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, block):
+    def assert_roundtrip_equal(self, block, use_symengine=False):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(block, qpy_file)
+        dump(block, qpy_file, use_symengine=use_symengine)
         qpy_file.seek(0)
         new_block = load(qpy_file)[0]
 
@@ -278,6 +277,31 @@ class TestLoadFromQPY(QpyScheduleTestCase):
 
         self.assert_roundtrip_equal(test_sched)
 
+    @unittest.skipUnless(_optional.HAS_SYMENGINE, "Symengine required for this test")
+    def test_bell_schedule_use_symengine(self):
+        """Test complex schedule to create a Bell state."""
+        with builder.build() as test_sched:
+            with builder.align_sequential():
+                # H
+                builder.shift_phase(-1.57, DriveChannel(0))
+                builder.play(Drag(160, 0.05, 40, 1.3), DriveChannel(0))
+                builder.shift_phase(-1.57, DriveChannel(0))
+                # ECR
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, 0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, 0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                with builder.align_left():
+                    builder.play(GaussianSquare(800, -0.05, 64, 544), DriveChannel(1))
+                    builder.play(GaussianSquare(800, -0.22, 64, 544, 2), ControlChannel(0))
+                builder.play(Drag(160, 0.1, 40, 1.5), DriveChannel(0))
+                # Measure
+                with builder.align_left():
+                    builder.play(GaussianSquare(8000, 0.2, 64, 7744), MeasureChannel(0))
+                    builder.acquire(8000, AcquireChannel(0), MemorySlot(0))
+
+        self.assert_roundtrip_equal(test_sched, True)
+
     def test_with_acquire_instruction_with_kernel(self):
         """Test a schedblk with acquire instruction with kernel."""
         kernel = Kernel(
@@ -435,22 +459,3 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_sched = load(qpy_file)[0]
         self.assertEqual(self.test_sched, new_sched)
-
-    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_dump_no_symengine(self):
-        """Test dump fails if symengine is not installed and use_symengine==True."""
-        qpy_file = io.BytesIO()
-        with _optional.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                dump(self.test_sched, qpy_file, use_symengine=True)
-
-    @unittest.skipIf(not _optional.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_load_no_symengine(self):
-        """Test that load fails if symengine is not installed and the
-        file was created with use_symengine==True."""
-        qpy_file = io.BytesIO()
-        dump(self.test_sched, qpy_file, use_symengine=True)
-        qpy_file.seek(0)
-        with _optional.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                _ = load(qpy_file)[0]

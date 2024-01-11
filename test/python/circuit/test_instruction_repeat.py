@@ -131,7 +131,8 @@ class TestRepeatUnroller(QiskitTestCase):
 
         circuit = QuantumCircuit(qr)
         circuit.append(SGate().repeat(2), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
+        with self.assertWarns(DeprecationWarning):
+            result = PassManager(Unroller("u3")).run(circuit)
 
         expected = QuantumCircuit(qr)
         expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
@@ -145,7 +146,8 @@ class TestRepeatUnroller(QiskitTestCase):
 
         circuit = QuantumCircuit(qr)
         circuit.append(SGate().repeat(1), [qr[0]])
-        result = PassManager(Unroller("u3")).run(circuit)
+        with self.assertWarns(DeprecationWarning):
+            result = PassManager(Unroller("u3")).run(circuit)
 
         expected = QuantumCircuit(qr)
         expected.append(U3Gate(0, 0, pi / 2), [qr[0]])

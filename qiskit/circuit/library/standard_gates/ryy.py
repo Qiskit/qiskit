@@ -41,14 +41,14 @@ class RYYGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{YY}(\theta) = \exp\left(-i \th Y{\otimes}Y\right) =
+        R_{YY}(\theta) = \exp\left(-i \rotationangle Y{\otimes}Y\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0           & 0           & i\sin\left(\th\right) \\
-                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
-                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
-                i\sin\left(\th\right)  & 0           & 0           & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & 0 & i\sin\left(\rotationangle\right) \\
+                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right) & 0 \\
+                i\sin\left(\rotationangle\right) & 0 & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     **Examples:**
@@ -72,9 +72,11 @@ class RYYGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RYY gate."""
-        super().__init__("ryy", 2, [theta], label=label)
+        super().__init__("ryy", 2, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""

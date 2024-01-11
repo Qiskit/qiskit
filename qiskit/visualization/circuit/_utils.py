@@ -28,6 +28,7 @@ from qiskit.circuit import (
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -46,6 +47,16 @@ def _is_boolean_expression(gate_text, op):
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
     """Load the gate_text and ctrl_text strings based on names and labels"""
+    anno_list = []
+    anno_text = ""
+    if isinstance(op, AnnotatedOperation) and op.modifiers:
+        for modifier in op.modifiers:
+            if isinstance(modifier, InverseModifier):
+                anno_list.append("Inv")
+            elif isinstance(modifier, PowerModifier):
+                anno_list.append("Pow(" + str(round(modifier.power, 1)) + ")")
+        anno_text = ", ".join(anno_list)
+
     op_label = getattr(op, "label", None)
     op_type = type(op)
     base_name = base_label = base_type = None
@@ -53,6 +64,8 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
         base_name = op.base_gate.name
         base_label = op.base_gate.label
         base_type = type(op.base_gate)
+    if hasattr(op, "base_op"):
+        base_name = op.base_op.name
     ctrl_text = None
 
     if base_label:
@@ -113,6 +126,9 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
             ctrl_text = "(cal)\n" + ctrl_text
         else:
             gate_text = gate_text + "\n(cal)"
+
+    if anno_text:
+        gate_text += " - " + anno_text
 
     return gate_text, ctrl_text, raw_gate_text
 
@@ -197,7 +213,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-@deprecate_arg("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -285,7 +301,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-@deprecate_arg("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 
@@ -428,7 +444,7 @@ def _get_layered_instructions(
         for node in dag.topological_op_nodes():
             nodes.append([node])
     else:
-        nodes = _LayerSpooler(dag, justify, measure_map, wire_map)
+        nodes = _LayerSpooler(dag, justify, measure_map)
 
     # Optionally remove all idle wires and instructions that are on them and
     # on them only.
@@ -454,7 +470,7 @@ def _sorted_nodes(dag_layer):
     return nodes
 
 
-def _get_gate_span(qubits, node, wire_map):
+def _get_gate_span(qubits, node):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
@@ -470,7 +486,7 @@ def _get_gate_span(qubits, node, wire_map):
 
     # Because of wrapping boxes for mpl control flow ops, this
     # type of op must be the only op in the layer
-    if wire_map is not None and isinstance(node.op, ControlFlowOp):
+    if isinstance(node.op, ControlFlowOp):
         span = qubits
     elif node.cargs or getattr(node.op, "condition", None):
         span = qubits[min_index : len(qubits)]
@@ -480,20 +496,20 @@ def _get_gate_span(qubits, node, wire_map):
     return span
 
 
-def _any_crossover(qubits, node, nodes, wire_map):
+def _any_crossover(qubits, node, nodes):
     """Return True .IFF. 'node' crosses over any 'nodes'."""
-    gate_span = _get_gate_span(qubits, node, wire_map)
+    gate_span = _get_gate_span(qubits, node)
     all_indices = []
     for check_node in nodes:
         if check_node != node:
-            all_indices += _get_gate_span(qubits, check_node, wire_map)
+            all_indices += _get_gate_span(qubits, check_node)
     return any(i in gate_span for i in all_indices)
 
 
 class _LayerSpooler(list):
     """Manipulate list of layer dicts for _get_layered_instructions."""
 
-    def __init__(self, dag, justification, measure_map, wire_map):
+    def __init__(self, dag, justification, measure_map):
         """Create spool"""
         super().__init__()
         self.dag = dag
@@ -501,7 +517,6 @@ class _LayerSpooler(list):
         self.clbits = dag.clbits
         self.justification = justification
         self.measure_map = measure_map
-        self.wire_map = wire_map
         self.cregs = [self.dag.cregs[reg] for reg in self.dag.cregs]
 
         if self.justification == "left":
@@ -534,7 +549,7 @@ class _LayerSpooler(list):
 
     def insertable(self, node, nodes):
         """True .IFF. we can add 'node' to layer 'nodes'"""
-        return not _any_crossover(self.qubits, node, nodes, self.wire_map)
+        return not _any_crossover(self.qubits, node, nodes)
 
     def slide_from_left(self, node, index):
         """Insert node into first layer where there is no conflict going l > r"""

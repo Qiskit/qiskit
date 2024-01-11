@@ -20,11 +20,11 @@ from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.deprecation import deprecate_func
 
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes import UnrollCustomDefinitions
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import Collect1qRuns
@@ -42,6 +42,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import FilterOpNodes
 from qiskit.transpiler.passes import ValidatePulseGates
 from qiskit.transpiler.passes import PadDelay
 from qiskit.transpiler.passes import InstructionDurationCheck
@@ -60,9 +61,7 @@ _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not
 # Any method neither known good nor known bad (i.e. not a Terra-internal pass) is passed through
 # without error, since it is being supplied by a plugin and we don't have any knowledge of these.
 _CONTROL_FLOW_STATES = {
-    "layout_method": _ControlFlowState(
-        working={"trivial", "dense", "sabre"}, not_working={"noise_adaptive"}
-    ),
+    "layout_method": _ControlFlowState(working={"trivial", "dense", "sabre"}, not_working=set()),
     "routing_method": _ControlFlowState(
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
@@ -149,9 +148,11 @@ def generate_control_flow_options_check(
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
-        out.append(Error(message), condition=_has_control_flow)
+        out.append(ConditionalController(Error(message), condition=_has_control_flow))
     backend_control = _InvalidControlFlowForBackend(basis_gates, target)
-    out.append(Error(backend_control.message), condition=backend_control.condition)
+    out.append(
+        ConditionalController(Error(backend_control.message), condition=backend_control.condition)
+    )
     return out
 
 
@@ -160,7 +161,7 @@ def generate_error_on_control_flow(message):
     circuit."""
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(Error(message), condition=_has_control_flow)
+    out.append(ConditionalController(Error(message), condition=_has_control_flow))
     return out
 
 
@@ -173,8 +174,8 @@ def if_has_control_flow_else(if_present, if_absent):
         if_absent = if_absent.to_flow_controller()
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    out.append(if_present, condition=_has_control_flow)
-    out.append(if_absent, condition=_without_control_flow)
+    out.append(ConditionalController(if_present, condition=_has_control_flow))
+    out.append(ConditionalController(if_absent, condition=_without_control_flow))
     return out
 
 
@@ -219,7 +220,13 @@ def generate_unroll_3q(
     )
     unroll_3q.append(
         HighLevelSynthesis(
-            hls_config=hls_config, coupling_map=None, target=target, use_qubit_indices=False
+            hls_config=hls_config,
+            coupling_map=None,
+            target=target,
+            use_qubit_indices=False,
+            equivalence_library=sel,
+            basis_gates=basis_gates,
+            min_qubits=3,
         )
     )
     # If there are no target instructions revert to using unroll3qormore so
@@ -227,9 +234,6 @@ def generate_unroll_3q(
     if basis_gates is None and target is None:
         unroll_3q.append(Unroll3qOrMore(target, basis_gates))
     else:
-        unroll_3q.append(
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target, min_qubits=3)
-        )
         unroll_3q.append(BasisTranslator(sel, basis_gates, target=target, min_qubits=3))
     return unroll_3q
 
@@ -326,25 +330,45 @@ def generate_routing_passmanager(
         return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
-        routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
+        routing.append(
+            ConditionalController(
+                [
+                    BarrierBeforeFinalMeasurements(
+                        label="qiskit.transpiler.internal.routing.protection.barrier"
+                    ),
+                    routing_pass,
+                ],
+                condition=_swap_condition,
+            )
+        )
     else:
-        routing.append([routing_pass], condition=_swap_condition)
+        routing.append(ConditionalController(routing_pass, condition=_swap_condition))
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
     if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
         routing.append(
-            VF2PostLayout(
-                target,
-                coupling_map,
-                backend_properties,
-                seed_transpiler,
-                call_limit=vf2_call_limit,
-                max_trials=vf2_max_trials,
-                strict_direction=False,
-            ),
-            condition=_run_post_layout_condition,
+            ConditionalController(
+                VF2PostLayout(
+                    target,
+                    coupling_map,
+                    backend_properties,
+                    seed_transpiler,
+                    call_limit=vf2_call_limit,
+                    max_trials=vf2_max_trials,
+                    strict_direction=False,
+                ),
+                condition=_run_post_layout_condition,
+            )
         )
-        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+        routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
+
+    def filter_fn(node):
+        return (
+            getattr(node.op, "label", None)
+            != "qiskit.transpiler.internal.routing.protection.barrier"
+        )
+
+    routing.append([FilterOpNodes(filter_fn)])
 
     return routing
 
@@ -371,7 +395,12 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        pre_opt.append([GateDirection(coupling_map, target=target)], condition=_direction_condition)
+        pre_opt.append(
+            ConditionalController(
+                [GateDirection(coupling_map, target=target)],
+                condition=_direction_condition,
+            )
+        )
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
@@ -439,8 +468,9 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                equivalence_library=sel,
+                basis_gates=basis_gates,
             ),
-            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -462,6 +492,8 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
+                min_qubits=3,
             ),
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
@@ -483,6 +515,7 @@ def generate_translation_passmanager(
                 coupling_map=coupling_map,
                 target=target,
                 use_qubit_indices=True,
+                basis_gates=basis_gates,
             ),
         ]
     else:
@@ -533,7 +566,9 @@ def generate_scheduling(
 
         scheduling.append(ContainsInstruction("delay"))
         scheduling.append(
-            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+            ConditionalController(
+                TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+            )
         )
     if (
         timing_constraints.granularity != 1
@@ -553,11 +588,13 @@ def generate_scheduling(
             )
         )
         scheduling.append(
-            ConstrainedReschedule(
-                acquire_alignment=timing_constraints.acquire_alignment,
-                pulse_alignment=timing_constraints.pulse_alignment,
-            ),
-            condition=_require_alignment,
+            ConditionalController(
+                ConstrainedReschedule(
+                    acquire_alignment=timing_constraints.acquire_alignment,
+                    pulse_alignment=timing_constraints.pulse_alignment,
+                ),
+                condition=_require_alignment,
+            )
         )
         scheduling.append(
             ValidatePulseGates(
@@ -575,6 +612,7 @@ def generate_scheduling(
 @deprecate_func(
     additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
     since="0.25.0",
+    package_name="qiskit-terra",
 )
 def get_vf2_call_limit(
     optimization_level: int,
