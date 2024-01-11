@@ -37,7 +37,7 @@ class TestStagedPassManager(QiskitTestCase):
                 scheduling=PassManager([Depth()]),
             )
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Optimize1qGates", "Unroller", "Depth"],
         )
 
@@ -45,14 +45,14 @@ class TestStagedPassManager(QiskitTestCase):
         spm = StagedPassManager(stages=["single_stage"])
         spm.single_stage = PassManager([Optimize1qGates(), Depth()])
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Optimize1qGates", "Depth"],
         )
         with self.assertWarns(DeprecationWarning):
             spm.single_stage.append(Unroller(["u"]))
         spm.single_stage.append(Depth())
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Optimize1qGates", "Depth", "Unroller", "Depth"],
         )
 
@@ -62,8 +62,9 @@ class TestStagedPassManager(QiskitTestCase):
 
     def test_pre_phase_is_valid_stage(self):
         spm = StagedPassManager(stages=["init"], pre_init=PassManager([Depth()]))
+
         self.assertEqual(
-            [x.__class__.__name__ for passes in spm.passes() for x in passes["passes"]],
+            [x.__class__.__name__ for x in spm.to_flow_controller().tasks],
             ["Depth"],
         )
 
@@ -110,16 +111,16 @@ class TestStagedPassManager(QiskitTestCase):
         spm = StagedPassManager(
             stages, pre_alpha=pre_alpha, alpha=alpha, post_alpha=post_alpha, omega=omega
         )
-        passes = [
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-            *omega.passes(),
-            *pre_alpha.passes(),
-            *alpha.passes(),
-            *post_alpha.passes(),
-        ]
-        self.assertEqual(spm.passes(), passes)
+        passes = (
+            *pre_alpha.to_flow_controller().tasks,
+            *alpha.to_flow_controller().tasks,
+            *post_alpha.to_flow_controller().tasks,
+            *omega.to_flow_controller().tasks,
+            *pre_alpha.to_flow_controller().tasks,
+            *alpha.to_flow_controller().tasks,
+            *post_alpha.to_flow_controller().tasks,
+        )
+        self.assertEqual(spm.to_flow_controller().tasks, passes)
 
     def test_edit_stages(self):
         spm = StagedPassManager()
