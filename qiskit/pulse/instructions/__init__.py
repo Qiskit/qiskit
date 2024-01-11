@@ -41,7 +41,6 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
    :toctree: ../stubs/
 
    Acquire
-   Call
    Reference
    Delay
    Play
