@@ -18,7 +18,6 @@ from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
-from qiskit.utils.deprecation import deprecate_func
 
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
@@ -607,28 +606,6 @@ def generate_scheduling(
         scheduling.append(PadDelay(target=target))
 
     return scheduling
-
-
-@deprecate_func(
-    additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
-    since="0.25.0",
-    package_name="qiskit-terra",
-)
-def get_vf2_call_limit(
-    optimization_level: int,
-    layout_method: Optional[str] = None,
-    initial_layout: Optional[Layout] = None,
-) -> Optional[int]:
-    """Get the vf2 call limit for vf2 based layout passes."""
-    vf2_call_limit = None
-    if layout_method is None and initial_layout is None:
-        if optimization_level == 1:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with rustworkx 0.10.2
-        elif optimization_level == 2:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with rustworkx 0.10.2
-        elif optimization_level == 3:
-            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
-    return vf2_call_limit
 
 
 VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
