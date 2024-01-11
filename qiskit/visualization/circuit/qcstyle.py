@@ -205,6 +205,8 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
         )
         style_name = "default"
 
+    # current_style = DefaultStyle().style
+    # def_font_ratio = current_style["fs"] / current_style["sfs"]
     if style_name in ["iqp", "default"]:
         current_style = DefaultStyle().style
     else:
@@ -272,5 +274,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
     if isinstance(style, dict):
         current_style.update(style)
 
-    def_font_ratio = current_style["fs"] / current_style["sfs"]
+    # this is the default font ratio
+    def_font_ratio = 13 / 8
+
     return current_style, def_font_ratio
