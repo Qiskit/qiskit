@@ -203,12 +203,12 @@ class BitArray(ShapedMixin):
         Their values represent numbers of occurrences of that value.
 
         Args:
-            counts: One or more counts-like mappings.
+            counts: One or more counts-like mappings with the same number of shots.
             num_bits: The desired number of bits per shot. If unset, the biggest value found sets
                 this value.
 
         Returns:
-            A new bit array.
+            A new bit array with shape `()` for single input counts, or `(N,)` for an iterable of N counts.
 
         Raises:
             ValueError: If different mappings have different numbers of shots.
@@ -278,7 +278,7 @@ class BitArray(ShapedMixin):
         return BitArray(array.reshape(-1, num_bytes), num_bits)
 
     def get_counts(self, loc: int | Tuple[int, ...] | None = None) -> Dict[str, int]:
-        """Return a counts dictionary.
+        """Return a counts dictionary with bitstring keys.
 
         Args:
             loc: Which entry of this array to return a dictionary for.
