@@ -1955,7 +1955,9 @@ class QuantumCircuit:
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
-        duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
+        duplicate_bits = {
+            bit for bit in bits if bit in self._qubit_indices or bit in self._clbit_indices
+        }
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
@@ -3351,32 +3353,9 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        qubits: list[QubitSpecifier] = []
-        if qarg is None:  # -> apply delays to all qubits
-            for q in self.qubits:
-                qubits.append(q)
-        else:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, (range, tuple)):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
-        instructions = InstructionSet(
-            resource_requester=self._current_scope().resolve_classical_resource
-        )
-        for q in qubits:
-            inst: tuple[
-                Instruction, Sequence[QubitSpecifier] | None, Sequence[ClbitSpecifier] | None
-            ] = (Delay(duration, unit), [q], [])
-            self.append(*inst)
-            instructions.add(*inst)
-        return instructions
+        if qarg is None:
+            qarg = self.qubits
+        return self.append(Delay(duration, unit=unit), [qarg], [])
 
     def h(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.

@@ -184,7 +184,7 @@ def circuit_drawer(
            :include-source:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-            from qiskit.tools.visualization import circuit_drawer
+            from qiskit.visualization import circuit_drawer
             q = QuantumRegister(1)
             c = ClassicalRegister(1)
             qc = QuantumCircuit(q, c)
