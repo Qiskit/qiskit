@@ -201,9 +201,7 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 10)
 
     def test_no_conflict_backend_passmanager(self):
-        """execute(qc, backend=..., passmanager=...)
-        See: https://github.com/Qiskit/qiskit-terra/issues/5037
-        """
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
         backend = BasicAer.get_backend("qasm_simulator")
         qc = QuantumCircuit(2)
         qc.append(U1Gate(0), [0])
