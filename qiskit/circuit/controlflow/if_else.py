@@ -235,8 +235,8 @@ class IfElsePlaceholder(InstructionPlaceholder):
         if self.__false_block is not None:
             raise CircuitError(f"false block is already set to {self.__false_block}")
         true_block = self.__true_block.copy()
-        true_bits = true_block.qubits | true_block.clbits
-        false_bits = false_block.qubits | false_block.clbits
+        true_bits = true_block.qubits() | true_block.clbits()
+        false_bits = false_block.qubits() | false_block.clbits()
         true_block.add_bits(false_bits - true_bits)
         false_block.add_bits(true_bits - false_bits)
         return type(self)(self.condition, true_block, false_block, label=self.label)
@@ -257,16 +257,16 @@ class IfElsePlaceholder(InstructionPlaceholder):
         if self.__false_block is None:
             qregs, cregs = partition_registers(self.__true_block.registers)
             return InstructionResources(
-                qubits=tuple(self.__true_block.qubits),
-                clbits=tuple(self.__true_block.clbits),
+                qubits=tuple(self.__true_block.qubits()),
+                clbits=tuple(self.__true_block.clbits()),
                 qregs=tuple(qregs),
                 cregs=tuple(cregs),
             )
         true_qregs, true_cregs = partition_registers(self.__true_block.registers)
         false_qregs, false_cregs = partition_registers(self.__false_block.registers)
         return InstructionResources(
-            qubits=tuple(self.__true_block.qubits | self.__false_block.qubits),
-            clbits=tuple(self.__true_block.clbits | self.__false_block.clbits),
+            qubits=tuple(self.__true_block.qubits() | self.__false_block.qubits()),
+            clbits=tuple(self.__true_block.clbits() | self.__false_block.clbits()),
             qregs=tuple(true_qregs) + tuple(false_qregs),
             cregs=tuple(true_cregs) + tuple(false_cregs),
         )
@@ -276,11 +276,11 @@ class IfElsePlaceholder(InstructionPlaceholder):
         return self.__resources
 
     def concrete_instruction(self, qubits, clbits):
-        current_qubits = self.__true_block.qubits
-        current_clbits = self.__true_block.clbits
+        current_qubits = self.__true_block.qubits()
+        current_clbits = self.__true_block.clbits()
         if self.__false_block is not None:
-            current_qubits = current_qubits | self.__false_block.qubits
-            current_clbits = current_clbits | self.__false_block.clbits
+            current_qubits = current_qubits | self.__false_block.qubits()
+            current_clbits = current_clbits | self.__false_block.clbits()
         all_bits = qubits | clbits
         current_bits = current_qubits | current_clbits
         if current_bits - all_bits:
@@ -407,7 +407,7 @@ class IfContext:
         else:
             # If we're not in a loop, we don't need to be worried about passing in any outer-scope
             # resources because there can't be anything that will consume them.
-            true_body = true_block.build(true_block.qubits, true_block.clbits)
+            true_body = true_block.build(true_block.qubits(), true_block.clbits())
             self._appended_instructions = self._circuit.append(
                 IfElseOp(self._condition, true_body=true_body, false_body=None, label=self._label),
                 tuple(true_body.qubits),
@@ -502,7 +502,7 @@ class ElseContext:
             # pass it nothing extra (allows some fast path constructions), and add all necessary
             # bits onto the circuits at the end.
             true_body = self._if_instruction.operation.blocks[0]
-            false_body = false_block.build(false_block.qubits, false_block.clbits)
+            false_body = false_block.build(false_block.qubits(), false_block.clbits())
             true_body, false_body = unify_circuit_resources((true_body, false_body))
             circuit.append(
                 IfElseOp(

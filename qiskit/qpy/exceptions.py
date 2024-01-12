@@ -12,7 +12,7 @@
 
 """Exception for errors raised by the QPY module."""
 
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import QiskitError, QiskitWarning
 
 
 class QpyError(QiskitError):
@@ -28,6 +28,6 @@ class QpyError(QiskitError):
         return repr(self.message)
 
 
-class QPYLoadingDeprecatedFeatureWarning(UserWarning):
+class QPYLoadingDeprecatedFeatureWarning(QiskitWarning):
     """Visible deprecation warning for QPY loading functions without
     a stable point in the call stack."""
