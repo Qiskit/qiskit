@@ -29,6 +29,7 @@ def _main():
         "ipywidgets",
         "scipy.stats",
         "matplotlib",
+        "qiskit_aer",
         "qiskit.providers.aer",
         "qiskit.providers.ibmq",
         "qiskit.ignis",

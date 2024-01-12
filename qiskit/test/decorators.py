@@ -17,11 +17,10 @@ import collections.abc
 import functools
 import os
 import socket
-import sys
 from typing import Union, Callable, Type, Iterable
 import unittest
 
-from qiskit.utils import wrap_method
+from qiskit.utils import wrap_method, optionals
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
@@ -55,14 +54,7 @@ def is_aer_provider_available():
     Returns:
         bool: True if simulator executable is available
     """
-    # TODO: HACK FROM THE DEPTHS OF DESPAIR AS AER DOES NOT WORK ON MAC
-    if sys.platform == "darwin":
-        return False
-    try:
-        import qiskit.providers.aer  # pylint: disable=unused-import
-    except ImportError:
-        return False
-    return True
+    return bool(optionals.HAS_AER)
 
 
 def requires_aer_provider(test_item):

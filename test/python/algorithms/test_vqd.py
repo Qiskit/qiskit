@@ -46,7 +46,7 @@ from qiskit.test import slow_test
 
 
 if has_aer():
-    from qiskit import Aer
+    from qiskit_aer import Aer
 
 
 @ddt
