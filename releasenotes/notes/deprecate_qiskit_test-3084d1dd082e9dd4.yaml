@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The module `qiskit.test` is deprecated. This module is tooling and helpers for testing Qiskit
+    internally and most of its functionality had been moved or is not necessary anymore.
+    In practice, the module was never meant to be used externally. If any of the code in the module
+    is used beyond Qiskit, consider copy that code out.
