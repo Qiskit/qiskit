@@ -114,7 +114,10 @@ class TestParameters(QiskitTestCase):
         # TODO: delete once bind_parameters is removed from the codebase
         #  and related tests are also removed.
         warnings.filterwarnings(
-            "ignore", category=DeprecationWarning, module=r"test\.python\.circuit\.test_parameters"
+            "ignore",
+            category=DeprecationWarning,
+            module=r"test\.python\.circuit\.test_parameters",
+            message=".*bind_parameters.*",
         )
 
     def test_gate(self):
@@ -921,12 +924,8 @@ class TestParameters(QiskitTestCase):
 
         circuits = [qc1, qc2]
 
-        job = execute(
-            circuits,
-            BasicAer.get_backend("unitary_simulator"),
-            shots=512,
-            parameter_binds=[{theta: 1}],
-        )
+        backend = BasicAer.get_backend("unitary_simulator")
+        job = backend.run(transpile(circuits, backend), shots=512, parameter_binds=[{theta: 1}])
 
         self.assertTrue(len(job.result().results), 2)
 
@@ -1122,7 +1121,8 @@ class TestParameters(QiskitTestCase):
                 bound_qc = getattr(unbound_qc, assign_fun)({theta: numpy.pi / 2})
 
                 shots = 1024
-                job = execute(bound_qc, backend=BasicAer.get_backend("qasm_simulator"), shots=shots)
+                backend = BasicAer.get_backend("qasm_simulator")
+                job = backend.run(transpile(bound_qc, backend), shots=shots)
                 self.assertDictAlmostEqual(job.result().get_counts(), {"1": shots}, 0.05 * shots)
 
     def test_num_parameters(self):
@@ -1158,7 +1158,7 @@ class TestParameters(QiskitTestCase):
 
         plist = [{theta: i} for i in range(reps)]
         simulator = BasicAer.get_backend("qasm_simulator")
-        result = execute(qc, backend=simulator, parameter_binds=plist).result()
+        result = simulator.run(transpile(qc, simulator), parameter_binds=plist).result()
         result_names = {res.name for res in result.results}
         self.assertEqual(reps, len(result_names))
 
