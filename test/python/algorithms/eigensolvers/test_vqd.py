@@ -103,11 +103,19 @@ class TestVQD(QiskitAlgorithmsTestCase):
             self.assertIsNotNone(result.optimizer_times)
 
         with self.subTest(msg="assert return ansatz is set"):
-            job = self.estimator.run(
-                result.optimal_circuits,
-                [op] * len(result.optimal_points),
-                result.optimal_points,
-            )
+            if isinstance(op, Operator):
+                with self.assertWarns(DeprecationWarning):
+                    job = self.estimator.run(
+                        result.optimal_circuits,
+                        [op] * len(result.optimal_points),
+                        result.optimal_points,
+                    )
+            else:
+                job = self.estimator.run(
+                    result.optimal_circuits,
+                    [op] * len(result.optimal_points),
+                    result.optimal_points,
+                )
             np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
 
         with self.subTest(msg="assert returned values are eigenvalues"):
