@@ -82,7 +82,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             betas=self.betas,
         )
 
-        result = vqd.compute_eigenvalues(operator=op)
+        if isinstance(op, Operator):
+            with self.assertWarns(DeprecationWarning):
+                result = vqd.compute_eigenvalues(operator=op)
+        else:
+            result = vqd.compute_eigenvalues(operator=op)
 
         with self.subTest(msg="test eigenvalue"):
             np.testing.assert_array_almost_equal(
@@ -188,7 +192,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
             betas=self.betas,
         )
 
-        vqd.compute_eigenvalues(operator=op)
+        if isinstance(op, Operator):
+            with self.assertWarns(DeprecationWarning):
+                vqd.compute_eigenvalues(operator=op)
+        else:
+            vqd.compute_eigenvalues(operator=op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
