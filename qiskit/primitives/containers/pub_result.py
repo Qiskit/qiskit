@@ -34,6 +34,10 @@ class PubResult:
         self._data = data
         self._metadata = metadata or {}
 
+    def __repr__(self):
+        metadata = f", metadata={self.metadata}" if self.metadata else ""
+        return f"{type(self).__name__}({self._data}{metadata})"
+
     @property
     def data(self) -> DataBin:
         """Result data for the pub."""
