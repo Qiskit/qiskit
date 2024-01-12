@@ -26,7 +26,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
-from qiskit.tools import parallel_map
+from qiskit.utils.parallel import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
