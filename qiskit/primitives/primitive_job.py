@@ -15,13 +15,13 @@ Job implementation for the reference implementations of Primitives.
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Union
 
 from qiskit.providers import JobError, JobStatus, JobV1
 
-from .base.base_result import BasePrimitiveResult
+from .base import EstimatorResult, SamplerResult
 
-T = TypeVar("T", bound=BasePrimitiveResult)
+T = TypeVar("T", bound=Union[SamplerResult, EstimatorResult])
 
 
 class PrimitiveJob(JobV1, Generic[T]):

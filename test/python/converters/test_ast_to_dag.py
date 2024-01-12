@@ -37,7 +37,8 @@ class TestAstToDag(QiskitTestCase):
         """Test Unroller.execute()"""
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         ast = qasm.Qasm(os.path.join(qasm_dir, "example.qasm")).parse()
-        dag_circuit = ast_to_dag(ast)
+        with self.assertWarns(DeprecationWarning):
+            dag_circuit = ast_to_dag(ast)
         expected_result = """\
 OPENQASM 2.0;
 include "qelib1.inc";

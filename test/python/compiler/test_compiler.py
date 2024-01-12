@@ -99,7 +99,8 @@ class TestCompiler(QiskitTestCase):
         )
         job = backend.run(qc_b, shots=shots, seed_simulator=88)
         result = job.result()
-        qasm_to_check = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm_to_check = qc.qasm()
         self.assertEqual(len(qasm_to_check), 173)
 
         counts = result.get_counts(qc)

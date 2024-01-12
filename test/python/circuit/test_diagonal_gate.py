@@ -46,7 +46,7 @@ class TestDiagonalGate(QiskitTestCase):
                 num_qubits = int(np.log2(len(diag)))
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
-                with self.assertWarns(PendingDeprecationWarning):
+                with self.assertWarns(DeprecationWarning):
                     qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
@@ -62,7 +62,7 @@ class TestDiagonalGate(QiskitTestCase):
         from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
         with self.assertRaises(QiskitError):
-            with self.assertWarns(PendingDeprecationWarning):
+            with self.assertWarns(DeprecationWarning):
                 DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
 
     def test_npcomplex_params_conversion(self):
@@ -70,7 +70,7 @@ class TestDiagonalGate(QiskitTestCase):
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             qc.diagonal(diag.tolist(), [0])
 
         params = qc.data[0].operation.params
