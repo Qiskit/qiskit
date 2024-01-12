@@ -51,19 +51,25 @@ class BitArray(ShapedMixin):
             num_bits: How many bit are in each outcome.
 
         Raises:
+            TypeError: If the input is not a NumPy array with type ``numpy.uint8``.
             ValueError: If the input array has fewer than two axes, or the size of the last axis
                 is not the smallest number of bytes that can contain ``num_bits``.
         """
         super().__init__()
-        self._array = np.array(array, copy=False, dtype=np.uint8)
+
+        if not isinstance(array, np.ndarray):
+            raise TypeError(f"Input must be a numpy.ndarray not {type(array)}")
+        if array.dtype != np.uint8:
+            raise TypeError(f"Input array must have dtype uint8, not {array.dtype}.")
+        if array.ndim < 2:
+            raise ValueError("The input array must have at least two axes.")
+        if array.shape[-1] != (expected := _min_num_bytes(num_bits)):
+            raise ValueError(f"The input array is expected to have {expected} bytes per shot.")
+
+        self._array = array
         self._num_bits = num_bits
         # second last dimension is shots, last dimension is packed bits
         self._shape = self._array.shape[:-2]
-
-        if self._array.ndim < 2:
-            raise ValueError("The input array must have at least two axes.")
-        if self._array.shape[-1] != (expected := _min_num_bytes(num_bits)):
-            raise ValueError(f"The input array is expected to have {expected} bytes per shot.")
 
     def _prepare_broadcastable(self, other: "BitArray") -> Tuple[NDArray[np.uint8], ...]:
         """Validation and broadcasting of two bit arrays before element-wise binary operation."""
@@ -208,7 +214,8 @@ class BitArray(ShapedMixin):
                 this value.
 
         Returns:
-            A new bit array with shape `()` for single input counts, or `(N,)` for an iterable of N counts.
+            A new bit array with shape ``()`` for single input counts, or ``(N,)`` for an iterable
+            of :math:`N` counts.
 
         Raises:
             ValueError: If different mappings have different numbers of shots.
