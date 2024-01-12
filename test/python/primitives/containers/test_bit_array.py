@@ -22,7 +22,8 @@ from qiskit.result import Counts
 from qiskit.test import QiskitTestCase
 
 
-def u8(arr):
+def u_8(arr):
+    """Convenience function to instantiate a ``numpy.uint8`` array with few characters."""
     return np.array(arr, dtype=np.uint8)
 
 
@@ -65,13 +66,13 @@ class BitArrayTestCase(QiskitTestCase):
         """Test conversion to counts."""
         # note that [234, 100] requires 16 bits, not 15; we are testing that get_counts ignores the
         # junk columns
-        bit_array = BitArray(u8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
+        bit_array = BitArray(u_8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
         bs1 = "0000011" + "00000101"  # 3, 5
         bs2 = "1101010" + "01100100"  # 234, 100
         self.assertEqual(bit_array.get_counts(), {bs1: 2, bs2: 1})
 
         bit_array = BitArray(
-            u8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
+            u_8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
             num_bits=15,
         )
         bs1 = "0000011" + "00000101"  # 3, 5
@@ -88,13 +89,13 @@ class BitArrayTestCase(QiskitTestCase):
         """Test conversion to int counts."""
         # note that [234, 100] requires 16 bits, not 15; we are testing that get_counts ignores the
         # junk columns
-        bit_array = BitArray(u8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
+        bit_array = BitArray(u_8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
         val1 = (3 << 8) + 5
         val2 = ((234 & 127) << 8) + 100
         self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1})
 
         bit_array = BitArray(
-            u8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
+            u_8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
             num_bits=15,
         )
         val1 = (3 << 8) + 5
@@ -118,9 +119,9 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertNotEqual(ba1, ba3)
         self.assertNotEqual(ba1, ba4)
 
-        ba5 = BitArray(u8([[4, 200], [255, 10]]), num_bits=13)
-        ba6 = BitArray(u8([[4, 200], [255, 10]]), num_bits=12)
-        ba7 = BitArray(u8([[4, 200], [31, 10]]), num_bits=13)
+        ba5 = BitArray(u_8([[4, 200], [255, 10]]), num_bits=13)
+        ba6 = BitArray(u_8([[4, 200], [255, 10]]), num_bits=12)
+        ba7 = BitArray(u_8([[4, 200], [31, 10]]), num_bits=13)
         self.assertNotEqual(ba5, ba6)
         self.assertEqual(ba5, ba7)  # test masking
 
@@ -165,22 +166,22 @@ class BitArrayTestCase(QiskitTestCase):
         bit_array = BitArray.from_bool_array(
             [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]]
         )
-        self.assertEqual(bit_array, BitArray(u8([[[10], [3]], [[8], [1]]]), 4))
+        self.assertEqual(bit_array, BitArray(u_8([[[10], [3]], [[8], [1]]]), 4))
 
         bit_array = BitArray.from_bool_array(
             [[[1, 0, 1, 0], [0, 0, 1, 1]], [[1, 0, 0, 0], [0, 0, 0, 1]]], order="little"
         )
-        self.assertEqual(bit_array, BitArray(u8([[[5], [12]], [[1], [8]]]), 4))
+        self.assertEqual(bit_array, BitArray(u_8([[[5], [12]], [[1], [8]]]), 4))
 
         bit_array = BitArray.from_bool_array(
             [[0, 0, 1, 1, 1] + [0, 0, 0, 0, 0, 0, 1, 1] + [0, 0, 0, 0, 0, 0, 0, 1]]
         )
-        self.assertEqual(bit_array, BitArray(u8([[7, 3, 1]]), 21))
+        self.assertEqual(bit_array, BitArray(u_8([[7, 3, 1]]), 21))
 
         bit_array = BitArray.from_bool_array(
             [[1, 0, 0, 0, 0, 0, 0, 0] + [1, 1, 0, 0, 0, 0, 0, 0] + [1, 1, 1, 0, 0]], order="little"
         )
-        self.assertEqual(bit_array, BitArray(u8([[7, 3, 1]]), 21))
+        self.assertEqual(bit_array, BitArray(u_8([[7, 3, 1]]), 21))
 
     @ddt.data("counts", "int", "hex", "bit")
     def test_from_counts(self, counts_type):
@@ -199,11 +200,11 @@ class BitArrayTestCase(QiskitTestCase):
         counts2 = convert(Counts({1: 3, 2: 6}))
 
         bit_array = BitArray.from_counts(counts1)
-        expected = BitArray(u8([[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4), 17)
+        expected = BitArray(u_8([[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4), 17)
         self.assertEqual(bit_array, expected)
 
         bit_array = BitArray.from_counts(iter([counts1]))
-        expected = BitArray(u8([[[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4]), 17)
+        expected = BitArray(u_8([[[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4]), 17)
         self.assertEqual(bit_array, expected)
 
         bit_array = BitArray.from_counts(iter([counts1, counts2]))
@@ -211,31 +212,31 @@ class BitArrayTestCase(QiskitTestCase):
             [[0, 0, 42]] * 2 + [[0, 0, 1]] * 3 + [[1, 2, 3]] * 4,
             [[0, 0, 1]] * 3 + [[0, 0, 2]] * 6,
         ]
-        self.assertEqual(bit_array, BitArray(u8(expected), 17))
+        self.assertEqual(bit_array, BitArray(u_8(expected), 17))
 
     def test_from_samples_bitstring(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples(["110", "1", "1111111111"])
-        self.assertEqual(bit_array, BitArray(u8([[0, 6], [0, 1], [3, 255]]), 10))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 6], [0, 1], [3, 255]]), 10))
 
         bit_array = BitArray.from_samples(["110", "1", "1111111111"], 20)
-        self.assertEqual(bit_array, BitArray(u8([[0, 0, 6], [0, 0, 1], [0, 3, 255]]), 20))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 0, 6], [0, 0, 1], [0, 3, 255]]), 20))
 
     def test_from_samples_hex(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples(["0x01", "0x0a12", "0x0105"])
-        self.assertEqual(bit_array, BitArray(u8([[0, 1], [10, 18], [1, 5]]), 12))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 1], [10, 18], [1, 5]]), 12))
 
         bit_array = BitArray.from_samples(["0x01", "0x0a12", "0x0105"], 20)
-        self.assertEqual(bit_array, BitArray(u8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
 
     def test_from_samples_int(self):
         """Test the from_samples static constructor."""
         bit_array = BitArray.from_samples([1, 2578, 261])
-        self.assertEqual(bit_array, BitArray(u8([[0, 1], [10, 18], [1, 5]]), 12))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 1], [10, 18], [1, 5]]), 12))
 
         bit_array = BitArray.from_samples([1, 2578, 261], 20)
-        self.assertEqual(bit_array, BitArray(u8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
+        self.assertEqual(bit_array, BitArray(u_8([[0, 0, 1], [0, 10, 18], [0, 1, 5]]), 20))
 
     def test_reshape(self):
         """Test the reshape method."""
