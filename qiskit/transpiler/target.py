@@ -242,12 +242,6 @@ class Target(Mapping):
         "concurrent_measurements",
     )
 
-    @deprecate_arg(
-        "aquire_alignment",
-        new_alias="acquire_alignment",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
     def __init__(
         self,
         description=None,
@@ -1142,28 +1136,6 @@ class Target(Mapping):
         else:
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
-
-    @property
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self):
-        """Alias of deprecated name. This will be removed."""
-        return self.acquire_alignment
-
-    @aquire_alignment.setter
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self, new_value: int):
-        """Alias of deprecated name. This will be removed."""
-        self.acquire_alignment = new_value
 
     def __iter__(self):
         return iter(self._gate_map)
