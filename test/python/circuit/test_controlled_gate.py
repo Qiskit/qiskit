@@ -488,8 +488,7 @@ class TestControlledGate(QiskitTestCase):
                 if bit == "0":
                     qc.x(q_controls[idx])
 
-            backend = BasicAer.get_backend("unitary_simulator")
-            simulated = backend.run(transpile(qc, backend)).result().get_unitary(qc)
+            simulated = Operator(qc)
 
             base = PhaseGate(lam).to_matrix()
             expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
