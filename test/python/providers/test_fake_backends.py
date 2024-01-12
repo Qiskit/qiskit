@@ -102,10 +102,9 @@ class TestFakeBackends(QiskitTestCase):
         if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
         job = backend.run(
-            transpile(self.circuit, backend),
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()
@@ -125,10 +124,9 @@ class TestFakeBackends(QiskitTestCase):
                 % backend.configuration().backend_name
             )
         job = backend.run(
-            transpile(self.circuit, backend),
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()
