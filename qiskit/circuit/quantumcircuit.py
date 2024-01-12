@@ -1727,7 +1727,7 @@ class QuantumCircuit:
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
+                See: :class:`~qiskit.visualization.circuit.qcstyle.DefaultStyle` for more
                 information on the contents.
             interactive (bool): when set to true, show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used

@@ -14,4 +14,12 @@
 
 # Temporary import from 0.22.0 to be deprecated in future
 # pylint: disable=unused-wildcard-import,wildcard-import
+import warnings
 from .circuit.qcstyle import *
+
+warnings.warn(
+    "The qiskit.visualization.qcstyle module is deprecated as of Qiskit 0.46.0 and will be removed "
+    "for Qiskit 1.0. Use the qiskit.visualization.circuit.qcstyle as direct replacement.",
+    stacklevel=2,
+    category=DeprecationWarning,
+)
