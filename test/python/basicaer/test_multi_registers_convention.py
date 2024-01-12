@@ -39,17 +39,17 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = BasicAer.get_backend("qasm_simulator")
 
-        result = backend_sim.run(qc, seed_transpiler=34342).result()
+        result = backend_sim.run(qc).result()
         counts = result.get_counts(qc)
 
         target = {"01 10": 1024}
 
         backend_sim = BasicAer.get_backend("statevector_simulator")
-        result = backend_sim.run(circ, seed_transpiler=3438).result()
+        result = backend_sim.run(circ).result()
         state = result.get_statevector(circ)
 
         backend_sim = BasicAer.get_backend("unitary_simulator")
-        result = backend_sim.run(circ, seed_transpiler=3438).result()
+        result = backend_sim.run(circ).result()
         unitary = Operator(result.get_unitary(circ))
 
         self.assertEqual(counts, target)
