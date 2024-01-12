@@ -15,19 +15,21 @@ Job implementation for the reference implementations of Primitives.
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Generic, TypeVar, Union
+from typing import TypeVar, Union
 
-from qiskit.providers import JobError, JobStatus, JobV1
+from qiskit.providers import JobError, JobStatus
+from qiskit.utils.deprecation import deprecate_func
 
+from .base.base_primitive_job import BasePrimitiveJob
 from .base.base_result import BasePrimitiveResult
 from .containers import PrimitiveResult
 
-T = TypeVar("T", bound=Union[BasePrimitiveResult, PrimitiveResult])
+Result = TypeVar("Result", bound=Union[BasePrimitiveResult, PrimitiveResult])
 
 
-class PrimitiveJob(JobV1, Generic[T]):
+class PrimitiveJob(BasePrimitiveJob[Result, JobStatus]):
     """
-    PrimitiveJob class for the reference implemetations of Primitives.
+    PrimitiveJob class for the reference implementations of Primitives.
     """
 
     def __init__(self, function, *args, **kwargs):
@@ -35,14 +37,24 @@ class PrimitiveJob(JobV1, Generic[T]):
         Args:
             function: a callable function to execute the job.
         """
-        job_id = str(uuid.uuid4())
-        super().__init__(None, job_id)
+        self._job_id = str(uuid.uuid4())
         self._future = None
         self._function = function
         self._args = args
         self._kwargs = kwargs
 
+    @deprecate_func(since="0.46.0")
     def submit(self):
+        """Submit a job.
+
+        .. deprecated:: 0.46.0
+            ``submit`` method is deprecated as of Qiskit 0.46 and will be removed
+            no earlier than 3 months after the release date.
+
+        """
+        self._submit()
+
+    def _submit(self):
         if self._future is not None:
             raise JobError("Primitive job has already been submitted.")
 
@@ -50,16 +62,18 @@ class PrimitiveJob(JobV1, Generic[T]):
         self._future = executor.submit(self._function, *self._args, **self._kwargs)
         executor.shutdown(wait=False)
 
-    def result(self) -> T:
+    def result(self) -> Result:
         """Return the results of the job."""
         self._check_submitted()
         return self._future.result()
 
     def cancel(self):
+        """Cancel the job."""
         self._check_submitted()
         return self._future.cancel()
 
-    def status(self):
+    def status(self) -> JobStatus:
+        """Return the status of the job."""
         self._check_submitted()
         if self._future.running():
             return JobStatus.RUNNING
