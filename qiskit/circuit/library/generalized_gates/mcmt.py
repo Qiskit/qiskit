@@ -164,7 +164,7 @@ class MCMTVChain(MCMT):
     .. plot::
 
        from qiskit.circuit.library import MCMTVChain, ZGate
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = MCMTVChain(ZGate(), 2, 2)
        _generate_circuit_library_visualization(circuit.decompose())
 

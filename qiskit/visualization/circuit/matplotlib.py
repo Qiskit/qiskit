@@ -622,13 +622,12 @@ class MatplotlibDrawer:
 
         longest_wire_label_width = 0
         glob_data["n_lines"] = 0
-        initial_qbit = " |0>" if self._initial_state else ""
+        initial_qbit = r" $|0\rangle$" if self._initial_state else ""
         initial_cbit = " 0" if self._initial_state else ""
 
         idx = 0
         pos = y_off = -len(self._qubits) + 1
         for ii, wire in enumerate(wire_map):
-
             # if it's a creg, register is the key and just load the index
             if isinstance(wire, ClassicalRegister):
                 # If wire came from ControlFlowOp and not in clbits, don't draw it
@@ -1185,7 +1184,6 @@ class MatplotlibDrawer:
         cond_pos = []
 
         if isinstance(condition, expr.Expr):
-
             # If fixing this, please update the docstrings of `QuantumCircuit.draw` and
             # `visualization.circuit_drawer` to remove warnings.
 
