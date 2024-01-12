@@ -46,7 +46,7 @@ class QuantumCircuitData(MutableSequence):
         value = self._resolve_legacy_value(operation, qargs, cargs)
         self._circuit._data[key] = value
         if isinstance(value.operation, Instruction):
-            self._circuit._update_parameter_table(value)
+            self._circuit._update_parameter_table(value.operation)
 
     def _resolve_legacy_value(self, operation, qargs, cargs) -> CircuitInstruction:
         """Resolve the old-style 3-tuple into the new :class:`CircuitInstruction` type."""
