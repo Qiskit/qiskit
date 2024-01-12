@@ -291,12 +291,6 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     def assemble(self):
         raise CircuitError("Cannot assemble a placeholder instruction.")
 
-    def qasm(self):
-        """
-        Raise an error when trying to convert a placeholder instruction to OpenQASM 2
-        """
-        raise CircuitError("Cannot convert a placeholder instruction to OpenQASM 2")
-
     def repeat(self, n):
         raise CircuitError("Cannot repeat a placeholder instruction.")
 
