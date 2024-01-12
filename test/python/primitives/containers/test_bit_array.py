@@ -77,12 +77,12 @@ class BitArrayTestCase(QiskitTestCase):
         bs1 = "0000011" + "00000101"  # 3, 5
         bs2 = "1101010" + "01100100"  # 234, 100
         self.assertEqual(bit_array.get_counts(0), {bs1: 2, bs2: 1})
-        bs1 = "0000000" + "00000001"  # 0, 1
-        bs2 = "0000001" + "00000000"  # 1, 0
-        self.assertEqual(bit_array.get_counts(1), {bs1: 1, bs2: 2})
+        bs3 = "0000000" + "00000001"  # 0, 1
+        bs4 = "0000001" + "00000000"  # 1, 0
+        self.assertEqual(bit_array.get_counts(1), {bs3: 1, bs4: 2})
 
-        with self.assertRaisesRegex(ValueError, "2 different count dictionaries"):
-            bit_array.get_counts()
+        # test that providing no location takes the union over all shots
+        self.assertEqual(bit_array.get_counts(), {bs1: 2, bs2: 1, bs3: 1, bs4: 2})
 
     def test_get_int_counts(self):
         """Test conversion to int counts."""
@@ -100,12 +100,12 @@ class BitArrayTestCase(QiskitTestCase):
         val1 = (3 << 8) + 5
         val2 = ((234 & 127) << 8) + 100
         self.assertEqual(bit_array.get_int_counts(0), {val1: 2, val2: 1})
-        val1 = 1
-        val2 = 1 << 8
-        self.assertEqual(bit_array.get_int_counts(1), {val1: 1, val2: 2})
+        val3 = 1
+        val4 = 1 << 8
+        self.assertEqual(bit_array.get_int_counts(1), {val3: 1, val4: 2})
 
-        with self.assertRaisesRegex(ValueError, "2 different count dictionaries"):
-            bit_array.get_int_counts()
+        # test that providing no location takes the union over all shots
+        self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1, val3: 1, val4: 2})
 
     def test_equality(self):
         """Test the equality operator"""

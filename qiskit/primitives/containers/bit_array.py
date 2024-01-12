@@ -140,20 +140,12 @@ class BitArray(ShapedMixin):
         return int.from_bytes(data, "big") & mask
 
     def _get_counts(
-        self, *, loc: int | Tuple[int, ...] | None, converter: Callable
-    ) -> Dict[str | int, int]:
-        if loc is None and self.size == 1:
-            loc = (0,) * self.ndim
-
-        elif loc is None:
-            raise ValueError(
-                f"Your BitArray has shape {self.shape}, meaning that it actually represents "
-                f"{self.size} different count dictionaries. You need to use the `loc` argument of "
-                "this function to pick one of them."
-            )
+        self, *, loc: int | Tuple[int, ...] | None, converter: Callable[[bytes], str | int]
+    ) -> Dict[str, int] | Dict[int, int]:
+        arr = self._array.reshape(-1, self._array.shape[-1]) if loc is None else self._array[loc]
 
         counts = defaultdict(int)
-        for shot_row in self._array[loc]:
+        for shot_row in arr:
             counts[converter(shot_row.tobytes())] += 1
         return dict(counts)
 
@@ -288,13 +280,11 @@ class BitArray(ShapedMixin):
         """Return a counts dictionary with bitstring keys.
 
         Args:
-            loc: Which entry of this array to return a dictionary for.
+            loc: Which entry of this array to return a dictionary for. If ``None``, counts from
+                all positions in this array are unioned together.
 
         Returns:
             A dictionary mapping bitstrings to the number of occurrences of that bitstring.
-
-        Raises:
-            ValueError: If this array has a non-trivial size and no ``loc`` is provided.
         """
         mask = 2**self.num_bits - 1
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
@@ -304,13 +294,12 @@ class BitArray(ShapedMixin):
         r"""Return a counts dictionary, where bitstrings are stored as ``int``\s.
 
         Args:
-            loc: Which entry of this array to return a dictionary for.
+            loc: Which entry of this array to return a dictionary for. If ``None``, counts from
+                all positions in this array are unioned together.
 
         Returns:
             A dictionary mapping ``ints`` to the number of occurrences of that ``int``.
 
-        Raises:
-            ValueError: If this array has a non-trivial size and no ``loc`` is provided.
         """
         converter = partial(self._bytes_to_int, mask=2**self.num_bits - 1)
         return self._get_counts(loc=loc, converter=converter)
