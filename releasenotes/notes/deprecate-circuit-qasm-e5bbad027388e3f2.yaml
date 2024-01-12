@@ -1,4 +1,5 @@
 ---
 upgrade:
   - |
-    Removed deprecated `Instruction.qasm` function.
+    Removed deprecated `Instruction.qasm` function. Use function :func:`qiskit.qasm2.dump()` or
+    function :func:`qiskit.qasm3.dump` instead.
