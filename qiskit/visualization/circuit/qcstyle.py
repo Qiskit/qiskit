@@ -176,6 +176,9 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
               dictionary can be used to override certain specs.
               E.g. ``{"name": "iqp", "ec": "#FF0000"}`` will use the ``"iqp"``
               color scheme but set the edgecolor to red.
+
+    Returns:
+        A tuple containing the style as dictionary and the default font ratio.
     """
 
     # if the style is not given, try to load the configured default (if set),
@@ -205,18 +208,13 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
         )
         style_name = "default"
 
-    # current_style = DefaultStyle().style
-    # def_font_ratio = current_style["fs"] / current_style["sfs"]
     if style_name in ["iqp", "default"]:
         current_style = DefaultStyle().style
     else:
-        # Search for file in 'styles' dir, then config_path, and finally 'cwd'
+        # Search for file in 'styles' dir, then config_path, and finally the current directory
         style_name = style_name + ".json"
         style_paths = []
 
-        # spath = os.path.dirname(os.path.abspath(__file__))
-        # style_path.append(os.path.join(spath, "styles", style_name))
-        # check the default path
         default_path = Path(__file__).parent / "styles" / style_name
         style_paths.append(default_path)
 
@@ -231,7 +229,6 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
         # check current directory
         cwd_path = Path("") / style_name
         style_paths.append(cwd_path)
-        # style_path.append(os.path.normpath(os.path.join("", style_name)))
 
         for path in style_paths:
             # expand ~ to the user directory and check if the file exists
@@ -275,6 +272,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
         current_style.update(style)
 
     # this is the default font ratio
+    # if the font- or subfont-sizes are changed, the new size is based on this ratio
     def_font_ratio = 13 / 8
 
     return current_style, def_font_ratio
