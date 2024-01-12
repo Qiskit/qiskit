@@ -26,7 +26,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
-from qiskit.tools.parallel import parallel_map
+from qiskit.tools import parallel_map
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -407,6 +407,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             optimization_method,
             _skip_target,
         ],
+        num_processes=num_processes,
     )
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
