@@ -44,7 +44,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
