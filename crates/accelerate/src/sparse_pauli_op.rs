@@ -107,8 +107,7 @@ pub fn decompose_dense(
             operator.shape()
         )));
     }
-    let (stack, mut out_list, mut scratch) =
-        decompose_first_level(operator.as_array(), num_qubits);
+    let (stack, mut out_list, mut scratch) = decompose_first_level(operator.as_array(), num_qubits);
     decompose_middle_levels(stack, &mut out_list, &mut scratch, num_qubits);
     let out = decompose_last_level(&mut out_list, &scratch, num_qubits, tolerance)?;
     Ok(ZXPaulis {
