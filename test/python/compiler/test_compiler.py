@@ -18,7 +18,6 @@ import unittest
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit import execute
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase
@@ -174,13 +173,16 @@ class TestCompiler(QiskitTestCase):
             qc.measure(qr0[j], ans[j])
             qc.measure(qr1[j], ans[j + n])
         # First version: no mapping
-        result = execute(
-            qc, backend=backend, coupling_map=None, shots=1024, seed_simulator=14
+        result = backend.run(
+            transpile(qc, backend), coupling_map=None, shots=1024, seed_simulator=14
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
         # Second version: map to coupling graph
-        result = execute(
-            qc, backend=backend, coupling_map=coupling_map, shots=1024, seed_simulator=14
+        result = backend.run(
+            transpile(qc, backend, coupling_map=coupling_map),
+            coupling_map=coupling_map,
+            shots=1024,
+            seed_simulator=14,
         ).result()
         self.assertEqual(result.get_counts(qc), {"010000": 1024})
 
@@ -199,14 +201,12 @@ class TestCompiler(QiskitTestCase):
         self.assertEqual(len(qobj.experiments), 10)
 
     def test_no_conflict_backend_passmanager(self):
-        """execute(qc, backend=..., passmanager=...)
-        See: https://github.com/Qiskit/qiskit-terra/issues/5037
-        """
+        """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
         backend = BasicAer.get_backend("qasm_simulator")
         qc = QuantumCircuit(2)
         qc.append(U1Gate(0), [0])
         qc.measure_all()
-        job = execute(qc, backend=backend, pass_manager=PassManager())
+        job = backend.run(PassManager().run(qc))
         result = job.result().get_counts()
         self.assertEqual(result, {"00": 1024})
 
@@ -302,21 +302,20 @@ class TestCompiler(QiskitTestCase):
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 1000
 
-        result1 = execute(
-            circ,
-            backend=self.backend,
-            coupling_map=coupling_map,
+        result1 = self.backend.run(
+            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=8),
             seed_simulator=self.seed_simulator,
-            seed_transpiler=8,
             shots=shots,
         )
         count1 = result1.result().get_counts()
-        result2 = execute(
-            circ,
-            backend=self.backend,
-            coupling_map=None,
+        result2 = self.backend.run(
+            transpile(
+                circ,
+                backend=self.backend,
+                coupling_map=None,
+                seed_transpiler=8,
+            ),
             seed_simulator=self.seed_simulator,
-            seed_transpiler=8,
             shots=shots,
         )
         count2 = result2.result().get_counts()
@@ -376,9 +375,12 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(qr[0], cr[0])
         circuit.measure(qr[1], cr[1])
 
-        result = execute(
-            circuit,
-            backend=self.backend,
+        result = self.backend.run(
+            transpile(
+                circuit,
+                self.backend,
+                coupling_map=coupling_map,
+            ),
             coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
@@ -427,9 +429,11 @@ class TestCompiler(QiskitTestCase):
 
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
-        job = execute(
-            circ,
-            backend=self.backend,
+        job = self.backend.run(
+            transpile(
+                circ,
+                backend=self.backend,
+            ),
             coupling_map=coupling_map,
             seed_simulator=self.seed_simulator,
             shots=shots,
@@ -445,10 +449,8 @@ class TestCompiler(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "random_n5_d5.qasm"))
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
-        qobj = execute(
-            circ,
-            backend=self.backend,
-            coupling_map=coupling_map,
+        qobj = self.backend.run(
+            transpile(circ, backend=self.backend, coupling_map=coupling_map, seed_transpiler=42),
             shots=shots,
             seed_simulator=self.seed_simulator,
         )

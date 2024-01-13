@@ -946,7 +946,7 @@ def build(
 
     .. code-block::
 
-        from qiskit import execute, pulse
+        from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -963,7 +963,7 @@ def build(
 
     .. code-block:: python
 
-        qiskit.execute(pulse_prog, backend)
+        backend.run(transpile(pulse_prog, backend))
 
     Args:
         backend (Backend): A Qiskit backend. If not supplied certain
