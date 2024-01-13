@@ -415,6 +415,7 @@ dependencies = [
  "ndarray",
  "num-bigint",
  "num-complex",
+ "num-traits",
  "numpy",
  "pyo3",
  "rand",
