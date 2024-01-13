@@ -23,7 +23,6 @@ from logging import StreamHandler, getLogger
 from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
-import multiprocessing as mp
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
