@@ -16,7 +16,7 @@ Bindings array class
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import chain, islice
+from itertools import chain
 from typing import Union
 
 import numpy as np
@@ -145,15 +145,6 @@ class BindingsArray(ShapedMixin):
             shape = ()
         return BindingsArray(vals, kwvals, shape)
 
-    def __repr__(self):
-        descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
-        if num_kwval_params := sum(val.shape[-1] for val in self._kwvals.values()):
-            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
-            if len(names) < num_kwval_params:
-                names.append("...")
-            descriptions.append(f"parameters=[{', '.join(names)}]")
-        return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
-
     @property
     def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
         """The keyword values of this array."""
@@ -168,6 +159,70 @@ class BindingsArray(ShapedMixin):
     def vals(self) -> list[np.ndarray]:
         """The non-keyword values of this array."""
         return self._vals
+
+    def as_array(self, parameters: Iterable[Parameter | str] | None = None) -> np.ndarray:
+        """Return the contents of this bindings array as a single NumPy array.
+
+        As with each :attr:`~vals` and :attr:`~kwvals` array, the parameters are indexed along the
+        last dimension.
+
+        The order of the :attr:`~vals` portion of this bindings array is always preserved, and
+        always comes first in the returned array, irrespective of whether ``parameters`` are
+        provided.
+
+        If ``parameters`` are provided, then they determine the order of any :attr:`~kwvals`
+        present in this bindings array. If :attr:`~vals` are present in addition to :attr:`~kwvals`,
+        then it is up to the user to ensure that their provided ``parameters`` account for this.
+
+        Parameters:
+            parameters: Optional parameters that determine the order of the output.
+
+        Returns:
+            This bindings array as a single NumPy array.
+
+        Raises:
+            RuntimeError: If these bindings contain multiple dtypes.
+            KeyError: If ``parameters`` are provided that are not a superset of those in this
+                bindings array.
+        """
+        dtypes = {arr.dtype for arr in self.vals}
+        dtypes.update(arr.dtype for arr in self.kwvals.values())
+        if len(dtypes) > 1:
+            raise RuntimeError(f"Multiple dtypes ({dtypes}) were found.")
+        dtype = next(iter(dtypes)) if dtypes else float
+
+        if self.num_parameters == 0 and not self.shape:
+            # we want this special case to look like a single binding on no parameters
+            return np.empty((1, 0), dtype=dtype)
+
+        ret = np.empty(shape_tuple(self.shape, self.num_parameters), dtype=dtype)
+
+        # always start by placing the vals in the returned array
+        pos = 0
+        for arr in self.vals:
+            size = arr.shape[-1]
+            ret[..., pos : pos + size] = arr
+            pos += size
+
+        if parameters is None:
+            # preserve the order of the kwvals
+            for arr in self.kwvals.values():
+                size = arr.shape[-1]
+                ret[..., pos : pos + size] = arr
+                pos += size
+        elif self.kwvals:
+            # use the order of the provided parameters
+            parameters = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
+            for arr_params, arr in self.kwvals.items():
+                try:
+                    idxs = [parameters[_param_name(param)] for param in arr_params]
+                except KeyError as ex:
+                    raise KeyError(
+                        "This bindings array has a parameter absent from the provided parameters."
+                    ) from ex
+                ret[..., idxs] = arr
+
+        return ret
 
     def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
         """Return a new circuit bound to the values at the provided index.
@@ -351,7 +406,11 @@ def _infer_shape(
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
-    return tuple(k.name if isinstance(k, Parameter) else k for k in key)
+    return tuple(map(_param_name, key))
+
+
+def _param_name(param: Parameter | str):
+    return param.name if isinstance(param, Parameter) else param
 
 
 BindingsArrayLike = Union[
