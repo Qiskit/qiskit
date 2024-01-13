@@ -107,10 +107,10 @@ pub fn decompose_dense(
             operator.shape()
         )));
     }
-    let (stack, mut out_stack, mut scratch) =
+    let (stack, mut out_list, mut scratch) =
         decompose_first_level(operator.as_array(), num_qubits);
-    decompose_middle_levels(stack, &mut out_stack, &mut scratch, num_qubits);
-    let out = decompose_last_level(&mut out_stack, &scratch, num_qubits, tolerance)?;
+    decompose_middle_levels(stack, &mut out_list, &mut scratch, num_qubits);
+    let out = decompose_last_level(&mut out_list, &scratch, num_qubits, tolerance)?;
     Ok(ZXPaulis {
         z: PyArray1::from_vec(py, out.z)
             .reshape([out.phases.len(), num_qubits])?
@@ -135,7 +135,7 @@ fn decompose_first_level(
     let side = 1 << num_qubits;
     let zero = Complex64::new(0.0, 0.0);
     let mut stack = Vec::<PauliLocation>::with_capacity(4);
-    let mut out_stack = Vec::<PauliLocation>::new();
+    let mut out_list = Vec::<PauliLocation>::new();
     let mut scratch = Vec::<Complex64>::with_capacity(side * side);
     match num_qubits {
         0 => {}
@@ -143,7 +143,7 @@ fn decompose_first_level(
             // If we've only got one qubit, we just want to copy the data over in the correct
             // continuity and let the base case of the iteration take care of outputting it.
             scratch.extend(in_op.iter());
-            out_stack.push(PauliLocation::begin(num_qubits));
+            out_list.push(PauliLocation::begin(num_qubits));
         }
         _ => {
             unsafe { scratch.set_len(side * side) };
@@ -214,33 +214,31 @@ fn decompose_first_level(
                     z_nonzero = z_nonzero || (value != zero);
                 }
             }
-            let target_stack = if cur_qubit == 1 {
-                &mut out_stack
+            // The middle-levels `stack` is a LIFO, so if we push in this order, we'll consider the
+            // Pauli terms in lexicographical order, which is the canonical order from
+            // `SparsePauliOp.sort`.  Populating the `out_list` (an initially empty `Vec`) effectively
+            // reverses the stack, so we want to push its elements in the IXYZ order.
+            if loc.qubit() == 1 {
+                i_nonzero.then(|| out_list.push(loc.push_i()));
+                x_nonzero.then(|| out_list.push(loc.push_x()));
+                y_nonzero.then(|| out_list.push(loc.push_y()));
+                z_nonzero.then(|| out_list.push(loc.push_z()));
             } else {
-                &mut stack
-            };
-            if i_nonzero {
-                target_stack.push(loc.push_i());
-            }
-            if x_nonzero {
-                target_stack.push(loc.push_x());
-            }
-            if y_nonzero {
-                target_stack.push(loc.push_y());
-            }
-            if z_nonzero {
-                target_stack.push(loc.push_z());
+                z_nonzero.then(|| stack.push(loc.push_z()));
+                y_nonzero.then(|| stack.push(loc.push_y()));
+                x_nonzero.then(|| stack.push(loc.push_x()));
+                i_nonzero.then(|| stack.push(loc.push_i()));
             }
         }
     }
-    (stack, out_stack, scratch)
+    (stack, out_list, scratch)
 }
 
 /// Iteratively decompose the matrix at all levels other than the first and last.  This populates
 /// the `out_stack` with locations
 fn decompose_middle_levels(
     mut stack: Vec<PauliLocation>,
-    mut out_stack: &mut Vec<PauliLocation>,
+    out_list: &mut Vec<PauliLocation>,
     scratch: &mut [Complex64],
     num_qubits: usize,
 ) {
@@ -256,11 +254,6 @@ fn decompose_middle_levels(
         // for X and Y) so we can re-use their scratch space and avoid re-allocating.  We're doing
         // the multiple assignment `(I, Z) = (I + Z, I - Z)`.
         let mid = 1 << loc.qubit();
-        let target_stack = if loc.qubit() == 1 {
-            &mut out_stack
-        } else {
-            &mut stack
-        };
         let mut i_nonzero = false;
         let mut z_nonzero = false;
         let i_row_0 = loc.row();
@@ -302,23 +295,26 @@ fn decompose_middle_levels(
                 y_nonzero = y_nonzero || (sub != zero);
             }
         }
-        if i_nonzero {
-            target_stack.push(loc.push_i());
-        }
-        if x_nonzero {
-            target_stack.push(loc.push_x());
-        }
-        if y_nonzero {
-            target_stack.push(loc.push_y());
-        }
-        if z_nonzero {
-            target_stack.push(loc.push_z());
+        // The middle-levels `stack` is a LIFO, so if we push in this order, we'll consider the
+        // Pauli terms in lexicographical order, which is the canonical order from
+        // `SparsePauliOp.sort`.  Populating the `out_list` (an initially empty `Vec`) effectively
+        // reverses the stack, so we want to push its elements in the IXYZ order.
+        if loc.qubit() == 1 {
+            i_nonzero.then(|| out_list.push(loc.push_i()));
+            x_nonzero.then(|| out_list.push(loc.push_x()));
+            y_nonzero.then(|| out_list.push(loc.push_y()));
+            z_nonzero.then(|| out_list.push(loc.push_z()));
+        } else {
+            z_nonzero.then(|| stack.push(loc.push_z()));
+            y_nonzero.then(|| stack.push(loc.push_y()));
+            x_nonzero.then(|| stack.push(loc.push_x()));
+            i_nonzero.then(|| stack.push(loc.push_i()));
         }
     }
 }
 
 fn decompose_last_level(
-    out_stack: &mut Vec<PauliLocation>,
+    out_list: &mut Vec<PauliLocation>,
     scratch: &[Complex64],
     num_qubits: usize,
     tolerance: f64,
@@ -329,16 +325,16 @@ fn decompose_last_level(
     // don't really pay much cost if we overallocate, but underallocating means that all four
     // outputs have to copy their data across to a new allocation.
     let mut out = DecomposeOut {
-        z: Vec::with_capacity(4 * num_qubits * out_stack.len()),
-        x: Vec::with_capacity(4 * num_qubits * out_stack.len()),
-        phases: Vec::with_capacity(4 * out_stack.len()),
-        coeffs: Vec::with_capacity(4 * out_stack.len()),
+        z: Vec::with_capacity(4 * num_qubits * out_list.len()),
+        x: Vec::with_capacity(4 * num_qubits * out_list.len()),
+        phases: Vec::with_capacity(4 * out_list.len()),
+        coeffs: Vec::with_capacity(4 * out_list.len()),
         scale,
         tol: (tolerance * tolerance) / (scale * scale),
         num_qubits,
     };
 
-    for loc in out_stack.drain(..) {
+    for loc in out_list.drain(..) {
         let row = loc.row();
         let col = loc.col();
         let base = row * side + col;
@@ -350,10 +346,12 @@ fn decompose_last_level(
         let x = row ^ col;
         let z = row;
         let phase = (x & z).count_ones() as u8;
+        // ... and pushing the last Pauli onto the chain happens forwards, since this is the
+        // construction of the final object.
         push_pauli_if_nonzero(x, z, phase, i_value, &mut out);
-        push_pauli_if_nonzero(x, z | 1, phase, z_value, &mut out);
         push_pauli_if_nonzero(x | 1, z, phase, x_value, &mut out);
         push_pauli_if_nonzero(x | 1, z | 1, phase + 1, y_value, &mut out);
+        push_pauli_if_nonzero(x, z | 1, phase, z_value, &mut out);
     }
     // If we _wildly_ overallocated, then shrink back to a sensible size to avoid tying up too much
     // memory as we return to Python space.
