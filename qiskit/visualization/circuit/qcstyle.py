@@ -166,6 +166,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
 
     Args:
         style: Depending on the type, this acts differently:
+
             * If a string, it can specify a supported style name (such
               as "iqp" or "clifford"). It can also specify the name of
               a custom color scheme stored as JSON file. This JSON file

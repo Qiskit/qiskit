@@ -2147,6 +2147,7 @@ class QuantumCircuit:
                 the ``mpl``, ``latex`` and ``latex_source`` outputs. Defaults to ``1.0``.
             filename: File path to save image to. Defaults to ``None`` (result not saved in a file).
             style: Style name, file name of style JSON file, or a dictionary specifying the style.
+
                 * The supported style names are ``"iqp"`` (default), ``"iqp-dark"``, ``"clifford"``,
                   ``"textbook"`` and ``"bw"``.
                 * If given a JSON file, e.g. ``my_style.json`` or ``my_style`` (the ``.json``
@@ -2161,6 +2162,7 @@ class QuantumCircuit:
                   style and sets the subfontsize (e.g. the gate angles) to ``5``.
                 * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
                   specified in ``~/.qiskit/settings.conf``.
+
             interactive: When set to ``True``, show the circuit in a new window
                 (for ``mpl`` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
