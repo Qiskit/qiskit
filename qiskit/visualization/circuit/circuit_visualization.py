@@ -60,7 +60,7 @@ def circuit_drawer(
     output: str | None = None,
     interactive: bool = False,
     plot_barriers: bool = True,
-    reverse_bits: bool = False,
+    reverse_bits: bool | None = None,
     justify: str | None = None,
     vertical_compression: str | None = "medium",
     idle_wires: bool = True,
