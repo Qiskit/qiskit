@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test QASM simulator."""
+"""Test basic simulator."""
 
 import os
 import unittest
@@ -24,7 +24,7 @@ from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.test import providers
+from qiskit.test import QiskitTestCase
 from qiskit.qasm2 import dumps
 
 
@@ -35,15 +35,14 @@ class StreamHandlerRaiseException(StreamHandler):
         raise sys.exc_info()
 
 
-class TestBasicSimulator(providers.BackendTestCase):
+class TestBasicSimulator(QiskitTestCase):
     """Test the basic_simulator."""
-
-    backend_cls = BasicSimulator
 
     def setUp(self):
         super().setUp()
 
         self.seed = 88
+        self.backend = BasicSimulator()
         qasm_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "qasm"
         )

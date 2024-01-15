@@ -44,7 +44,6 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers import convert_to_target, Provider
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import BackendConfiguration, BackendProperties
-from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
@@ -65,19 +64,13 @@ class BasicSimulator(BackendV2):
     """Python implementation of a basic (slow, non-efficient) quantum simulator.
 
     This implementation was originally based on the :class:`.BackendV1` interface, and later
-    migrated to :class:`.BackendV2`. However, certain legacy methods and properties from
-    :class:`.BackendV1` have been kept for backwards compatibility purposes, these are:
-
-        #. :meth:`.BasicSimulator.configuration`
-        #. :meth:`.BasicSimulator.properties`
-        #. :meth:`.BasicSimulator.status`
+    migrated to :class:`.BackendV2`.
     """
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
     def __init__(
         self,
-        configuration: BackendConfiguration | None = None,
         provider: Provider | None = None,
         target: Target | None = None,
         **fields,
@@ -86,15 +79,10 @@ class BasicSimulator(BackendV2):
         """Initialize a :class:`.BackendV2`-based :class:`.BasicSimulator`.
 
         Args:
-            provider (Provider): An optional backwards reference to the
+            provider: An optional backwards reference to the
                 :class:`~qiskit.providers.Provider` object that the backend
                 is from.
-            configuration (BackendConfiguration): A backend configuration
-                object to set up the backend. Supported for backwards compatibility
-                with the :class:`.BackendV1` interface.
-            target (Target): An optional target to configure the simulator. If a target is
-                provided, it will override any configuration set
-                via the ``configuration`` input argument.
+            target: An optional target to configure the simulator.∂
             fields: kwargs for the values to use to override the default
                 options.
 
@@ -112,8 +100,7 @@ class BasicSimulator(BackendV2):
         )
 
         self._target = target
-        self._configuration = configuration
-        self._properties = None
+        self._configuration = None
 
         # Internal simulator variables
         self._local_random = np.random.RandomState()
@@ -136,10 +123,7 @@ class BasicSimulator(BackendV2):
     @property
     def target(self) -> Target:
         if not self._target:
-            if self._configuration is None:
-                self._target = self._build_basic_target()
-            else:
-                self._target = convert_to_target(self._configuration, self._properties)
+            self._target = self._build_basic_target()
         return self._target
 
     def _build_basic_target(self) -> Target:
@@ -147,9 +131,9 @@ class BasicSimulator(BackendV2):
         no coupling map, instruction properties or calibrations.
 
         Returns:
-            Target: the configured target.
+            The configured target.
         """
-        # Set num_qubits to None so that the transpiler doesn't unnecessarily
+        # Set num_qubits to None to signal the transpiler not to
         # resize the circuit to fit a specific (potentially too large)
         # number of qubits. The number of qubits in the circuits given to the
         # `run` method will determine the size of the simulated statevector.
@@ -157,19 +141,41 @@ class BasicSimulator(BackendV2):
             description="Basic Target",
             num_qubits=None,
         )
-        basis_gates = ["h", "u", "p", "u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"]
-        required = ["measure", "delay", "reset"]
-        parameters = {"unitary": ["matrix"]}
+        basis_gates = [
+            "h",
+            "u",
+            "p",
+            "u1",
+            "u2",
+            "u3",
+            "rz",
+            "sx",
+            "x",
+            "cx",
+            "id",
+            "unitary",
+            "measure",
+            "delay",
+            "reset",
+        ]
         inst_mapping = get_standard_gate_name_mapping()
-        for name in basis_gates + required:
+        for name in basis_gates:
             if name in inst_mapping:
                 instruction = inst_mapping[name]
-            else:
+            elif name == "unitary":
+                # This is a placeholder for an actual unitary gate
+                # to signal the transpiler not to decompose unitaries
+                # present in the circuit.
                 instruction = Gate(
                     name=name,
-                    num_qubits=1 if name == "reset" else 0,
-                    params=list(map(Parameter, parameters.get(name, []))),
+                    num_qubits=0,
+                    params=[Parameter("matrix")],
                 )
+            else:
+                raise BasicProviderError(
+                    "Gate is not a valid basis gate for this simulator: %s" % name
+                )
+
             target.add_instruction(instruction, properties=None, name=name)
         return target
 
@@ -179,9 +185,8 @@ class BasicSimulator(BackendV2):
         Returns:
             The configuration for the backend.
         """
-        # The ``target`` input argument overrides the ``configuration`` if provided:
-        if self._configuration and not self._target:
-            return copy.copy(self._configuration)
+        if self._configuration:
+            return self._configuration
 
         gates = [
             {
@@ -206,31 +211,7 @@ class BasicSimulator(BackendV2):
             coupling_map=None,
             description="A python simulator for quantum experiments",
         )
-        return copy.copy(self._configuration)
-
-    def properties(self) -> BackendProperties:
-        """Return the simulator backend properties if set.
-
-        Returns:
-            BackendProperties: The backend properties or ``None`` if the
-                               backend does not have properties set.
-        """
-        properties = copy.copy(self._properties)
-        return properties
-
-    def status(self) -> BackendStatus:
-        """Return the backend status.
-
-        Returns:
-            BackendStatus: the status of the backend.
-        """
-        return BackendStatus(
-            backend_name=self.name,
-            backend_version=self.backend_version,
-            operational=True,
-            pending_jobs=0,
-            status_msg="",
-        )
+        return self._configuration
 
     @classmethod
     def _default_options(cls) -> Options:
@@ -266,10 +247,10 @@ class BasicSimulator(BackendV2):
         """Simulate the outcome of measurement of a qubit.
 
         Args:
-            qubit (int): the qubit to measure
+            qubit: the qubit to measure
 
         Return:
-            tuple: pair (outcome, probability) where outcome is '0' or '1' and
+            pair (outcome, probability) where outcome is '0' or '1' and
             probability is the probability of the returned outcome.
         """
         # Axis for numpy.sum to compute probabilities
@@ -289,12 +270,12 @@ class BasicSimulator(BackendV2):
         """Generate memory samples from current statevector.
 
         Args:
-            measure_params (list): List of (qubit, cmembit) values for
+            measure_params: List of (qubit, cmembit) values for
                                    measure instructions to sample.
-            num_samples (int): The number of memory samples to generate.
+            num_samples: The number of memory samples to generate.
 
         Returns:
-            list: A list of memory values in hex format.
+            A list of memory values in hex format.
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
@@ -332,9 +313,9 @@ class BasicSimulator(BackendV2):
         """Apply a measure instruction to a qubit.
 
         Args:
-            qubit (int): qubit is the qubit measured.
-            cmembit (int): is the classical memory bit to store outcome in.
-            cregbit (int, optional): is the classical register bit to store outcome in.
+            qubit: qubit is the qubit measured.
+            cmembit: is the classical memory bit to store outcome in.
+            cregbit: is the classical register bit to store outcome in.
         """
         # get measure outcome
         outcome, probability = self._get_measure_outcome(qubit)
@@ -360,7 +341,7 @@ class BasicSimulator(BackendV2):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit (int): the qubit being rest
+            qubit: the qubit being rest
 
         This is done by doing a simulating a measurement
         outcome and projecting onto the outcome state while
@@ -378,7 +359,7 @@ class BasicSimulator(BackendV2):
 
     def _validate_initial_statevector(self) -> None:
         """Validate an initial statevector"""
-        # If initial statevector isn't set we don't need to validate
+        # If the initial statevector isn't set we don't need to validate
         if self._initial_statevector is None:
             return
         # Check statevector is correct length for number of qubits
@@ -437,7 +418,7 @@ class BasicSimulator(BackendV2):
         """Determine if measure sampling is allowed for an experiment
 
         Args:
-            experiment (QasmQobjExperiment): a qobj experiment.
+            experiment: a qobj experiment.
         """
         # If shots=1 we should disable measure sampling.
         # This is also required for statevector simulator to return the
@@ -479,8 +460,8 @@ class BasicSimulator(BackendV2):
         """Run on the backend.
 
         Args:
-            run_input (QuantumCircuit or list): payload of the experiment
-            backend_options (dict): backend options
+            run_input: payload of the experiment
+            backend_options: backend options
 
         Returns:
             BasicProviderJob: derived from BaseJob
@@ -500,6 +481,7 @@ class BasicSimulator(BackendV2):
                     "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
                 }
         """
+        # TODO: replace assemble with new run flow
         from qiskit.compiler import assemble
 
         out_options = {}
@@ -521,11 +503,11 @@ class BasicSimulator(BackendV2):
         """Run experiments in qobj
 
         Args:
-            job_id (str): unique id for the job.
-            qobj (Qobj): job description
+            job_id: unique id for the job.
+            qobj: job description
 
         Returns:
-            Result: Result object
+            Result object
         """
         self._validate(qobj)
         result_list = []
@@ -554,10 +536,10 @@ class BasicSimulator(BackendV2):
         """Run an experiment (circuit) and return a single experiment result.
 
         Args:
-            experiment (QasmQobjExperiment): experiment from qobj experiments list
+            experiment: experiment from qobj experiments list
 
         Returns:
-             dict: A result dictionary which looks something like::
+             A result dictionary which looks something like::
 
                 {
                 "name": name of this experiment (obtained from qobj.experiment header)
