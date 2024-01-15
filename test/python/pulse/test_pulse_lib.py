@@ -147,6 +147,32 @@ class TestSymbolicPulses(QiskitTestCase):
         Sech(duration=50, amp=0.5, sigma=10, zero_ends=False)
         SechDeriv(duration=50, amp=0.5, sigma=10)
 
+    # This test should be removed once deprecation of complex amp is completed.
+    def test_complex_amp_deprecation(self):
+        """Test that deprecation warnings and errors are raised for complex amp,
+        and that pulses are equivalent."""
+
+        # Test deprecation warnings and errors:
+        with self.assertWarns(DeprecationWarning):
+            Gaussian(duration=25, sigma=4, amp=0.5j)
+        with self.assertWarns(DeprecationWarning):
+            GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(PulseError):
+                Gaussian(duration=25, sigma=4, amp=0.5j, angle=1)
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(PulseError):
+                GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100, angle=0.1)
+
+        # Test that new and old API pulses are the same:
+        with self.assertWarns(DeprecationWarning):
+            gauss_pulse_complex_amp = Gaussian(duration=25, sigma=4, amp=0.5j)
+        gauss_pulse_amp_angle = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
+        np.testing.assert_almost_equal(
+            gauss_pulse_amp_angle.get_waveform().samples,
+            gauss_pulse_complex_amp.get_waveform().samples,
+        )
+
     def test_gauss_square_extremes(self):
         """Test that the gaussian square pulse can build a gaussian."""
         duration = 125

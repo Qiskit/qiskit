@@ -14,6 +14,7 @@
 import json
 import struct
 import zlib
+import warnings
 
 from io import BytesIO
 
@@ -28,7 +29,7 @@ from qiskit.pulse import library, channels, instructions
 from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
-from qiskit.qpy.exceptions import QpyError
+from qiskit.qpy.exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from qiskit.pulse.configuration import Kernel, Discriminator
 
 
@@ -136,17 +137,33 @@ def _read_symbolic_pulse(file_obj, version):
         vectors={},
     )
 
+    # In the transition to Qiskit Terra 0.23 (QPY version 6), the representation of library pulses
+    # was changed from complex "amp" to float "amp" and "angle". The existing library pulses in
+    # previous versions are handled here separately to conform with the new representation. To
+    # avoid role assumption for "amp" for custom pulses, only the library pulses are handled this
+    # way.
+
     # List of pulses in the library in QPY version 5 and below:
     legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
     class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
-        parameters["angle"] = np.angle(parameters["amp"])
-        parameters["amp"] = np.abs(parameters["amp"])
+        # Once complex amp support will be deprecated we will need:
+        # parameters["angle"] = np.angle(parameters["amp"])
+        # parameters["amp"] = np.abs(parameters["amp"])
 
+        # In the meanwhile we simply add:
+        parameters["angle"] = 0
         _amp, _angle = sym.symbols("amp, angle")
         envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
 
+        # And warn that this will change in future releases:
+        warnings.warn(
+            "Complex amp support for symbolic library pulses will be deprecated. "
+            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
+            " will be converted automatically to float (amp,angle) representation.",
+            QPYLoadingDeprecatedFeatureWarning,
+        )
         class_name = "ScalableSymbolicPulse"
 
     duration = value.read_value(file_obj, version, {})
