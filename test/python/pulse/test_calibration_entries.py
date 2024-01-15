@@ -326,6 +326,30 @@ class TestPulseQobj(QiskitTestCase):
         )
         self.assertEqual(schedule_to_test, schedule_ref)
 
+    def test_missing_waveform(self):
+        """Test incomplete Qobj should raise warning and calibration returns None."""
+        serialized_program = [
+            PulseQobjInstruction(
+                name="waveform_123456",
+                t0=20,
+                ch="d0",
+            ),
+        ]
+        entry = PulseQobjDef(converter=self.converter, name="my_gate")
+        entry.define(serialized_program)
+
+        with self.assertWarns(
+            UserWarning,
+            msg=(
+                "Pulse calibration cannot be built and the entry is ignored: "
+                "Instruction waveform_123456 on channel d0 is not found in Qiskit namespace. "
+                "This instruction cannot be deserialized."
+            ),
+        ):
+            out = entry.get_schedule()
+
+        self.assertIsNone(out)
+
     def test_parameterized_qobj(self):
         """Test adding and managing parameterized qobj.
 

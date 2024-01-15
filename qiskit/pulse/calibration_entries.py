@@ -13,6 +13,7 @@
 """Internal format of calibration data in target."""
 from __future__ import annotations
 import inspect
+import warnings
 from abc import ABCMeta, abstractmethod
 from collections.abc import Sequence, Callable
 from enum import IntEnum
@@ -327,9 +328,13 @@ class PulseQobjDef(ScheduleDef):
                     schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
             self._definition = schedule
             self._parse_argument()
-        except QiskitError:
+        except QiskitError as ex:
             # When the play waveform data is missing in pulse_lib we cannot build schedule.
             # Instead of raising an error, get_schedule should return None.
+            warnings.warn(
+                f"Pulse calibration cannot be built and the entry is ignored: {ex.message}.",
+                UserWarning,
+            )
             self._definition = IncompletePulseQobj
 
     def define(
