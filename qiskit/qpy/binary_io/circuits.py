@@ -291,7 +291,7 @@ def _read_instruction(
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
-        pass
+        gate_class = Clifford
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
@@ -299,8 +299,6 @@ def _read_instruction(
         label = None
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition, *params, label=label)
-    elif gate_name == "Clifford":
-        gate = Clifford(params[0])
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
