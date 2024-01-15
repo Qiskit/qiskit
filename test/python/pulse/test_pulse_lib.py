@@ -127,11 +127,11 @@ class TestWaveform(QiskitTestCase):
             self.fail("Waveform incorrectly failed to approximately unit norm samples.")
 
 
-class TestParametricPulses(QiskitTestCase):
-    """Tests for all subclasses of ParametricPulse."""
+class TestSymbolicPulses(QiskitTestCase):
+    """Tests for all subclasses of SymbolicPulse."""
 
     def test_construction(self):
-        """Test that parametric pulses can be constructed without error."""
+        """Test that symbolic pulses can be constructed without error."""
         Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
         GaussianSquare(duration=150, amp=0.2, sigma=8, width=140)
         GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
@@ -493,7 +493,7 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(set(const.parameters.keys()), {"duration", "amp", "angle"})
 
     def test_repr(self):
-        """Test the repr methods for parametric pulses."""
+        """Test the repr methods for symbolic pulses."""
         gaus = Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)
         self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=0.7, angle=0.3)")
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
@@ -565,7 +565,7 @@ class TestParametricPulses(QiskitTestCase):
         )
 
     def test_param_validation(self):
-        """Test that parametric pulse parameters are validated when initialized."""
+        """Test that symbolic pulse parameters are validated when initialized."""
         with self.assertRaises(PulseError):
             Gaussian(duration=25, sigma=0, amp=0.5, angle=np.pi / 2)
         with self.assertRaises(PulseError):

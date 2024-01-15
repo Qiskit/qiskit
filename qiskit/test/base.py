@@ -28,7 +28,8 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-from qiskit.tools.parallel import get_platform_parallel_default
+from qiskit.utils.parallel import get_platform_parallel_default
+from qiskit.exceptions import QiskitWarning
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
@@ -192,8 +193,6 @@ class QiskitTestCase(BaseQiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Determines if the TestCase is using IBMQ credentials.
-        cls.using_ibmq_credentials = False
         # Set logging to file and stdout if the LOG_LEVEL envar is set.
         cls.log = logging.getLogger(cls.__name__)
         if os.getenv("LOG_LEVEL"):
@@ -201,6 +200,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
+        warnings.filterwarnings("error", category=QiskitWarning)
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
@@ -228,20 +229,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
-        allow_aer_DeprecationWarning_message = [
-            # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
-            "Setting metadata to None.*",
-            # and this one once Qiskit/qiskit-aer#1945 is merged and released.
-            r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
-            r"deprecated as of qiskit 0\.45\.0\. It will be removed in the next major release 1\.0\. "
-            r"Use QuantumCircuit\.id as direct replacement\.",
-        ]
-
-        for msg in allow_aer_DeprecationWarning_message:
-            warnings.filterwarnings(
-                "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
-            )
 
 
 class FullQiskitTestCase(QiskitTestCase):

@@ -15,7 +15,6 @@
 
 import collections.abc
 import functools
-import os
 import socket
 import sys
 from typing import Union, Callable, Type, Iterable
@@ -95,91 +94,6 @@ def slow_test(func):
             raise unittest.SkipTest("Skipping slow tests")
 
         return func(*args, **kwargs)
-
-    return _wrapper
-
-
-def _get_credentials():
-    """Finds the credentials for a specific test and options.
-
-    Returns:
-        Credentials: set of credentials
-
-    Raises:
-        SkipTest: when credentials can't be found
-    """
-    try:
-        from qiskit.providers.ibmq.credentials import Credentials, discover_credentials
-    except ImportError as ex:
-        raise unittest.SkipTest(
-            "qiskit-ibmq-provider could not be found, "
-            "and is required for executing online tests. "
-            'To install, run "pip install qiskit-ibmq-provider" '
-            "or check your installation."
-        ) from ex
-
-    if os.getenv("IBMQ_TOKEN") and os.getenv("IBMQ_URL"):
-        return Credentials(os.getenv("IBMQ_TOKEN"), os.getenv("IBMQ_URL"))
-    elif os.getenv("QISKIT_TESTS_USE_CREDENTIALS_FILE"):
-        # Attempt to read the standard credentials.
-        discovered_credentials = discover_credentials()
-
-        if discovered_credentials:
-            # Decide which credentials to use for testing.
-            if len(discovered_credentials) > 1:
-                raise unittest.SkipTest(
-                    "More than 1 credential set found, use: "
-                    "IBMQ_TOKEN and IBMQ_URL env variables to "
-                    "set credentials explicitly"
-                )
-
-            # Use the first available credentials.
-            return list(discovered_credentials.values())[0]
-    raise unittest.SkipTest(
-        "No IBMQ credentials found for running the test. This is required for running online tests."
-    )
-
-
-def online_test(func):
-    """Decorator that signals that the test uses the network (and the online API):
-
-    It involves:
-        * determines if the test should be skipped by checking environment
-            variables.
-        * if the `USE_ALTERNATE_ENV_CREDENTIALS` environment variable is
-          set, it reads the credentials from an alternative set of environment
-          variables.
-        * if the test is not skipped, it reads `qe_token` and `qe_url` from
-            `Qconfig.py`, environment variables or qiskitrc.
-        * if the test is not skipped, it appends `qe_token` and `qe_url` as
-            arguments to the test function.
-
-    Args:
-        func (callable): test function to be decorated.
-
-    Returns:
-        callable: the decorated function.
-    """
-
-    @functools.wraps(func)
-    def _wrapper(self, *args, **kwargs):
-        # To avoid checking the connection in each test
-        global HAS_NET_CONNECTION  # pylint: disable=global-statement
-
-        if TEST_OPTIONS["skip_online"]:
-            raise unittest.SkipTest("Skipping online tests")
-
-        if HAS_NET_CONNECTION is None:
-            HAS_NET_CONNECTION = _has_connection("qiskit.org", 443)
-
-        if not HAS_NET_CONNECTION:
-            raise unittest.SkipTest("Test requires internet connection.")
-
-        credentials = _get_credentials()
-        self.using_ibmq_credentials = credentials.is_ibmq()
-        kwargs.update({"qe_token": credentials.token, "qe_url": credentials.url})
-
-        return func(self, *args, **kwargs)
 
     return _wrapper
 

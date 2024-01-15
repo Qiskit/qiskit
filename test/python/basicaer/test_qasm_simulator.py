@@ -25,6 +25,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import providers
+from qiskit.qasm2 import dumps
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -306,7 +307,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             "1": data["1 0 0"] + data["1 1 0"] + data["1 0 1"] + data["1 1 1"],
         }
         self.log.info("test_teleport: circuit:")
-        self.log.info(circuit.qasm())
+        self.log.info(dumps(circuit))
         self.log.info("test_teleport: data %s", data)
         self.log.info("test_teleport: alice %s", alice)
         self.log.info("test_teleport: bob %s", bob)
