@@ -63,6 +63,19 @@ class BindingsArrayTestCase(QiskitTestCase):
                 kwvals={(Parameter("a"), Parameter("b")): np.empty((5, 10, 3))},
             )
 
+    def test_repr(self):
+        """Test that the repr doesn't fail"""
+        # we are primarily interested in making sure some future change doesn't cause the repr to
+        # raise an error. it is more sensible for humans to detect a deficiency in the formatting
+        # itself, should one be uncovered
+        self.assertTrue(repr(BindingsArray()).startswith("BindingsArray"))
+        self.assertTrue(repr(BindingsArray(np.empty((1, 2, 3)))).startswith("BindingsArray"))
+        self.assertTrue(
+            repr(
+                BindingsArray([1], {"p": 2, "q": 5, ("a", "b", "c", "d"): [1, 22, 4, 5]})
+            ).startswith("BindingsArray")
+        )
+
     def test_bind_at_idx(self):
         """Test binding at a specified index"""
         vals = np.linspace(0, 1, 1000).reshape((5, 4, 50))

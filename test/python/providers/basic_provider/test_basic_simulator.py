@@ -27,6 +27,8 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.test import QiskitTestCase
 from qiskit.qasm2 import dumps
 
+from . import BasicProviderBackendTestMixin
+
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
@@ -35,11 +37,18 @@ class StreamHandlerRaiseException(StreamHandler):
         raise sys.exc_info()
 
 
-class TestBasicSimulator(QiskitTestCase):
-    """Test the basic_simulator."""
+class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
+    """Test the basic provider simulator."""
+
 
     def setUp(self):
         super().setUp()
+        self.backend = BasicSimulator()
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+        self.circuit = bell
 
         self.seed = 88
         self.backend = BasicSimulator()

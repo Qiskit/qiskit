@@ -33,7 +33,6 @@ from qiskit.exceptions import QiskitWarning
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
-from .utils import Path, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -99,19 +98,6 @@ class BaseQiskitTestCase(BaseTestCase):
                 "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__teardown_called = True
-
-    @staticmethod
-    def _get_resource_path(filename, path=Path.TEST):
-        """Get the absolute path to a resource.
-
-        Args:
-            filename (string): filename or relative path to the resource.
-            path (Path): path used as relative to the filename.
-
-        Returns:
-            str: the absolute path to the resource.
-        """
-        return os.path.normpath(os.path.join(path.value, filename))
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -195,9 +181,24 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().setUpClass()
         # Set logging to file and stdout if the LOG_LEVEL envar is set.
         cls.log = logging.getLogger(cls.__name__)
-        if os.getenv("LOG_LEVEL"):
-            filename = "%s.log" % os.path.splitext(inspect.getfile(cls))[0]
-            setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
+
+        if log_level := os.getenv("LOG_LEVEL"):
+            log_fmt = f"{cls.log.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
+            formatter = logging.Formatter(log_fmt)
+            file_handler = logging.FileHandler(f"{os.path.splitext(inspect.getfile(cls))[0]}.log")
+            file_handler.setFormatter(formatter)
+            cls.log.addHandler(file_handler)
+
+            if os.getenv("STREAM_LOG"):
+                # Set up the stream handler.
+                stream_handler = logging.StreamHandler()
+                stream_handler.setFormatter(formatter)
+                cls.log.addHandler(stream_handler)
+
+            # Set the logging level from the environment variable, defaulting
+            # to INFO if it is not a valid level.
+            level = logging._nameToLevel.get(log_level, logging.INFO)
+            cls.log.setLevel(level)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)

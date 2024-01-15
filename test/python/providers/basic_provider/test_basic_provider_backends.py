@@ -14,14 +14,26 @@
 
 from qiskit.providers.basic_provider.basic_provider import BasicProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from qiskit.test import providers
+from qiskit.test import QiskitTestCase
 
 
-class TestBasicProviderBackends(providers.ProviderTestCase):
-    """Qiskit BasicProvider Backends (Object) Tests."""
+class TestBasicProviderBackends(QiskitTestCase):
+    """Qiskit BasicAer Backends (Object) Tests."""
 
-    provider_cls = BasicProvider
-    backend_name = "basic_simulator"
+    def setUp(self):
+        super().setUp()
+        self.provider = BasicProvider()
+        self.backend_name = "basic_simulator"
+
+    def test_backends(self):
+        """Test the provider has backends."""
+        backends = self.provider.backends()
+        self.assertTrue(len(backends) > 0)
+
+    def test_get_backend(self):
+        """Test getting a backend from the provider."""
+        backend = self.provider.get_backend(name=self.backend_name)
+        self.assertEqual(backend.name(), self.backend_name)
 
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names."""
