@@ -1,4 +1,5 @@
 ---
 upgrade:
   - |
-    Remove deprecated getitem/setitem methods of :class:`qiskit.quantum_info.operators.symplectic.Clifford`.
+    Remove deprecated getitem/setitem magic methods of 
+    :class:`~qiskit.quantum_info.operators.symplectic.Clifford`.
