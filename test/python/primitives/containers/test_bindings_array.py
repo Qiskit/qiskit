@@ -77,72 +77,87 @@ class BindingsArrayTestCase(QiskitTestCase):
             ).startswith("BindingsArray")
         )
 
+    def test_as_array_dtype_raises(self):
+        """Test as_array() raises when multiple dtypes are present."""
+        ba = BindingsArray([np.empty((50, 5), dtype=float), np.empty((50, 2), dtype=int)])
+        with self.assertRaises(RuntimeError):
+            ba.as_array()
+
     @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
     @ddt.unpack
-    def test_as_array(self, kwvals_str, args_str):
-        """Test as_array() with all combinations of Parameter and str"""
+    def test_as_array_missing_param_raises(self, kwvals_str, args_str):
+        """Test as_array() raises when a parameter key is missing."""
         kwval_param = lambda param: Parameter(param) if kwvals_str else param
         args_param = lambda param: Parameter(param) if args_str else param
-        with self.subTest("error: dtype"):
-            ba = BindingsArray([np.empty((50, 5), dtype=float), np.empty((50, 2), dtype=int)])
-            with self.assertRaises(RuntimeError):
-                ba.as_array()
 
-        with self.subTest("error: missing param"):
-            ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
-            with self.assertRaises(KeyError):
-                ba.as_array([args_param("b")])
+        ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
+        with self.assertRaises(KeyError):
+            ba.as_array([args_param("b")])
 
-        with self.subTest("completely empty"):
-            ba = BindingsArray(shape=())
-            np.testing.assert_allclose(ba.as_array(), np.array([[]]))
+    def test_as_array_vals_only(self):
+        """Test as_array() works when only vals are present."""
+        # empty
+        ba = BindingsArray(shape=())
+        np.testing.assert_allclose(ba.as_array(), np.array([[]]))
 
-        with self.subTest("single array"):
-            arr = np.linspace(0, 20, 250).reshape((25, 5, 2))
-            ba = BindingsArray(arr)
-            np.testing.assert_allclose(ba.as_array(), arr)
+        # one array
+        arr = np.linspace(0, 20, 250).reshape((25, 5, 2))
+        ba = BindingsArray(arr)
+        np.testing.assert_allclose(ba.as_array(), arr)
 
-        with self.subTest("multiple arrays"):
-            arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
-            arr_b = np.linspace(0, 5, 1000).reshape((25, 5, 8))
-            ba = BindingsArray([arr_a, arr_b])
-            np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
+        # two arrays
+        arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
+        arr_b = np.linspace(0, 5, 1000).reshape((25, 5, 8))
+        ba = BindingsArray([arr_a, arr_b])
+        np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
 
-        with self.subTest("kwvals"):
-            arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
-            arr_b = np.linspace(0, 5, 375).reshape((25, 5, 3))
-            ba = BindingsArray(
-                kwvals={
-                    (kwval_param("a"), kwval_param("b")): arr_a,
-                    (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_b,
-                }
-            )
-            np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
+    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
+    @ddt.unpack
+    def test_as_array_kwvals_only(self, kwvals_str, args_str):
+        """Test as_array() works when only kwvals are present."""
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
 
-            params = map(args_param, "dabec")
-            expected = [arr_b[..., 1], arr_a[..., 0], arr_a[..., 1], arr_b[..., 2], arr_b[..., 0]]
-            expected = np.concatenate([arr[..., None] for arr in expected], axis=2)
-            np.testing.assert_allclose(ba.as_array(params), expected)
+        arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
+        arr_b = np.linspace(0, 5, 375).reshape((25, 5, 3))
+        ba = BindingsArray(
+            kwvals={
+                (kwval_param("a"), kwval_param("b")): arr_a,
+                (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_b,
+            }
+        )
+        np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
 
-        with self.subTest("mixed"):
-            arr_a = np.linspace(0, 20, 375).reshape((25, 5, 3))
-            arr_b = np.linspace(0, 5, 250).reshape((25, 5, 2))
-            arr_c = np.linspace(0, 5, 375).reshape((25, 5, 3))
-            ba = BindingsArray(
-                arr_a,
-                kwvals={
-                    (kwval_param("a"), kwval_param("b")): arr_b,
-                    (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_c,
-                },
-            )
+        params = map(args_param, "dabec")
+        expected = [arr_b[..., 1], arr_a[..., 0], arr_a[..., 1], arr_b[..., 2], arr_b[..., 0]]
+        expected = np.concatenate([arr[..., None] for arr in expected], axis=2)
+        np.testing.assert_allclose(ba.as_array(params), expected)
 
-            expected = np.concatenate([arr_a, arr_b, arr_c], axis=2)
-            np.testing.assert_allclose(ba.as_array(), expected)
+    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
+    @ddt.unpack
+    def test_as_array_mixed_vals(self, kwvals_str, args_str):
+        """Test as_array() works when both vals and kwvals are present."""
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
 
-            params = map(args_param, "xxxdabec")
-            expected = [arr_c[..., 1], arr_b[..., 0], arr_b[..., 1], arr_c[..., 2], arr_c[..., 0]]
-            expected = np.concatenate([arr_a] + [arr[..., None] for arr in expected], axis=2)
-            np.testing.assert_allclose(ba.as_array(params), expected)
+        arr_a = np.linspace(0, 20, 375).reshape((25, 5, 3))
+        arr_b = np.linspace(0, 5, 250).reshape((25, 5, 2))
+        arr_c = np.linspace(0, 5, 375).reshape((25, 5, 3))
+        ba = BindingsArray(
+            arr_a,
+            kwvals={
+                (kwval_param("a"), kwval_param("b")): arr_b,
+                (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_c,
+            },
+        )
+
+        expected = np.concatenate([arr_a, arr_b, arr_c], axis=2)
+        np.testing.assert_allclose(ba.as_array(), expected)
+
+        params = map(args_param, "xxxdabec")
+        expected = [arr_c[..., 1], arr_b[..., 0], arr_b[..., 1], arr_c[..., 2], arr_c[..., 0]]
+        expected = np.concatenate([arr_a] + [arr[..., None] for arr in expected], axis=2)
+        np.testing.assert_allclose(ba.as_array(params), expected)
 
     def test_bind_at_idx(self):
         """Test binding at a specified index"""
