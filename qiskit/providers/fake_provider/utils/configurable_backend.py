@@ -35,7 +35,11 @@ from ..fake_backend import FakeBackend
 class ConfigurableFakeBackend(FakeBackend):
     """Configurable backend."""
 
-    @deprecate_func(since="0.46.0", additional_msg="Use ?? instead.")
+    @deprecate_func(
+        since="0.46.0",
+        additional_msg="Use a suitable FakeBackend instead.",
+        removal_timeline="Qiskit 1.0",
+    )
     def __init__(
         self,
         name: str,
