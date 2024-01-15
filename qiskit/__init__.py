@@ -74,7 +74,6 @@ from qiskit.providers.basicaer import BasicAer
 
 _config = _user_config.get_config()
 
-from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
@@ -135,7 +134,6 @@ __all__ = [
     "QuantumCircuit",
     "QuantumRegister",
     "assemble",
-    "execute",
     "schedule",
     "sequence",
     "transpile",
