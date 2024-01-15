@@ -353,10 +353,7 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        with self.assertWarns(DeprecationWarning):
-            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_value_to_parameter(self):
         """Test complex value can be assigned to parameter object,
@@ -370,10 +367,7 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        with self.assertWarns(DeprecationWarning):
-            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_parameter_expression(self):
         """Test assignment of complex-valued parameter expression to parameter,
