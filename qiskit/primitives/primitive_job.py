@@ -16,7 +16,7 @@ Job implementation for the reference implementations of Primitives.
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Optional, TypeVar, Union
+from typing import Callable, Generic, Optional, TypeVar, Union
 
 from qiskit.providers import JobError, JobStatus, JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
@@ -29,7 +29,7 @@ from .containers import PrimitiveResult
 Result = TypeVar("Result", bound=Union[BasePrimitiveResult, PrimitiveResult])
 
 
-class PrimitiveJob(BasePrimitiveJob[Result, JobStatus]):
+class PrimitiveJob(BasePrimitiveJob[Result, JobStatus], Generic[Result]):
     """
     Primitive job class for the reference implementations of Primitives.
     """
