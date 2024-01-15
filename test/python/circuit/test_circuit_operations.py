@@ -559,7 +559,7 @@ class TestCircuitOperations(QiskitTestCase):
             qc.barrier()
 
         operation_names = [c.operation.name for c in qc]
-        assert "barrier" not in operation_names
+        self.assertNotIn("barrier", operation_names)
 
     def test_measure_active(self):
         """Test measure_active
