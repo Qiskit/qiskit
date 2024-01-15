@@ -42,6 +42,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
+    # This is used by qiskit/documentation to generate links to github.com.
+    "sphinx.ext.viewcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
