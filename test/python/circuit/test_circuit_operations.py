@@ -551,7 +551,7 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc, expected)
 
     def test_barrier_in_context(self):
-        """Test barrier statement in context, see gh-11345 """
+        """Test barrier statement in context, see gh-11345"""
         qc = QuantumCircuit(2, 2)
         qc.h(0)
         with qc.if_test((qc.clbits[0], False)):
@@ -559,7 +559,7 @@ class TestCircuitOperations(QiskitTestCase):
             qc.barrier()
 
         operation_names = [c.operation.name for c in qc]
-        assert 'barrier' not in operation_names
+        assert "barrier" not in operation_names
 
     def test_measure_active(self):
         """Test measure_active

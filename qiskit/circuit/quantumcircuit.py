@@ -3329,8 +3329,9 @@ class QuantumCircuit:
             return self.append(CircuitInstruction(Barrier(len(qubits), label=label), qubits, ()))
         else:
             qubits = self.qubits.copy()
-            return self._current_scope().append(CircuitInstruction(Barrier(len(qubits)), qubits, ()))
-
+            return self._current_scope().append(
+                CircuitInstruction(Barrier(len(qubits)), qubits, ())
+            )
 
     def delay(
         self,
