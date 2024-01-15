@@ -40,7 +40,6 @@ class StreamHandlerRaiseException(StreamHandler):
 class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
     """Test the basic provider simulator."""
 
-
     def setUp(self):
         super().setUp()
         self.backend = BasicSimulator()

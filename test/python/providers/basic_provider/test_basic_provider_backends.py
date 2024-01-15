@@ -18,7 +18,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestBasicProviderBackends(QiskitTestCase):
-    """Qiskit BasicAer Backends (Object) Tests."""
+    """Qiskit BasicProvider Backends (Object) Tests."""
 
     def setUp(self):
         super().setUp()
@@ -33,7 +33,7 @@ class TestBasicProviderBackends(QiskitTestCase):
     def test_get_backend(self):
         """Test getting a backend from the provider."""
         backend = self.provider.get_backend(name=self.backend_name)
-        self.assertEqual(backend.name(), self.backend_name)
+        self.assertEqual(backend.name, self.backend_name)
 
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names."""

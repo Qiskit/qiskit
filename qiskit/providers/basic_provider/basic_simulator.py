@@ -28,7 +28,6 @@ field, which is a result of measurements for each shot.
 
 from __future__ import annotations
 
-import copy
 import uuid
 import time
 import logging
@@ -41,9 +40,9 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-from qiskit.providers import convert_to_target, Provider
+from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.models import BackendConfiguration, BackendProperties
+from qiskit.providers.models import BackendConfiguration
 from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
@@ -63,8 +62,8 @@ logger = logging.getLogger(__name__)
 class BasicSimulator(BackendV2):
     """Python implementation of a basic (slow, non-efficient) quantum simulator.
 
-    This implementation was originally based on the :class:`.BackendV1` interface, and later
-    migrated to :class:`.BackendV2`.
+    This implementation was originally based on the :class:`.BackendV1` interface,
+    and later migrated to follow :class:`.BackendV2`.
     """
 
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
@@ -82,7 +81,7 @@ class BasicSimulator(BackendV2):
             provider: An optional backwards reference to the
                 :class:`~qiskit.providers.Provider` object that the backend
                 is from.
-            target: An optional target to configure the simulator.∂
+            target: An optional target to configure the simulator.
             fields: kwargs for the values to use to override the default
                 options.
 
