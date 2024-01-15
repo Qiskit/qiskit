@@ -211,7 +211,7 @@ def convert_to_target(
         prop_name_map["measure"] = {}
 
         for qubit_idx in range(configuration.num_qubits):
-            if qubit_idx in faulty_qubits:
+            if filter_faulty and (qubit_idx in faulty_qubits):
                 continue
             qubit_prop = properties.qubit_property(qubit_idx)
             prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(
@@ -223,7 +223,9 @@ def convert_to_target(
         # Map required ops to each operational qubit
         if prop_name_map[op] is None:
             prop_name_map[op] = {
-                (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
+                (q,): None
+                for q in range(configuration.num_qubits)
+                if not filter_faulty or (q not in faulty_qubits)
             }
 
     if defaults:
