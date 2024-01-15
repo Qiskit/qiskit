@@ -3323,16 +3323,14 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits = (
-            # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
-            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
-            if qargs
-            else self.qubits.copy()
-        )
         if qargs:
-            return self.append(Barrier(len(qubits), label=label), qubits, [])
+            # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
+            qubits = tuple({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            return self.append(CircuitInstruction(Barrier(len(qubits), label=label), qubits, ()))
         else:
-            return self._append(Barrier(len(qubits), label=label), qubits, [])
+            qubits = self.qubits.copy()
+            return self._current_scope().append(CircuitInstruction(Barrier(len(qubits)), qubits, ()))
+
 
     def delay(
         self,
