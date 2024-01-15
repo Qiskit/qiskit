@@ -14,9 +14,7 @@
 import math
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule, transpile, assemble
-from qiskit.pulse import Schedule
-from qiskit.qobj import PulseQobj
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeAthens, FakePerth
 from qiskit.utils import optionals
