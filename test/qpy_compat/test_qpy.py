@@ -767,7 +767,7 @@ def generate_circuits(version_parts):
             "acquire_inst_with_kernel_and_disc.qpy"
         ] = generate_acquire_instruction_with_kernel_and_discriminator()
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
-    if version_parts >= (0, 25, 0):
+    if version_parts >= (0, 45, 2):
         output_circuits["clifford.qpy"] = generate_clifford_circuits()
     return output_circuits
 
