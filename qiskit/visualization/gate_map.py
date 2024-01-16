@@ -84,7 +84,6 @@ def plot_gate_map(
         .. plot::
            :include-source:
 
-           from qiskit import QuantumCircuit, execute
            from qiskit.providers.fake_provider import FakeVigoV2
            from qiskit.visualization import plot_gate_map
 
@@ -1247,7 +1246,6 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
         .. plot::
            :include-source:
 
-            from qiskit import QuantumCircuit, execute
             from qiskit.visualization import plot_error_map
             from qiskit.providers.fake_provider import FakeVigoV2
 
