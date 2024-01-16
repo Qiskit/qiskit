@@ -166,9 +166,17 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers import make_data_bin, DataBin, EstimatorPub, EstimatorPubLike
+from ..containers import (
+    make_data_bin,
+    DataBin,
+    EstimatorPub,
+    EstimatorPubLike,
+    PrimitiveResult,
+    PubResult,
+)
 from . import validation
 from .base_primitive import BasePrimitive
+from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
 
@@ -351,7 +359,9 @@ class BaseEstimatorV2:
         return make_data_bin((("evs", NDArray[np.float]), ("stds", NDArray[np.float])), pub.shape)
 
     @abstractmethod
-    def run(self, pubs: Iterable[EstimatorPubLike], precision: float | None = None) -> Job:
+    def run(
+        self, pubs: Iterable[EstimatorPubLike], precision: float | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
         Args:
