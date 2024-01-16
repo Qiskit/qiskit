@@ -46,7 +46,7 @@ class EstimatorPub(ShapedMixin):
         observables: ObservablesArray,
         parameter_values: BindingsArray | None = None,
         precision: float | None = None,
-        validate: bool = False,
+        validate: bool = True,
     ):
         """Initialize an estimator pub.
 
@@ -62,10 +62,7 @@ class EstimatorPub(ShapedMixin):
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
         self._precision = precision
-
-        # For ShapedMixin
         self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
-
         if validate:
             self.validate()
 
@@ -101,14 +98,20 @@ class EstimatorPub(ShapedMixin):
         Returns:
             An estimator pub.
         """
+        # Validate precision kwarg if provided
+        if precision is not None:
+            if not isinstance(precision, Real):
+                raise TypeError(f"precision must be a real number, not {type(precision)}.")
+            if precision < 0:
+                raise ValueError("precision must be non-negative")
         if isinstance(pub, EstimatorPub):
-            if pub / precision is None and precision is not None:
+            if pub.precision is None and precision is not None:
                 cls(
                     circuit=pub.circuit,
                     observables=pub.observables,
                     parameter_values=pub.parameter_values,
                     precision=precision,
-                    validate=False,
+                    validate=False,  # Assume Pub is already validated
                 )
             return pub
         if len(pub) not in [2, 3, 4]:
@@ -125,7 +128,7 @@ class EstimatorPub(ShapedMixin):
             observables=observables,
             parameter_values=parameter_values,
             precision=precision,
-            validate=False,
+            validate=True,
         )
 
     def validate(self):
@@ -140,7 +143,7 @@ class EstimatorPub(ShapedMixin):
             if not isinstance(self.precision, Real):
                 raise TypeError(f"precision must be a real number, not {type(self.precision)}.")
             if self.precision < 0:
-                raise ValueError("precisions must be non-negative.")
+                raise ValueError("precision must be non-negative.")
 
         # Cross validate circuits and observables
         for i, observable in enumerate(self.observables):
