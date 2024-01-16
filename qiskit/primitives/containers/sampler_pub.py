@@ -47,7 +47,7 @@ class SamplerPub(ShapedMixin):
         Args:
             circuit: A quantum circuit.
             parameter_values: A bindings array.
-            shots: A specific number of shots to run with. This value takes 
+            shots: A specific number of shots to run with. This value takes
                 precedence over any value owed by or supplied to a sampler.
             validate: If ``True``, the input data is validated during initialization.
         """
@@ -72,7 +72,7 @@ class SamplerPub(ShapedMixin):
     @property
     def shots(self) -> int | None:
         """An specific number of shots to run with (optional).
-        
+
         This value takes precedence over any value owed by or supplied to a sampler.
         """
         return self._shots
