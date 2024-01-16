@@ -162,24 +162,6 @@ class ParameterSetter(NodeVisitor):
 
     # Mid layer: Assign parameters to instructions
 
-    def visit_Call(self, node: instructions.Call):
-        """Assign parameters to ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps program, i.e. parametrized schedule,
-            and bound parameters until execution. The parameter assignment operation doesn't
-            immediately override its operand data.
-        """
-        if node.is_parameterized():
-            new_table = copy(node.arguments)
-
-            for parameter, value in new_table.items():
-                if isinstance(value, ParameterExpression):
-                    new_table[parameter] = self._assign_parameter_expression(value)
-            node.arguments = new_table
-
-        return node
-
     def visit_Instruction(self, node: instructions.Instruction):
         """Assign parameters to general pulse instruction.
 
@@ -299,14 +281,6 @@ class ParameterGetter(NodeVisitor):
                 self.parameters |= param.parameters
 
     # Mid layer: Get parameters from instructions
-
-    def visit_Call(self, node: instructions.Call):
-        """Get parameters from ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps parameters and program.
-        """
-        self.parameters |= node.parameters
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.

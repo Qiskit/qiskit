@@ -821,8 +821,7 @@ class TestSubroutineCall(TestBuilder):
         reference += instructions.Delay(20, d1)
 
         ref_sched = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            ref_sched += pulse.instructions.Call(reference)
+        ref_sched += reference
 
         with pulse.build() as schedule:
             with pulse.align_right():
