@@ -220,15 +220,16 @@ class BindingsArray(ShapedMixin):
                 pos += size
         elif self.kwvals:
             # use the order of the provided parameters
-            parameters = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
+            parameters = list(parameters)
             if len(parameters) != (num_kwval := sum(arr.shape[-1] for arr in self.kwvals.values())):
                 raise ValueError(f"Expected {num_kwval} parameters but {len(parameters)} received.")
 
+            idx_lookup = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
             for arr_params, arr in self.kwvals.items():
                 try:
-                    idxs = [parameters[_param_name(param)] + pos for param in arr_params]
+                    idxs = [idx_lookup[_param_name(param)] + pos for param in arr_params]
                 except KeyError as ex:
-                    missing = next(p for p in map(_param_name, arr_params) if p not in parameters)
+                    missing = next(p for p in map(_param_name, arr_params) if p not in idx_lookup)
                     raise ValueError(f"Could not find placement for parameter '{missing}'.") from ex
                 ret[..., idxs] = arr
 

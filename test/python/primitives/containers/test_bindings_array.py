@@ -94,6 +94,10 @@ class BindingsArrayTestCase(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 1 received"):
             ba.as_array([args_param("b")])
 
+        ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
+        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 3 received"):
+            ba.as_array([args_param("b"), args_param("a"), args_param("b")])
+
         with self.assertRaisesRegex(ValueError, "Could not find placement for parameter 'a'"):
             ba.as_array([args_param("b"), args_param("c")])
 
