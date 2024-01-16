@@ -61,24 +61,6 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         self.log_output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.log_output))
 
-    def assertExecuteLog(self, log_msg):
-        """Runs execute and check for logs containing specified message"""
-        shots = 100
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(4, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        with self.assertWarns(DeprecationWarning):
-            execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
-        self.log_output.seek(0)
-        # Filter unrelated log lines
-        output_lines = self.log_output.readlines()
-        execute_log_lines = [x for x in output_lines if log_msg in x]
-        self.assertTrue(len(execute_log_lines) > 0)
-
-    def test_submission_log_time(self):
-        """Check Total Job Submission Time is logged"""
-        self.assertExecuteLog("Total Job Submission Time")
-
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
