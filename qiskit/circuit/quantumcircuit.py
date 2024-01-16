@@ -4574,68 +4574,6 @@ class QuantumCircuit:
 
         return self.append(gate, qubits, [])
 
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
-        pending=True,
-    )
-    def ucry(
-        self,
-        angle_list: list[float],
-        q_controls: Sequence[QubitSpecifier],
-        q_target: QubitSpecifier,
-    ):
-        r"""Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
-
-        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
-
-        Args:
-            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-            q_controls (Sequence[QubitSpecifier]): list of k control qubits
-                (or empty list if no controls). The control qubits are ordered according to their
-                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
-                (with ``q = QuantumRegister(2)``), the rotation ``Ry(a_0)`` is performed if ``q[0]``
-                and ``q[1]`` are in the state zero, the rotation ``Ry(a_1)`` is performed if ``q[0]``
-                is in the state one and ``q[1]`` is in the state zero, and so on
-            q_target (QubitSpecifier): target qubit, where we act on with
-                the single-qubit rotation gates
-
-        Returns:
-            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
-
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.ucry import UCRYGate
-
-        if isinstance(q_controls, QuantumRegister):
-            q_controls = q_controls[:]
-        if isinstance(q_target, QuantumRegister):
-            q_target = q_target[:]
-            if len(q_target) == 1:
-                q_target = q_target[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if q_controls has type "list"
-        if not isinstance(angle_list, list):
-            raise QiskitError("The angles must be provided as a list.")
-        num_contr = math.log2(len(angle_list))
-        if num_contr < 0 or not num_contr.is_integer():
-            raise QiskitError(
-                "The number of controlled rotation gates is not a non-negative power of 2."
-            )
-        # Check if number of control qubits does correspond to the number of rotations
-        if num_contr != len(q_controls):
-            raise QiskitError(
-                "Number of controlled rotations does not correspond to the number of control-qubits."
-            )
-        return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
-
     @deprecate_func(
         since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
