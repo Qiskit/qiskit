@@ -19,18 +19,18 @@ from typing import Generic, TypeVar, Union
 from ..containers import PrimitiveResult
 from .base_result import BasePrimitiveResult
 
-Result = TypeVar("Result", bound=Union[BasePrimitiveResult, PrimitiveResult])
-Status = TypeVar("Status")
+ResultT = TypeVar("ResultT", bound=Union[BasePrimitiveResult, PrimitiveResult])
+StatusT = TypeVar("StatusT")
 
 
-class BasePrimitiveJob(ABC, Generic[Result, Status]):
+class BasePrimitiveJob(ABC, Generic[ResultT, StatusT]):
     """Primitive job abstract base class."""
 
     def __init__(self, job_id: str, **kwargs) -> None:
         """Initializes the primitive job.
 
         Args:
-            job_id: a unique id in the context of the primitive used to run the job.
+            job_id: A unique id in the context of the primitive used to run the job.
             kwargs: Any key value metadata to associate with this job.
         """
         self._job_id = job_id
@@ -41,12 +41,12 @@ class BasePrimitiveJob(ABC, Generic[Result, Status]):
         return self._job_id
 
     @abstractmethod
-    def result(self) -> Result:
+    def result(self) -> ResultT:
         """Return the results of the job."""
         raise NotImplementedError("Subclass of BasePrimitiveJob must implement `result` method.")
 
     @abstractmethod
-    def status(self) -> Status:
+    def status(self) -> StatusT:
         """Return the status of the job."""
         raise NotImplementedError("Subclass of BasePrimitiveJob must implement `status` method.")
 

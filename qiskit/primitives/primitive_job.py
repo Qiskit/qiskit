@@ -16,20 +16,16 @@ Job implementation for the reference implementations of Primitives.
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Generic, Optional, TypeVar, Union
+from typing import Callable, Optional
 
 from qiskit.providers import JobError, JobStatus, JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.utils.deprecation import deprecate_func
 
-from .base.base_primitive_job import BasePrimitiveJob
-from .base.base_result import BasePrimitiveResult
-from .containers import PrimitiveResult
-
-Result = TypeVar("Result", bound=Union[BasePrimitiveResult, PrimitiveResult])
+from .base.base_primitive_job import BasePrimitiveJob, ResultT
 
 
-class PrimitiveJob(BasePrimitiveJob[Result, JobStatus], Generic[Result]):
+class PrimitiveJob(BasePrimitiveJob[ResultT, JobStatus]):
     """
     Primitive job class for the reference implementations of Primitives.
     """
@@ -37,7 +33,7 @@ class PrimitiveJob(BasePrimitiveJob[Result, JobStatus], Generic[Result]):
     def __init__(self, function, *args, **kwargs):
         """
         Args:
-            function: a callable function to execute the job.
+            function: A callable function to execute the job.
         """
         super().__init__(str(uuid.uuid4()))
         self._future = None
@@ -53,7 +49,7 @@ class PrimitiveJob(BasePrimitiveJob[Result, JobStatus], Generic[Result]):
         self._future = executor.submit(self._function, *self._args, **self._kwargs)
         executor.shutdown(wait=False)
 
-    def result(self) -> Result:
+    def result(self) -> ResultT:
         self._check_submitted()
         return self._future.result()
 
