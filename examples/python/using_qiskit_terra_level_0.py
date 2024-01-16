@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to use Qiskit at level 0 (no optimization).
+Example showing how to use Qiskit at introduction level.
 
 This example shows the most basic way to user Terra. It builds some circuits
 and runs them on both the BasicAer (local Qiskit provider) or IBM Quantum (remote IBM Quantum provider).
