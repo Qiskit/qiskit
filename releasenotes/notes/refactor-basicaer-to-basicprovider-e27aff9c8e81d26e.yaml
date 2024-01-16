@@ -13,7 +13,7 @@ features:
   - |
     The :class:`.Target` interface and transpiler pipeline now support
     target definitions with ``num_qubits=None``. This is to support the
-    creation of :class:`.Target`-based simulators with a flexible number of qubits.
+    creation of :class:`.Target`\-based simulators with a flexible number of qubits.
     A target with ``num_qubits=None`` will exclusively contain global
     instructions (with ``qargs=None``) and when given to the transpiler,
     it is expected that the transpiler will not resize the circuit.
@@ -24,7 +24,7 @@ upgrade:
   - |
     The ``qiskit.providers.basicaer`` module and all of its classes have been
     removed following their deprecation on the 0.46 release. They have been
-    replaced by the :mod:`qiskit.quantum_info` module and the new 
+    replaced by the :mod:`qiskit.quantum_info` module and the new
     :mod:`qiskit.providers.basic_provider` module. The migration from using
     ``BasicAer`` to ``BasicProvider`` can be performed as follows::
 
