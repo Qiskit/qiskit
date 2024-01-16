@@ -181,7 +181,7 @@ class BindingsArray(ShapedMixin):
 
         If ``parameters`` are provided, then they determine the order of any :attr:`~kwvals`
         present in this bindings array. If :attr:`~vals` are present in addition to :attr:`~kwvals`,
-        then it is up to the user to ensure that their provided ``parameters`` account for this.
+        then they appear before the :attr:`~kwvals` always.
 
         Parameters:
             parameters: Optional parameters that determine the order of the output.
@@ -191,8 +191,7 @@ class BindingsArray(ShapedMixin):
 
         Raises:
             RuntimeError: If these bindings contain multiple dtypes.
-            KeyError: If ``parameters`` are provided that are not a superset of those in this
-                bindings array.
+            ValueError: If ``parameters`` are provided, but do not match those found in ``kwvals``.
         """
         dtypes = {arr.dtype for arr in self.vals}
         dtypes.update(arr.dtype for arr in self.kwvals.values())
@@ -222,13 +221,15 @@ class BindingsArray(ShapedMixin):
         elif self.kwvals:
             # use the order of the provided parameters
             parameters = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
+            if len(parameters) != (num_kwval := sum(arr.shape[-1] for arr in self.kwvals.values())):
+                raise ValueError(f"Expected {num_kwval} parameters but {len(parameters)} received.")
+
             for arr_params, arr in self.kwvals.items():
                 try:
-                    idxs = [parameters[_param_name(param)] for param in arr_params]
+                    idxs = [parameters[_param_name(param)] + pos for param in arr_params]
                 except KeyError as ex:
-                    raise KeyError(
-                        "This bindings array has a parameter absent from the provided parameters."
-                    ) from ex
+                    missing = next(p for p in map(_param_name, arr_params) if p not in parameters)
+                    raise ValueError(f"Could not find placement for parameter '{missing}'.") from ex
                 ret[..., idxs] = arr
 
         return ret

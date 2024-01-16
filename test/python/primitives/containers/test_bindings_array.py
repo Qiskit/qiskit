@@ -85,14 +85,17 @@ class BindingsArrayTestCase(QiskitTestCase):
 
     @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
     @ddt.unpack
-    def test_as_array_missing_param_raises(self, kwvals_str, args_str):
+    def test_as_array_bad_param_raises(self, kwvals_str, args_str):
         """Test as_array() raises when a parameter key is missing."""
         kwval_param = lambda param: Parameter(param) if kwvals_str else param
         args_param = lambda param: Parameter(param) if args_str else param
 
         ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
-        with self.assertRaises(KeyError):
+        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 1 received"):
             ba.as_array([args_param("b")])
+
+        with self.assertRaisesRegex(ValueError, "Could not find placement for parameter 'a'"):
+            ba.as_array([args_param("b"), args_param("c")])
 
     def test_as_array_vals_only(self):
         """Test as_array() works when only vals are present."""
@@ -154,7 +157,7 @@ class BindingsArrayTestCase(QiskitTestCase):
         expected = np.concatenate([arr_a, arr_b, arr_c], axis=2)
         np.testing.assert_allclose(ba.as_array(), expected)
 
-        params = map(args_param, "xxxdabec")
+        params = map(args_param, "dabec")
         expected = [arr_c[..., 1], arr_b[..., 0], arr_b[..., 1], arr_c[..., 2], arr_c[..., 0]]
         expected = np.concatenate([arr_a] + [arr[..., None] for arr in expected], axis=2)
         np.testing.assert_allclose(ba.as_array(params), expected)
