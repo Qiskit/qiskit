@@ -395,15 +395,6 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
     )
-    def header(cls) -> str:
-        """The OpenQASM 2.0 header statement."""
-        return "OPENQASM 2.0;"
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
     def extension_lib(cls) -> str:
         """The standard OpenQASM 2 import statement."""
         return 'include "qelib1.inc";'
