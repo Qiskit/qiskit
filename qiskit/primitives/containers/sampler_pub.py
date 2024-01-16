@@ -35,8 +35,6 @@ class SamplerPub(ShapedMixin):
     if ``shots=None`` the number of run shots is determined by the sampler.
     """
 
-    __slots__ = ("_circuit", "_parameter_values", "_shots")
-
     def __init__(
         self,
         circuit: QuantumCircuit,
@@ -49,8 +47,9 @@ class SamplerPub(ShapedMixin):
         Args:
             circuit: A quantum circuit.
             parameter_values: A bindings array.
-            shots: A specific number of shots to run with.
-            validate: If True, the input data is validated during initialization.
+            shots: A specific number of shots to run with. This value takes 
+                precedence over any value owed by or supplied to a sampler.
+            validate: If ``True``, the input data is validated during initialization.
         """
         super().__init__()
         self._circuit = circuit
@@ -72,7 +71,10 @@ class SamplerPub(ShapedMixin):
 
     @property
     def shots(self) -> int | None:
-        """An specific number of shots to run with (optional)."""
+        """An specific number of shots to run with (optional).
+        
+        This value takes precedence over any value owed by or supplied to a sampler.
+        """
         return self._shots
 
     @classmethod

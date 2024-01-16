@@ -18,12 +18,14 @@ Overview of SamplerV2
 :class:`~BaseSamplerV2` is a primitive that samples outputs of quantum circuits.
 
 Following construction, a sampler is used by calling its :meth:`~.BaseSamplerV2.run` method
-with a list of pubs (Primitive Unified Blocks). Each pub contains two values that, together,
+with a list of pubs (Primitive Unified Blocks). Each pub contains values that, together,
 define a computational unit of work for the sampler to complete:
 
 * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
 
 * A collection parameter value sets to bind the circuit against if it is parametric.
+
+* Optionally, the number of shots to sample, determined in the run method if not set.
 
 Running a sampler returns a :class:`~qiskit.provider.JobV1` object, where calling
 the method :meth:`~qiskit.provider.JobV1.result` results in output samples and metadata
@@ -56,8 +58,8 @@ Here is an example of how a sampler is used.
     # initialization of the sampler
     sampler = Sampler()
 
-    # run a sampler job on the Bell circuit
-    job = sampler.run([bell])
+    # collect 128 shots from the Bell circuit
+    job = sampler.run([bell], shots=128)
     job_result = job.result()
     print(f"The primitive-job finished with result {job_result}"))
 
@@ -267,9 +269,8 @@ class BaseSamplerV2:
 
     A Sampler returns samples of quantum circuit outputs.
 
-    A Sampler implementation must treat the :meth:`.run` method ``shots=None`` kwarg
-    as using a default ``shots`` value.  The default value and methods to set it can
-    be determined by the Sampler implementor.
+    All sampler implementations must implement default value for the ``shots`` in the
+     :meth:`.run` method if ``None`` is given both as a ``kwarg`` and in all of the pubs.
     """
 
     @abstractmethod
@@ -280,7 +281,7 @@ class BaseSamplerV2:
             pubs: An iterable of pub-like objects. For example, a list of circuits
                   or tuples ``(circuit, parameter_values)``.
             shots: The total number of shots to sample for each :class:`.SamplerPub`.
-                   that does not specify its own shots. If None, the primitive's
+                   that does not specify its own shots. If ``None``, the primitive's
                    default shots value will be used, which can vary by implementation.
 
         Returns:
