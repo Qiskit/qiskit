@@ -15,7 +15,7 @@
 
 import copy
 
-from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
 try:

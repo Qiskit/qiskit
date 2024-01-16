@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 # When expanding the list of supported gates this needs to updated in
 # lockstep with the VALID_BASES constant in src/euler_one_qubit_decomposer.rs
-# and the global variables in qiskit/quantum_info/synthesis/one_qubit_decompose.py
+# and the global variables in one_qubit_decompose.py
 NAME_MAP = {
     "u": UGate,
     "u1": U1Gate,

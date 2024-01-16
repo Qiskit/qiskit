@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/xx_polytope.py .
+Tests for synthesis/xx_decompose/xx_polytope.py .
 """
 
 import random
