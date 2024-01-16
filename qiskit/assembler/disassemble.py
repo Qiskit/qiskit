@@ -36,20 +36,6 @@ CircuitModule = NewType(
 # and a header dictionary.
 PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any], Dict[str, Any]])
 
-# Prevent the disassembler from accessing deprecated circuit methods. This can happen for
-# gates where the name of the gate matches a circuit method (e.g. Isometry.name is "isometry")
-# and the circuit attribute is also QuantumCircuit.isometry
-_DEPRECATED_CIRCUIT_METHODS = {
-    "isometry",
-    "snapshot",
-    "ucrx",
-    "ucry",
-    "ucrz",
-    "squ",
-    "diagonal",
-    "hamiltonian",
-}
-
 
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
@@ -179,9 +165,7 @@ def _experiments_to_circuits(qobj):
                     clbits.append(creg_dict[clbit_label[0]][clbit_label[1]])
             except Exception:  # pylint: disable=broad-except
                 pass
-            # TODO remove the check that name is not in the deprecated circuit methods
-            # once the methods have been removed
-            if hasattr(circuit, name) and name not in _DEPRECATED_CIRCUIT_METHODS:
+            if hasattr(circuit, name):
                 instr_method = getattr(circuit, name)
                 if i.name == "initialize":
                     _inst = instr_method(params, qubits)
