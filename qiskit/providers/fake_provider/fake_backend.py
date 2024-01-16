@@ -574,7 +574,7 @@ class FakeBackend(BackendV1):
             if self.sim is None:
                 self._setup_sim()
             if not _optionals.HAS_AER:
-                warnings.warn("Aer not found using BasicProvider and no noise", RuntimeWarning)
+                warnings.warn("Aer not found using BasicSimulator and no noise", RuntimeWarning)
             self.sim._options = self._options
             job = self.sim.run(circuits, **kwargs)
         return job

@@ -1509,7 +1509,7 @@ def target_to_backend_properties(target: Target):
                     )
         else:
             qubit_props: dict[int, Any] = {}
-            if target.num_qubits:
+            if target.num_qubits is not None:
                 qubit_props = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:

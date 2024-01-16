@@ -35,7 +35,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_builtin_basic_simulator(self):
+    def test_qobj_identifiers(self):
         qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))

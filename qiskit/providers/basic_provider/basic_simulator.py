@@ -21,7 +21,7 @@ The simulator is run using
 
    BasicSimulator().run(run_input)
 
-Where the input is a ``QuantumCircuit`` object and the output is a ``BasicProviderJob`` object,
+Where the input is a :class:`.QuantumCircuit` object and the output is a :class:`.BasicProviderJob` object,
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 
 
 class BasicSimulator(BackendV2):
-    """Python implementation of a basic (slow, non-efficient) quantum simulator.
+    """Python implementation of a basic (non-efficient) quantum simulator.
 
     This implementation was originally based on the :class:`.BackendV1` interface,
     and later migrated to follow :class:`.BackendV2`.
@@ -204,6 +204,9 @@ class BasicSimulator(BackendV2):
             conditional=True,
             open_pulse=False,
             memory=True,
+            # This max_shots is used by the assembler, setting it to 0
+            # to maintain the behavior from the previous implementation.
+            # Not related to the actual shots set in the backend options
             max_shots=0,
             coupling_map=None,
             description="A python simulator for quantum experiments",
