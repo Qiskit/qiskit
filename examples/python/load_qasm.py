@@ -13,7 +13,7 @@
 """Example on how to load a file into a QuantumCircuit."""
 
 from qiskit import QuantumCircuit
-from qiskit import execute, BasicProvider
+from qiskit import BasicProvider
 
 circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
 print(circ)
@@ -23,7 +23,7 @@ sim_backend = BasicProvider.get_backend("basic_simulator")
 
 
 # Compile and run the Quantum circuit on a local simulator backend
-job_sim = execute(circ, sim_backend)
+job_sim = sim_backend.run(circ)
 sim_result = job_sim.result()
 
 # Show the results

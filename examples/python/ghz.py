@@ -15,8 +15,7 @@ GHZ state example. It also compares running on experiment and simulator.
 """
 
 from qiskit import QuantumCircuit
-from qiskit import BasicProvider, execute
-
+from qiskit import BasicProvider, transpile
 
 ###############################################################
 # Make a quantum circuit for the GHZ state.
@@ -35,7 +34,7 @@ for i in range(num_qubits):
     qc.measure(i, i)
 
 sim_backend = BasicProvider.get_backend("basic_simulator")
-job = execute(qc, sim_backend, shots=1024)
+job = sim_backend.run(transpile(qc, sim_backend), shots=1024)
 result = job.result()
 print("Basic simulator : ")
 print(result.get_counts(qc))

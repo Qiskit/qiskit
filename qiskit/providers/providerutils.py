@@ -11,17 +11,13 @@
 # that they have been altered from the originals.
 
 """Utilities for providers."""
-from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-
-from qiskit.providers.backend import Backend
 
 logger = logging.getLogger(__name__)
 
 
-def filter_backends(backends: list[Backend], filters: Callable = None, **kwargs) -> list[Backend]:
+def filter_backends(backends, filters=None, **kwargs):
     """Return the backends matching the specified filtering.
 
     Filter the `backends` list by their `configuration` or `status`
@@ -69,9 +65,7 @@ def filter_backends(backends: list[Backend], filters: Callable = None, **kwargs)
     return backends
 
 
-def resolve_backend_name(
-    name: str, backends: list[Backend], deprecated: dict[str, str], aliased: dict[str, list[str]]
-) -> str:
+def resolve_backend_name(name, backends, deprecated, aliased):
     """Resolve backend name from a deprecated name or an alias.
 
     A group will be resolved in order of member priorities, depending on

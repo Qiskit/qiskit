@@ -114,16 +114,3 @@ class TestBuiltinPlugins(QiskitTestCase):
         backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
-
-    @combine(
-        optimization_level=list(range(4)),
-    )
-    def test_unitary_synthesis_plugins(self, optimization_level):
-        """Test unitary synthesis plugins"""
-        backend = BasicSimulator()
-        with self.assertRaises(TranspilerError):
-            _ = generate_preset_pass_manager(
-                optimization_level=optimization_level,
-                backend=backend,
-                unitary_synthesis_method="not a method",
-            )

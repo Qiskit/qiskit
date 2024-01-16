@@ -80,7 +80,7 @@ class TestPassManagerConfig(QiskitTestCase):
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
 
-    def basic_simulator_backend_v1(self):
+    def test_simulator_backend_v1(self):
         """Test that from_backend() works with backendv1 simulator."""
         backend = BasicSimulator()
         config = PassManagerConfig.from_backend(backend)
@@ -114,7 +114,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	sx(0,): 7.111111111111111e-08 s
 	x(0,): 7.111111111111111e-08 s
 	measure(0,): 4.977777777777777e-06 s
-	
+
 	backend_properties: {'backend_name': 'ibmq_armonk',
 	 'backend_version': '2.4.3',
 	 'gates': [{'gate': 'id',

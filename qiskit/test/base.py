@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,12 +28,11 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-from qiskit.utils.parallel import get_platform_parallel_default
-from qiskit.exceptions import QiskitWarning
+from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
-
+from .utils import Path, setup_test_logging
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 
@@ -98,6 +97,17 @@ class BaseQiskitTestCase(BaseTestCase):
                 "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__teardown_called = True
+
+    @staticmethod
+    def _get_resource_path(filename, path=Path.TEST):
+        """Get the absolute path to a resource.
+        Args:
+            filename (string): filename or relative path to the resource.
+            path (Path): path used as relative to the filename.
+        Returns:
+            str: the absolute path to the resource.
+        """
+        return os.path.normpath(os.path.join(path.value, filename))
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -179,31 +189,20 @@ class QiskitTestCase(BaseQiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Determines if the TestCase is using IBMQ credentials.
+        cls.using_ibmq_credentials = False
         # Set logging to file and stdout if the LOG_LEVEL envar is set.
         cls.log = logging.getLogger(cls.__name__)
-
-        if log_level := os.getenv("LOG_LEVEL"):
-            log_fmt = f"{cls.log.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
-            formatter = logging.Formatter(log_fmt)
-            file_handler = logging.FileHandler(f"{os.path.splitext(inspect.getfile(cls))[0]}.log")
-            file_handler.setFormatter(formatter)
-            cls.log.addHandler(file_handler)
-
-            if os.getenv("STREAM_LOG"):
-                # Set up the stream handler.
-                stream_handler = logging.StreamHandler()
-                stream_handler.setFormatter(formatter)
-                cls.log.addHandler(stream_handler)
-
-            # Set the logging level from the environment variable, defaulting
-            # to INFO if it is not a valid level.
-            level = logging._nameToLevel.get(log_level, logging.INFO)
-            cls.log.setLevel(level)
+        if os.getenv("LOG_LEVEL"):
+            filename = "%s.log" % os.path.splitext(inspect.getfile(cls))[0]
+            setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
-        warnings.filterwarnings("error", category=QiskitWarning)
 
         allow_DeprecationWarning_modules = [
+            "test.python.pulse.test_parameters",
+            "test.python.pulse.test_transforms",
+            "test.python.circuit.test_gate_power",
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
             "test.python.quantum_info.operators.symplectic.test_legacy_pauli",
@@ -217,6 +216,8 @@ class QiskitTestCase(BaseQiskitTestCase):
             "qiskit.pulse.instructions.play",
             "qiskit.pulse.library.parametric_pulses",
             "qiskit.quantum_info.operators.symplectic.pauli",
+            "test.python.dagcircuit.test_dagcircuit",
+            "importlib_metadata",
         ]
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
@@ -225,11 +226,34 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
             r"The property ``qiskit\.circuit\.bit\.Bit\.(register|index)`` is deprecated.*",
+            r"The CXDirection pass has been deprecated",
             # Caused by internal scikit-learn scipy usage
             r"The 'sym_pos' keyword is deprecated and should be replaced by using",
+            # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
+            # These are due to be fixed by jupyter_client 8, see:
+            #   - https://github.com/jupyter/jupyter_client/issues/913
+            #   - https://github.com/jupyter/jupyter_client/pull/842
+            r"zmq\.eventloop\.ioloop is deprecated in pyzmq .*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
+
+        allow_aer_DeprecationWarning_message = [
+            # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
+            "Setting metadata to None.*",
+            # and this one once Qiskit/qiskit-aer#1945 is merged and released.
+            r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
+            r"deprecated as of qiskit 0\.45\.0\. It will be removed no earlier than 3 "
+            r"months after the release date\. Use QuantumCircuit\.id as direct replacement\.",
+            # This warning will be fixed once Qiskit/qiskit-aer#2023 is released.
+            "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be removed "
+            "in the Qiskit 1.0 release.",
+        ]
+
+        for msg in allow_aer_DeprecationWarning_message:
+            warnings.filterwarnings(
+                "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
+            )
 
 
 class FullQiskitTestCase(QiskitTestCase):

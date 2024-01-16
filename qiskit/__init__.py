@@ -14,6 +14,7 @@
 
 """Main Qiskit public functionality."""
 
+import pkgutil
 import sys
 import warnings
 
@@ -25,7 +26,6 @@ import qiskit._accelerate
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
-sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
@@ -69,15 +69,29 @@ from qiskit import user_config as _user_config
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 
+# Allow extending this namespace. Please note that currently this line needs
+# to be placed *before* the wrapper imports or any non-import code AND *before*
+# importing the package you want to allow extensions for (in this case `backends`).
+
+# Support for the deprecated extending this namespace.
+# Remove this after 0.46.0 release
+__path__ = pkgutil.extend_path(__path__, __name__)
+
 # Please note these are global instances, not modules.
 from qiskit.providers.basic_provider import BasicProvider
 
 _config = _user_config.get_config()
 
+# Moved to after IBMQ and Aer imports due to import issues
+# with other modules that check for IBMQ (tools)
 from qiskit.execute_function import execute
 from qiskit.compiler import transpile, assemble, schedule, sequence
 
 from .version import __version__
+from .version import QiskitVersion
+
+
+__qiskit_version__ = QiskitVersion()
 
 
 class AerWrapper:
@@ -88,34 +102,32 @@ class AerWrapper:
 
     def __bool__(self):
         if self.aer is None:
+            warnings.warn(
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError:
                 return False
         return True
 
     def __getattr__(self, attr):
         if not self.aer:
+            warnings.warn(
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"
@@ -123,13 +135,63 @@ class AerWrapper:
         return getattr(self.aer, attr)
 
 
+class IBMQWrapper:
+    """Lazy loading wrapper for IBMQ provider."""
+
+    def __init__(self):
+        self.ibmq = None
+
+    def __bool__(self):
+        if self.ibmq is None:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            try:
+                from qiskit.providers import ibmq
+
+                self.ibmq = ibmq.IBMQ
+            except ImportError:
+                return False
+        return True
+
+    def __getattr__(self, attr):
+        if not self.ibmq:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                "'qiskit_ibm_provider.IBMProvider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            try:
+                from qiskit.providers import ibmq
+
+                self.ibmq = ibmq.IBMQ
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
+                ) from ex
+        return getattr(self.ibmq, attr)
+
+
 Aer = AerWrapper()
+IBMQ = IBMQWrapper()
 
 __all__ = [
     "Aer",
     "AncillaRegister",
     "BasicProvider",
     "ClassicalRegister",
+    "IBMQ",
     "MissingOptionalLibraryError",
     "QiskitError",
     "QuantumCircuit",

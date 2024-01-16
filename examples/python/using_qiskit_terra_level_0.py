@@ -13,8 +13,8 @@
 """
 Example showing how to use Qiskit-Terra at level 0 (novice).
 
-This example shows the most basic way to user Terra. It builds some circuits
-and runs them on both the BasicProvider(local Qiskit provider).
+This example shows the most basic way to use Qiskit. It builds some circuits
+and runs them on both the BasicProvider (local Qiskit provider) or IBM Quantum (remote IBM Quantum provider).
 
 To control the compile parameters we have provided a transpile function which can be used
 as a level 1 user.
@@ -23,7 +23,7 @@ as a level 1 user.
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit
-from qiskit import execute, BasicProvider
+from qiskit import transpile, BasicProvider
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
@@ -41,7 +41,8 @@ print("(BasicProvider Backends)")
 print(BasicProvider.backends())
 
 # running the job
-job_sim = execute([qc1, qc2], BasicProvider.get_backend("basic_simulator"))
+sim_backend = BasicProvider.get_backend("basic_simulator")
+job_sim = sim_backend.run(transpile([qc1, qc2], sim_backend))
 sim_result = job_sim.result()
 
 # Show the results
