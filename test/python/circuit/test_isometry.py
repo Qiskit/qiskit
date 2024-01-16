@@ -55,8 +55,8 @@ class TestIsometry(QiskitTestCase):
         q = QuantumRegister(num_q_output)
         qc = QuantumCircuit(q)
 
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.iso(iso, q[:num_q_input], q[num_q_input:])
+        iso_gate = Isometry(iso, 0, 0)
+        qc.append(iso_gate, q)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
