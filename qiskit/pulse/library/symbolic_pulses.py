@@ -31,7 +31,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
-from qiskit.utils.deprecation import deprecate_arg
 
 
 def _lifted_gaussian(
@@ -598,19 +597,6 @@ class ScalableSymbolicPulse(SymbolicPulse):
     :math:'\text{amp}\times\exp\left(i\times\text{angle}\right)' is compared.
     """
 
-    @deprecate_arg(
-        "amp",
-        deprecation_description=(
-            "Setting ``amp`` to a complex in the ScalableSymbolicPulse constructor"
-        ),
-        additional_msg=(
-            "Instead, use a float for ``amp`` (for the magnitude) and a float for ``angle``"
-        ),
-        since="0.25.0",
-        package_name="qiskit-terra",
-        pending=False,
-        predicate=lambda amp: isinstance(amp, complex),
-    )
     def __init__(
         self,
         pulse_type: str,
@@ -644,14 +630,12 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 creates a full-waveform.
 
         Raises:
-            PulseError: If both `amp` is complex and `angle` is not `None` or 0.
+            PulseError: If ``amp`` is complex.
         """
-        # This should be removed once complex amp support is removed.
-        if isinstance(amp, complex) and angle is not None and angle != 0:
-            raise PulseError("amp can't be complex with angle not None or 0")
-
-        if angle is None:
-            angle = 0
+        if isinstance(amp, complex):
+            raise PulseError(
+                "amp represents the magnitude of the complex amplitude and can't be complex"
+            )
 
         if not isinstance(parameters, dict):
             parameters = {"amp": amp, "angle": angle}
@@ -753,7 +737,7 @@ class Gaussian(metaclass=_PulseType):
         duration: int | ParameterValueType,
         amp: ParameterValueType,
         sigma: ParameterValueType,
-        angle: ParameterValueType | None = None,
+        angle: ParameterValueType = 0.0,
         name: str | None = None,
         limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
@@ -762,7 +746,6 @@ class Gaussian(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian envelope.
-                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             angle: The angle of the complex amplitude of the Gaussian envelope. Default value 0.
@@ -847,7 +830,7 @@ class GaussianSquare(metaclass=_PulseType):
         amp: ParameterValueType,
         sigma: ParameterValueType,
         width: ParameterValueType | None = None,
-        angle: ParameterValueType | None = None,
+        angle: ParameterValueType = 0.0,
         risefall_sigma_ratio: ParameterValueType | None = None,
         name: str | None = None,
         limit_amplitude: bool | None = None,
@@ -857,7 +840,6 @@ class GaussianSquare(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the Gaussian and square pulse.
-                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
@@ -1379,7 +1361,7 @@ class Drag(metaclass=_PulseType):
         amp: ParameterValueType,
         sigma: ParameterValueType,
         beta: ParameterValueType,
-        angle: ParameterValueType | None = None,
+        angle: ParameterValueType = 0.0,
         name: str | None = None,
         limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
@@ -1388,7 +1370,6 @@ class Drag(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the DRAG envelope.
-                    Complex amp support is deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
@@ -1445,7 +1426,7 @@ class Constant(metaclass=_PulseType):
         cls,
         duration: int | ParameterValueType,
         amp: ParameterValueType,
-        angle: ParameterValueType | None = None,
+        angle: ParameterValueType = 0.0,
         name: str | None = None,
         limit_amplitude: bool | None = None,
     ) -> ScalableSymbolicPulse:
@@ -1454,7 +1435,6 @@ class Constant(metaclass=_PulseType):
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
             amp: The magnitude of the amplitude of the square envelope.
-                    Complex amp support is deprecated.
             angle: The angle of the complex amplitude of the square envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
