@@ -5703,8 +5703,6 @@ class QuantumCircuit:
         return 0  # If there are no instructions over bits
 
 
-# isometry is an alias for iso
-QuantumCircuit.isometry = QuantumCircuit.iso
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

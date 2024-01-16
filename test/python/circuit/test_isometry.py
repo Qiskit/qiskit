@@ -54,7 +54,6 @@ class TestIsometry(QiskitTestCase):
         num_q_input = int(np.log2(iso.shape[1]))
         q = QuantumRegister(num_q_output)
         qc = QuantumCircuit(q)
-
         iso_gate = Isometry(iso, 0, 0)
         qc.append(iso_gate, q)
 
@@ -95,10 +94,8 @@ class TestIsometry(QiskitTestCase):
         num_q_input = int(np.log2(iso.shape[1]))
         q = QuantumRegister(num_q_output)
         qc = QuantumCircuit(q)
-
-        # Compute isometry with custom tolerance
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=1e-3)
+        iso_gate = Isometry(iso, 0, 0, epsilon=1e-3)
+        qc.append(iso_gate, q)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
