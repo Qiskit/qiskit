@@ -120,7 +120,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         error when the circuit is applied to `qubit`.
         """
         # include path for when target exists but target.num_qubits is None (BasicSimulator)
-        if self._target and self._target.num_qubits is not None:
+        if self._target is not None and self._target.num_qubits is not None:
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:
