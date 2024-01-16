@@ -4576,36 +4576,6 @@ class QuantumCircuit:
 
     @deprecate_func(
         since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
-        pending=True,
-    )
-    def hamiltonian(self, operator, time, qubits, label=None):
-        """Apply hamiltonian evolution to qubits.
-
-        This gate resolves to a :class:`~.library.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
-        which can be decomposed into basis gates if it is 2 qubits or less, or
-        simulated directly in Aer for more qubits.
-
-        Args:
-            operator (matrix or Operator): a hermitian operator.
-            time (float or ParameterExpression): time evolution parameter.
-            qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
-                transformation to.
-            label (str): unitary name for backend [Default: None].
-
-        Returns:
-            QuantumCircuit: The quantum circuit.
-        """
-        # pylint: disable=cyclic-import
-        from .library.hamiltonian_gate import HamiltonianGate
-
-        if not isinstance(qubits, list):
-            qubits = [qubits]
-
-        return self.append(HamiltonianGate(data=operator, time=time, label=label), qubits, [])
-
-    @deprecate_func(
-        since="0.45.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
         pending=True,
     )
