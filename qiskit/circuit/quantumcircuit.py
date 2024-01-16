@@ -4160,34 +4160,6 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
-    def cnot(
-        self,
-        control_qubit: QubitSpecifier,
-        target_qubit: QubitSpecifier,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-    ) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.CXGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubit: The qubit(s) used as the control.
-            target_qubit: The qubit(s) targeted by the gate.
-            label: The string label of the gate in the circuit.
-            ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.cx: the same function with a different name.
-        """
-        return self.cx(control_qubit, target_qubit, label, ctrl_state)
-
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
