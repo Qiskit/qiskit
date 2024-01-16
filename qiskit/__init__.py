@@ -78,6 +78,7 @@ import qiskit.circuit.reset
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
+from qiskit.providers.basicaer import BasicAer
 from qiskit.providers.basic_provider import BasicProvider
 
 _config = _user_config.get_config()
@@ -189,6 +190,7 @@ IBMQ = IBMQWrapper()
 __all__ = [
     "Aer",
     "AncillaRegister",
+    "BasicAer",
     "BasicProvider",
     "ClassicalRegister",
     "IBMQ",
