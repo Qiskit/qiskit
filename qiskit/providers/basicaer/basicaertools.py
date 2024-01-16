@@ -13,20 +13,21 @@
 """Contains functions used by the basic aer simulators.
 
 """
+from __future__ import annotations
 
 from string import ascii_uppercase, ascii_lowercase
-from typing import List, Optional
 
 import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
+from qiskit.circuit import Gate
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.
 SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
 
 
-def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
+def single_gate_matrix(gate: str, params: list[float] | None = None):
     """Get the matrix for a single qubit.
 
     Args:
@@ -41,6 +42,7 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
     if params is None:
         params = []
 
+    gc: type[Gate]
     if gate == "U":
         gc = gates.UGate
     elif gate == "u3":

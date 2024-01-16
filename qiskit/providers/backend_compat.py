@@ -14,7 +14,9 @@
 
 from __future__ import annotations
 import logging
-from typing import List, Iterable, Any, Dict, Optional, Tuple
+import typing
+from collections.abc import Iterable
+from typing import Any
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
@@ -25,17 +27,21 @@ from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
 
+if typing.TYPE_CHECKING:
+    from qiskit.pulse import Instruction
+    from qiskit.transpiler.target import Target
+
 logger = logging.getLogger(__name__)
 
 
 def convert_to_target(
     configuration: BackendConfiguration,
-    properties: BackendProperties = None,
-    defaults: PulseDefaults = None,
-    custom_name_mapping: Optional[Dict[str, Any]] = None,
+    properties: BackendProperties | None = None,
+    defaults: PulseDefaults | None = None,
+    custom_name_mapping: dict[str, Any] | None = None,
     add_delay: bool = True,
     filter_faulty: bool = True,
-):
+) -> Target:
     """Decode transpiler target from backend data set.
 
     This function generates ``Target`` instance from intermediate
@@ -95,8 +101,8 @@ def convert_to_target(
     # Create instruction property placeholder from backend configuration
     basis_gates = set(getattr(configuration, "basis_gates", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
-    inst_name_map = {}  # type: Dict[str, Instruction]
-    prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
+    inst_name_map: dict[str, Instruction] = {}
+    prop_name_map: dict[str, dict[tuple[int, ...], InstructionProperties]] = {}
     all_instructions = set.union(basis_gates, set(required))
 
     faulty_ops = set()
@@ -268,11 +274,11 @@ def convert_to_target(
 
 def qubit_props_list_from_props(
     properties: BackendProperties,
-) -> List[QubitProperties]:
+) -> list[QubitProperties]:
     """Uses BackendProperties to construct
     and return a list of QubitProperties.
     """
-    qubit_props: List[QubitProperties] = []
+    qubit_props: list[QubitProperties] = []
     for qubit, _ in enumerate(properties.qubits):
         try:
             t_1 = properties.t1(qubit)
@@ -324,7 +330,7 @@ class BackendV2Converter(BackendV2):
     def __init__(
         self,
         backend: BackendV1,
-        name_mapping: Optional[Dict[str, Any]] = None,
+        name_mapping: dict[str, Any] | None = None,
         add_delay: bool = True,
         filter_faulty: bool = True,
     ):
@@ -364,13 +370,13 @@ class BackendV2Converter(BackendV2):
         if hasattr(self._backend, "defaults"):
             self._defaults = self._backend.defaults()
 
-        self._target = None
+        self._target: Target | None = None
         self._name_mapping = name_mapping
         self._add_delay = add_delay
         self._filter_faulty = filter_faulty
 
     @property
-    def target(self):
+    def target(self) -> Target:
         """A :class:`qiskit.transpiler.Target` object for the backend.
 
         :rtype: Target
@@ -399,7 +405,7 @@ class BackendV2Converter(BackendV2):
         return self._config.dtm
 
     @property
-    def meas_map(self) -> List[List[int]]:
+    def meas_map(self) -> list[list[int]]:
         return self._config.meas_map
 
     def drive_channel(self, qubit: int):

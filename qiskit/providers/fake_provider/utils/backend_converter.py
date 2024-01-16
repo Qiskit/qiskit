@@ -14,6 +14,10 @@
 Utilities for constructing Target object from configuration, properties and
 pulse defaults json files
 """
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Any
 
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.providers.backend import QubitProperties
@@ -27,7 +31,11 @@ from qiskit.circuit.reset import Reset
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 
 
-def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict = None) -> Target:
+def convert_to_target(
+    conf_dict: Mapping[str, Any],
+    props_dict: Mapping[str, Any] | None = None,
+    defs_dict: Mapping[str, Any] | None = None,
+) -> Target:
     """Uses configuration, properties and pulse defaults dicts
     to construct and return Target class.
     """
@@ -47,7 +55,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     # Parse from properties if it exsits
     if props_dict is not None:
         # Parse instructions
-        gates = {}
+        gates: dict[str, dict[tuple, InstructionProperties]] = {}
         for gate in props_dict["gates"]:
             name = gate["gate"]
             if name in name_mapping:
@@ -132,7 +140,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     return target
 
 
-def qubit_props_from_props(properties: dict) -> list:
+def qubit_props_from_props(properties: dict) -> list[QubitProperties]:
     """Returns a dictionary of `qiskit.providers.backend.QubitProperties` using
     a backend properties dictionary created by loading props.json payload.
     """

@@ -34,7 +34,7 @@ def decode_pulse_defaults(defaults: Dict) -> None:
                 _decode_pulse_qobj_instr(instr)
 
 
-def decode_backend_properties(properties: Dict) -> None:
+def decode_backend_properties(properties: dict) -> None:
     """Decode backend properties.
 
     Args:

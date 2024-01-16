@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Configurable backend."""
+from __future__ import annotations
+
 import itertools
 from datetime import datetime
 from typing import Optional, List, Union
@@ -38,7 +40,7 @@ class ConfigurableFakeBackend(FakeBackend):
         self,
         name: str,
         n_qubits: int,
-        version: Optional[str] = None,
+        version: str | None = None,
         coupling_map: Optional[List[List[int]]] = None,
         basis_gates: Optional[List[str]] = None,
         qubit_t1: Optional[Union[float, List[float]]] = None,
