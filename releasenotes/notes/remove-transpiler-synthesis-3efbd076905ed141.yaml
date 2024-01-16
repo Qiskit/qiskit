@@ -1,8 +1,8 @@
 ---
-deprecations:
+upgrade:
   - |
-    The :mod:`qiskit.transpiler.synthesis` module is pending deprecation and
-    will be deprecated in a future release. The following objects have been moved:
+    Removed the ``qiskit.transpiler.synthesis`` module, which has been deprecated since the 0.46 release.
+    The following objects have been moved:
 
     * :mod:`qiskit.transpiler.synthesis.aqc` has been moved to :mod:`qiskit.synthesis.unitary.aqc`
       (except of :class:`qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin`).
