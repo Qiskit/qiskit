@@ -13,7 +13,7 @@
 """
 Example showing how to use Qiskit at introduction level.
 
-This example shows the most basic way to user Terra. It builds some circuits
+This example shows the most basic way to use Qiskit. It builds some circuits
 and runs them on both the BasicAer (local Qiskit provider) or IBM Quantum (remote IBM Quantum provider).
 
 To control the compile parameters we have provided a transpile function which can be used
