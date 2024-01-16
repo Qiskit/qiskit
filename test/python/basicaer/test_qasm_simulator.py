@@ -20,12 +20,13 @@ import sys
 
 import numpy as np
 
-from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import providers
 from qiskit.qasm2 import dumps
+
+from . import BasicAerBackendTestMixin
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -35,13 +36,17 @@ class StreamHandlerRaiseException(StreamHandler):
         raise sys.exc_info()
 
 
-class TestBasicAerQasmSimulator(providers.BackendTestCase):
+class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
     """Test the Basic qasm_simulator."""
-
-    backend_cls = QasmSimulatorPy
 
     def setUp(self):
         super().setUp()
+        self.backend = QasmSimulatorPy()
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+        self.circuit = bell
 
         self.seed = 88
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")

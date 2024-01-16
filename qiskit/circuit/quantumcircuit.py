@@ -2104,7 +2104,7 @@ class QuantumCircuit:
         style: dict | str | None = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = None,
+        reverse_bits: bool | None = None,
         justify: str | None = None,
         vertical_compression: str | None = "medium",
         idle_wires: bool = True,
@@ -2114,11 +2114,11 @@ class QuantumCircuit:
         # safely forward-referenced.
         ax: Any | None = None,
         initial_state: bool = False,
-        cregbundle: bool = None,
-        wire_order: list = None,
+        cregbundle: bool | None = None,
+        wire_order: list[int] | None = None,
         expr_len: int = 30,
     ):
-        """Draw the quantum circuit. Use the output parameter to choose the drawing format:
+        r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
         **text**: ASCII art TextDrawing that can be printed in the console.
 
@@ -2136,81 +2136,77 @@ class QuantumCircuit:
             these completely.
 
         Args:
-            output (str): select the output method to use for drawing the circuit.
+            output: Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
                 By default the `text` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output
                 kwarg is set, that backend will always be used over the default in
                 the user config file.
-            scale (float): scale of image to draw (shrink if < 1.0). Only used by
-                the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
-            filename (str): file path to save image to. Defaults to None.
-            style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` or `latex` output type.
-                If `style` is a str, it is used as the path to a json file
-                which contains a style dict. The file will be opened, parsed, and
-                then any style elements in the dict will replace the default values
-                in the input dict. A file to be loaded must end in ``.json``, but
-                the name entered here can omit ``.json``. For example,
-                ``style='iqp.json'`` or ``style='iqp'``.
-                If `style` is a dict and the ``'name'`` key is set, that name
-                will be used to load a json file, followed by loading the other
-                items in the style dict. For example, ``style={'name': 'iqp'}``.
-                If `style` is not a str and `name` is not a key in the style dict,
-                then the default value from the user config file (usually
-                ``~/.qiskit/settings.conf``) will be used, for example,
-                ``circuit_mpl_style = iqp``.
-                If none of these are set, the `clifford` style will be used.
-                The search path for style json files can be specified in the user
-                config, for example,
-                ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
-                information on the contents.
-            interactive (bool): when set to true, show the circuit in a new window
-                (for `mpl` this depends on the matplotlib backend being used
+            scale: Scale of image to draw (shrink if ``< 1.0``). Only used by
+                the ``mpl``, ``latex`` and ``latex_source`` outputs. Defaults to ``1.0``.
+            filename: File path to save image to. Defaults to ``None`` (result not saved in a file).
+            style: Style name, file name of style JSON file, or a dictionary specifying the style.
+
+                * The supported style names are ``"iqp"`` (default), ``"iqp-dark"``, ``"clifford"``,
+                  ``"textbook"`` and ``"bw"``.
+                * If given a JSON file, e.g. ``my_style.json`` or ``my_style`` (the ``.json``
+                  extension may be omitted), this function attempts to load the style dictionary
+                  from that location. Note, that the JSON file must completely specify the
+                  visualization specifications. The file is searched for in
+                  ``qiskit/visualization/circuit/styles``, the current working directory, and
+                  the location specified in ``~/.qiskit/settings.conf``.
+                * If a dictionary, every entry overrides the default configuration. If the
+                  ``"name"`` key is given, the default configuration is given by that style.
+                  For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"texbook"``
+                  style and sets the subfontsize (e.g. the gate angles) to ``5``.
+                * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
+                  specified in ``~/.qiskit/settings.conf``.
+
+            interactive: When set to ``True``, show the circuit in a new window
+                (for ``mpl`` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
-                `latex_source` output type this has no effect and will be silently
-                ignored. Defaults to False.
-            reverse_bits (bool): when set to True, reverse the bit order inside
-                registers for the output visualization. Defaults to False unless the
+                ``latex_source`` output type this has no effect and will be silently
+                ignored. Defaults to ``False``.
+            reverse_bits: When set to ``True``, reverse the bit order inside
+                registers for the output visualization. Defaults to ``False`` unless the
                 user config file (usually ``~/.qiskit/settings.conf``) has an
                 alternative value set. For example, ``circuit_reverse_bits = True``.
-            plot_barriers (bool): enable/disable drawing barriers in the output
-                circuit. Defaults to True.
-            justify (string): options are ``left``, ``right`` or ``none``. If
+            plot_barriers: Enable/disable drawing barriers in the output
+                circuit. Defaults to ``True``.
+            justify: Options are ``left``, ``right`` or ``none``. If
                 anything else is supplied, it defaults to left justified. It refers
                 to where gates should be placed in the output circuit if there is
                 an option. ``none`` results in each gate being placed in its own
                 column.
-            vertical_compression (string): ``high``, ``medium`` or ``low``. It
+            vertical_compression: ``high``, ``medium`` or ``low``. It
                 merges the lines generated by the `text` output so the drawing
                 will take less vertical room.  Default is ``medium``. Only used by
-                the `text` output, will be silently ignored otherwise.
-            idle_wires (bool): include idle wires (wires with no circuit elements)
-                in output visualization. Default is True.
-            with_layout (bool): include layout information, with labels on the
-                physical layout. Default is True.
-            fold (int): sets pagination. It can be disabled using -1. In `text`,
+                the ``text`` output, will be silently ignored otherwise.
+            idle_wires: Include idle wires (wires with no circuit elements)
+                in output visualization. Default is ``True``.
+            with_layout: Include layout information, with labels on the
+                physical layout. Default is ``True``.
+            fold: Sets pagination. It can be disabled using -1. In ``text``,
                 sets the length of the lines. This is useful when the drawing does
                 not fit in the console. If None (default), it will try to guess the
                 console width using ``shutil.get_terminal_size()``. However, if
                 running in jupyter, the default line length is set to 80 characters.
-                In `mpl`, it is the number of (visual) layers before folding.
+                In ``mpl``, it is the number of (visual) layers before folding.
                 Default is 25.
-            ax (matplotlib.axes.Axes): Only used by the `mpl` backend. An optional
-                Axes object to be used for the visualization output. If none is
+            ax: Only used by the `mpl` backend. An optional ``matplotlib.axes.Axes``
+                object to be used for the visualization output. If none is
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
-                Default is False.
-            cregbundle (bool): Optional. If set True, bundle classical registers.
-                Default is True, except for when ``output`` is set to  ``"text"``.
-            wire_order (list): Optional. A list of integers used to reorder the display
+            initial_state: Adds :math:`|0\rangle` in the beginning of the qubit wires and
+                :math:`0` to classical wires. Default is ``False``.
+            cregbundle: If set to ``True``, bundle classical registers.
+                Default is ``True``, except for when ``output`` is set to  ``"text"``.
+            wire_order: A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (``num_qubits`` + ``num_clbits``).
-            expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            expr_len: The number of characters to display if an :class:`~.expr.Expr`
                 is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
                 the string will be truncated at that number and '...' added to the end.
 
@@ -2218,13 +2214,13 @@ class QuantumCircuit:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
             :class:`str`:
 
-            * `TextDrawing` (output='text')
+            * ``TextDrawing`` (if ``output='text'``)
                 A drawing that can be printed as ascii art.
-            * `matplotlib.figure.Figure` (output='mpl')
+            * ``matplotlib.figure.Figure`` (if ``output='mpl'``)
                 A matplotlib figure object for the circuit diagram.
-            * `PIL.Image` (output='latex')
+            * ``PIL.Image`` (if ``output='latex``')
                 An in-memory representation of the image of the circuit diagram.
-            * `str` (output='latex_source')
+            * ``str`` (if ``output='latex_source'``)
                 The LaTeX source code for visualizing the circuit diagram.
 
         Raises:
@@ -2236,11 +2232,9 @@ class QuantumCircuit:
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-               q = QuantumRegister(1)
-               c = ClassicalRegister(1)
-               qc = QuantumCircuit(q, c)
-               qc.h(q)
-               qc.measure(q, c)
+               qc = QuantumCircuit(1, 1)
+               qc.h(0)
+               qc.measure(0, 0)
                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
@@ -3323,13 +3317,15 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits = (
+        if qargs:
             # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
-            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
-            if qargs
-            else self.qubits.copy()
-        )
-        return self.append(Barrier(len(qubits), label=label), qubits, [])
+            qubits = tuple({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            return self.append(CircuitInstruction(Barrier(len(qubits), label=label), qubits, ()))
+        else:
+            qubits = self.qubits.copy()
+            return self._current_scope().append(
+                CircuitInstruction(Barrier(len(qubits), label=label), qubits, ())
+            )
 
     def delay(
         self,
