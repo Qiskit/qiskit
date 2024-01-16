@@ -74,7 +74,7 @@ class Test1QWorking(QiskitTestCase):
         dsc="Transpiling {circuit.__name__} at level {level} should work for simulator",
         name="{circuit.__name__}_level{level}_valid",
     )
-    def basic_simulator(self, circuit, level):
+    def test_simulator(self, circuit, level):
         """All the levels with all the 1Q simulator backend"""
         # Set fake backend config to simulator
         backend = Fake1Q()
