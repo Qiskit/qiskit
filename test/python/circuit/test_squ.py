@@ -45,8 +45,10 @@ class TestSingleQubitUnitary(QiskitTestCase):
         """Tests for single-qubit unitary decomposition."""
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
+
         with self.assertWarns(DeprecationWarning):
-            qc.squ(u, qr[0], up_to_diagonal=up_to_diagonal)
+            squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
+            qc.append(squ, [qr[0]])
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
