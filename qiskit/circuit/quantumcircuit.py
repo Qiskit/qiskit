@@ -3378,22 +3378,6 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Use QuantumCircuit.id as direct replacement.",
-    )
-    def i(self, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.IGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            qubit: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-        """
-        return self.id(qubit)
 
     def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
