@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-====================================================================
+================================================================================
 BasicProvider: Python-based Simulators (:mod:`qiskit.providers.basic_provider`)
-====================================================================
+================================================================================
 
 .. currentmodule:: qiskit.providers.basic_provider
 

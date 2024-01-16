@@ -20,8 +20,8 @@ API Reference
    dagcircuit
    extensions
    passmanager
-   providers_basicaer
    providers
+   providers_basic_provider
    providers_fake_provider
    providers_models
    pulse
