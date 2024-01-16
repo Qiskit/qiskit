@@ -16,7 +16,7 @@ Quantum Fourier Transform examples.
 
 import math
 from qiskit import QuantumCircuit
-from qiskit import transpile, BasicAer
+from qiskit import execute, BasicProvider
 
 
 ###############################################################
@@ -66,9 +66,9 @@ print(qft3)
 print(qft4)
 print(qft5)
 
-print("Qasm simulator")
-sim_backend = BasicAer.get_backend("qasm_simulator")
-job = sim_backend.run(transpile([qft3, qft4, qft5], sim_backend), shots=1024)
+print("Basic simulator")
+sim_backend = BasicProvider.get_backend("basic_simulator")
+job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,14 +18,14 @@ used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
-from qiskit import transpile
+from qiskit import BasicProvider
+from qiskit import execute
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
 coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
-backend = BasicAer.get_backend("qasm_simulator")
+backend = BasicProvider.get_backend("basic_simulator")
 
 ###############################################################
 # Make a quantum program for quantum teleportation.
@@ -65,17 +65,14 @@ qc.measure(q[2], c2[0])
 
 # First version: not mapped
 initial_layout = {q[0]: 0, q[1]: 1, q[2]: 2}
-job = backend.run(
-    transpile(qc, backend=backend, coupling_map=None, initial_layout=initial_layout), shots=1024
-)
+job = execute(qc, backend=backend, coupling_map=None, shots=1024, initial_layout=initial_layout)
 
 result = job.result()
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-job = backend.run(
-    transpile(qc, backend=backend, coupling_map=coupling_map, initial_layout=initial_layout),
-    shots=1024,
+job = execute(
+    qc, backend=backend, coupling_map=coupling_map, shots=1024, initial_layout=initial_layout
 )
 result = job.result()
 print(result.get_counts(qc))

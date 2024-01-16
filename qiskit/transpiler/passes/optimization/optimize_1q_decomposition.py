@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -94,7 +94,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self.error_map = self._build_error_map()
 
     def _build_error_map(self):
-        if self._target is not None:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is not None and self._target.num_qubits is not None:
             error_map = euler_one_qubit_decomposer.OneQubitGateErrorMap(self._target.num_qubits)
             for qubit in range(self._target.num_qubits):
                 gate_error = {}
@@ -118,7 +119,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         When multiple synthesis options are available, it prefers the one with the lowest
         error when the circuit is applied to `qubit`.
         """
-        if self._target:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target and self._target.num_qubits is not None:
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:
@@ -128,9 +130,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
             else:
                 available_1q_basis = set(self._target.operation_names_for_qargs(qubits_tuple))
                 decomposers = _possible_decomposers(available_1q_basis)
-                self._local_decomposers_cache[qubits_tuple] = decomposers
         else:
             decomposers = self._global_decomposers
+
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             matrix,
             decomposers,
@@ -173,10 +175,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
+        new_error = 0.0
+        old_error = 0.0
+        if not uncalibrated_and_not_basis_p:
+            new_error = self._error(new_circ, qubit)
+            old_error = self._error(old_run, qubit)
+
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and self._error(new_circ, qubit) < self._error(old_run, qubit))
-            or math.isclose(self._error(new_circ, qubit)[0], 0)
+            or (uncalibrated_p and new_error < old_error)
+            or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
     @control_flow.trivial_recurse

@@ -27,7 +27,15 @@ import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse, qasm3, qpy
+from qiskit import (
+    BasicProvider,
+    ClassicalRegister,
+    QuantumCircuit,
+    QuantumRegister,
+    pulse,
+    qasm3,
+    qpy,
+)
 from qiskit.circuit import (
     Clbit,
     ControlFlowOp,
@@ -85,9 +93,9 @@ from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.test import QiskitTestCase, slow_test
-from qiskit.tools import parallel
+from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
@@ -140,7 +148,7 @@ class TestTranspile(QiskitTestCase):
         coupling_map = [[1, 0]]
         basis_gates = ["u1", "u2", "u3", "cx", "id"]
 
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
         circuit2 = transpile(
             circuit,
             backend=backend,
@@ -409,7 +417,7 @@ class TestTranspile(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -448,7 +456,7 @@ class TestTranspile(QiskitTestCase):
 
         Check that the top-level `transpile` function returns
         a single circuit."""
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -465,7 +473,7 @@ class TestTranspile(QiskitTestCase):
 
         Check that the transpiler returns a list of two circuits.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -491,7 +499,7 @@ class TestTranspile(QiskitTestCase):
 
         See https://github.com/Qiskit/qiskit-terra/issues/5260
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicProvider.get_backend("basic_simulator")
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -681,7 +689,7 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("theta")
         qc.rz(theta, qr[0])
 
-        transpiled_qc = transpile(qc, backend=BasicAer.get_backend("qasm_simulator"))
+        transpiled_qc = transpile(qc, backend=BasicProvider.get_backend("basic_simulator"))
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.append(RZGate(theta), [qr[0]])
@@ -715,7 +723,7 @@ class TestTranspile(QiskitTestCase):
         square = theta * theta
         qc.rz(square, qr[0])
 
-        transpiled_qc = transpile(qc, backend=BasicAer.get_backend("qasm_simulator"))
+        transpiled_qc = transpile(qc, backend=BasicProvider.get_backend("basic_simulator"))
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.append(RZGate(square), [qr[0]])
@@ -987,7 +995,7 @@ class TestTranspile(QiskitTestCase):
 
         qc = QuantumCircuit(15, 15)
 
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(CircuitTooWideForTarget):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
@@ -1695,6 +1703,38 @@ class TestTranspile(QiskitTestCase):
         transpiled = transpile(qc, basis_gates=basis, optimization_level=opt_level)
         self.assertGreaterEqual(set(basis) | {"barrier"}, transpiled.count_ops().keys())
         self.assertEqual(Operator(qc), Operator(transpiled))
+
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure(range(2), range(2))
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        self.assertNotIn("barrier", tqc.count_ops())
+
+    @data(0, 1, 2, 3)
+    def test_barrier_not_output_input_preservered(self, opt_level):
+        """Test that barriers added as part internal transpiler operations do not leak out."""
+        qc = QuantumCircuit(2, 2)
+        qc.cx(0, 1)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            initial_layout=[1, 4],
+            coupling_map=[[0, 1], [1, 2], [2, 3], [3, 4]],
+            optimization_level=opt_level,
+        )
+        op_counts = tqc.count_ops()
+        self.assertEqual(op_counts["barrier"], 1)
+        for inst in tqc.data:
+            if inst.operation.name == "barrier":
+                self.assertEqual(len(inst.qubits), 2)
 
     @combine(opt_level=[0, 1, 2, 3])
     def test_transpile_annotated_ops(self, opt_level):

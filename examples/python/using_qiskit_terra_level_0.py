@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,10 +11,10 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to use Qiskit at level 0 (no optimization).
+Example showing how to use Qiskit-Terra at level 0 (novice).
 
 This example shows the most basic way to user Terra. It builds some circuits
-and runs them on both the BasicAer (local Qiskit provider) or IBM Quantum (remote IBM Quantum provider).
+and runs them on both the BasicProvider(local Qiskit provider).
 
 To control the compile parameters we have provided a transpile function which can be used
 as a level 1 user.
@@ -23,7 +23,7 @@ as a level 1 user.
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit
-from qiskit import transpile, BasicAer
+from qiskit import execute, BasicProvider
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
@@ -37,12 +37,11 @@ qc2.h([0, 1])
 qc2.measure([0, 1], [0, 1])
 
 # setting up the backend
-print("(BasicAER Backends)")
-print(BasicAer.backends())
+print("(BasicProvider Backends)")
+print(BasicProvider.backends())
 
 # running the job
-sim_backend = BasicAer.get_backend("qasm_simulator")
-job_sim = sim_backend.run(transpile([qc1, qc2], sim_backend))
+job_sim = execute([qc1, qc2], BasicProvider.get_backend("basic_simulator"))
 sim_result = job_sim.result()
 
 # Show the results

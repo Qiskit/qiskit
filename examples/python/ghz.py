@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,7 +15,7 @@ GHZ state example. It also compares running on experiment and simulator.
 """
 
 from qiskit import QuantumCircuit
-from qiskit import BasicAer, transpile
+from qiskit import BasicProvider, execute
 
 
 ###############################################################
@@ -34,8 +34,8 @@ qc.barrier()
 for i in range(num_qubits):
     qc.measure(i, i)
 
-sim_backend = BasicAer.get_backend("qasm_simulator")
-job = sim_backend.run(transpile(qc, sim_backend), shots=1024)
+sim_backend = BasicProvider.get_backend("basic_simulator")
+job = execute(qc, sim_backend, shots=1024)
 result = job.result()
-print("Qasm simulator : ")
+print("Basic simulator : ")
 print(result.get_counts(qc))

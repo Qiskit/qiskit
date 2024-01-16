@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -73,7 +73,8 @@ import os
 import sys
 
 from qiskit import execute
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicProvider
+from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
 from qiskit.transpiler.passes import SetLayout
@@ -110,7 +111,7 @@ class CommonUtilitiesMixin:
 
     def create_backend(self):
         """Returns a Backend."""
-        return BasicAer.get_backend("qasm_simulator")
+        return BasicProvider.get_backend("basic_simulator")
 
     def generate_ground_truth(self, transpiled_result, filename):
         """Generates the expected result into a file.
@@ -132,7 +133,7 @@ class CommonUtilitiesMixin:
         )
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
-        transpiled_result.qasm(formatted=False, filename=filename)
+        dump(transpiled_result.qasm(formatted=False), filename)
 
     def assertResult(self, result, circuit):
         """Fetches the QASM in circuit.name file and compares it with result."""

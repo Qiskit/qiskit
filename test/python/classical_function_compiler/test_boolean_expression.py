@@ -17,7 +17,7 @@ from os import path
 from ddt import ddt, unpack, data
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, transpile
+from qiskit import execute, BasicProvider
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 if HAS_TWEEDLEDUM:
@@ -57,11 +57,10 @@ class TestBooleanExpression(QiskitTestCase):
         new_creg = expr_circ._create_creg(1, "c")
         expr_circ.add_register(new_creg)
         expr_circ.measure(expression.num_qubits - 1, new_creg)
-
-        backend = BasicAer.get_backend("qasm_simulator")
         [result] = (
-            backend.run(
-                transpile(expr_circ, backend),
+            execute(
+                expr_circ,
+                backend=BasicProvider.get_backend("basic_simulator"),
                 shots=1,
                 seed_simulator=14,
             )

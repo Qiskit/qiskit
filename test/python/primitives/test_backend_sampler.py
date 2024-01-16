@@ -27,7 +27,7 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
@@ -130,7 +130,6 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         result = sampler.run([bell, bell, bell]).result()
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -388,7 +387,7 @@ class TestBackendSampler(QiskitTestCase):
         # We need a noise-free backend here (shot noise is fine) to ensure that
         # the only bit string measured is "0001". With device noise, it could happen that
         # strings with a leading 1 are measured and then the truncation cannot be tested.
-        sampler = BackendSampler(backend=QasmSimulatorPy())
+        sampler = BackendSampler(backend=BasicSimulator())
 
         result = sampler.run(qc).result()
         probs = result.quasi_dists[0].binary_probabilities()

@@ -1,0 +1,91 @@
+---
+features:
+  - |
+    A new :mod:`qiskit.providers.basic_provider` module has been introduced
+    to replace ``qiskit.providers.basicaer``. This module contains provider
+    tools that mirror those of the ``BasicAer`` provider and offers a single,
+    non-efficient, statevector based simulator: :class:`.BasicSimulator`.
+    This simulator based on the :class:`.BackendV2` interface and is
+    exclusively intended for testing and simple prototyping, for more
+    advanced simulation capabilities, please refer to the ``qiskit-aer``
+    package.
+
+  - |
+    The :class:`.Target` interface and transpiler pipeline now support
+    target definitions with ``num_qubits=None``. This is to support the
+    creation of target-based simulators with a flexible number of qubits.
+    A target with ``num_qubits=None`` will exclusively contain global
+    instructions (with ``qargs=None``) and when given to the transpiler,
+    it is expected that the transpiler will not resize the circuit.
+    This change in the :class:`.Target` requires future transpiler passes
+    to account for the case where ``target.num_qubits is None``.
+
+upgrade:
+  - |
+    The ``qiskit.providers.basicaer`` module and all of its classes have been
+    removed following their deprecation on the 0.46 release. They have been
+    replaced by the new :mod:`qiskit.providers.basic_provider` and
+    the :mod:`qiskit.quantum_info` modules. The migration from using
+    ``BasicAer`` to ``BasicProvider`` can be performed as follows::
+
+        Migrate from           |   Replace with
+        ---------------------------------------------------
+        basicaer               |  basic_provider
+        BasicAer               |  BasicProvider*
+        BasicAerProvider       |  BasicProvider*
+        BasicAerJob            |  BasicProviderJob
+        QasmSimulatorPy        |  BasicSimulator
+        UnitarySimulatorPy     |  use quantum_info.Operator
+        StatevectorSimulatorPy |  use quantum_info.Statevector
+
+        * BasicAer maps to BasicProvider and
+          BasicAerProvider() maps to BasicProvider().
+
+    This example shows the migration path of the three simulators formerly present
+    in ``qiskit.providers.basicaer``::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        # --------
+        # 1. import BasicAer (provider)
+        from qiskit import BasicAer
+
+        # 2. run with StatevectorSimulatorPy
+        backend = BasicAer.get_backend("statevector_simulator")
+        statevector = backend.run(qc).result().get_statevector()
+
+        # 3. run with UnitarySimulatorPy
+        backend = BasicAer.get_backend("unitary_simulator")
+        result = backend.run(qc).result()
+
+        # 4. run with QasmSimulatorPy
+        backend = BasicAer.get_backend("qasm_simulator")
+        result = backend.run(qc).result()
+
+        # New path
+        # --------
+        # 1. import BasicProvider
+        from qiskit import BasicProvider
+
+        # 2. run with quantum_info.Statevector
+        # Note: no measurements allowed
+        qc.remove_final_measurements()
+        from qiskit.quantum_info import Statevector
+        statevector = Statevector(qc)
+
+        # 3. run with quantum_info.Operator
+        # Note: no measurements allowed
+        from qiskit.quantum_info import Operator
+        result = Operator(qc).data
+
+        # 4. run with BasicSimulator
+        # Note: measurements required
+        qc.measure_all()
+        backend = BasicProvider.get_backend("basic_simulator")
+        result = backend.run(qc).result()
