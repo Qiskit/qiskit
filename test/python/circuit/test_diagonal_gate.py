@@ -46,8 +46,8 @@ class TestDiagonalGate(QiskitTestCase):
                 num_qubits = int(np.log2(len(diag)))
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
-                with self.assertWarns(PendingDeprecationWarning):
-                    qc.diagonal(diag, q[0:num_qubits])
+                qc.append(DiagonalGate(diag), q)
+
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
@@ -70,8 +70,7 @@ class TestDiagonalGate(QiskitTestCase):
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.diagonal(diag.tolist(), [0])
+        qc.append(DiagonalGate(diag), [0])
 
         params = qc.data[0].operation.params
         self.assertTrue(
