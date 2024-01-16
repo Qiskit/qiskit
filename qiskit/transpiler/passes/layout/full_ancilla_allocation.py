@@ -81,7 +81,7 @@ class FullAncillaAllocation(AnalysisPass):
 
         idle_physical_qubits = [q for q in layout_physical_qubits if q not in physical_bits]
 
-        if self.target and self.target.num_qubits is not None:
+        if self.target is not None and self.target.num_qubits is not None:
             idle_physical_qubits = [
                 q for q in range(self.target.num_qubits) if q not in physical_bits
             ]

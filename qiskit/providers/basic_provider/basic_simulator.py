@@ -74,9 +74,7 @@ class BasicSimulator(BackendV2):
         target: Target | None = None,
         **fields,
     ) -> None:
-
-        """Initialize a :class:`.BackendV2`-based :class:`.BasicSimulator`.
-
+        """
         Args:
             provider: An optional backwards reference to the
                 :class:`~qiskit.providers.Provider` object that the backend
