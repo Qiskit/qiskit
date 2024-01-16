@@ -4206,30 +4206,6 @@ class QuantumCircuit:
             [],
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
-    def toffoli(
-        self,
-        control_qubit1: QubitSpecifier,
-        control_qubit2: QubitSpecifier,
-        target_qubit: QubitSpecifier,
-    ) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubit1: The qubit(s) used as the first control.
-            control_qubit2: The qubit(s) used as the second control.
-            target_qubit: The qubit(s) targeted by the gate.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.ccx: the same gate with a different name.
-        """
-        return self.ccx(control_qubit1, control_qubit2, target_qubit)
-
     def mcx(
         self,
         control_qubits: Sequence[QubitSpecifier],
