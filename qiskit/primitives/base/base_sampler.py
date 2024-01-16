@@ -144,9 +144,12 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_func
 
+from ..containers.primitive_result import PrimitiveResult
+from ..containers.pub_result import PubResult
 from ..containers.sampler_pub import SamplerPubLike
 from . import validation
 from .base_primitive import BasePrimitive
+from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
 
@@ -274,7 +277,9 @@ class BaseSamplerV2:
     """
 
     @abstractmethod
-    def run(self, pubs: Iterable[SamplerPubLike], shots: int | None = None) -> Job:
+    def run(
+        self, pubs: Iterable[SamplerPubLike], shots: int | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Run and collect samples from each pub.
 
         Args:

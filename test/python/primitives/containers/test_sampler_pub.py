@@ -21,7 +21,7 @@ from qiskit.test import QiskitTestCase
 
 
 @ddt.ddt
-class SamplerPubCase(QiskitTestCase):
+class SamplerPubTestCase(QiskitTestCase):
     """Test the SamplerPub class."""
 
     def test_properties(self):
