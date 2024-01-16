@@ -6,4 +6,9 @@ features:
 
   - |
     Add :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list` method
-    that generates a stabilizer state from a list of stabilizers.
+    that generates a stabilizer state from a list of stabilizers::
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -46,8 +46,9 @@ class TestStabilizerCircuits(QiskitTestCase):
         state = StabilizerState(circuit)
         for stabilizer in stabilizers:
             composed = clifford.compose(Pauli(stabilizer).to_instruction())
+            composed_state = StabilizerState(composed)
             # Test that the stabilizer is a stabilizer of the state by applying it to state
-            self.assertTrue(state.equiv(StabilizerState(composed)))
+            self.assertTrue(state.equiv(composed_state))
 
     def test_stabilizer_to_circuit_simple(self):
         """Simple test case"""
@@ -80,10 +81,10 @@ class TestStabilizerCircuits(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
         self.assertEqual(
-            cm.exception.message,
             "Stabilizers are underconstrained and allow_underconstrained is False. Add "
             "allow_underconstrained=True  to the function call if you want to allow "
             "underconstrained stabilizers.",
+            cm.exception.message,
         )
         self.verify_stabilizers(stabilizer_list, allow_underconstrained=True)
 
@@ -93,26 +94,26 @@ class TestStabilizerCircuits(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
         self.assertEqual(
-            cm.exception.message,
             f"Stabilizer 3 ({stabilizer_list[3]}) is a product of the others "
             "and allow_redundant is False. Add allow_redundant=True "
             "to the function call if you want to allow redundant stabilizers.",
+            cm.exception.message,
         )
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list, allow_redundant=True)
         self.assertEqual(
-            cm.exception.message,
             "Stabilizers are underconstrained and allow_underconstrained is False. Add "
             "allow_underconstrained=True  to the function call if you want to allow "
             "underconstrained stabilizers.",
+            cm.exception.message,
         )
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list, allow_underconstrained=True)
         self.assertEqual(
-            cm.exception.message,
             f"Stabilizer 3 ({stabilizer_list[3]}) is a product of the others "
             "and allow_redundant is False. Add allow_redundant=True "
             "to the function call if you want to allow redundant stabilizers.",
+            cm.exception.message,
         )
         self.verify_stabilizers(stabilizer_list, allow_redundant=True, allow_underconstrained=True)
 
@@ -123,10 +124,10 @@ class TestStabilizerCircuits(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
         self.assertEqual(
-            cm.exception.message,
             f"Stabilizer 3 ({stabilizer_list[3]}) is a product of the others "
             "and allow_redundant is False. Add allow_redundant=True "
             "to the function call if you want to allow redundant stabilizers.",
+            cm.exception.message,
         )
         self.verify_stabilizers(stabilizer_list, allow_redundant=True)
 
@@ -136,8 +137,8 @@ class TestStabilizerCircuits(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
         self.assertEqual(
+            "Some stabilizers do not commute.",
             cm.exception.message,
-            f"Stabilizers 0 ({stabilizer_list[0]}) and {2} ({stabilizer_list[2]}) do not commute",
         )
 
     def test_stabilizer_to_circuit_contradicting(self):
@@ -146,11 +147,28 @@ class TestStabilizerCircuits(QiskitTestCase):
         with self.assertRaises(QiskitError) as cm:
             self.verify_stabilizers(stabilizer_list)
         self.assertEqual(
+            f"Stabilizer 1 ({stabilizer_list[1]}) contradicts some of the previous stabilizers.",
             cm.exception.message,
-            f"Stabilizer 1 ({stabilizer_list[1]}) contradicts some of the previous stabilizers",
         )
 
-    @combine(num_qubits=[4, 5, 6, 7])
+    def test_invalid_stabilizers(self):
+        """Invalid stabilizers"""
+        stabilizer_list = ["iZXX", "-ZXX"]
+        with self.assertRaises(QiskitError) as cm:
+            self.verify_stabilizers(stabilizer_list)
+        self.assertEqual(
+            "Some stabilizers have an invalid phase",
+            cm.exception.message,
+        )
+        stabilizer_list = ["-ZIX", "iZXQ"]
+        with self.assertRaises(QiskitError) as cm:
+            self.verify_stabilizers(stabilizer_list)
+        self.assertEqual(
+            f'Pauli string label "{stabilizer_list[1]}" is not valid.',
+            cm.exception.message,
+        )
+
+    @combine(num_qubits=[4, 5, 6, 10, 15])
     def test_regenerate_clifford(self, num_qubits):
         """Create a circuit from Clifford-generated list of stabilizers and verify that the
         circuit output is equivalent to the original state."""
