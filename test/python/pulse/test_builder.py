@@ -21,10 +21,7 @@ from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
-from qiskit.providers.fake_provider.utils.configurable_backend import (
-    ConfigurableFakeBackend as ConfigurableBackend,
-)
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeWashington
 from qiskit.pulse import library, instructions
 
 
@@ -729,12 +726,13 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend_100q = ConfigurableBackend("100q", 100)
-        with pulse.build(backend_100q) as schedule:
+        backend = FakeWashington()
+        num_qubits = backend.configuration().num_qubits
+        with pulse.build(backend) as schedule:
             regs = pulse.measure_all()
 
-        reference = backend_100q.defaults().instruction_schedule_map.get(
-            "measure", list(range(100))
+        reference = backend.defaults().instruction_schedule_map.get(
+            "measure", list(range(num_qubits))
         )
 
         self.assertScheduleEqual(schedule, reference)
