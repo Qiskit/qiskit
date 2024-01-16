@@ -390,15 +390,6 @@ class QuantumCircuit:
         """
         return self._layout
 
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def extension_lib(cls) -> str:
-        """The standard OpenQASM 2 import statement."""
-        return 'include "qelib1.inc";'
-
     @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
