@@ -36,24 +36,25 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg1, creg1)
 
         qc = circ.compose(meas)
+        with self.assertRaises(DeprecationWarning):
+            backend_sim = BasicAer.get_backend("qasm_simulator")
+            result = backend_sim.run(qc).result()
+            counts = result.get_counts(qc)
 
-        backend_sim = BasicAer.get_backend("qasm_simulator")
+            target = {"01 10": 1024}
 
-        result = backend_sim.run(qc).result()
-        counts = result.get_counts(qc)
+            backend_sim = BasicAer.get_backend("statevector_simulator")
+            result = backend_sim.run(circ).result()
+            state = result.get_statevector(circ)
 
-        target = {"01 10": 1024}
+            backend_sim = BasicAer.get_backend("unitary_simulator")
+            result = backend_sim.run(circ).result()
+            unitary = Operator(result.get_unitary(circ))
 
-        backend_sim = BasicAer.get_backend("statevector_simulator")
-        result = backend_sim.run(circ).result()
-        state = result.get_statevector(circ)
-
-        backend_sim = BasicAer.get_backend("unitary_simulator")
-        result = backend_sim.run(circ).result()
-        unitary = Operator(result.get_unitary(circ))
-
-        self.assertEqual(counts, target)
-        self.assertAlmostEqual(state_fidelity(Statevector.from_label("0110"), state), 1.0, places=7)
-        self.assertAlmostEqual(
-            process_fidelity(Operator.from_label("IXXI"), unitary), 1.0, places=7
-        )
+            self.assertEqual(counts, target)
+            self.assertAlmostEqual(
+                state_fidelity(Statevector.from_label("0110"), state), 1.0, places=7
+            )
+            self.assertAlmostEqual(
+                process_fidelity(Operator.from_label("IXXI"), unitary), 1.0, places=7
+            )

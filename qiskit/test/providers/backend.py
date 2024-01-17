@@ -12,6 +12,7 @@
 
 """Base TestCase for testing backends."""
 
+import warnings
 from unittest import SkipTest
 
 from qiskit import transpile
@@ -38,7 +39,9 @@ class BackendTestCase(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = self._get_backend()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            self.backend = self._get_backend()
 
     @classmethod
     def setUpClass(cls):
@@ -69,7 +72,9 @@ class BackendTestCase(QiskitTestCase):
 
     def test_run_circuit(self):
         """Test running a single circuit."""
-        job = self.backend.run(transpile(self.circuit, self.backend))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(transpile(self.circuit, self.backend))
         result = job.result()
         self.assertEqual(result.success, True)
         return result

@@ -16,11 +16,13 @@
 
 from string import ascii_uppercase, ascii_lowercase
 from typing import List, Optional
+import warnings
 
 import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 # Single qubit gates supported by ``single_gate_params``.
 SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
@@ -38,6 +40,14 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
         QiskitError: If a gate outside the supported set is passed in for the
             ``Gate`` argument.
     """
+    warnings.warn(
+        "This function is deprecated since Qiskit 0.46.0 and will be removed in the Qiskit 1.0 release. "
+        "The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+        stacklevel=1,
+        category=DeprecationWarning,
+    )
+
     if params is None:
         params = []
 
@@ -75,6 +85,13 @@ _CX_MATRIX = gates.CXGate().to_matrix()
 
 def cx_gate_matrix():
     """Get the matrix for a controlled-NOT gate."""
+    warnings.warn(
+        "This function is deprecated since Qiskit 0.46.0 and will be removed in the Qiskit 1.0 release. "
+        "The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+        stacklevel=1,
+        category=DeprecationWarning,
+    )
     return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
 
 
@@ -94,6 +111,14 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
     Returns:
         str: An indices string for the Numpy.einsum function.
     """
+
+    warnings.warn(
+        "This function is deprecated since Qiskit 0.46.0 and will be removed in the Qiskit 1.0 release. "
+        "The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+        stacklevel=1,
+        category=DeprecationWarning,
+    )
 
     mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 
@@ -125,6 +150,14 @@ def einsum_vecmul_index(gate_indices, number_of_qubits):
     Returns:
         str: An indices string for the Numpy.einsum function.
     """
+
+    warnings.warn(
+        "This function is deprecated since Qiskit 0.46.0 and will be removed in the Qiskit 1.0 release. "
+        "The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+        stacklevel=1,
+        category=DeprecationWarning,
+    )
 
     mat_l, mat_r, tens_lin, tens_lout = _einsum_matmul_index_helper(gate_indices, number_of_qubits)
 

@@ -58,7 +58,8 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         qc.measure(qr[1], cr[1])
 
         self.qc = qc
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        with self.assertWarns(DeprecationWarning):
+            self.backend = BasicAer.get_backend("qasm_simulator")
 
     def test_wo_backend_options(self):
         """without backend options test"""

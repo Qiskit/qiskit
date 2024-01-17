@@ -85,11 +85,14 @@ class TestStateConstruction(QiskitOpflowTestCase):
         qc = QuantumCircuit(3)
         # REMEMBER: This is Qubit 2 in Operator land.
         qc.h(0)
-        sv_res = BasicAer.get_backend("statevector_simulator").run(qc).result()
+        with self.assertWarns(DeprecationWarning):
+            sv_res = BasicAer.get_backend("statevector_simulator").run(qc).result()
         sv_vector = sv_res.get_statevector()
         qc_op = PrimitiveOp(qc) @ Zero
-
-        qasm_res = BasicAer.get_backend("qasm_simulator").run(qc_op.to_circuit(meas=True)).result()
+        with self.assertWarns(DeprecationWarning):
+            qasm_res = (
+                BasicAer.get_backend("qasm_simulator").run(qc_op.to_circuit(meas=True)).result()
+            )
 
         np.testing.assert_array_almost_equal(
             StateFn(sv_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]

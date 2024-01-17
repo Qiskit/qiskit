@@ -137,7 +137,8 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                 1 if backend_name == "qasm_simulator" else 6
             )  # to accommodate for qasm being imperfect
             with self.subTest(msg=f"Test {backend_name} backend."):
-                backend = BasicAer.get_backend(backend_name)
+                with self.assertWarns(DeprecationWarning):
+                    backend = BasicAer.get_backend(backend_name)
                 with self.assertWarns(DeprecationWarning):
                     quantum_instance = QuantumInstance(
                         backend=backend,

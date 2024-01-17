@@ -309,14 +309,9 @@ class TestCompiler(QiskitTestCase):
         )
         count1 = result1.result().get_counts()
         result2 = self.backend.run(
-            transpile(
-                circ,
-                backend=self.backend,
-                coupling_map=None,
-                seed_transpiler=8,
-                seed_simulator=self.seed_simulator,
-                shots=shots,
-            ),
+            transpile(circ, backend=self.backend, coupling_map=None, seed_transpiler=8),
+            seed_simulator=self.seed_simulator,
+            shots=shots,
         )
         count2 = result2.result().get_counts()
         self.assertDictAlmostEqual(count1, count2, shots * 0.02)

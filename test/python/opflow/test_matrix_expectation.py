@@ -44,7 +44,8 @@ class TestMatrixExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.seed = 97
-        backend = BasicAer.get_backend("statevector_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend = BasicAer.get_backend("statevector_simulator")
 
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(

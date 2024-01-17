@@ -25,7 +25,6 @@ from qiskit import (
     ClassicalRegister,
     BasicProvider,
     transpile,
-    execute,
     assemble,
 )
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
@@ -269,9 +268,8 @@ class TestInitialize(QiskitTestCase):
         # statevector simulator does not support reset
         shots = 2000
         threshold = 0.005 * shots
-        job = execute(
-            qc, BasicProvider.get_backend("basic_simulator"), shots=shots, seed_simulator=42
-        )
+        backend = BasicProvider.get_backend("basic_simulator")
+        job = backend.run(transpile(qc, backend), shots=shots, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         target = {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}

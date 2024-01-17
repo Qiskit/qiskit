@@ -16,7 +16,7 @@ import unittest
 
 from qiskit import BasicProvider
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
+from qiskit import transpile
 from qiskit.result import Result
 from qiskit.providers.basic_provider import BasicProviderError
 from qiskit.test import QiskitTestCase
@@ -33,7 +33,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
         self.backend = BasicProvider.get_backend("basic_simulator")
-        self._result1 = execute(self._qc1, self.backend).result()
+        self._result1 = self.backend.run(transpile(self._qc1)).result()
 
     def test_builtin_simulator_result_fields(self):
         """Test components of a result from a local simulator."""
@@ -52,7 +52,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        job = execute(qc, self.backend)
+        job = self.backend.run(transpile(qc))
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -66,7 +66,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = execute([qc, qc_extra], self.backend)
+        job = self.backend.run(transpile([qc, qc_extra]))
         result = job.result()
         self.assertIsInstance(result, Result)
 

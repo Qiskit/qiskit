@@ -57,7 +57,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
     ):
         """Run HamiltonianPhaseEstimation and return result with all  phases."""
         if backend is None:
-            backend = qiskit.BasicAer.get_backend("statevector_simulator")
+            with self.assertWarns(DeprecationWarning):
+                backend = qiskit.BasicAer.get_backend("statevector_simulator")
 
         with self.assertWarns(DeprecationWarning):
             quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
@@ -169,7 +170,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         bound = 1.2 * sum(abs(hamiltonian.coeff * coeff) for coeff in hamiltonian.coeffs)
         if op_class == "MatrixOp":
             hamiltonian = hamiltonian.to_matrix_op()
-        backend = qiskit.BasicAer.get_backend("statevector_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend = qiskit.BasicAer.get_backend("statevector_simulator")
 
         with self.assertWarns(DeprecationWarning):
             qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
@@ -360,7 +362,8 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         """
         if backend_type is None:
             backend_type = "qasm_simulator"
-        backend = qiskit.BasicAer.get_backend(backend_type)
+        with self.assertWarns(DeprecationWarning):
+            backend = qiskit.BasicAer.get_backend(backend_type)
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
 
@@ -454,7 +457,8 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         `state_preparation`. Return all results
         """
         if backend is None:
-            backend = qiskit.BasicAer.get_backend("statevector_simulator")
+            with self.assertWarns(DeprecationWarning):
+                backend = qiskit.BasicAer.get_backend("statevector_simulator")
 
         with self.assertWarns(DeprecationWarning):
             qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)

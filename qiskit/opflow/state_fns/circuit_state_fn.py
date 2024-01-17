@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """CircuitStateFn Class"""
-
-
+import warnings
 from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
@@ -261,9 +260,13 @@ class CircuitStateFn(StateFn):
         if self.is_measurement:
             return np.conj(self.adjoint().to_matrix(massive=massive))
         qc = self.to_circuit(meas=False)
-        statevector_backend = BasicAer.get_backend("statevector_simulator")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            statevector_backend = BasicAer.get_backend("statevector_simulator")
         transpiled = transpile(qc, statevector_backend, optimization_level=0)
-        statevector = statevector_backend.run(transpiled).result().get_statevector()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            statevector = statevector_backend.run(transpiled).result().get_statevector()
         from ..operator_globals import EVAL_SIG_DIGITS
 
         return np.round(statevector * self.coeff, decimals=EVAL_SIG_DIGITS)
@@ -360,9 +363,13 @@ class CircuitStateFn(StateFn):
         """
         OperatorBase._check_massive("sample", False, self.num_qubits, massive)
         qc = self.to_circuit(meas=True)
-        qasm_backend = BasicAer.get_backend("qasm_simulator")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            qasm_backend = BasicAer.get_backend("qasm_simulator")
         transpiled = transpile(qc, qasm_backend, optimization_level=0)
-        counts = qasm_backend.run(transpiled, shots=shots).result().get_counts()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            counts = qasm_backend.run(transpiled, shots=shots).result().get_counts()
         if reverse_endianness:
             scaled_dict = {bstr[::-1]: (prob / shots) for (bstr, prob) in counts.items()}
         else:

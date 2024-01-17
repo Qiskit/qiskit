@@ -53,8 +53,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning)
             algorithm_globals.random_seed = self.seed
-        backend_statevector = BasicAer.get_backend("statevector_simulator")
-        backend_qasm = BasicAer.get_backend("qasm_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend_statevector = BasicAer.get_backend("statevector_simulator")
+            backend_qasm = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
             self.quantum_instance = QuantumInstance(
                 backend=backend_statevector,
