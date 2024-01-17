@@ -349,11 +349,7 @@ class PulseQobjDef(ScheduleDef):
             self._build_schedule()
         return super().get_signature()
 
-<<<<<<< HEAD
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
-=======
-    def get_schedule(self, *args, **kwargs) -> Schedule | ScheduleBlock | None:
->>>>>>> a9e9e95f2 (Fix a bug of missing pulse library entry in PulseQobj parsing (#11397))
+    def get_schedule(self, *args, **kwargs) -> Optional[Union[Schedule, ScheduleBlock]]:
         if self._definition is None:
             self._build_schedule()
         if self._definition is IncompletePulseQobj:
