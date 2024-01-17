@@ -579,7 +579,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.h(0)
         circ.cx(0, 1)
         circ.append(SaveState(4, "snap"), [0, 1, 2, 3])
-        
+
         circ.h(2)
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
