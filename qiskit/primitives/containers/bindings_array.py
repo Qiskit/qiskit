@@ -420,7 +420,7 @@ def _format_key(key: tuple[Parameter | str, ...]):
     return tuple(map(_param_name, key))
 
 
-def _param_name(param: Parameter | str):
+def _param_name(param: Parameter | str) -> str:
     return param.name if isinstance(param, Parameter) else param
 
 
