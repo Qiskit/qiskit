@@ -1,10 +1,20 @@
 ---
 upgrade:
   - |
-    Removes the deprecated Unroller class in 'qiskit.transpiler.passes.basis'.
-    This class was deprecated in Qiskit Terra 0.45 and has been replaced by
-    `BasisTranslator`.
+    Removes the deprecated ``Unroller`` class in :mod:`qiskit.transpiler.passes.basis`.
+    This class was deprecated in Qiskit Terra 0.45 and has been replaced by 
+    :class:`.BasisTranslator`.
 
-    Note that `BasisTranslator` takes different arguments than Unroller, as it 
+    Note that :class:`.BasisTranslator` takes different arguments than ``Unroller``, as it 
     requires a `EquivalenceLibrary` object to be passed in. 
+
+    Example Usage:
+    Instead of using ``Unroller`` as follows:
+      Unroller(["u2"])
+    first create a EquivalenceLibrary like:
+      from qiskit.circuit.library.standard_gates.equivalence_library import (
+          StandardEquivalenceLibrary as std_eqlib,
+      )
+    and use ``BasisTranslator`` as follows:
+      BasisTranslator(std_eqlib, ["u2"])
     
