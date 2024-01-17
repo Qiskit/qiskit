@@ -20,7 +20,6 @@ import itertools
 import multiprocessing as mp
 import warnings
 import typing
-import math
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -3377,7 +3376,6 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-
     def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
@@ -5310,8 +5308,6 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
-
-
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
