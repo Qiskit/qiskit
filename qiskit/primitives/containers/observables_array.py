@@ -211,7 +211,7 @@ class ObservablesArray(ShapedMixin):
     def validate(self):
         """Validate the consistency in observables array."""
         num_qubits = None
-        for obs in self._array:
+        for obs in self._array.reshape(-1):
             basis_num_qubits = len(next(iter(obs)))
             if num_qubits is None:
                 num_qubits = basis_num_qubits
