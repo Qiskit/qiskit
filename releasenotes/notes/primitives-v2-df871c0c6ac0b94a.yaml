@@ -8,7 +8,7 @@ features:
     .. code: python
 
         from qiskit.circuit import Parameter, QuantumCircuit
-        from qiskit.primitives import StateVectorSampler
+        from qiskit.primitives import StatevectorEstimator
         import numpy as np
 
         circuit = QuantumCircuit(2)
