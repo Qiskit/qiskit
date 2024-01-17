@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Remove features deprecated in 0.45 for `qiskit/extensions`:
+      
+      * `exceptions`, No alternative will be provided
+      * `squ`,        Instead, use QuantumCircuit unitary
+      * `snapshot`,  
+    
+    The Snapshot instruction has been superseded by Qiskit Aer's save instructions, 
+    see: https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data
