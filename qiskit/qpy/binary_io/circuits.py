@@ -37,7 +37,7 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -290,6 +290,8 @@ def _read_instruction(
         gate_class = getattr(quantum_initializer, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
+    elif gate_name == "Clifford":
+        gate_class = Clifford
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
@@ -578,7 +580,11 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 # pylint: disable=too-many-boolean-expressions
 def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
-    gate_class_name = instruction.operation.base_class.__name__
+    if isinstance(instruction.operation, Instruction):
+        gate_class_name = instruction.operation.base_class.__name__
+    else:
+        gate_class_name = instruction.operation.__class__.__name__
+
     custom_operations_list = []
     if (
         (
@@ -587,6 +593,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             and not hasattr(extensions, gate_class_name)
             and not hasattr(quantum_initializer, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
+            and gate_class_name != "Clifford"
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -628,7 +635,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
-    label = getattr(instruction.operation, "label")
+    label = getattr(instruction.operation, "label", None)
     if label:
         label_raw = label.encode(common.ENCODE)
     else:
@@ -641,6 +648,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
         ]
+    elif isinstance(instruction.operation, Clifford):
+        instruction_params = [instruction.operation.tableau]
     else:
         instruction_params = instruction.operation.params
 
