@@ -20,3 +20,4 @@ from .data_bin import make_data_bin
 from .observables_array import ObservablesArray
 from .primitive_result import PrimitiveResult
 from .pub_result import PubResult
+from .sampler_pub import SamplerPub, SamplerPubLike
