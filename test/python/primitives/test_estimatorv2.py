@@ -19,14 +19,11 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray
-from qiskit.primitives.statevector_estimator import Estimator, Options
-from qiskit.providers import JobV1
+from qiskit.primitives.statevector_estimator import Estimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
-from qiskit.utils.optionals import HAS_PYDANTIC
 
 
-@unittest.skipUnless(HAS_PYDANTIC, "pydantic not installed.")
 class TestEstimatorV2(QiskitTestCase):
     """Test Estimator"""
 
@@ -67,7 +64,6 @@ class TestEstimatorV2(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([(psi1, hamiltonian1, [theta1])])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956])
 
@@ -131,7 +127,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["shots"])
+                self.assertIsNone(result[0].metadata["precision"])
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -150,7 +146,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["shots"])
+                self.assertIsNone(result[0].metadata["precision"])
 
         with self.subTest("More than one parameter"):
             qc = self.psi[0]
@@ -167,7 +163,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["shots"])
+                self.assertIsNone(result[0].metadata["precision"])
 
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
@@ -260,49 +256,20 @@ class TestEstimatorV2(QiskitTestCase):
             self.assertEqual(len(result[0].data.evs), k)
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs)
 
-    def test_run_with_shots_option(self):
-        """test with shots option."""
-        est = Estimator(options={"execution": {"shots": 1024, "seed": 15}})
-        result = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
-        np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
-        self.assertEqual(result[0].metadata["shots"], 1024)
-
-    def test_run_with_shots_option_none(self):
-        """test with shots=None option. Seed is ignored then."""
-        est = Estimator(options={"execution": {"shots": None, "seed": 42}})
-        result_42 = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
-        est.options.execution.seed = 15  # pylint: disable=assigning-non-slot
-        result_15 = est.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
-        np.testing.assert_allclose(result_42[0].data.evs, result_15[0].data.evs)
-
     def test_options(self):
         """Test for options"""
         with self.subTest("init"):
-            estimator = Estimator(options={"execution": {"shots": 3000}})
-            self.assertEqual(estimator.options.execution.shots, 3000)
+            estimator = Estimator(options={"seed": 1})
+            self.assertEqual(estimator.options.seed, 1)
         with self.subTest("set_options"):
-            estimator.options.execution.shots = 1024  # pylint: disable=assigning-non-slot
-            estimator.options.execution.seed = 15  # pylint: disable=assigning-non-slot
-            self.assertEqual(estimator.options.execution.shots, 1024)
-            self.assertEqual(estimator.options.execution.seed, 15)
-        with self.subTest("run"):
-            result = estimator.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
-            np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
-            self.assertEqual(result[0].metadata["shots"], 1024)
-        with self.subTest("Options class"):
-            options = Options()
-            options.execution.shots = 1024  # pylint: disable=assigning-non-slot # pylint's bug?
-            options.execution.seed = 15  # pylint: disable=assigning-non-slot
-            estimator = Estimator(options=options)
-            result = estimator.run([(self.ansatz, self.observable, [[0, 1, 1, 2, 3, 5]])]).result()
-            np.testing.assert_allclose(result[0].data.evs, [-1.307397243478641])
-            self.assertEqual(result[0].metadata["shots"], 1024)
+            estimator.options.seed = 15
+            self.assertEqual(estimator.options.seed, 15)
 
     def test_negative_variance(self):
         """Test for negative variance caused by numerical error."""
         qc = QuantumCircuit(1)
 
-        estimator = Estimator(options={"execution": {"shots": 1024}})
+        estimator = Estimator()
         result = estimator.run([(qc, 1e-4 * SparsePauliOp("I"))]).result()
         self.assertEqual(result[0].data.evs, 1e-4)
         self.assertEqual(result[0].data.stds, 0.0)

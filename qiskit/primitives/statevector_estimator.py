@@ -15,113 +15,87 @@ Estimator class
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
 
 from qiskit.quantum_info import SparsePauliOp, Statevector
-from qiskit.utils.optionals import HAS_PYDANTIC
 
 from .base import BaseEstimatorV2
-from .containers import (
-    BasePrimitiveOptions,
-    BasePrimitiveOptionsLike,
-    EstimatorPub,
-    EstimatorPubLike,
-    PrimitiveResult,
-    PubResult,
-    make_data_bin,
-)
-from .containers.dataclasses import mutable_dataclass
+from .containers import EstimatorPub, EstimatorPubLike, PrimitiveResult, PubResult
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
-if HAS_PYDANTIC:
-    from pydantic import Field
-    from pydantic.types import PositiveInt
-else:
-    from dataclasses import field as Field
 
+@dataclass
+class Options:
+    """Options for estimator."""
 
-@HAS_PYDANTIC.require_in_instance
-@mutable_dataclass
-class ExecutionOptions(BasePrimitiveOptions):
-    """Options for execution."""
-
-    shots: Optional[PositiveInt] = None
     seed: Optional[Union[int, np.random.Generator]] = None
 
+    def update(self, options: Options | Mapping | None = None, **kwargs):
+        """Update the options."""
+        if options is not None:
+            if isinstance(options, Mapping):
+                options_dict = options
+            elif isinstance(options, Options):
+                options_dict = options.__dict__
+            else:
+                raise TypeError(f"Type {type(options)} is not options nor Mapping class")
+            for key, val in options_dict.items():
+                setattr(self, key, val)
 
-@HAS_PYDANTIC.require_in_instance
-@mutable_dataclass
-class Options(BasePrimitiveOptions):
-    """Options for the primitives.
-
-    Args:
-        execution: Execution time options. See :class:`ExecutionOptions` for all available options.
-    """
-
-    execution: ExecutionOptions = Field(default_factory=ExecutionOptions)
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
 
-@HAS_PYDANTIC.require_in_instance
 class Estimator(BaseEstimatorV2):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.
-
-    :Execution Options:
-
-        - **shots** (None or int) --
-          The number of shots. If None, it calculates the exact expectation
-          values. Otherwise, it samples from normal distributions with standard errors as standard
-          deviations using normal distribution approximation.
-
-        - **seed** (np.random.Generator or int) --
-          Set a fixed seed or generator for the normal distribution. If shots is None,
-          this option is ignored.
     """
 
-    _options_class = Options
-    options: Options
-
-    def __init__(self, *, options: BasePrimitiveOptionsLike | None = None):
-        """
-        Args:
-            options: Options including shots, seed.
-        """
+    def __init__(self, options: Options | dict | None = None):
         if options is None:
             options = Options()
-        elif not isinstance(options, BasePrimitiveOptions):
+        elif not isinstance(options, Options):
             options = Options(**options)
-        super().__init__(options=options)
+        self.options = options
 
-    def run(self, pubs: Iterable[EstimatorPubLike]) -> PrimitiveJob[PrimitiveResult[PubResult]]:
-        job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs)
-        job.submit()
+    def run(
+        self, pubs: Iterable[EstimatorPubLike], precision: float | None = None
+    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+        job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs, precision)
+        job._submit()
         return job
 
-    def _run(self, pubs: Iterable[EstimatorPub]) -> PrimitiveResult[PubResult]:
+    def _run(
+        self, pubs: Iterable[EstimatorPub], precision: float | None
+    ) -> PrimitiveResult[PubResult]:
         coerced_pubs = [EstimatorPub.coerce(pub) for pub in pubs]
 
         for pub in coerced_pubs:
             pub.validate()
 
-        shots = self.options.execution.shots
-
-        rng = _get_rng(self.options.execution.seed)
+        rng = _get_rng(self.options.seed)
+        run_precision = precision
 
         results = []
         for pub in coerced_pubs:
+            if pub.precision is not None:
+                precision = pub.precision
+            else:
+                precision = run_precision
+
             circuit = pub.circuit
             observables = pub.observables
             parameter_values = pub.parameter_values
             bound_circuits = parameter_values.bind_all(circuit)
 
             bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
-            evs = np.zeros_like(bc_circuits, dtype=np.complex128)
-            stds = np.zeros_like(bc_circuits, dtype=np.complex128)
+            evs = np.zeros_like(bc_circuits, dtype=np.float64)
+            stds = np.zeros_like(bc_circuits, dtype=np.float64)
             for index in np.ndindex(*bc_circuits.shape):
                 bound_circuit = bc_circuits[index]
                 observable = bc_obs[index]
@@ -131,23 +105,16 @@ class Estimator(BaseEstimatorV2):
                 obs = SparsePauliOp(paulis, coeffs)
                 # TODO: support non Pauli operators
                 expectation_value = np.real_if_close(final_state.expectation_value(obs))
-                if shots is None:
+                if precision is None or precision == 0:
                     standard_error = 0
                 else:
-                    sq_obs = (obs @ obs).simplify(atol=0)
-                    sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
-                    variance = sq_exp_val - expectation_value**2
-                    variance = max(variance, 0)
-                    standard_error = np.sqrt(variance / shots)
+                    standard_error = np.sqrt(precision)
                     expectation_value = rng.normal(expectation_value, standard_error)
                 evs[index] = expectation_value
                 stds[index] = standard_error
-            data_bin_cls = make_data_bin(
-                [("evs", NDArray[np.complex128]), ("stds", NDArray[np.complex128])],
-                shape=bc_circuits.shape,
-            )
+            data_bin_cls = self._make_data_bin(pub)
             data_bin = data_bin_cls(evs=evs, stds=stds)
-            results.append(PubResult(data_bin, metadata={"shots": shots}))
+            results.append(PubResult(data_bin, metadata={"precision": precision}))
         return PrimitiveResult(results)
 
 

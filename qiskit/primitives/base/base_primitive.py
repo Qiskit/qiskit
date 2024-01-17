@@ -18,7 +18,6 @@ from abc import ABC
 from collections.abc import Sequence
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.primitives.containers import BasePrimitiveOptions, BasePrimitiveOptionsLike
 from qiskit.providers import Options
 from qiskit.utils.deprecation import deprecate_func
 
@@ -76,20 +75,3 @@ class BasePrimitiveV1(ABC):
 
 
 BasePrimitive = BasePrimitiveV1
-
-
-class BasePrimitiveV2(ABC):
-    """Primitive abstract base class version 2."""
-
-    version = 2
-    _options_class: type[BasePrimitiveOptions] = BasePrimitiveOptions
-
-    def __init__(self, options: BasePrimitiveOptionsLike | None = None):
-        self._options = self._options_class()
-        if options:
-            self._options.update(options)
-
-    @property
-    def options(self) -> BasePrimitiveOptions:
-        """Options for the primitive"""
-        return self._options

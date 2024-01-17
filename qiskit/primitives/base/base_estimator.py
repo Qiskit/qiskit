@@ -356,7 +356,9 @@ class BaseEstimatorV2:
     def _make_data_bin(pub: EstimatorPub) -> DataBin:
         # provide a standard way to construct estimator databins to ensure that names match
         # across implementations
-        return make_data_bin((("evs", NDArray[np.float]), ("stds", NDArray[np.float])), pub.shape)
+        return make_data_bin(
+            (("evs", NDArray[np.float64]), ("stds", NDArray[np.float64])), pub.shape
+        )
 
     @abstractmethod
     def run(
