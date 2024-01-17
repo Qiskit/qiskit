@@ -126,7 +126,6 @@ from qiskit.pulse.exceptions import (
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import (
     Acquire,
-    Call,
     Delay,
     Instruction,
     Play,
