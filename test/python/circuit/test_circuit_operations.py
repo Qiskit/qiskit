@@ -370,6 +370,25 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(len(qc.cregs), 1)
         self.assertEqual(len(copied.cregs), 2)
 
+    def test_copy_handles_global_phase(self):
+        """Test that the global phase is included in the copy, including parameters."""
+        a, b = Parameter("a"), Parameter("b")
+
+        nonparametric = QuantumCircuit(global_phase=1.0).copy()
+        self.assertEqual(nonparametric.global_phase, 1.0)
+        self.assertEqual(set(nonparametric.parameters), set())
+
+        parameter_phase = QuantumCircuit(global_phase=a).copy()
+        self.assertEqual(parameter_phase.global_phase, a)
+        self.assertEqual(set(parameter_phase.parameters), {a})
+        # The `assign_parameters` is an indirect test that the `ParameterTable` is fully valid.
+        self.assertEqual(parameter_phase.assign_parameters({a: 1.0}).global_phase, 1.0)
+
+        expression_phase = QuantumCircuit(global_phase=a - b).copy()
+        self.assertEqual(expression_phase.global_phase, a - b)
+        self.assertEqual(set(expression_phase.parameters), {a, b})
+        self.assertEqual(expression_phase.assign_parameters({a: 3, b: 2}).global_phase, 1.0)
+
     def test_copy_empty_like_circuit(self):
         """Test copy_empty_like method makes a clear copy."""
         qr = QuantumRegister(2)
@@ -463,6 +482,24 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    def test_copy_empty_like_parametric_phase(self):
+        """Test that the parameter table of an empty circuit remains valid after copying a circuit
+        with a parametric global phase."""
+        a, b = Parameter("a"), Parameter("b")
+
+        single = QuantumCircuit(global_phase=a).copy_empty_like()
+        self.assertEqual(single.global_phase, a)
+        self.assertEqual(set(single.parameters), {a})
+        # The `assign_parameters` is an indirect test that the `ParameterTable` is fully valid.
+        self.assertEqual(single.assign_parameters({a: 1.0}).global_phase, 1.0)
+
+        stripped_instructions = QuantumCircuit(1, global_phase=a - b)
+        stripped_instructions.rz(a, 0)
+        stripped_instructions = stripped_instructions.copy_empty_like()
+        self.assertEqual(stripped_instructions.global_phase, a - b)
+        self.assertEqual(set(stripped_instructions.parameters), {a, b})
+        self.assertEqual(stripped_instructions.assign_parameters({a: 3, b: 2}).global_phase, 1.0)
+
     def test_circuit_copy_rejects_invalid_types(self):
         """Test copy method rejects argument with type other than 'string' and 'None' type."""
         qc = QuantumCircuit(1, 1)
@@ -512,6 +549,17 @@ class TestCircuitOperations(QiskitTestCase):
         expected.append(Barrier(5), [expected.qubits[x] for x in [1, 2, 4, 5, 6]], [])
 
         self.assertEqual(qc, expected)
+
+    def test_barrier_in_context(self):
+        """Test barrier statement in context, see gh-11345"""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.h(0)
+            qc.barrier()
+
+        operation_names = [c.operation.name for c in qc]
+        self.assertNotIn("barrier", operation_names)
 
     def test_measure_active(self):
         """Test measure_active

@@ -26,7 +26,6 @@ Layout Selection (Placement)
    SetLayout
    TrivialLayout
    DenseLayout
-   NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
    VF2Layout
@@ -83,7 +82,6 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
-   CrosstalkAdaptiveSchedule
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
@@ -147,6 +145,7 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   HLSConfig
    SolovayKitaev
    SolovayKitaevSynthesis
 
@@ -185,7 +184,6 @@ Additional Passes
 from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
-from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
@@ -227,7 +225,6 @@ from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
@@ -255,6 +252,7 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
 

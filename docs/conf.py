@@ -40,11 +40,13 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.mathjax",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
+    # This is used by qiskit/documentation to generate links to github.com.
+    "sphinx.ext.viewcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
+    "sphinxcontrib.katex",
 ]
 
 templates_path = ["_templates"]
