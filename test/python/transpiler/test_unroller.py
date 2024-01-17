@@ -15,6 +15,7 @@
 
 from numpy import pi
 
+from qiskit_aer.library import SaveState
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -24,7 +25,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit.transpiler.target import Target
-from qiskit_aer.library import SaveState
 
 
 class TestUnroller(QiskitTestCase):
