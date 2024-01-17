@@ -16,7 +16,6 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.simulator import Snapshot
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -25,6 +24,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, CU1Gate, CU3Gate
 from qiskit.transpiler.target import Target
+from qiskit_aer.library import SaveState
 
 
 class TestUnroller(QiskitTestCase):
@@ -777,8 +777,7 @@ class TestUnrollAllInstructions(QiskitTestCase):
     def test_unroll_snapshot(self):
         """test unroll snapshot"""
         num_qubits = self.circuit.num_qubits
-        with self.assertWarns(DeprecationWarning):
-            instr = Snapshot("0", num_qubits=num_qubits)
+        instr = SaveState(num_qubits, "0")
         self.circuit.append(instr, range(num_qubits))
         self.ref_circuit.append(instr, range(num_qubits))
         self.compare_dags()

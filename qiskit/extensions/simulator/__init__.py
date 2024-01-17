@@ -11,5 +11,3 @@
 # that they have been altered from the originals.
 
 """Instructions usable by simulator backends."""
-
-from .snapshot import Snapshot

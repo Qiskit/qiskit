@@ -59,7 +59,6 @@ from .quantum_initializer import (
     UCRYGate,
     UCRZGate,
 )
-from .simulator import Snapshot
 
 
 warnings.warn(
