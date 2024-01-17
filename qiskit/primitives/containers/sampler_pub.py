@@ -87,7 +87,7 @@ class SamplerPub(ShapedMixin):
             pub: An object to coerce.
             shots: An optional default number of shots to use if not
                    already specified by the pub-like object.
-            validate: Whether to validate the returned pub.
+            validate: Whether to validate the pub before returning.
 
         Returns:
             A sampler pub.

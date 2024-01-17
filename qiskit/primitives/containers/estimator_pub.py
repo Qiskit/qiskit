@@ -110,7 +110,7 @@ class EstimatorPub(ShapedMixin):
             pub: A compatible object for coercion.
             precision: an optional default precision to use if not
                        already specified by the pub-like object.
-            validate: Whether to validate the returned pub.
+            validate: Whether to validate the pub before returning.
 
         Returns:
             An estimator pub.
