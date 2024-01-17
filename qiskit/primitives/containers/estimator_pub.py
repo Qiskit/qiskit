@@ -56,13 +56,27 @@ class EstimatorPub(ShapedMixin):
             parameter_values: A bindings array, if the circuit is parametric.
             precision: An optional target precision for expectation value estimates.
             validate: Whether to validate arguments during initialization.
+
+        Raises:
+            ValueError: If the ``observables`` and ``parameter_values`` are not broadcastable, that
+                is, if their shapes, when right-aligned, do not agree or equal 1.
         """
         super().__init__()
         self._circuit = circuit
         self._observables = observables
         self._parameter_values = parameter_values or BindingsArray()
         self._precision = precision
-        self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
+
+        # for ShapedMixin
+        try:
+            # _shape has to be defined to properly be Shaped, so we can't put it in validation
+            self._shape = np.broadcast_shapes(self.observables.shape, self.parameter_values.shape)
+        except ValueError as ex:
+            raise ValueError(
+                f"The observables shape {self.observables.shape} and the "
+                f"parameter values shape {self.parameter_values.shape} are not broadcastable."
+            ) from ex
+
         if validate:
             self.validate()
 
@@ -106,7 +120,7 @@ class EstimatorPub(ShapedMixin):
                 raise ValueError("precision must be non-negative")
         if isinstance(pub, EstimatorPub):
             if pub.precision is None and precision is not None:
-                cls(
+                return cls(
                     circuit=pub.circuit,
                     observables=pub.observables,
                     parameter_values=pub.parameter_values,
@@ -120,8 +134,8 @@ class EstimatorPub(ShapedMixin):
             )
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
-        parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 1 else None
-        if len(pub) > 2 and pub[3] is not None:
+        parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 2 else None
+        if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
         return cls(
             circuit=circuit,
@@ -146,7 +160,7 @@ class EstimatorPub(ShapedMixin):
                 raise ValueError("precision must be non-negative.")
 
         # Cross validate circuits and observables
-        for i, observable in enumerate(self.observables):
+        for i, observable in np.ndenumerate(self.observables):
             num_qubits = len(next(iter(observable)))
             if self.circuit.num_qubits != num_qubits:
                 raise ValueError(
