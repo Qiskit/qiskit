@@ -17,35 +17,34 @@ import math
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpile
 from qiskit.providers.fake_provider import FakeGeneric
-from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
 
-class TestGenericTarget(QiskitTestCase):
-    """Test class for GenericTarget"""
+class TestFakeGeneric(QiskitTestCase):
+    """Test class for FakeGeneric backend"""
 
     def setUp(self):
         super().setUp()
         self.cmap = CouplingMap(
             [(0, 2), (0, 1), (1, 3), (2, 4), (2, 3), (3, 5), (4, 6), (4, 5), (5, 7), (6, 7)]
         )
-        self.basis_gates = ["cx", "id", "rz", "sx", "x"]
 
     def test_supported_basis_gates(self):
         """Test that target raises error if basis_gate not in ``supported_names``."""
         with self.assertRaises(QiskitError):
-            GenericTarget(
-                num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"], coupling_map=self.cmap
-            )
+            FakeGeneric(num_qubits=8, basis_gates=["cx", "id", "rz", "sx", "zz"])
 
     def test_operation_names(self):
         """Test that target basis gates include "delay", "measure" and "reset" even
         if not provided by user."""
-        target = GenericTarget(
-            num_qubits=8, basis_gates=["ecr", "id", "rz", "sx", "x"], coupling_map=self.cmap
-        )
+        target = FakeGeneric(num_qubits=8)
+        op_names = list(target.operation_names)
+        op_names.sort()
+        self.assertEqual(op_names, ["cx", "delay", "id", "measure", "reset", "rz", "sx", "x"])
+
+        target = FakeGeneric(num_qubits=8, basis_gates=["ecr", "id", "rz", "sx", "x"])
         op_names = list(target.operation_names)
         op_names.sort()
         self.assertEqual(op_names, ["delay", "ecr", "id", "measure", "reset", "rz", "sx", "x"])
@@ -53,18 +52,16 @@ class TestGenericTarget(QiskitTestCase):
     def test_incompatible_coupling_map(self):
         """Test that the size of the coupling map must match num_qubits."""
         with self.assertRaises(QiskitError):
-            FakeGeneric(
-                num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=self.cmap
-            )
+            FakeGeneric(num_qubits=5, coupling_map=self.cmap)
 
     def test_control_flow_operation_names(self):
         """Test that control flow instructions are added to the target if control_flow is True."""
-        target = GenericTarget(
+        target = FakeGeneric(
             num_qubits=8,
             basis_gates=["ecr", "id", "rz", "sx", "x"],
             coupling_map=self.cmap,
             control_flow=True,
-        )
+        ).target
         op_names = list(target.operation_names)
         op_names.sort()
         reference = [
@@ -85,10 +82,6 @@ class TestGenericTarget(QiskitTestCase):
         ]
         self.assertEqual(op_names, reference)
 
-
-class TestFakeGeneric(QiskitTestCase):
-    """Test class for FakeGeneric backend"""
-
     def test_default_coupling_map(self):
         """Test that fully-connected coupling map is generated correctly."""
 
@@ -96,13 +89,8 @@ class TestFakeGeneric(QiskitTestCase):
         reference_cmap = [(0, 1), (1, 0), (0, 2), (2, 0), (0, 3), (3, 0), (0, 4), (4, 0), (1, 2), (2, 1),
                           (1, 3), (3, 1), (1, 4), (4, 1), (2, 3), (3, 2), (2, 4), (4, 2), (3, 4), (4, 3)]
         # fmt: on
-
         self.assertEqual(
-            list(
-                FakeGeneric(
-                    num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"]
-                ).coupling_map.get_edges()
-            ),
+            list(FakeGeneric(num_qubits=5).coupling_map.get_edges()),
             reference_cmap,
         )
 

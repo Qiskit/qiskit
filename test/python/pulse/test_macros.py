@@ -41,7 +41,7 @@ class TestMeasure(QiskitTestCase):
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=27,
         )
-        self.backend_v2.target.add_calibrations_from_instruction_schedule_map(
+        self.backend_v2.add_calibrations_to_target(
             self.backend_v1.defaults().instruction_schedule_map
         )
 
@@ -220,7 +220,7 @@ class TestMeasureAll(QiskitTestCase):
             num_qubits=2,
         )
         self.inst_map = self.backend_v1.defaults().instruction_schedule_map
-        self.backend_v2.target.add_calibrations_from_instruction_schedule_map(
+        self.backend_v2.add_calibrations_to_target(
             self.backend_v1.defaults().instruction_schedule_map
         )
 

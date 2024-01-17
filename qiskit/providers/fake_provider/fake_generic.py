@@ -29,7 +29,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
-from qiskit.circuit.library import XGate, RZGate, SXGate, CXGate, ECRGate, IGate, CZGate
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitProperties
 from qiskit.providers import Options
@@ -43,134 +43,133 @@ from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
 
-class GenericTarget(Target):
+class FakeGeneric(BackendV2):
     """
-    This class will generate a :class:`~.Target` instance with
-    default qubit, instruction and calibration properties.
-    A target object represents the minimum set of information
-    the transpiler needs from a backend.
+    Configurable fake :class:`~.BackendV2` generator. This class will
+    generate a fake backend from a combination of generated defaults
+    (with a fixable ``seed``) driven from a series of optional input arguments.
     """
+
+    # Added backend_name for compatibility with
+    # snapshot-based fake backends.
+    backend_name = "FakeGeneric"
 
     def __init__(
         self,
         num_qubits: int,
-        basis_gates: list[str],
-        coupling_map: CouplingMap,
+        basis_gates: list[str] | None = None,
+        *,
+        coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
         calibrate_instructions: list[str] | None = None,
-        rng: np.random.Generator = None,
+        dtm: float = None,
+        seed: int = 42,
     ):
         """
         Args:
-            num_qubits (int): Number of qubits in the target.
+            num_qubits: Number of qubits that will
+                be used to construct the backend's target. Note that, while
+                there is no limit in the size of the target that can be
+                constructed, fake backends run on local noisy simulators,
+                and these might show limitations in the number of qubits that
+                can be simulated.
 
-            basis_gates (list[str]): List of basis gate names to be supported by
-                the target. These must be within the supported operations of this
-                target generator, which can be consulted through the
-                ``supported_operations`` property.
-                Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
-                and ``{"ecr", "id", "rz", "sx", "x"}``. The ``"reset"``,  ``"`delay"``
-                and ``"measure"`` instructions are supported by default, even if
-                not specified via ``basis_gates``.
+            basis_gates: List of basis gate names to be supported by
+                the target. These must be part of the standard qiskit circuit library.
+                The default set of basis gates is ``["id", "rz", "sx", "x", "cx"]``
+                The ``"reset"``,  ``"delay"``, and ``"measure"`` instructions are
+                always supported by default, even if not specified via ``basis_gates``.
 
-            coupling_map (CouplingMap): Target's coupling map as an instance of
-                :class:`~.CouplingMap`.
+            coupling_map: Optional coupling map
+                for the fake backend. Multiple formats are supported:
 
-            control_flow (bool): Flag to enable control flow directives on the target
+                #. :class:`~.CouplingMap` instance
+                #. List, must be given as an adjacency matrix, where each entry
+                   specifies all directed two-qubit interactions supported by the backend,
+                   e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+
+                If ``coupling_map`` is specified, it must match the number of qubits
+                specified in ``num_qubits``. If ``coupling_map`` is not specified,
+                a fully connected coupling map will be generated with ``num_qubits``
+                qubits.
+
+            control_flow: Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_instructions (list[str] | None): List of instruction names
-                to add default calibration entries to. These must be within the
-                supported operations of this target generator, which can be
-                consulted through the ``supported_operations`` property. If no
+            calibrate_instructions: List of instruction names
+                to add default calibration entries to. These must be part of the
+                standard qiskit circuit library. If no
                 instructions are provided, the target generator will append
                 empty calibration schedules by default.
 
-            rng (np.random.Generator): Optional fixed-seed generator for default random values.
+            dtm: System time resolution of output signals in nanoseconds.
+                None by default.
+
+            seed: Optional seed for generation of default values.
         """
-        self._rng = rng if rng else np.random.default_rng(seed=42)
 
-        if num_qubits != coupling_map.size():
-            raise QiskitError(
-                f"The number of qubits (got {num_qubits}) must match "
-                f"the size of the provided coupling map (got {coupling_map.size()})."
-            )
-
-        self._num_qubits = num_qubits
-        self._coupling_map = coupling_map
-
-        # Hardcoded default target attributes. To modify,
-        # access corresponding properties through the public `Target` API
         super().__init__(
-            description=f"Generic Target with {num_qubits} qubits",
-            num_qubits=num_qubits,
-            dt=0.222e-9,
-            qubit_properties=[
-                QubitProperties(
-                    t1=self._rng.uniform(100e-6, 200e-6),
-                    t2=self._rng.uniform(100e-6, 200e-6),
-                    frequency=self._rng.uniform(5e9, 5.5e9),
-                )
-                for _ in range(num_qubits)
-            ],
-            concurrent_measurements=[list(range(num_qubits))],
+            provider=None,
+            name=f"fake_generic_{num_qubits}q",
+            description=f"This is a fake device with {num_qubits} " f"and generic settings.",
+            backend_version="",
         )
 
-        # Ensure that Reset, Delay and Measure are in
-        # self._basis_gates
-        # so that their instructions are added to the target.
-        self._basis_gates = basis_gates
+        self.sim = None
+        self._rng = np.random.default_rng(seed=seed)
+        self._dtm = dtm
+        self._num_qubits = num_qubits
+        self._control_flow = control_flow
+        self._calibrate_instructions = calibrate_instructions
+        self._noise_defaults = None
+        self._supported_gates = get_standard_gate_name_mapping()
+
+        if coupling_map is None:
+            self._coupling_map = CouplingMap().from_full(num_qubits)
+        else:
+            if isinstance(coupling_map, CouplingMap):
+                self._coupling_map = coupling_map
+            else:
+                self._coupling_map = CouplingMap(coupling_map)
+
+            if num_qubits != self._coupling_map.size():
+                raise QiskitError(
+                    f"The number of qubits (got {num_qubits}) must match "
+                    f"the size of the provided coupling map (got {coupling_map.size()})."
+                )
+
+        self._basis_gates = basis_gates if basis_gates else ["cx", "id", "rz", "sx", "x"]
         for name in ["reset", "delay", "measure"]:
             if name not in self._basis_gates:
                 self._basis_gates.append(name)
 
-        # Iterate over gates, generate noise params from defaults,
-        # and add instructions to target.
-        for name in self._basis_gates:
-            if name not in self.supported_operations:
-                raise QiskitError(
-                    f"Provided base gate {name} is not a supported "
-                    f"operation ({self.supported_operations.keys()})."
-                )
-            gate = self.supported_operations[name]
-            noise_params = self.noise_defaults[name]
-            self.add_noisy_instruction(gate, noise_params)
-
-        if control_flow:
-            self.add_instruction(IfElseOp, name="if_else")
-            self.add_instruction(WhileLoopOp, name="while_loop")
-            self.add_instruction(ForLoopOp, name="for_loop")
-            self.add_instruction(SwitchCaseOp, name="switch_case")
-            self.add_instruction(BreakLoopOp, name="break")
-            self.add_instruction(ContinueLoopOp, name="continue")
-
-        # Generate block of calibration defaults and add to target.
-        # Note: this could be improved if we could generate and add
-        # calibration defaults per-gate, and not as a block.
-        defaults = self._generate_calibration_defaults(calibrate_instructions)
-        inst_map = defaults.instruction_schedule_map
-        self.add_calibrations_from_instruction_schedule_map(inst_map)
+        self._build_generic_target()
+        self._build_default_channels()
 
     @property
-    def supported_operations(self) -> dict[str, Instruction]:
-        """Mapping of names to class instances for operations supported
-        in ``basis_gates``.
+    def target(self):
+        return self._target
+
+    @property
+    def max_circuits(self):
+        return None
+
+    @property
+    def dtm(self) -> float:
+        """Return the system time resolution of output signals
 
         Returns:
-            Dictionary mapping operation names to class instances.
+            The output signal timestep in seconds.
         """
-        return {
-            "cx": CXGate(),
-            "ecr": ECRGate(),
-            "cz": CZGate(),
-            "id": IGate(),
-            "rz": RZGate(Parameter("theta")),
-            "sx": SXGate(),
-            "x": XGate(),
-            "measure": Measure(),
-            "delay": Delay(Parameter("Time")),
-            "reset": Reset(),
-        }
+        if self._dtm is not None:
+            # converting `dtm` in nanoseconds in configuration file to seconds
+            return self._dtm * 1e-9
+        else:
+            return None
+
+    @property
+    def meas_map(self) -> list[list[int]]:
+        return self._target.concurrent_measurements
 
     @property
     def noise_defaults(self) -> dict[str, tuple | None]:
@@ -184,20 +183,30 @@ class GenericTarget(Target):
         Returns:
             Dictionary mapping instruction names to noise defaults
         """
-        return {
-            "cx": (1e-8, 9e-7, 1e-5, 5e-3),
-            "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
-            "cz": (1e-8, 9e-7, 1e-5, 5e-3),
-            "id": (3e-8, 4e-8, 9e-5, 1e-4),
-            "rz": (0.0, 0.0),
-            "sx": (1e-8, 9e-7, 1e-5, 5e-3),
-            "x": (1e-8, 9e-7, 1e-5, 5e-3),
-            "measure": (1e-8, 9e-7, 1e-5, 5e-3),
-            "delay": (None, None),
-            "reset": (None, None),
-        }
 
-    def add_noisy_instruction(
+        if self._noise_defaults is None:
+            # gates with known noise approximations
+            default_dict = {
+                "cx": (1e-8, 9e-7, 1e-5, 5e-3),
+                "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
+                "cz": (1e-8, 9e-7, 1e-5, 5e-3),
+                "id": (3e-8, 4e-8, 9e-5, 1e-4),
+                "rz": (0.0, 0.0),
+                "sx": (1e-8, 9e-7, 1e-5, 5e-3),
+                "x": (1e-8, 9e-7, 1e-5, 5e-3),
+                "measure": (1e-8, 9e-7, 1e-5, 5e-3),
+                "delay": (None, None),
+                "reset": (None, None),
+            }
+            # add values for rest of the gates (untested)
+            for gate in self._supported_gates:
+                if gate not in default_dict:
+                    default_dict[gate] = (1e-8, 9e-7, 1e-5, 5e-3)
+            self._noise_defaults = default_dict
+
+        return self._noise_defaults
+
+    def add_noisy_instruction_to_target(
         self, instruction: Instruction, noise_params: tuple[float, ...] | None
     ) -> None:
         """Add instruction properties to target for specified instruction.
@@ -210,67 +219,73 @@ class GenericTarget(Target):
         Returns:
             None
         """
-
         qarg_set = self._coupling_map if instruction.num_qubits > 1 else range(self._num_qubits)
         props = {}
-
         for qarg in qarg_set:
             try:
                 qargs = tuple(qarg)
             except TypeError:
                 qargs = (qarg,)
-
             duration, error = (
                 noise_params
                 if len(noise_params) == 2
                 else (self._rng.uniform(*noise_params[:2]), self._rng.uniform(*noise_params[2:]))
             )
-
             props.update({qargs: InstructionProperties(duration, error)})
 
-        self.add_instruction(instruction, props)
+        self._target.add_instruction(instruction, props)
 
-    def add_calibrations_from_instruction_schedule_map(
-        self, inst_map: InstructionScheduleMap
-    ) -> None:
-        """Add calibration entries from provided pulse defaults to target.
-
-        Args:
-            inst_map (InstructionScheduleMap): pulse defaults with instruction schedule map
-
-        Returns:
-            None
+    def _build_generic_target(self):
         """
+        This method generates a :class:`~.Target` instance with
+        default qubit, instruction and calibration properties.
+        """
+        # Hardcoded default target attributes.
+        self._target = Target(
+            description=f"Generic Target with {self._num_qubits} qubits",
+            num_qubits=self._num_qubits,
+            dt=0.222e-9,
+            qubit_properties=[
+                QubitProperties(
+                    t1=self._rng.uniform(100e-6, 200e-6),
+                    t2=self._rng.uniform(100e-6, 200e-6),
+                    frequency=self._rng.uniform(5e9, 5.5e9),
+                )
+                for _ in range(self._num_qubits)
+            ],
+            concurrent_measurements=[list(range(self._num_qubits))],
+        )
 
-        # The calibration entries are directly injected into the gate map to
-        # avoid then being labeled as "user_provided".
-        for inst in inst_map.instructions:
-            for qarg in inst_map.qubits_with_instruction(inst):
-                try:
-                    qargs = tuple(qarg)
-                except TypeError:
-                    qargs = (qarg,)
-                # Do NOT call .get method. This parses Qobj immediately.
-                # This operation is computationally expensive and should be bypassed.
-                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
-                if inst in self._gate_map:
-                    if inst == "measure":
-                        for qubit in qargs:
-                            self._gate_map[inst][(qubit,)].calibration = calibration_entry
-                    elif qargs in self._gate_map[inst] and inst not in ["delay", "reset"]:
-                        self._gate_map[inst][qargs].calibration = calibration_entry
+        # Iterate over gates, generate noise params from defaults,
+        # and add instructions to target.
+        for name in self._basis_gates:
+            if name not in self._supported_gates:
+                raise QiskitError(
+                    f"Provided basis gate {name} is not an instruction "
+                    f"in the standard qiskit circuit library."
+                )
+            gate = self._supported_gates[name]
+            noise_params = self.noise_defaults[name]
+            self.add_noisy_instruction_to_target(gate, noise_params)
 
-    def _generate_calibration_defaults(
-        self, calibrate_instructions: list[str] | None
-    ) -> PulseDefaults:
+        if self._control_flow:
+            self._target.add_instruction(IfElseOp, name="if_else")
+            self._target.add_instruction(WhileLoopOp, name="while_loop")
+            self._target.add_instruction(ForLoopOp, name="for_loop")
+            self._target.add_instruction(SwitchCaseOp, name="switch_case")
+            self._target.add_instruction(BreakLoopOp, name="break")
+            self._target.add_instruction(ContinueLoopOp, name="continue")
+
+        # Generate block of calibration defaults and add to target.
+        # Note: this could be improved if we could generate and add
+        # calibration defaults per-gate, and not as a block.
+        defaults = self._generate_calibration_defaults()
+        inst_map = defaults.instruction_schedule_map
+        self.add_calibrations_to_target(inst_map)
+
+    def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate calibration defaults for instructions specified via ``calibrate_instructions``.
         By default, this method generates empty calibration schedules.
-
-        Args:
-            calibrate_instructions (list[str]): list of instructions to be calibrated.
-
-        Returns:
-            Corresponding PulseDefaults
         """
 
         # The number of samples determines the pulse durations of the corresponding
@@ -292,7 +307,7 @@ class GenericTarget(Target):
 
         # Unless explicitly given a series of gates to calibrate, this method
         # will generate empty pulse schedules for all gates in self._basis_gates.
-        calibrate_instructions = calibrate_instructions or []
+        calibrate_instructions = self._calibrate_instructions or []
         calibration_buffer = self._basis_gates.copy()
         for inst in ["delay", "reset"]:
             calibration_buffer.remove(inst)
@@ -302,8 +317,8 @@ class GenericTarget(Target):
         # are different for 1q gates vs 2q gates vs measurement instructions.
         cmd_def = []
         for inst in calibration_buffer:
-            num_qubits = self.supported_operations[inst].num_qubits
-            qarg_set = self._coupling_map if num_qubits > 1 else list(range(self._num_qubits))
+            num_qubits = self._supported_gates[inst].num_qubits
+            qarg_set = self._coupling_map if num_qubits > 1 else list(range(self.num_qubits))
             if inst == "measure":
                 sequence = []
                 qubits = qarg_set
@@ -359,158 +374,33 @@ class GenericTarget(Target):
             cmd_def=cmd_def,
         )
 
+    def add_calibrations_to_target(self, inst_map: InstructionScheduleMap) -> None:
+        """Add calibration entries from provided pulse defaults to target.
 
-class FakeGeneric(BackendV2):
-    """
-    Configurable fake :class:`~.BackendV2` generator. This class will
-    generate a fake backend from a combination of generated defaults
-    (with a fixable ``seed``) driven from a series of optional input arguments.
-    """
-
-    # Added backend_name for compatibility with
-    # snapshot-based fake backends.
-    backend_name = "FakeGeneric"
-
-    def __init__(
-        self,
-        num_qubits: int,
-        basis_gates: list[str],
-        *,
-        coupling_map: list[list[int]] | CouplingMap | None = None,
-        control_flow: bool = False,
-        calibrate_instructions: list[str] | None = None,
-        dtm: float = None,
-        seed: int = 42,
-    ):
-        """
         Args:
-           num_qubits (int): Number of qubits that will
-                be used to construct the backend's target. Note that, while
-                there is no limit in the size of the target that can be
-                constructed, fake backends run on local noisy simulators,
-                and these might show limitations in the number of qubits that
-                can be simulated.
-
-            basis_gates (list[str]): List of basis gate names to be supported by
-                the target. These must be within the supported operations of the
-                target generator, which can be consulted through its
-                ``supported_operations`` property.
-                Common sets of basis gates are ``{"cx", "id", "rz", "sx", "x"}``
-                and ``{"ecr", "id", "rz", "sx", "x"}``. The ``"reset"``,  ``"`delay"``,
-                and ``"measure"`` instructions are supported by default, even if
-                not specified via ``basis_gates``.
-
-            coupling_map (list[list[int]] | CouplingMap | None): Optional coupling map
-                for the fake backend. Multiple formats are supported:
-
-                #. :class:`~.CouplingMap` instance
-                #. List, must be given as an adjacency matrix, where each entry
-                   specifies all directed two-qubit interactions supported by the backend,
-                   e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
-
-                If ``coupling_map`` is specified, it must match the number of qubits
-                specified in ``num_qubits``. If ``coupling_map`` is not specified,
-                a fully connected coupling map will be generated with ``num_qubits``
-                qubits.
-
-            control_flow (bool): Flag to enable control flow directives on the target
-                (defaults to False).
-
-            calibrate_instructions (list[str] | None): List of instruction names
-                to add default calibration entries to. These must be within the
-                supported operations of the target generator, which can be
-                consulted through the ``supported_operations`` property. If no
-                instructions are provided, the target generator will append
-                empty calibration schedules by default.
-
-            dtm (float): System time resolution of output signals in nanoseconds.
-                None by default.
-
-            seed (int): Optional seed for generation of default values.
-        """
-
-        super().__init__(
-            provider=None,
-            name=f"fake_generic_{num_qubits}q",
-            description=f"This is a fake device with {num_qubits} " f"and generic settings.",
-            backend_version="",
-        )
-        self._rng = np.random.default_rng(seed=seed)
-        self._dtm = dtm
-
-        # the coupling map is necessary to build the default channels
-        if coupling_map is None:
-            self._coupling_map = CouplingMap().from_full(num_qubits)
-        else:
-            if isinstance(coupling_map, CouplingMap):
-                self._coupling_map = coupling_map
-            else:
-                self._coupling_map = CouplingMap(coupling_map)
-
-        self._target = GenericTarget(
-            num_qubits,
-            basis_gates,
-            self._coupling_map,
-            control_flow,
-            calibrate_instructions,
-            self._rng,
-        )
-
-        self._build_default_channels()
-        self.sim = None
-
-    @property
-    def target(self):
-        return self._target
-
-    @property
-    def max_circuits(self):
-        return None
-
-    @property
-    def dtm(self) -> float:
-        """Return the system time resolution of output signals
+            inst_map (InstructionScheduleMap): pulse defaults with instruction schedule map
 
         Returns:
-            The output signal timestep in seconds.
+            None
         """
-        if self._dtm is not None:
-            # converting `dtm` in nanoseconds in configuration file to seconds
-            return self._dtm * 1e-9
-        else:
-            return None
 
-    @property
-    def meas_map(self) -> list[list[int]]:
-        return self._target.concurrent_measurements
-
-    def drive_channel(self, qubit: int):
-        drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
-        qubits = (qubit,)
-        if qubits in drive_channels_map:
-            return drive_channels_map[qubits][0]
-        return None
-
-    def measure_channel(self, qubit: int):
-        measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
-        qubits = (qubit,)
-        if qubits in measure_channels_map:
-            return measure_channels_map[qubits][0]
-        return None
-
-    def acquire_channel(self, qubit: int):
-        acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
-        qubits = (qubit,)
-        if qubits in acquire_channels_map:
-            return acquire_channels_map[qubits][0]
-        return None
-
-    def control_channel(self, qubits: Iterable[int]):
-        control_channels_map = getattr(self, "channels_map", {}).get("control", {})
-        qubits = tuple(qubits)
-        if qubits in control_channels_map:
-            return control_channels_map[qubits]
-        return []
+        # The calibration entries are directly injected into the gate map to
+        # avoid then being labeled as "user_provided".
+        for inst in inst_map.instructions:
+            for qarg in inst_map.qubits_with_instruction(inst):
+                try:
+                    qargs = tuple(qarg)
+                except TypeError:
+                    qargs = (qarg,)
+                # Do NOT call .get method. This parses Qobj immediately.
+                # This operation is computationally expensive and should be bypassed.
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
+                if inst in self._target._gate_map:
+                    if inst == "measure":
+                        for qubit in qargs:
+                            self._target._gate_map[inst][(qubit,)].calibration = calibration_entry
+                    elif qargs in self._target._gate_map[inst] and inst not in ["delay", "reset"]:
+                        self._target._gate_map[inst][qargs].calibration = calibration_entry
 
     def run(self, run_input, **options):
         """Run on the fake backend using a simulator.
@@ -544,7 +434,6 @@ class FakeGeneric(BackendV2):
         Raises:
             QiskitError: If a pulse job is supplied and qiskit_aer is not installed.
         """
-
         circuits = run_input
         pulse_job = None
         if isinstance(circuits, (pulse.Schedule, pulse.ScheduleBlock)):
@@ -574,7 +463,6 @@ class FakeGeneric(BackendV2):
         return job
 
     def _setup_sim(self) -> None:
-
         if _optionals.HAS_AER:
             from qiskit_aer import AerSimulator
             from qiskit_aer.noise import NoiseModel
@@ -585,13 +473,11 @@ class FakeGeneric(BackendV2):
             # Update fake backend default too to avoid overwriting
             # it when run() is called
             self.set_options(noise_model=noise_model)
-
         else:
             self.sim = BasicAer.get_backend("qasm_simulator")
 
     @classmethod
     def _default_options(cls) -> Options:
-
         if _optionals.HAS_AER:
             from qiskit_aer import AerSimulator
 
@@ -600,7 +486,6 @@ class FakeGeneric(BackendV2):
             return BasicAer.get_backend("qasm_simulator")._default_options()
 
     def _build_default_channels(self) -> None:
-
         channels_map = {
             "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
             "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
@@ -610,3 +495,31 @@ class FakeGeneric(BackendV2):
             },
         }
         setattr(self, "channels_map", channels_map)
+
+    def drive_channel(self, qubit: int):
+        drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
+        qubits = (qubit,)
+        if qubits in drive_channels_map:
+            return drive_channels_map[qubits][0]
+        return None
+
+    def measure_channel(self, qubit: int):
+        measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
+        qubits = (qubit,)
+        if qubits in measure_channels_map:
+            return measure_channels_map[qubits][0]
+        return None
+
+    def acquire_channel(self, qubit: int):
+        acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
+        qubits = (qubit,)
+        if qubits in acquire_channels_map:
+            return acquire_channels_map[qubits][0]
+        return None
+
+    def control_channel(self, qubits: Iterable[int]):
+        control_channels_map = getattr(self, "channels_map", {}).get("control", {})
+        qubits = tuple(qubits)
+        if qubits in control_channels_map:
+            return control_channels_map[qubits]
+        return []
