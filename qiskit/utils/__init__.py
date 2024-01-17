@@ -30,6 +30,13 @@ Utilities (:mod:`qiskit.utils`)
 .. autofunction:: wrap_method
 
 
+Parallel Routines
+-----------------
+A helper function for calling a custom function with python
+:class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
+
+.. autofunction:: parallel_map
+
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 ============================================================
 
@@ -51,6 +58,8 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
+from .parallel import parallel_map
+
 __all__ = [
     "LazyDependencyManager",
     "LazyImportTester",
@@ -63,4 +72,5 @@ __all__ = [
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",
+    "parallel_map",
 ]

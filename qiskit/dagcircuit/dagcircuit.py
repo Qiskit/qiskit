@@ -1900,10 +1900,10 @@ class DAGCircuit:
                 isinstance(node, DAGOpNode)
                 and len(node.qargs) == 1
                 and len(node.cargs) == 0
-                and getattr(node.op, "condition", None) is None
-                and not node.op.is_parameterized()
                 and isinstance(node.op, Gate)
                 and hasattr(node.op, "__array__")
+                and getattr(node.op, "condition", None) is None
+                and not node.op.is_parameterized()
             )
 
         return rx.collect_runs(self._multi_graph, filter_fn)

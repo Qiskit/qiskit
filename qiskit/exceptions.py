@@ -15,7 +15,10 @@
 Top-level exceptions (:mod:`qiskit.exceptions`)
 ===============================================
 
-All Qiskit-related errors raised by Qiskit are subclasses of the base:
+Exceptions
+==========
+
+All Qiskit-related exceptions raised by Qiskit are subclasses of the base:
 
 .. autoexception:: QiskitError
 
@@ -42,6 +45,22 @@ filename that cannot be used:
 
 .. autoexception:: QiskitUserConfigError
 .. autoexception:: InvalidFileError
+
+
+Warnings
+========
+
+Some particular features of Qiskit may raise custom warnings.  In general, Qiskit will use built-in
+Python warnings (such as :exc:`DeprecationWarning`) when appropriate, but warnings related to
+Qiskit-specific functionality will be subtypes of :exc:`QiskitWarning`.
+
+.. autoexception:: QiskitWarning
+
+Related to :exc:`MissingOptionalLibraryError`, in some cases an optional dependency might be found,
+but fail to import for some other reason.  In this case, Qiskit will continue as if the dependency
+is not present, but will raise :exc:`OptionalDependencyImportWarning` to let you know about it.
+
+.. autoexception:: OptionalDependencyImportWarning
 """
 
 from typing import Optional
@@ -95,3 +114,13 @@ class MissingOptionalLibraryError(QiskitError, ImportError):
 
 class InvalidFileError(QiskitError):
     """Raised when the file provided is not valid for the specific task."""
+
+
+class QiskitWarning(UserWarning):
+    """Common subclass of warnings for Qiskit-specific warnings being raised."""
+
+
+class OptionalDependencyImportWarning(QiskitWarning):
+    """Raised when an optional library raises errors during its import."""
+
+    # Not a subclass of `ImportWarning` because those are hidden by default.

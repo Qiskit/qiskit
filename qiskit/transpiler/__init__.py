@@ -1059,7 +1059,7 @@ modeled as follows:
     C ░░░░░░░░░░░░░░░░▒▒░
 
 However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
-this model. In the circuit representation, the corresponding :class:`.pulse.Qubit` is occupied
+this model. In the circuit representation, the corresponding :class:`.circuit.Qubit` is occupied
 by the stimulus microwave signal during the first half of the interval,
 and the :class:`.Clbit` is only occupied at the very end of the interval.
 
@@ -1231,15 +1231,6 @@ Scheduling
 
    InstructionDurations
 
-Fenced Objects
---------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   FencedPropertySet
-   FencedDAGCircuit
-
 Abstract Passes
 ---------------
 
@@ -1262,14 +1253,13 @@ Exceptions
 
 # For backward compatibility
 from qiskit.passmanager import (
-    FlowController,
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager.compilation_status import PropertySet
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1277,7 +1267,6 @@ from .exceptions import (
     LayoutError,
     CircuitTooWideForTarget,
 )
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
