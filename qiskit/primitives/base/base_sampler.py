@@ -278,7 +278,7 @@ class BaseSamplerV2:
 
     @abstractmethod
     def run(
-        self, pubs: Iterable[SamplerPubLike], shots: int | None = None
+        self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Run and collect samples from each pub.
 
