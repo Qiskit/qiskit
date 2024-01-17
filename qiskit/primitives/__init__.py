@@ -67,7 +67,7 @@ from .backend_sampler import BackendSampler
 from .base import BaseEstimator, BaseSampler
 from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
-from .containers import BindingsArray, ObservablesArray, PrimitiveResult, PubResult
+from .containers import BindingsArray, EstimatorPub, ObservablesArray, PrimitiveResult, PubResult
 from .estimator import Estimator
 from .sampler import Sampler
 from .statevector_estimator import Estimator as StatevectorEstimator

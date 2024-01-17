@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022, 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -156,6 +156,9 @@ from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
+import numpy as np
+from numpy.typing import NDArray
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
@@ -163,10 +166,17 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
-from ..containers.estimator_pub import EstimatorPubLike
-from ..containers.options import BasePrimitiveOptionsLike
+from ..containers import (
+    DataBin,
+    EstimatorPub,
+    EstimatorPubLike,
+    PrimitiveResult,
+    PubResult,
+    make_data_bin,
+)
 from . import validation
-from .base_primitive import BasePrimitive, BasePrimitiveV2
+from .base_primitive import BasePrimitive
+from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
 
@@ -331,22 +341,36 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 BaseEstimator = BaseEstimatorV1
 
 
-class BaseEstimatorV2(BasePrimitiveV2):
+class BaseEstimatorV2:
     """Estimator base class version 2.
 
-    An estimator estimates expectation values for provided quantum circuit and observable combinations.
+    An estimator estimates expectation values for provided quantum circuit and
+    observable combinations.
+
+    An Estimator implementation must treat the :meth:`.run` method ``precision=None``
+    kwarg as using a default ``precision`` value.  The default value and methods to
+    set it can be determined by the Estimator implementor.
     """
 
-    def __init__(self, options: BasePrimitiveOptionsLike | None):
-        super().__init__(options=options)
+    @staticmethod
+    def _make_data_bin(pub: EstimatorPub) -> DataBin:
+        # provide a standard way to construct estimator databins to ensure that names match
+        # across implementations
+        return make_data_bin((("evs", NDArray[np.float]), ("stds", NDArray[np.float])), pub.shape)
 
     @abstractmethod
-    def run(self, pubs: Iterable[EstimatorPubLike]) -> Job:
+    def run(
+        self, pubs: Iterable[EstimatorPubLike], precision: float | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
         Args:
-            pubs: a iterable of pubslike object. Typically, list of tuple
-                ``(QuantumCircuit, observables, parameter_values)``
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
+                  ``(circuit, observables, parameter_values)``.
+            precision: The target precision for expectation value estimates of each
+                       run :class:`.EstimatorPub` that does not specify its own
+                       precision. If None the estimator's default precision value
+                       will be used.
 
         Returns:
             A job object that contains results.
