@@ -145,7 +145,7 @@ def score_layout(
 def build_average_error_map(target, properties, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
     num_qubits = 0
-    if target is not None:
+    if target is not None and target.qargs is not None:
         num_qubits = target.num_qubits
         avg_map = ErrorMap(len(target.qargs))
     elif coupling_map is not None:
@@ -157,7 +157,7 @@ def build_average_error_map(target, properties, coupling_map):
         # object
         avg_map = ErrorMap(0)
     built = False
-    if target is not None:
+    if target is not None and target.qargs is not None:
         for qargs in target.qargs:
             if qargs is None:
                 continue
