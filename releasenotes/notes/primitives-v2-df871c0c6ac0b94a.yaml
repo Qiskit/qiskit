@@ -1,0 +1,59 @@
+---
+features:
+  - |
+    Version 2 of the primitives was introduced. The emphasis of this new version is on performing
+    vectorized calls to the primitive run methods, so that sweeps over parameter value sets and 
+    observables can be efficiently specified and targetted against a single parametric circuit.
+
+    .. code: python
+
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import StateVectorSampler
+        import numpy as np
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.rz(Parameter("a"), 0
+        circuit.h(0)
+        circuit.cx(0, 1)
+
+        # define three observables
+        observables = ["XX", "YY", "ZZ"]
+
+        # define a sweep over parameter values, where the second axis, in this example, is broadcasted
+        # against observables, and the third axis is over parameters in the circuit (just one)
+        params = np.linspace(-np.pi, np.pi, 100).reshape(100, 1, 1)
+
+        # estimate the expectation value for all 300 combinations of observables and parameter values,
+        # where the pub result will have shape (100, 3)
+        estimator = StatevectorEstimator([(circuit, observables, parameters)])
+
+    The estimator has gained a ``precision`` argument in the run method that specifies the targetted 
+    precision of the expectation value estimates. The sampler has moved ``shots`` out of the options 
+    and into the arguments of the run method. The sampler has also been changed to return the outputs 
+    (e.g. bitstrings) from every shot, rather than providing a Counts-like return.
+    
+    New classes introduced as a part of the new version include
+
+    * an abstract base class :class:`.BaseSamplerV2` with reference implementation :class:`.StatevectorSampler` and
+    * an abstract base class :class:`.BaseEstimatorV2` with reference implementation :class:`.StatevectorEstimator`,
+
+    along with a collection of container types to help define the inputs and outputs:
+
+    * :class:`.SamplerPub`\: primitive unified bloc (PUB) of sampler inputs
+    * :class:`.EstimatorPub`\: Primitive unified bloc (PUB) of estimator inputs
+    * :class:`.BindingsArray`\: an array-valued collection of parameter value sets to bind against a circuit
+    * :class:`.ObservablesArray`\: an array-valued collection of observables
+    * :class:`.PubResult`\: the data and metadata resulting from a single PUB's execution
+    * :class:`.DataBin`\: A namespace to hold data from a single PUB's execution
+    * :class:`.BitArray`\: an array-valued collection of bitstrings in a dense format
+    * :class:`.PrimitiveResult`: an iterable of :class:`.PubResult`\s along with metadata
+
+    Some of the above types have corresponding union types that define exactly which formats are natively compatible
+    with their associated class for automatic coersion:
+
+    * :class:`.EstimatorPubLike`\: accepts a circuit and an observables-like, and optionionally bindings-array-like 
+      and shots
+    * :class:`.SamplerPubLike`\: accepts a circuit and optionally bindingns-array-like and shots
+    * :class:`.ObservablesArrayLike`\: accepts :class:`.SparsePauliOp`, dictionaries, strings of Paulis, etc.
+    * :class:`.BindingsArrayLike`\: accepts NumPy arrays, lists of floats, dictionaries with parameter names, etc.
