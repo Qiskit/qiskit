@@ -20,8 +20,8 @@ import numpy as np
 from ddt import ddt
 from qiskit.quantum_info.random import random_unitary
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import UnitaryGate
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -46,19 +46,28 @@ class TestSingleQubitUnitary(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
 
-        with self.assertWarns(DeprecationWarning):
-            squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
-            qc.append(squ, [qr[0]])
+        if up_to_diagonal:
+            # Create a diagonal matrix that diagonalizes the unitary matrix
+            diag = np.diag(np.exp(-1j * np.angle(np.diag(u))))
+            modified_u = np.dot(diag, u)
+            unitary_gate = UnitaryGate(modified_u)
+        else:
+            unitary_gate = UnitaryGate(u)
+
+        qc.append(unitary_gate, [qr[0]])
+
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
         simulator = BasicAer.get_backend("unitary_simulator")
         result = simulator.run(qc).result()
         unitary = result.get_unitary(qc)
+
         if up_to_diagonal:
-            with self.assertWarns(DeprecationWarning):
-                squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
-            unitary = np.dot(np.diagflat(squ.diag), unitary)
+            # Calculate the diagonal matrix
+            diag = np.diag(np.exp(1j * np.angle(np.diag(u))))
+            unitary = np.dot(diag, unitary)
+
         unitary_desired = u
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 

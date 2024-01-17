@@ -53,7 +53,6 @@ from qiskit.circuit.barrier import Barrier
 from .exceptions import ExtensionError
 from .quantum_initializer import (
     Initialize,
-    SingleQubitUnitary,
     UCPauliRotGate,
     UCRXGate,
     UCRYGate,
