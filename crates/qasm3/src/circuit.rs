@@ -75,16 +75,16 @@ pub struct PyGate {
 }
 
 impl PyGate {
-    pub fn new<T: IntoPy<Py<PyAny>>>(
+    pub fn new<T: IntoPy<Py<PyAny>>, S: AsRef<str>>(
         py: Python,
         constructor: T,
-        name: String,
+        name: S,
         num_params: usize,
         num_qubits: usize,
     ) -> Self {
         Self {
             constructor: constructor.into_py(py),
-            name,
+            name: name.as_ref().to_owned(),
             num_params,
             num_qubits,
         }
