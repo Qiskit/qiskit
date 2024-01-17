@@ -173,6 +173,8 @@ select = [
 extension-pkg-allow-list = [
     "numpy",
     "qiskit._accelerate",
+    "qiskit._qasm2",
+    "qiskit._qasm3",
     # We can't allow pylint to load qiskit._qasm2 because it's not able to
     # statically resolve the cyclical load of the exception and it bugs out.
     "retworkx",

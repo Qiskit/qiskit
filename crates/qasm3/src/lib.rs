@@ -74,9 +74,9 @@ fn restore_include_path(include_path: Option<&OsStr>) {
 ///
 /// Args:
 ///     source (str): the program source in a Python string.
-///     custom_instructions (Iterable[CustomGate]): Python constructors to use for particular named
-///         gates.  If not supplied, Qiskit will use its own standard-library constructors for
-///         gates defined in the OpenQASM 3.0 standard-library file ``stdgates.inc``.
+///     custom_gates (Iterable[CustomGate]): Python constructors to use for particular named gates.
+///         If not supplied, Qiskit will use its own standard-library constructors for gates
+///         defined in the OpenQASM 3.0 standard-library file ``stdgates.inc``.
 ///     include_path (Iterable[str]): the path to search when resolving ``include`` statements.
 ///         If not given, Qiskit will arrange for this to point to a location containing
 ///         ``stdgates.inc`` only.  Paths are tried in the sequence order.
@@ -95,12 +95,12 @@ fn restore_include_path(include_path: Option<&OsStr>) {
 ///         In the case of a parsing error, most of the error messages are printed to the terminal
 ///         and formatted, for better legibility.
 #[pyfunction]
-#[pyo3(pass_module, signature = (source, /, *, custom_instructions=None, include_path=None))]
+#[pyo3(pass_module, signature = (source, /, *, custom_gates=None, include_path=None))]
 pub fn loads(
     module: &PyModule,
     py: Python,
     source: String,
-    custom_instructions: Option<Vec<circuit::PyGate>>,
+    custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
     let old_path = set_include_path(module, include_path.as_deref())?;
@@ -112,7 +112,7 @@ pub fn loads(
             "errors during parsing; see printed errors",
         ));
     }
-    let gates = match custom_instructions {
+    let gates = match custom_gates {
         Some(gates) => gates
             .into_iter()
             .map(|gate| (gate.name().to_owned(), gate))
@@ -137,9 +137,9 @@ pub fn loads(
 ///         opened it is consumed in Python space, whereas filenames are opened and consumed in
 ///         Rust space; there might be slightly different performance characteristics, depending on
 ///         your system and how the streams are buffered by default.
-///     custom_instructions (Iterable[CustomGate]): Python constructors to use for particular named
-///         gates.  If not supplied, Qiskit will use its own standard-library constructors for
-///         gates defined in the OpenQASM 3.0 standard-library file ``stdgates.inc``.
+///     custom_gates (Iterable[CustomGate]): Python constructors to use for particular named gates.
+///         If not supplied, Qiskit will use its own standard-library constructors for gates
+///         defined in the OpenQASM 3.0 standard-library file ``stdgates.inc``.
 ///     include_path (Iterable[str]): the path to search when resolving ``include`` statements.
 ///         If not given, Qiskit will arrange for this to point to a location containing
 ///         ``stdgates.inc`` only.  Paths are tried in the sequence order.
@@ -160,13 +160,13 @@ pub fn loads(
 #[pyfunction]
 #[pyo3(
     pass_module,
-    signature = (pathlike_or_filelike, /, *, custom_instructions=None, include_path=None),
+    signature = (pathlike_or_filelike, /, *, custom_gates=None, include_path=None),
 )]
 pub fn load(
     module: &PyModule,
     py: Python,
     pathlike_or_filelike: &PyAny,
-    custom_instructions: Option<Vec<circuit::PyGate>>,
+    custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
     let source =
@@ -183,7 +183,7 @@ pub fn load(
                 QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
             })?
         };
-    loads(module, py, source, custom_instructions, include_path)
+    loads(module, py, source, custom_gates, include_path)
 }
 
 /// Create a suitable sequence for use with the ``custom_gates`` of :func:`load` and :func:`loads`,
