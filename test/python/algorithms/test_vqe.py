@@ -505,9 +505,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""
         ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
-        with self.assertWarns(DeprecationWarning):
-            wrapped_backend = BasicAer.get_backend("qasm_simulator")
-            inner_backend = BasicAer.get_backend("statevector_simulator")
+
+        wrapped_backend = BasicAer.get_backend("qasm_simulator")
+        inner_backend = BasicAer.get_backend("statevector_simulator")
 
         callcount = {"count": 0}
 

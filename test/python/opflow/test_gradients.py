@@ -1000,8 +1000,8 @@ class TestGradients(QiskitOpflowTestCase):
             [-0.5 / np.sqrt(2) - 0.5, -1 / 2.0],
             [-0.5, -1 / np.sqrt(2)],
         ]
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("qasm_simulator")
+
+        backend = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(backend=backend, shots=shots)
 
@@ -1054,8 +1054,8 @@ class TestGradients(QiskitOpflowTestCase):
             [[1 / 4, -1 / 4], [1 / 4, -1 / 4]],
             [[0, 0], [-1 / 2, 1 / 2]],
         ]
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("qasm_simulator")
+
+        backend = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(backend=backend, shots=shots)
 
@@ -1088,8 +1088,7 @@ class TestGradients(QiskitOpflowTestCase):
         op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend(backend_type)
+        backend = BasicAer.get_backend(backend_type)
 
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(
@@ -1156,8 +1155,7 @@ class TestGradients(QiskitOpflowTestCase):
         values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
         correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
         for i, value in enumerate(values):
-            with self.assertWarns(DeprecationWarning):
-                backend = BasicAer.get_backend(backend_type)
+            backend = BasicAer.get_backend(backend_type)
             with self.assertWarns(DeprecationWarning):
                 q_instance = QuantumInstance(
                     backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
@@ -1600,8 +1598,7 @@ class TestQFI(QiskitOpflowTestCase):
         shots = 1
         value = [0, np.pi / 2]
 
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend(backend_type)
+        backend = BasicAer.get_backend(backend_type)
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(
                 backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2

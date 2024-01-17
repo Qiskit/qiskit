@@ -625,8 +625,7 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         problem = EstimationProblem(a_op, objective_qubits=[0])
 
         # construct algo without rescaling
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
 
         with self.assertWarns(DeprecationWarning):
             fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
@@ -672,8 +671,7 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
         problem = EstimationProblem(a_op, objective_qubits=[0], grover_operator=q_op)
 
         # construct algo without rescaling
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("statevector_simulator")
+        backend = BasicAer.get_backend("statevector_simulator")
         with self.assertWarns(DeprecationWarning):
             fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
 

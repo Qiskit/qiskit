@@ -50,8 +50,7 @@ class TestPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.seed = 97
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(
                 backend, seed_simulator=self.seed, seed_transpiler=self.seed
