@@ -58,7 +58,6 @@ Basis Change
    TranslateParameterizedGates
    Unroll3qOrMore
    UnrollCustomDefinitions
-   Unroller
 
 Optimizations
 =============
@@ -203,7 +202,6 @@ from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
-from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator

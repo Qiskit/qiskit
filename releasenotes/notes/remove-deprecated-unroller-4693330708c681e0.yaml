@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Removes the deprecated Unroller class in 'qiskit.transpiler.passes.basis'.
+    This class was deprecated in Qiskit Terra 0.45 and has been replaced by
+    `BasisTranslator`.
+
+    Note that `BasisTranslator` takes different arguments than Unroller, as it 
+    requires a `EquivalenceLibrary` object to be passed in. 
+    

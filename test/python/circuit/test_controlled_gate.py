@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -80,6 +80,10 @@ from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
 
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+
 from .gate_utils import _get_free_params
 
 
@@ -120,9 +124,8 @@ class TestControlledGate(QiskitTestCase):
 
         circ = QuantumCircuit(1)
         circ.append(U1Gate(theta), circ.qregs[0])
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["cx", "u", "p"])
-        ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
+        basis_translator = BasisTranslator(std_eqlib, ["cx", "u", "p"])
+        ctrl_circ_gate = dag_to_circuit(basis_translator.run(circuit_to_dag(circ))).control()
         ctrl_circ = QuantumCircuit(2)
         ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
         ctrl_circ = ctrl_circ.decompose().decompose()
@@ -169,9 +172,8 @@ class TestControlledGate(QiskitTestCase):
 
         circ = QuantumCircuit(1)
         circ.append(U3Gate(theta, phi, lamb), circ.qregs[0])
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["cx", "u", "p"])
-        ctrl_circ_gate = dag_to_circuit(unroller.run(circuit_to_dag(circ))).control()
+        basis_translator = BasisTranslator(std_eqlib, ["cx", "u", "p"])
+        ctrl_circ_gate = dag_to_circuit(basis_translator.run(circuit_to_dag(circ))).control()
         ctrl_circ = QuantumCircuit(2)
         ctrl_circ.append(ctrl_circ_gate, ctrl_circ.qregs[0])
         ctrl_circ = ctrl_circ.decompose().decompose()
@@ -925,9 +927,8 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.cx(0, 1, ctrl_state=0)
         dag = circuit_to_dag(qc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["u3", "cx"])
-        uqc = dag_to_circuit(unroller.run(dag))
+        basis_translator = BasisTranslator(std_eqlib, ["u3", "cx"])
+        uqc = dag_to_circuit(basis_translator.run(dag))
 
         ref_circuit = QuantumCircuit(2)
         ref_circuit.append(U3Gate(np.pi, 0, np.pi), [0])
@@ -940,9 +941,8 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.cy(0, 1, ctrl_state=0)
         dag = circuit_to_dag(qc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["u3", "cy"])
-        uqc = dag_to_circuit(unroller.run(dag))
+        basis_translator = BasisTranslator(std_eqlib, ["u3", "cy"])
+        uqc = dag_to_circuit(basis_translator.run(dag))
 
         ref_circuit = QuantumCircuit(2)
         ref_circuit.append(U3Gate(np.pi, 0, np.pi), [0])
@@ -957,10 +957,8 @@ class TestControlledGate(QiskitTestCase):
         ccx = CCXGate(ctrl_state=0)
         qc.append(ccx, [0, 1, 2])
         dag = circuit_to_dag(qc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["x", "ccx"])
-        unrolled_dag = unroller.run(dag)
-
+        basis_translator = BasisTranslator(std_eqlib, ["x", "ccx"])
+        unrolled_dag = basis_translator.run(dag)
         #       ┌───┐     ┌───┐
         # q0_0: ┤ X ├──■──┤ X ├
         #       ├───┤  │  ├───┤
@@ -1003,9 +1001,8 @@ class TestControlledGate(QiskitTestCase):
         qc = QuantumCircuit(cqreg)
         qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
         dag = circuit_to_dag(qc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["x", "u1", "cbell"])
-        unrolled_dag = unroller.run(dag)
+        basis_translator = BasisTranslator(std_eqlib, ["x", "u1", "cbell"])
+        unrolled_dag = basis_translator.run(dag)
         # create reference circuit
         ref_circuit = QuantumCircuit(cqreg)
         ref_circuit.x(cqreg[0])
@@ -1445,9 +1442,8 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         cqc = QuantumCircuit(self.num_ctrl + self.num_target)
         cqc.append(cgate, cqc.qregs[0])
         dag = circuit_to_dag(cqc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["u", "cx"])
-        uqc = dag_to_circuit(unroller.run(dag))
+        basis_translator = BasisTranslator(std_eqlib, ["u", "cx"])
+        uqc = dag_to_circuit(basis_translator.run(dag))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
         # these limits could be changed
@@ -1468,9 +1464,8 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         qc.append(self.grz.control(self.num_ctrl), qreg)
 
         dag = circuit_to_dag(qc)
-        with self.assertWarns(DeprecationWarning):
-            unroller = Unroller(["u", "cx"])
-        uqc = dag_to_circuit(unroller.run(dag))
+        basis_translator = BasisTranslator(std_eqlib, ["u", "cx"])
+        uqc = dag_to_circuit(basis_translator.run(dag))
         self.log.info("%s gate count: %d", uqc.name, uqc.size())
         self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
 
