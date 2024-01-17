@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,29 +29,13 @@ Utilities (:mod:`qiskit.utils`)
 .. autofunction:: detach_prefix
 .. autofunction:: wrap_method
 
-Algorithm Utilities
-===================
 
-.. autofunction:: summarize_circuits
-.. autofunction:: get_entangler_map
-.. autofunction:: validate_entangler_map
-.. autofunction:: has_ibmq
-.. autofunction:: has_aer
-.. autofunction:: name_args
-.. autodata:: algorithm_globals
+Parallel Routines
+-----------------
+A helper function for calling a custom function with python
+:class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
 
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   QuantumInstance
-
-A QuantumInstance holds the Qiskit `backend` as well as a number of compile and
-runtime parameters controlling circuit compilation and execution. Quantum
-:mod:`algorithms <qiskit.algorithms>`
-are run on a device or simulator by passing a QuantumInstance setup with the desired
-backend etc.
-
+.. autofunction:: parallel_map
 
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 ============================================================
@@ -59,7 +43,6 @@ Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 .. automodule:: qiskit.utils.optionals
 """
 
-from .quantum_instance import QuantumInstance
 from .deprecation import (
     add_deprecation_to_docstring,
     deprecate_arg,
@@ -75,25 +58,12 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
-from .circuit_utils import summarize_circuits
-from .entangler_map import get_entangler_map, validate_entangler_map
-from .backend_utils import has_ibmq, has_aer
-from .name_unnamed_args import name_args
-from .algorithm_globals import algorithm_globals
-
+from .parallel import parallel_map
 
 __all__ = [
     "LazyDependencyManager",
     "LazyImportTester",
     "LazySubprocessTester",
-    "QuantumInstance",
-    "summarize_circuits",
-    "get_entangler_map",
-    "validate_entangler_map",
-    "has_ibmq",
-    "has_aer",
-    "name_args",
-    "algorithm_globals",
     "add_deprecation_to_docstring",
     "deprecate_arg",
     "deprecate_arguments",
@@ -102,4 +72,5 @@ __all__ = [
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",
+    "parallel_map",
 ]

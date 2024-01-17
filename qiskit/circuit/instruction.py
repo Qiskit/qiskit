@@ -45,8 +45,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
-from qiskit.utils.deprecation import deprecate_func
-from .tools import pi_check
+
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -215,7 +214,7 @@ class Instruction(Operation):
         return True
 
     def __repr__(self) -> str:
-        """Generates a representation of the Intruction object instance
+        """Generates a representation of the Instruction object instance
         Returns:
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
@@ -516,29 +515,6 @@ class Instruction(Operation):
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
-    @deprecate_func(
-        additional_msg=(
-            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
-            "safely be done on an object-by-object basis without context. No replacement will be "
-            "provided, because the premise is wrong."
-        ),
-        since="0.25.0",
-    )
-    def qasm(self):
-        """Return a default OpenQASM string for the instruction.
-
-        Derived instructions may override this to print in a
-        different format (e.g. ``measure q[0] -> c[0];``).
-        """
-        name_param = self.name
-        if self.params:
-            name_param = "{}({})".format(
-                name_param,
-                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
-            )
-
-        return self._qasmif(name_param)
-
     def broadcast_arguments(self, qargs, cargs):
         """
         Validation of the arguments.
@@ -617,12 +593,11 @@ class Instruction(Operation):
     @property
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
+        from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
+
         if self.condition is None:
             return []
-        if isinstance(self.condition[0], Clbit):
-            return [self.condition[0]]
-        else:  # ClassicalRegister
-            return list(self.condition[0])
+        return list(condition_resources(self.condition).clbits)
 
     @property
     def name(self):

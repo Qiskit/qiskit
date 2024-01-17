@@ -13,9 +13,11 @@
 """Tests for Estimator."""
 
 import unittest
-from test import combine
-from test.python.transpiler._dummy_passes import DummyTP
 from unittest.mock import patch
+from multiprocessing import Manager
+
+from test import combine
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -23,7 +25,6 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
@@ -32,6 +33,18 @@ from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
+
+
+class CallbackPass(DummyAP):
+    """A dummy analysis pass that calls a callback when executed"""
+
+    def __init__(self, message, callback):
+        super().__init__()
+        self.message = message
+        self.callback = callback
+
+    def run(self, dag):
+        self.callback(self.message)
 
 
 @ddt
@@ -77,7 +90,6 @@ class TestBackendEstimator(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [hamiltonian1], [theta1])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)
@@ -328,24 +340,40 @@ class TestBackendEstimator(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1)])
 
         with self.subTest("Test single circuit"):
+            messages = []
 
-            dummy_pass = DummyTP()
+            def callback(msg):
+                messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
-                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-                _ = estimator.run(qc, op).result()
-                self.assertEqual(mock_pass.call_count, 1)
+            bound_counter = CallbackPass("bound_pass_manager", callback)
+            bound_pass = PassManager(bound_counter)
+            estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = estimator.run(qc, op).result()
+            expected = [
+                "bound_pass_manager",
+            ]
+            self.assertEqual(messages, expected)
 
         with self.subTest("Test circuit batch"):
+            with Manager() as manager:
+                # The multiprocessing manager is used to share data
+                # between different processes. Pass Managers parallelize
+                # execution for batches of circuits, so this is necessary
+                # to keep track of the callback calls for num_circuits > 1
+                messages = manager.list()
 
-            dummy_pass = DummyTP()
+                def callback(msg):  # pylint: disable=function-redefined
+                    messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
+                bound_counter = CallbackPass("bound_pass_manager", callback)
+                bound_pass = PassManager(bound_counter)
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = estimator.run([qc, qc], [op, op]).result()
-                self.assertEqual(mock_pass.call_count, 2)
+                expected = [
+                    "bound_pass_manager",
+                    "bound_pass_manager",
+                ]
+                self.assertEqual(list(messages), expected)
 
     @combine(backend=BACKENDS)
     def test_layout(self, backend):

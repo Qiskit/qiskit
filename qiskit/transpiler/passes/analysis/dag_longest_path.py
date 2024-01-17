@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Return the longest path in a DAGcircuit as a list of DAGNodes."""
+"""Return the longest path in a :class:`.DAGCircuit` as a list of DAGNodes."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class DAGLongestPath(AnalysisPass):
-    """Return the longest path in a DAGcircuit as a list of DAGOpNodes, DAGInNodes, and DAGOutNodes."""
+    """Return the longest path in a :class:`.DAGCircuit` as a list of
+    :class:`.DAGOpNode`\\ s, :class:`.DAGInNode`\\ s, and :class:`.DAGOutNode`\\ s."""
 
     def run(self, dag):
         """Run the DAGLongestPath pass on `dag`."""

@@ -20,9 +20,9 @@ import numbers
 import operator
 
 import numpy
+import symengine
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -69,14 +69,9 @@ class ParameterExpression:
 
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            conjugated = ParameterExpression(
-                self._parameter_symbols, symengine.conjugate(self._symbol_expr)
-            )
-        else:
-            conjugated = ParameterExpression(self._parameter_symbols, self._symbol_expr.conjugate())
+        conjugated = ParameterExpression(
+            self._parameter_symbols, symengine.conjugate(self._symbol_expr)
+        )
         return conjugated
 
     def assign(self, parameter, value: ParameterValueType) -> "ParameterExpression":
@@ -185,15 +180,7 @@ class ParameterExpression:
         new_parameter_symbols = {
             p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
         }
-
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            symbol_type = symengine.Symbol
-        else:
-            from sympy import Symbol
-
-            symbol_type = Symbol
+        symbol_type = symengine.Symbol
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
@@ -306,15 +293,7 @@ class ParameterExpression:
 
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            expr_grad = symengine.Derivative(self._symbol_expr, key)
-        else:
-            # TODO enable nth derivative
-            from sympy import Derivative
-
-            expr_grad = Derivative(self._symbol_expr, key).doit()
+        expr_grad = symengine.Derivative(self._symbol_expr, key)
 
         # generate the new dictionary of symbols
         # this needs to be done since in the derivative some symbols might disappear (e.g.
@@ -362,107 +341,50 @@ class ParameterExpression:
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
+    def __pow__(self, other):
+        return self._apply_operation(pow, other)
+
+    def __rpow__(self, other):
+        return self._apply_operation(pow, other, reflected=True)
+
     def _call(self, ufunc):
         return ParameterExpression(self._parameter_symbols, ufunc(self._symbol_expr))
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.sin)
-        else:
-            from sympy import sin as _sin
-
-            return self._call(_sin)
+        return self._call(symengine.sin)
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.cos)
-        else:
-            from sympy import cos as _cos
-
-            return self._call(_cos)
+        return self._call(symengine.cos)
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.tan)
-        else:
-            from sympy import tan as _tan
-
-            return self._call(_tan)
+        return self._call(symengine.tan)
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.asin)
-        else:
-            from sympy import asin as _asin
-
-            return self._call(_asin)
+        return self._call(symengine.asin)
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.acos)
-        else:
-            from sympy import acos as _acos
-
-            return self._call(_acos)
+        return self._call(symengine.acos)
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.atan)
-        else:
-            from sympy import atan as _atan
-
-            return self._call(_atan)
+        return self._call(symengine.atan)
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.exp)
-        else:
-            from sympy import exp as _exp
-
-            return self._call(_exp)
+        return self._call(symengine.exp)
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.log)
-        else:
-            from sympy import log as _log
-
-            return self._call(_log)
+        return self._call(symengine.log)
 
     def sign(self):
         """Sign of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.sign)
-        else:
-            from sympy import sign as _sign
-
-            return self._call(_sign)
+        return self._call(symengine.sign)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
@@ -494,24 +416,21 @@ class ParameterExpression:
                     "ParameterExpression with unbound parameters ({}) "
                     "cannot be cast to a float.".format(self.parameters)
                 ) from None
-            try:
-                # In symengine, if an expression was complex at any time, its type is likely to have
-                # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
-                # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
-                # real.  This second attempt at a cast is a way of unifying the behaviour to the
-                # more expected form for our users.
-                cval = complex(self)
-                if cval.imag == 0.0:
-                    return cval.real
-            except TypeError:
-                pass
+            # In symengine, if an expression was complex at any time, its type is likely to have
+            # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
+            # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
+            # real.  This second attempt at a cast is a way of unifying the behaviour to the
+            # more expected form for our users.
+            cval = complex(self)
+            if cval.imag == 0.0:
+                return cval.real
             raise TypeError("could not cast expression to float") from exc
 
     def __int__(self):
         try:
             return int(self._symbol_expr)
-        # TypeError is for sympy, RuntimeError for symengine
-        except (TypeError, RuntimeError) as exc:
+        # TypeError is for backwards compatibility, RuntimeError is raised by symengine
+        except RuntimeError as exc:
             if self.parameters:
                 raise TypeError(
                     "ParameterExpression with unbound parameters ({}) "
@@ -530,14 +449,7 @@ class ParameterExpression:
 
     def __abs__(self):
         """Absolute of a ParameterExpression"""
-        if _optionals.HAS_SYMENGINE:
-            import symengine
-
-            return self._call(symengine.Abs)
-        else:
-            from sympy import Abs as _abs
-
-            return self._call(_abs)
+        return self._call(symengine.Abs)
 
     def abs(self):
         """Absolute of a ParameterExpression"""
@@ -555,12 +467,9 @@ class ParameterExpression:
         if isinstance(other, ParameterExpression):
             if self.parameters != other.parameters:
                 return False
-            if _optionals.HAS_SYMENGINE:
-                from sympy import sympify
+            from sympy import sympify
 
-                return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
-            else:
-                return self._symbol_expr.equals(other._symbol_expr)
+            return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
         elif isinstance(other, numbers.Number):
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
@@ -570,7 +479,7 @@ class ParameterExpression:
 
         # workaround for symengine behavior that const * (0 + 1 * I) is not real
         # see https://github.com/symengine/symengine.py/issues/414
-        if _optionals.HAS_SYMENGINE and self._symbol_expr.is_real is None:
+        if self._symbol_expr.is_real is None:
             symbol_expr = self._symbol_expr.evalf()
         else:
             symbol_expr = self._symbol_expr
@@ -581,11 +490,56 @@ class ParameterExpression:
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
-            if _optionals.HAS_SYMENGINE:
-                if symbol_expr.imag == 0.0:
-                    return True
+            if symbol_expr.imag == 0.0:
+                return True
             return False
         return symbol_expr.is_real
+
+    def numeric(self) -> int | float | complex:
+        """Return a Python number representing this object, using the most restrictive of
+        :class:`int`, :class:`float` and :class:`complex` that is valid for this object.
+
+        In general, an :class:`int` is only returned if the expression only involved symbolic
+        integers.  If floating-point values were used during the evaluation, the return value will
+        be a :class:`float` regardless of whether the represented value is an integer.  This is
+        because floating-point values "infect" symbolic computations by their inexact nature, and
+        symbolic libraries will use inexact floating-point semantics not exact real-number semantics
+        when they are involved.  If you want to assert that all floating-point calculations *were*
+        carried out at infinite precision (i.e. :class:`float` could represent every intermediate
+        value exactly), you can use :meth:`float.is_integer` to check if the return float represents
+        an integer and cast it using :class:`int` if so.  This would be an unusual pattern;
+        typically one requires this by only ever using explicitly :class:`~numbers.Rational` objects
+        while working with symbolic expressions.
+
+        This is more reliable and performant than using :meth:`is_real` followed by calling
+        :class:`float` or :class:`complex`, as in some cases :meth:`is_real` needs to force a
+        floating-point evaluation to determine an accurate result to work around bugs in the
+        upstream symbolic libraries.
+
+        Returns:
+            A Python number representing the object.
+
+        Raises:
+            TypeError: if there are unbound parameters.
+        """
+        if self._parameter_symbols:
+            raise TypeError(
+                f"Expression with unbound parameters '{self.parameters}' is not numeric"
+            )
+        if self._symbol_expr.is_integer:
+            # Integer evaluation is reliable, as far as we know.
+            return int(self._symbol_expr)
+        # We've come across several ways in which symengine's general-purpose evaluators
+        # introduce spurious imaginary components can get involved in the output.  The most
+        # reliable strategy "try it and see" while forcing real floating-point evaluation.
+        try:
+            real_expr = self._symbol_expr.evalf(real=True)
+        except RuntimeError:
+            # Symengine returns `complex` if any imaginary floating-point enters at all, even if
+            # the result is zero.  The best we can do is detect that and decay to a float.
+            out = complex(self._symbol_expr)
+            return out.real if out.imag == 0.0 else out
+        return float(real_expr)
 
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.

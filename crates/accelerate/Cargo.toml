@@ -21,12 +21,13 @@ rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
 ahash = "0.8.6"
+num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.13"
 
 [dependencies.smallvec]
-version = "1.11"
+version = "1.12"
 features = ["union"]
 
 [dependencies.pyo3]
@@ -42,5 +43,5 @@ version = "0.14.0"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.0.2"
+version = "2.1.0"
 features = ["rayon"]

@@ -38,8 +38,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     any measurement mitigation, it just computes the probability distribution
     from the counts. It facilitates using backends that do not provide a
     native :class:`~.BaseSampler` implementation in places that work with
-    :class:`~.BaseSampler`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.SamplingVQE`.
+    :class:`~.BaseSampler`.
     However, if you're using a provider that has a native implementation of
     :class:`~.BaseSampler`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
@@ -69,6 +68,8 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         """
 
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
         self._backend = backend
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
@@ -204,5 +205,5 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job

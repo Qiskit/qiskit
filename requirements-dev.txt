@@ -28,15 +28,16 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 # Documentation tooling.
 #
 # This alone is not sufficient to fully build the documentation, because several
-# components of Terra use some of its optional dependencies in order to document
-# themselves.  These are the requirements that are _only_ required for the docs
-# build, and are not used by Terra itself.
+# components of Qiskit use some of its optional dependencies in order to document
+# themselves. These are the requirements that are _only_ required for the docs
+# build, and are not used by Qiskit itself.
+#
+# Be careful when adding new requirements. We want to keep the docs build simple because
+# we only build docs in this repo to generate API references that get consumed by
+# https://github.com/Qiskit/documentation. For example, coordinate adding dependencies
+# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to 
+# consume it properly.
 Sphinx>=6.0,<7.2
-qiskit-sphinx-theme~=1.16.0
-sphinx-design>=0.2.0
-sphinx-remove-toctrees
-sphinx-reredirects
-nbsphinx~=0.9.2
-nbconvert~=7.7.1
 # TODO: switch to stable release when 4.1 is released
 reno @ git+https://github.com/openstack/reno.git@81587f616f17904336cdc431e25c42b46cd75b8f
+sphinxcontrib-katex==0.9.9

@@ -20,7 +20,6 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
