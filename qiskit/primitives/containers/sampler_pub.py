@@ -78,16 +78,23 @@ class SamplerPub(ShapedMixin):
         return self._shots
 
     @classmethod
-    def coerce(cls, pub: SamplerPubLike, shots: int | None = None) -> SamplerPub:
+    def coerce(
+        cls, pub: SamplerPubLike, shots: int | None = None, validate: bool = True
+    ) -> SamplerPub:
         """Coerce a :class:`~.SamplerPubLike` object into a :class:`~.SamplerPub` instance.
 
         Args:
             pub: An object to coerce.
             shots: An optional default number of shots to use if not
                    already specified by the pub-like object.
+            validate: Whether to validate the returned pub.
 
         Returns:
-            A coerced sampler pub.
+            A sampler pub.
+
+        Raises:
+            ValueError: If validation fails from a bad value.
+            TypeError: If validation fails from an unexpected type.
         """
         # Validate shots kwarg if provided
         if shots is not None:
@@ -102,8 +109,10 @@ class SamplerPub(ShapedMixin):
                     circuit=pub.circuit,
                     parameter_values=pub.parameter_values,
                     shots=shots,
-                    validate=False,  # Assume Pub is already validated
+                    validate=validate,
                 )
+            if validate:
+                pub.validate()
             return pub
 
         if isinstance(pub, QuantumCircuit):
@@ -117,7 +126,9 @@ class SamplerPub(ShapedMixin):
         parameter_values = BindingsArray.coerce(pub[1]) if len(pub) > 1 else None
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
-        return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=True)
+        return cls(
+            circuit=circuit, parameter_values=parameter_values, shots=shots, validate=validate
+        )
 
     def validate(self):
         """Validate the pub."""

@@ -359,6 +359,30 @@ class EstimatorPubTestCase(QiskitTestCase):
             msg="incorrect num parameters for `parameter_values` property",
         )
 
+    def test_coerce_validation_with_pub(self):
+        """Test the coerce method when there is no validation with pub input."""
+        pub = EstimatorPub("the circuit", ObservablesArray("XX"), precision=0.07, validate=False)
+
+        EstimatorPub.coerce(pub, validate=False)
+        with self.assertRaises(TypeError):
+            EstimatorPub.coerce(pub, validate=True)
+
+    def test_coerce_validation_with_pub_no_precision(self):
+        """Test the coerce method when there is no validation with pub input but no precision."""
+        pub = EstimatorPub("the circuit", ObservablesArray("XX"), validate=False)
+
+        EstimatorPub.coerce(pub, validate=False)
+        with self.assertRaises(TypeError):
+            EstimatorPub.coerce(pub, validate=True)
+
+    def test_coerce_validation_from_tuple(self):
+        """Test the coerce method when there is no validation."""
+        obs = ObservablesArray("XX")
+        EstimatorPub.coerce(("the circuit", obs), validate=False)
+
+        with self.assertRaises(TypeError):
+            EstimatorPub.coerce(("the circuit", obs), validate=True)
+
     @ddt.data(
         [(), (), ()],
         [(5,), (5,), (5,)],

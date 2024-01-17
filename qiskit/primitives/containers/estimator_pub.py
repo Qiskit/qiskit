@@ -101,16 +101,23 @@ class EstimatorPub(ShapedMixin):
         return self._precision
 
     @classmethod
-    def coerce(cls, pub: EstimatorPubLike, precision: float | None = None) -> EstimatorPub:
+    def coerce(
+        cls, pub: EstimatorPubLike, precision: float | None = None, validate: bool = True
+    ) -> EstimatorPub:
         """Coerce :class:`~.EstimatorPubLike` into :class:`~.EstimatorPub`.
 
         Args:
             pub: A compatible object for coercion.
             precision: an optional default precision to use if not
                        already specified by the pub-like object.
+            validate: Whether to validate the returned pub.
 
         Returns:
             An estimator pub.
+
+        Raises:
+            ValueError: If validation fails from a bad value.
+            TypeError: If validation fails from an unexpected type.
         """
         # Validate precision kwarg if provided
         if precision is not None:
@@ -118,6 +125,7 @@ class EstimatorPub(ShapedMixin):
                 raise TypeError(f"precision must be a real number, not {type(precision)}.")
             if precision < 0:
                 raise ValueError("precision must be non-negative")
+
         if isinstance(pub, EstimatorPub):
             if pub.precision is None and precision is not None:
                 return cls(
@@ -125,24 +133,30 @@ class EstimatorPub(ShapedMixin):
                     observables=pub.observables,
                     parameter_values=pub.parameter_values,
                     precision=precision,
-                    validate=False,  # Assume Pub is already validated
+                    validate=validate,
                 )
+            if validate:
+                pub.validate()
             return pub
+
         if len(pub) not in [2, 3, 4]:
             raise ValueError(
                 f"The length of pub must be 2, 3 or 4, but length {len(pub)} is given."
             )
+
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
         parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 2 else None
+
         if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
+
         return cls(
             circuit=circuit,
             observables=observables,
             parameter_values=parameter_values,
             precision=precision,
-            validate=True,
+            validate=validate,
         )
 
     def validate(self):

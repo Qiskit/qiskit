@@ -327,3 +327,26 @@ class SamplerPubTestCase(QiskitTestCase):
             0,
             msg="incorrect num parameters for `parameter_values` property",
         )
+
+    def test_coerce_validation_with_pub(self):
+        """Test the coerce method when there is no validation with pub input."""
+        pub = SamplerPub(["the circuit"], shots=52, validate=False)
+
+        SamplerPub.coerce(pub, validate=False)
+        with self.assertRaises(TypeError):
+            SamplerPub.coerce(pub, validate=True)
+
+    def test_coerce_validation_with_pub_no_precision(self):
+        """Test the coerce method when there is no validation with pub input but no precision."""
+        pub = SamplerPub(["the circuit"], validate=False)
+
+        SamplerPub.coerce(pub, validate=False)
+        with self.assertRaises(TypeError):
+            SamplerPub.coerce(pub, validate=True)
+
+    def test_coerce_validation_from_tuple(self):
+        """Test the coerce method when there is no validation."""
+        SamplerPub.coerce(["the circuit"], validate=False)
+
+        with self.assertRaises(TypeError):
+            SamplerPub.coerce(["the circuit"], validate=True)
