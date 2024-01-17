@@ -338,7 +338,6 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
-    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_circuit_with_dynamic_circuit(self):
         """Test BackendSampler with QuantumCircuit with a dynamic circuit"""

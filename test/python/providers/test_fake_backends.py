@@ -101,10 +101,7 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest("Skipping until Qiskit/qiskit-aer#2023 is released.")
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
-        else:
-            print(backend.num_qubits)
         job = execute(
             self.circuit,
             backend,
@@ -125,7 +122,6 @@ class TestFakeBackends(QiskitTestCase):
     )
     def test_circuit_on_fake_backend(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.configuration().num_qubits > 20:
-            self.skipTest("Skipping until Qiskit/qiskit-aer#2023 is released.")
             self.skipTest(
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name
@@ -246,7 +242,6 @@ class TestFakeBackends(QiskitTestCase):
         backend = FakeSherbrooke()
         self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
-    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")
     def test_converter_simulator(self):
         class MCSXGate(ControlledGate):

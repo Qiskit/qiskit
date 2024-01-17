@@ -35,7 +35,6 @@ def get_test_circuit():
 class FakeBackendsTest(QiskitTestCase):
     """fake backends test."""
 
-    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backends_get_kwargs(self):
         """Fake backends honor kwargs passed."""
@@ -50,7 +49,6 @@ class FakeBackendsTest(QiskitTestCase):
 
         self.assertEqual(sum(raw_counts.values()), 1000)
 
-    @unittest.skip("Skipped until Qiskit/qiskit-aer#2023 is released.")
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backend_v2_noise_model_always_present(self):
         """Test that FakeBackendV2 instances always run with noise."""
