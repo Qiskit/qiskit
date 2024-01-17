@@ -14,7 +14,6 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
-import warnings
 from collections.abc import Iterable
 
 import numpy as np
@@ -22,9 +21,8 @@ import numpy as np
 from qiskit.circuit import Instruction, QuantumCircuit
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.library.data_preparation import Initialize
-from qiskit.quantum_info import PauliList, SparsePauliOp, Statevector
+from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:

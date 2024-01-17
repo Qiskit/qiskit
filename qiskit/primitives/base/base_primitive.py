@@ -15,12 +15,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Sequence
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.providers import Options
-
-from . import validation
 
 
 class BasePrimitive(ABC):

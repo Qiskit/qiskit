@@ -13,12 +13,10 @@
 Job implementation for the reference implementations of Primitives.
 """
 
-import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Optional
 
-from qiskit.providers import JobError, JobStatus, JobTimeoutError
+from qiskit.providers import JobError, JobStatus
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 
 from .base.base_primitive_job import BasePrimitiveJob, ResultT

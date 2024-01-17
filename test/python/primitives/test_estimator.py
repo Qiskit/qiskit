@@ -23,7 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
-from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 

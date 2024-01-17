@@ -16,7 +16,7 @@ Primitive result abstract base class
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Iterator, Sequence
+from collections.abc import Sequence
 from dataclasses import fields
 from typing import Any, Dict
 
