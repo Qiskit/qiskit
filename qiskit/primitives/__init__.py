@@ -62,3 +62,4 @@ from .base.sampler_result import SamplerResult
 from .containers import BindingsArray, ObservablesArray, PrimitiveResult, PubResult, SamplerPub
 from .estimator import Estimator
 from .sampler import Sampler
+from .statevector_sampler import Sampler as StatevectorSampler
