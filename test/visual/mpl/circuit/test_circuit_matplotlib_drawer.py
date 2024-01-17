@@ -438,12 +438,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         # check for other barrier like commands
         circuit.h(q[1])
 
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        with self.assertWarns(DeprecationWarning):
-            circuit.snapshot("1")
-
         # check the barriers plot properly when plot_barriers= True
         fname = "plot_barriers_true.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname, plot_barriers=True)

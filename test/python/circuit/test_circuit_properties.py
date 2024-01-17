@@ -19,7 +19,6 @@ from qiskit.circuit import Clbit
 from qiskit.circuit.library import RXGate, RYGate
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.extensions.simulator import Snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -561,80 +560,6 @@ class TestCircuitProperties(QiskitTestCase):
         circ.cx(2, 3)
         self.assertEqual(circ.depth(), 4)
 
-    def test_circuit_depth_snap1(self):
-        """Test circuit depth for snapshots #1."""
-
-        #      ┌───┐      ░
-        # q_0: ┤ H ├──■───░───────────
-        #      └───┘┌─┴─┐ ░
-        # q_1: ─────┤ X ├─░───────────
-        #           └───┘ ░ ┌───┐
-        # q_2: ───────────░─┤ H ├──■──
-        #                 ░ └───┘┌─┴─┐
-        # q_3: ───────────░──────┤ X ├
-        #                 ░      └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
-    def test_circuit_depth_snap2(self):
-        """Test circuit depth for snapshots #2."""
-
-        #      ┌───┐ ░       ░       ░
-        # q_0: ┤ H ├─░───■───░───────░──────
-        #      └───┘ ░ ┌─┴─┐ ░       ░
-        # q_1: ──────░─┤ X ├─░───────░──────
-        #            ░ └───┘ ░ ┌───┐ ░
-        # q_2: ──────░───────░─┤ H ├─░───■──
-        #            ░       ░ └───┘ ░ ┌─┴─┐
-        # q_3: ──────░───────░───────░─┤ X ├
-        #            ░       ░       ░ └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap2", num_qubits=4), [0, 1, 2, 3])
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
-    def test_circuit_depth_snap3(self):
-        """Test circuit depth for snapshots #3."""
-
-        #      ┌───┐      ░  ░
-        # q_0: ┤ H ├──■───░──░───────────
-        #      └───┘┌─┴─┐ ░  ░
-        # q_1: ─────┤ X ├─░──░───────────
-        #           └───┘ ░  ░ ┌───┐
-        # q_2: ───────────░──░─┤ H ├──■──
-        #                 ░  ░ └───┘┌─┴─┐
-        # q_3: ───────────░──░──────┤ X ├
-        #                 ░  ░      └───┘
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        circ = QuantumCircuit(q, c)
-        circ.h(0)
-        circ.cx(0, 1)
-        with self.assertWarns(DeprecationWarning):
-            circ.append(Snapshot("snap0", num_qubits=4), [0, 1, 2, 3])
-            circ.append(Snapshot("snap1", num_qubits=4), [0, 1, 2, 3])
-        circ.h(2)
-        circ.cx(2, 3)
-        self.assertEqual(circ.depth(), 4)
-
     def test_circuit_depth_2qubit(self):
         """Test finding depth of two-qubit gates only."""
 
@@ -744,21 +669,6 @@ class TestCircuitProperties(QiskitTestCase):
         qc.rz(0.1, q[1])
         qc.rzz(0.1, q[1], q[2])
         self.assertEqual(qc.size(lambda x: x.operation.num_qubits == 2), 2)
-
-    def test_circuit_size_ignores_barriers_snapshots(self):
-        """Circuit.size should not count barriers or snapshots."""
-        q = QuantumRegister(4, "q")
-        c = ClassicalRegister(4, "c")
-        qc = QuantumCircuit(q, c)
-
-        qc.h(q[0])
-        qc.cx(q[0], q[1])
-        self.assertEqual(qc.size(), 2)
-        qc.barrier(q)
-        self.assertEqual(qc.size(), 2)
-        with self.assertWarns(DeprecationWarning):
-            qc.append(Snapshot("snapshot_label", num_qubits=4), [0, 1, 2, 3])
-        self.assertEqual(qc.size(), 2)
 
     def test_circuit_count_ops(self):
         """Test circuit count ops."""
