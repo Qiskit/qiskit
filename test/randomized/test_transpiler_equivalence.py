@@ -56,7 +56,7 @@ from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
 import hypothesis.strategies as st
 
-from qiskit import transpile, Aer, qasm2
+from qiskit import transpile, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate, Barrier
 from qiskit.providers.fake_provider import (
@@ -91,9 +91,10 @@ from qiskit.providers.fake_provider import (
 )
 from qiskit.test.base import dicts_almost_equal
 
-
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
+
+from qiskit_aer import Aer  # pylint: disable=wrong-import-order
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
