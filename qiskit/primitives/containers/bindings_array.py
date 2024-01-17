@@ -16,7 +16,7 @@ Bindings array class
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import chain
+from itertools import chain, islice
 from typing import Union
 
 import numpy as np
@@ -110,10 +110,10 @@ class BindingsArray(ShapedMixin):
             kwvals = {}
 
         vals = [vals] if isinstance(vals, np.ndarray) else [np.array(v, copy=False) for v in vals]
-        # TODO str will be used for internal data (_kwvals) instead of Parameter.
-        # This requires https://github.com/Qiskit/qiskit/issues/7107
         kwvals = {
-            (p,) if isinstance(p, Parameter) else tuple(p): np.array(val, copy=False)
+            _format_key((p,))
+            if isinstance(p, Parameter)
+            else _format_key(p): np.array(val, copy=False)
             for p, val in kwvals.items()
         }
 
@@ -145,10 +145,19 @@ class BindingsArray(ShapedMixin):
             shape = ()
         return BindingsArray(vals, kwvals, shape)
 
+    def __repr__(self):
+        descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
+        if num_kwval_params := sum(val.shape[-1] for val in self._kwvals.values()):
+            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
+            if len(names) < num_kwval_params:
+                names.append("...")
+            descriptions.append(f"parameters=[{', '.join(names)}]")
+        return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
+
     @property
     def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
         """The keyword values of this array."""
-        return {_format_key(k): v for k, v in self._kwvals.items()}
+        return self._kwvals
 
     @property
     def num_parameters(self) -> int:

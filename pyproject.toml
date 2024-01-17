@@ -45,7 +45,6 @@ qasm3-import = [
 ]
 visualization = [
     "matplotlib >= 3.3",
-    "ipywidgets >= 7.3.0",
     "pydot",
     "Pillow >= 4.2.1",
     "pylatexenc >= 1.4",
