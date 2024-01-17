@@ -50,7 +50,6 @@ from qiskit.circuit.library.hamiltonian_gate import HamiltonianGate
 from qiskit.circuit.library.generalized_gates import UnitaryGate
 from qiskit.circuit.barrier import Barrier
 
-from .exceptions import ExtensionError
 from .quantum_initializer import (
     Initialize,
     SingleQubitUnitary,
