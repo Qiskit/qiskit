@@ -20,16 +20,6 @@ notifications:
         - "`@levbishop`"
     "quantum_info":
         - "`@ikkoham`"
-    "utils/run_circuits":
-        - "`@woodsp-ibm`"
-    "utils/quantum_instance":
-        - "`@woodsp-ibm`"
-    "opflow":
-        - "`@woodsp-ibm`"
-        - "`@Cryoris`"
-    "algorithms":
-        - "`@ElePT`"
-        - "`@woodsp-ibm`"
     "circuit/library":
         - "`@Cryoris`"
         - "`@ajavadia`"

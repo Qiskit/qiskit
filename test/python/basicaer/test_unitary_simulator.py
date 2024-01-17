@@ -18,19 +18,25 @@ import numpy as np
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.test import QiskitTestCase
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.test import ReferenceCircuits
-from qiskit.test import providers
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import process_fidelity, Operator
 
+from . import BasicAerBackendTestMixin
 
-class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
+
+class BasicAerUnitarySimulatorPyTest(QiskitTestCase, BasicAerBackendTestMixin):
     """Test BasicAer unitary simulator."""
 
-    backend_cls = UnitarySimulatorPy
-    circuit = ReferenceCircuits.bell_no_measure()
+    def setUp(self):
+        super().setUp()
+        self.backend = UnitarySimulatorPy()
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        self.circuit = bell
 
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
