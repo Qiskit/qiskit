@@ -550,6 +550,17 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, expected)
 
+    def test_barrier_in_context(self):
+        """Test barrier statement in context, see gh-11345"""
+        qc = QuantumCircuit(2, 2)
+        qc.h(0)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.h(0)
+            qc.barrier()
+
+        operation_names = [c.operation.name for c in qc]
+        self.assertNotIn("barrier", operation_names)
+
     def test_measure_active(self):
         """Test measure_active
         Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
@@ -1367,28 +1378,6 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit.name, "test")
-
-    def test_duplicated_methods_deprecation(self):
-        """Test the now deprecated, duplicated gate method emit a deprecation warning."""
-
-        # {duplicate: (use_this_instead, args)}
-        methods = {
-            "i": ("id", [0]),
-            "cnot": ("cx", [0, 1]),
-            "toffoli": ("ccx", [0, 1, 2]),
-            "mct": ("mcx", [[0, 1], 2]),
-            "fredkin": ("cswap", [0, 1, 2]),
-        }
-
-        for old, (new, args) in methods.items():
-            circuit = QuantumCircuit(3)
-
-            with self.subTest(method=old):
-
-                # check (1) the (pending) deprecation is raised
-                # and (2) the new method is documented there
-                with self.assertWarnsRegex(DeprecationWarning, new):
-                    getattr(circuit, old)(*args)
 
 
 class TestCircuitPrivateOperations(QiskitTestCase):

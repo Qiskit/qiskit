@@ -13,60 +13,12 @@
 
 """Decorator for using with Qiskit unit tests."""
 
-import collections.abc
 import functools
-import socket
+import os
 from typing import Union, Callable, Type, Iterable
 import unittest
 
-from qiskit.utils import wrap_method, optionals
-from .testing_options import get_test_options
-
-HAS_NET_CONNECTION = None
-
-
-def _has_connection(hostname, port):
-    """Checks if internet connection exists to host via specified port.
-
-    If any exception is raised while trying to open a socket this will return
-    false.
-
-    Args:
-        hostname (str): Hostname to connect to.
-        port (int): Port to connect to
-
-    Returns:
-        bool: Has connection or not
-
-    """
-    try:
-        host = socket.gethostbyname(hostname)
-        socket.create_connection((host, port), 2).close()
-        return True
-    except Exception:  # pylint: disable=broad-except
-        return False
-
-
-def is_aer_provider_available():
-    """Check if the C++ simulator can be instantiated.
-
-    Returns:
-        bool: True if simulator executable is available
-    """
-    return bool(optionals.HAS_AER)
-
-
-def requires_aer_provider(test_item):
-    """Decorator that skips test if qiskit aer provider is not available
-
-    Args:
-        test_item (callable): function or class to be decorated.
-
-    Returns:
-        callable: the decorated function.
-    """
-    reason = "Aer provider not found, skipping test"
-    return unittest.skipIf(not is_aer_provider_available(), reason)(test_item)
+from qiskit.utils import wrap_method
 
 
 def slow_test(func):
@@ -81,10 +33,8 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        skip_slow = not TEST_OPTIONS["run_slow"]
-        if skip_slow:
+        if "run_slow" in os.environ.get("QISKIT_TESTS", ""):
             raise unittest.SkipTest("Skipping slow tests")
-
         return func(*args, **kwargs)
 
     return _wrapper
@@ -184,31 +134,3 @@ def enforce_subclasses_call(
         return cls
 
     return decorator
-
-
-class _TestOptions(collections.abc.Mapping):
-    """Lazy-loading view onto the test options retrieved from the environment."""
-
-    __slots__ = ("_options",)
-
-    def __init__(self):
-        self._options = None
-
-    def _load(self):
-        if self._options is None:
-            self._options = get_test_options()
-
-    def __getitem__(self, key):
-        self._load()
-        return self._options[key]
-
-    def __iter__(self):
-        self._load()
-        return iter(self._options)
-
-    def __len__(self):
-        self._load()
-        return len(self._options)
-
-
-TEST_OPTIONS = _TestOptions()
