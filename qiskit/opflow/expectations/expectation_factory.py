@@ -13,7 +13,6 @@
 """ExpectationFactory Class"""
 
 import logging
-import warnings
 from typing import Optional, Union
 
 from qiskit import BasicAer
@@ -84,11 +83,7 @@ class ExpectationFactory:
                 # for < 16 qubits, and qasm with warning for more.
                 else:
                     if operator.num_qubits <= 16:
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings(
-                                "ignore", category=DeprecationWarning, message=r".*basicaer.*"
-                            )
-                            backend_to_check = BasicAer.get_backend("statevector_simulator")
+                        backend_to_check = BasicAer.get_backend("statevector_simulator")
                     else:
                         logger.warning(
                             "%d qubits is a very large expectation value. "
@@ -100,11 +95,7 @@ class ExpectationFactory:
                             2**operator.num_qubits,
                             2**operator.num_qubits,
                         )
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings(
-                                "ignore", category=DeprecationWarning, message=r".*basicaer.*"
-                            )
-                            backend_to_check = BasicAer.get_backend("qasm_simulator")
+                        backend_to_check = BasicAer.get_backend("qasm_simulator")
 
             # If the user specified Aer qasm backend and is using a
             # Pauli operator, use the Aer fast expectation if we are including such
