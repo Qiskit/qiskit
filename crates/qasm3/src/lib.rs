@@ -15,6 +15,9 @@ mod circuit;
 mod error;
 mod expr;
 
+use std::ffi::{OsStr, OsString};
+use std::path::{Path, PathBuf};
+
 use hashbrown::HashMap;
 
 use pyo3::prelude::*;
@@ -126,6 +129,63 @@ pub fn loads(
     crate::build::convert_asg(py, result.program(), result.symbol_table(), gates)
 }
 
+/// Load an OpenQASM 3 program from a source file into a :class:`.QuantumCircuit`.
+///
+/// Args:
+///     pathlike_or_filelike (str | os.PathLike | io.TextIOBase): the program source.  This can
+///         either be given as a filepath, or an open text stream object.  If the stream is already
+///         opened it is consumed in Python space, whereas filenames are opened and consumed in
+///         Rust space; there might be slightly different performance characteristics, depending on
+///         your system and how the streams are buffered by default.
+///     custom_instructions (Iterable[CustomGate]): Python constructors to use for particular named
+///         gates.  If not supplied, Qiskit will use its own standard-library constructors for
+///         gates defined in the OpenQASM 3.0 standard-library file ``stdgates.inc``.
+///     include_path (Iterable[str]): the path to search when resolving ``include`` statements.
+///         If not given, Qiskit will arrange for this to point to a location containing
+///         ``stdgates.inc`` only.  Paths are tried in the sequence order.
+///
+///         As an implementation detail of the internal parser, if this argument is not given but
+///         the environment variable ``QASM3_PATH`` is set, it will be used instead, and is
+///         formatted using the ``PATH`` conventions of your operating system (e.g. earlier
+///         directories are tried first, paths are separated by ``:`` on Unix-likes and ``;`` on
+///         Windows, and so forth).
+///
+/// Returns:
+///     :class:`.QuantumCircuit`: the constructed circuit object.
+///
+/// Raises:
+///     :class:`.QASM3ImporterError`: if an error occurred during parsing or semantic analysis.
+///         In the case of a parsing error, most of the error messages are printed to the terminal
+///         and formatted, for better legibility.
+#[pyfunction]
+#[pyo3(
+    pass_module,
+    signature = (pathlike_or_filelike, /, *, custom_instructions=None, include_path=None),
+)]
+pub fn load(
+    module: &PyModule,
+    py: Python,
+    pathlike_or_filelike: &PyAny,
+    custom_instructions: Option<Vec<circuit::PyGate>>,
+    include_path: Option<Vec<OsString>>,
+) -> PyResult<circuit::PyCircuit> {
+    let source =
+        if pathlike_or_filelike.is_instance(PyModule::import(py, "io")?.getattr("TextIOBase")?)? {
+            pathlike_or_filelike
+                .call_method0("read")?
+                .extract::<String>()?
+        } else {
+            let path = PyModule::import(py, "os")?
+                .getattr("fspath")?
+                .call1((pathlike_or_filelike,))?
+                .extract::<OsString>()?;
+            std::fs::read_to_string(&path).map_err(|err| {
+                QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
+            })?
+        };
+    loads(module, py, source, custom_instructions, include_path)
+}
+
 /// Create a suitable sequence for use with the ``custom_gates`` of :func:`load` and :func:`loads`,
 /// as a Python object on the Python heap, so we can re-use it, and potentially expose it has a
 /// data attribute to users.
@@ -185,6 +245,7 @@ fn stdgates_inc_gates(py: Python) -> PyResult<&PyTuple> {
 #[pymodule]
 fn _qasm3(py: Python<'_>, module: &PyModule) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
+    module.add_function(wrap_pyfunction!(load, module)?)?;
     module.add_class::<circuit::PyGate>()?;
     module.add(STDGATES_INC_CUSTOM_GATES_ATTR, stdgates_inc_gates(py)?)?;
     Ok(())
