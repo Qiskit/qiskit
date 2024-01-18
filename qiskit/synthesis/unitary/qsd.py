@@ -36,7 +36,9 @@ def qs_decomposition(
     _depth=0,
 ):
     r"""
-    Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
+    Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
+
+    This decomposition is described in Shende et al. [1].
 
     .. parsed-literal::
           ┌───┐               ┌───┐     ┌───┐     ┌───┐
@@ -63,22 +65,25 @@ def qs_decomposition(
 
         4^{n-2} - 1.
 
-    This decomposition is described in arXiv:quant-ph/0406176.
-
     Args:
         mat (ndarray): unitary matrix to decompose
-        opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cx per call.
+        opt_a1 (bool): whether to try optimization A.1 from Shende et al. [1].
+            This should eliminate 1 cx per call.
             If True CZ gates are left in the output. If desired these can be further decomposed to CX.
-        opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit unitaries
-            into a diagonal gate and a two cx unitary and reduces overall cx count by
-            :math:`4^(n-2) - 1`.
+        opt_a2 (bool): whether to try optimization A.2 from Shende et al. [1].
+            This decomposes two qubit unitaries into a diagonal gate and a two cx unitary and
+            reduces overall cx count by :math:`4^{n-2} - 1`.
         decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
-            :class:`~qiskit.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`.
+            :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
         decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
-            :class:`~qiskit.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose`.
+            :func:`~qiskit.synthesis.two_qubit_cnot_decompose`.
 
     Returns:
         QuantumCircuit: Decomposed quantum circuit.
+
+    Reference:
+        1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
+           `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
