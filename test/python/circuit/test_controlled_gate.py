@@ -1018,7 +1018,7 @@ class TestControlledGate(QiskitTestCase):
 
     @data(*ControlledGate.__subclasses__())
     def test_standard_base_gate_setting(self, gate_class):
-        """Test all gates in standard extensions which are of type ControlledGate
+        """Test all standard gates which are of type ControlledGate
         and have a base gate setting.
         """
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
@@ -1046,9 +1046,7 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state=[None, 0, 1],
     )
     def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
-        """Test all gates in standard extensions except those that cannot be controlled
-        or are being deprecated.
-        """
+        """Test all standard gates except those that cannot be controlled."""
         if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
@@ -1148,7 +1146,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_base_gate_params_reference(self):
         """
-        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        Test all standard gates which are of type ControlledGate and have a base gate
         setting have params which reference the one in their base gate.
         """
         num_ctrl_qubits = 1

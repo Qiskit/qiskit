@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
-from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
@@ -614,24 +613,6 @@ class C3SXGate(SingletonControlledGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
-
-    @deprecate_func(since="0.25.0", package_name="qiskit-terra")
-    def qasm(self):
-        # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
-        # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
-        # mapping itself, but right now that's not possible without a complete rewrite of the OQ2
-        # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
-        # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
-        # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
-        old_name = self.name
-        if not self.mutable:
-            copy_self = self.to_mutable()
-            copy_self.name = "c3sqrtx"
-            return copy_self.qasm()
-        try:
-            return super().qasm()
-        finally:
-            self.name = old_name
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))

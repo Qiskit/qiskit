@@ -27,7 +27,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.utils.deprecation import deprecate_func
 
 from .generalized_gates.unitary import UnitaryGate
 
@@ -127,14 +126,6 @@ class HamiltonianGate(Gate):
         qc = QuantumCircuit(q, name=self.name)
         qc._append(UnitaryGate(self.to_matrix()), q[:], [])
         self.definition = qc
-
-    @deprecate_func(
-        since="0.25.0",
-        package_name="qiskit-terra",
-    )
-    def qasm(self):
-        """Raise an error, as QASM is not defined for the HamiltonianGate."""
-        raise CircuitError("HamiltonianGate has no OpenQASM 2 definition.")
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""

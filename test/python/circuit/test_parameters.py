@@ -36,7 +36,7 @@ from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOurense
-from qiskit.tools import parallel_map
+from qiskit.utils import parallel_map
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -133,7 +133,7 @@ class TestParameters(QiskitTestCase):
         qc.rx(param_a, 0)
         self.assertRaises(CircuitError, qc.rx, param_a_again, 0)
 
-    def test_get_parameters(self):
+    def test_parameters_property(self):
         """Test instantiating gate with variable parameters"""
         from qiskit.circuit.library.standard_gates.rx import RXGate
 
@@ -147,7 +147,7 @@ class TestParameters(QiskitTestCase):
         self.assertIs(theta, next(iter(vparams)))
         self.assertEqual(rxg, next(iter(vparams[theta]))[0])
 
-    def test_get_parameters_by_index(self):
+    def test_parameters_property_by_index(self):
         """Test getting parameters by index"""
         x = Parameter("x")
         y = Parameter("y")
@@ -163,6 +163,59 @@ class TestParameters(QiskitTestCase):
         self.assertEqual(z, qc.parameters[5])
         for i, vi in enumerate(v):
             self.assertEqual(vi, qc.parameters[i])
+
+    def test_get_parameter(self):
+        """Test the `get_parameter` method."""
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+
+        qc = QuantumCircuit(1)
+        qc.rx(x + y + z + sum(v), 0)
+
+        self.assertIs(qc.get_parameter("x"), x)
+        self.assertIs(qc.get_parameter("y"), y)
+        self.assertIs(qc.get_parameter("z"), z)
+        self.assertIs(qc.get_parameter(v[1].name), v[1])
+
+        self.assertIsNone(qc.get_parameter("abc", None))
+        self.assertEqual(qc.get_parameter("jfkdla", "not present"), "not present")
+
+        with self.assertRaisesRegex(KeyError, "no parameter named"):
+            qc.get_parameter("jfklda")
+
+    def test_get_parameter_global_phase(self):
+        """Test that `get_parameter` works on parameters that only appear in the global phase."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+
+        self.assertIs(qc.get_parameter("x"), x)
+        self.assertIsNone(qc.get_parameter("y", None), None)
+
+    def test_has_parameter(self):
+        """Test the `has_parameter` method."""
+        x = Parameter("x")
+        y = Parameter("y")
+        z = Parameter("z")
+        v = ParameterVector("v", 3)
+
+        qc = QuantumCircuit(1)
+        qc.rx(x + y + z + sum(v), 0)
+
+        self.assertTrue(qc.has_parameter("x"))
+        self.assertTrue(qc.has_parameter("y"))
+        self.assertTrue(qc.has_parameter("z"))
+        self.assertTrue(qc.has_parameter(v[1].name))
+
+        self.assertFalse(qc.has_parameter("abc"))
+        self.assertFalse(qc.has_parameter("jfkdla"))
+
+        self.assertTrue(qc.has_parameter(x))
+        self.assertTrue(qc.has_parameter(y))
+
+        # This `z` should compare unequal to the first one, so it should appear absent.
+        self.assertFalse(qc.has_parameter(Parameter("z")))
 
     def test_bind_parameters_anonymously(self):
         """Test setting parameters by insertion order anonymously"""
@@ -190,6 +243,18 @@ class TestParameters(QiskitTestCase):
         b = Parameter("b")
         c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
         self.assertEqual(c, a.bind({a: 1}))
+
+    def test_assign_parameters_by_name(self):
+        """Test that parameters can be assigned by name as well as value."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        qc = QuantumCircuit(2, global_phase=a * 2)
+        qc.rx(b + 0.125 * c, 0)
+
+        self.assertEqual(
+            qc.assign_parameters({a: 1, b: 2, c: 3}), qc.assign_parameters({"a": 1, "b": 2, "c": 3})
+        )
 
     def test_bind_parameters_custom_definition_global_phase(self):
         """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
@@ -483,7 +548,7 @@ class TestParameters(QiskitTestCase):
         with self.assertRaises(CircuitError):
             qc.assign_parameters({z: [3, 4, 5]})
         with self.assertRaises(CircuitError):
-            qc.assign_parameters({"a_str": 6})
+            qc.assign_parameters({6: 6})
         with self.assertRaises(CircuitError):
             qc.assign_parameters({None: 7})
 

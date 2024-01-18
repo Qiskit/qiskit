@@ -30,6 +30,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
 from qiskit.circuit.gate import Gate
+from qiskit.version import VERSION as current_version_str
 
 try:
     from qiskit.qpy import dump, load
@@ -428,13 +429,18 @@ def generate_schedule_blocks():
     from qiskit.pulse import builder, channels, library
     from qiskit.utils import optionals
 
+    current_version = current_version_str.split(".")
+    for i in range(len(current_version[2])):
+        if current_version[2][i].isalpha():
+            current_version[2] = current_version[2][:i]
+            break
+    current_version = tuple(int(x) for x in current_version)
     # Parameterized schedule test is avoided.
     # Generated reference and loaded QPY object may induce parameter uuid mismatch.
     # As workaround, we need test with bounded parameters, however, schedule.parameters
     # are returned as Set and thus its order is random.
     # Since schedule parameters are validated, we cannot assign random numbers.
     # We need to upgrade testing framework.
-
     schedule_blocks = []
 
     # Instructions without parameters
@@ -445,7 +451,18 @@ def generate_schedule_blocks():
             builder.set_phase(1.57, channels.DriveChannel(0))
             builder.shift_phase(0.1, channels.DriveChannel(1))
             builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
-            builder.play(library.Gaussian(160, 0.1j, 40), channels.DriveChannel(0))
+            gaussian_amp = 0.1
+            gaussian_angle = 0.7
+            if current_version < (1, 0, 0):
+                builder.play(
+                    library.Gaussian(160, gaussian_amp * np.exp(1j * gaussian_angle), 40),
+                    channels.DriveChannel(0),
+                )
+            else:
+                builder.play(
+                    library.Gaussian(160, gaussian_amp, 40, gaussian_angle),
+                    channels.DriveChannel(0),
+                )
             builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
             builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
             builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
@@ -623,6 +640,21 @@ def generate_layout_circuits():
     return [qc]
 
 
+def generate_clifford_circuits():
+    """Test qpy circuits with Clifford operations."""
+    from qiskit.quantum_info import Clifford
+
+    cliff = Clifford.from_dict(
+        {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+    )
+    qc = QuantumCircuit(3)
+    qc.append(cliff, [0, 1, 2])
+    return [qc]
+
+
 def generate_control_flow_expr():
     """`IfElseOp`, `WhileLoopOp` and `SwitchCaseOp` with `Expr` nodes in their discriminators."""
     from qiskit.circuit.classical import expr, types
@@ -752,6 +784,8 @@ def generate_circuits(version_parts):
             "acquire_inst_with_kernel_and_disc.qpy"
         ] = generate_acquire_instruction_with_kernel_and_discriminator()
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
+    if version_parts >= (0, 45, 2):
+        output_circuits["clifford.qpy"] = generate_clifford_circuits()
     return output_circuits
 
 
