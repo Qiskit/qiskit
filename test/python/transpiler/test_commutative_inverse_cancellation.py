@@ -904,7 +904,7 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         passmanager = PassManager(CommutativeInverseCancellation(upto_phase_optimization=True))
         new_circuit = passmanager.run(circuit)
         self.assertEqual(new_circuit.size(), 0)
-        self.assertEqual(new_circuit.global_phase, np.pi / 4)
+        self.assertAlmostEqual(new_circuit.global_phase, np.pi / 4)
         self.assertEqual(Operator(circuit), Operator(new_circuit))
 
     def test_inverse_unitary_gates(self):
@@ -917,7 +917,7 @@ class TestCommutativeInverseCancellation(QiskitTestCase):
         passmanager = PassManager(CommutativeInverseCancellation(upto_phase_optimization=True))
         new_circuit = passmanager.run(circuit)
         self.assertEqual(new_circuit.size(), 0)
-        self.assertEqual(new_circuit.global_phase, np.pi)
+        self.assertAlmostEqual(new_circuit.global_phase, np.pi)
         self.assertEqual(Operator(circuit), Operator(new_circuit))
 
     def test_inverse_custom_gates(self):
