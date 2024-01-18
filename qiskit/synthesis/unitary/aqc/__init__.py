@@ -23,7 +23,8 @@ Interface
 =========
 
 The main public interface of this module is reached by passing ``unitary_synthesis_method='aqc'`` to
-:obj:`~.compiler.transpile`.  This will swap the synthesis method to use :obj:`AQCSynthesisPlugin`.
+:func:`~.compiler.transpile`.  This will swap the synthesis method to use
+:class:`~.transpiler.passes.synthesis.AQCSynthesisPlugin`.
 The individual classes are:
 
 .. autosummary::
@@ -63,7 +64,7 @@ and a vector of rotation angles :math:`\theta`, the parametric circuit forms a m
 
 .. math::
 
-    argmax_{\theta}\frac{1}{d}|\langle Vct(\theta),U\rangle|
+    \mathrm{argmax}_{\theta}\frac{1}{d}|\langle Vct(\theta),U\rangle|
 
 where the inner product is the Frobenius inner product. Note that
 :math:`|\langle V,U\rangle|\leq d` for all unitaries :math:`U` and :math:`V`, so the objective
@@ -128,7 +129,7 @@ A basic usage of the AQC algorithm should consist of the following steps::
     )
 
     # Create an optimizer to be used by AQC
-    optimizer = L_BFGS_B()
+    optimizer = partial(scipy.optimize.minimize, method="L-BFGS-B")
 
     # Create an instance
     aqc = AQC(optimizer)
