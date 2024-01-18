@@ -65,6 +65,7 @@ from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
     BindingsArray,
+    Observable,
     ObservablesArray,
     PrimitiveResult,
     PubResult,

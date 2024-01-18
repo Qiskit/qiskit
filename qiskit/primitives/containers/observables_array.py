@@ -16,10 +16,6 @@ ND-Array container class for Estimator observables.
 """
 from __future__ import annotations
 
-import re
-from collections import defaultdict
-from collections.abc import Mapping as MappingType
-from functools import lru_cache
 from typing import Iterable, Mapping, Union, overload
 
 import numpy as np
@@ -29,30 +25,17 @@ from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 
 from .object_array import object_array
 from .shape import ShapedMixin
-
-BasisObservable = Mapping[str, complex]
-"""Representation type of a single observable."""
-
-BasisObservableLike = Union[
-    str,
-    Pauli,
-    SparsePauliOp,
-    Mapping[Union[str, Pauli], complex],
-    Iterable[Union[str, Pauli, SparsePauliOp]],
-]
-"""Types that can be natively used to construct a :const:`BasisObservable`."""
+from .observable import Observable, ObservableLike
 
 
 class ObservablesArray(ShapedMixin):
-    """An ND-array of :const:`.BasisObservable` for an :class:`.Estimator` primitive."""
+    r"""An ND-array of :class:`.Observable`\s for an :class:`.Estimator` primitive."""
 
     __slots__ = ("_array", "_shape")
-    ALLOWED_BASIS: str = "IXYZ01+-lr"
-    """The allowed characters in :const:`BasisObservable` strings."""
 
     def __init__(
         self,
-        observables: BasisObservableLike | ArrayLike,
+        observables: ArrayLike | ObservableLike,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -76,9 +59,11 @@ class ObservablesArray(ShapedMixin):
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
         if validate:
+            # Convert array items to Observable objects
+            # and validate they are on the same number of qubits
             num_qubits = None
             for ndi, obs in np.ndenumerate(self._array):
-                basis_obs = self.format_observable(obs)
+                basis_obs = Observable.coerce(obs)
                 basis_num_qubits = len(next(iter(basis_obs)))
                 if num_qubits is None:
                     num_qubits = basis_num_qubits
@@ -106,7 +91,7 @@ class ObservablesArray(ShapedMixin):
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
-    def __getitem__(self, args: int | tuple[int, ...]) -> BasisObservable:
+    def __getitem__(self, args: int | tuple[int, ...]) -> Observable:
         ...
 
     @overload
@@ -144,55 +129,6 @@ class ObservablesArray(ShapedMixin):
         return self.reshape(self.size)
 
     @classmethod
-    def format_observable(cls, observable: BasisObservableLike) -> BasisObservable:
-        """Format an observable-like object into a :const:`BasisObservable`.
-
-        Args:
-            observable: The observable-like to format.
-
-        Returns:
-            The given observable as a :const:`~BasisObservable`.
-
-        Raises:
-            TypeError: If the input cannot be formatted because its type is not valid.
-            ValueError: If the input observable is invalid.
-        """
-
-        # Pauli-type conversions
-        if isinstance(observable, SparsePauliOp):
-            # Call simplify to combine duplicate keys before converting to a mapping
-            return cls.format_observable(dict(observable.simplify(atol=0).to_list()))
-
-        if isinstance(observable, Pauli):
-            label, phase = observable[:].to_label(), observable.phase
-            return {label: 1} if phase == 0 else {label: (-1j) ** phase}
-
-        # String conversion
-        if isinstance(observable, str):
-            cls._validate_basis(observable)
-            return {observable: 1}
-
-        # Mapping conversion (with possible Pauli keys)
-        if isinstance(observable, MappingType):
-            num_qubits = len(next(iter(observable)))
-            unique = defaultdict(complex)
-            for basis, coeff in observable.items():
-                if isinstance(basis, Pauli):
-                    basis, phase = basis[:].to_label(), basis.phase
-                    if phase != 0:
-                        coeff = coeff * (-1j) ** phase
-                # Validate basis
-                cls._validate_basis(basis)
-                if len(basis) != num_qubits:
-                    raise ValueError(
-                        "Number of qubits must be the same for all observable basis elements."
-                    )
-                unique[basis] += coeff
-            return dict(unique)
-
-        raise TypeError(f"Invalid observable type: {type(observable)}")
-
-    @classmethod
     def coerce(cls, observables: ObservablesArrayLike) -> ObservablesArray:
         """Coerce ObservablesArrayLike into ObservableArray.
 
@@ -204,62 +140,48 @@ class ObservablesArray(ShapedMixin):
         """
         if isinstance(observables, ObservablesArray):
             return observables
+
         if isinstance(observables, (str, SparsePauliOp, Pauli, Mapping)):
             observables = [observables]
-        return cls(observables)
+
+        # Convert array items to Observable objects and validate they are on the
+        # same number of qubis.  Note that we copy some of the validation method
+        # here to avoid double iteration of the array
+        data = object_array(observables, copy=True, list_types=(PauliList,))
+        num_qubits = None
+        for ndi, obs in np.ndenumerate(data):
+            basis_obs = Observable.coerce(obs)
+            if num_qubits is None:
+                num_qubits = basis_obs.num_qubits
+            elif basis_obs.num_qubits != num_qubits:
+                raise ValueError(
+                    "The number of qubits must be the same for all observables in the "
+                    "observables array."
+                )
+            data[ndi] = basis_obs
+
+        return cls(data, validate=False)
 
     def validate(self):
         """Validate the consistency in observables array."""
+        # Convert array items to Observable objects
+        # and validate they are on the same number of qubits
+        if not isinstance(self._array, np.ndarray) or self._array.dtype != object:
+            raise TypeError("Data should be an object ndarray")
+
         num_qubits = None
-        for obs in self._array.reshape(-1):
-            basis_num_qubits = len(next(iter(obs)))
+        for ndi, obs in np.ndenumerate(self._array):
+            if not isinstance(obs, Observable):
+                raise TypeError(f"item at index {ndi} is a {type(obs)}, not an Observable.")
+            obs.validate()
             if num_qubits is None:
-                num_qubits = basis_num_qubits
-            elif basis_num_qubits != num_qubits:
+                num_qubits = obs.num_qubits
+            elif obs.num_qubits != num_qubits:
                 raise ValueError(
                     "The number of qubits must be the same for all observables in the "
                     "observables array."
                 )
 
-    @classmethod
-    def _validate_basis(cls, basis: str) -> None:
-        """Validate a basis string.
 
-        Args:
-            basis: a basis string to validate.
-
-        Raises:
-            ValueError: If basis string contains invalid characters
-        """
-        # NOTE: the allowed basis characters can be overridden by modifying the class
-        # attribute ALLOWED_BASIS
-        allowed_pattern = _regex_match(cls.ALLOWED_BASIS)
-        if not allowed_pattern.match(basis):
-            invalid_pattern = _regex_invalid(cls.ALLOWED_BASIS)
-            invalid_chars = list(set(invalid_pattern.findall(basis)))
-            raise ValueError(
-                f"Observable basis string '{basis}' contains invalid characters {invalid_chars},"
-                f" allowed characters are {list(cls.ALLOWED_BASIS)}.",
-            )
-
-
-ObservablesArrayLike = Union[ObservablesArray, ArrayLike, BasisObservableLike]
+ObservablesArrayLike = Union[ObservablesArray, ArrayLike, ObservableLike]
 """Types that can be natively converted to an ObservablesArray"""
-
-
-class PauliArray(ObservablesArray):
-    """An ND-array of Pauli-basis observables for an :class:`.Estimator` primitive."""
-
-    ALLOWED_BASIS = "IXYZ"
-
-
-@lru_cache(1)
-def _regex_match(allowed_chars: str) -> re.Pattern:
-    """Return pattern for matching if a string contains only the allowed characters."""
-    return re.compile(f"^[{re.escape(allowed_chars)}]*$")
-
-
-@lru_cache(1)
-def _regex_invalid(allowed_chars: str) -> re.Pattern:
-    """Return pattern for selecting invalid strings"""
-    return re.compile(f"[^{re.escape(allowed_chars)}]")
