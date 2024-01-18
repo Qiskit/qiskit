@@ -44,6 +44,7 @@ from qiskit.circuit.library import (
     UCRYGate,
     UCRZGate,
     UnitaryGate,
+    DiagonalGate,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
@@ -51,11 +52,10 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 @ddt.ddt
@@ -1457,15 +1457,16 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
+        diag = DiagonalGate([1, -1, -1, 1])
+
         qc = QuantumCircuit(2)
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.diagonal([1, -1, -1, 1], [0, 1])
+        qc.append(diag, [0, 1])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
+        # DiagonalGate (and some of the qiskit.circuit.library gates) have non-deterministic
         # definitions with regard to internal instruction names, so cannot be directly compared for
         # equality.
         self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
@@ -1685,6 +1686,45 @@ class TestLoadFromQPY(QiskitTestCase):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
             from qiskit.circuit.qpy_serialization import dump, load
 
+    @ddt.data(0, "01", [1, 0, 0, 0])
+    def test_valid_circuit_with_initialize_instruction(self, param):
+        """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
+        qc = QuantumCircuit(2)
+        qc.initialize(param, qc.qubits)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_clifford(self):
+        """Test that circuits with Clifford operations can be saved and retrieved correctly."""
+        cliff1 = Clifford.from_dict(
+            {
+                "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+                "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            }
+        )
+        cliff2 = Clifford.from_dict(
+            {
+                "stabilizer": ["+YX", "+ZZ"],
+                "destabilizer": ["+IZ", "+YI"],
+            }
+        )
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(cliff1, [2, 4, 5])
+        circuit.h(4)
+        circuit.append(cliff2, [3, 0])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
 
 class TestSymengineLoadFromQPY(QiskitTestCase):
     """Test use of symengine in qpy set of methods."""
@@ -1735,22 +1775,3 @@ class TestSymengineLoadFromQPY(QiskitTestCase):
         new_circ = load(qpy_file)[0]
         self.assertEqual(self.qc, new_circ)
         self.assertDeprecatedBitProperties(self.qc, new_circ)
-
-    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_dump_no_symengine(self):
-        """Test dump fails if symengine is not installed and use_symengine==True."""
-        qpy_file = io.BytesIO()
-        with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                dump(self.qc, qpy_file, use_symengine=True)
-
-    @unittest.skipIf(not optionals.HAS_SYMENGINE, "Install symengine to run this test.")
-    def test_load_no_symengine(self):
-        """Test that load fails if symengine is not installed and the
-        file was created with use_symengine==True."""
-        qpy_file = io.BytesIO()
-        dump(self.qc, qpy_file, use_symengine=True)
-        qpy_file.seek(0)
-        with optionals.HAS_SYMENGINE.disable_locally():
-            with self.assertRaises(MissingOptionalLibraryError):
-                _ = load(qpy_file)[0]

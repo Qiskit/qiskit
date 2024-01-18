@@ -105,28 +105,35 @@ also add initial logical optimization prior to routing, you would do something l
 
 .. code-block:: python
 
-    from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+    import numpy as np
+    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
     from qiskit.transpiler import PassManager
-    from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
-    from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+    from qiskit.transpiler.passes import (
+        ALAPScheduleAnalysis,
+        CXCancellation,
+        InverseCancellation,
+        PadDynamicalDecoupling,
+    )
 
-    backend_durations = backend.target.durations()
     dd_sequence = [XGate(), XGate()]
-    scheduling_pm = PassManager([
-        ALAPScheduleAnalysis(backend_durations),
-        PadDynamicalDecoupling(backend_durations, dd_sequence),
-    ])
+    scheduling_pm = PassManager(
+        [
+            ALAPScheduleAnalysis(target=backend.target),
+            PadDynamicalDecoupling(target=backend.target, dd_sequence=dd_sequence),
+        ]
+    )
     inverse_gate_list = [
         HGate(),
         (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
         (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
         (TGate(), TdgGate()),
-
-    ])
-    logical_opt = PassManager([
-        CXCancellation(),
-        InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
-    ])
+    ]
+    logical_opt = PassManager(
+        [
+            CXCancellation(),
+            InverseCancellation(inverse_gate_list),
+        ]
+    )
 
 
     # Add pre-layout stage to run extra logical optimization
@@ -134,26 +141,26 @@ also add initial logical optimization prior to routing, you would do something l
     # Set scheduling stage to custom pass manager
     pass_manager.scheduling = scheduling_pm
 
-
-Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
-``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
-and for the ``scheduling`` stage our custom :class:`~.PassManager`
-``scheduling_pm`` will be used.
+Now, when the staged pass manager is run via the :meth:`~.StagedPassManager.run` method,
+the ``logical_opt`` pass manager will be called before the ``layout`` stage, and the
+``scheduling_pm`` pass manager will be used for the ``scheduling`` stage instead of the default.
 
 Custom Pass Managers
 ====================
 
 In addition to modifying preset pass managers, it is also possible to construct a pass
 manager to build an entirely custom pipeline for transforming input
-circuits. You can leverage the :class:`~.StagedPassManager` class directly to do
+circuits. You can use the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
-instance. For example::
+instance. For example, the following code creates a new :class:`~.StagedPassManager`
+that has 2 stages, ``init`` and ``translation``.::
 
     from qiskit.transpiler.passes import (
         UnitarySynthesis,
         Collect2qBlocks,
         ConsolidateBlocks,
         UnitarySynthesis,
+        Unroll3qOrMore,
     )
     from qiskit.transpiler import PassManager, StagedPassManager
 
@@ -171,13 +178,11 @@ instance. For example::
         stages=["init", "translation"], init=init, translation=translate
     )
 
-will create a new :class:`~.StagedPassManager` that has 2 stages ``init`` and ``translation``.
-There is no limit on the number of stages you can put in a custom :class:`~.StagedPassManager`
-instance.
+There is no limit on the number of stages you can put in a :class:`~.StagedPassManager`.
 
-The :ref:`stage_generators` functions may be useful for the construction of custom pass managers.
-They generate stages which provide common functionality used in many pass managers.
-For example, :func:`~.generate_embed_passmanager` can be used to generate a stage
+The :ref:`stage_generators` may be useful for the construction of custom :class:`~.StagedPassManager`s.
+They generate pass managers which provide common functionality used in many stages.
+For example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager`
 to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
@@ -1054,7 +1059,7 @@ modeled as follows:
     C ░░░░░░░░░░░░░░░░▒▒░
 
 However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
-this model. In the circuit representation, the corresponding :class:`.pulse.Qubit` is occupied
+this model. In the circuit representation, the corresponding :class:`.circuit.Qubit` is occupied
 by the stimulus microwave signal during the first half of the interval,
 and the :class:`.Clbit` is only occupied at the very end of the interval.
 
@@ -1226,15 +1231,6 @@ Scheduling
 
    InstructionDurations
 
-Fenced Objects
---------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   FencedPropertySet
-   FencedDAGCircuit
-
 Abstract Passes
 ---------------
 
@@ -1257,14 +1253,13 @@ Exceptions
 
 # For backward compatibility
 from qiskit.passmanager import (
-    FlowController,
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager.compilation_status import PropertySet
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1272,7 +1267,6 @@ from .exceptions import (
     LayoutError,
     CircuitTooWideForTarget,
 )
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout

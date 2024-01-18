@@ -73,6 +73,7 @@ Stabilizer State Synthesis
 
 .. autofunction:: synth_stabilizer_layers
 .. autofunction:: synth_stabilizer_depth_lnn
+.. autofunction:: synth_circuit_from_stabilizers
 
 Discrete Basis Synthesis
 ========================
@@ -83,6 +84,11 @@ Discrete Basis Synthesis
    SolovayKitaevDecomposition
 
 .. autofunction:: generate_basic_approximations
+
+Basis Change Synthesis
+======================
+
+.. autofunction:: synth_qft_line
 
 """
 
@@ -118,5 +124,10 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
-from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
+from .stabilizer import (
+    synth_stabilizer_layers,
+    synth_stabilizer_depth_lnn,
+    synth_circuit_from_stabilizers,
+)
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+from .qft import synth_qft_line

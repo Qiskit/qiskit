@@ -37,7 +37,7 @@ Here is an example of using a fake backend for transpilation and simulation.
    from qiskit import QuantumCircuit
    from qiskit.providers.fake_provider import FakeManilaV2
    from qiskit import transpile
-   from qiskit.tools.visualization import plot_histogram
+   from qiskit.visualization import plot_histogram
 
 
    # Get a fake backend from the fake provider
@@ -65,21 +65,8 @@ Here is an example of using a fake backend for transpilation and simulation.
     Please note that the simulation is done using a noise model generated from system snapshots
     obtained in the past (sometimes a few years ago) and the results are not representative of the
     latest behaviours of the real quantum system which the fake backend is mimicking. If you want to
-    run noisy simulations to compare with the real quantum system, please follow steps below to
-    generate a simulator mimics a real quantum system with the latest calibration results.
-
-    .. code-block:: python
-
-        from qiskit.providers.ibmq import IBMQ
-        from qiskit.providers.aer import AerSimulator
-
-        # get a real backend from a real provider
-        provider = IBMQ.load_account()
-        backend = provider.get_backend('ibmq_manila')
-
-        # generate a simulator that mimics the real quantum system with the latest calibration results
-        backend_sim = AerSimulator.from_backend(backend)
-
+    run noisy simulations to compare with the real quantum system you will need to create a noise
+    model from the current properties of the backend manually.
 
 Fake Providers
 ==============
@@ -223,7 +210,6 @@ Special fake backends are fake backends that were created for special testing pu
     FakeBackendV2
     FakeBackend5QV2
     FakeMumbaiFractionalCX
-    ConfigurableFakeBackend
 
 Fake Backend Base Classes
 =========================
@@ -262,6 +248,3 @@ from .fake_openpulse_3q import FakeOpenPulse3Q
 from .fake_1q import Fake1Q
 from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
-
-# Configurable fake backend
-from .utils.configurable_backend import ConfigurableFakeBackend

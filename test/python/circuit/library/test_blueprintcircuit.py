@@ -12,6 +12,7 @@
 
 """Test the blueprint circuit."""
 
+import math
 import unittest
 from ddt import ddt, data
 
@@ -173,6 +174,40 @@ class TestBlueprintCircuit(QiskitTestCase):
         mock.add_register(qr)
         mock._append(CircuitInstruction(XGate(), (qr[0],), ()))
         self.assertEqual(expected, mock)
+
+    def test_global_phase_copied(self):
+        """Test that a global-phase parameter is correctly propagated through."""
+
+        class DummyBlueprint(BlueprintCircuit):
+            """Dummy circuit."""
+
+            def _check_configuration(self, raise_on_failure=True):
+                return True
+
+            def _build(self):
+                # We don't need to do anything, we just need `_build` to be non-abstract.
+                # pylint: disable=useless-parent-delegation
+                return super()._build()
+
+        base = DummyBlueprint()
+        base.global_phase = math.pi / 2
+
+        self.assertEqual(base.copy_empty_like().global_phase, math.pi / 2)
+        self.assertEqual(base.copy().global_phase, math.pi / 2)
+
+        # Verify that a parametric global phase can be assigned after the copy.
+        a = Parameter("a")
+        parametric = DummyBlueprint()
+        parametric.global_phase = a
+
+        self.assertEqual(
+            parametric.copy_empty_like().assign_parameters({a: math.pi / 2}).global_phase,
+            math.pi / 2,
+        )
+        self.assertEqual(
+            parametric.copy().assign_parameters({a: math.pi / 2}).global_phase,
+            math.pi / 2,
+        )
 
 
 if __name__ == "__main__":

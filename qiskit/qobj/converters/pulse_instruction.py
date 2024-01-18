@@ -50,12 +50,12 @@ class ParametricPulseShapes(Enum):
     @classmethod
     def from_instance(
         cls,
-        instance: Union[library.ParametricPulse, library.SymbolicPulse],
+        instance: library.SymbolicPulse,
     ) -> "ParametricPulseShapes":
         """Get Qobj name from the pulse class instance.
 
         Args:
-            instance: Symbolic or ParametricPulse class.
+            instance: SymbolicPulse class.
 
         Returns:
             Qobj name.
@@ -354,7 +354,7 @@ class InstructionToQobjConverter:
         Returns:
             Qobj instruction data.
         """
-        if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+        if isinstance(instruction.pulse, library.SymbolicPulse):
             params = dict(instruction.pulse.parameters)
             # IBM backends expect "amp" to be the complex amplitude
             if "amp" in params and "angle" in params:
@@ -959,8 +959,12 @@ class QobjToInstructionConverter:
 
             yield instructions.Play(waveform, channel)
         else:
+            if qubits := getattr(instruction, "qubits", None):
+                msg = f"qubits {qubits}"
+            else:
+                msg = f"channel {instruction.ch}"
             raise QiskitError(
-                f"Instruction {instruction.name} on qubit {instruction.qubits} is not found  "
+                f"Instruction {instruction.name} on {msg} is not found "
                 "in Qiskit namespace. This instruction cannot be deserialized."
             )
 

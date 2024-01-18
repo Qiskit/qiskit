@@ -129,6 +129,29 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc, qc)
 
+    def test_2q_barriers_not_routed(self):
+        """Test that a 2q barrier is not routed."""
+        coupling = CouplingMap.from_line(5)
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.barrier(0, 1)
+        qc.barrier(0, 2)
+        qc.barrier(0, 3)
+        qc.barrier(2, 3)
+        qc.h(0)
+        qc.barrier(1, 2)
+        qc.barrier(1, 0)
+        qc.barrier(1, 3)
+        qc.barrier(1, 4)
+        qc.barrier(4, 3)
+        qc.barrier(0, 4)
+
+        passmanager = PassManager(SabreSwap(coupling, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
     def test_trivial_with_target(self):
         """Test that an already mapped circuit is unchanged with target."""
         coupling = CouplingMap.from_ring(5)
@@ -251,7 +274,7 @@ class TestSabreSwap(QiskitTestCase):
         if not optionals.HAS_AER:
             return
 
-        from qiskit import Aer
+        from qiskit_aer import Aer
 
         sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()

@@ -1016,17 +1016,18 @@ class TestControlledGate(QiskitTestCase):
 
     @data(*ControlledGate.__subclasses__())
     def test_standard_base_gate_setting(self, gate_class):
-        """Test all gates in standard extensions which are of type ControlledGate
+        """Test all standard gates which are of type ControlledGate
         and have a base gate setting.
         """
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonControlledGate isn't directly instantiated.")
-        num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
+        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+        num_free_params = len(gate_params)
         free_params = [0.1 * i for i in range(num_free_params)]
-        if gate_class in [MCU1Gate, MCPhaseGate]:
-            free_params[1] = 3
-        elif gate_class in [MCXGate]:
-            free_params[0] = 3
+        # set number of control qubits
+        for i in range(num_free_params):
+            if gate_params[i] == "num_ctrl_qubits":
+                free_params[i] = 3
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
@@ -1043,9 +1044,7 @@ class TestControlledGate(QiskitTestCase):
         ctrl_state=[None, 0, 1],
     )
     def test_all_inverses(self, gate, num_ctrl_qubits, ctrl_state):
-        """Test all gates in standard extensions except those that cannot be controlled
-        or are being deprecated.
-        """
+        """Test all standard gates except those that cannot be controlled."""
         if not (issubclass(gate, ControlledGate) or issubclass(gate, allGates.IGate)):
             # only verify basic gates right now, as already controlled ones
             # will generate differing definitions
@@ -1145,7 +1144,7 @@ class TestControlledGate(QiskitTestCase):
 
     def test_base_gate_params_reference(self):
         """
-        Test all gates in standard extensions which are of type ControlledGate and have a base gate
+        Test all standard gates which are of type ControlledGate and have a base gate
         setting have params which reference the one in their base gate.
         """
         num_ctrl_qubits = 1
@@ -1153,12 +1152,13 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(i=repr(gate_class)):
                 if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
                     self.skipTest("Singleton class isn't intended to be created directly.")
-                num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
-                free_params = [0.1 * (i + 1) for i in range(num_free_params)]
-                if gate_class in [MCU1Gate, MCPhaseGate]:
-                    free_params[1] = 3
-                elif gate_class in [MCXGate]:
-                    free_params[0] = 3
+                gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+                num_free_params = len(gate_params)
+                free_params = [0.1 * i for i in range(num_free_params)]
+                # set number of control qubits
+                for i in range(num_free_params):
+                    if gate_params[i] == "num_ctrl_qubits":
+                        free_params[i] = 3
 
                 base_gate = gate_class(*free_params)
                 if base_gate.params:
@@ -1379,12 +1379,13 @@ class TestOpenControlledToMatrix(QiskitTestCase):
         """Test open controlled to_matrix."""
         if gate_class in {SingletonControlledGate, _SingletonControlledGateOverrides}:
             self.skipTest("SingletonGateClass isn't intended for direct initalization")
-        num_free_params = len(_get_free_params(gate_class.__init__, ignore=["self"]))
+        gate_params = _get_free_params(gate_class.__init__, ignore=["self"])
+        num_free_params = len(gate_params)
         free_params = [0.1 * i for i in range(1, num_free_params + 1)]
-        if gate_class in [MCU1Gate, MCPhaseGate]:
-            free_params[1] = 3
-        elif gate_class in [MCXGate]:
-            free_params[0] = 3
+        # set number of control qubits
+        for i in range(num_free_params):
+            if gate_params[i] == "num_ctrl_qubits":
+                free_params[i] = 3
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
 
@@ -1487,7 +1488,8 @@ class TestControlledStandardGates(QiskitTestCase):
         ctrl_state_zeros = 0
         ctrl_state_mixed = ctrl_state_ones >> int(num_ctrl_qubits / 2)
 
-        numargs = len(_get_free_params(gate_class))
+        gate_params = _get_free_params(gate_class)
+        numargs = len(gate_params)
         args = [theta] * numargs
         if gate_class in [MSGate, Barrier]:
             args[0] = 2
@@ -1495,6 +1497,12 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
+        else:
+            # set number of control qubits
+            for i in range(numargs):
+                if gate_params[i] == "num_ctrl_qubits":
+                    args[i] = 2
+
         gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):

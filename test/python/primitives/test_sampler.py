@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
-from qiskit.providers import JobStatus, JobV1
+from qiskit.providers import JobStatus
 from qiskit.test import QiskitTestCase
 
 
@@ -90,10 +90,8 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         job = sampler.run(circuits=[bell])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists, self._target[1])
 
     def test_sample_run_multiple_circuits(self):
@@ -103,7 +101,6 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         result = sampler.run([bell, bell, bell]).result()
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
