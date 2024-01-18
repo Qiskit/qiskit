@@ -11,3 +11,33 @@
 # that they have been altered from the originals.
 
 """Qiskit BasicAer integration tests."""
+
+from qiskit import execute, QuantumCircuit
+
+
+class BasicAerBackendTestMixin:
+    """Test mixins for BasicAer backend tests."""
+
+    def test_configuration(self):
+        """Test backend.configuration()."""
+        configuration = self.backend.configuration()
+        return configuration
+
+    def test_properties(self):
+        """Test backend.properties()."""
+        properties = self.backend.properties()
+        if self.backend.configuration().simulator:
+            self.assertEqual(properties, None)
+        return properties
+
+    def test_status(self):
+        """Test backend.status()."""
+        status = self.backend.status()
+        return status
+
+    def test_run_circuit(self):
+        """Test running a single circuit."""
+        job = execute(self.circuit, self.backend)
+        result = job.result()
+        self.assertEqual(result.success, True)
+        return result
