@@ -80,17 +80,6 @@ def plot_histogram(
             If you would like to plot a histogram from a `QuasiDistribution`, `ProbDistribution`, or a distribution
             dictionary you should be using the :func:`.plot_distribution` function.
 
-            Example:
-            ```python
-            # Old way using plot_histogram with a hypothetical QuasiDistribution
-            quasi_data = QuasiDistribution(...)
-            plot_histogram(quasi_data)
-
-            # New recommended way
-            plot_distribution(quasi_data)
-            ```
-
-            For other data types, continue using `plot_histogram` as usual.
 
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
