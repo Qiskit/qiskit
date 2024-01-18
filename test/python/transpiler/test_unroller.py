@@ -16,7 +16,6 @@
 from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.extensions.simulator import Snapshot
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info import Operator
@@ -772,15 +771,6 @@ class TestUnrollAllInstructions(QiskitTestCase):
         """test unroll z"""
         self.circuit.z(0)
         self.ref_circuit.append(U3Gate(0, 0, pi), [0])
-        self.compare_dags()
-
-    def test_unroll_snapshot(self):
-        """test unroll snapshot"""
-        num_qubits = self.circuit.num_qubits
-        with self.assertWarns(DeprecationWarning):
-            instr = Snapshot("0", num_qubits=num_qubits)
-        self.circuit.append(instr, range(num_qubits))
-        self.ref_circuit.append(instr, range(num_qubits))
         self.compare_dags()
 
     def test_unroll_measure(self):

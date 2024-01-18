@@ -12,14 +12,19 @@
 
 """Job abstract interface."""
 
+from __future__ import annotations
+
 import time
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
 from qiskit.providers.exceptions import JobTimeoutError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
+
+if TYPE_CHECKING:
+    from qiskit.result import Result
 
 
 class Job:
@@ -128,7 +133,7 @@ class JobV1(Job, ABC):
         pass
 
     @abstractmethod
-    def result(self):
+    def result(self) -> Result:
         """Return the results of the job."""
         pass
 
@@ -137,6 +142,6 @@ class JobV1(Job, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def status(self):
+    def status(self) -> JobStatus:
         """Return the status of the job, among the values of ``JobStatus``."""
         pass
