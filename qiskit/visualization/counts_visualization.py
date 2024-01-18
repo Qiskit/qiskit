@@ -77,8 +77,9 @@ def plot_histogram(
             Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             to the `data` argument is deprecated.
 
-            If you would like to plot a histogram from a `QuasiDistribution`, `ProbDistribution`, or a distribution
-            dictionary you should be using the :func:`.plot_distribution` function.
+            If you would like to plot a histogram from a `QuasiDistribution`, 
+            `ProbDistribution`, or a distribution dictionary you should be using the 
+            :func:`.plot_distribution` function.
 
 
         figsize (tuple): Figure size in inches.
