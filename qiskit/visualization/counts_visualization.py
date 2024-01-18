@@ -77,8 +77,8 @@ def plot_histogram(
             Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             to the `data` argument is deprecated.
 
-            If you used `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
-            with `plot_histogram`, you should now use `plot_distribution()`.
+            If you would like to plot a histogram from a `QuasiDistribution`, `ProbDistribution`, or a distribution
+            dictionary you should be using the :func:`.plot_distribution` function.
 
             Example:
             ```python
