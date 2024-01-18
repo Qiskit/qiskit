@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -64,7 +64,7 @@ class Estimator(BaseEstimatorV2):
         self.options = options
 
     def run(
-        self, pubs: Iterable[EstimatorPubLike], precision: float | None = None
+        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs, precision)
         job._submit()
@@ -73,10 +73,8 @@ class Estimator(BaseEstimatorV2):
     def _run(
         self, pubs: Iterable[EstimatorPub], precision: float | None
     ) -> PrimitiveResult[PubResult]:
-        coerced_pubs = [EstimatorPub.coerce(pub) for pub in pubs]
-
-        for pub in coerced_pubs:
-            pub.validate()
+        precision = precision or self.options.precision # TODO: switch away from options to class variable
+        coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
 
         rng = _get_rng(self.options.seed)
         run_precision = precision
