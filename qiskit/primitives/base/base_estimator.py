@@ -167,12 +167,12 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
+    make_data_bin,
     DataBin,
     EstimatorPub,
     EstimatorPubLike,
     PrimitiveResult,
     PubResult,
-    make_data_bin,
 )
 from . import validation
 from .base_primitive import BasePrimitive
@@ -362,7 +362,7 @@ class BaseEstimatorV2:
 
     @abstractmethod
     def run(
-        self, pubs: Iterable[EstimatorPubLike], precision: float | None = None
+        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
