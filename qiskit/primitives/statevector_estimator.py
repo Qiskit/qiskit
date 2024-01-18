@@ -95,7 +95,7 @@ class Estimator(BaseEstimatorV2):
             evs = np.zeros_like(bc_circuits, dtype=np.float64)
             stds = np.zeros_like(bc_circuits, dtype=np.float64)
             for index in np.ndindex(*bc_circuits.shape):
-                bound_circuit = bc_circuits[index]
+                bound_circuit = parameter_values.bind(circuit, loc=index)
                 observable = bc_obs[index]
 
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
