@@ -50,7 +50,7 @@ class _MeasureInfo:
 
 class StatevectorSampler(BaseSamplerV2):
     """
-    Simple implementation of :class:`BaseSamplerV2` with Statevector.
+    Simple implementation of :class:`BaseSamplerV2` using full state vector simulation.
     """
 
     def __init__(self, *, default_shots: int = 1024, seed: np.random.Generator | int | None = None):
