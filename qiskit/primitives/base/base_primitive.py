@@ -24,7 +24,7 @@ from qiskit.utils.deprecation import deprecate_func
 from . import validation
 
 
-class BasePrimitiveV1(ABC):
+class BasePrimitive(ABC):
     """Primitive abstract base class."""
 
     def __init__(self, options: dict | None = None):
@@ -72,6 +72,3 @@ class BasePrimitiveV1(ABC):
         return validation._cross_validate_circuits_parameter_values(
             circuits, parameter_values=parameter_values
         )
-
-
-BasePrimitive = BasePrimitiveV1
