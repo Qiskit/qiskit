@@ -911,7 +911,9 @@ def assert_equal(reference, qpy, count, version_parts, bind=None, equivalent=Fal
         for ref_bit, qpy_bit in itertools.chain(
             zip(reference.qubits, qpy.qubits), zip(reference.clbits, qpy.clbits)
         ):
-            if ref_bit._register is not None and ref_bit != qpy_bit:
+            if ((ref_bit is None) != (qpy_bit is None)) or (
+                reference.find_bit(ref_bit) != qpy.find_bit(qpy_bit)
+            ):
                 msg = (
                     f"Reference Circuit {count}:\n"
                     "deprecated bit-level register information mismatch\n"

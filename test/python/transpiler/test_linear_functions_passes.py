@@ -83,7 +83,8 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         """Test that when we have two blocks of linear gates with one nonlinear gate in the middle,
         we end up with two LinearFunctions."""
         # Create a circuit with a nonlinear gate (h) cleanly separating it into two linear blocks.
-        circuit1 = QuantumCircuit(4)
+        qr = QuantumRegister(4)
+        circuit1 = QuantumCircuit(qr)
         circuit1.cx(0, 1)
         circuit1.cx(0, 2)
         circuit1.cx(0, 3)
@@ -105,10 +106,10 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertIsInstance(inst2.operation, LinearFunction)
 
         # Check that the first linear function represents the subcircuit before h
-        resulting_subcircuit1 = QuantumCircuit(4)
+        resulting_subcircuit1 = QuantumCircuit(qr)
         resulting_subcircuit1.append(inst1)
 
-        expected_subcircuit1 = QuantumCircuit(4)
+        expected_subcircuit1 = QuantumCircuit(qr)
         expected_subcircuit1.cx(0, 1)
         expected_subcircuit1.cx(0, 2)
         expected_subcircuit1.cx(0, 3)
@@ -116,10 +117,10 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(Operator(resulting_subcircuit1), Operator(expected_subcircuit1))
 
         # Check that the second linear function represents the subcircuit after h
-        resulting_subcircuit2 = QuantumCircuit(4)
+        resulting_subcircuit2 = QuantumCircuit(qr)
         resulting_subcircuit2.append(inst2)
 
-        expected_subcircuit2 = QuantumCircuit(4)
+        expected_subcircuit2 = QuantumCircuit(qr)
         expected_subcircuit2.swap(2, 3)
         expected_subcircuit2.cx(1, 2)
         expected_subcircuit2.cx(0, 1)
@@ -569,8 +570,9 @@ class TestLinearFunctionsPasses(QiskitTestCase):
     def test_collect_from_back_as_expected(self, do_commutative_analysis):
         """Test that collecting from the back of the circuit works as expected."""
 
+        qr = QuantumRegister(3)
         # original circuit
-        circuit = QuantumCircuit(3)
+        circuit = QuantumCircuit(qr)
         circuit.cx(1, 2)
         circuit.cx(1, 0)
         circuit.h(2)
@@ -593,15 +595,15 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertIsInstance(inst1.operation, LinearFunction)
         self.assertIsInstance(inst2.operation, LinearFunction)
 
-        resulting_subcircuit1 = QuantumCircuit(3)
+        resulting_subcircuit1 = QuantumCircuit(qr)
         resulting_subcircuit1.append(inst1)
-        resulting_subcircuit2 = QuantumCircuit(3)
+        resulting_subcircuit2 = QuantumCircuit(qr)
         resulting_subcircuit2.append(inst2)
 
-        expected_subcircuit1 = QuantumCircuit(3)
+        expected_subcircuit1 = QuantumCircuit(qr)
         expected_subcircuit1.cx(1, 2)
 
-        expected_subcircuit2 = QuantumCircuit(3)
+        expected_subcircuit2 = QuantumCircuit(qr)
         expected_subcircuit2.cx(1, 0)
         expected_subcircuit2.cx(1, 2)
 

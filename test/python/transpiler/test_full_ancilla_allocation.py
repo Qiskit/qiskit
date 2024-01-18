@@ -150,7 +150,7 @@ class TestFullAncillaAllocation(QiskitTestCase):
         pass_.run(dag)
         after_layout = pass_.property_set["layout"]
 
-        ancilla = QuantumRegister(2, "ancilla")
+        ancilla = list(after_layout.get_registers())[0]
 
         self.assertEqual(after_layout[0], qr[0])
         self.assertEqual(after_layout[1], ancilla[0])
