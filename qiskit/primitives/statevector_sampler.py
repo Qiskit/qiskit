@@ -48,85 +48,76 @@ class _MeasureInfo:
     qreg_indices: list[int]
 
 
-class Sampler(BaseSamplerV2):
+class StatevectorSampler(BaseSamplerV2):
     """
     Simple implementation of :class:`BaseSamplerV2` with Statevector.
     """
 
-    _DEFAULT_SHOTS: int = 512
-
-    def __init__(self, *, seed: np.random.Generator | int | None = None):
+    def __init__(self, *, default_shots: int = 1024, seed: np.random.Generator | int | None = None):
         """
         Args:
-            seed: The seed for random number generator.
+            default_shots: The default shots for the sampler if not specified during run.
+            seed: The seed or Generator object for random number generation.
+                If None, a random seeded default RNG will be used.
         """
+        self._default_shots = default_shots
         self._seed = seed
-        if isinstance(self._seed, np.random.Generator):
-            self._rng = self._seed
-        else:
-            self._rng = np.random.default_rng(self._seed)
+
+    @property
+    def default_shots(self) -> int:
+        """Return the default shots"""
+        return self._default_shots
 
     @property
     def seed(self) -> np.random.Generator | int | None:
-        """Return the seed for random number generator.
-
-        Returns:
-            np.random.Generator | int | None: The seed for random number generator.
-        """
+        """Return the seed or Generator object for random number generation."""
         return self._seed
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
-        job: PrimitiveJob[PubResult] = PrimitiveJob(self._run, pubs, shots)
+        if shots is None:
+            shots = self._default_shots
+        coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
+
+        job = PrimitiveJob(self._run, coerced_pubs)
         job._submit()
         return job
 
-    def _run(
-        self, pubs: Iterable[SamplerPubLike], shots: int | None = None
-    ) -> PrimitiveResult[PrimitiveResult[PubResult]]:
-        if shots is None:
-            shots = self._DEFAULT_SHOTS
-        coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
-        for pub in coerced_pubs:
-            pub.validate()
-
-        results = []
-        for pub in coerced_pubs:
-            circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
-            bound_circuits = pub.parameter_values.bind_all(circuit)
-            arrays = {
-                item.creg_name: np.zeros(
-                    bound_circuits.shape + (pub.shots, item.num_bytes), dtype=np.uint8
-                )
-                for item in meas_info
-            }
-            for index in np.ndindex(*bound_circuits.shape):
-                bound_circuit = bound_circuits[index]
-                final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
-                final_state.seed(self._rng)
-                if qargs:
-                    samples = final_state.sample_memory(shots=pub.shots, qargs=qargs)
-                else:
-                    samples = [""] * pub.shots
-                samples_array = np.array(
-                    [np.fromiter(sample, dtype=np.uint8) for sample in samples]
-                )
-                for item in meas_info:
-                    ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
-                    arrays[item.creg_name][index] = ary
-
-            data_bin_cls = make_data_bin(
-                [(item.creg_name, BitArray) for item in meas_info],
-                shape=bound_circuits.shape,
-            )
-            meas = {
-                item.creg_name: BitArray(arrays[item.creg_name], item.num_bits)
-                for item in meas_info
-            }
-            data_bin = data_bin_cls(**meas)
-            results.append(PubResult(data_bin, metadata={"shots": pub.shots}))
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+        results = [self._run_pub(pub) for pub in pubs]
         return PrimitiveResult(results)
+
+    def _run_pub(self, pub: SamplerPub) -> PubResult:
+        circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
+        bound_circuits = pub.parameter_values.bind_all(circuit)
+        arrays = {
+            item.creg_name: np.zeros(
+                bound_circuits.shape + (pub.shots, item.num_bytes), dtype=np.uint8
+            )
+            for item in meas_info
+        }
+        for index, bound_circuit in np.ndenumerate(bound_circuits):
+            final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
+            final_state.seed(self._seed)
+            if qargs:
+                samples = final_state.sample_memory(shots=pub.shots, qargs=qargs)
+            else:
+                samples = [""] * pub.shots
+            samples_array = np.array([np.fromiter(sample, dtype=np.uint8) for sample in samples])
+            for item in meas_info:
+                ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
+                arrays[item.creg_name][index] = ary
+
+        data_bin_cls = make_data_bin(
+            [(item.creg_name, BitArray) for item in meas_info],
+            shape=bound_circuits.shape,
+        )
+        meas = {
+            item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
+        }
+        data_bin = data_bin_cls(**meas)
+        return PubResult(data_bin, metadata={"shots": pub.shots})
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):
@@ -194,10 +185,10 @@ def _final_measurement_mapping(circuit: QuantumCircuit) -> dict[tuple[ClassicalR
         if item.operation.name == "measure":
             loc = circuit.find_bit(item.clbits[0])
             cbit = loc.index
-            creg = loc.registers[0]
             qbit = circuit.find_bit(item.qubits[0]).index
             if cbit in active_cbits and qbit in active_qubits:
-                mapping[creg] = qbit
+                for creg in loc.registers:
+                    mapping[creg] = qbit
                 active_cbits.remove(cbit)
         elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:

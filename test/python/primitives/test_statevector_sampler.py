@@ -26,13 +26,13 @@ from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import PrimitiveResult, PubResult, SamplerPub
 from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.data_bin import DataBin
-from qiskit.primitives.statevector_sampler import Sampler
+from qiskit.primitives.statevector_sampler import StatevectorSampler
 from qiskit.providers import JobStatus
 from qiskit.test import QiskitTestCase
 
 
 class TestStatevectorSampler(QiskitTestCase):
-    """Test for Statevector Sampler"""
+    """Test for StatevectorSampler"""
 
     def setUp(self):
         super().setUp()
@@ -77,11 +77,11 @@ class TestStatevectorSampler(QiskitTestCase):
             np.testing.assert_allclose(ary, tgt, rtol=rtol, err_msg=f"index: {idx}")
 
     def test_sampler_run(self):
-        """Test Sampler.run()."""
+        """Test run()."""
         bell, _, target = self._cases[1]
 
         with self.subTest("single"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             job = sampler.run([bell], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
@@ -93,7 +93,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self._assert_allclose(result[0].data.meas, np.array(target))
 
         with self.subTest("single with param"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             job = sampler.run([(bell, ())], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
@@ -105,7 +105,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self._assert_allclose(result[0].data.meas, np.array(target))
 
         with self.subTest("single array"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             job = sampler.run([(bell, [()])], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
@@ -117,7 +117,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self._assert_allclose(result[0].data.meas, np.array([target]))
 
         with self.subTest("multiple"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             job = sampler.run([(bell, [(), (), ()])], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
@@ -128,10 +128,21 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array([target, target, target]))
 
+    def test_sampler_run_multiple_times(self):
+        """Test run() returns the same results if the same input is given."""
+        bell, _, _ = self._cases[1]
+
+        sampler = StatevectorSampler(seed=self._seed)
+        result1 = sampler.run([bell], shots=self._shots).result()
+        meas1 = result1[0].data.meas
+        result2 = sampler.run([bell], shots=self._shots).result()
+        meas2 = result2[0].data.meas
+        self._assert_allclose(meas1, meas2, rtol=0)
+
     def test_sample_run_multiple_circuits(self):
-        """Test Sampler.run() with multiple circuits."""
+        """Test run() with multiple circuits."""
         bell, _, target = self._cases[1]
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run([bell, bell, bell], shots=self._shots).result()
         self.assertEqual(len(result), 3)
         self._assert_allclose(result[0].data.meas, np.array(target))
@@ -139,13 +150,13 @@ class TestStatevectorSampler(QiskitTestCase):
         self._assert_allclose(result[2].data.meas, np.array(target))
 
     def test_sampler_run_with_parameterized_circuits(self):
-        """Test Sampler.run() with parameterized circuits."""
+        """Test run() with parameterized circuits."""
 
         pqc1, param1, target1 = self._cases[4]
         pqc2, param2, target2 = self._cases[5]
         pqc3, param3, target3 = self._cases[6]
 
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run(
             [(pqc1, param1), (pqc2, param2), (pqc3, param3)], shots=self._shots
         ).result()
@@ -162,7 +173,7 @@ class TestStatevectorSampler(QiskitTestCase):
         qc2.x(0)
         qc2.measure_all()
 
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run([qc, qc2], shots=self._shots).result()
         self.assertEqual(len(result), 2)
         for i in range(2):
@@ -182,7 +193,7 @@ class TestStatevectorSampler(QiskitTestCase):
         qc3.x([0, 1])
         qc3.measure_all()
 
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run([qc0, qc1, qc2, qc3], shots=self._shots).result()
         self.assertEqual(len(result), 4)
         for i in range(4):
@@ -206,7 +217,7 @@ class TestStatevectorSampler(QiskitTestCase):
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
-                    sampler = Sampler(seed=self._seed)
+                    sampler = StatevectorSampler(seed=self._seed)
                     result = sampler.run([(circuit, param)], shots=self._shots).result()
                     self.assertEqual(len(result), 1)
                     self._assert_allclose(result[0].data.meas, target)
@@ -226,7 +237,7 @@ class TestStatevectorSampler(QiskitTestCase):
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
-                    sampler = Sampler(seed=self._seed)
+                    sampler = StatevectorSampler(seed=self._seed)
                     result = sampler.run([(circuit, param)], shots=self._shots).result()
                     self.assertEqual(len(result), 1)
                     self._assert_allclose(result[0].data.c, target)
@@ -243,7 +254,7 @@ class TestStatevectorSampler(QiskitTestCase):
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
-                    sampler = Sampler(seed=self._seed)
+                    sampler = StatevectorSampler(seed=self._seed)
                     result = sampler.run([(circuit, param)], shots=self._shots).result()
                     self.assertEqual(len(result), 1)
                     self._assert_allclose(result[0].data.meas, target)
@@ -261,7 +272,7 @@ class TestStatevectorSampler(QiskitTestCase):
         qc.measure(1, 1)
         qc.measure(2, 0)
 
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run([(qc, [0, 0]), (qc, [np.pi / 2, 0])], shots=self._shots).result()
         self.assertEqual(len(result), 2)
 
@@ -282,7 +293,7 @@ class TestStatevectorSampler(QiskitTestCase):
         with qc4.for_loop(range(5)):
             qc4.h(0)
 
-        sampler = Sampler()
+        sampler = StatevectorSampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([(qc1, [1e2])]).result()
@@ -305,13 +316,22 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc4]).result()
+        with self.subTest("negative shots, run arg"):
+            with self.assertRaises(ValueError):
+                _ = sampler.run([qc1], shots=-1).result()
+        with self.subTest("negative shots, pub-like"):
+            with self.assertRaises(ValueError):
+                _ = sampler.run([(qc1, None, -1)]).result()
+        with self.subTest("negative shots, pub"):
+            with self.assertRaises(ValueError):
+                _ = sampler.run([SamplerPub(qc1, shots=-1)]).result()
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
         n = 5
         qc = QuantumCircuit(n, n - 1)
         qc.measure(range(n - 1), range(n - 1))
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=self._shots).result()
             self.assertEqual(len(result), 1)
@@ -330,17 +350,17 @@ class TestStatevectorSampler(QiskitTestCase):
         k = 5
         params_array = np.linspace(0, 1, k * qc.num_parameters).reshape((k, qc.num_parameters))
         params_list = params_array.tolist()
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         target = sampler.run([(qc, params_list)], shots=self._shots).result()
 
         with self.subTest("ndarray"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([(qc, params_array)], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, target[0].data.meas)
 
         with self.subTest("split a list"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run(
                 [(qc, params) for params in params_list], shots=self._shots
             ).result()
@@ -356,7 +376,7 @@ class TestStatevectorSampler(QiskitTestCase):
         shots = 100
 
         with self.subTest("run arg"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([bell], shots=shots).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -365,8 +385,19 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("default shots"):
-            default_shots = 512
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
+            default_shots = sampler.default_shots
+            result = sampler.run([bell]).result()
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].data.meas.num_shots, default_shots)
+            self.assertEqual(sum(result[0].data.meas.get_counts().values()), default_shots)
+            self.assertIn("shots", result[0].metadata)
+            self.assertEqual(result[0].metadata["shots"], default_shots)
+
+        with self.subTest("setting default shots"):
+            default_shots = 100
+            sampler = StatevectorSampler(default_shots=default_shots, seed=self._seed)
+            self.assertEqual(sampler.default_shots, default_shots)
             result = sampler.run([bell]).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, default_shots)
@@ -375,7 +406,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertEqual(result[0].metadata["shots"], default_shots)
 
         with self.subTest("pub-like"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([(bell, None, shots)]).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -384,7 +415,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("pub"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([SamplerPub(bell, shots=shots)]).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -393,7 +424,7 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("multiple pubs"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             shots1 = 100
             shots2 = 200
             result = sampler.run(
@@ -420,7 +451,7 @@ class TestStatevectorSampler(QiskitTestCase):
         qc = QuantumCircuit(n)
         qc.h(range(n))
         qc.measure_all()
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         result = sampler.run([qc], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         self.assertLessEqual(result[0].data.meas.num_shots, self._shots)
@@ -429,7 +460,7 @@ class TestStatevectorSampler(QiskitTestCase):
     def test_primitive_job_status_done(self):
         """test primitive job's status"""
         bell, _, _ = self._cases[1]
-        sampler = Sampler(seed=self._seed)
+        sampler = StatevectorSampler(seed=self._seed)
         job = sampler.run([bell], shots=self._shots)
         _ = job.result()
         self.assertEqual(job.status(), JobStatus.DONE)
@@ -437,13 +468,13 @@ class TestStatevectorSampler(QiskitTestCase):
     def test_seed(self):
         """Test for seed options"""
         with self.subTest("empty"):
-            sampler = Sampler()
+            sampler = StatevectorSampler()
             self.assertIsNone(sampler.seed)
         with self.subTest("set int"):
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             self.assertEqual(sampler.seed, self._seed)
         with self.subTest("set generator"):
-            sampler = Sampler(seed=np.random.default_rng(self._seed))
+            sampler = StatevectorSampler(seed=np.random.default_rng(self._seed))
             self.assertIsInstance(sampler.seed, np.random.Generator)
 
     def test_circuit_with_unitary(self):
@@ -456,7 +487,7 @@ class TestStatevectorSampler(QiskitTestCase):
             circuit.append(gate, [0])
             circuit.measure_all()
 
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([circuit], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
@@ -468,7 +499,7 @@ class TestStatevectorSampler(QiskitTestCase):
             circuit.append(gate, [0])
             circuit.measure_all()
 
-            sampler = Sampler(seed=self._seed)
+            sampler = StatevectorSampler(seed=self._seed)
             result = sampler.run([circuit], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({1: self._shots}))
@@ -537,7 +568,7 @@ class TestStatevectorSampler(QiskitTestCase):
 
         for title, qc, target in cases:
             with self.subTest(title):
-                sampler = Sampler(seed=self._seed)
+                sampler = StatevectorSampler(seed=self._seed)
                 result = sampler.run([qc], shots=self._shots).result()
                 self.assertEqual(len(result), 1)
                 data = result[0].data
@@ -545,6 +576,39 @@ class TestStatevectorSampler(QiskitTestCase):
                 for creg in qc.cregs:
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
+
+    def test_circuit_with_aliased_cregs(self):
+        """Test for circuit with aliased classical registers."""
+        q = QuantumRegister(3, "q")
+        c1 = ClassicalRegister(1, "c1")
+        c2 = ClassicalRegister(1, "c2")
+
+        qc = QuantumCircuit(q, c1, c2)
+        qc.ry(np.pi / 4, 2)
+        qc.cx(2, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.measure(0, c1)
+        qc.measure(1, c2)
+        qc.z(2).c_if(c1, 1)
+        qc.x(2).c_if(c2, 1)
+        qc2 = QuantumCircuit(5, 5)
+        qc2.compose(qc, [0, 2, 3], [2, 4], inplace=True)
+        cregs = [creg.name for creg in qc2.cregs]
+        target = {
+            cregs[0]: {0: 4255, 4: 4297, 16: 720, 20: 726},
+            cregs[1]: {0: 5000, 1: 5000},
+            cregs[2]: {0: 8500, 1: 1500},
+        }
+
+        sampler = StatevectorSampler(seed=self._seed)
+        result = sampler.run([qc2], shots=self._shots).result()
+        self.assertEqual(len(result), 1)
+        data = result[0].data
+        self.assertEqual(len(astuple(data)), 3)
+        for creg_name in target:
+            self.assertTrue(hasattr(data, creg_name))
+            self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
 
 
 if __name__ == "__main__":
