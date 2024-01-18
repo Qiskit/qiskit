@@ -225,7 +225,7 @@ from qiskit.utils import optionals as _optionals
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
-from qiskit._qasm3 import CustomGate, STDGATES_INC_GATES
+from .._qasm3 import CustomGate, STDGATES_INC_GATES
 
 
 def dumps(circuit, **kwargs) -> str:
