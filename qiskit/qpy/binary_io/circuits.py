@@ -292,8 +292,6 @@ def _read_instruction(
         gate_class = getattr(circuit_mod, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
-    elif gate_name == "annotated":
-        gate_class = AnnotatedOperation
     elif gate_name == "Clifford":
         gate_class = Clifford
     else:
@@ -625,7 +623,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name not in ["Clifford", "annotated"]
+            and gate_class_name not in ["Clifford", "AnnotatedOperation"]
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -642,7 +640,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             custom_operations[gate_class_name] = instruction.operation
             custom_operations_list.append(gate_class_name)
 
-    elif gate_class_name in ["ControlledGate", "annotated"]:
+    elif gate_class_name in ["ControlledGate", "AnnotatedOperation"]:
         # controlled or annotated gates can have the same name but different parameter
         # values, the uuid is appended to avoid storing a single definition
         # in circuits with multiple controlled gates.
@@ -824,8 +822,6 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
         base_gate = operation.base_gate
     elif type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
         has_definition = False
-        # equivalently, could put modifiers into data
-        # data = common.data_to_binary(operation, _write_annotated_operation)
         base_gate = operation.base_op
     elif operation.definition is not None:
         has_definition = True
