@@ -73,9 +73,7 @@ class Estimator(BaseEstimatorV2):
     def _run(
         self, pubs: Iterable[EstimatorPub], precision: float | None
     ) -> PrimitiveResult[PubResult]:
-        precision = (
-            precision or self.options.precision
-        )  # TODO: switch away from options to class variable
+        precision = precision
         coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
 
         rng = _get_rng(self.options.seed)
