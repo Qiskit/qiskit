@@ -77,8 +77,6 @@ def plot_histogram(
             Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             to the `data` argument is deprecated.
 
-            Migration Guide:
-            ----------------
             If you used `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
             with `plot_histogram`, you should now use `plot_distribution()`.
 
