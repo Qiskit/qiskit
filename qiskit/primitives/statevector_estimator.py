@@ -73,19 +73,15 @@ class Estimator(BaseEstimatorV2):
     def _run(
         self, pubs: Iterable[EstimatorPub], precision: float | None
     ) -> PrimitiveResult[PubResult]:
-        precision = precision or self.options.precision # TODO: switch away from options to class variable
+        precision = (
+            precision or self.options.precision
+        )  # TODO: switch away from options to class variable
         coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
 
         rng = _get_rng(self.options.seed)
-        run_precision = precision
 
         results = []
         for pub in coerced_pubs:
-            if pub.precision is not None:
-                precision = pub.precision
-            else:
-                precision = run_precision
-
             circuit = pub.circuit
             observables = pub.observables
             parameter_values = pub.parameter_values
