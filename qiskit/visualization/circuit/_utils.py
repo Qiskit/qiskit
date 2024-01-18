@@ -211,6 +211,7 @@ def get_bit_register(circuit, bit):
     bit_loc = circuit.find_bit(bit)
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
+
 def get_bit_reg_index(circuit, bit):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -294,6 +295,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
         wire_label = index_str
 
     return wire_label
+
 
 def get_condition_label_val(condition, circuit, cregbundle):
     """Get the label and value list to display a condition
