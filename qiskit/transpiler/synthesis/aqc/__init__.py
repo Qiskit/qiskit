@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-=====================================================================
-Approximate Quantum Compiler (:mod:`qiskit.transpiler.synthesis.aqc`)
-=====================================================================
+============================
+Approximate Quantum Compiler
+============================
 """
 
 import warnings

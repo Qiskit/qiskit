@@ -23,7 +23,8 @@ Interface
 =========
 
 The main public interface of this module is reached by passing ``unitary_synthesis_method='aqc'`` to
-:func:`~.compiler.transpile`.  This will swap the synthesis method to use :class:`AQCSynthesisPlugin`.
+:func:`~.compiler.transpile`.  This will swap the synthesis method to use
+:class:`~.transpiler.passes.synthesis.AQCSynthesisPlugin`.
 The individual classes are:
 
 .. autosummary::
