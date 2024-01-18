@@ -620,7 +620,6 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         gate_class_name = instruction.operation.__class__.__name__
 
     custom_operations_list = []
-
     if (
         (
             not hasattr(library, gate_class_name)
