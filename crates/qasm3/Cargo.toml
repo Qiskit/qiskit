@@ -17,4 +17,5 @@ extension-module = ["pyo3/extension-module"]
 [dependencies]
 pyo3.workspace = true
 hashbrown.version = "0.14.0"
-oq3_semantics = { git = "https://github.com/Qiskit/openqasm3_parser.git", rev = "57407ee" }
+oq3_semantics = { git = "https://github.com/Qiskit/openqasm3_parser.git", rev = "c9d9ed9" }
+
