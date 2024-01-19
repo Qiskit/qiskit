@@ -74,13 +74,6 @@ def plot_histogram(
     Args:
         data (list or dict): This is either a list of dictionaries or a single
             dict containing the values to represent (ex ``{'001': 130}``)
-            Note: Passing `QuasiDistribution`, `ProbDistribution`, or a distribution dictionary
-            to the `data` argument is deprecated.
-
-            If you would like to plot a histogram from a `QuasiDistribution`,
-            `ProbDistribution`, or a distribution dictionary you should be using the
-            :func:`.plot_distribution` function.
-
 
         figsize (tuple): Figure size in inches.
         color (list or str): String or list of strings for histogram bar colors.
