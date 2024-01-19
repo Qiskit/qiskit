@@ -27,7 +27,7 @@ num-bigint = "0.4"
 rustworkx-core = "0.13"
 
 [dependencies.smallvec]
-version = "1.12"
+version = "1.13"
 features = ["union"]
 
 [dependencies.pyo3]
