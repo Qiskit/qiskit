@@ -35,40 +35,31 @@ class StatevectorEstimator(BaseEstimatorV2):
     def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
-        job: PrimitiveJob[PrimitiveResult[PubResult]] = PrimitiveJob(self._run, pubs, precision)
+        if precision is not None and precision > 0:
+            raise ValueError("precision must be None or 0 for StatevectorEstimator.")
+        coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
+        job = PrimitiveJob(self._run, coerced_pubs)
         job._submit()
         return job
 
-    def _run(
-        self, pubs: Iterable[EstimatorPub], precision: float | None
-    ) -> PrimitiveResult[PubResult]:
-        if precision is not None and precision > 0:
-            raise ValueError("precision must be None or 0 for StatevectorEstimator.")
+    def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
+        return PrimitiveResult([self._run_pub(pub) for pub in pubs])
 
-        coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
-
-        results = []
-        for pub in coerced_pubs:
-            if pub.precision is not None and pub.precision > 0:
-                raise ValueError("precision in pub must be None or 0 for StatevectorEstimator.")
-            circuit = pub.circuit
-            observables = pub.observables
-            parameter_values = pub.parameter_values
-            bound_circuits = parameter_values.bind_all(circuit)
-
-            bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
-            evs = np.zeros_like(bc_circuits, dtype=np.float64)
-            stds = np.zeros_like(bc_circuits, dtype=np.float64)
-            for index in np.ndindex(*bc_circuits.shape):
-                bound_circuit = bc_circuits[index]
-                observable = bc_obs[index]
-
-                final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
-                paulis, coeffs = zip(*observable.items())
-                obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
-                expectation_value = np.real_if_close(final_state.expectation_value(obs))
-                evs[index] = expectation_value
-            data_bin_cls = self._make_data_bin(pub)
-            data_bin = data_bin_cls(evs=evs, stds=stds)
-            results.append(PubResult(data_bin, metadata={"precision": 0}))
-        return PrimitiveResult(results)
+    def _run_pub(self, pub: EstimatorPub) -> PubResult:
+        circuit = pub.circuit
+        observables = pub.observables
+        parameter_values = pub.parameter_values
+        bound_circuits = parameter_values.bind_all(circuit)
+        bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
+        evs = np.zeros_like(bc_circuits, dtype=np.float64)
+        stds = np.zeros_like(bc_circuits, dtype=np.float64)
+        for index in np.ndindex(*bc_circuits.shape):
+            bound_circuit = bc_circuits[index]
+            observable = bc_obs[index]
+            final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
+            paulis, coeffs = zip(*observable.items())
+            obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
+            evs[index] = np.real_if_close(final_state.expectation_value(obs))
+        data_bin_cls = self._make_data_bin(pub)
+        data_bin = data_bin_cls(evs=evs, stds=stds)
+        return PubResult(data_bin, metadata={"precision": 0})
