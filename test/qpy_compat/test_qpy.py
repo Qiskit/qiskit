@@ -633,7 +633,7 @@ def generate_clifford_circuits():
             "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
         }
     )
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3, name="Clifford Circuits")
     qc.append(cliff, [0, 1, 2])
     return [qc]
 
