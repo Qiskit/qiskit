@@ -11,9 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::{PyString, PyTuple};
+use pyo3::types::{PySequence, PyString, PyTuple};
 
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 
 use oq3_semantics::asg;
 use oq3_semantics::symbols::{SymbolId, SymbolTable, SymbolType};
@@ -178,6 +179,50 @@ impl BuilderState {
         Ok(())
     }
 
+    fn apply_barrier(
+        &mut self,
+        py: Python,
+        ast_symbols: &SymbolTable,
+        barrier: &asg::Barrier,
+    ) -> PyResult<()> {
+        let qubits = if barrier.qubits().is_empty() {
+            // If there's no qargs, it's a barrier over all in-scope qubits (which is all qubits,
+            // unless we're in a gate/subroutine body).
+            self.qc
+                .inner(py)
+                .getattr("qubits")?
+                .downcast::<PySequence>()?
+                .to_tuple()?
+        } else {
+            // We want any deterministic order for easier circuit reproducibility in Python space,
+            // and to include each seen qubit once.  This simply maintains insertion order.
+            let mut qubits = IndexMap::<*const ::pyo3::ffi::PyObject, Py<PyAny>>::with_capacity(
+                barrier.qubits().len(),
+            );
+            for qarg in barrier.qubits().iter() {
+                let qarg = expr::expect_gate_operand(qarg)?;
+                match expr::eval_gate_qarg(py, &self.symbols, ast_symbols, qarg)? {
+                    expr::BroadcastItem::Bit(bit) => {
+                        let _ = qubits.insert(bit.as_ptr(), bit);
+                    }
+                    expr::BroadcastItem::Register(register) => {
+                        register.into_iter().for_each(|bit| {
+                            let _ = qubits.insert(bit.as_ptr(), bit);
+                        })
+                    }
+                }
+            }
+            PyTuple::new(py, qubits.values())
+        };
+        let instruction = self.module.new_instruction(
+            py,
+            self.module.new_barrier(py, qubits.len())?,
+            qubits,
+            (),
+        )?;
+        self.qc.append(py, instruction).map(|_| ())
+    }
+
     fn define_gate(
         &mut self,
         _py: Python,
@@ -293,10 +338,10 @@ pub fn convert_asg(
             asg::Stmt::DeclareQuantum(decl) => state.declare_quantum(py, ast_symbols, decl)?,
             asg::Stmt::GateCall(call) => state.call_gate(py, ast_symbols, call)?,
             asg::Stmt::GateDeclaration(decl) => state.define_gate(py, ast_symbols, decl)?,
+            asg::Stmt::Barrier(barrier) => state.apply_barrier(py, ast_symbols, barrier)?,
             asg::Stmt::Alias
             | asg::Stmt::AnnotatedStmt(_)
             | asg::Stmt::Assignment(_)
-            | asg::Stmt::Barrier
             | asg::Stmt::Block(_)
             | asg::Stmt::Box
             | asg::Stmt::Break

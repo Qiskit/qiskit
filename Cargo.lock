@@ -407,12 +407,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "numtoa"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8f8bdf33df195859076e54ab11ee78a1b208382d3a26ec40d142ffc1ecc49ef"
-
-[[package]]
 name = "once_cell"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -421,7 +415,7 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 [[package]]
 name = "oq3_lexer"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=57407ee#57407ee9504a8e251eb476c054e990e0f686822a"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
 dependencies = [
  "unicode-properties",
  "unicode-xid",
@@ -430,7 +424,7 @@ dependencies = [
 [[package]]
 name = "oq3_parser"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=57407ee#57407ee9504a8e251eb476c054e990e0f686822a"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
 dependencies = [
  "drop_bomb",
  "oq3_lexer",
@@ -440,7 +434,7 @@ dependencies = [
 [[package]]
 name = "oq3_semantics"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=57407ee#57407ee9504a8e251eb476c054e990e0f686822a"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
 dependencies = [
  "boolenum",
  "hashbrown 0.14.3",
@@ -452,17 +446,16 @@ dependencies = [
 [[package]]
 name = "oq3_source_file"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=57407ee#57407ee9504a8e251eb476c054e990e0f686822a"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
 dependencies = [
  "ariadne",
  "oq3_syntax",
- "source-span",
 ]
 
 [[package]]
 name = "oq3_syntax"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=57407ee#57407ee9504a8e251eb476c054e990e0f686822a"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
 dependencies = [
  "cov-mark",
  "either",
@@ -497,7 +490,7 @@ checksum = "4c42a9226546d68acdd9c0a280d17ce19bfe27a46bf68784e4066115788d008e"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall 0.4.1",
+ "redox_syscall",
  "smallvec",
  "windows-targets 0.48.5",
 ]
@@ -639,6 +632,7 @@ name = "qiskit-qasm3"
 version = "1.0.0"
 dependencies = [
  "hashbrown 0.14.3",
+ "indexmap 2.1.0",
  "oq3_semantics",
  "pyo3",
 ]
@@ -781,27 +775,12 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
-dependencies = [
- "bitflags 1.3.2",
-]
-
-[[package]]
-name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4722d768eff46b75989dd134e5c353f0d6296e5aaa3132e776cbdb56be7731aa"
 dependencies = [
  "bitflags 1.3.2",
 ]
-
-[[package]]
-name = "redox_termios"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20145670ba436b55d91fc92d25e71160fbfbdd57831631c8d7d36377a476f1cb"
 
 [[package]]
 name = "rowan"
@@ -896,15 +875,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "source-span"
-version = "2.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3afeb8b7a1ae2e8721f2193cc2291c9e00dd68511907fd8b807e2c8d42caa3c"
-dependencies = [
- "termion",
-]
-
-[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -931,18 +901,6 @@ name = "target-lexicon"
 version = "0.12.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69758bda2e78f098e4ccb393021a0963bb3442eac05f135c30f61b7370bbafae"
-
-[[package]]
-name = "termion"
-version = "1.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "077185e2eac69c3f8379a4298e1e07cd36beb962290d4a51199acf0fdc10607e"
-dependencies = [
- "libc",
- "numtoa",
- "redox_syscall 0.2.16",
- "redox_termios",
-]
 
 [[package]]
 name = "text-size"

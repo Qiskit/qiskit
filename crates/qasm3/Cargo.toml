@@ -16,6 +16,6 @@ extension-module = ["pyo3/extension-module"]
 
 [dependencies]
 pyo3.workspace = true
+indexmap.version = "2.1.0"
 hashbrown.version = "0.14.0"
-oq3_semantics = { git = "https://github.com/Qiskit/openqasm3_parser.git", rev = "c9d9ed9" }
-
+oq3_semantics = { git = "https://github.com/Qiskit/openqasm3_parser.git", rev = "45556a9" }

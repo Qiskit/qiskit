@@ -91,7 +91,7 @@ fn eval_const_uint(py: Python, ast_symbols: &SymbolTable, expr: &asg::TExpr) -> 
     })
 }
 
-enum BroadcastItem {
+pub enum BroadcastItem {
     Bit(Py<PyAny>),
     Register(Vec<Py<PyAny>>),
 }
@@ -193,6 +193,50 @@ fn broadcast_apply_index(
     }
 }
 
+pub fn eval_gate_qarg(
+    py: Python,
+    our_symbols: &PySymbolTable,
+    ast_symbols: &SymbolTable,
+    qarg: &asg::GateOperand,
+) -> PyResult<BroadcastItem> {
+    match qarg {
+        asg::GateOperand::Identifier(iden) => {
+            broadcast_bits_for_identifier(py, our_symbols, iden.symbol().as_ref().unwrap())
+        }
+        asg::GateOperand::IndexedIdentifier(indexed) => {
+            let iden_symbol = indexed.identifier().as_ref().unwrap();
+            indexed.indexes().iter().fold(
+                broadcast_bits_for_identifier(py, our_symbols, iden_symbol),
+                |item, index| {
+                    item.and_then(|item| broadcast_apply_index(py, ast_symbols, item, index))
+                },
+            )
+        }
+        asg::GateOperand::HardwareQubit(_) => {
+            Err(QASM3ImporterError::new_err("cannot handle hardware qubits"))
+        }
+    }
+}
+
+pub fn expect_gate_operand(expr: &asg::TExpr) -> PyResult<&asg::GateOperand> {
+    match expr.get_type() {
+        Type::Qubit | Type::QubitArray(_) | Type::HardwareQubit => (),
+        ty => {
+            return Err(QASM3ImporterError::new_err(format!(
+                "unhandled gate operand expression type: {:?}",
+                ty
+            )));
+        }
+    }
+    match expr.expression() {
+        asg::Expr::GateOperand(operand) => Ok(operand),
+        expr => Err(QASM3ImporterError::new_err(format!(
+            "internal logic error: not a gate operand {:?}",
+            expr
+        ))),
+    }
+}
+
 pub fn broadcast_qubits<'a, 'py, T>(
     py: Python<'py>,
     our_symbols: &PySymbolTable,
@@ -205,33 +249,7 @@ where
     let items = qargs
         .into_iter()
         .map(|item| -> PyResult<BroadcastItem> {
-            match item.expression() {
-                asg::Expr::GateOperand(operand) => match operand {
-                    asg::GateOperand::Identifier(iden) => broadcast_bits_for_identifier(
-                        py,
-                        our_symbols,
-                        iden.symbol().as_ref().unwrap(),
-                    ),
-                    asg::GateOperand::IndexedIdentifier(indexed) => {
-                        let iden_symbol = indexed.identifier().as_ref().unwrap();
-                        indexed.indexes().iter().fold(
-                            broadcast_bits_for_identifier(py, our_symbols, iden_symbol),
-                            |item, index| {
-                                item.and_then(|item| {
-                                    broadcast_apply_index(py, ast_symbols, item, index)
-                                })
-                            },
-                        )
-                    }
-                    asg::GateOperand::HardwareQubit(_) => {
-                        Err(QASM3ImporterError::new_err("cannot handle hardware qubits"))
-                    }
-                },
-                ty => Err(QASM3ImporterError::new_err(format!(
-                    "unhandled gate operand expression type: {:?}",
-                    ty
-                ))),
-            }
+            eval_gate_qarg(py, our_symbols, ast_symbols, expect_gate_operand(item)?)
         })
         .collect::<PyResult<Vec<_>>>()?;
 

@@ -169,7 +169,8 @@ pub struct PyCircuitModule {
     qubit: Py<PyType>,
     creg: Py<PyType>,
     clbit: Py<PyType>,
-    instruction: Py<PyType>,
+    circuit_instruction: Py<PyType>,
+    barrier: Py<PyType>,
 }
 
 impl PyCircuitModule {
@@ -191,17 +192,16 @@ impl PyCircuitModule {
                 .downcast::<PyType>()?
                 .into_py(py),
             clbit: module.getattr("Clbit")?.downcast::<PyType>()?.into_py(py),
-            instruction: module
+            circuit_instruction: module
                 .getattr("CircuitInstruction")?
                 .downcast::<PyType>()?
                 .into_py(py),
+            barrier: module.getattr("Barrier")?.downcast::<PyType>()?.into_py(py),
         })
     }
 
     pub fn new_circuit(&self, py: Python) -> PyResult<PyCircuit> {
-        Ok(PyCircuit {
-            qc: self.circuit.call0(py)?,
-        })
+        self.circuit.call0(py).map(PyCircuit)
     }
 
     pub fn new_qreg<T: IntoPy<Py<PyString>>>(
@@ -256,8 +256,12 @@ impl PyCircuitModule {
         Q: IntoPy<Py<PyTuple>>,
         C: IntoPy<Py<PyTuple>>,
     {
-        self.instruction
+        self.circuit_instruction
             .call1(py, (operation, qubits.into_py(py), clbits.into_py(py)))
+    }
+
+    pub fn new_barrier(&self, py: Python, num_qubits: usize) -> PyResult<Py<PyAny>> {
+        self.barrier.call1(py, (num_qubits,)).map(|x| x.into_py(py))
     }
 }
 
@@ -265,45 +269,47 @@ impl PyCircuitModule {
 /// construct the Python :class:`.QuantumCircuit`.  The idea of doing this from Rust space like
 /// this is that we might steadily be able to move more and more of it into being native Rust as
 /// the Rust-space APIs around the internal circuit data stabilise.
-pub struct PyCircuit {
-    /// The actual circuit object that's under construction.
-    qc: Py<PyAny>,
-}
+pub struct PyCircuit(Py<PyAny>);
 
 impl PyCircuit {
-    pub fn add_qreg(&mut self, py: Python, qreg: &PyQuantumRegister) -> PyResult<()> {
-        self.qc
-            .call_method1(py, "add_register", (qreg.to_object(py),))
+    /// Untyped access to the inner Python object.
+    pub fn inner<'a>(&'a self, py: Python<'a>) -> &'a PyAny {
+        self.0.as_ref(py)
+    }
+
+    pub fn add_qreg(&self, py: Python, qreg: &PyQuantumRegister) -> PyResult<()> {
+        self.inner(py)
+            .call_method1("add_register", (qreg.to_object(py),))
             .map(|_| ())
     }
 
-    pub fn add_qubit(&mut self, py: Python, qubit: Py<PyAny>) -> PyResult<()> {
-        self.qc
-            .call_method1(py, "add_bits", ((qubit,),))
+    pub fn add_qubit(&self, py: Python, qubit: Py<PyAny>) -> PyResult<()> {
+        self.inner(py)
+            .call_method1("add_bits", ((qubit,),))
             .map(|_| ())
     }
 
-    pub fn add_creg(&mut self, py: Python, creg: &PyClassicalRegister) -> PyResult<()> {
-        self.qc
-            .call_method1(py, "add_register", (creg.to_object(py),))
+    pub fn add_creg(&self, py: Python, creg: &PyClassicalRegister) -> PyResult<()> {
+        self.inner(py)
+            .call_method1("add_register", (creg.to_object(py),))
             .map(|_| ())
     }
 
-    pub fn add_clbit<T: IntoPy<Py<PyAny>>>(&mut self, py: Python, clbit: T) -> PyResult<()> {
-        self.qc
-            .call_method1(py, "add_bits", ((clbit,),))
+    pub fn add_clbit<T: IntoPy<Py<PyAny>>>(&self, py: Python, clbit: T) -> PyResult<()> {
+        self.inner(py)
+            .call_method1("add_bits", ((clbit,),))
             .map(|_| ())
     }
 
-    pub fn append<T: IntoPy<Py<PyAny>>>(&mut self, py: Python, instruction: T) -> PyResult<()> {
-        self.qc
-            .call_method1(py, "_append", (instruction.into_py(py),))
+    pub fn append<T: IntoPy<Py<PyAny>>>(&self, py: Python, instruction: T) -> PyResult<()> {
+        self.inner(py)
+            .call_method1("_append", (instruction.into_py(py),))
             .map(|_| ())
     }
 }
 
 impl ::pyo3::IntoPy<Py<PyAny>> for PyCircuit {
     fn into_py(self, py: Python) -> Py<PyAny> {
-        self.qc.clone_ref(py)
+        self.0.clone_ref(py)
     }
 }
