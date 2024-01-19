@@ -2,7 +2,7 @@
 features:
   - |
     The reference implementation :class:`~.StatevectorSampler` of :class:`~.BaseSamplerV2` was
-    added. As seen in the example below, this sampler (and all V2 estimsamplersators) supports
+    added. As seen in the example below, this sampler (and all V2 samplers) supports
     providing arrays of parameter value sets to bind against a single circuit.
     
     Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
