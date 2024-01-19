@@ -28,7 +28,7 @@ class Clbit(Bit):
 
     __slots__ = ()
 
-    def __init__(self, register: object = None, index: object = None) -> object:
+    def __init__(self, register=None, index=None):
         """Creates a classical bit.
 
         Args:

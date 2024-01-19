@@ -30,21 +30,28 @@ from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADE
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-def get_layout(qc, layout):
-    return {p: qc.find_bit(v) if v in qc.qubits else None for p, v in layout._p2v.items()}
-
-
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
     def assert_layout_equal(self, first_qc, first_layout, second_qc, second_layout):
-        """Layout equality test."""
+        """Assert layout equality up to `BitLocations`
+        Args:
+            first_qc (QuantumCircuit): a quantum circuit
+            first_layout (QuantumCircuit): a quantum circuit layout
+            second_qc (QuantumCircuit): other quantum circuit
+            second_layout (QuantumCircuit): other quantum circuit layout
+
+        Returns:
+            bool: `self` and `other` are equal.
+        """
         if first_layout is None and second_layout is None:
-            return True
-        for k in first_layout._p2v:
-            self.assertEqual(
-                first_qc.find_bit(first_layout._p2v[k]), second_qc.find_bit(second_layout._p2v[k])
-            )
+            self.assertTrue(first_layout == second_layout)
+        else:
+            for k in first_layout._p2v:
+                self.assertEqual(
+                    first_qc.find_bit(first_layout._p2v[k]),
+                    second_qc.find_bit(second_layout._p2v[k]),
+                )
 
     def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""

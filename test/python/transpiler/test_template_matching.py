@@ -203,7 +203,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         # note: cx(2, 1) commutes both with ccx(3, 4, 0) and with cx(2, 4),
         # so there is no real difference with the circuit drawn on the picture above.
-        circuit_expected = QuantumCircuit(qr)
+        circuit_expected = QuantumCircuit(*dag_opt.qregs.values())
         circuit_expected.cx(qr[2], qr[1])
         circuit_expected.ccx(qr[3], qr[4], qr[0])
         circuit_expected.cx(qr[2], qr[4])

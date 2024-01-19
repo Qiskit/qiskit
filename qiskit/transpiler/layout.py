@@ -145,9 +145,7 @@ class Layout:
 
     def __eq__(self, other):
         if isinstance(other, Layout):
-            a = self._p2v == other._p2v
-            b = self._v2p == other._v2p
-            return a and b
+            return self._p2v == other._p2v and self._v2p == other._v2p
         return False
 
     def copy(self):

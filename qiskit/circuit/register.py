@@ -117,8 +117,8 @@ class Register:
             self._bits = list(bits)
             self._bit_indices = {bit: idx for idx, bit in enumerate(self._bits)}
         else:
-            self._bits = [self.bit_type() for _ in range(size)]
-            # self._bits = [self.bit_type(self, idx) for idx in range(size)]
+            self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
             # Since the hash of Bits created by the line above will depend upon
             # the hash of self, which is not guaranteed to have been initialized
             # first on deep-copying or on pickling, so defer populating _bit_indices
@@ -208,12 +208,12 @@ class Register:
         if (
             type(self) is type(other)
             and self._repr == other._repr
-            # TODO discuss Register equality
             # and all(
             #    # For new-style bits, check bitwise equality.
             #    sbit == obit
             #    for sbit, obit in zip(self, other)
-            #    )
+            #    if None in (sbit._register, sbit._index, obit._register, obit._index)
+            # )
         ):
             res = True
         return res

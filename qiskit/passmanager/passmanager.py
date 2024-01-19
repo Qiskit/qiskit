@@ -327,8 +327,7 @@ def _run_workflow_in_new_process(
     Returns:
           Optimized program.
     """
-    pmb = dill.loads(pass_manager_bin)
     return _run_workflow(
         program=program,
-        pass_manager=pmb,
+        pass_manager=dill.loads(pass_manager_bin),
     )
