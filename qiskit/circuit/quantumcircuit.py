@@ -2864,6 +2864,8 @@ class QuantumCircuit:
         # Clear instruction info
         circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
         circ._parameter_table.clear()
+        # Repopulate the parameter table with any global-phase entries.
+        circ.global_phase = circ.global_phase
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
