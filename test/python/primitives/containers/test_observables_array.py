@@ -289,7 +289,8 @@ class ObservablesArrayTestCase(QiskitTestCase):
         ) in enumerate(bases_flat):
             self.assertEqual(flat[i], {label: 1})
 
-    def test_reshape(self):
+    @ddt.data(True, False)
+    def test_reshape(self, expand_shape_tuple):
         """Test reshape method"""
         bases = qi.pauli_basis(2)
         labels = np.array(bases.to_labels(), dtype=object)
@@ -297,7 +298,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
 
         for shape in [(16,), (4, 4), (2, 4, 2), (2, 2, 2, 2), (1, 8, 1, 2)]:
             with self.subTest(shape):
-                obs_rs = obs.reshape(shape)
+                obs_rs = obs.reshape(*shape) if expand_shape_tuple else obs.reshape(shape)
                 self.assertEqual(obs_rs.shape, shape)
                 labels_rs = labels.reshape(shape)
                 for idx in np.ndindex(shape):

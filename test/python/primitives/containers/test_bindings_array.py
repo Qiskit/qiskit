@@ -255,13 +255,14 @@ class BindingsArrayTestCase(QiskitTestCase):
         for i in range(6):
             self.assertEqual(bound_circuits[i], self.circuit.assign_parameters(flat_vals[i]))
 
-    def test_reshape(self):
+    @ddt.data(True, False)
+    def test_reshape(self, expand_shape_tuple):
         """Test reshape"""
         vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
 
         with self.subTest("reshape"):
             ba = BindingsArray(vals)
-            reshape_ba = ba.reshape((3, 2))
+            reshape_ba = ba.reshape(3, 2) if expand_shape_tuple else ba.reshape((3, 2))
             self.assertEqual(reshape_ba.num_parameters, 50)
             self.assertEqual(reshape_ba.ndim, 2)
             self.assertEqual(reshape_ba.shape, (3, 2))
@@ -282,7 +283,7 @@ class BindingsArrayTestCase(QiskitTestCase):
 
         with self.subTest("flatten"):
             ba = BindingsArray(vals)
-            reshape_ba = ba.reshape(6)
+            reshape_ba = ba.reshape(6) if expand_shape_tuple else ba.reshape((6,))
             self.assertEqual(reshape_ba.num_parameters, 50)
             self.assertEqual(reshape_ba.ndim, 1)
             self.assertEqual(reshape_ba.shape, (6,))

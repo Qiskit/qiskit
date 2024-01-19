@@ -290,7 +290,7 @@ class BindingsArray(ShapedMixin):
         """
         return self.reshape(self.size)
 
-    def reshape(self, shape: int | Iterable[int]) -> BindingsArray:
+    def reshape(self, *shape: int | Iterable[int]) -> BindingsArray:
         """Return a new :class:`~BindingsArray` with a different shape.
 
         This results in a new view of the same arrays.
@@ -304,7 +304,7 @@ class BindingsArray(ShapedMixin):
         Raises:
             ValueError: If the provided shape has a different product than the current size.
         """
-        shape = (shape, -1) if isinstance(shape, int) else (*shape, -1)
+        shape = shape_tuple(shape, -1)
         if np.prod(shape[:-1]).astype(int) != self.size:
             raise ValueError("Reshaping cannot change the total number of elements.")
         vals = [val.reshape(shape) for val in self._vals]
