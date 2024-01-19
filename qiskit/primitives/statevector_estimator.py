@@ -29,7 +29,7 @@ from .utils import bound_circuit_to_instruction
 
 class StatevectorEstimator(BaseEstimatorV2):
     """
-    Simple implementation of :class:`BaseEstimatorV2` with Statevector.
+    Simple implementation of :class:`BaseEstimatorV2` with full state vector simulation.
     """
 
     def run(
