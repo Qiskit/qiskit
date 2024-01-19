@@ -15,9 +15,7 @@ Estimator class
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
-from typing import Optional, Union
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -29,39 +27,10 @@ from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
 
-@dataclass
-class Options:
-    """Options for estimator."""
-
-    seed: Optional[Union[int, np.random.Generator]] = None
-
-    def update(self, options: Options | Mapping | None = None, **kwargs):
-        """Update the options."""
-        if options is not None:
-            if isinstance(options, Mapping):
-                options_dict = options
-            elif isinstance(options, Options):
-                options_dict = options.__dict__
-            else:
-                raise TypeError(f"Type {type(options)} is not options nor Mapping class")
-            for key, val in options_dict.items():
-                setattr(self, key, val)
-
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-
-class Estimator(BaseEstimatorV2):
+class StatevectorEstimator(BaseEstimatorV2):
     """
     Simple implementation of :class:`BaseEstimatorV2` with Statevector.
     """
-
-    def __init__(self, options: Options | dict | None = None):
-        if options is None:
-            options = Options()
-        elif not isinstance(options, Options):
-            options = Options(**options)
-        self.options = options
 
     def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
@@ -73,13 +42,15 @@ class Estimator(BaseEstimatorV2):
     def _run(
         self, pubs: Iterable[EstimatorPub], precision: float | None
     ) -> PrimitiveResult[PubResult]:
-        precision = precision
-        coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
+        if precision is not None and precision > 0:
+            raise ValueError("precision must be None or 0 for StatevectorEstimator.")
 
-        rng = _get_rng(self.options.seed)
+        coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
 
         results = []
         for pub in coerced_pubs:
+            if pub.precision is not None and pub.precision > 0:
+                raise ValueError("precision in pub must be None or 0 for StatevectorEstimator.")
             circuit = pub.circuit
             observables = pub.observables
             parameter_values = pub.parameter_values
@@ -89,32 +60,15 @@ class Estimator(BaseEstimatorV2):
             evs = np.zeros_like(bc_circuits, dtype=np.float64)
             stds = np.zeros_like(bc_circuits, dtype=np.float64)
             for index in np.ndindex(*bc_circuits.shape):
-                bound_circuit = parameter_values.bind(circuit, loc=index)
+                bound_circuit = bc_circuits[index]
                 observable = bc_obs[index]
 
                 final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
                 paulis, coeffs = zip(*observable.items())
-                obs = SparsePauliOp(paulis, coeffs)
-                # TODO: support non Pauli operators
+                obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
                 expectation_value = np.real_if_close(final_state.expectation_value(obs))
-                if precision is None or precision == 0:
-                    standard_error = 0
-                else:
-                    standard_error = np.sqrt(precision)
-                    expectation_value = rng.normal(expectation_value, standard_error)
                 evs[index] = expectation_value
-                stds[index] = standard_error
             data_bin_cls = self._make_data_bin(pub)
             data_bin = data_bin_cls(evs=evs, stds=stds)
-            results.append(PubResult(data_bin, metadata={"precision": precision}))
+            results.append(PubResult(data_bin, metadata={"precision": 0}))
         return PrimitiveResult(results)
-
-
-def _get_rng(seed):
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-    return rng

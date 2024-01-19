@@ -18,8 +18,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray
-from qiskit.primitives.statevector_estimator import Estimator
+from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray, StatevectorEstimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -59,7 +58,7 @@ class TestEstimatorV2(QiskitTestCase):
         psi1, psi2 = self.psi
         hamiltonian1, hamiltonian2, hamiltonian3 = self.hamiltonian
         theta1, theta2, theta3 = self.theta
-        estimator = Estimator()
+        estimator = StatevectorEstimator()
 
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
@@ -101,7 +100,7 @@ class TestEstimatorV2(QiskitTestCase):
         bind2 = BindingsArray.coerce(theta2)
         pub2 = EstimatorPub(psi2, obs2, bind2)
 
-        estimator = Estimator()
+        estimator = StatevectorEstimator()
         result4 = estimator.run([pub1, pub2]).result()
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318])
         np.testing.assert_allclose(result4[1].data.evs, [0.17849238])
@@ -109,13 +108,13 @@ class TestEstimatorV2(QiskitTestCase):
     def test_estimator_run_no_params(self):
         """test for estimator without parameters"""
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
-        est = Estimator()
+        est = StatevectorEstimator()
         result = est.run([(circuit, self.observable)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
 
     def test_run_single_circuit_observable(self):
         """Test for single circuit and single observable case."""
-        est = Estimator()
+        est = StatevectorEstimator()
 
         with self.subTest("No parameter"):
             qc = QuantumCircuit(1)
@@ -127,7 +126,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["precision"])
+                self.assertEqual(result[0].metadata["precision"], 0)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -146,7 +145,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["precision"])
+                self.assertEqual(result[0].metadata["precision"], 0)
 
         with self.subTest("More than one parameter"):
             qc = self.psi[0]
@@ -163,7 +162,7 @@ class TestEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertIsNone(result[0].metadata["precision"])
+                self.assertEqual(result[0].metadata["precision"], 0)
 
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
@@ -174,7 +173,7 @@ class TestEstimatorV2(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = Estimator()
+        est = StatevectorEstimator()
         result = est.run([(qc, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
@@ -197,7 +196,7 @@ class TestEstimatorV2(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = Estimator()
+        est = StatevectorEstimator()
         result = est.run([(qc, op)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1])
 
@@ -224,7 +223,7 @@ class TestEstimatorV2(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = Estimator()
+        est = StatevectorEstimator()
         # TODO: add validation
         with self.assertRaises(ValueError):
             est.run([(qc, op2)]).result()
@@ -243,7 +242,7 @@ class TestEstimatorV2(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = Estimator()
+        estimator = StatevectorEstimator()
         target = estimator.run([(qc, op, params_list)]).result()
 
         with self.subTest("ndarrary"):
@@ -255,24 +254,6 @@ class TestEstimatorV2(QiskitTestCase):
             result = estimator.run([(qc, op, params_list_array)]).result()
             self.assertEqual(len(result[0].data.evs), k)
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs)
-
-    def test_options(self):
-        """Test for options"""
-        with self.subTest("init"):
-            estimator = Estimator(options={"seed": 1})
-            self.assertEqual(estimator.options.seed, 1)
-        with self.subTest("set_options"):
-            estimator.options.seed = 15
-            self.assertEqual(estimator.options.seed, 15)
-
-    def test_negative_variance(self):
-        """Test for negative variance caused by numerical error."""
-        qc = QuantumCircuit(1)
-
-        estimator = Estimator()
-        result = estimator.run([(qc, 1e-4 * SparsePauliOp("I"))]).result()
-        self.assertEqual(result[0].data.evs, 1e-4)
-        self.assertEqual(result[0].data.stds, 0.0)
 
 
 if __name__ == "__main__":
