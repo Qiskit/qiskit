@@ -44,3 +44,133 @@ features:
     * :class:`.BindingsArrayLike`\: accepts NumPy arrays, lists of floats, dictionaries with 
       parameter names, etc.
        
+  - |
+    The reference implementation :class:`~.StatevectorEstimator` of :class:`~.BaseEstimatorV2` was
+    added. As seen in the example below, this estimator (and all V2 estimators) supports providing
+    arrays of observables and/or  arrays of parameter value sets that are attached to particular
+    circuits. 
+    
+    Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
+    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
+    :meth:`~.EstimatorV2.run` method can be given many pubs at once. Formally, the types of the
+    second two entries of an estimator pub are :class:`ObservablesArray` and :class:`BindingsArray`,
+    respectively, but, as seen in the example, there is a type coersion strategy implemented by
+    :class:`~.EstimatorPub` to allow a diverse set of alternative types for convenience.
+
+    .. code: python
+
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import StatevectorEstimator
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Define a circuit with two parameters.
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.ry(Parameter("a"), 0)
+        circuit.rz(Parameter("b"), 0)
+        circuit.cx(0, 1)
+        circuit.h(0)
+
+        # Define a sweep over parameter values, where the second axis is over 
+        # the two parameters in the circuit.
+        params = np.vstack([
+            np.linspace(-np.pi, np.pi, 100), 
+            np.linspace(-4 * np.pi, 4 * np.pi, 100)
+        ]).T
+
+        # Define three observables. many formats are supported here.
+        observables = [["XX"], [{"IX": 0.5, "IY": 0.5}], ["ZZ"]]
+
+        # Instantiate a new statevector simulation based estimator object.
+        estimator = StatevectorEstimator()
+
+        # Estimate the expectation value for all 300 combinations of observables and parameter values,
+        # where the pub result will have shape (3, 100). This shape results from the fact that our 
+        # BindingsArray will have shape (100,), and our ObservablesArray has shape (3, 1), giving the 
+        # broadcasted shape (3, 100).
+        job = estimator.run([(circuit, observables, params)])
+
+        # Extract the result for the 0th pub (this example only has one pub).
+        result = job.result()[0]
+
+        # Pull out the array-based expectation value estimate data from the result and 
+        # plot a trace for each observable.
+        for idx, pauli in enumerate(observables):
+            plt.plot(result.data.evs[idx], label=pauli)
+        plt.legend()
+
+        # Error-bar information is also available, but the error is always 0 for the StatevectorEstimator.
+        result.data.stds
+        
+  - |
+    The reference implementation :class:`~.StatevectorSampler` of :class:`~.BaseSamplerV2` was
+    added. As seen in the example below, this sampler (and all V2 samplers) supports
+    providing arrays of parameter value sets to bind against a single circuit.
+    
+    Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
+    primitive unified bloc (PUB), produces its own array-based result. The :meth:`~.SamplerV2.run`
+    method can be given many pubs at once. Formally, the types of the second entry of a sampler pub
+    is :class:`BindingsArray`, but, as seen in the example, there is a type coersion strategy
+    implemented by :class:`~.SamplerPub` to allow a diverse set of alternative types for
+    convenience.
+
+    .. code: python
+
+        from qiskit.circuit import Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
+        from qiskit.primitives import StatevectorSampler
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Define our circuit registers, including classical registers called 'alpha' and 'beta'.
+        qreg = QuantumRegister(3)
+        alpha = ClassicalRegister(2, "alpha")
+        beta = ClassicalRegister(1, "beta")
+
+        # Define a quantum circuit with two parameters.
+        circuit = QuantumCircuit(qreg, alpha, beta)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.ry(Parameter("a"), 0)
+        circuit.rz(Parameter("b"), 0)
+        circuit.cx(1, 2)
+        circuit.cx(0, 1)
+        circuit.h(0)
+        circuit.measure([0, 1], alpha)
+        circuit.measure([2], beta)
+
+        # Define a sweep over parameter values, where the second axis is over 
+        # the two parameters in the circuit.
+        params = np.vstack([
+            np.linspace(-np.pi, np.pi, 100), 
+            np.linspace(-4 * np.pi, 4 * np.pi, 100)
+        ]).T
+
+        # Instantiate a new statevector simulation based sampler object.
+        sampler = StatevectorSampler()
+
+        # Estimate the expectation value for all 300 combinations of observables and parameter values,
+        # where the pub result will have shape (3, 100). This shape results from the fact that our 
+        # BindingsArray will have shape (100,), and our observables have shape (3, 1), giving the 
+        # broadcasted shape (3, 100).
+        job = sampler.run([(circuit, params)], shots=256)
+
+        # Extract the result for the 0th pub (this example only has one pub).
+        result = job.result()[0]
+
+        # There is one BitArray object for each ClassicalRegister in the circuit.
+        # Here, we can see that the BitArray for alpha contains data for all 100 sweep points,
+        # and that it is indeed storing data for 2 bits over 256 shots.
+        assert result.data.alpha.shape == (100,)
+        assert result.data.alpha.num_bits == 2
+        assert result.data.alpha.num_shots == 256
+
+        # We can turn the data from the 22nd sweep index into a counts dict.
+        result.data.alpha.get_counts(22)
+
+        # Or, for low-level applications, we can work directly with the binary data.
+        result.data.alpha.array
