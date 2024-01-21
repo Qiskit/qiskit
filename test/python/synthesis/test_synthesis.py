@@ -80,6 +80,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 from qiskit.circuit.library.standard_gates.equivalence_library import _cnot_rxx_decompose
 from qiskit.synthesis.unitary import qsd
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 
 def make_oneq_cliffords():
@@ -994,6 +995,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         ]
         for decomp in decomps:
             self.assertTrue(cnot.equiv(decomp))
+        with self.assertWarns(DeprecationWarning):
+            cnot_rxx_decompose()
 
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
