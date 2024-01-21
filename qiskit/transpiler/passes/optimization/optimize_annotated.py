@@ -14,6 +14,7 @@
 
 from typing import Optional, List, Tuple
 
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.annotated_operation import AnnotatedOperation, _canonicalize_modifiers
 from qiskit.circuit import EquivalenceLibrary, ControlledGate, Operation, ControlFlowOp
@@ -32,7 +33,7 @@ class OptimizeAnnotated(TransformationPass):
         target: Optional[Target] = None,
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
-        recurse: bool = True
+        recurse: bool = True,
     ):
         """
         OptimizeAnnotated initializer.
@@ -83,6 +84,11 @@ class OptimizeAnnotated(TransformationPass):
         Optimizes annotated operations.
         Returns True if did something.
         """
+        # Fast return
+        op_names = dag.count_ops(recurse=False)
+        if "annotated" not in op_names and not CONTROL_FLOW_OP_NAMES.intersection(op_names):
+            return dag, False
+
         # Handle control-flow
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
@@ -107,7 +113,7 @@ class OptimizeAnnotated(TransformationPass):
         """
 
         did_something = False
-        for node in dag.op_nodes(op = AnnotatedOperation):
+        for node in dag.op_nodes(op=AnnotatedOperation):
             modifiers = []
             cur = node.op
             while isinstance(cur, AnnotatedOperation):
