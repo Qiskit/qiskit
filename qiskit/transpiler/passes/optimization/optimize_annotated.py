@@ -85,9 +85,10 @@ class OptimizeAnnotated(TransformationPass):
         Returns True if did something.
         """
         # Fast return
-        op_names = dag.count_ops(recurse=False)
-        if "annotated" not in op_names and not CONTROL_FLOW_OP_NAMES.intersection(op_names):
-            return dag, False
+        if self._top_level_only:
+            op_names = dag.count_ops(recurse=False)
+            if "annotated" not in op_names and not CONTROL_FLOW_OP_NAMES.intersection(op_names):
+                return dag, False
 
         # Handle control-flow
         for node in dag.op_nodes():
