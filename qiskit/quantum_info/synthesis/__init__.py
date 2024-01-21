@@ -23,8 +23,8 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 )
 
 warnings.warn(
-    "The qiskit.quantum_info.synthesis module is pending deprecation since Qiskit 0.46.0."
-    "It will be deprecated in a following release, no sooner than 3 months after the 0.46.0 release.",
+    "The qiskit.quantum_info.synthesis module is deprecated since Qiskit 0.46.0."
+    "It will be removed in Qiskit 1.0 release.",
     stacklevel=2,
-    category=PendingDeprecationWarning,
+    category=DeprecationWarning,
 )
