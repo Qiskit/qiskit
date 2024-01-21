@@ -93,7 +93,10 @@ Basis Change Synthesis
 Unitary Synthesis
 =================
 
-The Approximate Quantum Compiler is available here: :mod:`qiskit.synthesis.unitary.aqc`
+.. autosummary::
+   :toctree: ../stubs/
+
+   AQC
 
 """
 
@@ -132,3 +135,4 @@ from .cnotdihedral import (
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line
+from .unitary import aqc
