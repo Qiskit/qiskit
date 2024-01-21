@@ -17,13 +17,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -U pip setuptools wheel
-          python -m pip install -U -r requirements.txt -c constraints.txt
-          python -m pip install -U -r requirements-dev.txt coveralls -c constraints.txt
-          python -m pip install -c constraints.txt -e .
-          python -m pip install "qiskit-ibmq-provider" -c constraints.txt
-          python -m pip install "qiskit-aer"
-        env:
-          SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
+          python -m pip install -U \
+            -c constraints.txt \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            coveralls \
+            qiskit-aer \
+            -e .
       - name: Run randomized tests
         run: make test_randomized
         env:

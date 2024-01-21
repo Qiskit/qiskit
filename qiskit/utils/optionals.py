@@ -29,8 +29,8 @@ Qiskit Components
     :widths: 25 75
 
     * - .. py:data:: HAS_AER
-      - :mod:`Qiskit Aer <qiskit.providers.aer>` provides high-performance simulators for the
-        quantum circuits constructed within Qiskit.
+      - `Qiskit Aer <https://qiskit.org/ecosystem/aer/>` provides high-performance simulators for
+        the quantum circuits constructed within Qiskit.
 
     * - .. py:data:: HAS_IBMQ
       - The :mod:`Qiskit IBMQ Provider <qiskit.providers.ibmq>` is used for accessing IBM Quantum
@@ -212,7 +212,7 @@ from :mod:`.utils` directly if required, such as::
 """
 
 # NOTE: If you're changing this file, sync it with `requirements-optional.txt` and potentially
-# `setup.py` as well.
+# `pyproject.toml` as well.
 
 import logging as _logging
 
@@ -224,7 +224,7 @@ from .lazy_tester import (
 _logger = _logging.getLogger(__name__)
 
 HAS_AER = _LazyImportTester(
-    "qiskit.providers.aer",
+    "qiskit_aer",
     name="Qiskit Aer",
     install="pip install qiskit-aer",
 )

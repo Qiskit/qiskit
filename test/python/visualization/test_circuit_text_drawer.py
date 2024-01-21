@@ -23,6 +23,13 @@ import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -38,8 +45,11 @@ from qiskit.circuit.library import (
     U3Gate,
     XGate,
     CZGate,
+    CXGate,
     ZGate,
     YGate,
+    SGate,
+    SXGate,
     U1Gate,
     SwapGate,
     RZZGate,
@@ -6301,6 +6311,63 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", fold=80, initial_state=False)),
+            expected,
+        )
+
+
+class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
+    """Test AnnotatedOperations and other non-Instructions."""
+
+    def test_annotated_operation(self):
+        """Test AnnotatedOperation and other non-Instructions."""
+        expected = "\n".join(
+            [
+                "     ┌───────────┐┌───┐                                     ",
+                "q_0: ┤0          ├┤ X ├──■────■────────────■────────────────",
+                "     │  Clifford │├───┤┌─┴─┐  │            │          ┌────┐",
+                "q_1: ┤1          ├┤ H ├┤ S ├──■────────────o──────────┤ √X ├",
+                "     └───────────┘└───┘└─┬─┘┌─┴─┐┌─────────┴─────────┐└────┘",
+                "q_2: ────────────────────o──┤ X ├┤ S - Inv, Pow(3.3) ├──────",
+                "                            └───┘└───────────────────┘      ",
+            ]
+        )
+        circuit = QuantumCircuit(3)
+        cliff = random_clifford(2)
+        circuit.append(cliff, [0, 1])
+        circuit.x(0)
+        circuit.h(1)
+        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.ccx(0, 1, 2)
+        op1 = AnnotatedOperation(
+            SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
+        )
+        circuit.append(op1, [0, 1, 2])
+        circuit.append(SXGate(), [1])
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
+            expected,
+        )
+
+    def test_annotated_multi_qubit(self):
+        """Test AnnotatedOperation and other non-Instructions."""
+        expected = "\n".join(
+            [
+                "                  ",
+                "q_0: ──────o──────",
+                "     ┌─────┴─────┐",
+                "q_1: ┤0          ├",
+                "     │  Cx - Inv │",
+                "q_2: ┤1          ├",
+                "     └─────┬─────┘",
+                "q_3: ──────■──────",
+                "                  ",
+            ]
+        )
+        gate = AnnotatedOperation(CXGate(), [ControlModifier(2, 2), InverseModifier()])
+        circuit = QuantumCircuit(gate.num_qubits)
+        circuit.append(gate, [0, 3, 1, 2])
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
             expected,
         )
 

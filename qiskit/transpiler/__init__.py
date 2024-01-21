@@ -105,28 +105,35 @@ also add initial logical optimization prior to routing, you would do something l
 
 .. code-block:: python
 
-    from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+    import numpy as np
+    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
     from qiskit.transpiler import PassManager
-    from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
-    from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+    from qiskit.transpiler.passes import (
+        ALAPScheduleAnalysis,
+        CXCancellation,
+        InverseCancellation,
+        PadDynamicalDecoupling,
+    )
 
-    backend_durations = backend.target.durations()
     dd_sequence = [XGate(), XGate()]
-    scheduling_pm = PassManager([
-        ALAPScheduleAnalysis(backend_durations),
-        PadDynamicalDecoupling(backend_durations, dd_sequence),
-    ])
+    scheduling_pm = PassManager(
+        [
+            ALAPScheduleAnalysis(target=backend.target),
+            PadDynamicalDecoupling(target=backend.target, dd_sequence=dd_sequence),
+        ]
+    )
     inverse_gate_list = [
         HGate(),
         (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
         (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
         (TGate(), TdgGate()),
-
-    ])
-    logical_opt = PassManager([
-        CXCancellation(),
-        InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
-    ])
+    ]
+    logical_opt = PassManager(
+        [
+            CXCancellation(),
+            InverseCancellation(inverse_gate_list),
+        ]
+    )
 
 
     # Add pre-layout stage to run extra logical optimization
@@ -134,11 +141,9 @@ also add initial logical optimization prior to routing, you would do something l
     # Set scheduling stage to custom pass manager
     pass_manager.scheduling = scheduling_pm
 
-
-Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
-``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
-and for the ``scheduling`` stage our custom :class:`~.PassManager`
-``scheduling_pm`` will be used.
+Now, when the staged pass manager is run via the :meth:`~.StagedPassManager.run` method,
+the ``logical_opt`` pass manager will be called before the ``layout`` stage, and the
+``scheduling_pm`` pass manager will be used for the ``scheduling`` stage instead of the default.
 
 Custom Pass Managers
 ====================
@@ -1226,15 +1231,6 @@ Scheduling
 
    InstructionDurations
 
-Fenced Objects
---------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   FencedPropertySet
-   FencedDAGCircuit
-
 Abstract Passes
 ---------------
 
@@ -1257,14 +1253,13 @@ Exceptions
 
 # For backward compatibility
 from qiskit.passmanager import (
-    FlowController,
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager.compilation_status import PropertySet
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .propertyset import PropertySet  # pylint: disable=no-name-in-module
 from .exceptions import (
     TranspilerError,
     TranspilerAccessError,
@@ -1272,7 +1267,6 @@ from .exceptions import (
     LayoutError,
     CircuitTooWideForTarget,
 )
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout
