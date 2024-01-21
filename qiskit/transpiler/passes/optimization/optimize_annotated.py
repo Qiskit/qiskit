@@ -32,6 +32,7 @@ class OptimizeAnnotated(TransformationPass):
         target: Optional[Target] = None,
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
+        recurse: bool = True
     ):
         """
         OptimizeAnnotated initializer.
@@ -43,6 +44,11 @@ class OptimizeAnnotated(TransformationPass):
             basis_gates: Optional, target basis names to unroll to, e.g. `['u3', 'cx']`
                 (instructions in this list will not be optimized by this pass).
                 Ignored if ``target`` is also specified.
+            recurse: By default, when either ``target`` or ``basis_gates`` is specified,
+                the pass recursively descends into gate definitions (and the recursion is
+                not applied when neither is specified since such objects do not need to
+                be synthesized). Setting this value to ``False`` precludes the recursion in
+                every case.
         """
         super().__init__()
 
@@ -50,7 +56,7 @@ class OptimizeAnnotated(TransformationPass):
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
 
-        self._top_level_only = self._basis_gates is None and self._target is None
+        self._top_level_only = not recurse or (self._basis_gates is None and self._target is None)
 
         if not self._top_level_only and self._target is None:
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
