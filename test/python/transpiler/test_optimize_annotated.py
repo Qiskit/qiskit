@@ -106,8 +106,8 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
     def test_do_not_optimize_definitions_without_basis_gates(self):
         """
-        Test that the pass does not descend into gate definitions when either the
-        target not basis_gates are defined.
+        Test that the pass does not descend into gate definitions when neither the
+        target nor basis_gates are defined.
         """
         qc_def = QuantumCircuit(3)
         qc_def.cx(0, 2)
@@ -127,6 +127,31 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc.append(gate, [0, 1, 3])
 
         qc_optimized = OptimizeAnnotated()(qc)
+        self.assertEqual(qc_optimized[1].operation.definition, qc_def)
+
+    def test_do_not_optimize_definitions_without_recurse(self):
+        """
+        Test that the pass does not descend into gate definitions when recurse is
+        False.
+        """
+        qc_def = QuantumCircuit(3)
+        qc_def.cx(0, 2)
+        qc_def.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
+        qc_def.append(
+            AnnotatedOperation(
+                SwapGate(), [InverseModifier(), ControlModifier(1), InverseModifier()]
+            ),
+            [0, 1, 2],
+        )
+
+        gate = Gate("custom_gate", 3, [])
+        gate.definition = qc_def
+
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.append(gate, [0, 1, 3])
+
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"], recurse=False)(qc)
         self.assertEqual(qc_optimized[1].operation.definition, qc_def)
 
     def test_if_else(self):
