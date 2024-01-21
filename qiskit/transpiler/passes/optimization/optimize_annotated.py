@@ -101,22 +101,21 @@ class OptimizeAnnotated(TransformationPass):
         """
 
         did_something = False
-        for node in dag.op_nodes():
-            if isinstance(node.op, AnnotatedOperation):
-                modifiers = []
-                cur = node.op
-                while isinstance(cur, AnnotatedOperation):
-                    modifiers.extend(cur.modifiers)
-                    cur = cur.base_op
-                canonical_modifiers = _canonicalize_modifiers(modifiers)
-                if len(canonical_modifiers) > 0:
-                    # this is still an annotated operation
-                    node.op.base_op = cur
-                    node.op.modifiers = canonical_modifiers
-                else:
-                    # no need for annotated operations
-                    node.op = cur
-                did_something = True
+        for node in dag.op_nodes(op = AnnotatedOperation):
+            modifiers = []
+            cur = node.op
+            while isinstance(cur, AnnotatedOperation):
+                modifiers.extend(cur.modifiers)
+                cur = cur.base_op
+            canonical_modifiers = _canonicalize_modifiers(modifiers)
+            if len(canonical_modifiers) > 0:
+                # this is still an annotated operation
+                node.op.base_op = cur
+                node.op.modifiers = canonical_modifiers
+            else:
+                # no need for annotated operations
+                node.op = cur
+            did_something = True
         return dag, did_something
 
     def _recursively_process_definitions(self, op: Operation) -> bool:
@@ -172,16 +171,9 @@ class OptimizeAnnotated(TransformationPass):
         Recursively handles gate definitions.
         Returns True if did something.
         """
-
         did_something = False
 
-        # Don't do anything else if processing only top-level
-        if self._top_level_only:
-            return dag, did_something
-
         for node in dag.op_nodes():
-            # Similar to HighLevelSynthesis transpiler pass, we do not recurse into a gate's
-            # `definition` for a gate that is supported by the target or in equivalence library.
             opt = self._recursively_process_definitions(node.op)
             did_something = did_something or opt
 
