@@ -15,7 +15,7 @@
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.quantum_info import Operator
-from qiskit.quantum_info.operators.predicates import matrix_equal, _get_phase_difference
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.commutation_checker import CommutationChecker
 
@@ -71,10 +71,11 @@ class CommutativeInverseCancellation(TransformationPass):
         else:
             mat1 = Operator(node1.op.inverse()).data
             mat2 = Operator(node2.op).data
-            is_inverse = matrix_equal(mat1, mat2, ignore_phase=True)
+            props = {}
+            is_inverse = matrix_equal(mat1, mat2, ignore_phase=True, props=props)
             if is_inverse:
                 # mat2 = e^{i * phase_difference} mat1
-                phase_difference = _get_phase_difference(mat1, mat2)
+                phase_difference = props["phase_difference"]
         return is_inverse, phase_difference
 
     def run(self, dag: DAGCircuit):
