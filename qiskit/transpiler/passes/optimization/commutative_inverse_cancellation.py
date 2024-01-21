@@ -30,8 +30,9 @@ class CommutativeInverseCancellation(TransformationPass):
             max_qubits: limits the number of qubits in matrix-based commutativity and inverse
                 checks.
             upto_phase_optimization: if True, also cancels out pairs of gates that are
-                inverse up to a phase, keeping track of the phase difference in the global
-                phase of the circuit. However, the inverse check becomes more expensive.
+                inverse up to a phase, while keeping track of the phase difference in the
+                global phase of the circuit. However, this inverse check is now matrix-based
+                and becomes more expensive.
         """
         self._max_qubits = max_qubits
         self._upto_phase_optimization = upto_phase_optimization
