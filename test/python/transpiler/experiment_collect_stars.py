@@ -31,7 +31,15 @@ class StarBlock:
         self.nodes = [] if nodes is None else nodes
 
     def print(self):
-        print(f"center: {self.center}, nodes: {self.nodes}")
+        print(f"==> center: {self.center}")
+        for node in self.nodes:
+            print(f"     {node.__repr__()}")
+
+
+def filter_fn(node):
+    """Specifies which nodes can in principle be collected into 2-qubit blocks."""
+    return len(node.qargs) <= 2 and len(node.cargs) == 0 and getattr(node.op, "condition", None) is None
+
 
 
 def new_block_fn() -> StarBlock:
@@ -46,35 +54,42 @@ def append_node_fn(node, block: StarBlock):
 
     added = False
 
-    print(f"append_node_fn: {node = }")
-    block.print()
+    assert len(node.qargs) <= 2
+    assert len(node.cargs) == 0
+    assert getattr(node.op, "condition", None) is None
 
-    if (
-        len(node.qargs) == 2
-        and len(node.cargs) == 0
-        and getattr(node.op, "condition", None) is None
-    ):
 
-        if block.center is None:
-            block.center = set(node.qargs)
+    # print(f"In append:")
+    # print(f"  => {node.op = }, {node.qargs = }")
+    # block.print()
+
+    if len(node.qargs) == 1:
+        # This may be a bit sloppy since this may also include 1-qubit gates which are not part of the star.
+        # Or maybe this is fine (need to think).
+        block.nodes.append(node)
+        added = True
+
+    elif block.center is None:
+        block.center = set(node.qargs)
+        block.nodes.append(node)
+        added = True
+
+    elif isinstance(block.center, set):
+        if node.qargs[0] in block.center:
+            block.center = node.qargs[0]
+            block.nodes.append(node)
+            added = True
+        elif node.qargs[1] in block.center:
+            block.center = node.qargs[1]
             block.nodes.append(node)
             added = True
 
-        elif isinstance(block.center, set):
-            if node.qargs[0] in block.center:
-                block.center = node.qargs[0]
-                block.nodes.append(node)
-                added = True
-            elif node.qargs[1] in block.center:
-                block.center = node.qargs[1]
-                block.nodes.append(node)
-                added = True
+    else:
+        if block.center in node.qargs:
+            block.nodes.append(node)
+            added = True
 
-        else:
-            if block.center in node.qargs:
-                block.nodes.append(node)
-                added = True
-
+    # print(f" ==> {added = }")
     return added
 
 
@@ -86,8 +101,8 @@ def reverse_block_fn(block: StarBlock) -> StarBlock:
     return StarBlock(block.center, block.nodes[::-1])
 
 
-
-if __name__ == "__main__":
+def example1():
+    """Example similar to the one in Matthew's PR"""
 
     qc = QuantumCircuit(10)
     qc.h(0)
@@ -98,13 +113,69 @@ if __name__ == "__main__":
 
     block_collector = BlockCollector(circuit_to_dag(qc))
     blocks = block_collector.collect_all_matching_blocks(
+        filter_fn=filter_fn,
         new_block_fn=new_block_fn,
         append_node_fn=append_node_fn,
         get_nodes_fn=get_nodes_fn,
         reverse_block_fn=reverse_block_fn,
-        split_block_fn=None,
+        split_layers = False,
+        split_blocks= False,
     )
 
     print(f"Collected {len(blocks)} blocks:")
     for block in blocks:
-        print(block)
+        block.print()
+
+
+def example2():
+    """Showing off dag dependency"""
+    qc = QuantumCircuit(6)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(0, 3)
+
+    qc.cx(5, 1)
+    qc.cx(5, 2)
+    qc.cx(5, 3)
+
+    qc.cx(0, 4)
+    qc.cx(5, 4)
+
+    print(qc)
+
+
+    block_collector = BlockCollector(circuit_to_dag(qc))
+    blocks = block_collector.collect_all_matching_blocks(
+        filter_fn=filter_fn,
+        new_block_fn=new_block_fn,
+        append_node_fn=append_node_fn,
+        get_nodes_fn=get_nodes_fn,
+        reverse_block_fn=reverse_block_fn,
+        split_layers=False,
+        split_blocks=False,
+    )
+
+    print(f"Collected {len(blocks)} blocks:")
+    for block in blocks:
+        block.print()
+
+    print(f"And now using DAGDependency:")
+
+    block_collector = BlockCollector(circuit_to_dagdependency(qc))
+    blocks = block_collector.collect_all_matching_blocks(
+        filter_fn=filter_fn,
+        new_block_fn=new_block_fn,
+        append_node_fn=append_node_fn,
+        get_nodes_fn=get_nodes_fn,
+        reverse_block_fn=reverse_block_fn,
+        split_layers=False,
+        split_blocks=False,
+    )
+
+    print(f"Collected {len(blocks)} blocks:")
+    for block in blocks:
+        block.print()
+
+
+if __name__ == "__main__":
+    example2()

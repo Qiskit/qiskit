@@ -37,9 +37,6 @@ def default_reverse_block_fn(block):
     return block[::-1]
 
 
-def accept_all_fn(node):
-    return True
-
 
 class BlockCollector:
     """This class implements various strategies of dividing a DAG (direct acyclic graph)
@@ -157,7 +154,7 @@ class BlockCollector:
 
     def collect_matching_block(
         self,
-        filter_fn=accept_all_fn,
+        filter_fn,
         new_block_fn=default_new_block_fn,
         append_node_fn=default_append_node_fn,
     ):
@@ -197,7 +194,7 @@ class BlockCollector:
 
     def collect_all_matching_blocks(
         self,
-        filter_fn=accept_all_fn,
+        filter_fn,
         split_blocks=True,
         min_block_size=2,
         split_layers=False,
@@ -251,26 +248,22 @@ class BlockCollector:
             if matching_block:
                 matching_blocks.append(matching_block)
 
-        if split_block_fn is None:
-            # If the option split_layers is set, refine blocks by splitting them into layers
-            # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
-            if split_layers:
-                tmp_blocks = []
-                for block in matching_blocks:
-                    tmp_blocks.extend(split_block_into_layers(block))
-                matching_blocks = tmp_blocks
+        # This needs to be fixed for general blocks.
 
-            # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-            # disconnected qubit subsets.
-            if split_blocks:
-                tmp_blocks = []
-                for block in matching_blocks:
-                    tmp_blocks.extend(BlockSplitter().run(block))
-                matching_blocks = tmp_blocks
-        else:
+        # If the option split_layers is set, refine blocks by splitting them into layers
+        # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
+        if split_layers:
             tmp_blocks = []
             for block in matching_blocks:
-                tmp_blocks.extend(split_block_fn(block))
+                tmp_blocks.extend(split_block_into_layers(block))
+            matching_blocks = tmp_blocks
+
+        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
+        # disconnected qubit subsets.
+        if split_blocks:
+            tmp_blocks = []
+            for block in matching_blocks:
+                tmp_blocks.extend(BlockSplitter().run(block))
             matching_blocks = tmp_blocks
 
         # If we are collecting from the back, both the order of the blocks
