@@ -147,6 +147,10 @@ def example2():
     qc.cx(0, 2)
     qc.cx(3, 1)
     qc.cx(3, 2)
+    print(qc)
+
+    print(f"First using DAGCircuit:")
+
 
     block_collector = BlockCollector(circuit_to_dag(qc))
     blocks = block_collector.collect_all_matching_blocks(
@@ -182,4 +186,5 @@ def example2():
 
 
 if __name__ == "__main__":
+    example1()
     example2()
