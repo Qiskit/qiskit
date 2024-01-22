@@ -24,8 +24,8 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
-from qiskit import (
-    BasicAer,  # pylint: disable=no-name-in-module
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
     QuantumCircuit,
 )
 from qiskit.algorithms import VQE, AlgorithmError

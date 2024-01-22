@@ -21,8 +21,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import data, ddt, idata, unpack
 
-from qiskit import (
-    BasicAer,  # pylint: disable=no-name-in-module
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
     QuantumCircuit,
 )
 from qiskit.algorithms import AmplificationProblem, Grover

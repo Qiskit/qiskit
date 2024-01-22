@@ -20,8 +20,8 @@ from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
 
-from qiskit import (
-    BasicAer,  # pylint: disable=no-name-in-module
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
     QuantumCircuit,
 )
 from qiskit.algorithms import EvolutionProblem
