@@ -132,3 +132,4 @@ from .cnotdihedral import (
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line
+from .unitary import aqc
