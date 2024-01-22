@@ -2364,7 +2364,7 @@ class TestTranspileParallel(QiskitTestCase):
                 )
                 return dag
 
-        # Remove calibration for sx gate
+        # Create backend with empty calibrations (PulseQobjEntries)
         backend = GenericFakeBackend(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=4,
