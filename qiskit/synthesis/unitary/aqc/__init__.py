@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
-==========================================================
-Approximate Quantum Compiler (:mod:`qiskit.synthesis.aqc`)
-==========================================================
+=====================================================================
+Approximate Quantum Compiler (:mod:`qiskit.synthesis.unitary.aqc`)
+=====================================================================
 
 .. currentmodule:: qiskit.synthesis.unitary.aqc
 
