@@ -26,7 +26,7 @@ class BasicAerError(QiskitError):
         removal_timeline="in Qiskit 1.0.0",
         additional_msg="The qiskit.providers.basicaer module has been superseded "
         "by qiskit.providers.basic_provider. "
-        "Use the qiskit.providers.basic_provider.BasicProviderError class instead.",
+        "Use the new qiskit.providers.basic_provider.BasicProviderError class instead.",
     )
     def __init__(self, *message):
         """Set the error message."""

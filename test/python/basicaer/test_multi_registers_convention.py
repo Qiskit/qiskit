@@ -12,6 +12,7 @@
 
 """Test executing multiple-register circuits on BasicAer."""
 
+import warnings
 from qiskit import BasicAer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
@@ -36,8 +37,13 @@ class TestCircuitMultiRegs(QiskitTestCase):
         meas.measure(qreg1, creg1)
 
         qc = circ.compose(meas)
-        with self.assertRaises(DeprecationWarning):
+
+        # filter warnings raised by deprecated functionality in BasicAer backends .run() method
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+
             backend_sim = BasicAer.get_backend("qasm_simulator")
+
             result = backend_sim.run(qc).result()
             counts = result.get_counts(qc)
 

@@ -125,7 +125,7 @@ class QasmSimulatorPy(BackendV1):
         removal_timeline="in Qiskit 1.0.0",
         additional_msg="The qiskit.providers.basicaer module has been superseded "
         "by qiskit.providers.basic_provider. "
-        "Use the qiskit.providers.basic_provider.BasicSimulator class instead.",
+        "Use the new qiskit.providers.basic_provider.BasicSimulator class instead.",
     )
     def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(

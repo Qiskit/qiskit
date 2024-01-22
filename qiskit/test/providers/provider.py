@@ -57,7 +57,5 @@ class ProviderTestCase(QiskitTestCase):
 
     def test_get_backend(self):
         """Test getting a backend from the provider."""
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
-            backend = self.provider.get_backend(name=self.backend_name)
+        backend = self.provider.get_backend(name=self.backend_name)
         self.assertEqual(backend.name(), self.backend_name)

@@ -32,9 +32,9 @@ class TestBasicAerIntegration(QiskitTestCase):
         self._qc1 = QuantumCircuit(qr, cr, name="qc1")
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
+        self.backend = BasicAer.get_backend("qasm_simulator")
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
-            self.backend = BasicAer.get_backend("qasm_simulator")
             self._result1 = self.backend.run(self._qc1).result()
 
     def test_builtin_simulator_result_fields(self):

@@ -33,8 +33,7 @@ class TestBasicAerBackends(providers.ProviderTestCase):
                 backend_names = [backend_names]
             for backend_name in backend_names:
                 try:
-                    with self.assertRaises(DeprecationWarning):
-                        return provider.get_backend(backend_name).name()
+                    return provider.get_backend(backend_name).name()
                 except QiskitBackendNotFoundError:
                     pass
             return None
@@ -46,14 +45,11 @@ class TestBasicAerBackends(providers.ProviderTestCase):
                 "Use '%s'." % (oldname, newname)
             )
             with self.subTest(oldname=oldname, newname=newname):
-                with self.assertRaises(DeprecationWarning):
-                    with self.assertLogs(
-                        "qiskit.providers.providerutils", level="WARNING"
-                    ) as context:
-                        resolved_newname = _get_first_available_backend(BasicAer, newname)
-                        real_backend = BasicAer.get_backend(resolved_newname)
-                        self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
-                    self.assertEqual(context.output, [expected])
+                with self.assertLogs("qiskit.providers.providerutils", level="WARNING") as context:
+                    resolved_newname = _get_first_available_backend(BasicAer, newname)
+                    real_backend = BasicAer.get_backend(resolved_newname)
+                    self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
+                self.assertEqual(context.output, [expected])
 
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""

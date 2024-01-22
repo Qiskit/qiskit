@@ -40,7 +40,8 @@ class BasicAerProvider(ProviderV1):
         since="0.46.0",
         removal_timeline="in Qiskit 1.0.0",
         additional_msg="The qiskit.providers.basicaer module has been superseded "
-        "by qiskit.providers.basic_provider. "
+        "by qiskit.providers.basic_provider, and all its classes have been renamed "
+        "to follow a new naming convention. "
         "Use the new qiskit.providers.basic_provider.BasicProvider class instead.",
     )
     def __init__(self):
@@ -49,13 +50,7 @@ class BasicAerProvider(ProviderV1):
         self._backends = self._verify_backends()
 
     def get_backend(self, name=None, **kwargs):
-        warnings.warn(
-            "The qiskit.providers.basicaer module is deprecated since "
-            "Qiskit 0.46.0 and will be removed in the Qiskit 1.0 release. "
-            "You can use the functionality in qiskit.providers.basic_provider instead.",
-            stacklevel=2,
-            category=DeprecationWarning,
-        )
+
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution
