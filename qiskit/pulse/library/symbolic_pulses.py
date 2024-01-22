@@ -543,12 +543,8 @@ class SymbolicPulse(Pulse):
         params.update(self._params)
         return params
 
-<<<<<<< HEAD
     def __eq__(self, other: "SymbolicPulse") -> bool:
 
-=======
-    def __eq__(self, other: object) -> bool:
->>>>>>> 30bf727eb (Fix incorrect TeX (#11599))
         if not isinstance(other, SymbolicPulse):
             return NotImplemented
 
