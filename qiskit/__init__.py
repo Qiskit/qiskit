@@ -21,12 +21,12 @@ import warnings
 import importlib.metadata
 
 try:
-    qiskit_version = importlib.metadata.version("qiskit")
+    _qiskit_version = importlib.metadata.version("qiskit")
 except importlib.metadata.PackageNotFoundError:
     # Terra doesn't care if there's no metapackage installed.
     pass
 else:
-    _major, _ = qiskit_version.split(".", 1)
+    _major, _ = _qiskit_version.split(".", 1)
     _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
     if int(_major) > 0 and not _suppress_error:
         raise ImportError(
