@@ -134,8 +134,6 @@ Exceptions
    BasicAerError
 """
 
-import warnings
-
 from .basicaerprovider import BasicAerProvider
 from .basicaerjob import BasicAerJob
 from .qasm_simulator import QasmSimulatorPy

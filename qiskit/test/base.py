@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,6 +33,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
+
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 
@@ -101,9 +102,11 @@ class BaseQiskitTestCase(BaseTestCase):
     @staticmethod
     def _get_resource_path(filename, path=Path.TEST):
         """Get the absolute path to a resource.
+
         Args:
             filename (string): filename or relative path to the resource.
             path (Path): path used as relative to the filename.
+
         Returns:
             str: the absolute path to the resource.
         """
@@ -182,9 +185,10 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basic_provider import BasicProvider
-
-        BasicProvider._backends = BasicProvider._verify_backends()
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+        from qiskit.providers.basicaer import BasicAer
+        BasicAer._backends = BasicAer._verify_backends()
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*basicaer.*")
 
     @classmethod
     def setUpClass(cls):
@@ -198,7 +202,6 @@ class QiskitTestCase(BaseQiskitTestCase):
             setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
-
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_parameters",
             "test.python.pulse.test_transforms",
