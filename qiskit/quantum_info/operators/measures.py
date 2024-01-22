@@ -154,12 +154,12 @@ def average_gate_fidelity(
     The average gate fidelity :math:`F_{\text{ave}}` is given by
 
     .. math::
-        \begin{align*}
+        \begin{aligned}
         F_{\text{ave}}(\mathcal{E}, U)
             &= \int d\psi \langle\psi|U^\dagger
                 \mathcal{E}(|\psi\rangle\!\langle\psi|)U|\psi\rangle \\
             &= \frac{d F_{\text{pro}}(\mathcal{E}, U) + 1}{d + 1}
-        \end{align*}
+        \end{aligned}
 
     where :math:`F_{\text{pro}}(\mathcal{E}, U)` is the
     :meth:`~qiskit.quantum_info.process_fidelity` of the input quantum
