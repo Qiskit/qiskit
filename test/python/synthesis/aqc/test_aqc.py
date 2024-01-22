@@ -134,6 +134,12 @@ class TestAqc(QiskitTestCase):
         error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
         self.assertTrue(error < 1e-3)
 
+    def test_deprecation(self):
+        """Test that importing this module is deprecated."""
+        # pylint: disable = unused-import
+        with self.assertWarns(DeprecationWarning):
+            import qiskit.transpiler.synthesis.aqc
+
 
 if __name__ == "__main__":
     unittest.main()
