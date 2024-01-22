@@ -635,6 +635,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
 
     def test_deprecation(self):
         """Assert that importing this class from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
         with self.assertWarns(DeprecationWarning):
             from qiskit.quantum_info import OneQubitEulerDecomposer as old_OneQubitEulerDecomposer
 
@@ -1270,6 +1271,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
     def test_deprecation(self):
         """Assert that importing these classes from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
         with self.assertWarns(DeprecationWarning):
             unitary = random_unitary(4, seed=1234)
             from qiskit.quantum_info import TwoQubitBasisDecomposer as old_TwoQubitBasisDecomposer

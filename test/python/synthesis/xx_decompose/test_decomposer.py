@@ -158,6 +158,7 @@ class TestXXDecomposer(unittest.TestCase):
 
     def test_deprecation(self):
         """Assert that importing this class from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
         with self.assertWarns(DeprecationWarning):
             from qiskit.quantum_info import XXDecomposer as old_XXDecomposer
 
