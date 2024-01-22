@@ -14,9 +14,6 @@
 
 import os
 import unittest
-import io
-from logging import StreamHandler, getLogger
-import sys
 
 import numpy as np
 
@@ -27,13 +24,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.qasm2 import dumps
 
 from . import BasicProviderBackendTestMixin
-
-
-class StreamHandlerRaiseException(StreamHandler):
-    """Handler class that will raise an exception on formatting errors."""
-
-    def handleError(self, record):
-        raise sys.exc_info()
 
 
 class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
