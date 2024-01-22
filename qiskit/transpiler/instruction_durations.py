@@ -94,7 +94,7 @@ class InstructionDurations:
         except AttributeError:
             dt = None
 
-        return InstructionDurations(instruction_durations, dt=dt)
+        return cls(instruction_durations, dt=dt)
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).

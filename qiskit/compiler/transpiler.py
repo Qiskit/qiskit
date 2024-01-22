@@ -130,7 +130,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre').
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'sabre').
             This can also be the external plugin name to use for the ``layout`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
