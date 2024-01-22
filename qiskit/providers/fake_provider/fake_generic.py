@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.circuit import Measure, Parameter, Delay, Reset, QuantumCircuit, Instruction
+from qiskit.circuit import QuantumCircuit, Instruction
 from qiskit.circuit.controlflow import (
     IfElseOp,
     WhileLoopOp,
@@ -45,9 +45,9 @@ from qiskit.utils import optionals as _optionals
 
 class FakeGeneric(BackendV2):
     """
-    Configurable fake :class:`~.BackendV2` generator. This class will
-    generate a fake backend from a combination of generated defaults
-    (with a fixable ``seed``) driven from a series of optional input arguments.
+    Configurable :class:`~.BackendV2` generator. This class will
+    generate a local (fake) backend from a combination of generated defaults
+    (with a fixable ``seed``) and a series of input arguments.
     """
 
     # Added backend_name for compatibility with
@@ -61,7 +61,7 @@ class FakeGeneric(BackendV2):
         *,
         coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
-        calibrate_instructions: list[str] | None = None,
+        calibrate_instructions: bool | InstructionScheduleMap | None = None,
         dtm: float = None,
         seed: int = 42,
     ):
@@ -96,11 +96,19 @@ class FakeGeneric(BackendV2):
             control_flow: Flag to enable control flow directives on the target
                 (defaults to False).
 
-            calibrate_instructions: List of instruction names
-                to add default calibration entries to. These must be part of the
-                standard qiskit circuit library. If no
-                instructions are provided, the target generator will append
-                empty calibration schedules by default.
+            calibrate_instructions: Instruction calibration settings, this argument
+                supports both boolean and :class:`.InstructionScheduleMap` as
+                input types, and is ``None`` by default:
+
+                #. If ``calibrate_instructions==None``, no calibrations will be added to the
+                    target.
+                #. If ``calibrate_instructions==True``, all gates will be calibrated for all
+                    qubits using the default pulse schedules generated internally.
+                #. If ``calibrate_instructions==False``, all gates will be "calibrated" for
+                    all qubits with an empty pulse schedule.
+                #. If an :class:`.InstructionScheduleMap` instance is given, this calibrations
+                    present in this instruction schedule map will be appended to the target
+                    instead of the default pulse schedules (this allows for custom calibrations).
 
             dtm: System time resolution of output signals in nanoseconds.
                 None by default.
@@ -111,7 +119,7 @@ class FakeGeneric(BackendV2):
         super().__init__(
             provider=None,
             name=f"fake_generic_{num_qubits}q",
-            description=f"This is a fake device with {num_qubits} " f"and generic settings.",
+            description=f"This is a fake device with {num_qubits} qubits and generic settings.",
             backend_version="",
         )
 
@@ -138,7 +146,9 @@ class FakeGeneric(BackendV2):
                     f"the size of the provided coupling map (got {coupling_map.size()})."
                 )
 
-        self._basis_gates = basis_gates if basis_gates else ["cx", "id", "rz", "sx", "x"]
+        self._basis_gates = (
+            basis_gates if basis_gates is not None else ["cx", "id", "rz", "sx", "x"]
+        )
         for name in ["reset", "delay", "measure"]:
             if name not in self._basis_gates:
                 self._basis_gates.append(name)
@@ -162,7 +172,7 @@ class FakeGeneric(BackendV2):
             The output signal timestep in seconds.
         """
         if self._dtm is not None:
-            # converting `dtm` in nanoseconds in configuration file to seconds
+            # converting `dtm` from nanoseconds to seconds
             return self._dtm * 1e-9
         else:
             return None
@@ -206,7 +216,59 @@ class FakeGeneric(BackendV2):
 
         return self._noise_defaults
 
-    def add_noisy_instruction_to_target(
+    def _build_generic_target(self):
+        """
+        This method generates a :class:`~.Target` instance with
+        default qubit, instruction and calibration properties.
+        """
+        # the qubit properties are currently not configurable.
+        self._target = Target(
+            description=f"Generic Target with {self._num_qubits} qubits",
+            num_qubits=self._num_qubits,
+            dt=0.222e-9,
+            qubit_properties=[
+                QubitProperties(
+                    t1=self._rng.uniform(100e-6, 200e-6),
+                    t2=self._rng.uniform(100e-6, 200e-6),
+                    frequency=self._rng.uniform(5e9, 5.5e9),
+                )
+                for _ in range(self._num_qubits)
+            ],
+            concurrent_measurements=[list(range(self._num_qubits))],
+        )
+
+        # Iterate over gates, generate noise params from defaults,
+        # and add instructions to target.
+        for name in self._basis_gates:
+            if name not in self._supported_gates:
+                raise QiskitError(
+                    f"Provided basis gate {name} is not an instruction "
+                    f"in the standard qiskit circuit library."
+                )
+            gate = self._supported_gates[name]
+            noise_params = self.noise_defaults[name]
+            self._add_noisy_instruction_to_target(gate, noise_params)
+
+        if self._control_flow:
+            self._target.add_instruction(IfElseOp, name="if_else")
+            self._target.add_instruction(WhileLoopOp, name="while_loop")
+            self._target.add_instruction(ForLoopOp, name="for_loop")
+            self._target.add_instruction(SwitchCaseOp, name="switch_case")
+            self._target.add_instruction(BreakLoopOp, name="break")
+            self._target.add_instruction(ContinueLoopOp, name="continue")
+
+        # Generate block of calibration defaults and add to target.
+        # Note: this could be improved if we could generate and add
+        # calibration defaults per-gate, and not as a block.
+        if self._calibrate_instructions is not None:
+            if isinstance(self._calibrate_instructions, InstructionScheduleMap):
+                inst_map = self._calibrate_instructions
+            else:
+                defaults = self._generate_calibration_defaults()
+                inst_map = defaults.instruction_schedule_map
+            self._add_calibrations_to_target(inst_map)
+
+    def _add_noisy_instruction_to_target(
         self, instruction: Instruction, noise_params: tuple[float, ...] | None
     ) -> None:
         """Add instruction properties to target for specified instruction.
@@ -235,54 +297,6 @@ class FakeGeneric(BackendV2):
 
         self._target.add_instruction(instruction, props)
 
-    def _build_generic_target(self):
-        """
-        This method generates a :class:`~.Target` instance with
-        default qubit, instruction and calibration properties.
-        """
-        # Hardcoded default target attributes.
-        self._target = Target(
-            description=f"Generic Target with {self._num_qubits} qubits",
-            num_qubits=self._num_qubits,
-            dt=0.222e-9,
-            qubit_properties=[
-                QubitProperties(
-                    t1=self._rng.uniform(100e-6, 200e-6),
-                    t2=self._rng.uniform(100e-6, 200e-6),
-                    frequency=self._rng.uniform(5e9, 5.5e9),
-                )
-                for _ in range(self._num_qubits)
-            ],
-            concurrent_measurements=[list(range(self._num_qubits))],
-        )
-
-        # Iterate over gates, generate noise params from defaults,
-        # and add instructions to target.
-        for name in self._basis_gates:
-            if name not in self._supported_gates:
-                raise QiskitError(
-                    f"Provided basis gate {name} is not an instruction "
-                    f"in the standard qiskit circuit library."
-                )
-            gate = self._supported_gates[name]
-            noise_params = self.noise_defaults[name]
-            self.add_noisy_instruction_to_target(gate, noise_params)
-
-        if self._control_flow:
-            self._target.add_instruction(IfElseOp, name="if_else")
-            self._target.add_instruction(WhileLoopOp, name="while_loop")
-            self._target.add_instruction(ForLoopOp, name="for_loop")
-            self._target.add_instruction(SwitchCaseOp, name="switch_case")
-            self._target.add_instruction(BreakLoopOp, name="break")
-            self._target.add_instruction(ContinueLoopOp, name="continue")
-
-        # Generate block of calibration defaults and add to target.
-        # Note: this could be improved if we could generate and add
-        # calibration defaults per-gate, and not as a block.
-        defaults = self._generate_calibration_defaults()
-        inst_map = defaults.instruction_schedule_map
-        self.add_calibrations_to_target(inst_map)
-
     def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate calibration defaults for instructions specified via ``calibrate_instructions``.
         By default, this method generates empty calibration schedules.
@@ -307,7 +321,6 @@ class FakeGeneric(BackendV2):
 
         # Unless explicitly given a series of gates to calibrate, this method
         # will generate empty pulse schedules for all gates in self._basis_gates.
-        calibrate_instructions = self._calibrate_instructions or []
         calibration_buffer = self._basis_gates.copy()
         for inst in ["delay", "reset"]:
             calibration_buffer.remove(inst)
@@ -322,7 +335,7 @@ class FakeGeneric(BackendV2):
             if inst == "measure":
                 sequence = []
                 qubits = qarg_set
-                if inst in calibrate_instructions:
+                if self._calibrate_instructions:
                     sequence = [
                         PulseQobjInstruction(
                             name="acquire",
@@ -343,7 +356,7 @@ class FakeGeneric(BackendV2):
                 for qarg in qarg_set:
                     sequence = []
                     qubits = [qarg] if num_qubits == 1 else qarg
-                    if inst in calibrate_instructions:
+                    if self._calibrate_instructions:
                         if num_qubits == 1:
                             sequence = [
                                 PulseQobjInstruction(name="fc", ch=f"u{qarg}", t0=0, phase="-P0"),
@@ -374,7 +387,7 @@ class FakeGeneric(BackendV2):
             cmd_def=cmd_def,
         )
 
-    def add_calibrations_to_target(self, inst_map: InstructionScheduleMap) -> None:
+    def _add_calibrations_to_target(self, inst_map: InstructionScheduleMap) -> None:
         """Add calibration entries from provided pulse defaults to target.
 
         Args:

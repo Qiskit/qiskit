@@ -40,9 +40,7 @@ class TestMeasure(QiskitTestCase):
         self.backend_v2 = FakeGeneric(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=27,
-        )
-        self.backend_v2.add_calibrations_to_target(
-            self.backend_v1.defaults().instruction_schedule_map
+            calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
         )
 
     def test_measure(self):
@@ -215,13 +213,11 @@ class TestMeasureAll(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend_v1 = FakeOpenPulse2Q()
+        self.inst_map = self.backend_v1.defaults().instruction_schedule_map
         self.backend_v2 = FakeGeneric(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=2,
-        )
-        self.inst_map = self.backend_v1.defaults().instruction_schedule_map
-        self.backend_v2.add_calibrations_to_target(
-            self.backend_v1.defaults().instruction_schedule_map
+            calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
         )
 
     def test_measure_all(self):
