@@ -80,7 +80,7 @@ class BindingsArrayTestCase(QiskitTestCase):
     def test_as_array_dtype_raises(self):
         """Test as_array() raises when multiple dtypes are present."""
         ba = BindingsArray([np.empty((50, 5), dtype=float), np.empty((50, 2), dtype=int)])
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(TypeError, "Multiple dtypes"):
             ba.as_array()
 
     @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
@@ -97,9 +97,12 @@ class BindingsArrayTestCase(QiskitTestCase):
         ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
         with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 3 received"):
             ba.as_array([args_param("b"), args_param("a"), args_param("b")])
-
         with self.assertRaisesRegex(ValueError, "Could not find placement for parameter 'a'"):
             ba.as_array([args_param("b"), args_param("c")])
+
+        ba = BindingsArray(np.empty((2, 3, 4)))
+        with self.assertRaisesRegex(ValueError, "Expected 0 parameters but 3 received."):
+            ba.as_array([args_param("b"), args_param("a"), args_param("b")])
 
     def test_as_array_vals_only(self):
         """Test as_array() works when only vals are present."""

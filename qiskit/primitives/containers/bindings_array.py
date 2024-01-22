@@ -190,13 +190,13 @@ class BindingsArray(ShapedMixin):
             This bindings array as a single NumPy array.
 
         Raises:
-            RuntimeError: If these bindings contain multiple dtypes.
+            TypeError: If these bindings contain multiple dtypes.
             ValueError: If ``parameters`` are provided, but do not match those found in ``kwvals``.
         """
         dtypes = {arr.dtype for arr in self.vals}
         dtypes.update(arr.dtype for arr in self.kwvals.values())
         if len(dtypes) > 1:
-            raise RuntimeError(f"Multiple dtypes ({dtypes}) were found.")
+            raise TypeError(f"Multiple dtypes ({dtypes}) were found.")
         dtype = next(iter(dtypes)) if dtypes else float
 
         if self.num_parameters == 0 and not self.shape:
@@ -218,12 +218,16 @@ class BindingsArray(ShapedMixin):
                 size = arr.shape[-1]
                 ret[..., pos : pos + size] = arr
                 pos += size
-        elif self.kwvals:
+        else:
             # use the order of the provided parameters
             parameters = list(parameters)
             if len(parameters) != (num_kwval := sum(arr.shape[-1] for arr in self.kwvals.values())):
                 raise ValueError(f"Expected {num_kwval} parameters but {len(parameters)} received.")
 
+            # If we make it through the following loop without a KeyError, we will know that the
+            # kwval parameters are a subset of the given parameters. However, the above check
+            # ensures there are at least as many of them as parameters. Thus we will know that
+            # set(parameters) == set(chain(*kwvals.values())).
             idx_lookup = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
             for arr_params, arr in self.kwvals.items():
                 try:
