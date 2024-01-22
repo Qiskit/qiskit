@@ -26,7 +26,24 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class OptimizeAnnotated(TransformationPass):
-    """Optimization pass on circuits with annotated operations."""
+    """Optimization pass on circuits with annotated operations.
+
+    Implemented optimizations:
+
+    * For each annotated operation, converting the list of its modifiers to a canonical form.
+      For example, consecutively applying ``inverse()``, ``control(2)`` and ``inverse()``
+      is equivalent to applying ``control(2)``.
+
+    * Removing annotations when possible.
+      For example, ``AnnotatedOperation(SwapGate(), [InverseModifier(), InverseModifier()])``
+      is equivalent to ``SwapGate()``.
+
+    * Recursively combining annotations.
+      For example, if ``g1 = AnnotatedOperation(SwapGate(), InverseModifier())`` and
+      ``g2 = AnnotatedOperation(g1, ControlModifier(2))``, then ``g2`` can be replaced with
+      ``AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(2)])``.
+
+    """
 
     def __init__(
         self,

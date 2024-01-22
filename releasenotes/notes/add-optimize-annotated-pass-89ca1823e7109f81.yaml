@@ -54,11 +54,13 @@ features:
     In the case of ``gate3``, multiple layers of annotations are combined into one.
 
     The constructor of :class:`.OptimizeAnnotated` pass accepts optional
-    arguments ``target``, ``equivalence_library`` and ``basis_gates``.
-    When either ``target`` or ``basis_gates`` are specified, the pass is recursive
-    and descends into the gates ``definition`` circuits, with the exception of
-    gates that are already supported by the target or that belong to the equivalence
-    library. On the other hand, when neither ``target`` nor ``basis_gates`` are specified,
+    arguments ``target``, ``equivalence_library``,  ``basis_gates`` and ``recurse``.
+    When ``recurse`` is ``True`` (the default value) and when either ``target``
+    or ``basis_gates`` are specified, the pass recursively descends into the gates
+    ``definition`` circuits, with the exception of gates that are already supported
+    by the target or that belong to the equivalence library. On the other hand, when
+    neither ``target`` nor ``basis_gates`` are specified,
+    or when ``recurse`` is set to ``False``,
     the pass synthesizes only the "top-level" annotated operations, i.e. does not
     recursively descend into the ``definition`` circuits. This behavior is consistent
     with that of :class:`.HighLevelSynthesis` transpiler pass that needs to be called
