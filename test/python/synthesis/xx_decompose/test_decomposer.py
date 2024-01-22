@@ -155,3 +155,10 @@ class TestXXDecomposer(unittest.TestCase):
         mat = Operator(qc).to_matrix()
         dqc = decomposer(mat)
         self.assertTrue(np.allclose(mat, Operator(dqc).to_matrix()))
+
+    def test_deprecation(self):
+        """Assert that importing this class from quantum_info raises a deprecation warning."""
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import XXDecomposer as old_XXDecomposer
+
+            _ = old_XXDecomposer(euler_basis="PSX")
