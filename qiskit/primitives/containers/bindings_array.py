@@ -304,12 +304,19 @@ class BindingsArray(ShapedMixin):
         Raises:
             ValueError: If the provided shape has a different product than the current size.
         """
-        shape = shape_tuple(shape, -1)
-        if np.prod(shape[:-1]).astype(int) != self.size:
+        shape = shape_tuple(shape)
+        if any(dim < 0 for dim in shape):
+            # to reliably catch the ValueError, we need to manually deal with negative values
+            positive_size = np.prod([dim for dim in shape if dim >= 0], dtype=int)
+            missing_dim = self.size // positive_size
+            shape = tuple(dim if dim >= 0 else missing_dim for dim in shape)
+
+        if np.prod(shape, dtype=int) != self.size:
             raise ValueError("Reshaping cannot change the total number of elements.")
-        vals = [val.reshape(shape) for val in self._vals]
-        kwvals = {params: val.reshape(shape) for params, val in self._kwvals.items()}
-        return BindingsArray(vals, kwvals, shape[:-1])
+
+        vals = [val.reshape(shape + val.shape[-1:]) for val in self._vals]
+        kwvals = {ps: val.reshape(shape + val.shape[-1:]) for ps, val in self._kwvals.items()}
+        return BindingsArray(vals, kwvals, shape=shape)
 
     @classmethod
     def coerce(cls, bindings_array: BindingsArrayLike) -> BindingsArray:
