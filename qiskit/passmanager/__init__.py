@@ -209,7 +209,6 @@ Flow controllers
 .. autosummary::
    :toctree: ../stubs/
 
-   FlowController
    FlowControllerLinear
    ConditionalController
    DoWhileController
@@ -232,7 +231,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import (
-    FlowController,
     FlowControllerLinear,
     ConditionalController,
     DoWhileController,

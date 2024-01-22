@@ -16,6 +16,7 @@ Delay instruction (for circuit module).
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
@@ -29,12 +30,11 @@ class Delay(Instruction):
 
         super().__init__("delay", 1, 0, params=[duration], unit=unit)
 
+    broadcast_arguments = Gate.broadcast_arguments
+
     def inverse(self):
         """Special case. Return self."""
         return self
-
-    def broadcast_arguments(self, qargs, cargs):
-        yield [qarg for sublist in qargs for qarg in sublist], []
 
     def c_if(self, classical, val):
         raise CircuitError("Conditional Delay is not yet implemented.")
