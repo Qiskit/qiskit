@@ -13,11 +13,14 @@
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 
+use hashbrown::HashMap;
+
 use oq3_semantics::asg;
 use oq3_semantics::symbols::{SymbolId, SymbolTable};
 use oq3_semantics::types::Type;
 
 use crate::build::PySymbolTable;
+use crate::circuit::PyRegister;
 use crate::error::QASM3ImporterError;
 
 pub fn eval_gate_param(
@@ -112,8 +115,8 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
         }
         let offset = self.offset;
         let to_scalar = |item: &BroadcastItem| match item {
-            BroadcastItem::Bit(bit) => bit.clone(),
-            BroadcastItem::Register(bits) => bits[offset].clone(),
+            BroadcastItem::Bit(bit) => bit.clone_ref(self.py),
+            BroadcastItem::Register(bits) => bits[offset].clone_ref(self.py),
         };
         self.offset += 1;
         Some(PyTuple::new(self.py, self.items.iter().map(to_scalar)))
@@ -123,15 +126,50 @@ impl<'py> Iterator for BroadcastQubitsIter<'py> {
         (self.len - self.offset, Some(self.len - self.offset))
     }
 }
+impl<'py> ExactSizeIterator for BroadcastQubitsIter<'py> {}
 
-fn broadcast_bits_for_identifier(
+struct BroadcastMeasureIter<'a, 'py> {
+    py: Python<'py>,
+    len: usize,
+    offset: usize,
+    qarg: &'a BroadcastItem,
+    carg: &'a BroadcastItem,
+}
+
+impl<'a, 'py> Iterator for BroadcastMeasureIter<'a, 'py> {
+    type Item = (&'py PyTuple, &'py PyTuple);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.offset >= self.len {
+            return None;
+        }
+        let offset = self.offset;
+        let to_scalar = |item: &BroadcastItem| match item {
+            BroadcastItem::Bit(bit) => bit.clone_ref(self.py),
+            BroadcastItem::Register(bits) => bits[offset].clone_ref(self.py),
+        };
+        self.offset += 1;
+        Some((
+            PyTuple::new(self.py, &[to_scalar(self.qarg)]),
+            PyTuple::new(self.py, &[to_scalar(self.carg)]),
+        ))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.len - self.offset, Some(self.len - self.offset))
+    }
+}
+impl<'a, 'py> ExactSizeIterator for BroadcastMeasureIter<'a, 'py> {}
+
+fn broadcast_bits_for_identifier<T: PyRegister>(
     py: Python,
-    our_symbols: &PySymbolTable,
+    bits: &HashMap<SymbolId, Py<PyAny>>,
+    registers: &HashMap<SymbolId, T>,
     iden_symbol: &SymbolId,
 ) -> PyResult<BroadcastItem> {
-    if let Some(bit) = our_symbols.qubits.get(iden_symbol) {
+    if let Some(bit) = bits.get(iden_symbol) {
         Ok(BroadcastItem::Bit(bit.clone()))
-    } else if let Some(reg) = our_symbols.qregs.get(iden_symbol) {
+    } else if let Some(reg) = registers.get(iden_symbol) {
         Ok(BroadcastItem::Register(
             reg.iter(py).map(|obj| obj.into_py(py)).collect(),
         ))
@@ -193,20 +231,28 @@ fn broadcast_apply_index(
     }
 }
 
-pub fn eval_gate_qarg(
+pub fn eval_qarg(
     py: Python,
     our_symbols: &PySymbolTable,
     ast_symbols: &SymbolTable,
     qarg: &asg::GateOperand,
 ) -> PyResult<BroadcastItem> {
     match qarg {
-        asg::GateOperand::Identifier(iden) => {
-            broadcast_bits_for_identifier(py, our_symbols, iden.symbol().as_ref().unwrap())
-        }
+        asg::GateOperand::Identifier(iden) => broadcast_bits_for_identifier(
+            py,
+            &our_symbols.qubits,
+            &our_symbols.qregs,
+            iden.symbol().as_ref().unwrap(),
+        ),
         asg::GateOperand::IndexedIdentifier(indexed) => {
             let iden_symbol = indexed.identifier().as_ref().unwrap();
             indexed.indexes().iter().fold(
-                broadcast_bits_for_identifier(py, our_symbols, iden_symbol),
+                broadcast_bits_for_identifier(
+                    py,
+                    &our_symbols.qubits,
+                    &our_symbols.qregs,
+                    iden_symbol,
+                ),
                 |item, index| {
                     item.and_then(|item| broadcast_apply_index(py, ast_symbols, item, index))
                 },
@@ -214,6 +260,36 @@ pub fn eval_gate_qarg(
         }
         asg::GateOperand::HardwareQubit(_) => {
             Err(QASM3ImporterError::new_err("cannot handle hardware qubits"))
+        }
+    }
+}
+
+pub fn eval_measure_carg(
+    py: Python,
+    our_symbols: &PySymbolTable,
+    ast_symbols: &SymbolTable,
+    carg: &asg::LValue,
+) -> PyResult<BroadcastItem> {
+    match carg {
+        asg::LValue::Identifier(iden) => {
+            let symbol_id = iden.as_ref().map_err(|err| {
+                QASM3ImporterError::new_err(format!("internal logic error: {:?}", err))
+            })?;
+            broadcast_bits_for_identifier(py, &our_symbols.clbits, &our_symbols.cregs, symbol_id)
+        }
+        asg::LValue::IndexedIdentifier(indexed) => {
+            let iden_symbol = indexed.identifier().as_ref().unwrap();
+            indexed.indexes().iter().fold(
+                broadcast_bits_for_identifier(
+                    py,
+                    &our_symbols.clbits,
+                    &our_symbols.cregs,
+                    iden_symbol,
+                ),
+                |item, index| {
+                    item.and_then(|item| broadcast_apply_index(py, ast_symbols, item, index))
+                },
+            )
         }
     }
 }
@@ -249,7 +325,7 @@ where
     let items = qargs
         .into_iter()
         .map(|item| -> PyResult<BroadcastItem> {
-            eval_gate_qarg(py, our_symbols, ast_symbols, expect_gate_operand(item)?)
+            eval_qarg(py, our_symbols, ast_symbols, expect_gate_operand(item)?)
         })
         .collect::<PyResult<Vec<_>>>()?;
 
@@ -272,5 +348,40 @@ where
         len: broadcast_len.unwrap_or(if items.is_empty() { 0 } else { 1 }),
         offset: 0,
         items,
+    })
+}
+
+pub fn broadcast_measure<'a, 'py>(
+    py: Python<'py>,
+    qarg: &'a BroadcastItem,
+    carg: &'a BroadcastItem,
+) -> PyResult<impl Iterator<Item = (&'py PyTuple, &'py PyTuple)> + 'a>
+where
+    'py: 'a,
+{
+    let len = match (qarg, carg) {
+        (BroadcastItem::Bit(_), BroadcastItem::Bit(_)) => Ok(1),
+        (BroadcastItem::Bit(_), BroadcastItem::Register(_))
+        | (BroadcastItem::Register(_), BroadcastItem::Bit(_)) => Err(QASM3ImporterError::new_err(
+            "invalid measurement broadcast: cannot broadcast a bit against a register",
+        )),
+        (BroadcastItem::Register(qreg), BroadcastItem::Register(creg)) => {
+            if qreg.len() == creg.len() {
+                Ok(qreg.len())
+            } else {
+                Err(QASM3ImporterError::new_err(format!(
+                    "invalid measurement broadcast: qarg has length {}, carg has length {}",
+                    qreg.len(),
+                    creg.len()
+                )))
+            }
+        }
+    }?;
+    Ok(BroadcastMeasureIter {
+        py,
+        len,
+        offset: 0,
+        qarg,
+        carg,
     })
 }

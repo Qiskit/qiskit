@@ -185,23 +185,15 @@ impl BuilderState {
         ast_symbols: &SymbolTable,
         barrier: &asg::Barrier,
     ) -> PyResult<()> {
-        let qubits = if barrier.qubits().is_empty() {
-            // If there's no qargs, it's a barrier over all in-scope qubits (which is all qubits,
-            // unless we're in a gate/subroutine body).
-            self.qc
-                .inner(py)
-                .getattr("qubits")?
-                .downcast::<PySequence>()?
-                .to_tuple()?
-        } else {
+        let qubits = if let Some(asg_qubits) = barrier.qubits().as_ref() {
             // We want any deterministic order for easier circuit reproducibility in Python space,
             // and to include each seen qubit once.  This simply maintains insertion order.
             let mut qubits = IndexMap::<*const ::pyo3::ffi::PyObject, Py<PyAny>>::with_capacity(
-                barrier.qubits().len(),
+                asg_qubits.len()
             );
-            for qarg in barrier.qubits().iter() {
+            for qarg in asg_qubits.iter() {
                 let qarg = expr::expect_gate_operand(qarg)?;
-                match expr::eval_gate_qarg(py, &self.symbols, ast_symbols, qarg)? {
+                match expr::eval_qarg(py, &self.symbols, ast_symbols, qarg)? {
                     expr::BroadcastItem::Bit(bit) => {
                         let _ = qubits.insert(bit.as_ptr(), bit);
                     }
@@ -213,6 +205,15 @@ impl BuilderState {
                 }
             }
             PyTuple::new(py, qubits.values())
+        } else {
+            // If there's no qargs (represented in the ASG with a `None` rather than an empty
+            // vector), it's a barrier over all in-scope qubits, which is all qubits, unless we're
+            // in a gate/subroutine body.
+            self.qc
+                .inner(py)
+                .getattr("qubits")?
+                .downcast::<PySequence>()?
+                .to_tuple()?
         };
         let instruction = self.module.new_instruction(
             py,
@@ -259,6 +260,36 @@ impl BuilderState {
             )));
         }
         self.symbols.gates.insert(name_id.clone(), pygate.clone());
+        Ok(())
+    }
+
+    fn assign(
+        &mut self,
+        py: Python,
+        ast_symbols: &SymbolTable,
+        assignment: &asg::Assignment,
+    ) -> PyResult<()> {
+        // Only handling measurements in this first pass.
+        let qarg = match assignment.rvalue().expression() {
+            asg::Expr::MeasureExpression(target) => expr::eval_qarg(
+                py,
+                &self.symbols,
+                ast_symbols,
+                expr::expect_gate_operand(target.operand())?,
+            ),
+            expr => Err(QASM3ImporterError::new_err(format!(
+                "only measurement assignments are currently supported, not {:?}",
+                expr,
+            ))),
+        }?;
+        let carg = expr::eval_measure_carg(py, &self.symbols, ast_symbols, assignment.lvalue())?;
+        for (qubits, clbits) in expr::broadcast_measure(py, &qarg, &carg)? {
+            self.qc.append(
+                py,
+                self.module
+                    .new_instruction(py, self.module.measure(py), qubits, clbits)?,
+            )?
+        }
         Ok(())
     }
 
@@ -334,14 +365,14 @@ pub fn convert_asg(
     };
     for statement in program.stmts().iter() {
         match statement {
+            asg::Stmt::GateCall(call) => state.call_gate(py, ast_symbols, call)?,
             asg::Stmt::DeclareClassical(decl) => state.declare_classical(py, ast_symbols, decl)?,
             asg::Stmt::DeclareQuantum(decl) => state.declare_quantum(py, ast_symbols, decl)?,
-            asg::Stmt::GateCall(call) => state.call_gate(py, ast_symbols, call)?,
             asg::Stmt::GateDeclaration(decl) => state.define_gate(py, ast_symbols, decl)?,
             asg::Stmt::Barrier(barrier) => state.apply_barrier(py, ast_symbols, barrier)?,
+            asg::Stmt::Assignment(assignment) => state.assign(py, ast_symbols, assignment)?,
             asg::Stmt::Alias
             | asg::Stmt::AnnotatedStmt(_)
-            | asg::Stmt::Assignment(_)
             | asg::Stmt::Block(_)
             | asg::Stmt::Box
             | asg::Stmt::Break

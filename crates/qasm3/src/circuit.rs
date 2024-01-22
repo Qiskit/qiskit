@@ -15,6 +15,11 @@ use pyo3::types::{PyList, PyString, PyTuple, PyType};
 
 use crate::error::QASM3ImporterError;
 
+pub trait PyRegister {
+    fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>>;
+    fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
+}
+
 macro_rules! register_type {
     ($name: ident) => {
         /// Rust-space wrapper around Qiskit `Register` objects.
@@ -28,9 +33,9 @@ macro_rules! register_type {
             items: Py<PyList>,
         }
 
-        impl $name {
+        impl PyRegister for $name {
             /// Get an individual bit from the register.
-            pub fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>> {
+            fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>> {
                 // Unfortunately, `PyList::get_item_unchecked` isn't usable with the stable ABI.
                 self.items
                     .as_ref(py)
@@ -38,7 +43,7 @@ macro_rules! register_type {
                     .map(|item| item.into_py(py))
             }
 
-            pub fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny> {
+            fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny> {
                 self.items.as_ref(py).iter()
             }
         }
@@ -171,6 +176,8 @@ pub struct PyCircuitModule {
     clbit: Py<PyType>,
     circuit_instruction: Py<PyType>,
     barrier: Py<PyType>,
+    // The singleton object.
+    measure: Py<PyAny>,
 }
 
 impl PyCircuitModule {
@@ -197,6 +204,8 @@ impl PyCircuitModule {
                 .downcast::<PyType>()?
                 .into_py(py),
             barrier: module.getattr("Barrier")?.downcast::<PyType>()?.into_py(py),
+            // Measure is a singleton, so just store the object.
+            measure: module.getattr("Measure")?.call0()?.into_py(py),
         })
     }
 
@@ -262,6 +271,10 @@ impl PyCircuitModule {
 
     pub fn new_barrier(&self, py: Python, num_qubits: usize) -> PyResult<Py<PyAny>> {
         self.barrier.call1(py, (num_qubits,)).map(|x| x.into_py(py))
+    }
+
+    pub fn measure(&self, py: Python) -> Py<PyAny> {
+        self.measure.clone_ref(py)
     }
 }
 

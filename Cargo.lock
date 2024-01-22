@@ -415,7 +415,7 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 [[package]]
 name = "oq3_lexer"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=4b5110d#4b5110db0232d3330aa5a9c1a39c95feba41b18e"
 dependencies = [
  "unicode-properties",
  "unicode-xid",
@@ -424,7 +424,7 @@ dependencies = [
 [[package]]
 name = "oq3_parser"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=4b5110d#4b5110db0232d3330aa5a9c1a39c95feba41b18e"
 dependencies = [
  "drop_bomb",
  "oq3_lexer",
@@ -434,7 +434,7 @@ dependencies = [
 [[package]]
 name = "oq3_semantics"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=4b5110d#4b5110db0232d3330aa5a9c1a39c95feba41b18e"
 dependencies = [
  "boolenum",
  "hashbrown 0.14.3",
@@ -446,7 +446,7 @@ dependencies = [
 [[package]]
 name = "oq3_source_file"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=4b5110d#4b5110db0232d3330aa5a9c1a39c95feba41b18e"
 dependencies = [
  "ariadne",
  "oq3_syntax",
@@ -455,7 +455,7 @@ dependencies = [
 [[package]]
 name = "oq3_syntax"
 version = "0.0.1"
-source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=45556a9#45556a9d2cfb0dd7a805006af3821e8454480a75"
+source = "git+https://github.com/Qiskit/openqasm3_parser.git?rev=4b5110d#4b5110db0232d3330aa5a9c1a39c95feba41b18e"
 dependencies = [
  "cov-mark",
  "either",

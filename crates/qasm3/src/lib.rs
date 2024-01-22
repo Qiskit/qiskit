@@ -15,7 +15,7 @@ mod circuit;
 mod error;
 mod expr;
 
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use hashbrown::HashMap;
@@ -27,48 +27,9 @@ use oq3_semantics::syntax_to_semantics::parse_source_string;
 
 use crate::error::QASM3ImporterError;
 
-/// The inner parser at the moment can only read the include path from this environment variable in
-/// the `PATH` conventions of the current operating system.
-const INCLUDE_PATH_ENV_VAR: &str = "QASM3_PATH";
 /// The name of a Python attribute to define on the given module where the default implementation
 /// of the ``stdgates.inc`` custom instructions is located.
 const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
-
-/// Set the include path in the magic environment variable to the given structured include path.
-/// Returns the previously value of the environment variable, if any, so it can be restored by
-/// [restore_include_path].
-///
-/// The `module` should be the [PyModule] representing the `qiskit._qasm3` module itself.
-fn set_include_path(
-    module: &PyModule,
-    include_path: Option<&[OsString]>,
-) -> PyResult<Option<OsString>> {
-    let old_path = std::env::var_os(INCLUDE_PATH_ENV_VAR);
-    if let Some(includes) = include_path {
-        let path = std::env::join_paths(includes).map_err(|err| {
-            QASM3ImporterError::new_err(format!("failed to create an include path: {:?}", err))
-        })?;
-        std::env::set_var(INCLUDE_PATH_ENV_VAR, path);
-    } else if old_path.is_none() {
-        // Our module should be in the root of the Qiskit package.
-        let lib_path = Path::new(module.filename()?)
-            .parent()
-            .unwrap()
-            .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>());
-        std::env::set_var(INCLUDE_PATH_ENV_VAR, lib_path);
-    }
-    Ok(old_path)
-}
-
-/// Restore the state of the environment to the given value.  If no value is given, the key is
-/// removed from the environment (an explicitly empty path is different to a missing path).
-fn restore_include_path(include_path: Option<&OsStr>) {
-    if let Some(old_path) = include_path {
-        std::env::set_var(INCLUDE_PATH_ENV_VAR, old_path);
-    } else {
-        std::env::remove_var(INCLUDE_PATH_ENV_VAR);
-    }
-}
 
 /// Load an OpenQASM 3 program from a string into a :class:`.QuantumCircuit`.
 ///
@@ -80,12 +41,6 @@ fn restore_include_path(include_path: Option<&OsStr>) {
 ///     include_path (Iterable[str]): the path to search when resolving ``include`` statements.
 ///         If not given, Qiskit will arrange for this to point to a location containing
 ///         ``stdgates.inc`` only.  Paths are tried in the sequence order.
-///
-///         As an implementation detail of the internal parser, if this argument is not given but
-///         the environment variable ``QASM3_PATH`` is set, it will be used instead, and is
-///         formatted using the ``PATH`` conventions of your operating system (e.g. earlier
-///         directories are tried first, paths are separated by ``:`` on Unix-likes and ``;`` on
-///         Windows, and so forth).
 ///
 /// Returns:
 ///     :class:`.QuantumCircuit`: the constructed circuit object.
@@ -103,9 +58,15 @@ pub fn loads(
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
-    let old_path = set_include_path(module, include_path.as_deref())?;
-    let result = parse_source_string(source, None);
-    restore_include_path(old_path.as_deref());
+    let default_include_path = || -> PyResult<Vec<OsString>> {
+        Ok(vec![Path::new(module.filename()?)
+            .parent()
+            .unwrap()
+            .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
+            .into_os_string()])
+    };
+    let include_path = include_path.map(Ok).unwrap_or_else(default_include_path)?;
+    let result = parse_source_string(source, None, Some(&include_path));
     if result.any_errors() {
         result.print_errors();
         return Err(QASM3ImporterError::new_err(
@@ -144,12 +105,6 @@ pub fn loads(
 ///         If not given, Qiskit will arrange for this to point to a location containing
 ///         ``stdgates.inc`` only.  Paths are tried in the sequence order.
 ///
-///         As an implementation detail of the internal parser, if this argument is not given but
-///         the environment variable ``QASM3_PATH`` is set, it will be used instead, and is
-///         formatted using the ``PATH`` conventions of your operating system (e.g. earlier
-///         directories are tried first, paths are separated by ``:`` on Unix-likes and ``;`` on
-///         Windows, and so forth).
-///
 /// Returns:
 ///     :class:`.QuantumCircuit`: the constructed circuit object.
 ///
@@ -179,7 +134,7 @@ pub fn load(
                 .getattr("fspath")?
                 .call1((pathlike_or_filelike,))?
                 .extract::<OsString>()?;
-            std::fs::read_to_string(&path).map_err(|err| {
+            ::std::fs::read_to_string(&path).map_err(|err| {
                 QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
             })?
         };
