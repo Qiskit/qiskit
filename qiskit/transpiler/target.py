@@ -361,8 +361,9 @@ class Target(Mapping):
         supports.
 
         Args:
-            instruction (qiskit.circuit.Instruction): The operation object to add to the map. If it's
-                parameterized any value of the parameter can be set. Optionally for variable width
+            instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
+                The operation object to add to the map. If it's parameterized any value
+                of the parameter can be set. Optionally for variable width
                 instructions (such as control flow operations such as :class:`~.ForLoop` or
                 :class:`~MCXGate`) you can specify the class. If the class is specified than the
                 ``name`` argument must be specified. When a class is used the gate is treated as global

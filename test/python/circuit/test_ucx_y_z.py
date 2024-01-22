@@ -14,7 +14,6 @@
 
 import itertools
 import unittest
-from ddt import ddt, data
 
 import numpy as np
 from scipy.linalg import block_diag
@@ -42,14 +41,11 @@ angles_list = [
 rot_axis_list = ["X", "Y", "Z"]
 
 
-@ddt
 class TestUCRXYZ(QiskitTestCase):
     """Qiskit tests for UCRXGate, UCRYGate and UCRZGate rotations gates."""
 
-    @data(True, False)
-    def test_ucy(self, use_method):
+    def test_ucy(self):
         """Test the decomposition of uniformly controlled rotations."""
-        methods = {"X": "ucrx", "Y": "ucry", "Z": "ucrz"}
         gates = {"X": UCRXGate, "Y": UCRYGate, "Z": UCRZGate}
 
         for angles, rot_axis in itertools.product(angles_list, rot_axis_list):
@@ -57,12 +53,8 @@ class TestUCRXYZ(QiskitTestCase):
                 num_contr = int(np.log2(len(angles)))
                 q = QuantumRegister(num_contr + 1)
                 qc = QuantumCircuit(q)
-                if use_method:
-                    with self.assertWarns(PendingDeprecationWarning):
-                        getattr(qc, methods[rot_axis])(angles, q[1 : num_contr + 1], q[0])
-                else:
-                    gate = gates[rot_axis](angles)
-                    qc.append(gate, q)
+                gate = gates[rot_axis](angles)
+                qc.append(gate, q)
 
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
