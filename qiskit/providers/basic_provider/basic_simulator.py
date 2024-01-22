@@ -21,7 +21,8 @@ The simulator is run using
 
    BasicSimulator().run(run_input)
 
-Where the input is a :class:`.QuantumCircuit` object and the output is a :class:`.BasicProviderJob` object,
+Where the input is a :class:`.QuantumCircuit` object and the
+output is a :class:`.BasicProviderJob` object,
 which can later be queried for the Result object. The result will contain a 'memory' data
 field, which is a result of measurements for each shot.
 """
