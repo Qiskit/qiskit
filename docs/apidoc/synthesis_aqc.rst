@@ -1,6 +1,6 @@
 .. _qiskit-synthesis-unitary-aqc:
 
-.. automodule:: qiskit.synthesis.AQC
+.. automodule:: qiskit.synthesis.aqc
    :no-members:
    :no-inherited-members:
    :no-special-members:

@@ -12,7 +12,7 @@
 
 r"""
 ==========================================================
-Approximate Quantum Compiler (:mod:`qiskit.synthesis.AQC`)
+Approximate Quantum Compiler (:mod:`qiskit.synthesis.aqc`)
 ==========================================================
 
 .. currentmodule:: qiskit.synthesis.unitary.aqc
