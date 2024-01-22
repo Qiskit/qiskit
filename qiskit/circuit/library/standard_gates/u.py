@@ -40,13 +40,13 @@ class UGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         U(\theta, \phi, \lambda) =
-            \begin{pmatrix}
-                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
-                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
-            \end{pmatrix}
+        \begin{pmatrix}
+            \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+            e^{i\phi}\sin\left(\rotationangle\right) & e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
+        \end{pmatrix}
 
     .. note::
 
@@ -190,16 +190,18 @@ class CUGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CU(\theta, \phi, \lambda, \gamma)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             e^{i\gamma} U(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0                           & 0 & 0 \\
-                0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                0 & 0                           & 1 & 0 \\
-                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)}\cos(\th)
+                1 & 0 & 0 & 0 \\
+                0 & e^{i\gamma}\cos(\rotationangle) &
+                0 & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+                0 & 0 & 1 & 0 \\
+                0 & e^{i(\gamma+\phi)}\sin(\rotationangle) &
+                0 & e^{i(\gamma+\phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
 
     .. note::
@@ -218,15 +220,17 @@ class CUGate(ControlledGate):
 
         .. math::
 
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
             CU(\theta, \phi, \lambda, \gamma)\ q_1, q_0 =
-                |0\rangle\langle 0| \otimes I +
-                e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
-                \begin{pmatrix}
-                    1 & 0 & 0                             & 0 \\
-                    0 & 1 & 0                             & 0 \\
-                    0 & 0 & e^{i\gamma} \cos(\th)         & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
-                \end{pmatrix}
+            |0\rangle\langle 0| \otimes I +
+            e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
+            \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & e^{i\gamma} \cos(\rotationangle) & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+            0 & 0 &
+            e^{i(\gamma + \phi)}\sin(\rotationangle) & e^{i(\gamma + \phi+\lambda)}\cos(\rotationangle)
+            \end{pmatrix}
     """
 
     def __init__(

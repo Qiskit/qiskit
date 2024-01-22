@@ -980,6 +980,12 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         self.assertFalse(cliff1.equiv(cliff3))
         self.assertFalse(cliff2.equiv(cliff4))
 
+    def test_visualize_does_not_throw_error(self):
+        """Test to verify that drawing StabilizerState does not throw an error"""
+        clifford = random_clifford(3, seed=0)
+        stab = StabilizerState(clifford)
+        _ = repr(stab)
+
 
 if __name__ == "__main__":
     unittest.main()
