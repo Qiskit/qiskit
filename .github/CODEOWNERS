@@ -33,7 +33,7 @@ pulse/                @Qiskit/terra-core @eggerdj @wshanks
 synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion
 scheduler/            @Qiskit/terra-core @eggerdj @wshanks
 visualization/        @Qiskit/terra-core @nonhermitian
-primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
+primitives/           @Qiskit/terra-core @Qiskit/qiskit-primitives
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.
 /releasenotes/notes
