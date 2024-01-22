@@ -15,7 +15,7 @@
 import unittest
 import warnings
 
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers.basicaer import BasicAerError

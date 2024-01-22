@@ -51,6 +51,10 @@ class TestBasicAerBackends(providers.ProviderTestCase):
                     self.assertEqual(BasicAer.backends(oldname)[0], real_backend)
                 self.assertEqual(context.output, [expected])
 
+    def test_aliases_fail(self):
+        """Test a failing backend lookup."""
+        self.assertRaises(QiskitBackendNotFoundError, BasicAer.get_backend, "bad_name")
+
     def test_aliases_return_empty_list(self):
         """Test backends() return an empty list if name is unknown."""
         self.assertEqual(BasicAer.backends("bad_name"), [])

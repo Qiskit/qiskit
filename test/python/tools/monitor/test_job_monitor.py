@@ -15,7 +15,7 @@
 import io
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit import execute
 from qiskit.tools.monitor import job_monitor
 from qiskit.test import QiskitTestCase
@@ -32,8 +32,7 @@ class TestJobMonitor(QiskitTestCase):
         qc.h(qreg[0])
         qc.cx(qreg[0], qreg[1])
         qc.measure(qreg, creg)
-        with self.assertWarns(DeprecationWarning):
-            backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicAer.get_backend("qasm_simulator")
         with self.assertWarns(DeprecationWarning):
             job_sim = execute([qc] * 10, backend)
         output = io.StringIO()

@@ -13,7 +13,7 @@
 """Test executing multiple-register circuits on BasicAer."""
 
 import warnings
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
 from qiskit.test import QiskitTestCase

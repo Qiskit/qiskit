@@ -20,7 +20,7 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 
 import numpy
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError

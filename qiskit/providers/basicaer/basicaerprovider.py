@@ -15,7 +15,6 @@
 
 from collections import OrderedDict
 import logging
-import warnings
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.provider import ProviderV1

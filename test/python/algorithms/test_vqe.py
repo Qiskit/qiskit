@@ -24,7 +24,10 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import (
+    BasicAer,  # pylint: disable=no-name-in-module
+    QuantumCircuit,
+)
 from qiskit.algorithms import VQE, AlgorithmError
 from qiskit.algorithms.optimizers import (
     CG,

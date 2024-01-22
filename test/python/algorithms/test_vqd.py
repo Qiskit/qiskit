@@ -20,7 +20,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import (
+    BasicAer,  # pylint: disable=no-name-in-module
+    QuantumCircuit,
+)
 from qiskit.algorithms import VQD, AlgorithmError
 from qiskit.algorithms.optimizers import (
     COBYLA,
