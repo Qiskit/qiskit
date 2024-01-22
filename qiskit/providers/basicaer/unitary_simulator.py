@@ -31,7 +31,6 @@ import warnings
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
