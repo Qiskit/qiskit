@@ -633,6 +633,13 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         self.assertAlmostEqual(phi, expected_phi)
         self.assertAlmostEqual(lam, expected_lam)
 
+    def test_deprecation(self):
+        """Assert that importing this class from quantum_info raises a deprecation warning."""
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import OneQubitEulerDecomposer as old_OneQubitEulerDecomposer
+
+            _ = old_OneQubitEulerDecomposer(basis="PSX")
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
@@ -995,8 +1002,14 @@ class TestTwoQubitDecompose(CheckDecompositions):
         ]
         for decomp in decomps:
             self.assertTrue(cnot.equiv(decomp))
+
+        # Assert that this class raises a deprecation warning
         with self.assertWarns(DeprecationWarning):
             cnot_rxx_decompose()
+            cnot_rxx_decompose(plus_ry=True, plus_rxx=True)
+            cnot_rxx_decompose(plus_ry=True, plus_rxx=False)
+            cnot_rxx_decompose(plus_ry=False, plus_rxx=True)
+            cnot_rxx_decompose(plus_ry=False, plus_rxx=False)
 
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
@@ -1254,6 +1267,19 @@ class TestTwoQubitDecompose(CheckDecompositions):
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
+
+    def test_deprecation(self):
+        """Assert that importing these classes from quantum_info raises a deprecation warning."""
+        with self.assertWarns(DeprecationWarning):
+            unitary = random_unitary(4, seed=1234)
+            from qiskit.quantum_info import TwoQubitBasisDecomposer as old_TwoQubitBasisDecomposer
+
+            _ = old_TwoQubitBasisDecomposer(unitary)
+
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import two_qubit_cnot_decompose as old_two_qubit_cnot_decompose
+
+            _ = old_two_qubit_cnot_decompose(unitary)
 
 
 @ddt
