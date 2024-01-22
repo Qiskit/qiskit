@@ -106,7 +106,8 @@ class UnitarySimulatorPy(BackendV1):
     @deprecate_func(
         since="0.46.0",
         removal_timeline="in Qiskit 1.0.0",
-        additional_msg="The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
         "The new module has no replacement for this class. "
         "Use the qiskit.quantum_info.Operator class instead.",
     )

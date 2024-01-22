@@ -22,7 +22,6 @@ import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_func
 
 # Single qubit gates supported by ``single_gate_params``.
 SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")

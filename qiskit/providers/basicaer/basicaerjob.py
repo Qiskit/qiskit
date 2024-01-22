@@ -28,7 +28,8 @@ class BasicAerJob(JobV1):
     @deprecate_func(
         since="0.46.0",
         removal_timeline="in Qiskit 1.0.0",
-        additional_msg="The qiskit.providers.basicaer module has been superseded by qiskit.providers.basic_provider. "
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
         "Use the new qiskit.providers.basic_provider.BasicProviderJob class instead.",
     )
     def __init__(self, backend, job_id, result):

@@ -12,7 +12,6 @@
 
 """BasicAer Backends Test."""
 
-import warnings
 from qiskit import BasicAer
 from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError

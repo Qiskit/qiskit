@@ -353,13 +353,18 @@ Random Circuits
 
 Circuit Analysis
 ----------------
+
 .. autosummary::
    :toctree: ../stubs/
+
    CommutationChecker
+
 Annotated Operations
 --------------------
+
 .. autosummary::
    :toctree: ../stubs/
+
    AnnotatedOperation
    ControlModifier
    PowerModifier
