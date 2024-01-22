@@ -210,7 +210,6 @@ Special fake backends are fake backends that were created for special testing pu
     FakeBackendV2
     FakeBackend5QV2
     FakeMumbaiFractionalCX
-    ConfigurableFakeBackend
     GenericFakeBackend
 
 Fake Backend Base Classes

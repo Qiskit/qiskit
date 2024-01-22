@@ -2368,7 +2368,7 @@ class TestTranspileParallel(QiskitTestCase):
         backend = GenericFakeBackend(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=4,
-            calibrate_instructions=["cx", "id", "rz", "x", "measure"],
+            calibrate_instructions=False,
         )
 
         # This target has PulseQobj entries that provide a serialized schedule data
