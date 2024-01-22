@@ -2099,8 +2099,12 @@ class DAGCircuit:
         """
         Draws the dag circuit.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`_, which in turn needs
-        `Graphviz <https://www.graphviz.org/>`_ to be installed.
+        This function needs `Graphviz <https://www.graphviz.org/>`_ to be
+        installed. Graphviz is not a python package and can't be pip installed
+        (the ``graphviz`` package on PyPI is a Python interface library for
+        Graphviz and does not actually install Graphviz). You can refer to
+        `the Graphviz documentation <https://www.graphviz.org/download/>`__ on
+        how to install it.
 
         Args:
             scale (float): scaling factor
