@@ -20,6 +20,27 @@ from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
 
+def default_new_block_fn():
+    return []
+
+
+def default_append_node_fn(node, block):
+    block.append(node)
+    return True
+
+
+def default_get_nodes_fn(block):
+    return block
+
+
+def default_reverse_block_fn(block):
+    return block[::-1]
+
+
+def accept_all_fn(node):
+    return True
+
+
 class BlockCollector:
     """This class implements various strategies of dividing a DAG (direct acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
@@ -134,7 +155,12 @@ class BlockCollector:
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn):
+    def collect_matching_block(
+        self,
+        filter_fn=accept_all_fn,
+        new_block_fn=default_new_block_fn,
+        append_node_fn=default_append_node_fn,
+    ):
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -144,9 +170,10 @@ class BlockCollector:
         to become input and to be eligible for collecting into the current block.
         Returns the block of collected nodes.
         """
-        current_block = []
         unprocessed_pending_nodes = self._pending_nodes
         self._pending_nodes = []
+
+        current_block = new_block_fn()
 
         # Iteratively process unprocessed_pending_nodes:
         # - any node that does not match filter_fn is added to pending_nodes
@@ -155,9 +182,8 @@ class BlockCollector:
         while unprocessed_pending_nodes:
             new_pending_nodes = []
             for node in unprocessed_pending_nodes:
-                if filter_fn(node):
-                    current_block.append(node)
-
+                added = filter_fn(node) and append_node_fn(node, current_block)
+                if added:
                     # update the _in_degree of node's successors
                     for suc in self._direct_succs(node):
                         self._in_degree[suc] -= 1
@@ -171,11 +197,16 @@ class BlockCollector:
 
     def collect_all_matching_blocks(
         self,
-        filter_fn,
+        filter_fn=accept_all_fn,
         split_blocks=True,
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
+        new_block_fn=default_new_block_fn,
+        append_node_fn=default_append_node_fn,
+        get_nodes_fn=default_get_nodes_fn,
+        split_block_fn=None,
+        reverse_block_fn=default_reverse_block_fn,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
@@ -207,34 +238,50 @@ class BlockCollector:
         # Iteratively collect non-matching and matching blocks.
         matching_blocks = []
         while self._have_uncollected_nodes():
-            self.collect_matching_block(not_filter_fn)
-            matching_block = self.collect_matching_block(filter_fn)
+            self.collect_matching_block(
+                filter_fn=not_filter_fn,
+                new_block_fn=new_block_fn,
+                append_node_fn=append_node_fn,
+            )
+            matching_block = self.collect_matching_block(
+                filter_fn=filter_fn,
+                new_block_fn=new_block_fn,
+                append_node_fn=append_node_fn,
+            )
             if matching_block:
                 matching_blocks.append(matching_block)
 
-        # If the option split_layers is set, refine blocks by splitting them into layers
-        # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
-        if split_layers:
-            tmp_blocks = []
-            for block in matching_blocks:
-                tmp_blocks.extend(split_block_into_layers(block))
-            matching_blocks = tmp_blocks
+        if split_block_fn is None:
+            # If the option split_layers is set, refine blocks by splitting them into layers
+            # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
+            if split_layers:
+                tmp_blocks = []
+                for block in matching_blocks:
+                    tmp_blocks.extend(split_block_into_layers(block))
+                matching_blocks = tmp_blocks
 
-        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-        # disconnected qubit subsets.
-        if split_blocks:
+            # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
+            # disconnected qubit subsets.
+            if split_blocks:
+                tmp_blocks = []
+                for block in matching_blocks:
+                    tmp_blocks.extend(BlockSplitter().run(block))
+                matching_blocks = tmp_blocks
+        else:
             tmp_blocks = []
             for block in matching_blocks:
-                tmp_blocks.extend(BlockSplitter().run(block))
+                tmp_blocks.extend(split_block_fn(block))
             matching_blocks = tmp_blocks
 
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
-            matching_blocks = [block[::-1] for block in matching_blocks[::-1]]
+            matching_blocks = [reverse_block_fn(block) for block in matching_blocks[::-1]]
 
         # Keep only blocks with at least min_block_sizes.
-        matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
+        matching_blocks = [
+            block for block in matching_blocks if len(get_nodes_fn(block)) >= min_block_size
+        ]
 
         return matching_blocks
 
