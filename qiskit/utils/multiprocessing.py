@@ -28,7 +28,7 @@ def local_hardware_info():
     """
 
     if hasattr(os, "sched_getaffinity"):
-        num_cpus = int(len(os.sched_getaffinity(0)) / 2) or 1
+        num_cpus = len(os.sched_getaffinity(0))
     else:
         num_cpus = os.cpu_count()
     if num_cpus is None:

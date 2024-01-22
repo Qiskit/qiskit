@@ -12,21 +12,45 @@
 
 """Tests for qiskit/utils"""
 
-import os
-from unittest import mock, skipIf
+from unittest import mock
 
-from qiskit.utils.multiprocessing import local_hardware_info
+from qiskit.utils import multiprocessing
 from qiskit.test import QiskitTestCase
 
 
 class TestUtil(QiskitTestCase):
     """Tests for qiskit/_util.py"""
 
-    @skipIf(not hasattr(os, "sched_getaffinity"), "ched_getaffinity is only available on linux")
-    @mock.patch("platform.system", return_value="Linux")
-    @mock.patch("os.sched_getaffinity", return_value={})
-    def test_local_hardware_none_cpu_count(self, cpu_count_mock, platform_mock):
+    def test_local_hardware_five_cpu_count(self):
+        """Test cpu count is half when sched affinity is 5"""
+        with mock.patch.object(multiprocessing.os, "sched_getaffinity", return_value=set(range(5))):
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(2, result["cpus"])
+
+    def test_local_hardware_sixty_four_cpu_count(self):
+        """Test cpu count is 32 when sched affinity is 64"""
+        with mock.patch.object(multiprocessing.os, "sched_getaffinity", return_value=set(range(5))):
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(2, result["cpus"])
+
+    def test_local_hardware_no_cpu_count(self):
         """Test cpu count fallback to 1 when true value can't be determined"""
-        del cpu_count_mock, platform_mock  # unused
-        result = local_hardware_info()
+        with mock.patch.object(multiprocessing.os, "sched_getaffinity", return_value=set()):
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(1, result["cpus"])
+
+    def test_local_hardware_no_sched_five_count(self):
+        """Test cpu cound if sched affinity method is missing and cpu count is 5."""
+        with mock.patch.object(multiprocessing, "os", spec=[]):
+            multiprocessing.os.cpu_count = mock.MagicMock(return_value=5)
+            del multiprocessing.os.sched_getaffinity
+            result = multiprocessing.local_hardware_info()
+        self.assertEqual(2, result["cpus"])
+
+    def test_local_hardware_no_sched_no_count(self):
+        """Test cpu count fallback to 1 when no sched getaffinity available."""
+        with mock.patch.object(multiprocessing, "os", spec=[]):
+            multiprocessing.os.cpu_count = mock.MagicMock(return_value=None)
+            del multiprocessing.os.sched_getaffinity
+            result = multiprocessing.local_hardware_info()
         self.assertEqual(1, result["cpus"])
