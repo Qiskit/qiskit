@@ -93,7 +93,10 @@ Basis Change Synthesis
 Unitary Synthesis
 =================
 
-The Approximate Quantum Compiler is available here: :mod:qiskit.synthesis.unitary.aqc
+.. autosummary::
+   :toctree: ../stubs/
+
+   AQC
 
 """
 
