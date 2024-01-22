@@ -14,8 +14,28 @@
 
 """Main Qiskit public functionality."""
 
+import importlib.metadata
+import os
 import sys
 import warnings
+
+try:
+    importlib.metadata.version("qiskit-terra")
+except importlib.metadata.PackageNotFoundError:
+    # All good!
+    pass
+else:
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    if not _suppress_error:
+        raise ImportError(
+            "Qiskit is installed in an invalid environment that has both Qiskit 1.0+"
+            " and an earlier version."
+            " You should create a new virtual environment, and ensure that you do not mix"
+            " dependencies between Qiskit pre-1.0 and post-1.0."
+            " Any packages that depend on 'qiskit-terra' are not compatible with Qiskit 1.0 and"
+            " will need to be updated."
+            " Qiskit unfortunately cannot enforce this requirement during environment resolution."
+        )
 
 import qiskit._accelerate
 
