@@ -129,20 +129,24 @@ def example1():
 
 def example2():
     """Showing off dag dependency"""
-    qc = QuantumCircuit(6)
+
+    qc = QuantumCircuit(4)
     qc.cx(0, 1)
     qc.cx(0, 2)
-    qc.cx(0, 3)
-
-    qc.cx(5, 1)
-    qc.cx(5, 2)
-    qc.cx(5, 3)
-
-    qc.cx(0, 4)
-    qc.cx(5, 4)
-
-    print(qc)
-
+    qc.cx(3, 1)
+    qc.cx(3, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(3, 1)
+    qc.cx(3, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(3, 1)
+    qc.cx(3, 2)
+    qc.cx(0, 1)
+    qc.cx(0, 2)
+    qc.cx(3, 1)
+    qc.cx(3, 2)
 
     block_collector = BlockCollector(circuit_to_dag(qc))
     blocks = block_collector.collect_all_matching_blocks(
