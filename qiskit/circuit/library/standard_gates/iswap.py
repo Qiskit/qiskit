@@ -127,3 +127,6 @@ class iSwapGate(SingletonGate):
     def power(self, exponent: float):
         """Raise gate to a power."""
         return XXPlusYYGate(-np.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, iSwapGate)
