@@ -70,7 +70,8 @@ barrier qr1[0],qr2[0],qr2[1];
 measure qr1[0] -> cr[0];
 measure qr2[0] -> cr[1];
 measure qr2[1] -> cr[2];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_composite_circuit(self):
         """Test circuit qasm() method when a composite circuit instruction
@@ -104,7 +105,8 @@ barrier qr[0],qr[1];
 composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_multiple_same_composite_circuits(self):
         """Test circuit qasm() method when a composite circuit is added
@@ -140,7 +142,8 @@ composite_circ qr[0],qr[1];
 composite_circ qr[0],qr[1];
 measure qr[0] -> cr[0];
 measure qr[1] -> cr[1];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_multiple_composite_circuits_with_same_name(self):
         """Test circuit qasm() method when multiple composite circuit instructions
@@ -178,7 +181,8 @@ my_gate_{1} qr[0];
 my_gate_{0} qr[0];\n""".format(
             my_gate_inst3_id, my_gate_inst2_id
         )
-        self.assertEqual(circuit.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(circuit.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_composite_circuit_with_children_composite_circuit(self):
         """Test circuit qasm() method when composite circuits with children
@@ -206,15 +210,16 @@ gate parent_circ q0,q1,q2 { child_circ q0,q1; h q2; }
 gate grandparent_circ q0,q1,q2,q3 { parent_circ q0,q1,q2; x q3; }
 qreg q[4];
 grandparent_circ q[0],q[1],q[2],q[3];\n"""
-
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_pi(self):
         """Test circuit qasm() method with pi params."""
         circuit = QuantumCircuit(2)
         circuit.cz(0, 1)
         circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
-        qasm_str = circuit.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm_str = circuit.qasm()
         circuit2 = QuantumCircuit.from_qasm_str(qasm_str)
         self.assertEqual(circuit, circuit2)
 
@@ -229,8 +234,8 @@ qreg q[3];
 creg c[3];
 nG0(pi) q[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
-
-        self.assertEqual(original_str, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(original_str, qc.qasm())
 
     def test_circuit_qasm_with_composite_circuit_with_many_params_and_qubits(self):
         """Test circuit qasm() method when a composite circuit instruction
@@ -245,8 +250,8 @@ creg c[3];
 creg d[3];
 nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
-
-        self.assertEqual(original_str, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(original_str, qc.qasm())
 
     def test_c3sxgate_roundtrips(self):
         """Test that C3SXGate correctly round trips.
@@ -256,7 +261,8 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         resolution issues."""
         qc = QuantumCircuit(4)
         qc.append(C3SXGate(), qc.qubits, [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[4];
@@ -275,7 +281,8 @@ c3sqrtx q[0],q[1],q[2],q[3];
         """Test that CCZ dumps definition as a non-qelib1 gate."""
         qc = QuantumCircuit(3)
         qc.append(CCZGate(), qc.qubits, [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate ccz q0,q1,q2 { h q2; ccx q0,q1,q2; h q2; }
@@ -288,7 +295,8 @@ ccz q[0],q[1],q[2];
         """Test that CS dumps definition as a non-qelib1 gate."""
         qc = QuantumCircuit(2)
         qc.append(CSGate(), qc.qubits, [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
@@ -301,7 +309,8 @@ cs q[0],q[1];
         """Test that CSdg dumps definition as a non-qelib1 gate."""
         qc = QuantumCircuit(2)
         qc.append(CSdgGate(), qc.qubits, [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
@@ -315,7 +324,8 @@ csdg q[0],q[1];
         qc = QuantumCircuit(2)
         qc.rzx(0, 0, 1)
         qc.rzx(pi / 2, 1, 0)
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
@@ -330,7 +340,8 @@ rzx(pi/2) q[1],q[0];
         qc = QuantumCircuit(2)
         qc.ecr(0, 1)
         qc.ecr(1, 0)
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
@@ -345,7 +356,8 @@ ecr q[1],q[0];
         """Test that UnitaryGate can be dumped to OQ2 correctly."""
         qc = QuantumCircuit(1)
         qc.unitary([[1, 0], [0, 1]], 0)
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate unitary q0 { u(0,0,0) q0; }
@@ -363,7 +375,8 @@ unitary q[0];
         qc.unitary([[1, 0], [0, 1]], 0)
         qc.unitary([[0, 1], [1, 0]], 1)
         qc.append(custom.to_gate(), [0], [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = re.compile(
             r"""OPENQASM 2.0;
 include "qelib1.inc";
@@ -386,7 +399,8 @@ custom q\[0\];
         theta = Parameter("θ")
         qc.rz(theta, 0)
         with self.assertRaises(QasmError):
-            qc.qasm()
+            with self.assertWarns(DeprecationWarning):
+                qc.qasm()
 
     def test_gate_qasm_with_ctrl_state(self):
         """Test gate qasm() with controlled gate that has ctrl_state setting."""
@@ -394,7 +408,8 @@ custom q\[0\];
 
         qc = QuantumCircuit(2)
         qc.ch(0, 1, ctrl_state=0)
-        qasm_str = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm_str = qc.qasm()
         self.assertEqual(Operator(qc), Operator(QuantumCircuit.from_qasm_str(qasm_str)))
 
     def test_circuit_qasm_with_mcx_gate(self):
@@ -411,7 +426,8 @@ include "qelib1.inc";
 gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
 qreg q[4];
 mcx q[0],q[1],q[2],q[3];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_mcx_gate_variants(self):
         """Test circuit qasm() method with MCXGrayCode, MCXRecursive, MCXVChain"""
@@ -436,8 +452,8 @@ qreg q[9];
 mcx_gray q[0],q[1],q[2],q[3],q[4],q[5];
 mcx_recursive q[0],q[1],q[2],q[3],q[4],q[5],q[6];
 mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
-
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_registerless_bits(self):
         """Test that registerless bits do not have naming collisions in their registers."""
@@ -446,10 +462,11 @@ mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
         # Match a 'qreg identifier[3];'-like QASM register declaration.
         register_regex = re.compile(r"\s*[cq]reg\s+(\w+)\s*\[\d+\]\s*", re.M)
         qasm_register_names = set()
-        for statement in qc.qasm().split(";"):
-            match = register_regex.match(statement)
-            if match:
-                qasm_register_names.add(match.group(1))
+        with self.assertWarns(DeprecationWarning):
+            for statement in qc.qasm().split(";"):
+                match = register_regex.match(statement)
+                if match:
+                    qasm_register_names.add(match.group(1))
         self.assertEqual(len(qasm_register_names), 4)
 
         # Check that no additional registers were added to the circuit.
@@ -462,10 +479,11 @@ mcx_vchain q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7],q[8];\n"""
         for generated_name in generated_names:
             qc.add_register(QuantumRegister(1, name=generated_name))
         qasm_register_names = set()
-        for statement in qc.qasm().split(";"):
-            match = register_regex.match(statement)
-            if match:
-                qasm_register_names.add(match.group(1))
+        with self.assertWarns(DeprecationWarning):
+            for statement in qc.qasm().split(";"):
+                match = register_regex.match(statement)
+                if match:
+                    qasm_register_names.add(match.group(1))
         self.assertEqual(len(qasm_register_names), 6)
 
     def test_circuit_qasm_with_repeated_instruction_names(self):
@@ -500,7 +518,8 @@ x q[1];
 custom q[0];
 custom_{id(gate2)} q[1],q[0];\n"""
         # Check qasm() produced the correct string
-        self.assertEqual(expected_qasm, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, qc.qasm())
         # Check instruction names were not changed by qasm()
         names = ["h", "x", "custom", "custom"]
         for idx, instruction in enumerate(qc._data):
@@ -544,7 +563,8 @@ custom_{id(gate2)} q[1],q[0];\n"""
         )
 
         # Check qasm() produces the correct string
-        self.assertEqual(expected_qasm, qc.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected_qasm, qc.qasm())
 
         # Check instruction names were not changed by qasm()
         names = ["A[$]", "invalid[name]"]
@@ -568,9 +588,10 @@ custom_{id(gate2)} q[1],q[0];\n"""
 
         # Check qasm is correctly produced
         names = set()
-        for match in re.findall(r"gate (\S+)", base.qasm()):
-            self.assertTrue(VALID_QASM2_IDENTIFIER.fullmatch(match))
-            names.add(match)
+        with self.assertWarns(DeprecationWarning):
+            for match in re.findall(r"gate (\S+)", base.qasm()):
+                self.assertTrue(VALID_QASM2_IDENTIFIER.fullmatch(match))
+                names.add(match)
         self.assertEqual(len(names), 2)
 
         # Check instruction names were not changed by qasm()
@@ -584,7 +605,8 @@ custom_{id(gate2)} q[1],q[0];\n"""
         qc = QuantumCircuit(QuantumRegister(2, "?invalid"), QuantumRegister(2, "!invalid"))
         qc.cx(0, 1)
         qc.cx(2, 3)
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         match = re.fullmatch(
             rf"""OPENQASM 2.0;
 include "qelib1.inc";
@@ -604,7 +626,8 @@ cx \2\[0\],\2\[1\];
         gate = Gate("gate", 1, [])
         gate.definition = QuantumCircuit(1)
         qc.append(gate, [qc.qubits[0]])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         match = re.fullmatch(
             rf"""OPENQASM 2.0;
 include "qelib1.inc";
@@ -633,7 +656,8 @@ qreg q[1];
 p(0.123456789) q[0];
 p(9.869604401089358) q[0];
 p(51.26548245743669) q[0];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_qasm_with_rotation_angles_close_to_pi(self):
         """Test that qasm() properly rounds values closer than 1e-12 to pi."""
@@ -646,7 +670,8 @@ include "qelib1.inc";
 qreg q[1];
 p(3.141592653599793) q[0];
 p(pi) q[0];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_circuit_raises_on_single_bit_condition(self):
         """OpenQASM 2 can't represent single-bit conditions, so test that a suitable error is
@@ -655,7 +680,8 @@ p(pi) q[0];\n"""
         qc.x(0).c_if(0, True)
 
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
-            qc.qasm()
+            with self.assertWarns(DeprecationWarning):
+                qc.qasm()
 
     def test_circuit_raises_invalid_custom_gate_no_qubits(self):
         """OpenQASM 2 exporter of custom gates with no qubits.
@@ -665,7 +691,8 @@ p(pi) q[0];\n"""
         legit_circuit.append(empty_circuit)
 
         with self.assertRaisesRegex(QasmError, "acts on zero qubits"):
-            legit_circuit.qasm()
+            with self.assertWarns(DeprecationWarning):
+                legit_circuit.qasm()
 
     def test_circuit_raises_invalid_custom_gate_clbits(self):
         """OpenQASM 2 exporter of custom instruction.
@@ -679,7 +706,8 @@ p(pi) q[0];\n"""
         qc.append(custom_instruction, [0, 1], [0, 1])
 
         with self.assertRaisesRegex(QasmError, "acts on 2 classical bits"):
-            qc.qasm()
+            with self.assertWarns(DeprecationWarning):
+                qc.qasm()
 
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
@@ -692,7 +720,8 @@ include "qelib1.inc";
 gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
 qreg q[4];
 permutation__2_1_0_ q[0],q[1],q[2];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_multiple_permutation(self):
         """Test that multiple PermutationGates can be added to a circuit."""
@@ -704,7 +733,8 @@ permutation__2_1_0_ q[0],q[1],q[2];\n"""
         qc.append(PermutationGate([2, 1, 0]), [0, 1, 2], [])
         qc.append(PermutationGate([1, 2, 0]), [0, 1, 2], [])
         qc.append(custom.to_gate(), [1, 3, 2], [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
@@ -728,7 +758,8 @@ include "qelib1.inc";
 qreg q[2];
 reset q[0];
 reset q[1];\n"""
-        self.assertEqual(qc.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_qasm)
 
     def test_nested_gate_naming_clashes(self):
         """Test that gates that have naming clashes but only appear in the body of another gate
@@ -755,7 +786,8 @@ reset q[1];\n"""
         qc = QuantumCircuit(1)
         qc.append(Outer(1.0), [0], [])
         qc.append(Outer(2.0), [0], [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
 
         expected = re.compile(
             r"""OPENQASM 2\.0;
@@ -782,7 +814,8 @@ outer\(1\.0\) q\[0\];
         qc.append(Gate("my_a", 1, []), [1])
         qc.append(Gate("my_b", 2, [1.0]), [1, 0])
         qc.append(custom.to_gate(), [0], [])
-        qasm = qc.qasm()
+        with self.assertWarns(DeprecationWarning):
+            qasm = qc.qasm()
         expected = """OPENQASM 2.0;
 include "qelib1.inc";
 opaque my_a q0;
@@ -826,8 +859,8 @@ z q[0];
 z q[1];
 z q[2];
 """
-
-        self.assertEqual(qc.qasm(), expected_output)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected_output)
 
     def test_empty_barrier(self):
         """Test that a blank barrier statement in _Qiskit_ acts over all qubits, while an explicitly
@@ -844,7 +877,8 @@ qreg qr1[2];
 qreg qr2[3];
 barrier qr1[0],qr1[1],qr2[0],qr2[1],qr2[2];
 """
-        self.assertEqual(qc.qasm(), expected)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected)
 
     def test_small_angle_valid(self):
         """Test that small angles do not get converted to invalid OQ2 floating-point values."""
@@ -858,7 +892,9 @@ include "qelib1.inc";
 qreg q[1];
 rx(1.e-06) q[0];
 """
-        self.assertEqual(qc.qasm(), expected)
+
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qc.qasm(), expected)
 
 
 if __name__ == "__main__":

@@ -26,8 +26,14 @@ from qiskit.circuit.reset import Reset
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.library import standard_gates as std
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46",
+    additional_msg="Instead use the qiskit.qasm2.dump() or qiskit.qasm2.dumps() function",
+    removal_timeline="in the 1.0.0 release",
+)
 def ast_to_dag(ast):
     """Build a ``DAGCircuit`` object from an AST ``Node`` object.
 

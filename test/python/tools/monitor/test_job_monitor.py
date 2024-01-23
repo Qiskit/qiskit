@@ -33,7 +33,8 @@ class TestJobMonitor(QiskitTestCase):
         qc.cx(qreg[0], qreg[1])
         qc.measure(qreg, creg)
         backend = BasicAer.get_backend("qasm_simulator")
-        job_sim = execute([qc] * 10, backend)
+        with self.assertWarns(DeprecationWarning):
+            job_sim = execute([qc] * 10, backend)
         output = io.StringIO()
         job_monitor(job_sim, output=output)
         self.assertEqual(job_sim.status().name, "DONE")

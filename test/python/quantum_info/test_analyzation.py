@@ -14,8 +14,7 @@
 
 import unittest
 
-import qiskit
-from qiskit import BasicAer
+from qiskit import BasicAer, QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.quantum_info.analysis import hellinger_fidelity
@@ -27,16 +26,16 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_average_data_dict_observable(self):
         """Test average_data for dictionary observable input"""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qr, cr, name="qc")
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, name="qc")
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
         backend = BasicAer.get_backend("qasm_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
+        result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
         mean_zz = average_data(counts=counts, observable=observable)
@@ -50,9 +49,9 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_average_data_list_observable(self):
         """Test average_data for list observable input."""
-        qr = qiskit.QuantumRegister(3)
-        cr = qiskit.ClassicalRegister(3)
-        qc = qiskit.QuantumCircuit(qr, cr, name="qc")
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr, name="qc")
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.cx(qr[0], qr[2])
@@ -61,7 +60,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         shots = 10000
         backend = BasicAer.get_backend("qasm_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
+        result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [1, -1, -1, 1, -1, 1, 1, -1]
         mean_zzz = average_data(counts=counts, observable=observable)
@@ -78,16 +77,16 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_average_data_matrix_observable(self):
         """Test average_data for matrix observable input."""
-        qr = qiskit.QuantumRegister(2)
-        cr = qiskit.ClassicalRegister(2)
-        qc = qiskit.QuantumCircuit(qr, cr, name="qc")
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr, name="qc")
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
         backend = BasicAer.get_backend("qasm_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
+        result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
         mean_zz = average_data(counts=counts, observable=observable)
@@ -125,7 +124,7 @@ class TestAnalyzation(QiskitTestCase):
 
     def test_hellinger_fidelity_same(self):
         """Test hellinger fidelity is one for same dist."""
-        qc = qiskit.QuantumCircuit(5, 5)
+        qc = QuantumCircuit(5, 5)
         qc.h(2)
         qc.cx(2, 1)
         qc.cx(2, 3)
@@ -135,7 +134,7 @@ class TestAnalyzation(QiskitTestCase):
 
         sim = BasicAer.get_backend("qasm_simulator")
 
-        res = qiskit.execute(qc, sim).result()
+        res = sim.run(qc).result()
 
         ans = hellinger_fidelity(res.get_counts(), res.get_counts())
 
@@ -157,7 +156,7 @@ class TestAnalyzation(QiskitTestCase):
         #                     └───┘ ║  ║  ║  ║ └╥┘
         # c: 5/═════════════════════╩══╩══╩══╩══╩═
         #                           0  1  2  3  4
-        qc = qiskit.QuantumCircuit(5, 5)
+        qc = QuantumCircuit(5, 5)
         qc.h(2)
         qc.cx(2, 1)
         qc.cx(2, 3)
@@ -178,7 +177,7 @@ class TestAnalyzation(QiskitTestCase):
         #       └╥┘                 ║  ║  ║  ║
         # c: 5/══╩══════════════════╩══╩══╩══╩═
         #        4                  0  1  2  3
-        qc2 = qiskit.QuantumCircuit(5, 5)
+        qc2 = QuantumCircuit(5, 5)
         qc2.h(2)
         qc2.cx(2, 1)
         qc2.y(2)
@@ -188,8 +187,8 @@ class TestAnalyzation(QiskitTestCase):
 
         sim = BasicAer.get_backend("qasm_simulator")
 
-        res1 = qiskit.execute(qc, sim).result()
-        res2 = qiskit.execute(qc2, sim).result()
+        res1 = sim.run(qc).result()
+        res2 = sim.run(transpile(qc2, sim)).result()
 
         ans = hellinger_fidelity(res1.get_counts(), res2.get_counts())
 

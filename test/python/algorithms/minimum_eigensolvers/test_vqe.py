@@ -280,7 +280,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         operator = Operator(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]))
 
         with self.subTest(msg="assert vqe works on re-use."):
-            result = vqe.compute_minimum_eigenvalue(operator=operator)
+            with self.assertWarns(DeprecationWarning):
+                result = vqe.compute_minimum_eigenvalue(operator=operator)
             self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
     def test_vqe_optimizer_reuse(self):

@@ -40,5 +40,5 @@ class TestUtil(QiskitTestCase):
         symm = (m + m.T) / 2
 
         triu = [[symm[i, j] for i in range(j, n)] for j in range(n)]
-
-        self.assertTrue(np.array_equal(symm, triu_to_dense(triu)))
+        with self.assertWarns(DeprecationWarning):
+            self.assertTrue(np.array_equal(symm, triu_to_dense(triu)))
