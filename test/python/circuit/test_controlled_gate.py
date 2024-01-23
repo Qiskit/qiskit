@@ -925,7 +925,9 @@ class TestControlledGate(QiskitTestCase):
     def test_open_control_cx_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
         qc = QuantumCircuit(2)
-        qc.cx(0, 1, ctrl_state=0)
+        qc.append(U3Gate(np.pi, 0, np.pi), [0])
+        qc.cx(0, 1)
+        qc.append(U3Gate(np.pi, 0, np.pi), [0])
         dag = circuit_to_dag(qc)
         basis_translator = BasisTranslator(std_eqlib, ["u3", "cx"])
         uqc = dag_to_circuit(basis_translator.run(dag))
@@ -939,7 +941,9 @@ class TestControlledGate(QiskitTestCase):
     def test_open_control_cy_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
         qc = QuantumCircuit(2)
-        qc.cy(0, 1, ctrl_state=0)
+        qc.append(U3Gate(np.pi, 0, np.pi), [0])
+        qc.cy(0, 1)
+        qc.append(U3Gate(np.pi, 0, np.pi), [0])
         dag = circuit_to_dag(qc)
         basis_translator = BasisTranslator(std_eqlib, ["u3", "cy"])
         uqc = dag_to_circuit(basis_translator.run(dag))
@@ -955,7 +959,11 @@ class TestControlledGate(QiskitTestCase):
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
         ccx = CCXGate(ctrl_state=0)
-        qc.append(ccx, [0, 1, 2])
+        qc.x(qreg[0])
+        qc.x(qreg[1])
+        qc.ccx(qreg[0], qreg[1], qreg[2])
+        qc.x(qreg[0])
+        qc.x(qreg[1])
         dag = circuit_to_dag(qc)
         basis_translator = BasisTranslator(std_eqlib, ["x", "ccx"])
         unrolled_dag = basis_translator.run(dag)
@@ -999,7 +1007,9 @@ class TestControlledGate(QiskitTestCase):
         # create controlled composite gate
         cqreg = QuantumRegister(3)
         qc = QuantumCircuit(cqreg)
-        qc.append(bell.control(ctrl_state=0), qc.qregs[0][:])
+        qc.x(cqreg[0])
+        qc.append(bell.control(), [cqreg[0], cqreg[1], cqreg[2]])
+        qc.x(cqreg[0])
         dag = circuit_to_dag(qc)
         basis_translator = BasisTranslator(std_eqlib, ["x", "u1", "cbell"])
         unrolled_dag = basis_translator.run(dag)
@@ -1440,7 +1450,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         cqc = QuantumCircuit(self.num_ctrl + self.num_target)
         cqc.append(cgate, cqc.qregs[0])
         dag = circuit_to_dag(cqc)
-        basis_translator = BasisTranslator(std_eqlib, ["u", "cx"])
+        basis_translator = BasisTranslator(std_eqlib, ["u", "cx", "ccu1", "ccrx", "ccry", "ccrz"])
         uqc = dag_to_circuit(basis_translator.run(dag))
         self.log.info("%s gate count: %d", cgate.name, uqc.size())
         self.log.info("\n%s", str(uqc))
@@ -1462,7 +1472,7 @@ class TestSingleControlledRotationGates(QiskitTestCase):
         qc.append(self.grz.control(self.num_ctrl), qreg)
 
         dag = circuit_to_dag(qc)
-        basis_translator = BasisTranslator(std_eqlib, ["u", "cx"])
+        basis_translator = BasisTranslator(std_eqlib, ["u", "cx", "ccrx", "ry", "ccry", "ccrz"])
         uqc = dag_to_circuit(basis_translator.run(dag))
         self.log.info("%s gate count: %d", uqc.name, uqc.size())
         self.assertLessEqual(uqc.size(), 96, f"\n{uqc}")  # this limit could be changed
