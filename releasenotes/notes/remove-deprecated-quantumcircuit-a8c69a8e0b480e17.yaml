@@ -5,23 +5,4 @@ upgrade:
 
       * `header`,        No alternative will be provided
       * `extension_lib`, No alternative will be provided
-      * `i`,             Instead, use QuantumCircuit.id
-      * `fredkin`,       Instead, use QuantumCircuit.cswap
-      * `cnot`,          Instead, use QuantumCircuit.cx
-      * `toffoli`,       Instead, use QuantumCircuit.ccx 
-      * `mct`,           Instead, use QuantumCircuit.mcx
-      * `diagonal`,      Instead, use qiskit.circuit.library.Diagonal 
-      * `iso`,           Instead, use qiskit.circuit.library.Isometry
-      * `hamiltonian`,   Instead, use qiskit.circuit.library.HamiltonianGate 
-      * `uc`,            Instead, use qiskit.circuit.library.UCGate 
-      * `ucrx`,          Instead, use qiskit.circuit.library.UCRXGate 
-      * `ucry`,          Instead, use qiskit.circuit.library.UCRYGate
-      * `ucrz`,          Instead, use qiskit.circuit.library.UCRZGate
-      * `squ`,           Instead, use QuantumCircuit.unitary
-      * `snapshot`,
-      
-    The Snapshot instruction has been superseded by Qiskit Aer's save instructions,
-    see: https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.
-    
-
 
