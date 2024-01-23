@@ -515,7 +515,9 @@ CX q[0], q[1];
         # Ensure the circuits have the same number of operations
         self.assertEqual(len(circuit1.data), len(circuit2.data))
 
-        for (gate1, qubits1, clbits1), (gate2, qubits2, clbits2) in zip(circuit1.data, circuit2.data):
+        for (gate1, qubits1, clbits1), (gate2, qubits2, clbits2) in zip(
+            circuit1.data, circuit2.data
+        ):
             # Compare gates
             self.assertEqual(gate1.name, gate2.name)
             self.assertEqual(gate1.num_qubits, gate2.num_qubits)
@@ -527,4 +529,3 @@ CX q[0], q[1];
 
             for clbit1, clbit2 in zip(clbits1, clbits2):
                 self.assertEqual(circuit1.clbits.index(clbit1), circuit2.clbits.index(clbit2))
-
