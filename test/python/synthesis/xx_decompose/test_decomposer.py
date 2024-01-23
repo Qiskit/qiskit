@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/qiskit.py .
+Tests for synthesis/xx_decompose/qiskit.py .
 """
 
 from statistics import mean
@@ -24,7 +24,7 @@ from scipy.stats import unitary_group
 import qiskit
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
+from qiskit.synthesis.two_qubit.xx_decompose.decomposer import (
     XXDecomposer,
     TwoQubitWeylDecomposition,
 )
@@ -155,3 +155,11 @@ class TestXXDecomposer(unittest.TestCase):
         mat = Operator(qc).to_matrix()
         dqc = decomposer(mat)
         self.assertTrue(np.allclose(mat, Operator(dqc).to_matrix()))
+
+    def test_deprecation(self):
+        """Assert that importing this class from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import XXDecomposer as old_XXDecomposer
+
+            _ = old_XXDecomposer(euler_basis="PSX")

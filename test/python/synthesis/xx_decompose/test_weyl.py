@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/weyl.py .
+Tests for synthesis/xx_decompose/weyl.py .
 """
 
 from itertools import permutations
@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.xx_decompose.weyl import (
+from qiskit.synthesis.two_qubit.xx_decompose.weyl import (
     apply_reflection,
     apply_shift,
     canonical_rotation_circuit,

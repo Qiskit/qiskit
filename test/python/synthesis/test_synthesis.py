@@ -56,8 +56,8 @@ from qiskit.circuit.library import (
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
     TwoQubitWeylIdEquiv,
     TwoQubitWeylSWAPEquiv,
@@ -77,9 +77,9 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitDecomposeUpToDiagonal,
 )
 
-from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
-from qiskit.quantum_info.synthesis import qsd
+from qiskit.synthesis.unitary import qsd
 from qiskit.test import QiskitTestCase
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 
 def make_oneq_cliffords():
@@ -148,7 +148,7 @@ class CheckDecompositions(QiskitTestCase):
     @contextlib.contextmanager
     def assertDebugOnly(self):  # FIXME: when at python 3.10+ replace with assertNoLogs
         """Context manager, asserts log is emitted at level DEBUG but no higher"""
-        with self.assertLogs("qiskit.quantum_info.synthesis", "DEBUG") as ctx:
+        with self.assertLogs("qiskit.synthesis", "DEBUG") as ctx:
             yield
         for i in range(len(ctx.records)):
             self.assertLessEqual(
@@ -632,6 +632,14 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
         self.assertAlmostEqual(phi, expected_phi)
         self.assertAlmostEqual(lam, expected_lam)
 
+    def test_deprecation(self):
+        """Assert that importing this class from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import OneQubitEulerDecomposer as old_OneQubitEulerDecomposer
+
+            _ = old_OneQubitEulerDecomposer(basis="PSX")
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
@@ -985,15 +993,17 @@ class TestTwoQubitDecompose(CheckDecompositions):
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
         cnot = Operator(CXGate())
-        decomps = [
-            cnot_rxx_decompose(),
-            cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
-            cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
-            cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
-            cnot_rxx_decompose(plus_ry=False, plus_rxx=False),
-        ]
-        for decomp in decomps:
-            self.assertTrue(cnot.equiv(decomp))
+        # Assert that this class raises a deprecation warning
+        with self.assertWarns(DeprecationWarning):
+            decomps = [
+                cnot_rxx_decompose(),
+                cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
+                cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
+                cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
+                cnot_rxx_decompose(plus_ry=False, plus_rxx=False),
+            ]
+            for decomp in decomps:
+                self.assertTrue(cnot.equiv(decomp))
 
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
@@ -1251,6 +1261,20 @@ class TestTwoQubitDecompose(CheckDecompositions):
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
+
+    def test_deprecation(self):
+        """Assert that importing these classes from quantum_info raises a deprecation warning."""
+        # pylint: disable = no-name-in-module
+        with self.assertWarns(DeprecationWarning):
+            unitary = random_unitary(4, seed=1234)
+            from qiskit.quantum_info import TwoQubitBasisDecomposer as old_TwoQubitBasisDecomposer
+
+            _ = old_TwoQubitBasisDecomposer(unitary)
+
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info import two_qubit_cnot_decompose as old_two_qubit_cnot_decompose
+
+            _ = old_two_qubit_cnot_decompose(unitary)
 
 
 @ddt
