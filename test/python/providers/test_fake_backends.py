@@ -36,6 +36,7 @@ from qiskit.providers.fake_provider import (
     FakeWashington,
     FakeSherbrooke,
     FakePrague,
+    FakeOpenPulse2Q,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -236,6 +237,19 @@ class TestFakeBackends(QiskitTestCase):
         qc.measure_all()
         res = transpile(qc, backend_v2)
         self.assertIn("delay", res.count_ops())
+
+    def test_converter_with_missing_gate_property(self):
+        """Test converting to V2 model with irregular backend data."""
+        backend = FakeOpenPulse2Q()
+
+        # The backend includes pulse calibration definition for U2, but its property is gone.
+        # Note that u2 is a basis gate of this device.
+        # Since gate property is not provided, the gate broadcasts to all qubits as ideal instruction.
+        del backend._properties._gates["u2"]
+
+        # This should not raise error
+        backend_v2 = BackendV2Converter(backend, add_delay=True)
+        self.assertDictEqual(backend_v2.target["u2"], {None: None})
 
     def test_non_cx_tests(self):
         backend = FakePrague()
