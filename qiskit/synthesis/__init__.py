@@ -85,19 +85,11 @@ Discrete Basis Synthesis
 
 .. autofunction:: generate_basic_approximations
 
-<<<<<<< HEAD
-=======
-Basis Change Synthesis
-======================
-
-.. autofunction:: synth_qft_line
-
 Unitary Synthesis
 =================
 
 The Approximate Quantum Compiler is available here: :mod:`qiskit.synthesis.unitary.aqc`
 
->>>>>>> 937ca5b31 (Deprecate qiskit/transpiler/synthesis and move to qiskit/synthesis (#11426))
 """
 
 from .evolution import (
@@ -134,8 +126,4 @@ from .cnotdihedral import (
 )
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
-<<<<<<< HEAD
-=======
-from .qft import synth_qft_line
 from .unitary import aqc
->>>>>>> 937ca5b31 (Deprecate qiskit/transpiler/synthesis and move to qiskit/synthesis (#11426))
