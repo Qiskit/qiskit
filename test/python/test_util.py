@@ -50,7 +50,7 @@ class TestUtil(QiskitTestCase):
             result = multiprocessing.local_hardware_info()
         self.assertEqual(2, result["cpus"])
 
-    def test_local_hardware_no_sched_five_count(self):
+    def test_local_hardware_no_sched_sixty_four_count(self):
         """Test cpu cound if sched affinity method is missing and cpu count is 64."""
         with mock.patch.object(multiprocessing, "os", spec=[]):
             multiprocessing.os.cpu_count = mock.MagicMock(return_value=64)
