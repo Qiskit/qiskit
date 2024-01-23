@@ -556,7 +556,8 @@ fn gen_swap_epilogue(
         Some(SWAP_EPILOGUE_TRIALS),
         Some(seed),
         None,
-    );
+    )
+    .unwrap();
 
     // Convert physical swaps to virtual swaps
     swaps
