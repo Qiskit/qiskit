@@ -17,7 +17,7 @@ Utility functions for debugging and testing.
 from typing import Tuple
 import numpy as np
 from scipy.stats import unitary_group
-import qiskit.transpiler.synthesis.aqc.fast_gradient.fast_grad_utils as fgu
+import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as fgu
 
 
 def relative_error(a_mat: np.ndarray, b_mat: np.ndarray) -> float:
