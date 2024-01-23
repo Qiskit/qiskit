@@ -30,7 +30,7 @@ class LinearFunction(Gate):
     as a n x n matrix of 0s and 1s in numpy array format.
 
     A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
-    algorithm, as implemented in :func:`~qiskit.transpiler.synthesis.cnot_synth`
+    algorithm, as implemented in :func:`~qiskit.synthesis.synth_cnot_count_full_pmh`
     based on reference [1].
 
     For efficiency, the internal n x n matrix is stored in the format expected

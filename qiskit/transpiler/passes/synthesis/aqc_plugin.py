@@ -106,10 +106,17 @@ class AQCSynthesisPlugin(UnitarySynthesisPlugin):
         # Runtime imports to avoid the overhead of these imports for
         # plugin discovery and only use them if the plugin is run/used
         from scipy.optimize import minimize
+<<<<<<< HEAD:qiskit/transpiler/synthesis/aqc/aqc_plugin.py
         from qiskit.transpiler.synthesis.aqc.aqc import AQC
         from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
         from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
         from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+=======
+        from qiskit.synthesis.unitary.aqc import AQC
+        from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
+        from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
+        from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+>>>>>>> 937ca5b31 (Deprecate qiskit/transpiler/synthesis and move to qiskit/synthesis (#11426)):qiskit/transpiler/passes/synthesis/aqc_plugin.py
 
         num_qubits = int(round(np.log2(unitary.shape[0])))
 

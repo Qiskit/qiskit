@@ -15,7 +15,7 @@ Tests AQC framework using hardcoded and randomly generated circuits.
 from functools import partial
 
 import unittest
-from test.python.transpiler.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
+from test.python.synthesis.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
 
 from ddt import ddt, data
 import numpy as np
@@ -24,11 +24,11 @@ from scipy.optimize import minimize
 from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.synthesis.aqc.aqc import AQC
-from qiskit.transpiler.synthesis.aqc.cnot_structures import make_cnot_network
-from qiskit.transpiler.synthesis.aqc.cnot_unit_circuit import CNOTUnitCircuit
-from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
-from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.aqc import AQC
+from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
+from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 
 
 @ddt
@@ -143,6 +143,12 @@ class TestAqc(QiskitTestCase):
 
         error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
         self.assertTrue(error < 1e-3)
+
+    def test_deprecation(self):
+        """Test that importing this module is deprecated."""
+        # pylint: disable = unused-import
+        with self.assertWarns(DeprecationWarning):
+            import qiskit.transpiler.synthesis.aqc
 
 
 if __name__ == "__main__":
