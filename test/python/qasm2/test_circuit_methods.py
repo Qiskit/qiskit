@@ -381,7 +381,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll("u", circuit, expected)
+        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
 
     def test_from_qasm_str_custom_gate5(self):
         """Test load custom gates (parameterized, with biop and constant)
@@ -405,7 +405,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll("u", circuit, expected)
+        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
 
     def test_from_qasm_str_custom_gate6(self):
         """Test load custom gates (parameters used in expressions)
@@ -431,7 +431,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll(["rx", "ry"], circuit, expected)
+        self.assertEqualUnroll(["rx", "ry", "my_gate"], circuit, expected)
 
     def test_from_qasm_str_custom_gate7(self):
         """Test load custom gates (build in functions)
@@ -445,10 +445,17 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        lam = Parameter("lambda")
+        my_gate_circuit.u(-0.5235987755982988, phi + 3.141592653589793, lam / 2, 0)
+        my_gate = my_gate_circuit.to_gate()
+
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
-        expected.u(-0.5235987755982988, 6.283185307179586, 1.5707963267948966, qr[0])
-        self.assertEqualUnroll("u", circuit, expected)
+        expected.append(my_gate, [qr[0]])
+        expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
+        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
 
     def test_from_qasm_str_nested_custom_gate(self):
         """Test chain of custom gates
@@ -464,10 +471,16 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
+        my_gate_circuit = QuantumCircuit(1, name="my_gate")
+        phi = Parameter("phi")
+        my_gate_circuit.u(-0.5235987755982988, phi + 3.141592653589793, phi + 3.141592653589793, 0)
+        my_gate = my_gate_circuit.to_gate()
+
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
-        expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
-        self.assertEqualUnroll("u", circuit, expected)
+        expected.append(my_gate, [qr[0]])
+        expected = expected.assign_parameters({phi: 3.141592653589793})
+        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
 
     def test_from_qasm_str_delay(self):
         """Test delay instruction/opaque-gate
