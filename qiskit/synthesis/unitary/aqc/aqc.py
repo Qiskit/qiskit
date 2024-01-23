@@ -20,7 +20,7 @@ from typing import Protocol
 import numpy as np
 from scipy.optimize import OptimizeResult, minimize
 
-from qiskit.algorithms.optimizers import Optimizer
+from qiskit.algorithms.optimizers import Optimizer  # pylint: disable=cyclic-import
 from qiskit.quantum_info import Operator
 from qiskit.utils.deprecation import deprecate_arg
 
