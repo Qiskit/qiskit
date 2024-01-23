@@ -79,7 +79,9 @@ class EstimatorPubTestCase(QiskitTestCase):
         """Test unparameterized circuit raises for parameter values"""
         circuit = QuantumCircuit(2)
         obs = ObservablesArray([{"XY": 1}])
-        parameter_values = BindingsArray(np.zeros((2, num_params)), shape=2)
+        parameter_values = BindingsArray(
+            {(f"a{idx}" for idx in range(num_params)): np.zeros((2, num_params))}, shape=2
+        )
         if num_params == 0:
             EstimatorPub(circuit, obs, parameter_values=parameter_values)
             return
@@ -104,7 +106,9 @@ class EstimatorPubTestCase(QiskitTestCase):
         circuit.ry(params[1], 1)
 
         obs = ObservablesArray([{"XY": 1}])
-        parameter_values = BindingsArray(np.zeros((2, num_params)), shape=2)
+        parameter_values = BindingsArray(
+            {(f"a{idx}" for idx in range(num_params)): np.zeros((2, num_params))}, shape=2
+        )
 
         if num_params == len(params):
             EstimatorPub(circuit, obs, parameter_values=parameter_values)
@@ -118,7 +122,7 @@ class EstimatorPubTestCase(QiskitTestCase):
         """Test Passing in a shaped array with no parameters works"""
         circuit = QuantumCircuit(2)
         obs = ObservablesArray({"XZ": 1})
-        parameter_values = BindingsArray(np.zeros((*shape, 0)), shape=shape)
+        parameter_values = BindingsArray({(): np.zeros((*shape, 0))}, shape=shape)
         pub = EstimatorPub(circuit, obs, parameter_values=parameter_values)
         self.assertEqual(pub.shape, shape)
 
@@ -382,7 +386,7 @@ class EstimatorPubTestCase(QiskitTestCase):
             circuit.rz(params[2 * idx + 1], 1)
 
         obs = ObservablesArray([{"XX": 1}] * np.prod(obs_shape, dtype=int)).reshape(obs_shape)
-        params = BindingsArray(np.empty(params_shape + (6,)))
+        params = BindingsArray({tuple(params): np.empty(params_shape + (6,))})
 
         pub = EstimatorPub(circuit, obs, params)
         self.assertEqual(obs.shape, obs_shape)
@@ -409,7 +413,7 @@ class EstimatorPubTestCase(QiskitTestCase):
             circuit.rz(params[2 * idx + 1], 1)
 
         obs = ObservablesArray([{"XX": 1}] * np.prod(obs_shape, dtype=int)).reshape(obs_shape)
-        params = BindingsArray(np.empty(params_shape + (6,)))
+        params = BindingsArray({tuple(params): np.empty(params_shape + (6,))})
         self.assertEqual(obs.shape, obs_shape)
         self.assertEqual(params.shape, params_shape)
 

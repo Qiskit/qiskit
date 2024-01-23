@@ -17,6 +17,7 @@ Sampler Pub class
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Tuple, Union
 from numbers import Integral
 
@@ -114,7 +115,15 @@ class SamplerPub(ShapedMixin):
                 f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
             )
         circuit = pub[0]
-        parameter_values = BindingsArray.coerce(pub[1]) if len(pub) > 1 else None
+
+        if len(pub) > 1 and pub[1] is not None:
+            values = pub[1]
+            if not isinstance(values, Mapping):
+                values = {tuple(circuit.parameters): values}
+            parameter_values = BindingsArray.coerce(values)
+        else:
+            parameter_values = None
+
         if len(pub) > 2 and pub[2] is not None:
             shots = pub[2]
         return cls(circuit=circuit, parameter_values=parameter_values, shots=shots, validate=True)
