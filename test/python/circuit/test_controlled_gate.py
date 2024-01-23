@@ -958,7 +958,6 @@ class TestControlledGate(QiskitTestCase):
         """test unrolling of open control gates when gate is in basis"""
         qreg = QuantumRegister(3)
         qc = QuantumCircuit(qreg)
-        ccx = CCXGate(ctrl_state=0)
         qc.x(qreg[0])
         qc.x(qreg[1])
         qc.ccx(qreg[0], qreg[1], qreg[2])
