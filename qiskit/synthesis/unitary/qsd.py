@@ -15,11 +15,17 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
+from typing import Callable
 import scipy
 import numpy as np
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info.synthesis import two_qubit_decompose, one_qubit_decompose
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
+from qiskit.synthesis.two_qubit import (
+    TwoQubitBasisDecomposer,
+    two_qubit_decompose,
+)
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
+from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.circuit.library.generalized_gates.uc_pauli_rot import UCPauliRotGate, _EPS
 from qiskit.circuit.library.generalized_gates.ucry import UCRYGate
 from qiskit.circuit.library.generalized_gates.ucrz import UCRZGate
@@ -29,25 +35,28 @@ def qs_decomposition(
     mat: np.ndarray,
     opt_a1: bool = True,
     opt_a2: bool = True,
-    decomposer_1q=None,
-    decomposer_2q=None,
+    decomposer_1q: Callable[[np.ndarray], QuantumCircuit] | None = None,
+    decomposer_2q: Callable[[np.ndarray], QuantumCircuit] | None = None,
     *,
     _depth=0,
 ):
-    """
-    Decomposes unitary matrix into one and two qubit gates using Quantum Shannon Decomposition.
+    r"""
+    Decomposes a unitary matrix into one and two qubit gates using Quantum Shannon Decomposition,
 
-       ┌───┐               ┌───┐     ┌───┐     ┌───┐
-      ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
-       │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
-     /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
-       └───┘          └───┘     └───┘     └───┘     └───┘
+    This decomposition is described in Shende et al. [1].
+
+    .. parsed-literal::
+          ┌───┐               ┌───┐     ┌───┐     ┌───┐
+         ─┤   ├─       ───────┤ Rz├─────┤ Ry├─────┤ Rz├─────
+          │   │    ≃     ┌───┐└─┬─┘┌───┐└─┬─┘┌───┐└─┬─┘┌───┐
+        /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
+          └───┘          └───┘     └───┘     └───┘     └───┘
 
     The number of CX gates generated with the decomposition without optimizations is,
 
     .. math::
 
-        \frac{9}{16} 4^n - frac{3}{2} 2^n
+        \frac{9}{16} 4^n - \frac{3}{2} 2^n
 
     If opt_a1 = True, the default, the CX count is reduced by,
 
@@ -61,23 +70,25 @@ def qs_decomposition(
 
         4^{n-2} - 1.
 
-    This decomposition is described in arXiv:quant-ph/0406176.
+    Args:
+        mat: unitary matrix to decompose
+        opt_a1: whether to try optimization A.1 from Shende et al. [1].
+            This should eliminate 1 cx per call.
+            If True CZ gates are left in the output. If desired these can be further decomposed to CX.
+        opt_a2: whether to try optimization A.2 from Shende et al. [1].
+            This decomposes two qubit unitaries into a diagonal gate and a two cx unitary and
+            reduces overall cx count by :math:`4^{n-2} - 1`.
+        decomposer_1q: optional 1Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
+        decomposer_2q: optional 2Q decomposer. If None, uses
+            :class:`~qiskit.synthesis.TwoQubitBasisDecomposer`.
 
-    Arguments:
-       mat (ndarray): unitary matrix to decompose
-       opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
-          per call. If True CZ gates are left in the output. If desired these can be further decomposed
-          to CX.
-       opt_a2 (bool): whether to try optimization A.2 from Shende. This decomposes two qubit
-          unitaries into a diagonal gate and a two cx unitary and reduces overal cx count by
-          4^(n-2) - 1.
-       decomposer_1q (None or Object): optional 1Q decomposer. If None, uses
-          :class:`~qiskit.quantum_info.synthesis.one_qubit_decomposer.OneQubitEulerDecomser`
-       decomposer_2q (None or Object): optional 2Q decomposer. If None, uses
-          :class:`~qiskit.quantum_info.synthesis.two_qubit_decomposer.two_qubit_cnot_decompose
+    Returns:
+        QuantumCircuit: Decomposed quantum circuit.
 
-    Return:
-       QuantumCircuit: Decomposed quantum circuit.
+    Reference:
+        1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
+           `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
@@ -91,7 +102,9 @@ def qs_decomposition(
     elif dim == 4:
         if decomposer_2q is None:
             if opt_a2 and _depth > 0:
-                from qiskit.circuit.library import UnitaryGate  # pylint: disable=cyclic-import
+                from qiskit.circuit.library.generalized_gates.unitary import (
+                    UnitaryGate,
+                )  # pylint: disable=cyclic-import
 
                 def decomp_2q(mat):
                     ugate = UnitaryGate(mat)
@@ -101,7 +114,7 @@ def qs_decomposition(
 
                 decomposer_2q = decomp_2q
             else:
-                decomposer_2q = two_qubit_decompose.two_qubit_cnot_decompose
+                decomposer_2q = TwoQubitBasisDecomposer(CXGate())
         circ = decomposer_2q(mat)
     else:
         qr = QuantumRegister(nqubits)
@@ -160,10 +173,10 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
     Args:
        um0 (ndarray): applied if MSB is 0
        um1 (ndarray): applied if MSB is 1
-       opt_a1 (bool): whether to try optimization A.1 from Shende. This should elliminate 1 cnot
+       opt_a1 (bool): whether to try optimization A.1 from Shende. This should eliminate 1 cnot
           per call. If True CZ gates are left in the output. If desired these can be further decomposed
        opt_a2 (bool): whether to try  optimization A.2 from Shende. This decomposes two qubit
-          unitaries into a diagonal gate and a two cx unitary and reduces overal cx count by
+          unitaries into a diagonal gate and a two cx unitary and reduces overall cx count by
           4^(n-2) - 1.
        _depth (int): This is an internal variable to track the recursion depth.
 
@@ -206,7 +219,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
 
 def _get_ucry_cz(nqubits, angles):
     """
-    Get uniformly controlled Ry gate in in CZ-Ry as in UCPauliRotGate.
+    Get uniformly controlled Ry gate in CZ-Ry as in UCPauliRotGate.
     """
     nangles = len(angles)
     qc = QuantumCircuit(nqubits)
@@ -234,9 +247,9 @@ def _get_ucry_cz(nqubits, angles):
 
 
 def _apply_a2(circ):
-    from qiskit import transpile
+    from qiskit.compiler import transpile
     from qiskit.quantum_info import Operator
-    from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
     decomposer = two_qubit_decompose.TwoQubitDecomposeUpToDiagonal()
     ccirc = transpile(circ, basis_gates=["u", "cx", "qsd2q"], optimization_level=0)

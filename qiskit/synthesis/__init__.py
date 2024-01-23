@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
+r"""
 ===========================================
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
@@ -94,7 +94,28 @@ Basis Change Synthesis
 Unitary Synthesis
 =================
 
+Decomposition of general :math:`2^n \times 2^n` unitary matrices for any number of qubits.
+
+.. autofunction:: qs_decomposition
+
 The Approximate Quantum Compiler is available here: :mod:`qiskit.synthesis.unitary.aqc`
+
+One-Qubit Synthesis
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OneQubitEulerDecomposer
+
+Two-Qubit Synthesis
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TwoQubitBasisDecomposer
+   XXDecomposer
 
 """
 
@@ -137,4 +158,8 @@ from .stabilizer import (
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line
+from .unitary.qsd import qs_decomposition
 from .unitary import aqc
+from .one_qubit import OneQubitEulerDecomposer
+from .two_qubit.xx_decompose import XXDecomposer
+from .two_qubit.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose

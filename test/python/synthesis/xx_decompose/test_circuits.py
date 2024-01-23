@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Tests for qiskit-terra/qiskit/quantum_info/synthesis/xx_decompose/circuits.py .
+Tests for synthesis/xx_decompose/circuits.py .
 """
 
 from operator import itemgetter
@@ -23,8 +23,8 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RZGate, UnitaryGate
 import qiskit.quantum_info.operators
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
-from qiskit.quantum_info.synthesis.xx_decompose.circuits import (
+from qiskit.synthesis.two_qubit.weyl import weyl_coordinates
+from qiskit.synthesis.two_qubit.xx_decompose.circuits import (
     decompose_xxyy_into_xxyy_xx,
     xx_circuit_step,
 )

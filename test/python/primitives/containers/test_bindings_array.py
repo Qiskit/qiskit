@@ -77,95 +77,6 @@ class BindingsArrayTestCase(QiskitTestCase):
             ).startswith("BindingsArray")
         )
 
-    def test_as_array_dtype_raises(self):
-        """Test as_array() raises when multiple dtypes are present."""
-        ba = BindingsArray([np.empty((50, 5), dtype=float), np.empty((50, 2), dtype=int)])
-        with self.assertRaises(RuntimeError):
-            ba.as_array()
-
-    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
-    @ddt.unpack
-    def test_as_array_bad_param_raises(self, kwvals_str, args_str):
-        """Test as_array() raises when a parameter key is missing."""
-        kwval_param = lambda param: Parameter(param) if kwvals_str else param
-        args_param = lambda param: Parameter(param) if args_str else param
-
-        ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
-        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 1 received"):
-            ba.as_array([args_param("b")])
-
-        ba = BindingsArray(kwvals={(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
-        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 3 received"):
-            ba.as_array([args_param("b"), args_param("a"), args_param("b")])
-
-        with self.assertRaisesRegex(ValueError, "Could not find placement for parameter 'a'"):
-            ba.as_array([args_param("b"), args_param("c")])
-
-    def test_as_array_vals_only(self):
-        """Test as_array() works when only vals are present."""
-        # empty
-        ba = BindingsArray(shape=())
-        np.testing.assert_allclose(ba.as_array(), np.array([[]]))
-
-        # one array
-        arr = np.linspace(0, 20, 250).reshape((25, 5, 2))
-        ba = BindingsArray(arr)
-        np.testing.assert_allclose(ba.as_array(), arr)
-
-        # two arrays
-        arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
-        arr_b = np.linspace(0, 5, 1000).reshape((25, 5, 8))
-        ba = BindingsArray([arr_a, arr_b])
-        np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
-
-    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
-    @ddt.unpack
-    def test_as_array_kwvals_only(self, kwvals_str, args_str):
-        """Test as_array() works when only kwvals are present."""
-        kwval_param = lambda param: Parameter(param) if kwvals_str else param
-        args_param = lambda param: Parameter(param) if args_str else param
-
-        arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
-        arr_b = np.linspace(0, 5, 375).reshape((25, 5, 3))
-        ba = BindingsArray(
-            kwvals={
-                (kwval_param("a"), kwval_param("b")): arr_a,
-                (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_b,
-            }
-        )
-        np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
-
-        params = map(args_param, "dabec")
-        expected = [arr_b[..., 1], arr_a[..., 0], arr_a[..., 1], arr_b[..., 2], arr_b[..., 0]]
-        expected = np.concatenate([arr[..., None] for arr in expected], axis=2)
-        np.testing.assert_allclose(ba.as_array(params), expected)
-
-    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
-    @ddt.unpack
-    def test_as_array_mixed_vals(self, kwvals_str, args_str):
-        """Test as_array() works when both vals and kwvals are present."""
-        kwval_param = lambda param: Parameter(param) if kwvals_str else param
-        args_param = lambda param: Parameter(param) if args_str else param
-
-        arr_a = np.linspace(0, 20, 375).reshape((25, 5, 3))
-        arr_b = np.linspace(0, 5, 250).reshape((25, 5, 2))
-        arr_c = np.linspace(0, 5, 375).reshape((25, 5, 3))
-        ba = BindingsArray(
-            arr_a,
-            kwvals={
-                (kwval_param("a"), kwval_param("b")): arr_b,
-                (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_c,
-            },
-        )
-
-        expected = np.concatenate([arr_a, arr_b, arr_c], axis=2)
-        np.testing.assert_allclose(ba.as_array(), expected)
-
-        params = map(args_param, "dabec")
-        expected = [arr_c[..., 1], arr_b[..., 0], arr_b[..., 1], arr_c[..., 2], arr_c[..., 0]]
-        expected = np.concatenate([arr_a] + [arr[..., None] for arr in expected], axis=2)
-        np.testing.assert_allclose(ba.as_array(params), expected)
-
     def test_bind_at_idx(self):
         """Test binding at a specified index"""
         vals = np.linspace(0, 1, 1000).reshape((5, 4, 50))
@@ -257,9 +168,8 @@ class BindingsArrayTestCase(QiskitTestCase):
 
     def test_reshape(self):
         """Test reshape"""
-        vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
-
         with self.subTest("reshape"):
+            vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
             ba = BindingsArray(vals)
             reshape_ba = ba.reshape((3, 2))
             self.assertEqual(reshape_ba.num_parameters, 50)
@@ -270,17 +180,17 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape((3, 2, 50))
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 3, 2, 50)))
 
-            circuit = self.circuit
-            bound_circuits = reshape_ba.bind_all(circuit)
-            self.assertEqual(bound_circuits.shape, (3, 2))
-            self.assertEqual(bound_circuits[0, 0], circuit.assign_parameters(reshape_vals[0, 0]))
-            self.assertEqual(bound_circuits[0, 1], circuit.assign_parameters(reshape_vals[0, 1]))
-            self.assertEqual(bound_circuits[1, 0], circuit.assign_parameters(reshape_vals[1, 0]))
-            self.assertEqual(bound_circuits[1, 1], circuit.assign_parameters(reshape_vals[1, 1]))
-            self.assertEqual(bound_circuits[2, 0], circuit.assign_parameters(reshape_vals[2, 0]))
-            self.assertEqual(bound_circuits[2, 1], circuit.assign_parameters(reshape_vals[2, 1]))
+            bound_circuits = list(reshape_ba.bind_all(self.circuit).ravel())
+            self.assertEqual(len(bound_circuits), 6)
+            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(reshape_vals[0, 0]))
+            self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(reshape_vals[0, 1]))
+            self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(reshape_vals[1, 0]))
+            self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(reshape_vals[1, 1]))
+            self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(reshape_vals[2, 0]))
+            self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(reshape_vals[2, 1]))
 
         with self.subTest("flatten"):
+            vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
             ba = BindingsArray(vals)
             reshape_ba = ba.reshape(6)
             self.assertEqual(reshape_ba.num_parameters, 50)
@@ -291,10 +201,37 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape(-1, 50)
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 6, 50)))
 
-            bound_circuits = list(reshape_ba.bind_all(self.circuit))
+            bound_circuits = list(reshape_ba.bind_all(self.circuit).ravel())
             self.assertEqual(len(bound_circuits), 6)
             for i in range(6):
                 self.assertEqual(bound_circuits[i], self.circuit.assign_parameters(reshape_vals[i]))
+
+        with self.subTest("various_formats"):
+            ba = BindingsArray(
+                [np.empty((16, 7)), np.empty((16, 3))],
+                {Parameter("a"): np.empty(16), (Parameter("b"), Parameter("c")): np.empty((16, 2))},
+            )
+
+            def various_formats(shape):
+                # call reshape with a single argument
+                yield [shape]
+                yield [(-1,) + shape[1:]]
+                yield [np.array(shape)]
+                yield [list(shape)]
+                yield [list(map(np.int64, shape))]
+                yield [tuple(map(np.int64, shape))]
+
+                # call reshape with multiple arguments
+                yield shape
+                yield np.array(shape)
+                yield list(shape)
+                yield list(map(np.int64, shape))
+                yield tuple(map(np.int64, shape))
+
+            for shape in [(16,), (4, 4), (2, 4, 2), (2, 2, 2, 2), (1, 8, 1, 2)]:
+                for input_shape in various_formats(shape):
+                    reshaped_ba = ba.reshape(input_shape)
+                    self.assertEqual(reshaped_ba.shape, shape)
 
     def test_kwvals(self):
         """Test constructor with kwvals"""
