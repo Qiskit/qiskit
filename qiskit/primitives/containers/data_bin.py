@@ -59,7 +59,7 @@ def make_data_bin(
 
     .. code-block:: python
 
-        my_bin = make_data_bin([("alpha", np.NDArray[np.float])], shape=(20, 30))
+        my_bin = make_data_bin([("alpha", np.NDArray[np.float64])], shape=(20, 30))
 
         # behaves like a dataclass
         my_bin(alpha=np.empty((20, 30)))

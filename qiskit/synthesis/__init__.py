@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017 - 2023.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -43,6 +43,7 @@ Linear-Phase Synthesis
 
 .. autofunction:: synth_cz_depth_line_mr
 .. autofunction:: synth_cx_cz_depth_line_my
+.. autofunction:: synth_cnot_phase_aam
 
 Permutation Synthesis
 =====================
@@ -73,6 +74,7 @@ Stabilizer State Synthesis
 
 .. autofunction:: synth_stabilizer_layers
 .. autofunction:: synth_stabilizer_depth_lnn
+.. autofunction:: synth_circuit_from_stabilizers
 
 Discrete Basis Synthesis
 ========================
@@ -88,6 +90,11 @@ Basis Change Synthesis
 ======================
 
 .. autofunction:: synth_qft_line
+
+Unitary Synthesis
+=================
+
+The Approximate Quantum Compiler is available here: :mod:`qiskit.synthesis.unitary.aqc`
 
 """
 
@@ -123,6 +130,11 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
-from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
+from .stabilizer import (
+    synth_stabilizer_layers,
+    synth_stabilizer_depth_lnn,
+    synth_circuit_from_stabilizers,
+)
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line
+from .unitary import aqc
