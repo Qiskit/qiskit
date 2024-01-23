@@ -21,7 +21,6 @@ from ddt import ddt, data
 import numpy as np
 from scipy.optimize import minimize
 
-from qiskit.algorithms.optimizers import L_BFGS_B
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.synthesis.unitary.aqc.aqc import AQC
@@ -66,15 +65,6 @@ class TestAqc(QiskitTestCase):
         approx_matrix = Operator(approximate_circuit).data
         error = 0.5 * (np.linalg.norm(approx_matrix - ORIGINAL_CIRCUIT, "fro") ** 2)
         self.assertLess(error, 1e-3)
-
-    def test_aqc_deprecation(self):
-        """Tests that AQC raises deprecation warning."""
-
-        seed = 12345
-        optimizer = L_BFGS_B(maxiter=200)
-
-        with self.assertRaises(DeprecationWarning):
-            _ = AQC(optimizer=optimizer, seed=seed)
 
     def test_aqc_fastgrad(self):
         """

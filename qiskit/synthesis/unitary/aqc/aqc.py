@@ -20,7 +20,6 @@ from typing import Protocol
 import numpy as np
 from scipy.optimize import OptimizeResult, minimize
 
-from qiskit.algorithms.optimizers import Optimizer  # pylint: disable=cyclic-import
 from qiskit.quantum_info import Operator
 from qiskit.utils.deprecation import deprecate_arg
 
@@ -102,19 +101,9 @@ class AQC:
       also allocates a number of temporary memory buffers comparable in size to the target matrix.
     """
 
-    @deprecate_arg(
-        "optimizer",
-        deprecation_description=(
-            "Setting the `optimizer` argument to an instance "
-            "of `qiskit.algorithms.optimizers.Optimizer` "
-        ),
-        additional_msg=("Please, submit a callable that follows the `Minimizer` protocol instead."),
-        predicate=lambda optimizer: isinstance(optimizer, Optimizer),
-        since="0.45.0",
-    )
     def __init__(
         self,
-        optimizer: Minimizer | Optimizer | None = None,
+        optimizer: Minimizer | None = None,
         seed: int | None = None,
     ):
         """
@@ -128,9 +117,6 @@ class AQC:
         self._optimizer = optimizer or partial(
             minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
         )
-        # temporary fix -> remove after deprecation period of Optimizer
-        if isinstance(self._optimizer, Optimizer):
-            self._optimizer = self._optimizer.minimize
 
         self._seed = seed
 
