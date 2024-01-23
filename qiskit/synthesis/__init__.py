@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
+r"""
 ===========================================
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
@@ -84,6 +84,40 @@ Discrete Basis Synthesis
 
 .. autofunction:: generate_basic_approximations
 
+<<<<<<< HEAD
+=======
+Basis Change Synthesis
+======================
+
+.. autofunction:: synth_qft_line
+
+Unitary Synthesis
+=================
+
+Decomposition of general :math:`2^n \times 2^n` unitary matrices for any number of qubits.
+
+.. autofunction:: qs_decomposition
+
+The Approximate Quantum Compiler is available here: :mod:`qiskit.synthesis.unitary.aqc`
+
+One-Qubit Synthesis
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   OneQubitEulerDecomposer
+
+Two-Qubit Synthesis
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   TwoQubitBasisDecomposer
+   XXDecomposer
+
+>>>>>>> 8887f4436 (Deprecate qiskit/quantum_info/synthesis and move to qiskit/synthesis (#11460))
 """
 
 from .evolution import (
@@ -120,3 +154,12 @@ from .cnotdihedral import (
 )
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
+<<<<<<< HEAD
+=======
+from .qft import synth_qft_line
+from .unitary.qsd import qs_decomposition
+from .unitary import aqc
+from .one_qubit import OneQubitEulerDecomposer
+from .two_qubit.xx_decompose import XXDecomposer
+from .two_qubit.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
+>>>>>>> 8887f4436 (Deprecate qiskit/quantum_info/synthesis and move to qiskit/synthesis (#11460))

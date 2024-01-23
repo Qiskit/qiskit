@@ -15,6 +15,7 @@
 
 import copy
 
+<<<<<<< HEAD
 from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 
@@ -34,6 +35,11 @@ except ImportError:
     from qiskit.tools.qi.qi import random_unitary_matrix
 
     HAS_RANDOM_UNITARY = False
+=======
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
+from qiskit.quantum_info.random import random_unitary
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
+>>>>>>> 8887f4436 (Deprecate qiskit/quantum_info/synthesis and move to qiskit/synthesis (#11460))
 
 
 # Make a random circuit on a ring
