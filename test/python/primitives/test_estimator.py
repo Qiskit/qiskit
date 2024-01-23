@@ -366,7 +366,6 @@ class TestObservableValidation(QiskitTestCase):
     @data(
         ("IXYZ", (SparsePauliOp("IXYZ"),)),
         (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
-        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
         (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
         (
@@ -375,10 +374,6 @@ class TestObservableValidation(QiskitTestCase):
         ),
         (
             [Pauli("IXYZ"), Pauli("ZYXI")],
-            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
-        ),
-        (
-            [PauliList("IXYZ"), PauliList("ZYXI")],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
         (
@@ -394,6 +389,19 @@ class TestObservableValidation(QiskitTestCase):
     def test_validate_observables(self, obsevables, expected):
         """Test obsevables standardization."""
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+
+    @data(
+        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (
+            [PauliList("IXYZ"), PauliList("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+    )
+    @unpack
+    def test_validate_observables_deprecated(self, obsevables, expected):
+        """Test obsevables standardization."""
+        with self.assertRaises(DeprecationWarning):
+            self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):

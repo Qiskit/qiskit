@@ -154,6 +154,12 @@ class BaseEstimator(BasePrimitive, Generic[T]):
 
             values = parameter_values[i].
 
+        .. deprecated:: 0.46.0
+           Implicit conversion from a ``PauliList`` to a ``SparsePauliOp`` with ``coeffs=1`` in
+           the ``observables`` arguments is deprecated as of Qiskit 0.46 and will be removed
+           in Qiskit 1.0. You should explicitly convert to a ``SparsePauli`` using
+           ``SparsePauliOp(pauli_list)`` to avoid this warning.
+
         Args:
             circuits: one or more circuit objects.
             observables: one or more observable objects. Several formats are allowed;
