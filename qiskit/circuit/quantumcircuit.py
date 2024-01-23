@@ -72,6 +72,7 @@ if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
     from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
+    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -2844,6 +2845,8 @@ class QuantumCircuit:
         # Clear instruction info
         circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
         circ._parameter_table.clear()
+        # Repopulate the parameter table with any global-phase entries.
+        circ.global_phase = circ.global_phase
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -4417,19 +4420,131 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
+    def prepare_state(
+        self,
+        state: Statevector | Sequence[complex] | str | int,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        label: str | None = None,
+        normalize: bool = False,
+    ) -> InstructionSet:
+        r"""Prepare qubits in a specific state.
+
+        This class implements a state preparing unitary. Unlike
+        :meth:`.initialize` it does not reset the qubits first.
+
+        Args:
+            state: The state to initialize to, can be either of the following.
+
+                * Statevector or vector of complex amplitudes to initialize to.
+                * Labels of basis states of the Pauli eigenstates Z, X, Y. See
+                  :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
+                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * An integer that is used as a bitmap indicating which qubits to initialize to
+                  :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
+                  2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
+            qubits: Qubits to initialize. If ``None`` the initialization is applied to all qubits in
+                the circuit.
+            label: An optional label for the gate
+            normalize: Whether to normalize an input array to a unit vector.
+
+        Returns:
+            A handle to the instruction that was just initialized
+
+        Examples:
+            Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
+
+            .. code-block::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+            circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌─────────────────────────────────────┐
+                q_0: ┤ State Preparation(0.70711,-0.70711) ├
+                     └─────────────────────────────────────┘
+
+
+            Prepare from a string two qubits in the state :math:`|10\rangle`.
+            The order of the labels is reversed with respect to qubit index.
+            More information about labels for basis states are in
+            :meth:`.Statevector.from_label`.
+
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.prepare_state('01', circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌─────────────────────────┐
+                q_0: ┤0                        ├
+                     │  State Preparation(0,1) │
+                q_1: ┤1                        ├
+                     └─────────────────────────┘
+
+
+            Initialize two qubits from an array of complex amplitudes
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.prepare_state([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌───────────────────────────────────────────┐
+                q_0: ┤0                                          ├
+                     │  State Preparation(0,0.70711,-0.70711j,0) │
+                q_1: ┤1                                          ├
+                     └───────────────────────────────────────────┘
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library.data_preparation import StatePreparation
+
+        if qubits is None:
+            qubits = self.qubits
+        elif isinstance(qubits, (int, np.integer, slice, Qubit)):
+            qubits = [qubits]
+
+        num_qubits = len(qubits) if isinstance(state, int) else None
+
+        return self.append(
+            StatePreparation(state, num_qubits, label=label, normalize=normalize), qubits
+        )
+
     def initialize(
         self,
-        params: Sequence[complex] | str | int,
+        params: Statevector | Sequence[complex] | str | int,
         qubits: Sequence[QubitSpecifier] | None = None,
         normalize: bool = False,
     ):
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`qiskit.extensions.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.librar.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`qiskit.extensions.Initialize` instruction.
+        :class:`~qiskit.circuit.library.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.

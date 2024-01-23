@@ -115,8 +115,10 @@ class Pauli(BasePauli):
 
     .. math::
 
+        \begin{aligned}
         P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+        \end{aligned}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
 

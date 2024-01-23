@@ -13,6 +13,8 @@
 """Testing a Faulty Ourense Backend."""
 
 from qiskit.test import QiskitTestCase
+from qiskit.providers.backend_compat import convert_to_target
+
 from .faulty_backends import (
     FakeOurenseFaultyCX01CX10,
     FakeOurenseFaultyQ1,
@@ -33,6 +35,42 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
     def test_faulty_qubits(self):
         """Test faulty_qubits method."""
         self.assertEqual(self.backend.properties().faulty_qubits(), [1])
+
+    def test_convert_to_target(self):
+        """Test converting legacy data structure to V2 target model with faulty qubits.
+
+        Measure and Delay are automatically added to the output Target
+        even though instruction is not provided by the backend,
+        since these are the necessary instructions that the transpiler may assume.
+        """
+
+        # Filter out faulty Q1
+        target_with_filter = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=True,
+        )
+        self.assertFalse(
+            target_with_filter.instruction_supported(operation_name="measure", qargs=(1,))
+        )
+        self.assertFalse(
+            target_with_filter.instruction_supported(operation_name="delay", qargs=(1,))
+        )
+
+        # Include faulty Q1 even though data could be incomplete
+        target_without_filter = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=False,
+        )
+        self.assertTrue(
+            target_without_filter.instruction_supported(operation_name="measure", qargs=(1,))
+        )
+        self.assertTrue(
+            target_without_filter.instruction_supported(operation_name="delay", qargs=(1,))
+        )
 
 
 class FaultyGate13BackendTestCase(QiskitTestCase):

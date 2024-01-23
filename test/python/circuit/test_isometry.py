@@ -52,10 +52,10 @@ class TestIsometry(QiskitTestCase):
             iso = iso.reshape((len(iso), 1))
         num_q_output = int(np.log2(iso.shape[0]))
         num_q_input = int(np.log2(iso.shape[1]))
-        q = QuantumRegister(num_q_output)
-        qc = QuantumCircuit(q)
-        iso_gate = Isometry(iso, 0, 0)
-        qc.append(iso_gate, q)
+        qc = QuantumCircuit(num_q_output)
+
+        gate = Isometry(iso, num_ancillas_zero=0, num_ancillas_dirty=0)
+        qc.append(gate, qc.qubits)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
@@ -92,10 +92,11 @@ class TestIsometry(QiskitTestCase):
             iso = iso.reshape((len(iso), 1))
         num_q_output = int(np.log2(iso.shape[0]))
         num_q_input = int(np.log2(iso.shape[1]))
-        q = QuantumRegister(num_q_output)
-        qc = QuantumCircuit(q)
-        iso_gate = Isometry(iso, 0, 0, epsilon=1e-3)
-        qc.append(iso_gate, q)
+        qc = QuantumCircuit(num_q_output)
+
+        # Compute isometry with custom tolerance
+        gate = Isometry(iso, num_ancillas_zero=0, num_ancillas_dirty=0, epsilon=1e-3)
+        qc.append(gate, qc.qubits)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)

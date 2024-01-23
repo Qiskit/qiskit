@@ -58,8 +58,9 @@ class TestUCGate(QiskitTestCase):
         num_con = int(np.log2(len(squs)))
         q = QuantumRegister(num_con + 1)
         qc = QuantumCircuit(q)
-        uc_gate = UCGate(squs, up_to_diagonal=up_to_diagonal)
-        qc.append(uc_gate, q)
+
+        uc = UCGate(squs, up_to_diagonal=up_to_diagonal)
+        qc.append(uc, q)
 
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])

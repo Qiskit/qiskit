@@ -847,6 +847,24 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit.find_bit(c0[0]), BitLocations(0, [(c0, 0)]))
         self.assertEqual(circuit.find_bit(c3[0]), BitLocations(1, [(c3, 0)]))
 
+    def test_remove_final_measurements_parametric_global_phase(self):
+        """Test that a parametric global phase is respected in the table afterwards."""
+        a = Parameter("a")
+        qc = QuantumCircuit(2, 2, global_phase=a)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        expected = QuantumCircuit(2, global_phase=1)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(
+            qc.remove_final_measurements(inplace=False).assign_parameters({a: 1}), expected
+        )
+        qc.remove_final_measurements(inplace=True)
+        self.assertEqual(qc.assign_parameters({a: 1}), expected)
+
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
         qc = QuantumCircuit(2, 2)

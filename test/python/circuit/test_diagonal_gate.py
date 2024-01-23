@@ -16,12 +16,12 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
+from qiskit import QuantumCircuit, BasicAer, execute, assemble
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
-from qiskit.extensions.quantum_initializer import DiagonalGate
+from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
@@ -44,9 +44,9 @@ class TestDiagonalGate(QiskitTestCase):
             with self.subTest(phases=phases):
                 diag = [np.exp(1j * ph) for ph in phases]
                 num_qubits = int(np.log2(len(diag)))
-                q = QuantumRegister(num_qubits)
-                qc = QuantumCircuit(q)
-                qc.append(DiagonalGate(diag), q)
+                qc = QuantumCircuit(num_qubits)
+                gate = DiagonalGate(diag)
+                qc.append(gate, qc.qubits)
 
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
@@ -62,15 +62,15 @@ class TestDiagonalGate(QiskitTestCase):
         from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
         with self.assertRaises(QiskitError):
-            with self.assertWarns(PendingDeprecationWarning):
-                DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
+            DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
 
     def test_npcomplex_params_conversion(self):
         """Verify diagonal gate converts numpy.complex to complex."""
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
-        qc.append(DiagonalGate(diag), [0])
+        gate = DiagonalGate(diag)
+        qc.append(gate, [0])
 
         params = qc.data[0].operation.params
         self.assertTrue(

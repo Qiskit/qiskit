@@ -304,3 +304,13 @@ class ObservablesArrayTestCase(QiskitTestCase):
                     self.assertEqual(
                         obs_rs[idx], {labels_rs[idx]: 1}, msg=f"failed for shape {shape}"
                     )
+
+    def test_validate(self):
+        """Test the validate method"""
+        ObservablesArray({"XX": 1}).validate()
+        ObservablesArray([{"XX": 1}] * 5).validate()
+        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
+
+        obs = ObservablesArray([{"XX": 1}, {"XYZ": 1}], validate=False)
+        with self.assertRaisesRegex(ValueError, "number of qubits must be the same"):
+            obs.validate()

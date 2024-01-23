@@ -1,6 +1,6 @@
-.. _qiskit-transpiler-synthesis-aqc:
+.. _qiskit-synthesis-unitary-aqc:
 
-.. automodule:: qiskit.transpiler.synthesis.aqc
+.. automodule:: qiskit.synthesis.unitary.aqc
    :no-members:
    :no-inherited-members:
    :no-special-members:
