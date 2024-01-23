@@ -112,6 +112,9 @@ class SXGate(SingletonGate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
+    def __eq__(self, other):
+        return isinstance(other, SXGate)
+
 
 @with_gate_array(_SXDG_ARRAY)
 class SXdgGate(SingletonGate):
@@ -168,6 +171,9 @@ class SXdgGate(SingletonGate):
     def inverse(self):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
+
+    def __eq__(self, other):
+        return isinstance(other, SXdgGate)
 
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
@@ -266,3 +272,6 @@ class CSXGate(SingletonControlledGate):
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state

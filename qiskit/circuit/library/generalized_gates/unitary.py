@@ -28,8 +28,8 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 # pylint: disable=cyclic-import
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
+from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.synthesis.two_qubit.two_qubit_decompose import two_qubit_cnot_decompose
 
 from .isometry import Isometry
 
@@ -146,7 +146,7 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 

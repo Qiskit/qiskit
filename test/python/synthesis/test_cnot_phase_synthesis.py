@@ -75,7 +75,11 @@ class TestGraySynth(QiskitTestCase):
             [0, 1, 0, 0, 1, 0],
         ]
         angles = ["s", "t", "z", "s", "t", "t"]
-        c_gray = synth_func(cnots, angles)
+        if synth_func.__name__ == "graysynth":
+            with self.assertWarns(DeprecationWarning):
+                c_gray = synth_func(cnots, angles)
+        else:
+            c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -133,7 +137,11 @@ class TestGraySynth(QiskitTestCase):
         """
         cnots = [[0, 1, 1, 1, 1, 1], [1, 0, 0, 1, 1, 1], [1, 0, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0]]
         angles = ["t"] * 6
-        c_gray = synth_func(cnots, angles)
+        if synth_func.__name__ == "graysynth":
+            with self.assertWarns(DeprecationWarning):
+                c_gray = synth_func(cnots, angles)
+        else:
+            c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -186,7 +194,11 @@ class TestGraySynth(QiskitTestCase):
         """
         cnots = [[1, 0, 0, 1, 1, 0, 1], [0, 1, 0, 1, 0, 1, 1], [0, 0, 1, 0, 1, 1, 1]]
         angles = ["t", "t", "t", "tdg", "tdg", "tdg", "t"]
-        c_gray = synth_func(cnots, angles)
+        if synth_func.__name__ == "graysynth":
+            with self.assertWarns(DeprecationWarning):
+                c_gray = synth_func(cnots, angles)
+        else:
+            c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -252,7 +264,11 @@ class TestPatelMarkovHayes(QiskitTestCase):
             [1, 1, 0, 1, 1, 1],
             [0, 0, 1, 1, 1, 0],
         ]
-        c_patel = synth_func(state)
+        if synth_func.__name__ == "cnot_synth":
+            with self.assertWarns(DeprecationWarning):
+                c_patel = synth_func(state)
+        else:
+            c_patel = synth_func(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:

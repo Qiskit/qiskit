@@ -15,8 +15,8 @@
 
 import functools
 import os
-import unittest
 from typing import Union, Callable, Type, Iterable
+import unittest
 
 from qiskit.utils import wrap_method
 
