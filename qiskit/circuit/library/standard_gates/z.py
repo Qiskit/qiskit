@@ -125,6 +125,9 @@ class ZGate(SingletonGate):
         """Raise gate to a power."""
         return PhaseGate(numpy.pi * exponent)
 
+    def __eq__(self, other):
+        return isinstance(other, ZGate)
+
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
 class CZGate(SingletonControlledGate):
@@ -205,6 +208,9 @@ class CZGate(SingletonControlledGate):
     def inverse(self):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CZGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
@@ -292,3 +298,6 @@ class CCZGate(SingletonControlledGate):
     def inverse(self):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CCZGate) and self.ctrl_state == other.ctrl_state

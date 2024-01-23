@@ -90,6 +90,9 @@ class SGate(SingletonGate):
 
         return PhaseGate(0.5 * numpy.pi * exponent)
 
+    def __eq__(self, other):
+        return isinstance(other, SGate)
+
 
 @with_gate_array(_SDG_ARRAY)
 class SdgGate(SingletonGate):
@@ -154,6 +157,9 @@ class SdgGate(SingletonGate):
         from .p import PhaseGate
 
         return PhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SdgGate)
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
@@ -229,6 +235,9 @@ class CSGate(SingletonControlledGate):
 
         return CPhaseGate(0.5 * numpy.pi * exponent)
 
+    def __eq__(self, other):
+        return isinstance(other, CSGate) and self.ctrl_state == other.ctrl_state
+
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
 class CSdgGate(SingletonControlledGate):
@@ -301,3 +310,6 @@ class CSdgGate(SingletonControlledGate):
         from .p import CPhaseGate
 
         return CPhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state
