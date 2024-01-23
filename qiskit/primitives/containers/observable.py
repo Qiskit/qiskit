@@ -12,7 +12,7 @@
 
 
 """
-Container class for an Estimator observable.
+Sparse container class for an Estimator observable.
 """
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ ObservableLike = Union[
     ObservableKeyLike,
     MappingType[ObservableKeyLike, complex],
 ]
-"""Types that can be natively used to construct a :const:`BasisObservable`."""
+"""Types that can be natively used to construct a :const:`Observable`."""
 
 
 class Observable(Mapping):
-    """A sparse container for a Hermitian observable for an :class:`.Estimator` primitive."""
+    """A sparse container for a observable for an :class:`.Estimator` primitive."""
 
     __slots__ = ("_data", "_num_qubits")
 
@@ -77,8 +77,8 @@ class Observable(Mapping):
         """The number of qubits in the observable"""
         if self._num_qubits is None:
             num_qubits = 0
-            for term in self._data:
-                num_qubits = max(num_qubits, 1 + max(term.qubits))
+            for key in self._data:
+                num_qubits = max(num_qubits, 1 + max(key[0]))
             self._num_qubits = num_qubits
         return self._num_qubits
 
@@ -87,9 +87,9 @@ class Observable(Mapping):
         if not isinstance(self._data, Mapping):
             raise TypeError(f"Observable data type {type(self._data)} is not a Mapping.")
 
-        # If not already set, we set terms and num_qubits while iterating over data
+        # If not already set, we compute num_qubits while iterating over data
         # to avoid having to do another iteration later
-        term_nq = 0
+        data_num_qubits = 0
         for key, value in self._data.items():
             if not isinstance(key, tuple):
                 raise TypeError("Invalid Observable key type")
@@ -98,12 +98,12 @@ class Observable(Mapping):
             # Check tuple pos types after checking length
             if not isinstance(key[0], tuple) or not isinstance(key[1], str):
                 raise TypeError("Invalid Observable key type")
-            term_nq = max(term_nq, 1 + max(key[0]))
+            data_num_qubits = max(data_num_qubits, 1 + max(key[0]))
             if not isinstance(value, Complex):
                 raise TypeError(f"Value {value} is not a complex number")
         if self._num_qubits is None:
-            self._num_qubits = term_nq
-        elif self.num_qubits < term_nq:
+            self._num_qubits = data_num_qubits
+        elif self._num_qubits < data_num_qubits:
             raise ValueError("Num qubits is less than the maximum qubit in ObservableTerms")
 
     @classmethod
@@ -126,7 +126,7 @@ class Observable(Mapping):
     def _coerce(cls, observable, num_qubits=None):
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
-            # TODO: Make sparse by removing identity in terms
+            # TODO: Make sparse by removing identity qubits in keys
             data = dict(observable.simplify(atol=0).to_list())
             return cls._coerce(data, num_qubits=observable.num_qubits)
 
@@ -135,28 +135,30 @@ class Observable(Mapping):
 
         # Mapping conversion (with possible Pauli keys)
         if isinstance(observable, Mapping):
-            term_qubits = set()
+            key_qubits = set()
             unique = defaultdict(complex)
-            for term, coeff in observable.items():
-                if isinstance(term, Pauli):
-                    # TODO: Make sparse by removing identity terms
-                    label, phase = term[:].to_label(), term.phase
+            for key, coeff in observable.items():
+                if isinstance(key, Pauli):
+                    # TODO: Make sparse by removing identity qubits in keys
+                    label, phase = key[:].to_label(), key.phase
                     if phase != 0:
                         coeff = coeff * (-1j) ** phase
-                    qubits = tuple(range(term.num_qubits))
-                    term = (qubits, label)
-                elif isinstance(term, str):
-                    qubits = tuple(range(len(term)))
-                    term = (qubits, term)
-                if not isinstance(term, tuple):
-                    raise TypeError(f"Invalid term type {type(term)}")
-                if len(term) != 2:
-                    raise ValueError(f"Invalid term {term}")
-                term_qubits.update(term[0])
-                unique[term] += coeff
+                    qubits = tuple(range(key.num_qubits))
+                    key = (qubits, label)
+                elif isinstance(key, str):
+                    qubits = tuple(range(len(key)))
+                    key = (qubits, key)
+                if not isinstance(key, tuple):
+                    raise TypeError(f"Invalid key type {type(key)}")
+                if len(key) != 2:
+                    raise ValueError(f"Invalid key {key}")
+                if not isinstance(key[0], tuple) or not isinstance(key[1], str):
+                    raise TypeError("Invalid key type")
+                key_qubits.update(key[0])
+                unique[key] += coeff
             if num_qubits is None:
-                num_qubits = 1 + max(term_qubits)
-            obs = Observable(dict(unique), num_qubits=num_qubits)
+                num_qubits = 1 + max(key_qubits)
+            obs = cls(dict(unique), num_qubits=num_qubits)
             return obs
 
         raise TypeError(f"Invalid observable type: {type(observable)}")
