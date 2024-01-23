@@ -43,7 +43,6 @@ from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
 from enum import Enum
-from collections.abc import Callable
 
 
 def _get_noise_nisq_2024(inst: str) -> tuple:
@@ -61,11 +60,13 @@ def _get_noise_nisq_2024(inst: str) -> tuple:
     }
     return default_dict.get(inst, (1e-8, 9e-7, 1e-5, 5e-3))
 
-class NoiseDefaults(Enum):
+
+class _NoiseDefaults(Enum):
     NISQ_2024_1 = (_get_noise_nisq_2024,)
 
     def __call__(self, *args, **kwargs):
         return self.value[0](*args, **kwargs)
+
 
 def _get_sequence_2024(
     inst: str, num_qubits: int, qargs: tuple[int], pulse_library: list[PulseLibraryItem]
@@ -100,6 +101,7 @@ def _get_sequence_2024(
         PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
     ]
 
+
 def _get_pulse_config_2024(num_qubits: int) -> dict:
     # The number of samples determines the pulse durations of the corresponding
     # instructions. This function defines pulses with durations in multiples of
@@ -120,18 +122,20 @@ def _get_pulse_config_2024(num_qubits: int) -> dict:
     config = {
         "pulse_library": pulse_library,
         "qubit_freq_est": qubit_freq_est,
-        "meas_feq_est": meas_freq_est,
+        "meas_freq_est": meas_freq_est,
     }
     return config
 
-class PulseCalibrationDefaults(Enum):
+
+class _PulseCalibrationDefaults(Enum):
     PULSE_CONFIG_2024_1 = (_get_pulse_config_2024,)
     SEQUENCE_2024_1 = (_get_sequence_2024,)
 
     def __call__(self, *args, **kwargs):
         return self.value[0](*args, **kwargs)
 
-class BasisDefaults(Enum):
+
+class _BasisDefaults(Enum):
     CX = ["cx", "id", "rz", "sx", "x"]
     CZ = ["cz", "id", "rz", "sx", "x"]
     ECR = ["ecr", "id", "rz", "sx", "x"]
@@ -139,7 +143,8 @@ class BasisDefaults(Enum):
     def __get__(self, *args, **kwargs):
         return self.value
 
-class QubitDefaults(Enum):
+
+class _QubitDefaults(Enum):
     NISQ_2024_1 = {
         "dt": 0.222e-9,
         "t1": (100e-6, 200e-6),
@@ -149,6 +154,7 @@ class QubitDefaults(Enum):
 
     def __get__(self, *args, **kwargs):
         return self.value
+
 
 class GenericFakeBackend(BackendV2):
     """
@@ -171,16 +177,12 @@ class GenericFakeBackend(BackendV2):
     def __init__(
         self,
         num_qubits: int,
-        basis_gates: list[str] | None = None,
         *,
+        basis_gates: list[str] | None = None,
         coupling_map: list[list[int]] | CouplingMap | None = None,
         control_flow: bool = False,
         calibrate_instructions: bool | InstructionScheduleMap | None = None,
-        noise_defaults: Callable | None = None,
-        calibration_sequence: Callable | None = None,
-        pulse_config: dict | None = None,
-        qubit_defaults: Callable | None = None,
-        dtm: float = None,
+        dtm: float | None = None,
         seed: int = 42,
     ):
         """
@@ -225,15 +227,6 @@ class GenericFakeBackend(BackendV2):
                     present in this instruction schedule map will be appended to the target
                     instead of the default pulse schedules (this allows for custom calibrations).
 
-            noise_defaults: Callable that returns noise default ranges for every instruction
-                in ``basis_gates``. See implementation of :class:`.NoiseDefaults` for reference.
-
-            pulse_config: Callable that returns a pulse configuration dictionary for a given number
-                of qubits. See implementation of :class:`.PulseCalibrationDefaults` for reference.
-
-            qubit_defaults: Dictionary with qubit property configuration ranges. See implementation
-                of :class:`.QubitDefaults` for reference.
-
             dtm: System time resolution of output signals in nanoseconds.
                 None by default.
 
@@ -255,24 +248,7 @@ class GenericFakeBackend(BackendV2):
         self._calibrate_instructions = calibrate_instructions
         self._supported_gates = get_standard_gate_name_mapping()
 
-        self._qubit_defaults = (
-            qubit_defaults if qubit_defaults is not None else QubitDefaults.NISQ_2024_1
-        )
-        self._noise_defaults = (
-            noise_defaults if noise_defaults is not None else NoiseDefaults.NISQ_2024_1
-        )
-        self._calibration_sequence = (
-            calibration_sequence
-            if calibration_sequence is not None
-            else PulseCalibrationDefaults.SEQUENCE_2024_1
-        )
-        self._pulse_config = (
-            pulse_config
-            if pulse_config is not None
-            else PulseCalibrationDefaults.PULSE_CONFIG_2024_1
-        )
-
-        self._basis_gates = basis_gates if basis_gates is not None else BasisDefaults.CX
+        self._basis_gates = basis_gates if basis_gates is not None else _BasisDefaults.CX
         for name in ["reset", "delay", "measure"]:
             if name not in self._basis_gates:
                 self._basis_gates.append(name)
@@ -290,6 +266,11 @@ class GenericFakeBackend(BackendV2):
                     f"The number of qubits (got {num_qubits}) must match "
                     f"the size of the provided coupling map (got {coupling_map.size()})."
                 )
+
+        self._qubit_defaults = _QubitDefaults.NISQ_2024_1
+        self._noise_defaults = _NoiseDefaults.NISQ_2024_1
+        self._calibration_sequence = _PulseCalibrationDefaults.SEQUENCE_2024_1
+        self._pulse_config = _PulseCalibrationDefaults.PULSE_CONFIG_2024_1
 
         self._build_generic_target()
         self._build_default_channels()
@@ -331,8 +312,12 @@ class GenericFakeBackend(BackendV2):
             dt=self._qubit_defaults["dt"],
             qubit_properties=[
                 QubitProperties(
-                    t1=self._qubit_defaults["t1"],
-                    t2=self._qubit_defaults["t2"],
+                    t1=self._rng.uniform(
+                        self._qubit_defaults["t1"][0], self._qubit_defaults["t1"][1]
+                    ),
+                    t2=self._rng.uniform(
+                        self._qubit_defaults["t2"][0], self._qubit_defaults["t2"][1]
+                    ),
                     frequency=self._qubit_defaults["frequency"],
                 )
                 for _ in range(self._num_qubits)
@@ -401,7 +386,8 @@ class GenericFakeBackend(BackendV2):
 
     def _generate_calibration_defaults(self) -> PulseDefaults:
         """Generate pulse calibration defaults if specified via ``calibrate_instructions``."""
-        pulse_library = self._pulse_config("pulse_library")
+        pulse_config = self._pulse_config(self._num_qubits)
+        pulse_library = pulse_config["pulse_library"]
         # If self.calibrate_instructions==True, this method
         # will generate default pulse schedules for all gates in self._basis_gates,
         # except for `delay` and `reset`.
@@ -442,8 +428,8 @@ class GenericFakeBackend(BackendV2):
                     )
 
         return PulseDefaults(
-            qubit_freq_est=self._pulse_config("qubit_freq_est"),
-            meas_freq_est=self._pulse_config("meas_freq_est"),
+            qubit_freq_est=pulse_config["qubit_freq_est"],
+            meas_freq_est=pulse_config["meas_freq_est"],
             buffer=0,
             pulse_library=pulse_library,
             cmd_def=cmd_def,
