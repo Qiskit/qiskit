@@ -15,6 +15,7 @@
 from __future__ import annotations
 import warnings
 
+from enum import Enum
 from collections.abc import Iterable
 import numpy as np
 
@@ -41,8 +42,6 @@ from qiskit.providers.models import (
 )
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
-
-from enum import Enum
 
 
 def _get_noise_nisq_2024(inst: str) -> tuple:
