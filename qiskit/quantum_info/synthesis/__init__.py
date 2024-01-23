@@ -24,7 +24,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 
 warnings.warn(
     "The qiskit.quantum_info.synthesis module is deprecated since Qiskit 0.46.0."
-    "It will be removed in Qiskit 1.0 release.",
+    "It will be removed in the Qiskit 1.0 release.",
     stacklevel=2,
     category=DeprecationWarning,
 )

@@ -22,5 +22,5 @@ upgrade:
   - |
     These functions were removed, since they have already been deprecated in a previous release:
 
-    * :func:`~.decompose_clifford` (use :func:`.qiskit.synthesis.synth_clifford_full` instead)
-    * :func:`~.decompose_cnotdihedral` (use :func:`.qiskit.synthesis.synth_cnotdihedral_full` instead)
+    * ``decompose_clifford`` (use :func:`.qiskit.synthesis.synth_clifford_full` instead)
+    * ``decompose_cnotdihedral`` (use :func:`.qiskit.synthesis.synth_cnotdihedral_full` instead)
