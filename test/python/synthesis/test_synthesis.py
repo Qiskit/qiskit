@@ -77,7 +77,6 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitDecomposeUpToDiagonal,
 )
 
-from qiskit.circuit.library.standard_gates.equivalence_library import _cnot_rxx_decompose
 from qiskit.synthesis.unitary import qsd
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
@@ -994,23 +993,17 @@ class TestTwoQubitDecompose(CheckDecompositions):
     def test_cnot_rxx_decompose(self):
         """Verify CNOT decomposition into RXX gate is correct"""
         cnot = Operator(CXGate())
-        decomps = [
-            _cnot_rxx_decompose(),
-            _cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
-            _cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
-            _cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
-            _cnot_rxx_decompose(plus_ry=False, plus_rxx=False),
-        ]
-        for decomp in decomps:
-            self.assertTrue(cnot.equiv(decomp))
-
         # Assert that this class raises a deprecation warning
         with self.assertWarns(DeprecationWarning):
-            cnot_rxx_decompose()
-            cnot_rxx_decompose(plus_ry=True, plus_rxx=True)
-            cnot_rxx_decompose(plus_ry=True, plus_rxx=False)
-            cnot_rxx_decompose(plus_ry=False, plus_rxx=True)
-            cnot_rxx_decompose(plus_ry=False, plus_rxx=False)
+            decomps = [
+                cnot_rxx_decompose(),
+                cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
+                cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
+                cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
+                cnot_rxx_decompose(plus_ry=False, plus_rxx=False),
+            ]
+            for decomp in decomps:
+                self.assertTrue(cnot.equiv(decomp))
 
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
