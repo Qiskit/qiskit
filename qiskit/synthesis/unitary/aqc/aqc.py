@@ -15,16 +15,18 @@ from __future__ import annotations
 from functools import partial
 
 from collections.abc import Callable
-from typing import Protocol
+from typing import Protocol, TYPE_CHECKING
 
 import numpy as np
 from scipy.optimize import OptimizeResult, minimize
 
-from qiskit.algorithms.optimizers import Optimizer  # pylint: disable=cyclic-import
 from qiskit.quantum_info import Operator
 from qiskit.utils.deprecation import deprecate_arg
 
 from .approximate import ApproximateCircuit, ApproximatingObjective
+
+if TYPE_CHECKING:
+    from qiskit.algorithms.optimizers.optimizer import Optimizer
 
 
 class Minimizer(Protocol):
@@ -109,7 +111,7 @@ class AQC:
             "of `qiskit.algorithms.optimizers.Optimizer` "
         ),
         additional_msg=("Please, submit a callable that follows the `Minimizer` protocol instead."),
-        predicate=lambda optimizer: isinstance(optimizer, Optimizer),
+        predicate=lambda optimizer: not callable(optimizer),
         since="0.45.0",
     )
     def __init__(
@@ -129,7 +131,7 @@ class AQC:
             minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
         )
         # temporary fix -> remove after deprecation period of Optimizer
-        if isinstance(self._optimizer, Optimizer):
+        if not callable(self._optimizer):
             self._optimizer = self._optimizer.minimize
 
         self._seed = seed
