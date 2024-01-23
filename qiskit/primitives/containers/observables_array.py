@@ -36,6 +36,7 @@ class ObservablesArray(ShapedMixin):
     def __init__(
         self,
         observables: ArrayLike | ObservableLike,
+        num_qubits: int | None = None,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -58,16 +59,13 @@ class ObservablesArray(ShapedMixin):
             observables = observables._array
         self._array = object_array(observables, copy=copy, list_types=(PauliList,))
         self._shape = self._array.shape
-        self._num_qubits = None
-        self._terms = None
+        self._num_qubits = num_qubits
         if validate:
             # Convert array items to Observable objects
             # and set terms and num_qubits, validating consistency
-            terms = set()
             num_qubits = set()
             for ndi, obs in np.ndenumerate(self._array):
                 obs = Observable.coerce(obs)
-                terms.update(obs.terms)
                 num_qubits.add(obs.num_qubits)
                 if len(num_qubits) > 1:
                     raise ValueError(
@@ -76,16 +74,6 @@ class ObservablesArray(ShapedMixin):
                     )
                 self._array[ndi] = obs
             self._num_qubits = num_qubits
-            self._terms = "".join(terms)
-
-    @property
-    def terms(self) -> str:
-        """Return a string containing all unique basis terms used in the observable"""
-        if not self._terms:
-            # QUESTION: Should terms be `tuple[str, ...]` instead
-            # to allow for basis identification using more than 1 character?
-            self._terms = "".join(set().union(*(elem.terms for elem in self._array.ravel())))
-        return self._terms
 
     @property
     def num_qubits(self) -> int:
@@ -143,7 +131,6 @@ class ObservablesArray(ShapedMixin):
         """
         obs = ObservablesArray(self._array.reshape(shape), copy=False, validate=False)
         obs._num_qubits = self._num_qubits
-        obs._terms = self._terms
         return obs
 
     def ravel(self) -> ObservablesArray:
