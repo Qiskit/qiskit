@@ -71,6 +71,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
+        self.threshold = 0.9999
         self.circuit_drawer = VisualTestUtilities.save_data_wrap(
             circuit_drawer, str(self), RESULT_DIR
         )
@@ -107,7 +108,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_calibrations(self):
         """Test calibrations annotations
@@ -136,7 +137,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_calibrations_with_control_gates(self):
         """Test calibrations annotations
@@ -173,7 +174,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_calibrations_with_swap_and_reset(self):
         """Test calibrations annotations
@@ -210,7 +211,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_calibrations_with_rzz_and_rxx(self):
         """Test calibrations annotations
@@ -246,7 +247,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_no_ops(self):
         """Test circuit with no ops.
@@ -263,7 +264,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -291,7 +292,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_multi_underscore_reg_names(self):
         """Test that multi-underscores in register names display properly"""
@@ -322,8 +323,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
@@ -346,7 +347,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_bit_conditional_with_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -370,7 +371,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_bit_conditional_no_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -394,7 +395,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -419,7 +420,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
@@ -436,12 +437,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         # check for other barrier like commands
         circuit.h(q[1])
-
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        with self.assertWarns(DeprecationWarning):
-            circuit.snapshot("1")
 
         # check the barriers plot properly when plot_barriers= True
         fname = "plot_barriers_true.png"
@@ -465,8 +460,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
@@ -487,7 +482,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_fold_minus1(self):
         """Test to see that fold=-1 is no folding"""
@@ -508,7 +503,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_fold_4(self):
         """Test to see that fold=4 is folding"""
@@ -529,7 +524,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_big_gates(self):
         """Test large gates with params"""
@@ -566,7 +561,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
@@ -589,7 +584,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_cz(self):
         """Test Z and Controlled-Z Gates"""
@@ -611,7 +606,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -641,7 +636,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
@@ -677,8 +672,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_r_gates(self):
         """Test all R gates"""
@@ -703,7 +698,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_ctrl_labels(self):
         """Test control labels"""
@@ -727,7 +722,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_cswap_rzz(self):
         """Test controlled swap and rzz gates"""
@@ -746,7 +741,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_ghz_to_gate(self):
         """Test controlled GHZ to_gate circuit"""
@@ -770,7 +765,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_scale(self):
         """Tests scale
@@ -810,9 +805,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
-        self.assertGreaterEqual(ratio3, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
+        self.assertGreaterEqual(ratio3, self.threshold)
 
     def test_pi_param_expr(self):
         """Test pi in circuit with parameter expression."""
@@ -830,7 +825,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_partial_layout(self):
         """Tests partial_layout
@@ -856,7 +851,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""
@@ -875,7 +870,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_with_global_phase(self):
         """Tests with global phase"""
@@ -892,12 +887,11 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_alternative_colors(self):
         """Tests alternative color schemes"""
-        ratios = []
-        for style in ["iqp", "iqp-dark", "iqx", "iqx-dark", "textbook", "clifford"]:
+        for style in ["iqp", "iqp-dark", "textbook", "clifford"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
@@ -930,25 +924,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 circuit.reset(5)
 
                 fname = f"{style}_color.png"
-                # IQX has the same reference filename as IQP
-                if style[:3] == "iqx":
-                    ref_fname = "iqp" + style[3:] + "_color.png"
-                else:
-                    ref_fname = fname
-
                 self.circuit_drawer(circuit, output="mpl", style={"name": style}, filename=fname)
 
                 ratio = VisualTestUtilities._save_diff(
                     self._image_path(fname),
-                    self._reference_path(ref_fname),
+                    self._reference_path(fname),
                     fname,
                     FAILURE_DIFF_DIR,
                     FAILURE_PREFIX,
                 )
-                ratios.append(ratio)
-
-        for ratio in ratios:
-            self.assertGreaterEqual(ratio, 0.9999)
+                self.assertGreaterEqual(ratio, self.threshold)
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
@@ -967,7 +952,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_bw(self):
         """Tests black and white style parameter"""
@@ -990,7 +975,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_user_style(self):
         """Tests loading a user style"""
@@ -1040,7 +1025,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -1049,11 +1034,11 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.u(pi / 2, pi / 2, pi / 2, 1)
         circuit.p(pi / 2, 2)
-        style = {"name": "iqx", "subfontsize": 11}
+        style = {"name": "iqp", "subfontsize": 11}
 
         fname = "subfont.png"
         self.circuit_drawer(circuit, output="mpl", style=style, filename=fname)
-        self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
+        self.assertEqual(style, {"name": "iqp", "subfontsize": 11})  # check does not change style
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -1062,7 +1047,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
@@ -1083,7 +1068,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_reverse_bits_condition(self):
         """Tests reverse_bits with a condition and gate above"""
@@ -1124,8 +1109,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
@@ -1163,7 +1148,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_6095(self):
         """Tests controlled-phase gate style
@@ -1187,7 +1172,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_instruction_1q_1c(self):
         """Tests q0-cr0 instruction on a circuit"""
@@ -1207,7 +1192,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_instruction_3q_3c_circ1(self):
         """Tests q0-q1-q2-cr_20-cr0-cr1 instruction on a circuit"""
@@ -1228,7 +1213,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_instruction_3q_3c_circ2(self):
         """Tests q3-q0-q2-cr0-cr1-cr_20 instruction on a circuit"""
@@ -1249,7 +1234,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_instruction_3q_3c_circ3(self):
         """Tests q3-q1-q2-cr_31-cr1-cr_30 instruction on a circuit"""
@@ -1271,7 +1256,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
@@ -1290,7 +1275,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_one_bit_regs(self):
         """Test registers with only one bit display without number"""
@@ -1312,7 +1297,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
@@ -1341,7 +1326,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_figwidth(self):
         """Test style dict 'figwidth'"""
@@ -1362,7 +1347,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_registerless_one_bit(self):
         """Test circuit with one-bit registers and registerless bits."""
@@ -1381,7 +1366,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
@@ -1416,8 +1401,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_conditions_measures_with_bits(self):
         """Test that gates with conditions and measures work with bits"""
@@ -1449,8 +1434,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_PREFIX,
         )
 
-        self.assertGreaterEqual(ratio, 0.9999)
-        self.assertGreaterEqual(ratio2, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio2, self.threshold)
 
     def test_conditional_gates_right_of_measures_with_bits(self):
         """Test that gates with conditions draw to right of measures when same bit"""
@@ -1472,7 +1457,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_conditions_with_bits_reverse(self):
         """Test that gates with conditions work with bits reversed"""
@@ -1494,7 +1479,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_sidetext_with_condition(self):
         """Test that sidetext gates align properly with conditions"""
@@ -1513,7 +1498,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
@@ -1548,7 +1533,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
@@ -1566,7 +1551,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_wire_order(self):
         """Test the wire_order option"""
@@ -1595,7 +1580,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_barrier_label(self):
         """Test the barrier label"""
@@ -1617,7 +1602,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_op(self):
         """Test the IfElseOp with if only"""
@@ -1639,7 +1624,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_bundle_false(self):
         """Test the IfElseOp with else with cregbundle False"""
@@ -1663,7 +1648,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_bundle_true(self):
         """Test the IfElseOp with else with cregbundle True"""
@@ -1688,7 +1673,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_textbook_style(self):
         """Test the IfElseOp with else in textbook style"""
@@ -1714,7 +1699,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_with_body(self):
         """Test the IfElseOp with adding a body manually"""
@@ -1748,7 +1733,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_nested(self):
         """Test the IfElseOp with complex nested if/else"""
@@ -1789,7 +1774,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_wire_order(self):
         """Test the IfElseOp with complex nested if/else and wire_order"""
@@ -1836,7 +1821,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_else_op_fold(self):
         """Test the IfElseOp with complex nested if/else and fold"""
@@ -1877,7 +1862,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_while_loop_op(self):
         """Test the WhileLoopOp"""
@@ -1904,7 +1889,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_for_loop_op(self):
         """Test the ForLoopOp"""
@@ -1933,7 +1918,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_for_loop_op_range(self):
         """Test the ForLoopOp with a range"""
@@ -1962,7 +1947,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_for_loop_op_1_qarg(self):
         """Test the ForLoopOp with 1 qarg"""
@@ -1990,7 +1975,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_switch_case_op(self):
         """Test the SwitchCaseOp"""
@@ -2022,7 +2007,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_switch_case_op_1_qarg(self):
         """Test the SwitchCaseOp with 1 qarg"""
@@ -2050,7 +2035,35 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_switch_case_op_empty_default(self):
+        """Test the SwitchCaseOp with empty default case"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                pass
+        circuit.h(0)
+
+        fname = "switch_case_empty_default.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_with_expression(self):
         """Test the IfElseOp with an expression"""
@@ -2075,7 +2088,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_if_with_expression_nested(self):
         """Test the IfElseOp with an expression for nested"""
@@ -2102,7 +2115,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_switch_with_expression(self):
         """Test the SwitchCaseOp with an expression"""
@@ -2130,7 +2143,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_control_flow_layout(self):
         """Test control flow with a layout set."""
@@ -2161,7 +2174,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_control_flow_nested_layout(self):
         """Test nested control flow with a layout set."""
@@ -2196,26 +2209,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
-
-    def test_default_futurewarning(self):
-        """Test using the default scheme emits a future warning."""
-        qc = QuantumCircuit(1)
-
-        with self.assertWarnsRegex(
-            FutureWarning, "To silence this warning, specify the current default explicitly"
-        ):
-            qc.draw("mpl")
-
-    def test_iqx_pendingdeprecation(self):
-        """Test using the IQX schemes emits a pending deprecation warning."""
-        qc = QuantumCircuit(1)
-
-        for style in ["iqx", "iqx-dark"]:
-            with self.assertWarnsRegex(
-                PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
-            ):
-                qc.draw("mpl", style=style)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_annotated_operation(self):
         """Test AnnotatedOperations and other non-Instructions."""
@@ -2241,7 +2235,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
@@ -2266,7 +2260,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, 0.9999)
+        self.assertGreaterEqual(ratio, self.threshold)
 
 
 if __name__ == "__main__":

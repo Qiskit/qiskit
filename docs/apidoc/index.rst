@@ -18,7 +18,6 @@ API Reference
    converters
    assembler
    dagcircuit
-   extensions
    passmanager
    providers_basicaer
    providers
@@ -34,8 +33,6 @@ API Reference
    qpy
    quantum_info
    result
-   tools
-   tools_jupyter
    transpiler
    transpiler_passes
    transpiler_preset
