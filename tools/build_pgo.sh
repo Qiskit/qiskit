@@ -18,10 +18,9 @@ else
 fi
 
 # Build with instrumentation
-pip install --prefer-binary -c constraints.txt -r requirements.txt setuptools-rust wheel
-RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" pip install --prefer-binary -c constraints.txt -e .
+pip install -U -c constraints.txt setuptools-rust wheel setuptools
+RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" pip install --prefer-binary -c constraints.txt -r requirements-dev.txt -e .
 RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" python setup.py build_rust --release --inplace
-pip install -c constraints.txt --prefer-binary -r requirements-dev.txt
 # Run profile data generation
 
 QISKIT_PARALLEL=FALSE stestr run --abbreviate
