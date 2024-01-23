@@ -503,6 +503,7 @@ CX q[0], q[1];
         self.assertEqualUnroll(["u", "cx"], circuit, expected)
 
     def assertEqualUnroll(self, basis, circuit, expected):
+        """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
         circuit_result = BasisTranslator(std_eqlib, basis).run(circuit_dag)
