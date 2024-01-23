@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    The dependency on `psutil <https://pypi.org/project/psutil/>`__ has been removed. The
+    psutil library was previously only used for detecting the number of physical CPUs and
+    total system memory, however this information provided does not add sufficient value
+    to justify the additional dependencies and overhead so it has been removed. This does
+    mean that the default number of processes used by :func:`.parallel_map` and functions that
+    internally can use :func:`.parallel_map` such as :func:`.transpile` and :meth:`.PassManager.run`
+    may use more or less parallel processes than in previous releases. If you'd like to adjust the
+    number of processes used you can use the ``QISKIT_NUM_PROCS`` environment variable or
+    ``num_processes`` field in a user configuration file (see the
+    `local configuration guide <https://docs.quantum.ibm.com/start/configure-qiskit-local>`__
+    for more details) if you need to adjust the number of processes that Qiskit potentially uses.
