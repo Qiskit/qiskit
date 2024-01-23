@@ -7,3 +7,6 @@ python-dateutil>=2.8.0
 stevedore>=3.0.0
 typing-extensions
 symengine>=0.11
+pillow>=8.0.0
+pydot>=1.4.1
+graphviz>=0.13.2
