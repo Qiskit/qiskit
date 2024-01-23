@@ -13,10 +13,10 @@
 r"""
 ================================================================================
 Fast implementation of objective function class
-(:mod:`qiskit.transpiler.synthesis.aqc.fast_gradient`)
+(:mod:`qiskit.synthesis.unitary.aqc.fast_gradient`)
 ================================================================================
 
-.. currentmodule:: qiskit.transpiler.synthesis.aqc.fast_gradient
+.. currentmodule:: qiskit.synthesis.unitary.aqc.fast_gradient
 
 Extension to the implementation of Approximate Quantum Compiler as described in the paper [1].
 

@@ -17,10 +17,10 @@ Tests equivalence of the default and fast gradient computation routines.
 import unittest
 from typing import Tuple
 from time import perf_counter
-from test.python.transpiler.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
+from test.python.synthesis.aqc.fast_gradient.utils_for_testing import rand_circuit, rand_su_mat
 import numpy as np
-from qiskit.transpiler.synthesis.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
-from qiskit.transpiler.synthesis.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.test import QiskitTestCase
 
 
