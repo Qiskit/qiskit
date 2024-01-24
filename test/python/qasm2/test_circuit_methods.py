@@ -19,10 +19,9 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.passes import BasisTranslator
+from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.qasm2 import dumps
-from qiskit.converters import dag_to_circuit
 
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
@@ -298,7 +297,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name="circuit")
         expected.append(rinv, [qr[0]])
 
-        self.assertEqualUnroll(["sdg", "h", "rinv"], circuit, expected)
+        self.assertEqualUnroll(["sdg", "h"], circuit, expected)
 
     def test_from_qasm_str_custom_gate2(self):
         """Test load custom gates (no so simple case, different bit order)
@@ -328,7 +327,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(swap, [qr[0], qr[1]])
         expected.append(swap, [qr[1], qr[2]])
 
-        self.assertEqualUnroll(["cx", "swap2"], expected, circuit)
+        self.assertEqualUnroll(["cx"], expected, circuit)
 
     def test_from_qasm_str_custom_gate3(self):
         """Test load custom gates (no so simple case, different bit count)
@@ -357,7 +356,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected = QuantumCircuit(qr, name="circuit")
         expected.append(cswap, [qr[1], qr[0], qr[2]])
 
-        self.assertEqualUnroll(["cx", "h", "tdg", "t", "cswap2"], circuit, expected)
+        self.assertEqualUnroll(["cx", "h", "tdg", "t"], circuit, expected)
 
     def test_from_qasm_str_custom_gate4(self):
         """Test load custom gates (parameterized)
@@ -381,7 +380,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_custom_gate5(self):
         """Test load custom gates (parameterized, with biop and constant)
@@ -405,7 +404,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_custom_gate6(self):
         """Test load custom gates (parameters used in expressions)
@@ -431,7 +430,7 @@ class LoadFromQasmTest(QiskitTestCase):
         expected.append(my_gate, [qr[0]])
         expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
 
-        self.assertEqualUnroll(["rx", "ry", "my_gate"], circuit, expected)
+        self.assertEqualUnroll(["rx", "ry"], circuit, expected)
 
     def test_from_qasm_str_custom_gate7(self):
         """Test load custom gates (build in functions)
@@ -445,17 +444,10 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi, pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        my_gate_circuit = QuantumCircuit(1, name="my_gate")
-        phi = Parameter("phi")
-        lam = Parameter("lambda")
-        my_gate_circuit.u(-0.5235987755982988, phi + 3.141592653589793, lam / 2, 0)
-        my_gate = my_gate_circuit.to_gate()
-
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
-        expected.append(my_gate, [qr[0]])
-        expected = expected.assign_parameters({phi: 3.141592653589793, lam: 3.141592653589793})
-        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
+        expected.u(-0.5235987755982988, 6.283185307179586, 1.5707963267948966, qr[0])
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_nested_custom_gate(self):
         """Test chain of custom gates
@@ -471,16 +463,10 @@ class LoadFromQasmTest(QiskitTestCase):
                          my_gate(pi) qr[0];"""
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
 
-        my_gate_circuit = QuantumCircuit(1, name="my_gate")
-        phi = Parameter("phi")
-        my_gate_circuit.u(-0.5235987755982988, phi + 3.141592653589793, phi + 3.141592653589793, 0)
-        my_gate = my_gate_circuit.to_gate()
-
         qr = QuantumRegister(1, name="qr")
         expected = QuantumCircuit(qr, name="circuit")
-        expected.append(my_gate, [qr[0]])
-        expected = expected.assign_parameters({phi: 3.141592653589793})
-        self.assertEqualUnroll(["u", "my_gate"], circuit, expected)
+        expected.u(-0.5235987755982988, 6.283185307179586, 3.141592653589793, qr[0])
+        self.assertEqualUnroll("u", circuit, expected)
 
     def test_from_qasm_str_delay(self):
         """Test delay instruction/opaque-gate
@@ -504,9 +490,9 @@ class LoadFromQasmTest(QiskitTestCase):
         """Test that gate-definition bodies can use U and CX."""
         qasm_string = """
 OPENQASM 2.0;
+gate bell q0, q1 { U(pi/2, 0, pi) q0; CX q0, q1; }
 qreg q[2];
-U(pi/2, 0, pi) q[0];
-CX q[0], q[1];
+bell q[0], q[1];
 """
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         qr = QuantumRegister(2, "q")
@@ -519,27 +505,9 @@ CX q[0], q[1];
         """Compares the dags after unrolling to basis"""
         circuit_dag = circuit_to_dag(circuit)
         expected_dag = circuit_to_dag(expected)
-        circuit_result = BasisTranslator(std_eqlib, basis).run(circuit_dag)
-        expected_result = BasisTranslator(std_eqlib, basis).run(expected_dag)
+        unroller = UnrollCustomDefinitions(std_eqlib, basis)
+        basis_translator = BasisTranslator(std_eqlib, basis)
+        circuit_result = basis_translator.run(unroller.run(circuit_dag))
+        expected_result = basis_translator.run(unroller.run(expected_dag))
 
-        # Convert DAGs to circuits for easier comparison
-        circuit1 = dag_to_circuit(circuit_result)
-        circuit2 = dag_to_circuit(expected_result)
-
-        # Ensure the circuits have the same number of operations
-        self.assertEqual(len(circuit1.data), len(circuit2.data))
-
-        for (gate1, qubits1, clbits1), (gate2, qubits2, clbits2) in zip(
-            circuit1.data, circuit2.data
-        ):
-            # Compare gates
-            self.assertEqual(gate1.name, gate2.name)
-            self.assertEqual(gate1.num_qubits, gate2.num_qubits)
-            self.assertEqual(gate1.params, gate2.params)
-
-            # Compare qubits by their positions in the circuit's qubit list
-            for qubit1, qubit2 in zip(qubits1, qubits2):
-                self.assertEqual(circuit1.qubits.index(qubit1), circuit2.qubits.index(qubit2))
-
-            for clbit1, clbit2 in zip(clbits1, clbits2):
-                self.assertEqual(circuit1.clbits.index(clbit1), circuit2.clbits.index(clbit2))
+        self.assertEqual(circuit_result, expected_result)
