@@ -18,13 +18,8 @@ import unittest
 from numpy.testing import assert_allclose
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
-<<<<<<< HEAD:test/python/quantum_info/test_local_invariance.py
-from qiskit.quantum_info.synthesis.local_invariance import two_qubit_local_invariants
-from qiskit.quantum_info import Operator
-=======
-from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
->>>>>>> c63bda7dd25b96e50f119a792016ce201ee77c32:test/python/synthesis/test_local_invariance.py
+from qiskit.quantum_info import Operator
 
 
 class TestLocalInvariance(QiskitTestCase):
