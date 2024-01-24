@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Union, Mapping as MappingType
 from collections.abc import Mapping
 from collections import defaultdict
-from numbers import Complex
+from numbers import Real, Complex
 
 from qiskit.quantum_info import Pauli, SparsePauliOp
 
@@ -29,19 +29,19 @@ ObservableKeyLike = Union[Pauli, str, ObservableKey]
 ObservableLike = Union[
     SparsePauliOp,
     ObservableKeyLike,
-    MappingType[ObservableKeyLike, complex],
+    MappingType[ObservableKeyLike, Real],
 ]
-"""Types that can be natively used to construct a :const:`Observable`."""
+"""Types that can be natively used to construct an observable."""
 
 
-class Observable(Mapping):
-    """A sparse container for a observable for an :class:`.Estimator` primitive."""
+class Observable(Mapping[ObservableKey, float]):
+    """A sparse container for a observable for an estimator primitive."""
 
     __slots__ = ("_data", "_num_qubits")
 
     def __init__(
         self,
-        data: Mapping[ObservableKey, complex],
+        data: Mapping[ObservableKey, float],
         num_qubits: int = None,
         validate: bool = True,
     ):
@@ -63,7 +63,7 @@ class Observable(Mapping):
     def __repr__(self):
         return f"{type(self).__name__}({self._data})"
 
-    def __getitem__(self, key: ObservableKey) -> complex:
+    def __getitem__(self, key: ObservableKey) -> float:
         return self._data[key]
 
     def __iter__(self):
@@ -99,12 +99,12 @@ class Observable(Mapping):
             if not isinstance(key[0], tuple) or not isinstance(key[1], str):
                 raise TypeError("Invalid Observable key type")
             data_num_qubits = max(data_num_qubits, 1 + max(key[0]))
-            if not isinstance(value, Complex):
-                raise TypeError(f"Value {value} is not a complex number")
+            if not isinstance(value, Real):
+                raise TypeError(f"Value {value} is not a real number")
         if self._num_qubits is None:
             self._num_qubits = data_num_qubits
         elif self._num_qubits < data_num_qubits:
-            raise ValueError("Num qubits is less than the maximum qubit in ObservableTerms")
+            raise ValueError("Num qubits is less than the maximum qubit in observable keys")
 
     @classmethod
     def coerce(cls, observable: ObservableLike) -> Observable:
@@ -136,7 +136,7 @@ class Observable(Mapping):
         # Mapping conversion (with possible Pauli keys)
         if isinstance(observable, Mapping):
             key_qubits = set()
-            unique = defaultdict(complex)
+            unique = defaultdict(float)
             for key, coeff in observable.items():
                 if isinstance(key, Pauli):
                     # TODO: Make sparse by removing identity qubits in keys
@@ -154,8 +154,13 @@ class Observable(Mapping):
                     raise ValueError(f"Invalid key {key}")
                 if not isinstance(key[0], tuple) or not isinstance(key[1], str):
                     raise TypeError("Invalid key type")
-                key_qubits.update(key[0])
+                # Truncate complex numbers to real
+                if isinstance(coeff, Complex):
+                    if abs(coeff.imag) > 1e-7:
+                        raise TypeError(f"Invalid coeff for key {key}, coeff must be real.")
+                    coeff = coeff.real
                 unique[key] += coeff
+                key_qubits.update(key[0])
             if num_qubits is None:
                 num_qubits = 1 + max(key_qubits)
             obs = cls(dict(unique), num_qubits=num_qubits)
