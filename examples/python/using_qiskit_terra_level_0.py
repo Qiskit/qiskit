@@ -14,7 +14,7 @@
 Example showing how to use Qiskit at introduction level.
 
 This example shows the most basic way to use Qiskit. It builds some circuits
-and runs them on both the BasicAer (local Qiskit provider).
+and runs them using a simulator in the BasicProvider (local Qiskit provider).
 """
 
 # Import the Qiskit modules
