@@ -62,11 +62,12 @@ csp-layout-pass = [
 all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass]"]
 
 [project.urls]
-Homepage = "https://qiskit.org"
-Documentation = "https://qiskit.org/documentation"
+Homepage = "https://www.ibm.com/quantum/qiskit"
+Documentation = "https://docs.quantum.ibm.com"
+"API Reference" = "https://docs.quantum.ibm.com/api/qiskit"
 Repository = "https://github.com/Qiskit/qiskit"
 Issues = "https://github.com/Qiskit/qiskit/issues"
-Changelog = "https://qiskit.org/documentation/release_notes.html"
+Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
 default = "qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis"
