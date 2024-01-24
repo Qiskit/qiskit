@@ -44,7 +44,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .controlflow import ControlFlowOp
@@ -389,24 +388,6 @@ class QuantumCircuit:
         inserted during routing.
         """
         return self._layout
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def header(cls) -> str:
-        """The OpenQASM 2.0 header statement."""
-        return "OPENQASM 2.0;"
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def extension_lib(cls) -> str:
-        """The standard OpenQASM 2 import statement."""
-        return 'include "qelib1.inc";'
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -4560,7 +4541,7 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`~qiskit.circuit.librar.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
         :class:`~qiskit.circuit.library.Initialize` instruction.
