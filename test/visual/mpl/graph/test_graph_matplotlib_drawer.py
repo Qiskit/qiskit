@@ -18,10 +18,6 @@ from test.visual import VisualTestUtilities
 from contextlib import contextmanager
 from pathlib import Path
 
-<<<<<<< HEAD
-=======
-from qiskit import BasicAer, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 from qiskit.utils import optionals
@@ -104,15 +100,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "bloch_multivector.png"
         self.graph_state_drawer(state=state, output="bloch", filename=fname)
@@ -131,15 +120,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "hinton.png"
         self.graph_state_drawer(state=state, output="hinton", filename=fname)
@@ -158,15 +140,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "qsphere.png"
         self.graph_state_drawer(state=state, output="qsphere", filename=fname)
@@ -185,15 +160,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "state_city.png"
         self.graph_state_drawer(state=state, output="city", filename=fname)
@@ -212,15 +180,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.x(0)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(circuit).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "paulivec.png"
         self.graph_state_drawer(state=state, output="paulivec", filename=fname)
@@ -675,15 +636,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         circuit.sxdg(2)
 
-<<<<<<< HEAD
         # getting the state using quantum_info
         state = Statevector(circuit)
-=======
-        # getting the state using backend
-        backend = BasicAer.get_backend("statevector_simulator")
-        result = backend.run(transpile(circuit, backend)).result()
-        state = result.get_statevector(circuit)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         fname = "bloch_multivector_figsize_improvements.png"
         self.graph_state_drawer(

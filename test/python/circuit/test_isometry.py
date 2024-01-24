@@ -62,13 +62,7 @@ class TestIsometry(QiskitTestCase):
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
 
         # Simulate the decomposed gate
-<<<<<<< HEAD
         unitary = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(qc).result()
-        unitary = result.get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
 
@@ -107,13 +101,7 @@ class TestIsometry(QiskitTestCase):
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
 
         # Simulate the decomposed gate
-<<<<<<< HEAD
         unitary = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(qc).result()
-        unitary = result.get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
 
         self.assertTrue(np.allclose(iso_from_circuit, iso))

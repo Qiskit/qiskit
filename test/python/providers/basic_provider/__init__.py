@@ -25,12 +25,8 @@ class BasicProviderBackendTestMixin:
 
     def test_run_circuit(self):
         """Test running a single circuit."""
-<<<<<<< HEAD:test/python/providers/basic_provider/__init__.py
         transpiled_qc = transpile(self.circuit, self.backend)
         job = self.backend.run(transpiled_qc)
-=======
-        job = self.backend.run(transpile(self.circuit, self.backend))
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/__init__.py
         result = job.result()
         self.assertEqual(result.success, True)
         return result

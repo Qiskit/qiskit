@@ -15,11 +15,7 @@ GHZ state example. It also compares running on experiment and simulator.
 """
 
 from qiskit import QuantumCircuit
-<<<<<<< HEAD
-from qiskit import BasicProvider, execute
-=======
-from qiskit import BasicAer, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
+from qiskit import BasicProvider, transpile
 
 
 ###############################################################
@@ -38,13 +34,8 @@ qc.barrier()
 for i in range(num_qubits):
     qc.measure(i, i)
 
-<<<<<<< HEAD
 sim_backend = BasicProvider.get_backend("basic_simulator")
-job = execute(qc, sim_backend, shots=1024)
-=======
-sim_backend = BasicAer.get_backend("qasm_simulator")
 job = sim_backend.run(transpile(qc, sim_backend), shots=1024)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 result = job.result()
 print("Basic simulator : ")
 print(result.get_counts(qc))

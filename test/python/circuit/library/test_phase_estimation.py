@@ -63,11 +63,7 @@ class TestPhaseEstimation(QiskitTestCase):
             inplace=True,
         )
         circuit.compose(pec, inplace=True)
-<<<<<<< HEAD
         actual = Statevector(circuit)
-=======
-        actual = Statevector.from_instruction(circuit).data
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         np.testing.assert_almost_equal(reference, actual)
 
     def test_phase_estimation(self):

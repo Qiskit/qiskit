@@ -18,10 +18,6 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-<<<<<<< HEAD
-=======
-from qiskit import BasicAer, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import (
     LinearPauliRotations,
@@ -42,14 +38,7 @@ class TestFunctionalPauliRotations(QiskitTestCase):
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
-<<<<<<< HEAD
         statevector = Statevector(circuit)
-=======
-
-        backend = BasicAer.get_backend("statevector_simulator")
-        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
-
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
             i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:]

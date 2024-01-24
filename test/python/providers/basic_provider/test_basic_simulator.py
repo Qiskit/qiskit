@@ -49,11 +49,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         self.transpiled_circuit = transpile(qcirc, backend=self.backend)
         self.qobj = assemble(self.transpiled_circuit, shots=1000, seed_simulator=self.seed)
 
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
     def test_basic_simulator_single_shot(self):
-=======
-    def test_qasm_simulator_single_shot(self):
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
         """Test single shot run."""
         shots = 1
         result = self.backend.run(
@@ -73,13 +69,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit.measure(qr[1], cr[2])
         circuit.measure(qr[0], cr[3])
         target = {"0110": shots}
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
         job = self.backend.run(
             transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
         )
-=======
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -96,13 +88,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             circuit.x(qr[qubit])
             circuit.measure(qr[qubit], cr[0])
             target = {"1": shots}
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
             job = self.backend.run(
                 transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
             )
-=======
-            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target)
@@ -139,13 +127,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit.barrier(qr)
         circuit.measure(qr[3], cr[3])
         target = {"1011": shots}
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
         job = self.backend.run(
             transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
         )
-=======
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -215,11 +199,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
         job = self.backend.run(
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
             transpile([circuit_if_true, circuit_if_false], self.backend),
-=======
-            [circuit_if_true, circuit_if_false],
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
             shots=shots,
             seed_simulator=self.seed,
         )
@@ -253,13 +233,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circuit.measure(qr[2], cr[2])
         circuit.h(qr[0]).c_if(cr[0], True)
         circuit.measure(qr[0], cr1[0])
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
-        job = self.backend.run(
-            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
-        )
-=======
         job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
         result = job.result().get_counts()
         target = {"0 110": 100}
         self.assertEqual(result, target)
@@ -354,13 +328,9 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
         job = self.backend.run(
             transpile(circ, self.backend), shots=shots, seed_simulator=self.seed, memory=True
         )
-=======
-        job = self.backend.run(circ, shots=shots, memory=True)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
         result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
@@ -387,11 +357,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
             circuit = QuantumCircuit(qr, cr)
             circuit.unitary(multi_x, qr)
             circuit.measure(qr, cr)
-<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_simulator.py
             job = self.backend.run(transpile(circuit, self.backend), shots=shots)
-=======
-            job = self.backend.run(transpile(circuit), shots=shots)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_qasm_simulator.py
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)

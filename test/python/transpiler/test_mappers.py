@@ -72,12 +72,7 @@ import unittest
 import os
 import sys
 
-<<<<<<< HEAD
-from qiskit import execute
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicProvider
-=======
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicProvider, transpile
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap

@@ -16,13 +16,8 @@ Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-<<<<<<< HEAD
 from qiskit import BasicProvider
-from qiskit import execute
-=======
-from qiskit import BasicAer
 from qiskit import transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
 ###############################################################
 # Set the backend name and coupling map.

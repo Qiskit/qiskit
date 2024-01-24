@@ -19,11 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-<<<<<<< HEAD
 from qiskit import QuantumRegister, QuantumCircuit, QiskitError
-=======
-from qiskit import QuantumRegister, QuantumCircuit, BasicAer, QiskitError, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
@@ -428,17 +424,6 @@ class TestControlledGate(QiskitTestCase):
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
-<<<<<<< HEAD
-=======
-        backend = BasicAer.get_backend("unitary_simulator")
-        job = backend.run(
-            transpile(
-                [qcnu1, qu1, qcu1, qc_cu1], backend, basis_gates=["u1", "u2", "u3", "id", "cx"]
-            ),
-        )
-        result = job.result()
-
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         # Circuit unitaries
         mat_cnu1 = Operator(qcnu1).data
         # trace out ancillae
@@ -496,10 +481,6 @@ class TestControlledGate(QiskitTestCase):
                     qc.x(q_controls[idx])
 
             simulated = Operator(qc)
-<<<<<<< HEAD
-=======
-
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
             base = PhaseGate(lam).to_matrix()
             expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
             with self.subTest(msg=f"control state = {ctrl_state}"):
@@ -528,14 +509,8 @@ class TestControlledGate(QiskitTestCase):
         # apply hadamard on control qubits and toffoli gate
         qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic")
 
-<<<<<<< HEAD
         # obtain unitary for circuit
         simulated = Operator(qc).data
-=======
-        # execute the circuit and obtain statevector result
-        backend = BasicAer.get_backend("unitary_simulator")
-        simulated = backend.run(transpile(qc, backend)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         # compare to expectation
         if num_ancillas > 0:
@@ -566,12 +541,7 @@ class TestControlledGate(QiskitTestCase):
 
         qc.mcx(q_controls, q_target[0], q_ancillas, mode="basic-dirty-ancilla")
 
-<<<<<<< HEAD
         simulated = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        simulated = simulator.run(transpile(qc, simulator)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         if num_ancillas > 0:
             simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
 
@@ -600,12 +570,7 @@ class TestControlledGate(QiskitTestCase):
 
         qc.mcx(q_controls, q_target[0], q_ancillas, mode="advanced")
 
-<<<<<<< HEAD
         simulated = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        simulated = simulator.run(transpile(qc, simulator)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         if num_ancillas > 0:
             simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
 
@@ -626,12 +591,7 @@ class TestControlledGate(QiskitTestCase):
 
         qc.mcx(q_controls, q_target[0], None, mode="noancilla")
 
-<<<<<<< HEAD
         simulated = Operator(qc)
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        simulated = simulator.run(transpile(qc, simulator)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
@@ -692,12 +652,7 @@ class TestControlledGate(QiskitTestCase):
                     gates_used = set(qc.count_ops().keys())
                     self.assertTrue(gates_used.issubset({"x", "u", "p", "cx"}))
 
-<<<<<<< HEAD
             simulated = Operator(qc)
-=======
-            backend = BasicAer.get_backend("unitary_simulator")
-            simulated = backend.run(transpile(qc, backend)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
             if base_gate_name == "x":
                 rot_mat = RXGate(theta).to_matrix()
@@ -757,11 +712,6 @@ class TestControlledGate(QiskitTestCase):
             rot_mat = RYGate(theta).to_matrix()
             simulated = Operator(qc).data
 
-<<<<<<< HEAD
-=======
-            backend = BasicAer.get_backend("unitary_simulator")
-            simulated = backend.run(transpile(qc, backend)).result().get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
             if num_ancillas > 0:
                 simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
 
@@ -815,11 +765,7 @@ class TestControlledGate(QiskitTestCase):
                 if num_ctrl_qubits > 0:
                     circuit.x(list(range(num_ctrl_qubits)))
                 circuit.append(gate, list(range(gate.num_qubits)), [])
-<<<<<<< HEAD
                 statevector = Statevector(circuit).data
-=======
-                statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
                 # account for ancillas
                 if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
@@ -1121,13 +1067,8 @@ class TestControlledGate(QiskitTestCase):
             circuit.rccx(0, 1, 2)
         else:  # num_ctrl_qubits == 3:
             circuit.rcccx(0, 1, 2, 3)
-<<<<<<< HEAD
 
         simulated_mat = Operator(circuit)
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        simulated_mat = simulator.run(transpile(circuit, simulator)).result().get_unitary()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 
         # get the matrix representation from the class itself
         if num_ctrl_qubits == 2:

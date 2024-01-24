@@ -16,11 +16,8 @@
 import numpy as np
 from ddt import data, ddt
 
-<<<<<<< HEAD
-from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-=======
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
+from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types

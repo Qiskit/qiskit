@@ -25,11 +25,7 @@ from scipy.linalg import block_diag
 
 from qiskit.circuit.library.generalized_gates import UCGate
 
-<<<<<<< HEAD
 from qiskit import QuantumCircuit, QuantumRegister
-=======
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
@@ -69,13 +65,7 @@ class TestUCGate(QiskitTestCase):
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
-<<<<<<< HEAD
         unitary = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(qc).result()
-        unitary = result.get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         if up_to_diagonal:
             ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
             unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
@@ -92,13 +82,7 @@ class TestUCGate(QiskitTestCase):
         uc = UCGate(gates, up_to_diagonal=False)
         qc.append(uc, q)
 
-<<<<<<< HEAD
         unitary = Operator(qc).data
-=======
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(transpile(qc, simulator)).result()
-        unitary = result.get_unitary(qc)
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         unitary_desired = _get_ucg_matrix(gates)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))

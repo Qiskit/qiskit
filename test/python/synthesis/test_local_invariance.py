@@ -16,11 +16,7 @@
 import unittest
 
 from numpy.testing import assert_allclose
-<<<<<<< HEAD
-from qiskit.circuit import QuantumCircuit, QuantumRegister
-=======
-from qiskit import QuantumCircuit, QuantumRegister, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
 from qiskit.quantum_info import Operator
@@ -36,22 +32,14 @@ class TestLocalInvariance(QiskitTestCase):
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
-<<<<<<< HEAD
         U = Operator(qc)
-=======
-        U = sim.run(qc).result().get_unitary()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [1, 0, 3])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
-<<<<<<< HEAD
         U = Operator(qc)
-=======
-        U = sim.run(qc).result().get_unitary()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [0, 0, 1])
 
@@ -59,23 +47,14 @@ class TestLocalInvariance(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
         qc.cx(qr[0], qr[1])
-<<<<<<< HEAD
         U = Operator(qc)
-=======
-        U = sim.run(qc).result().get_unitary()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [0, 0, -1])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
         qc.swap(qr[1], qr[0])
-<<<<<<< HEAD
         U = Operator(qc)
-
-=======
-        U = sim.run(transpile(qc, sim)).result().get_unitary()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [-1, 0, -3])
 

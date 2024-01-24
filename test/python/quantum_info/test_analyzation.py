@@ -14,12 +14,7 @@
 
 import unittest
 
-<<<<<<< HEAD
-import qiskit
-from qiskit import BasicProvider
-=======
-from qiskit import BasicAer, QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
+from qiskit import BasicProvider, QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.quantum_info.analysis import hellinger_fidelity
@@ -39,13 +34,8 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-<<<<<<< HEAD
         backend = BasicProvider.get_backend("basic_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
-=======
-        backend = BasicAer.get_backend("qasm_simulator")
         result = backend.run(qc, shots=shots).result()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
         mean_zz = average_data(counts=counts, observable=observable)
@@ -69,13 +59,8 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         shots = 10000
-<<<<<<< HEAD
         backend = BasicProvider.get_backend("basic_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
-=======
-        backend = BasicAer.get_backend("qasm_simulator")
         result = backend.run(qc, shots=shots).result()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         counts = result.get_counts(qc)
         observable = [1, -1, -1, 1, -1, 1, 1, -1]
         mean_zzz = average_data(counts=counts, observable=observable)
@@ -100,13 +85,8 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-<<<<<<< HEAD
         backend = BasicProvider.get_backend("basic_simulator")
-        result = qiskit.execute(qc, backend, shots=shots).result()
-=======
-        backend = BasicAer.get_backend("qasm_simulator")
         result = backend.run(qc, shots=shots).result()
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         counts = result.get_counts(qc)
         observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
         mean_zz = average_data(counts=counts, observable=observable)

@@ -12,11 +12,7 @@
 
 """Test executing multiple-register circuits on BasicProvider."""
 
-<<<<<<< HEAD:test/python/providers/basic_provider/test_multi_registers_convention.py
-from qiskit import BasicProvider, execute
-=======
-from qiskit import BasicAer
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_multi_registers_convention.py
+from qiskit import BasicProvider
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 
@@ -46,15 +42,4 @@ class TestCircuitMultiRegs(QiskitTestCase):
         counts = result.get_counts(qc)
         target = {"01 10": 1024}
 
-<<<<<<< HEAD:test/python/providers/basic_provider/test_multi_registers_convention.py
-=======
-        backend_sim = BasicAer.get_backend("statevector_simulator")
-        result = backend_sim.run(circ).result()
-        state = result.get_statevector(circ)
-
-        backend_sim = BasicAer.get_backend("unitary_simulator")
-        result = backend_sim.run(circ).result()
-        unitary = Operator(result.get_unitary(circ))
-
->>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_multi_registers_convention.py
         self.assertEqual(counts, target)
