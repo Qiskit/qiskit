@@ -43,7 +43,7 @@ from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
 
-class GenericFakeBackend(BackendV2):
+class _GenericFakeBackend(BackendV2):
     """
     Configurable :class:`~.BackendV2` fake backend. This class will instantiate a partially configurable,
     locally runnable, fake backend. Users can configure the number of qubits, basis gates, coupling map,

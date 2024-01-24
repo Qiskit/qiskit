@@ -71,7 +71,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.fake_provider import GenericFakeBackend
+from qiskit.providers.fake_provider.fake_generic import _GenericFakeBackend as GenericFakeBackend
 from qiskit.providers.fake_provider import (
     FakeMelbourne,
     FakeRueschlikon,
