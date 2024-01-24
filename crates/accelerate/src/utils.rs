@@ -17,6 +17,7 @@ pub fn argsort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
 // TODO: Use traits and parameters
 /// Modulo operation. This should give the same result
 /// as `numpy.mod`.
+#[inline]
 pub fn modulo(a: f64, b: f64) -> f64 {
     ((a % b) + b) % b
 }

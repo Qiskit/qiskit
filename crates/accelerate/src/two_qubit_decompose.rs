@@ -49,14 +49,6 @@ fn transform_from_magic_basis(unitary: Mat<c64>) -> Mat<c64> {
     _b_nonnormalized_dagger * unitary * _b_nonnormalized
 }
 
-// fn transform_to_magic_basis(unitary : Mat<c64>) -> Mat<c64> {
-//     let _b_nonnormalized : Mat<c64> = mat![[C1, C1IM, C0, C0],
-//                                            [C0, C0, C1IM, C1],
-//                                            [C0, C0, C1IM, -C1],
-//                                            [C1, -C1IM, C0, C0]];
-//     let _b_nonnormalized_dagger = Scale(c64 {re: 0.5, im: 0.0}) * _b_nonnormalized.adjoint();
-//     _b_nonnormalized * unitary * _b_nonnormalized_dagger
-// }
 
 // faer::c64 and num_complex::Complex<f64> are both structs
 // holding two f64's. But several functions are not defined for
@@ -69,7 +61,7 @@ pub trait PowF {
 
 impl PowF for c64 {
     fn powf(self, pow: f64) -> c64 {
-        c64::from(Complex::<f64>::from(self).powf(pow))
+        c64::from(self.to_num_complex().powf(pow))
     }
 }
 
@@ -79,8 +71,7 @@ pub trait Arg {
 
 impl Arg for c64 {
     fn arg(self) -> f64 {
-        let c = Complex::<f64>::from(self);
-        c.arg()
+        self.to_num_complex().arg()
     }
 }
 
