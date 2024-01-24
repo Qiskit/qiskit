@@ -91,13 +91,3 @@ class StatevectorEstimator(BaseEstimatorV2):
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
         return PubResult(data_bin, metadata={"precision": precision})
-
-
-def _get_rng(seed):
-    if seed is None:
-        rng = np.random.default_rng()
-    elif isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-    return rng
