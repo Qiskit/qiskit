@@ -69,7 +69,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         return PrimitiveResult([self._run_pub(pub) for pub in pubs])
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
-        rng = _get_rng(self._seed)
+        rng = np.random.default_rng(self._seed)
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
