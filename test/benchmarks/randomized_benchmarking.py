@@ -17,15 +17,7 @@
 import os
 import numpy as np
 from qiskit_experiments.library import StandardRB
-
-try:
-    from qiskit.compiler import transpile
-
-    TRANSPILER_SEED_KEYWORD = "seed_transpiler"
-except ImportError:
-    from qiskit.transpiler import transpile
-
-    TRANSPILER_SEED_KEYWORD = "seed_mapper"
+from qiskit import transpile
 
 
 def build_rb_circuit(qubits, length_vector, num_samples=1, seed=None):
@@ -102,7 +94,7 @@ class RandomizedBenchmarkingBenchmark:
             basis_gates=["u1", "u2", "u3", "cx", "id"],
             coupling_map=coupling_map,
             optimization_level=0,
-            **{TRANSPILER_SEED_KEYWORD: self.seed},
+            seed_transpiler=self.seed,
         )
 
     def time_ibmq_backend_transpile_single_thread(self, __):
@@ -135,5 +127,5 @@ class RandomizedBenchmarkingBenchmark:
             basis_gates=["u1", "u2", "u3", "cx", "id"],
             coupling_map=coupling_map,
             optimization_level=0,
-            **{TRANSPILER_SEED_KEYWORD: self.seed},
+            seed_transpiler=self.seed,
         )

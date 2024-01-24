@@ -151,7 +151,7 @@ Here is an example of how the estimator is used.
 from __future__ import annotations
 
 import warnings
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
@@ -341,7 +341,7 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
 BaseEstimator = BaseEstimatorV1
 
 
-class BaseEstimatorV2:
+class BaseEstimatorV2(ABC):
     """Estimator base class version 2.
 
     An estimator estimates expectation values for provided quantum circuit and
@@ -377,4 +377,3 @@ class BaseEstimatorV2:
         Returns:
             A job object that contains results.
         """
-        pass

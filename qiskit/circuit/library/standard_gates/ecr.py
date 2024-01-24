@@ -112,3 +112,6 @@ class ECRGate(SingletonGate):
     def inverse(self):
         """Return inverse ECR gate (itself)."""
         return ECRGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, ECRGate)
