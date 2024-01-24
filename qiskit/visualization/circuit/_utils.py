@@ -31,7 +31,6 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlow
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_arg
 
 from ..exceptions import VisualizationError
 
@@ -197,15 +196,13 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
-def get_bit_reg_index(circuit, bit, reverse_bits=None):
+def get_bit_reg_index(circuit, bit):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
 
     Args:
         circuit (QuantumCircuit): the circuit being drawn
         bit (Qubit, Clbit): the bit to use to find the register and indexes
-        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         (ClassicalRegister, None): register associated with the bit
@@ -285,15 +282,13 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-@deprecate_arg("reverse_bits", since="0.22.0", package_name="qiskit-terra")
-def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
+def get_condition_label_val(condition, circuit, cregbundle):
     """Get the label and value list to display a condition
 
     Args:
         condition (Union[Clbit, ClassicalRegister], int): classical condition
         circuit (QuantumCircuit): the circuit that is being drawn
         cregbundle (bool): if set True bundle classical registers
-        reverse_bits (bool): deprecated option to reverse order of the bits
 
     Returns:
         str: label to display for the condition
