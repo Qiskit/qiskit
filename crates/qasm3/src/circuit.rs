@@ -17,7 +17,12 @@ use crate::error::QASM3ImporterError;
 
 pub trait PyRegister {
     fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>>;
-    fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
+    // This really should be
+    //      fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
+    // or at a minimum
+    //      fn iter<'a>(&'a self, py: Python<'a>) -> ::pyo3::types::iter::PyListIterator<'a>;
+    // but we can't use the former before Rust 1.75 and the latter before PyO3 0.21.
+    fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a PyList;
 }
 
 macro_rules! register_type {
@@ -43,8 +48,8 @@ macro_rules! register_type {
                     .map(|item| item.into_py(py))
             }
 
-            fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny> {
-                self.items.as_ref(py).iter()
+            fn bit_list<'a>(&'a self, py: Python<'a>) -> &'a PyList {
+                self.items.as_ref(py)
             }
         }
 

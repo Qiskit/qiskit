@@ -171,7 +171,7 @@ fn broadcast_bits_for_identifier<T: PyRegister>(
         Ok(BroadcastItem::Bit(bit.clone()))
     } else if let Some(reg) = registers.get(iden_symbol) {
         Ok(BroadcastItem::Register(
-            reg.iter(py).map(|obj| obj.into_py(py)).collect(),
+            reg.bit_list(py).iter().map(|obj| obj.into_py(py)).collect(),
         ))
     } else {
         Err(QASM3ImporterError::new_err(format!(

@@ -189,7 +189,7 @@ impl BuilderState {
             // We want any deterministic order for easier circuit reproducibility in Python space,
             // and to include each seen qubit once.  This simply maintains insertion order.
             let mut qubits = IndexMap::<*const ::pyo3::ffi::PyObject, Py<PyAny>>::with_capacity(
-                asg_qubits.len()
+                asg_qubits.len(),
             );
             for qarg in asg_qubits.iter() {
                 let qarg = expr::expect_gate_operand(qarg)?;
