@@ -4119,7 +4119,7 @@ class QuantumCircuit:
         followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`qiskit.circuit.library.Initialize` instruction.
+        :class:`~qiskit.circuit.library.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.
