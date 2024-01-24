@@ -17,7 +17,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
 
@@ -34,7 +34,7 @@ class TestIntegerComparator(QiskitTestCase):
 
         # run simulation
         backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(qc, backend).result().get_statevector()
+        statevector = backend.run(transpile(qc, backend)).result().get_statevector()
         for i, amplitude in enumerate(statevector):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
@@ -71,13 +71,13 @@ class TestIntegerComparator(QiskitTestCase):
 
         with self.subTest(msg="missing num state qubits and value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.num_state_qubits = 2
 
         with self.subTest(msg="missing value"):
             with self.assertRaises(AttributeError):
-                print(comp.draw())
+                _ = str(comp.draw())
 
         comp.value = 0
         comp.geq = True

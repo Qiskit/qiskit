@@ -43,7 +43,7 @@ from qiskit._accelerate.sabre_swap import (
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SabreLayout(TransformationPass):
     This method exploits the reversibility of quantum circuits, and tries to
     include global circuit information in the choice of initial_layout.
 
-    By default this pass will run both layout and routing and will transform the
+    By default, this pass will run both layout and routing and will transform the
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
@@ -152,7 +152,7 @@ class SabreLayout(TransformationPass):
                 will be raised if both are used.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
-                will be returned in the property set. This is a tradeoff to run custom
+                will be set in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
 
@@ -440,7 +440,7 @@ class SabreLayout(TransformationPass):
 
         The routing passes internally start with a trivial layout, as the
         layout gets applied to the circuit prior to running them. So the
-        "final_layout" they report must be amended to account for the actual
+        ``"final_layout"`` they report must be amended to account for the actual
         initial_layout that was selected.
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)

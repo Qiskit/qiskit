@@ -44,7 +44,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -242,12 +241,6 @@ class Target(Mapping):
         "concurrent_measurements",
     )
 
-    @deprecate_arg(
-        "aquire_alignment",
-        new_alias="acquire_alignment",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
     def __init__(
         self,
         description=None,
@@ -368,8 +361,9 @@ class Target(Mapping):
         supports.
 
         Args:
-            instruction (qiskit.circuit.Instruction): The operation object to add to the map. If it's
-                parameterized any value of the parameter can be set. Optionally for variable width
+            instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
+                The operation object to add to the map. If it's parameterized any value
+                of the parameter can be set. Optionally for variable width
                 instructions (such as control flow operations such as :class:`~.ForLoop` or
                 :class:`~MCXGate`) you can specify the class. If the class is specified than the
                 ``name`` argument must be specified. When a class is used the gate is treated as global
@@ -1143,28 +1137,6 @@ class Target(Mapping):
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
 
-    @property
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self):
-        """Alias of deprecated name. This will be removed."""
-        return self.acquire_alignment
-
-    @aquire_alignment.setter
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self, new_value: int):
-        """Alias of deprecated name. This will be removed."""
-        self.acquire_alignment = new_value
-
     def __iter__(self):
         return iter(self._gate_map)
 
@@ -1477,7 +1449,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_length",
                             "unit": "s",
                             "value": props.duration,
@@ -1486,7 +1458,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_error",
                             "unit": "",
                             "value": props.error,
@@ -1511,7 +1483,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_error",
                             "unit": "",
                             "value": props.error,
@@ -1520,7 +1492,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_length",
                             "unit": "s",
                             "value": props.duration,

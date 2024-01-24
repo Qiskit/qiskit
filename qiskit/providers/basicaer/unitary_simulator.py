@@ -17,23 +17,20 @@ the simulator. It is exponential in the number of qubits.
 
 .. code-block:: python
 
-    UnitarySimulator().run(qobj)
+    UnitarySimulator().run(run_input)
 
-Where the input is a Qobj object and the output is a BasicAerJob object, which can
-later be queried for the Result object. The result will contain a 'unitary'
-data field, which is a 2**n x 2**n complex numpy array representing the
+Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and
+the output is a BasicAerJob object, which can later be queried for the Result object. The result
+will contain a 'unitary' data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
 """
 import logging
 import uuid
 import time
-from math import log2, sqrt
 import warnings
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
@@ -55,12 +52,10 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BackendV1):
     """Python implementation of a unitary simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024**3) / 16)))
-
     DEFAULT_CONFIGURATION = {
         "backend_name": "unitary_simulator",
         "backend_version": "1.1.0",
-        "n_qubits": min(24, MAX_QUBITS_MEMORY),
+        "n_qubits": 24,
         "url": "https://github.com/Qiskit/qiskit-terra",
         "simulator": True,
         "local": True,
@@ -203,11 +198,11 @@ class UnitarySimulatorPy(BackendV1):
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
-    def run(self, qobj, **backend_options):
-        """Run qobj asynchronously.
+    def run(self, run_input, **backend_options):
+        """Run experiments in run_input asynchronously.
 
         Args:
-            qobj (Qobj): payload of the experiment
+            run_input (Qobj, QuantumCircuit, list): payload of the experiment
             backend_options (dict): backend options
 
         Returns:
@@ -222,7 +217,7 @@ class UnitarySimulatorPy(BackendV1):
             The "initial_unitary" option specifies a custom initial unitary
             matrix for the simulator to be used instead of the identity
             matrix. This size of this matrix must be correct for the number
-            of qubits inall experiments in the qobj.
+            of qubits in all experiments in the run_input.
 
             The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output unitary. The default
@@ -238,21 +233,19 @@ class UnitarySimulatorPy(BackendV1):
                     "chop_threshold": 1e-15
                 }
         """
-        if isinstance(qobj, (QuantumCircuit, list)):
-            from qiskit.compiler import assemble
+        from qiskit.compiler import assemble
 
-            out_options = {}
-            for key in backend_options:
-                if not hasattr(self.options, key):
-                    warnings.warn(
-                        "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
-                    )
-                else:
-                    out_options[key] = backend_options[key]
-            qobj = assemble(qobj, self, **out_options)
-            qobj_options = qobj.config
-        else:
-            qobj_options = None
+        out_options = {}
+        for key in backend_options:
+            if not hasattr(self.options, key):
+                warnings.warn(
+                    "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
+                )
+            else:
+                out_options[key] = backend_options[key]
+        qobj = assemble(run_input, self, **out_options)
+        qobj_options = qobj.config
+
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())
         job = BasicAerJob(self, job_id, self._run_job(job_id, qobj))

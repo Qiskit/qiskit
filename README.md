@@ -4,7 +4,7 @@
 [![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg)](https://pypi.org/project/qiskit-terra/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
-[![Minimum rustc 1.64.0](https://img.shields.io/badge/rustc-1.64.0+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![Minimum rustc 1.70](https://img.shields.io/badge/rustc-1.70+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![Downloads](https://static.pepy.tech/badge/qiskit-terra)](https://pepy.tech/project/qiskit-terra)<!--- long-description-skip-end -->
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
 
@@ -15,7 +15,7 @@ It also contains a transpiler that supports optimizing quantum circuits and a qu
 
 For more details on how to use Qiskit, refer to the documentation located here:
 
-<https://qiskit.org/documentation/>
+<https://docs.quantum.ibm.com/>
 
 
 ## Installation
@@ -51,7 +51,7 @@ qc_example.cx(0,1)       # 0th-qubit-Controlled-NOT gate on 1st qubit
 qc_example.cx(0,2)       # 0th-qubit-Controlled-NOT gate on 2nd qubit
 ```
 
-This simple example makes an entangled state known as a [GHZ state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state) $(|000\rangle + |111\rangle)/\sqrt{2}$. It uses the standard quantum gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
+This simple example makes an entangled state known as a [GHZ state](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state) $(|000\rangle + i|111\rangle)/\sqrt{2}$. It uses the standard quantum gates: Hadamard gate (`h`), Phase gate (`p`), and CNOT gate (`cx`). 
 
 Once you've made your first quantum circuit, choose which primitive function you will use. Starting with `sampler`,
 we use `measure_all(inplace=False)` to get a copy of the circuit in which all the qubits are measured:

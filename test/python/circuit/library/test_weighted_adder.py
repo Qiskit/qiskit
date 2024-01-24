@@ -18,7 +18,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder
 
@@ -35,7 +35,7 @@ class TestWeightedAdder(QiskitTestCase):
         circuit.append(adder.to_instruction(), list(range(adder.num_qubits)))
 
         backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(circuit, backend).result().get_statevector()
+        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
@@ -67,7 +67,7 @@ class TestWeightedAdder(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="default weights"):
             adder.num_state_qubits = 3
@@ -81,7 +81,7 @@ class TestWeightedAdder(QiskitTestCase):
         with self.subTest(msg="mismatching number of state qubits and weights"):
             with self.assertRaises(ValueError):
                 adder.weights = [0, 1, 2, 3]
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="change all attributes"):
             adder.num_state_qubits = 4

@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.arithmetic.piecewise_polynomial_pauli_rotations import (
     PiecewisePolynomialPauliRotations,
@@ -38,7 +38,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
 
         backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(circuit, backend).result().get_statevector()
+        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
@@ -101,7 +101,7 @@ class TestPiecewisePolynomialRotations(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(pw_polynomial_rotations.draw())
+                _ = str(pw_polynomial_rotations.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             pw_polynomial_rotations.num_state_qubits = 2
