@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Removed features deprecated in the 0.45 release for :class:`.QuantumCircuit`:
+
+      * `header`,        No alternative will be provided
+      * `extension_lib`, No alternative will be provided
+
