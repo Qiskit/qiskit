@@ -1417,29 +1417,6 @@ class TwoQubitBasisDecomposer:
             self.basis.b, self.basis_fidelity, np.asarray(unitary, dtype=complex)
         )
 
-    def old_num_basis_gates(self, unitary):
-        """Computes the number of basis gates needed in
-        a decomposition of input unitary
-        """
-        unitary = np.asarray(unitary, dtype=complex)
-        a, b, c = weyl_coordinates(unitary)[:]
-        traces = [
-            4
-            * (
-                math.cos(a) * math.cos(b) * math.cos(c)
-                + 1j * math.sin(a) * math.sin(b) * math.sin(c)
-            ),
-            4
-            * (
-                math.cos(np.pi / 4 - a) * math.cos(self.basis.b - b) * math.cos(c)
-                + 1j * math.sin(np.pi / 4 - a) * math.sin(self.basis.b - b) * math.sin(c)
-            ),
-            4 * math.cos(c),
-            4,
-        ]
-        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
-
-
 class TwoQubitDecomposeUpToDiagonal:
     """
     Class to decompose two qubit unitaries into the product of a diagonal gate

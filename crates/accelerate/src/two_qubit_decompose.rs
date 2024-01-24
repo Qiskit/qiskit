@@ -26,8 +26,8 @@ use std::f64::consts::PI;
 
 use faer::Faer;
 use faer::IntoFaerComplex;
-use faer::{mat, Mat, MatRef, Scale};
-use faer_core::c64;
+use faer::{mat, Mat, MatRef};
+use faer_core::{c64, scale};
 use numpy::PyReadonlyArray2;
 
 use crate::utils;
@@ -45,7 +45,7 @@ fn transform_from_magic_basis(unitary: Mat<c64>) -> Mat<c64> {
         [C0, C0, C1IM, -C1],
         [C1, -C1IM, C0, C0]
     ];
-    let _b_nonnormalized_dagger = Scale(c64 { re: 0.5, im: 0.0 }) * _b_nonnormalized.adjoint();
+    let _b_nonnormalized_dagger = scale(c64 { re: 0.5, im: 0.0 }) * _b_nonnormalized.adjoint();
     _b_nonnormalized_dagger * unitary * _b_nonnormalized
 }
 
@@ -79,7 +79,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
     let pi4 = PI / 4.0;
-    let uscaled = Scale(C1 / unitary.determinant().powf(0.25)) * unitary;
+    let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
         .complex_eigenvalues()
@@ -126,14 +126,6 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
         cs[2] -= pi2;
     }
     (cs[1], cs[0], cs[2])
-}
-
-// For debugging. We can remove this later
-#[pyfunction]
-#[pyo3(text_signature = "(unitary, /")]
-pub fn _weyl_coordinates(unitary: PyReadonlyArray2<Complex<f64>>) -> (f64, f64, f64) {
-    let u = unitary.as_array().into_faer_complex();
-    __weyl_coordinates(u)
 }
 
 #[pyfunction]
@@ -188,6 +180,5 @@ fn trace_to_fid(trace: c64) -> f64 {
 #[pymodule]
 pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
-    m.add_wrapped(wrap_pyfunction!(_weyl_coordinates))?;
     Ok(())
 }
