@@ -1140,13 +1140,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         .. plot::
            :include-source:
 
-            import numpy as np
             from qiskit import QuantumCircuit, transpile
             from qiskit.providers.fake_provider import FakeVigoV2
             from qiskit.visualization import plot_circuit_layout
-            from qiskit.tools.monitor import job_monitor
-            from qiskit.providers.fake_provider import FakeVigoV2
-            import matplotlib.pyplot as plt
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)

@@ -74,6 +74,11 @@ Measures
 Utility Functions
 =================
 
+.. autosummary::
+   :toctree: ../stubs/
+
+   Quaternion
+
 .. autofunction:: partial_trace
 .. autofunction:: schmidt_decomposition
 .. autofunction:: shannon_entropy
@@ -105,19 +110,6 @@ Analysis
 
    Z2Symmetries
 
-Synthesis
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   OneQubitEulerDecomposer
-   TwoQubitBasisDecomposer
-   Quaternion
-   XXDecomposer
-
-.. autofunction:: two_qubit_cnot_decompose
-.. autofunction:: decompose_clifford
 """
 
 from __future__ import annotations
@@ -163,11 +155,27 @@ from .states import (
     state_fidelity,
     negativity,
 )
-from .synthesis import (
-    OneQubitEulerDecomposer,
-    Quaternion,
-    TwoQubitBasisDecomposer,
-    XXDecomposer,
-    decompose_clifford,
-    two_qubit_cnot_decompose,
-)
+from .quaternion import Quaternion
+
+_DEPRECATED_NAMES = {
+    "OneQubitEulerDecomposer": "qiskit.synthesis",
+    "TwoQubitBasisDecomposer": "qiskit.synthesis",
+    "XXDecomposer": "qiskit.synthesis",
+    "two_qubit_cnot_decompose": "qiskit.synthesis",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        import importlib
+        import warnings
+
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit 0.46"
+            f" and will be removed in 1.0.  Import from '{module_name}' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

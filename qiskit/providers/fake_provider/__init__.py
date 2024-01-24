@@ -210,7 +210,6 @@ Special fake backends are fake backends that were created for special testing pu
     FakeBackendV2
     FakeBackend5QV2
     FakeMumbaiFractionalCX
-    ConfigurableFakeBackend
 
 Fake Backend Base Classes
 =========================
@@ -249,6 +248,3 @@ from .fake_openpulse_3q import FakeOpenPulse3Q
 from .fake_1q import Fake1Q
 from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from .fake_mumbai_v2 import FakeMumbaiFractionalCX
-
-# Configurable fake backend
-from .utils.configurable_backend import ConfigurableFakeBackend

@@ -1,7 +1,7 @@
 ---
-deprecations:
+upgrade:
   - |
-    Deprecates using a :class:`~.PauliList` as an observable that is implicitly
-    converted to a :class:`~.SparsePauliOp` with coefficients 1 when calling
-    :meth:`.Estimator.run`. Users should instead explicitly convert the argument
-    using ``SparsePauliOp(pauli_list)`` first.
+    Using a :class:`~.PauliList` as an observable
+    when calling
+    :meth:`.Estimator.run` is not further supported. Users should instead explicitly convert the argument
+    using ``SparsePauliOp(pauli_list)`` first (see :class:`~.SparsePauliOp`).

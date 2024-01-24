@@ -28,7 +28,7 @@ from numpy.typing import ArrayLike
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 
 from .object_array import object_array
-from .shape import ShapedMixin
+from .shape import ShapedMixin, shape_tuple
 
 BasisObservable = Mapping[str, complex]
 """Representation type of a single observable."""
@@ -119,7 +119,7 @@ class ObservablesArray(ShapedMixin):
             return item
         return ObservablesArray(item, copy=False, validate=False)
 
-    def reshape(self, shape: int | Iterable[int]) -> ObservablesArray:
+    def reshape(self, *shape: int | Iterable[int]) -> ObservablesArray:
         """Return a new array with a different shape.
 
         This results in a new view of the same arrays.
@@ -130,6 +130,7 @@ class ObservablesArray(ShapedMixin):
         Returns:
             A new array.
         """
+        shape = shape_tuple(*shape)
         return ObservablesArray(self._array.reshape(shape), copy=False, validate=False)
 
     def ravel(self) -> ObservablesArray:
@@ -211,7 +212,7 @@ class ObservablesArray(ShapedMixin):
     def validate(self):
         """Validate the consistency in observables array."""
         num_qubits = None
-        for obs in self._array:
+        for obs in self._array.reshape(-1):
             basis_num_qubits = len(next(iter(obs)))
             if num_qubits is None:
                 num_qubits = basis_num_qubits

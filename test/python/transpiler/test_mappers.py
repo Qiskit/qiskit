@@ -292,7 +292,7 @@ class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using SabreSwap."""
 
     pass_class = SabreSwap
-    additional_args = {"seed": 1242}
+    additional_args = {"seed": 1242, "trials": 2}
 
 
 if __name__ == "__main__":
