@@ -75,7 +75,7 @@ _CX_MATRIX = gates.CXGate().to_matrix()
 
 def cx_gate_matrix() -> np.ndarray:
     """Get the matrix for a controlled-NOT gate."""
-    return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
+    return _CX_MATRIX
 
 
 def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
@@ -102,11 +102,7 @@ def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return "{mat_l}{mat_r}, ".format(
-        mat_l=mat_l, mat_r=mat_r
-    ) + "{tens_lin}{tens_r}->{tens_lout}{tens_r}".format(
-        tens_lin=tens_lin, tens_lout=tens_lout, tens_r=tens_r
-    )
+    return f"{mat_l}{mat_r}, {tens_lin}{tens_r}->{tens_lout}{tens_r}"
 
 
 def einsum_vecmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
@@ -130,9 +126,7 @@ def einsum_vecmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return f"{mat_l}{mat_r}, " + "{tens_lin}->{tens_lout}".format(
-        tens_lin=tens_lin, tens_lout=tens_lout
-    )
+    return f"{mat_l}{mat_r}, {tens_lin}->{tens_lout}"
 
 
 def _einsum_matmul_index_helper(
