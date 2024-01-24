@@ -23,7 +23,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
-class TestEstimatorV2(QiskitTestCase):
+class TestStatevectorEstimator(QiskitTestCase):
     """Test Estimator"""
 
     def setUp(self):
@@ -224,7 +224,6 @@ class TestEstimatorV2(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
 
         est = StatevectorEstimator()
-        # TODO: add validation
         with self.assertRaises(ValueError):
             est.run([(qc, op2)]).result()
         with self.assertRaises(ValueError):
@@ -233,6 +232,8 @@ class TestEstimatorV2(QiskitTestCase):
             est.run([(qc2, op2, [[1, 2]])]).result()
         with self.assertRaises(ValueError):
             est.run([(qc, [op, op2], [[1]])]).result()
+        with self.assertRaises(ValueError):
+            est.run([(qc, op)], precision=-1).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
@@ -254,6 +255,25 @@ class TestEstimatorV2(QiskitTestCase):
             result = estimator.run([(qc, op, params_list_array)]).result()
             self.assertEqual(len(result[0].data.evs), k)
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs)
+
+    def test_precision_seed(self):
+        """Test for precision and seed"""
+        estimator = StatevectorEstimator(default_precision=1.0, seed=1)
+        psi1 = self.psi[0]
+        hamiltonian1 = self.hamiltonian[0]
+        theta1 = self.theta[0]
+        job = estimator.run([(psi1, hamiltonian1, [theta1])])
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881])
+        # The result of the second run is the same
+        job = estimator.run([(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1])])
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881])
+        np.testing.assert_allclose(result[1].data.evs, [1.901141473854881])
+        # precision=0 impliese the exact expectation value
+        job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=0)
+        result = job.result()
+        np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956])
 
 
 if __name__ == "__main__":

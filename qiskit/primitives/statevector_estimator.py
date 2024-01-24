@@ -32,12 +32,35 @@ class StatevectorEstimator(BaseEstimatorV2):
     Simple implementation of :class:`BaseEstimatorV2` with full state vector simulation.
     """
 
+    def __init__(
+        self, *, default_precision: float = 0.0, seed: np.random.Generator | int | None = None
+    ):
+        """
+        Args:
+            default_precision: The default precision for the estimator if not specified during run.
+            seed: The seed or Generator object for random number generation.
+                If None, a random seeded default RNG will be used.
+        """
+        self._default_precision = default_precision
+        self._seed = seed
+
+    @property
+    def default_precision(self) -> int:
+        """Return the default shots"""
+        return self._default_precision
+
+    @property
+    def seed(self) -> np.random.Generator | int | None:
+        """Return the seed or Generator object for random number generation."""
+        return self._seed
+
     def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
-        if precision is not None and precision > 0:
-            raise ValueError("precision must be None or 0 for StatevectorEstimator.")
+        if precision is None:
+            precision = self._default_precision
         coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
+
         job = PrimitiveJob(self._run, coerced_pubs)
         job._submit()
         return job
@@ -46,9 +69,11 @@ class StatevectorEstimator(BaseEstimatorV2):
         return PrimitiveResult([self._run_pub(pub) for pub in pubs])
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
+        rng = _get_rng(self._seed)
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
+        precision = pub.precision
         bound_circuits = parameter_values.bind_all(circuit)
         bc_circuits, bc_obs = np.broadcast_arrays(bound_circuits, observables)
         evs = np.zeros_like(bc_circuits, dtype=np.float64)
@@ -59,7 +84,20 @@ class StatevectorEstimator(BaseEstimatorV2):
             final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
             paulis, coeffs = zip(*observable.items())
             obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
-            evs[index] = np.real_if_close(final_state.expectation_value(obs))
+            expectation_value = final_state.expectation_value(obs)
+            if precision != 0:
+                expectation_value = rng.normal(expectation_value, precision)
+            evs[index] = np.real_if_close(expectation_value)
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"precision": 0})
+        return PubResult(data_bin, metadata={"precision": precision})
+
+
+def _get_rng(seed):
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = np.random.default_rng(seed)
+    return rng
