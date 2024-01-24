@@ -23,14 +23,6 @@ class Bit:
         for :class:`~.Clbit` and :class:`~.circuit.Qubit`.
     """
 
-    _register = None
-    _index = None
-
-    def __init__(self, register=None, index=None):
-        """Create a new generic bit."""
-        del register
-        del index
-
     def __repr__(self):
         """Return the official string representing the bit."""
         return object.__repr__(self)

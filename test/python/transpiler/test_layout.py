@@ -17,7 +17,7 @@ import pickle
 import unittest
 import numpy
 
-from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit._accelerate.nlayout import NLayout
@@ -289,7 +289,6 @@ class LayoutTest(QiskitTestCase):
         )
         layout_str = "Layout({{\n2: {},\n4: {},\n3: {},\n0: {},\n1: {}\n}})".format(*qr)
         self.assertEqual(layout.__repr__(), layout_str)
-
 
     def test_layout_repr_with_holes(self):
         """A non-bijective Layout repr reproduces layout"""

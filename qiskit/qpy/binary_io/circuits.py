@@ -1073,7 +1073,9 @@ def _write_layout(file_obj, circuit):
             if qubit in circuit.qubits or qubit in layout_qregs:
                 if qubit in layout_qregs:
                     extra_registers[layout_qregs[qubit]].append(qubit)
-                    initial_layout_array.append((layout_qregs[qubit].index(qubit), layout_qregs[qubit]))
+                    initial_layout_array.append(
+                        (layout_qregs[qubit].index(qubit), layout_qregs[qubit])
+                    )
 
                 if qubit in circuit.qubits:
                     bit_location = circuit.find_bit(qubit)
