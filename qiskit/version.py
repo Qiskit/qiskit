@@ -76,7 +76,7 @@ def get_version_info():
         return full_version
     git_revision = git_version()
     if not release:
-        full_version += ".dev0+" + git_revision[:7]
+        full_version += "+" + git_revision[:7]
 
     return full_version
 
