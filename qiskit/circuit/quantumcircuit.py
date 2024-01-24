@@ -4116,7 +4116,7 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`qiskit.circuit.library.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
         :class:`qiskit.circuit.library.Initialize` instruction.
