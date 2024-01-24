@@ -18,7 +18,11 @@ import unittest
 import numpy as np
 from scipy.linalg import block_diag
 
+<<<<<<< HEAD
 from qiskit import QuantumCircuit, QuantumRegister
+=======
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -59,7 +63,13 @@ class TestUCRXYZ(QiskitTestCase):
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
                 # Simulate the decomposed gate
+<<<<<<< HEAD
                 unitary = Operator(qc)
+=======
+                simulator = BasicAer.get_backend("unitary_simulator")
+                result = simulator.run(qc).result()
+                unitary = result.get_unitary(qc)
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
                 unitary_desired = _get_ucr_matrix(angles, rot_axis)
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 

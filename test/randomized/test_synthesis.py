@@ -72,7 +72,12 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[0], rnd[1], rnd[2], qr[0])
         qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
+<<<<<<< HEAD
         unitary = Operator(qc)
+=======
+        sim = UnitarySimulatorPy()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
 
     @given(strategies.tuples(*[rotation] * 12))
@@ -89,7 +94,12 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[6], rnd[7], rnd[8], qr[0])
         qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
+<<<<<<< HEAD
         unitary = Operator(qc)
+=======
+        sim = UnitarySimulatorPy()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
 
     @given(strategies.tuples(*[rotation] * 18))
@@ -111,7 +121,12 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[12], rnd[13], rnd[14], qr[0])
         qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
+<<<<<<< HEAD
         unitary = Operator(qc)
+=======
+        sim = UnitarySimulatorPy()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
 
     @given(strategies.tuples(*[rotation] * 24))
@@ -138,7 +153,12 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[18], rnd[19], rnd[20], qr[0])
         qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
+<<<<<<< HEAD
         unitary = Operator(qc)
+=======
+        sim = UnitarySimulatorPy()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
 
 

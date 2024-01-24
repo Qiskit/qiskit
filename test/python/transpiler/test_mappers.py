@@ -72,8 +72,12 @@ import unittest
 import os
 import sys
 
+<<<<<<< HEAD
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicProvider
+=======
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, transpile
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
@@ -124,11 +128,9 @@ class CommonUtilitiesMixin:
             filename (string): Where the QASM is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(
-            transpiled_result,
-            sim_backend,
+        job = sim_backend.run(
+            transpile(transpiled_result, sim_backend, seed_transpiler=self.seed_transpiler),
             seed_simulator=self.seed_simulator,
-            seed_transpiler=self.seed_transpiler,
             shots=self.shots,
         )
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)

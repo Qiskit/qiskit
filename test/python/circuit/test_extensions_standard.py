@@ -1408,11 +1408,18 @@ class TestStandardMethods(QiskitTestCase):
                 # gate doesn't implement to_matrix method: skip
                 self.log.info('to_matrix method FAILED for "%s" gate', gate.name)
                 continue
+<<<<<<< HEAD
             definition_unitary = Operator(circ)
 
             with self.subTest(gate_class):
                 # TODO check for exact equality
                 self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
+=======
+            definition_unitary = Operator(circ).data
+
+            with self.subTest(gate_class):
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")

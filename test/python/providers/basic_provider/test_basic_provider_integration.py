@@ -16,7 +16,6 @@ import unittest
 
 from qiskit import BasicProvider
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute
 from qiskit.result import Result
 from qiskit.providers.basic_provider import BasicProviderError
 from qiskit.test import QiskitTestCase
@@ -32,8 +31,13 @@ class TestBasicProviderIntegration(QiskitTestCase):
         self._qc1 = QuantumCircuit(qr, cr, name="qc1")
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
+<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_provider_integration.py
         self.backend = BasicProvider.get_backend("basic_simulator")
         self._result1 = execute(self._qc1, self.backend).result()
+=======
+        self.backend = BasicAer.get_backend("qasm_simulator")
+        self._result1 = self.backend.run(self._qc1).result()
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_basicaer_integration.py
 
     def test_builtin_simulator_result_fields(self):
         """Test components of a result from a local simulator."""
@@ -52,7 +56,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        job = execute(qc, self.backend)
+        job = self.backend.run(qc)
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -66,7 +70,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = execute([qc, qc_extra], self.backend)
+        job = self.backend.run([qc, qc_extra])
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -75,7 +79,11 @@ class TestBasicProviderIntegration(QiskitTestCase):
         qc = QuantumCircuit(50, 1)
         qc.x(0)
         qc.measure(0, 0)
+<<<<<<< HEAD:test/python/providers/basic_provider/test_basic_provider_integration.py
         with self.assertRaises(BasicProviderError):
+=======
+        with self.assertRaises(BasicAerError):
+>>>>>>> 1a027ac3a8c8d2f053055e02cc96265b877ef2af:test/python/basicaer/test_basicaer_integration.py
             self.backend.run(qc)
 
 
