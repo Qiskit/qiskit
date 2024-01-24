@@ -28,7 +28,12 @@ class Bit:
 
     def __init__(self, register=None, index=None):
         """Create a new generic bit."""
-        pass
+        del register
+        del index
+
+    def __repr__(self):
+        """Return the official string representing the bit."""
+        return object.__repr__(self)
 
     def __copy__(self):
         # Bits are immutable.
