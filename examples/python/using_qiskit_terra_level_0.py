@@ -14,12 +14,13 @@
 Example showing how to use Qiskit at introduction level.
 
 This example shows the most basic way to use Qiskit. It builds some circuits
-and runs them using a simulator in the BasicProvider (local Qiskit provider).
+and runs them on the BasicProvider (local Qiskit provider).
 """
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit
-from qiskit import transpile, BasicProvider
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
@@ -32,12 +33,8 @@ qc2 = QuantumCircuit(2, 2)
 qc2.h([0, 1])
 qc2.measure([0, 1], [0, 1])
 
-# setting up the backend
-print("(BasicProvider Backends)")
-print(BasicProvider.backends())
-
 # running the job
-sim_backend = BasicProvider.get_backend("basic_simulator")
+sim_backend = BasicSimulator()
 job_sim = sim_backend.run(transpile([qc1, qc2], sim_backend))
 sim_result = job_sim.result()
 
