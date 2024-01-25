@@ -158,7 +158,6 @@ from .stabilizer import (
 )
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .qft import synth_qft_line
-from .unitary import aqc
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer
