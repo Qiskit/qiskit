@@ -16,13 +16,13 @@ Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicProvider
 from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = BasicProvider.get_backend("basic_simulator")
+backend = BasicSimulator()
 coupling_map = [
     [0, 1],
     [0, 8],
