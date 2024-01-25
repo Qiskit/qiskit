@@ -84,10 +84,12 @@ class StatevectorEstimator(BaseEstimatorV2):
             final_state = Statevector(bound_circuit_to_instruction(bound_circuit))
             paulis, coeffs = zip(*observable.items())
             obs = SparsePauliOp(paulis, coeffs)  # TODO: support non Pauli operators
-            expectation_value = final_state.expectation_value(obs)
+            expectation_value = np.real_if_close(final_state.expectation_value(obs))
             if precision != 0:
+                if not np.isreal(expectation_value):
+                    raise ValueError("Given operator is not Hermitian and noise cannot be added.")
                 expectation_value = rng.normal(expectation_value, precision)
-            evs[index] = np.real_if_close(expectation_value)
+            evs[index] = expectation_value
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
         return PubResult(data_bin, metadata={"precision": precision})

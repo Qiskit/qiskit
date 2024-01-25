@@ -234,6 +234,8 @@ class TestStatevectorEstimator(QiskitTestCase):
             est.run([(qc, [op, op2], [[1]])]).result()
         with self.assertRaises(ValueError):
             est.run([(qc, op)], precision=-1).result()
+        with self.assertRaises(ValueError):
+            est.run([(qc, 1j * op)], precision=0.1).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
