@@ -203,20 +203,24 @@ class GenericFakeBackend(BackendV2):
 
     @property
     def dtm(self) -> float:
-        """Return the system time resolution of output signals
-
-        Returns:
-            The output signal timestep in seconds.
-        """
-        if self._dtm is not None:
-            # converting `dtm` from nanoseconds to seconds
-            return self._dtm * 1e-9
-        else:
-            return None
+        """Return the system time resolution of output signals"""
+        # converting `dtm` from nanoseconds to seconds
+        return self._dtm * 1e-9 if self._dtm is not None else None
 
     @property
     def meas_map(self) -> list[list[int]]:
         return self._target.concurrent_measurements
+
+    def _build_default_channels(self) -> None:
+        channels_map = {
+            "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
+            "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
+            "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
+            "control": {
+                (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
+            },
+        }
+        setattr(self, "channels_map", channels_map)
 
     def _get_noise_defaults(self, name: str) -> tuple:
         return _NOISE_DEFAULTS.get(name, (1e-8, 9e-7, 1e-5, 5e-3))
@@ -337,7 +341,7 @@ class GenericFakeBackend(BackendV2):
         ]
 
     def _generate_calibration_defaults(self) -> PulseDefaults:
-        """Generate pulse calibration defaults if specified via ``calibrate_instructions``."""
+        """Generate pulse calibration defaults if specified via `calibrate_instructions`."""
 
         # If self._calibrate_instructions==True, this method
         # will generate default pulse schedules for all gates in self._basis_gates,
@@ -500,17 +504,6 @@ class GenericFakeBackend(BackendV2):
             return AerSimulator._default_options()
         else:
             return BasicAer.get_backend("qasm_simulator")._default_options()
-
-    def _build_default_channels(self) -> None:
-        channels_map = {
-            "acquire": {(i,): [pulse.AcquireChannel(i)] for i in range(self.num_qubits)},
-            "drive": {(i,): [pulse.DriveChannel(i)] for i in range(self.num_qubits)},
-            "measure": {(i,): [pulse.MeasureChannel(i)] for i in range(self.num_qubits)},
-            "control": {
-                (edge): [pulse.ControlChannel(i)] for i, edge in enumerate(self._coupling_map)
-            },
-        }
-        setattr(self, "channels_map", channels_map)
 
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
