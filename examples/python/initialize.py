@@ -15,7 +15,8 @@ Example use of the initialize gate to prepare arbitrary pure states.
 """
 
 import math
-from qiskit import QuantumCircuit, transpile, BasicProvider
+from qiskit import QuantumCircuit, transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 
 ###############################################################
@@ -58,7 +59,7 @@ print("Desired probabilities: ")
 print([format(abs(x * x), ".3f") for x in desired_vector])
 
 # Initialize on local simulator
-sim_backend = BasicProvider.get_backend("basic_simulator")
+sim_backend = BasicSimulator()
 job = sim_backend.run(transpile(circuit, sim_backend), shots=shots)
 result = job.result()
 
