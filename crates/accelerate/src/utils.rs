@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use faer::Faer;
 use faer::IntoFaerComplex;
 use num_complex::Complex;
-use numpy::PyReadonlyArray2;
+use numpy::{IntoPyArray, PyReadonlyArray2};
 
 /// Return indices that sort partially ordered data.
 /// If `data` contains two elements that are incomparable,
@@ -14,17 +14,20 @@ pub fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
     indices
 }
 
-/// Return the eigenvalues of `unitary` as a Python `list`.
+/// Return the eigenvalues of `unitary` as a one-dimensional `numpy.ndarray`
+/// with `dtype(complex128)`.
 #[pyfunction]
 #[pyo3(text_signature = "(unitary, /")]
-pub fn eigenvalues(unitary: PyReadonlyArray2<Complex<f64>>) -> Vec<Complex<f64>> {
+pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObject {
     unitary
         .as_array()
         .into_faer_complex()
         .complex_eigenvalues()
         .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
-        .collect()
+        .collect::<Vec<_>>()
+        .into_pyarray(py)
+        .into()
 }
 
 #[pymodule]
