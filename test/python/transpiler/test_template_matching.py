@@ -15,11 +15,11 @@
 
 import unittest
 
-from qiskit.converters import dag_to_circuit
 from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
 import numpy as np
 from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.converters import dag_to_circuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.templates.nct import template_nct_2a_2, template_nct_5a_3
@@ -216,8 +216,6 @@ class TestTemplateMatching(QiskitTestCase):
         # cx(2, 1) commutes with quite a lot of other multi-qubit gates, yielding multiple valid circuits
         self.assertTrue(Operator(circuit_expected).equiv(Operator(circuit_opt)))
         self.assertEqual(set(circuit_opt.count_ops()), set(circuit_expected.count_ops()))
-
-
 
     def test_pass_template_wrong_type(self):
         """
