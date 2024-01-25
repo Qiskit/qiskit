@@ -884,8 +884,9 @@ def equal_transpile_layout(reference, qpy):
         return True
     if (reference.layout is None) != (qpy.layout is None):
         return False
-    return (equal_layout(reference, reference.layout.initial_layout,  qpy, qpy.layout.initial_layout) and
-            equal_layout(reference, reference.layout.final_layout,  qpy, qpy.layout.final_layout))
+    return equal_layout(
+        reference, reference.layout.initial_layout, qpy, qpy.layout.initial_layout
+    ) and equal_layout(reference, reference.layout.final_layout, qpy, qpy.layout.final_layout)
 
 
 def equal_layout(ref, ref_lay, qpy, qpy_lay):
@@ -982,7 +983,12 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
-        fppath = "/Users/brandhsn/code/qiskit-terra/test/qpy_compat/qpy_"+".".join(map(str,version_parts))+"/"+path
+        fppath = (
+            "/Users/brandhsn/code/qiskit-terra/test/qpy_compat/qpy_"
+            + ".".join(map(str, version_parts))
+            + "/"
+            + path
+        )
         print(f"Loading qpy file: {fppath}")
         with open(fppath, "rb") as fd:
             qpy_circuits = load(fd)
