@@ -153,6 +153,11 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
     ];
+    // The originial Python had `np.argmax`, which returns the lowest index in case two or more
+    // values have a common maximum value.
+    // `max_by` and `min_by` return the highest and lowest indices respectively, in case of ties.
+    // So to reproduce `np.argmax`, we use `min_by` and switch the order of the
+    // arguments in the comparison.
     traces
         .into_iter()
         .enumerate()
