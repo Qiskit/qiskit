@@ -2932,6 +2932,7 @@ class QuantumCircuit:
         # called by some subclasses before the inner `_global_phase` is initialised.
         global_phase_reference = (ParameterTable.GLOBAL_PHASE, None)
         if isinstance(previous := getattr(self, "_global_phase", None), ParameterExpression):
+            self._parameters = None
             self._parameter_table.discard_references(previous, global_phase_reference)
 
         if isinstance(angle, ParameterExpression) and angle.parameters:

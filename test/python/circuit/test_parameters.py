@@ -192,6 +192,24 @@ class TestParameters(QiskitTestCase):
         self.assertIs(qc.get_parameter("x"), x)
         self.assertIsNone(qc.get_parameter("y", None), None)
 
+    def test_setting_global_phase_invalidates_cache(self):
+        """Test that setting the global phase to a non-parametric value invalidates the `parameters`
+        cache of the circuit."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+        qc.global_phase = 0
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+
+        qc = QuantumCircuit(0, global_phase=0)
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+        qc.global_phase = x
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+
     def test_has_parameter(self):
         """Test the `has_parameter` method."""
         x = Parameter("x")
