@@ -27,7 +27,7 @@ use std::f64::consts::PI;
 use faer::Faer;
 use faer::IntoFaerComplex;
 use faer::{mat, Mat, MatRef};
-use faer_core::{c64, scale};
+use faer_core::{c64, scale, ComplexField};
 use numpy::PyReadonlyArray2;
 
 use crate::utils;
@@ -167,15 +167,10 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
         .0
 }
 
-// The interface for abs2 is in flux. So use this for now.
-fn myabs2(z: c64) -> f64 {
-    z.re * z.re + z.im * z.im
-}
-
 /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
 fn trace_to_fid(trace: &c64) -> f64 {
-    (4.0 + myabs2(*trace)) / 20.0
+    (4.0 + trace.faer_abs2()) / 20.0
 }
 
 #[pymodule]
