@@ -23,7 +23,7 @@ from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
-from qiskit.transpiler.synthesis.aqc.aqc_plugin import AQCSynthesisPlugin
+from qiskit.transpiler.passes.synthesis import AQCSynthesisPlugin
 
 
 class TestAQCSynthesisPlugin(QiskitTestCase):

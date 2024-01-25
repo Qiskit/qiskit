@@ -16,10 +16,10 @@ Tests for Layer1Q implementation.
 
 import unittest
 from random import randint
-import test.python.transpiler.aqc.fast_gradient.utils_for_testing as tut
+import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
-import qiskit.transpiler.synthesis.aqc.fast_gradient.layer as lr
-from qiskit.transpiler.synthesis.aqc.fast_gradient.pmatrix import PMatrix
+import qiskit.synthesis.unitary.aqc.fast_gradient.layer as lr
+from qiskit.synthesis.unitary.aqc.fast_gradient.pmatrix import PMatrix
 from qiskit.test import QiskitTestCase
 
 
