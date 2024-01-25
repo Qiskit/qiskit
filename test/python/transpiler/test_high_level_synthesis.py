@@ -681,7 +681,7 @@ class TestTokenSwapperPermutationPlugin(QiskitTestCase):
             self.assertEqual(Operator(qc), Operator(qc_transpiled))
 
             for inst in qc_transpiled:
-                qubits = tuple(q._index for q in inst.qubits)
+                qubits = tuple(qc_transpiled.find_bit(q).index for q in inst.qubits)
                 self.assertIn(qubits, edges)
 
 
