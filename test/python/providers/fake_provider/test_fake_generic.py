@@ -16,7 +16,7 @@ import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit import transpile
-from qiskit.providers.fake_provider.fake_generic import _GenericFakeBackend as GenericFakeBackend
+from qiskit.providers.fake_provider import GenericFakeBackend
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
