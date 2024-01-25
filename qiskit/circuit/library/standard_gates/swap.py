@@ -112,6 +112,9 @@ class SwapGate(SingletonGate):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
 
+    def __eq__(self, other):
+        return isinstance(other, SwapGate)
+
 
 @with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
 class CSwapGate(SingletonControlledGate):
@@ -244,3 +247,6 @@ class CSwapGate(SingletonControlledGate):
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CSwapGate) and self.ctrl_state == other.ctrl_state

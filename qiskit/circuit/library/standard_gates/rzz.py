@@ -38,14 +38,14 @@ class RZZGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{ZZ}(\theta) = \exp\left(-i \th Z{\otimes}Z\right) =
+        R_{ZZ}(\theta) = \exp\left(-i \rotationangle Z{\otimes}Z\right) =
             \begin{pmatrix}
-                e^{-i \th} & 0 & 0 & 0 \\
-                0 & e^{i \th} & 0 & 0 \\
-                0 & 0 & e^{i \th} & 0 \\
-                0 & 0 & 0 & e^{-i \th}
+                e^{-i \rotationangle} & 0 & 0 & 0 \\
+                0 & e^{i \rotationangle} & 0 & 0 \\
+                0 & 0 & e^{i \rotationangle} & 0 \\
+                0 & 0 & 0 & e^{-i \rotationangle}
             \end{pmatrix}
 
     This is a direct sum of RZ rotations, so this gate is equivalent to a
@@ -139,3 +139,8 @@ class RZZGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZZGate):
+            return self._compare_parameters(other)
+        return False

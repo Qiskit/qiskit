@@ -22,7 +22,7 @@ from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.circuit.reset import Reset
 from qiskit.dagcircuit import DAGCircuit, DAGNode, DAGInNode, DAGOpNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
@@ -42,7 +42,7 @@ class PadDynamicalDecoupling(BasePadding):
     so do not alter the logical action of the circuit, but have the effect of
     mitigating decoherence in those idle periods.
 
-    As a special case, the pass allows a length-1 sequence (e.g. [XGate()]).
+    As a special case, the pass allows a length-1 sequence (e.g. ``[XGate()]``).
     In this case the DD insertion happens only when the gate inverse can be
     absorbed into a neighboring gate in the circuit (so we would still be
     replacing Delay with something that is equivalent to the identity).
@@ -394,8 +394,7 @@ class PadDynamicalDecoupling(BasePadding):
                 gate_length = self._dd_sequence_lengths[qubit][dd_ind]
                 self._apply_scheduled_op(dag, idle_after, gate, qubit)
                 idle_after += gate_length
-
-        dag.global_phase = self._mod_2pi(dag.global_phase + sequence_gphase)
+        dag.global_phase = dag.global_phase + sequence_gphase
 
     @staticmethod
     def _resolve_params(gate: Gate) -> tuple:
@@ -407,11 +406,3 @@ class PadDynamicalDecoupling(BasePadding):
             else:
                 params.append(p)
         return tuple(params)
-
-    @staticmethod
-    def _mod_2pi(angle: float, atol: float = 0):
-        """Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π"""
-        wrapped = (angle + np.pi) % (2 * np.pi) - np.pi
-        if abs(wrapped - np.pi) < atol:
-            wrapped = -np.pi
-        return wrapped

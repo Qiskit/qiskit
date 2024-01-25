@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
@@ -309,6 +309,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                     node._node_id,
                     [wire_map[x] for x in node.qargs],
                     cargs,
+                    getattr(node.op, "_directive", False),
                 )
             )
         return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)
@@ -339,9 +340,9 @@ def _apply_sabre_result(
             Rust run of the Sabre routing algorithm.
         initial_layout (NLayout): a Rust-space mapping of virtual indices (i.e. those of the qubits
             in ``in_dag``) to physical ones.
-        physical_qubits (list[Qubit]): an indexable sequence of :class:`.Qubit` objects representing
-            the physical qubits of the circuit.  Note that disjoint-coupling handling can mean that
-            these are not strictly a "canonical physical register" in order.
+        physical_qubits (list[Qubit]): an indexable sequence of :class:`.circuit.Qubit` objects
+            representing the physical qubits of the circuit.  Note that disjoint-coupling
+            handling can mean that these are not strictly a "canonical physical register" in order.
         circuit_to_dag_dict (Mapping[int, DAGCircuit]): a mapping of the Python object identity
             (as returned by :func:`id`) of a control-flow block :class:`.QuantumCircuit` to a
             :class:`.DAGCircuit` that represents the same thing.

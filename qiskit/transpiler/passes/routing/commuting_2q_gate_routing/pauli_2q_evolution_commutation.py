@@ -113,7 +113,7 @@ class FindCommutingPauliEvolutions(TransformationPass):
         return edge
 
     def _decompose_to_2q(self, dag: DAGCircuit, op: PauliEvolutionGate) -> DAGCircuit:
-        """Decompose the PauliSumOp into two-qubit.
+        """Decompose the SparsePauliOp into two-qubit.
 
         Args:
             dag: The dag needed to get access to qubits.

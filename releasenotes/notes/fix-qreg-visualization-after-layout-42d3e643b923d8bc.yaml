@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`~.SabreLayout` where it would fail to add the layout
+    register information to the property set. This affected circuit visualization, as
+    ``circuit.draw()`` after transpilation with certain optimization levels would show
+    the full ``Qubit[register]`` label rather than the expected register name
+    (e.g. ``q0``).

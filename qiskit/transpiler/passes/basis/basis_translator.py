@@ -202,8 +202,8 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes."
-                    "BasisTranslator.html#translation_errors"
+                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "BasisTranslator#translation-errors"
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
@@ -220,8 +220,8 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://qiskit.org/documentation/stubs/qiskit.transpiler.passes.BasisTranslator."
-                "html#translation_errors"
+                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "BasisTranslator#translation-errors"
             )
 
         # Compose found path into a set of instruction substitution rules.
@@ -319,16 +319,8 @@ class BasisTranslator(TransformationPass):
                                     new_value = new_value.assign(*x)
                             else:
                                 new_value = param.bind(bind_dict)
-                            # cast from ParameterExpression to number, if no parameters left
                             if not new_value.parameters:
-                                if new_value.is_real():
-                                    new_value = (
-                                        int(new_value)
-                                        if new_value._symbol_expr.is_integer
-                                        else float(new_value)
-                                    )
-                                else:
-                                    new_value = complex(new_value)
+                                new_value = new_value.numeric()
                             new_params.append(new_value)
                     new_op.params = new_params
                 else:
@@ -345,26 +337,9 @@ class BasisTranslator(TransformationPass):
                 else:
                     new_phase = old_phase.bind(bind_dict)
                 if not new_phase.parameters:
-                    if new_phase.is_real():
-                        new_phase = (
-                            int(new_phase)
-                            if new_phase._symbol_expr.is_integer
-                            else float(new_phase)
-                        )
-                    else:
-                        # If is_real() evals false try casting to a float
-                        # anyway in case there is a rounding error adding
-                        # a near 0 complex term
-                        try:
-                            new_phase = float(new_phase)
-                        except TypeError as exc:
-                            raise TranspilerError(
-                                f"Global phase: {new_phase} is complex which is invalid"
-                            ) from exc
-                try:
-                    new_phase = float(new_phase)
-                except TypeError:
-                    pass
+                    new_phase = new_phase.numeric()
+                    if isinstance(new_phase, complex):
+                        raise TranspilerError(f"Global phase must be real, but got '{new_phase}'")
                 bound_target_dag.global_phase = new_phase
         else:
             bound_target_dag = target_dag

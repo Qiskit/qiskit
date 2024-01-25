@@ -16,23 +16,33 @@ import unittest
 import numpy as np
 
 from qiskit.providers.basicaer import StatevectorSimulatorPy
-from qiskit.test import ReferenceCircuits
-from qiskit.test import providers
-from qiskit import QuantumRegister, QuantumCircuit, execute
+from qiskit import QuantumRegister, QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
+from qiskit.test import QiskitTestCase
+
+from . import BasicAerBackendTestMixin
 
 
-class StatevectorSimulatorTest(providers.BackendTestCase):
+class StatevectorSimulatorTest(QiskitTestCase, BasicAerBackendTestMixin):
     """Test BasicAer statevector simulator."""
 
-    backend_cls = StatevectorSimulatorPy
-    circuit = None
+    def setUp(self):
+        super().setUp()
+        self.backend = StatevectorSimulatorPy()
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+        self.circuit = bell
 
     def test_run_circuit(self):
         """Test final state vector for single circuit run."""
-        # Set test circuit
-        self.circuit = ReferenceCircuits.bell_no_measure()
+        # Override base circuit with no measurement.
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        self.circuit = bell
         # Execute
         result = super().test_run_circuit()
         actual = result.get_statevector(self.circuit)
@@ -45,9 +55,6 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
 
     def test_measure_collapse(self):
         """Test final measurement collapses statevector"""
-        # Set test circuit
-        self.circuit = ReferenceCircuits.bell()
-        # Execute
         result = super().test_run_circuit()
         actual = result.get_statevector(self.circuit)
 
@@ -76,7 +83,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
-                job = execute(circuit, self.backend)
+                job = self.backend.run(transpile(circuit, self.backend))
                 result = job.result()
                 psi_out = result.get_statevector(0)
                 fidelity = state_fidelity(psi_target, psi_out)

@@ -45,7 +45,7 @@ class TestQASM3Functions(QiskitTestCase):
         self.circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
         self.expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "qubit[2] q;",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
@@ -113,7 +113,7 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.z(qr1[0]).c_if(cr, 2)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[3] cr;",
                 "qubit[1] qr1;",
@@ -145,7 +145,7 @@ class TestCircuitQASM3(QiskitTestCase):
         qc = QuantumCircuit(qubits, first_four, last_five, alternate, sporadic)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "qubit _qubit0;",
                 "qubit _qubit1;",
@@ -186,7 +186,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate composite_circ _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_0;",
@@ -226,7 +226,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate composite_circ _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_0;",
@@ -267,7 +267,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate composite_circ _gate_q_0, _gate_q_1 {",
                 "  h _gate_q_0;",
@@ -312,7 +312,7 @@ class TestCircuitQASM3(QiskitTestCase):
         my_gate_inst3_id = id(circuit.data[-1].operation)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate my_gate _gate_q_0 {",
                 "  h _gate_q_0;",
@@ -338,7 +338,7 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "qubit[2] q;",
                 "U(2*pi, 3*pi, -5*pi) q[0];",
@@ -353,7 +353,7 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.u(2 * pi, 3 * pi, -5 * pi, 0)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "qubit[2] q;",
                 "U(6.283185307179586, 9.42477796076938, -15.707963267948966) q[0];",
@@ -373,7 +373,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "input float[64] a;",
                 "gate custom(a) _gate_q_0 {",
@@ -400,7 +400,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate custom _gate_q_0 {",
                 "  rx(0.5) _gate_q_0;",
@@ -431,7 +431,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate custom(_gate_p_0, _gate_p_0) _gate_q_0, _gate_q_1 {",
                 "  rz(pi) _gate_q_0;",
@@ -461,7 +461,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"gate {circuit_name_0} _gate_q_0 {{",
                 "  rx(0.5) _gate_q_0;",
@@ -484,7 +484,7 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.rz(theta, 0)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "input float[64] θ;",
                 "qubit[1] q;",
@@ -505,7 +505,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "input float[64] x;",
                 "input float[64] y;",
                 "gate rzx(x) _gate_q_0, _gate_q_1 {",
@@ -534,7 +534,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate ch_o0 _gate_q_0, _gate_q_1 {",
                 "  x _gate_q_0;",
@@ -559,7 +559,7 @@ class TestCircuitQASM3(QiskitTestCase):
         custom_gate_id = id(qc.data[-1].operation)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"gate cx_{custom_gate_id} _gate_q_0, _gate_q_1 {{",
                 "  cx _gate_q_0, _gate_q_1;",
@@ -581,7 +581,7 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.cx(0, 1)
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
                 "  U(0, 0, pi/2) _gate_q_0;",
                 "}",
@@ -635,7 +635,7 @@ class TestCircuitQASM3(QiskitTestCase):
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
                 "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
@@ -696,7 +696,7 @@ class TestCircuitQASM3(QiskitTestCase):
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "gate u3(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {",
                 "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
@@ -744,7 +744,7 @@ class TestCircuitQASM3(QiskitTestCase):
         transpiled = transpile(qc, initial_layout=[0])
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "x $0;",
                 "my_gate $0;",
                 "",
@@ -764,7 +764,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "qubit[2] qr;",
                 "reset qr[0];",
                 "reset qr[0];",
@@ -783,7 +783,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 "qubit[2] qr;",
                 "delay[100ms] qr[0];",
                 "delay[2000ns] qr[1];",
@@ -805,7 +805,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit _qubit0;",
@@ -837,7 +837,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit _bit0;",
                 "bit _bit3;",
@@ -876,7 +876,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit _bit0;",
                 "bit _bit1;",
@@ -921,7 +921,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit _bit0;",
                 "bit _bit1;",
@@ -962,7 +962,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
                 f"for {parameter.name} in {{0, 3, 4}} {{",
@@ -1001,7 +1001,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
                 f"for {outer_parameter.name} in [0:3] {{",
@@ -1048,7 +1048,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 # This next line will be missing until gh-7280 is fixed.
                 f"input float[64] {regular_parameter.name};",
@@ -1081,7 +1081,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"qubit[2] {qr_name};",
                 "for _ in {0, 3, 4} {",
@@ -1107,7 +1107,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1144,7 +1144,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1178,7 +1178,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1206,7 +1206,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1245,7 +1245,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1292,7 +1292,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1349,7 +1349,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "bit[2] cr;",
                 "qubit[2] qr;",
@@ -1401,7 +1401,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "gate custom _gate_q_0 {",
                 "  rx(0.5) _gate_q_0;",
@@ -1444,7 +1444,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 "input float[64] _measure;",
                 "qubit[1] q;",
@@ -1508,7 +1508,7 @@ class TestCircuitQASM3(QiskitTestCase):
         qc.while_loop(expr.equal(cr, 3), while_body, [0], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 bit[2] cr;
@@ -1543,7 +1543,7 @@ while (cr == 3) {
         qc.while_loop(expr.equal(cr, 3), outer_while_body, [0], cr)
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 bit _bit1;
@@ -1580,7 +1580,7 @@ while (cr == 3) {
         # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
         # All these operators are left-associative in OQ3.
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[3] cr1;
 bit[3] cr2;
@@ -1618,7 +1618,7 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         # parsed correctly.  Mathematically, they're all actually associative in general, so the
         # order doesn't _technically_ matter.
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[3] cr1;
 bit[3] cr2;
@@ -1645,7 +1645,7 @@ if (cr1[0] || (cr1[1] || cr1[2])) {
         qc.if_test(expr.logic_not(expr.logic_not(cr[0])), body.copy(), [], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] cr;
 if (~~cr == 3) {
@@ -1704,7 +1704,7 @@ if (!!cr[0]) {
         qc.if_test(logics, body.copy(), [], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] cr;
 if (!((((cr | cr) ^ (cr | cr)) & ((cr | cr) ^ (cr | cr)))\
@@ -1731,7 +1731,7 @@ if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !
         qc.if_test(expr.equal(cr, 1), QuantumCircuit(), [], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[8] cr;
 if (cr == 1) {
@@ -1770,7 +1770,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
                 "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
@@ -1837,7 +1837,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
                 "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
@@ -1905,7 +1905,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
 
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 'include "stdgates.inc";',
                 f"gate custom_{custom_id}(_gate_p_0, _gate_p_1) _gate_q_0, _gate_q_1 {{",
                 "  rz(pi) _gate_q_0;",
@@ -1939,7 +1939,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         u3_3 = u2_1.definition.data[0].operation
         expected_qasm = "\n".join(
             [
-                "OPENQASM 3;",
+                "OPENQASM 3.0;",
                 f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
                 "  U(0, 0, pi/2) _gate_q_0;",
                 "}",
@@ -2006,7 +2006,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         qc.append(barrier, [0, 1], [])
 
         expected = """
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 qubit[3] q;
@@ -2064,7 +2064,7 @@ class TestExperimentalFeatures(QiskitTestCase):
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 int switch_dummy;
@@ -2099,7 +2099,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2138,7 +2138,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2176,7 +2176,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2212,7 +2212,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] switch_dummy;
 int switch_dummy__generated0;
@@ -2265,7 +2265,7 @@ switch (switch_dummy__generated1) {
 
         test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2314,7 +2314,7 @@ if (c == 1) {
         qc.switch(expr.bit_and(cr, 3), [(3, case1)], [0], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 bit[2] cr;

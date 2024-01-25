@@ -26,7 +26,6 @@ Layout Selection (Placement)
    SetLayout
    TrivialLayout
    DenseLayout
-   NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
    VF2Layout
@@ -83,7 +82,6 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
-   CrosstalkAdaptiveSchedule
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
@@ -117,6 +115,10 @@ Scheduling
    ValidatePulseGates
    InstructionDurationCheck
    SetIOLatency
+   ALAPSchedule
+   ASAPSchedule
+   DynamicalDecoupling
+   AlignMeasures
 
 Circuit Analysis
 ================
@@ -142,8 +144,10 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   HLSConfig
    SolovayKitaev
    SolovayKitaevSynthesis
+   AQCSynthesisPlugin
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -173,13 +177,13 @@ Additional Passes
    GatesInBasis
    ConvertConditionsToIfOps
    UnrollForLoops
+   FilterOpNodes
 """
 
 # layout selection (placement)
 from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
-from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
@@ -221,7 +225,6 @@ from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
@@ -248,8 +251,10 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import AQCSynthesisPlugin
 
 # calibration
 from .calibration import PulseGates
@@ -267,6 +272,10 @@ from .scheduling import PadDelay
 from .scheduling import ConstrainedReschedule
 from .scheduling import InstructionDurationCheck
 from .scheduling import SetIOLatency
+from .scheduling import ALAPSchedule
+from .scheduling import ASAPSchedule
+from .scheduling import DynamicalDecoupling
+from .scheduling import AlignMeasures
 
 # additional utility passes
 from .utils import CheckMap
@@ -284,3 +293,4 @@ from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
+from .utils import FilterOpNodes

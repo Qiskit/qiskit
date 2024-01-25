@@ -15,7 +15,6 @@ from __future__ import annotations
 from typing import Optional, Union, Type
 from math import ceil, pi
 import numpy
-from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -123,6 +122,9 @@ class XGate(SingletonGate):
     def inverse(self):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, XGate)
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
@@ -244,6 +246,9 @@ class CXGate(SingletonControlledGate):
     def inverse(self):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
@@ -415,6 +420,9 @@ class CCXGate(SingletonControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
+    def __eq__(self, other):
+        return isinstance(other, CCXGate) and self.ctrl_state == other.ctrl_state
+
 
 @with_gate_array(
     [
@@ -486,6 +494,9 @@ class RCCXGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, RCCXGate)
 
 
 class C3SXGate(SingletonControlledGate):
@@ -590,23 +601,8 @@ class C3SXGate(SingletonControlledGate):
 
         self.definition = qc
 
-    @deprecate_func(since="0.25.0")
-    def qasm(self):
-        # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
-        # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
-        # mapping itself, but right now that's not possible without a complete rewrite of the OQ2
-        # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
-        # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
-        # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
-        old_name = self.name
-        if not self.mutable:
-            copy_self = self.to_mutable()
-            copy_self.name = "c3sqrtx"
-            return copy_self.qasm()
-        try:
-            return super().qasm()
-        finally:
-            self.name = old_name
+    def __eq__(self, other):
+        return isinstance(other, C3SXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
@@ -640,7 +636,7 @@ class C3XGate(SingletonControlledGate):
 
     _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
 
-    # seems like open controls not hapening?
+    # seems like open controls not happening?
     def _define(self):
         """
         gate c3x a,b,c,d
@@ -743,6 +739,9 @@ class C3XGate(SingletonControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
+    def __eq__(self, other):
+        return isinstance(other, C3XGate) and self.ctrl_state == other.ctrl_state
+
 
 @with_gate_array(
     [
@@ -838,6 +837,9 @@ class RC3XGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, RC3XGate)
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
@@ -958,6 +960,9 @@ class C4XGate(SingletonControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
+
+    def __eq__(self, other):
+        return isinstance(other, C4XGate) and self.ctrl_state == other.ctrl_state
 
 
 class MCXGate(ControlledGate):

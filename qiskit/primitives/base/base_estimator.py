@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,79 @@ r"""
 
 .. estimator-desc:
 
-=====================
-Overview of Estimator
-=====================
+========================
+Overview of EstimatorV2
+========================
+
+:class:`~BaseEstimatorV2` is a primitive that estimates expectation values for provided quantum
+circuit and observable combinations.
+
+Following construction, an estimator is used by calling its :meth:`~.BaseEstimatorV2.run` method
+with a list of pubs (Primitive Unified Blocs). Each pub contains three values that, together,
+define a computation unit of work for the estimator to complete:
+
+* a single :class:`~qiskit.circuit.QuantumCircuit`, possibly parametrized, whose final state we
+  define as :math:`\psi(\theta)`,
+
+* one or more observables (specified as any :class:`~.ObservablesArrayLike`, including
+  :class:`~.Pauli`, :class:`~.SparsePauliOp`, ``str``) that specify which expectation values to
+  estimate, denoted :math:`H_j`, and
+
+* a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
+
+Running an estimator returns a :class:`~qiskit.providers.JobV1` object, where calling
+the method :meth:`qiskit.providers.JobV1.result` results in expectation value estimates and metadata
+for each pub:
+
+.. math::
+
+    \langle\psi(\theta_k)|H_j|\psi(\theta_k)\rangle
+
+The observables and parameter values portion of a pub can be array-valued with arbitrary dimensions,
+where standard broadcasting rules are applied, so that, in turn, the estimated result for each pub
+is in general array-valued as well. For more information, please check
+`here <https://github.com/Qiskit/RFCs/blob/master/0015-estimator-interface.md#arrays-and
+-broadcasting->`_.
+
+Here is an example of how the estimator is used.
+
+.. code-block:: python
+
+    from qiskit.primitives.statevector_estimator import Estimator
+    from qiskit.circuit.library import RealAmplitudes
+    from qiskit.quantum_info import SparsePauliOp
+
+    psi1 = RealAmplitudes(num_qubits=2, reps=2)
+    psi2 = RealAmplitudes(num_qubits=2, reps=3)
+
+    H1 = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+    H2 = SparsePauliOp.from_list([("IZ", 1)])
+    H3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
+
+    theta1 = [0, 1, 1, 2, 3, 5]
+    theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
+    theta3 = [1, 2, 3, 4, 5, 6]
+
+    estimator = Estimator()
+
+    # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
+    job = estimator.run([(psi1, hamiltonian1, [theta1])])
+    job_result = job.result() # It will block until the job finishes.
+    print(f"The primitive-job finished with result {job_result}"))
+
+    # calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
+    #              <psi1(theta3)|H3|psi1(theta3)>],
+    #             [<psi2(theta2)|H2|psi2(theta2)>] ]
+    job2 = estimator.run(
+        [(psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), (psi2, hamiltonian2, theta2)]
+    )
+    job_result = job2.result()
+    print(f"The primitive-job finished with result {job_result}")
+
+
+========================
+Overview of EstimatorV1
+========================
 
 Estimator class estimates expectation values of quantum circuits and observables.
 
@@ -80,28 +150,38 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-from abc import abstractmethod
-from collections.abc import Sequence
+import warnings
+from abc import abstractmethod, ABC
+from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
-import typing
+
+import numpy as np
+from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_func
 
-from ..utils import init_observable
+from ..containers import (
+    make_data_bin,
+    DataBin,
+    EstimatorPub,
+    EstimatorPubLike,
+    PrimitiveResult,
+    PubResult,
+)
+from . import validation
 from .base_primitive import BasePrimitive
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
+from .base_primitive_job import BasePrimitiveJob
 
 T = TypeVar("T", bound=Job)
 
 
-class BaseEstimator(BasePrimitive, Generic[T]):
+class BaseEstimatorV1(BasePrimitive, Generic[T]):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
@@ -121,15 +201,33 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         Args:
             options: Default options.
         """
-        self._circuits = []
-        self._observables = []
-        self._parameters = []
         super().__init__(options)
+
+    def __getattr__(self, name: str) -> any:
+        # Work around to enable deprecation of the init attributes in BaseEstimator incase
+        # existing subclasses depend on them (which some do)
+        dep_defaults = {
+            "_circuits": [],
+            "_observables": [],
+            "_parameters": [],
+        }
+        if name not in dep_defaults:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+
+        warnings.warn(
+            f"The init attribute `{name}` in BaseEstimator is deprecated as of Qiskit 0.46."
+            " To continue to use this attribute in a subclass and avoid this warning the"
+            " subclass should initialize it itself.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        setattr(self, name, dep_defaults[name])
+        return getattr(self, name)
 
     def run(
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> T:
@@ -169,17 +267,10 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             TypeError: Invalid argument type given.
             ValueError: Invalid argument values given.
         """
-        # Singular validation
-        circuits = self._validate_circuits(circuits)
-        observables = self._validate_observables(observables)
-        parameter_values = self._validate_parameter_values(
-            parameter_values,
-            default=[()] * len(circuits),
+        # Validation
+        circuits, observables, parameter_values = validation._validate_estimator_args(
+            circuits, observables, parameter_values
         )
-
-        # Cross-validation
-        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
-        self._cross_validate_circuits_observables(circuits, observables)
 
         # Options
         run_opts = copy(self.options)
@@ -200,36 +291,24 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> T:
-        raise NotImplementedError("The subclass of BaseEstimator must implment `_run` method.")
+        raise NotImplementedError("The subclass of BaseEstimator must implement `_run` method.")
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        observables: Sequence[BaseOperator | str] | BaseOperator | str,
     ) -> tuple[SparsePauliOp, ...]:
-        if isinstance(observables, str) or not isinstance(observables, Sequence):
-            observables = (observables,)
-        if len(observables) == 0:
-            raise ValueError("No observables were provided.")
-        return tuple(init_observable(obs) for obs in observables)
+        return validation._validate_observables(observables)
 
     @staticmethod
+    @deprecate_func(since="0.46.0")
     def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator | PauliSumOp, ...]
+        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
     ) -> None:
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
+        return validation._cross_validate_circuits_observables(circuits, observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def circuits(self) -> tuple[QuantumCircuit, ...]:
         """Quantum circuits that represents quantum states.
 
@@ -239,6 +318,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._circuits)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def observables(self) -> tuple[SparsePauliOp, ...]:
         """Observables to be estimated.
 
@@ -248,6 +328,7 @@ class BaseEstimator(BasePrimitive, Generic[T]):
         return tuple(self._observables)
 
     @property
+    @deprecate_func(since="0.46.0", is_property=True)
     def parameters(self) -> tuple[ParameterView, ...]:
         """Parameters of the quantum circuits.
 
@@ -255,3 +336,44 @@ class BaseEstimator(BasePrimitive, Generic[T]):
             Parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
         """
         return tuple(self._parameters)
+
+
+BaseEstimator = BaseEstimatorV1
+
+
+class BaseEstimatorV2(ABC):
+    """Estimator base class version 2.
+
+    An estimator estimates expectation values for provided quantum circuit and
+    observable combinations.
+
+    An Estimator implementation must treat the :meth:`.run` method ``precision=None``
+    kwarg as using a default ``precision`` value.  The default value and methods to
+    set it can be determined by the Estimator implementor.
+    """
+
+    @staticmethod
+    def _make_data_bin(pub: EstimatorPub) -> DataBin:
+        # provide a standard way to construct estimator databins to ensure that names match
+        # across implementations
+        return make_data_bin(
+            (("evs", NDArray[np.float64]), ("stds", NDArray[np.float64])), pub.shape
+        )
+
+    @abstractmethod
+    def run(
+        self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
+    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
+        """Estimate expectation values for each provided pub (Primitive Unified Bloc).
+
+        Args:
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
+                  ``(circuit, observables, parameter_values)``.
+            precision: The target precision for expectation value estimates of each
+                       run :class:`.EstimatorPub` that does not specify its own
+                       precision. If None the estimator's default precision value
+                       will be used.
+
+        Returns:
+            A job object that contains results.
+        """

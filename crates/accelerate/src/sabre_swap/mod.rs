@@ -171,21 +171,35 @@ fn populate_extended_set(
     let mut decremented: IndexMap<usize, u32, ahash::RandomState> =
         IndexMap::with_hasher(ahash::RandomState::default());
     let mut i = 0;
+    let mut visit_now: Vec<NodeIndex> = Vec::new();
     while i < to_visit.len() && extended_set.len() < EXTENDED_SET_SIZE {
-        for edge in dag.dag.edges_directed(to_visit[i], Direction::Outgoing) {
-            let successor_node = edge.target();
-            let successor_index = successor_node.index();
-            *decremented.entry(successor_index).or_insert(0) += 1;
-            required_predecessors[successor_index] -= 1;
-            if required_predecessors[successor_index] == 0 {
-                if !dag.node_blocks.contains_key(&successor_index) {
-                    if let [a, b] = dag.dag[successor_node].qubits[..] {
-                        extended_set.push([a.to_phys(layout), b.to_phys(layout)]);
+        // Visit runs of non-2Q gates fully before moving on to children
+        // of 2Q gates. This way, traversal order is a BFS of 2Q gates rather
+        // than of all gates.
+        visit_now.push(to_visit[i]);
+        let mut j = 0;
+        while let Some(node) = visit_now.get(j) {
+            for edge in dag.dag.edges_directed(*node, Direction::Outgoing) {
+                let successor_node = edge.target();
+                let successor_index = successor_node.index();
+                *decremented.entry(successor_index).or_insert(0) += 1;
+                required_predecessors[successor_index] -= 1;
+                if required_predecessors[successor_index] == 0 {
+                    if !dag.dag[successor_node].directive
+                        && !dag.node_blocks.contains_key(&successor_index)
+                    {
+                        if let [a, b] = dag.dag[successor_node].qubits[..] {
+                            extended_set.push([a.to_phys(layout), b.to_phys(layout)]);
+                            to_visit.push(successor_node);
+                            continue;
+                        }
                     }
+                    visit_now.push(successor_node);
                 }
-                to_visit.push(successor_node);
             }
+            j += 1;
         }
+        visit_now.clear();
         i += 1;
     }
     for (node, amount) in decremented.iter() {
@@ -542,7 +556,8 @@ fn gen_swap_epilogue(
         Some(SWAP_EPILOGUE_TRIALS),
         Some(seed),
         None,
-    );
+    )
+    .unwrap();
 
     // Convert physical swaps to virtual swaps
     swaps
@@ -582,41 +597,44 @@ fn route_reachable_nodes<F>(
         let node_id = to_visit[i];
         let node = &dag.dag[node_id];
         i += 1;
-
-        match dag.node_blocks.get(&node.py_node_id) {
-            Some(blocks) => {
-                // Control flow op. Route all blocks for current layout.
-                let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
-                for inner_dag in blocks {
-                    let (inner_dag_routed, inner_final_layout) = route_block_dag(inner_dag, layout);
-                    // For now, we always append a swap circuit that gets the inner block
-                    // back to the parent's layout.
-                    let swap_epilogue =
-                        gen_swap_epilogue(coupling, inner_final_layout, layout, seed);
-                    let block_result = BlockResult {
-                        result: inner_dag_routed,
-                        swap_epilogue,
-                    };
-                    block_results.push(block_result);
+        // If the node is a directive that means it can be placed anywhere
+        if !node.directive {
+            match dag.node_blocks.get(&node.py_node_id) {
+                Some(blocks) => {
+                    // Control flow op. Route all blocks for current layout.
+                    let mut block_results: Vec<BlockResult> = Vec::with_capacity(blocks.len());
+                    for inner_dag in blocks {
+                        let (inner_dag_routed, inner_final_layout) =
+                            route_block_dag(inner_dag, layout);
+                        // For now, we always append a swap circuit that gets the inner block
+                        // back to the parent's layout.
+                        let swap_epilogue =
+                            gen_swap_epilogue(coupling, inner_final_layout, layout, seed);
+                        let block_result = BlockResult {
+                            result: inner_dag_routed,
+                            swap_epilogue,
+                        };
+                        block_results.push(block_result);
+                    }
+                    node_block_results.insert_unique_unchecked(node.py_node_id, block_results);
                 }
-                node_block_results.insert_unique_unchecked(node.py_node_id, block_results);
+                None => match node.qubits[..] {
+                    // A gate op whose connectivity must match the device to be
+                    // placed in the gate order.
+                    [a, b]
+                        if !coupling.contains_edge(
+                            NodeIndex::new(a.to_phys(layout).index()),
+                            NodeIndex::new(b.to_phys(layout).index()),
+                        ) =>
+                    {
+                        // 2Q op that cannot be placed. Add it to the front layer
+                        // and move on.
+                        front_layer.insert(node_id, [a.to_phys(layout), b.to_phys(layout)]);
+                        continue;
+                    }
+                    _ => {}
+                },
             }
-            None => match node.qubits[..] {
-                // A gate op whose connectivity must match the device to be
-                // placed in the gate order.
-                [a, b]
-                    if !coupling.contains_edge(
-                        NodeIndex::new(a.to_phys(layout).index()),
-                        NodeIndex::new(b.to_phys(layout).index()),
-                    ) =>
-                {
-                    // 2Q op that cannot be placed. Add it to the front layer
-                    // and move on.
-                    front_layer.insert(node_id, [a.to_phys(layout), b.to_phys(layout)]);
-                    continue;
-                }
-                _ => {}
-            },
         }
 
         gate_order.push(node.py_node_id);
