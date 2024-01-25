@@ -300,7 +300,7 @@ class HighLevelSynthesis(TransformationPass):
 
         # Try to apply plugin mechanism
         decomposition = self._synthesize_op_using_plugins(op, qubits)
-        if decomposition:
+        if decomposition is not None:
             return decomposition, True
 
         # Handle annotated operations
