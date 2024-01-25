@@ -983,14 +983,8 @@ def generate_qpy(qpy_files):
 def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
-        fppath = (
-            "/Users/brandhsn/code/qiskit-terra/test/qpy_compat/qpy_"
-            + ".".join(map(str, version_parts))
-            + "/"
-            + path
-        )
-        print(f"Loading qpy file: {fppath}")
-        with open(fppath, "rb") as fd:
+        print(f"Loading qpy file: {path}")
+        with open(path, "rb") as fd:
             qpy_circuits = load(fd)
         equivalent = path in {"open_controlled_gates.qpy", "controlled_gates.qpy"}
         for i, circuit in enumerate(circuits):
