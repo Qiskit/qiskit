@@ -24,7 +24,7 @@ import scipy
 import scipy.stats
 from ddt import ddt, data
 
-from qiskit import execute, QiskitError, transpile
+from qiskit import QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
@@ -53,7 +53,6 @@ from qiskit.circuit.library import (
     RZGate,
     UnitaryGate,
 )
-from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
@@ -77,7 +76,6 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitDecomposeUpToDiagonal,
 )
 
-from qiskit.circuit.library.standard_gates.equivalence_library import _cnot_rxx_decompose
 from qiskit.synthesis.unitary import qsd
 from qiskit.test import QiskitTestCase
 
@@ -271,8 +269,7 @@ class CheckDecompositions(QiskitTestCase):
         decomp_circuit = decomposer(target_unitary, _num_basis_uses=num_basis_uses)
         if num_basis_uses is not None:
             self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get("unitary", 0))
-        result = execute(decomp_circuit, UnitarySimulatorPy(), optimization_level=0).result()
-        decomp_unitary = result.get_unitary()
+        decomp_unitary = Operator(decomp_circuit).data
         maxdist = np.max(np.abs(target_unitary - decomp_unitary))
         self.assertTrue(
             np.abs(maxdist) < tolerance,
@@ -982,19 +979,6 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
 class TestTwoQubitDecompose(CheckDecompositions):
     """Test TwoQubitBasisDecomposer() for exact/approx decompositions"""
 
-    def test_cnot_rxx_decompose(self):
-        """Verify CNOT decomposition into RXX gate is correct"""
-        cnot = Operator(CXGate())
-        decomps = [
-            _cnot_rxx_decompose(),
-            _cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
-            _cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
-            _cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
-            _cnot_rxx_decompose(plus_ry=False, plus_rxx=False),
-        ]
-        for decomp in decomps:
-            self.assertTrue(cnot.equiv(decomp))
-
     @combine(seed=range(10), name="test_exact_two_qubit_cnot_decompose_random_{seed}")
     def test_exact_two_qubit_cnot_decompose_random(self, seed):
         """Verify exact CNOT decomposition for random Haar 4x4 unitary (seed={seed})."""
@@ -1103,10 +1087,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         for i in range(4):
             with self.subTest(i=i):
                 decomp_circuit = decomposer(tgt, _num_basis_uses=i)
-                result = execute(
-                    decomp_circuit, UnitarySimulatorPy(), optimization_level=0
-                ).result()
-                decomp_unitary = result.get_unitary()
+                decomp_unitary = Operator(decomp_circuit).data
                 tr_actual = np.trace(decomp_unitary.conj().T @ tgt)
                 self.assertAlmostEqual(
                     traces_pred[i],
@@ -1126,8 +1107,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[0], rnd[1], rnd[2], qr[0])
         qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
-        sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        unitary = Operator(qc).data
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1147,8 +1127,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[6], rnd[7], rnd[8], qr[0])
         qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
-        sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        unitary = Operator(qc).data
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1173,8 +1152,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[12], rnd[13], rnd[14], qr[0])
         qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
-        sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        unitary = Operator(qc).data
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 
@@ -1204,8 +1182,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         qc.u(rnd[18], rnd[19], rnd[20], qr[0])
         qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
-        sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim).result().get_unitary()
+        unitary = Operator(qc).data
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
         self.assertTrue(Operator(two_qubit_cnot_decompose(unitary)).equiv(unitary))
 

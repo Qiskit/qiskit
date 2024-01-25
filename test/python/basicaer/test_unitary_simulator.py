@@ -16,26 +16,32 @@ import unittest
 
 import numpy as np
 
-from qiskit import execute
+from qiskit import transpile
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.test import QiskitTestCase
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.test import ReferenceCircuits
-from qiskit.test import providers
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import process_fidelity, Operator
 
+from . import BasicAerBackendTestMixin
 
-class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
+
+class BasicAerUnitarySimulatorPyTest(QiskitTestCase, BasicAerBackendTestMixin):
     """Test BasicAer unitary simulator."""
 
-    backend_cls = UnitarySimulatorPy
-    circuit = ReferenceCircuits.bell_no_measure()
+    def setUp(self):
+        super().setUp()
+        self.backend = UnitarySimulatorPy()
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+        self.circuit = bell
 
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        job = execute(circuits, backend=self.backend)
+        job = self.backend.run(transpile(circuits, self.backend))
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         for u_sim, u_ref in zip(sim_unitaries, reference_unitaries):
@@ -108,7 +114,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
-                job = execute(circuit, self.backend)
+                job = self.backend.run(transpile(circuit, self.backend))
                 result = job.result()
                 unitary_out = Operator(result.get_unitary(0))
                 fidelity = process_fidelity(unitary_target, unitary_out)
@@ -124,7 +130,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         circuit.z(q[0])
         circuit.x(q[0])
 
-        job = execute(circuit, self.backend)
+        job = self.backend.run(transpile(circuit, self.backend))
         result = job.result()
 
         unitary_out = result.get_unitary(circuit)

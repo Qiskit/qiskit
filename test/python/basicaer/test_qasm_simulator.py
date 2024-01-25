@@ -20,12 +20,13 @@ import sys
 
 import numpy as np
 
-from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import providers
 from qiskit.qasm2 import dumps
+
+from . import BasicAerBackendTestMixin
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -35,13 +36,17 @@ class StreamHandlerRaiseException(StreamHandler):
         raise sys.exc_info()
 
 
-class TestBasicAerQasmSimulator(providers.BackendTestCase):
+class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
     """Test the Basic qasm_simulator."""
-
-    backend_cls = QasmSimulatorPy
 
     def setUp(self):
         super().setUp()
+        self.backend = QasmSimulatorPy()
+        bell = QuantumCircuit(2, 2)
+        bell.h(0)
+        bell.cx(0, 1)
+        bell.measure([0, 1], [0, 1])
+        self.circuit = bell
 
         self.seed = 88
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
@@ -55,23 +60,6 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         logger.setLevel("DEBUG")
         self.log_output = io.StringIO()
         logger.addHandler(StreamHandlerRaiseException(self.log_output))
-
-    def assertExecuteLog(self, log_msg):
-        """Runs execute and check for logs containing specified message"""
-        shots = 100
-        qr = QuantumRegister(2, "qr")
-        cr = ClassicalRegister(4, "cr")
-        circuit = QuantumCircuit(qr, cr)
-        execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
-        self.log_output.seek(0)
-        # Filter unrelated log lines
-        output_lines = self.log_output.readlines()
-        execute_log_lines = [x for x in output_lines if log_msg in x]
-        self.assertTrue(len(execute_log_lines) > 0)
-
-    def test_submission_log_time(self):
-        """Check Total Job Submission Time is logged"""
-        self.assertExecuteLog("Total Job Submission Time")
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -93,7 +81,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.measure(qr[1], cr[2])
         circuit.measure(qr[0], cr[3])
         target = {"0110": shots}
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -110,7 +98,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             circuit.x(qr[qubit])
             circuit.measure(qr[qubit], cr[0])
             target = {"1": shots}
-            job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target)
@@ -147,7 +135,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.barrier(qr)
         circuit.measure(qr[3], cr[3])
         target = {"1011": shots}
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -216,9 +204,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
-        job = execute(
+        job = self.backend.run(
             [circuit_if_true, circuit_if_false],
-            backend=self.backend,
             shots=shots,
             seed_simulator=self.seed,
         )
@@ -253,7 +240,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.h(qr[0]).c_if(cr[0], True)
         circuit.measure(qr[0], cr1[0])
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result().get_counts()
         target = {"0 110": 100}
         self.assertEqual(result, target)
@@ -293,7 +280,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(
+            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
+        )
         results = job.result()
         data = results.get_counts("teleport")
         alice = {
@@ -346,7 +335,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-        job = execute(circ, backend=self.backend, shots=shots, memory=True)
+        job = self.backend.run(circ, shots=shots, memory=True)
         result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
@@ -373,7 +362,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             circuit = QuantumCircuit(qr, cr)
             circuit.unitary(multi_x, qr)
             circuit.measure(qr, cr)
-            job = execute(circuit, self.backend, shots=shots)
+            job = self.backend.run(transpile(circuit), shots=shots)
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)

@@ -65,8 +65,8 @@ class XXMinusYYGate(Gate):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In the above example we apply the gate
         on (q_0, q_1) which results in adding the (optional) phase defined
-        by :math:`beta` on q_1. Instead, if we apply it on (q_1, q_0), the
-        phase is added on q_0. If :math:`beta` is set to its default value
+        by :math:`\beta` on q_1. Instead, if we apply it on (q_1, q_0), the
+        phase is added on q_0. If :math:`\beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
         .. parsed-literal::
@@ -177,3 +177,8 @@ class XXMinusYYGate(Gate):
         """Raise gate to a power."""
         theta, beta = self.params
         return XXMinusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXMinusYYGate):
+            return self._compare_parameters(other)
+        return False
