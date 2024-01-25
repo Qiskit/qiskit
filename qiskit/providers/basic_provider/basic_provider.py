@@ -86,15 +86,6 @@ class BasicProvider(ProviderV1):
 
         return filter_backends(backends, filters=filters, **kwargs)
 
-    @staticmethod
-    def _deprecated_backend_names() -> dict[str, str]:
-        """Returns deprecated backend names."""
-        return {
-            "qasm_simulator_py": "basic_simulator",
-            "qasm_simulator": "basic_simulator",
-            "local_qasm_simulator_py": "basic_simulator",
-        }
-
     def _verify_backends(self) -> OrderedDict[str, Backend]:
         """
         Return the test backends in `BACKENDS` that are

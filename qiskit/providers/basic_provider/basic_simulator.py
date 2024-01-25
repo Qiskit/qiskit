@@ -34,12 +34,11 @@ import time
 import logging
 import warnings
 
-from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit.circuit.gate import Gate
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
@@ -48,7 +47,6 @@ from qiskit.providers.options import Options
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QasmQobjExperiment
 from qiskit.result import Result
 from qiskit.transpiler import Target
-from qiskit.utils.multiprocessing import local_hardware_info
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
@@ -67,7 +65,10 @@ class BasicSimulator(BackendV2):
     and later migrated to follow :class:`.BackendV2`.
     """
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
+    # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
+    # After the removal of `local_hardware_info()`, it's hardcoded to 24 qubits,
+    # which matches the ~268 MB of required memory.
+    MAX_QUBITS_MEMORY = 24
 
     def __init__(
         self,
@@ -160,21 +161,16 @@ class BasicSimulator(BackendV2):
         for name in basis_gates:
             if name in inst_mapping:
                 instruction = inst_mapping[name]
+                target.add_instruction(instruction, properties=None, name=name)
             elif name == "unitary":
-                # This is a placeholder for an actual unitary gate
+                # This is a placeholder for a UnitaryGate instance,
                 # to signal the transpiler not to decompose unitaries
-                # present in the circuit.
-                instruction = Gate(
-                    name=name,
-                    num_qubits=0,
-                    params=[Parameter("matrix")],
-                )
+                # in the circuit.
+                target.add_instruction(UnitaryGate, name="unitary")
             else:
                 raise BasicProviderError(
                     "Gate is not a valid basis gate for this simulator: %s" % name
                 )
-
-            target.add_instruction(instruction, properties=None, name=name)
         return target
 
     def configuration(self) -> BackendConfiguration:
@@ -183,6 +179,13 @@ class BasicSimulator(BackendV2):
         Returns:
             The configuration for the backend.
         """
+        # Note: this is a custom attribute of the BasicSimulator class and
+        # not part of the BackendV2 interface. It has only been added for
+        # compatibility with the `assemble` function (currently used in `run`),
+        # which still relies on legacy BackendV1 attributes. Once the internal
+        # use of `assemble` is resolved, this attribute will no longer be
+        # necessary.
+
         if self._configuration:
             return self._configuration
 
