@@ -312,7 +312,8 @@ class GenericFakeBackend(BackendV2):
     def _get_calibration_sequence(
         self, inst: str, num_qubits: int, qargs: tuple[int]
     ) -> list[PulseQobjInstruction]:
-        """Return calibration sequence for given instruction (defined by name and num_qubits) acting on qargs."""
+        """Return calibration sequence for given instruction (defined by name and num_qubits)
+        acting on qargs."""
 
         pulse_library = _PULSE_LIBRARY
         # Note that the calibration pulses are different for
