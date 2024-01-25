@@ -18,7 +18,7 @@ import numpy as np
 from qiskit.providers.basicaer import StatevectorSimulatorPy
 from qiskit.test import ReferenceCircuits
 from qiskit.test import providers
-from qiskit import QuantumRegister, QuantumCircuit, execute
+from qiskit import QuantumRegister, QuantumCircuit, transpile
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info import state_fidelity
 
@@ -76,7 +76,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
-                job = execute(circuit, self.backend)
+                job = self.backend.run(transpile(circuit, self.backend))
                 result = job.result()
                 psi_out = result.get_statevector(0)
                 fidelity = state_fidelity(psi_target, psi_out)

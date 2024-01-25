@@ -204,7 +204,7 @@ Circuit Visualizations
    :toctree: ../stubs/
 
    circuit_drawer
-   ~qiskit.visualization.qcstyle.DefaultStyle
+   ~qiskit.visualization.circuit.qcstyle.DefaultStyle
 
 DAG Visualizations
 ==================

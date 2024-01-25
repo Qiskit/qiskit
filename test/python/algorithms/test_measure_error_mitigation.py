@@ -31,16 +31,16 @@ from qiskit.utils.mitigation import CompleteMeasFitter, TensoredMeasFitter
 from qiskit.utils.measurement_error_mitigation import build_measurement_error_mitigation_circuits
 from qiskit.utils import optionals
 
-if optionals.HAS_AER:
-    # pylint: disable=no-name-in-module
-    from qiskit import Aer
-    from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
     # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
     )
+if optionals.HAS_AER:
+    # pylint: disable=no-name-in-module
+    from qiskit_aer import Aer
+    from qiskit_aer import noise
 
 
 @ddt
@@ -508,9 +508,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         circuit.measure(2, 1)
         circuit.measure(0, 2)
 
-        result = execute(
-            circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
-        ).result()
+        with self.assertWarns(DeprecationWarning):
+            job = execute(circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0)
+        result = job.result()
         with self.subTest(subset=subset):
             with self.assertWarns(DeprecationWarning):
                 new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)

@@ -1594,6 +1594,11 @@ class QuantumCircuit:
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
+    @deprecate_func(
+        since="0.46",
+        additional_msg="Instead use the qiskit.qasm2.dump() or qiskit.qasm2.dumps() function",
+        removal_timeline="in the 1.0.0 release",
+    )
     def qasm(
         self,
         formatted: bool = False,
@@ -1722,7 +1727,7 @@ class QuantumCircuit:
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
+                See: :class:`~qiskit.visualization.circuit.qcstyle.DefaultStyle` for more
                 information on the contents.
             interactive (bool): when set to true, show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
@@ -2880,30 +2885,9 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        qubits: list[QubitSpecifier] = []
-        if qarg is None:  # -> apply delays to all qubits
-            for q in self.qubits:
-                qubits.append(q)
-        else:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, (range, tuple)):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
-        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
-        for q in qubits:
-            inst: tuple[
-                Instruction, Sequence[QubitSpecifier] | None, Sequence[ClbitSpecifier] | None
-            ] = (Delay(duration, unit), [q], [])
-            self.append(*inst)
-            instructions.add(*inst)
-        return instructions
+        if qarg is None:
+            qarg = self.qubits
+        return self.append(Delay(duration, unit=unit), [qarg], [])
 
     def h(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.
@@ -4132,10 +4116,10 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`qiskit.extensions.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`qiskit.extensions.Initialize` instruction.
+        :class:`~qiskit.circuit.library.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.
@@ -4278,9 +4262,9 @@ class QuantumCircuit:
         return self.append(gate, qubits, [])
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def diagonal(self, diag, qubit):
         """Attach a diagonal gate to a circuit.
@@ -4327,9 +4311,9 @@ class QuantumCircuit:
         return self.append(DiagonalGate(diag), qubit)
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.Isometry to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def iso(
         self,
@@ -4397,9 +4381,9 @@ class QuantumCircuit:
         )
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def hamiltonian(self, operator, time, qubits, label=None):
         """Apply hamiltonian evolution to qubits.
@@ -4427,9 +4411,9 @@ class QuantumCircuit:
         return self.append(HamiltonianGate(data=operator, time=time, label=label), qubits, [])
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
         """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
@@ -4495,9 +4479,9 @@ class QuantumCircuit:
         return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def ucrx(
         self,
@@ -4556,9 +4540,9 @@ class QuantumCircuit:
         return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def ucry(
         self,
@@ -4617,9 +4601,9 @@ class QuantumCircuit:
         return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
-        pending=True,
+        removal_timeline="in the 1.0.0 release",
     )
     def ucrz(
         self,

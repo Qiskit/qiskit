@@ -14,7 +14,7 @@
 
 from unittest import SkipTest
 
-from qiskit import execute
+from qiskit import transpile
 from ..base import QiskitTestCase
 from ..reference_circuits import ReferenceCircuits
 
@@ -69,7 +69,7 @@ class BackendTestCase(QiskitTestCase):
 
     def test_run_circuit(self):
         """Test running a single circuit."""
-        job = execute(self.circuit, self.backend)
+        job = self.backend.run(transpile(self.circuit, self.backend))
         result = job.result()
         self.assertEqual(result.success, True)
         return result

@@ -100,7 +100,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """measurement error mitigation test with vqe"""
         try:
-            from qiskit.providers.aer import noise
+            from qiskit_aer import noise
         except ImportError as ex:
             self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return

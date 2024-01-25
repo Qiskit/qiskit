@@ -26,7 +26,7 @@ def random_circuit(
     """Generate random circuit of arbitrary size and form.
 
     This function will generate a random circuit by randomly selecting gates
-    from the set of standard gates in :mod:`qiskit.extensions`. For example:
+    from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`. For example:
 
     .. plot::
        :include-source:

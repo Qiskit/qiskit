@@ -16,7 +16,7 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute, assemble
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer, assemble
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
@@ -46,13 +46,13 @@ class TestDiagonalGate(QiskitTestCase):
                 num_qubits = int(np.log2(len(diag)))
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
-                with self.assertWarns(PendingDeprecationWarning):
+                with self.assertWarns(DeprecationWarning):
                     qc.diagonal(diag, q[0:num_qubits])
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend("unitary_simulator")
-                result = execute(qc, simulator).result()
+                result = simulator.run(qc).result()
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
                 self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=False))
@@ -62,7 +62,7 @@ class TestDiagonalGate(QiskitTestCase):
         from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
         with self.assertRaises(QiskitError):
-            with self.assertWarns(PendingDeprecationWarning):
+            with self.assertWarns(DeprecationWarning):
                 DiagonalGate([1, 1 - 2 * ATOL_DEFAULT - RTOL_DEFAULT])
 
     def test_npcomplex_params_conversion(self):
@@ -70,7 +70,7 @@ class TestDiagonalGate(QiskitTestCase):
         # ref: https://github.com/Qiskit/qiskit-aer/issues/696
         diag = np.array([1 + 0j, 1 + 0j])
         qc = QuantumCircuit(1)
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             qc.diagonal(diag.tolist(), [0])
 
         params = qc.data[0].operation.params

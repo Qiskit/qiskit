@@ -272,8 +272,8 @@ class LoadFromQasmTest(QiskitTestCase):
         qreg q[3];
         h q;"""
         q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
-
-        self.assertEqual(q_circuit.qasm(), expected_qasm)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(q_circuit.qasm(), expected_qasm)
 
     def test_from_qasm_str_custom_gate1(self):
         """Test load custom gates (simple case)"""

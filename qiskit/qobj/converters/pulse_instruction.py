@@ -959,8 +959,12 @@ class QobjToInstructionConverter:
 
             yield instructions.Play(waveform, channel)
         else:
+            if qubits := getattr(instruction, "qubits", None):
+                msg = f"qubits {qubits}"
+            else:
+                msg = f"channel {instruction.ch}"
             raise QiskitError(
-                f"Instruction {instruction.name} on qubit {instruction.qubits} is not found  "
+                f"Instruction {instruction.name} on {msg} is not found "
                 "in Qiskit namespace. This instruction cannot be deserialized."
             )
 
