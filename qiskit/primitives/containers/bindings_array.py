@@ -99,6 +99,7 @@ class BindingsArray(ShapedMixin):
             }
 
         self._shape = _infer_shape(self._data) if shape is None else shape_tuple(shape)
+        self._num_parameters = None
 
         self.validate()
 
@@ -117,9 +118,9 @@ class BindingsArray(ShapedMixin):
 
     def __repr__(self):
         descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
-        if num_kwval_params := sum(val.shape[-1] for val in self._data.values()):
+        if self.num_parameters:
             names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._data))), 5))
-            if len(names) < num_kwval_params:
+            if len(names) < self.num_parameters:
                 names.append("...")
             descriptions.append(f"parameters=[{', '.join(names)}]")
         return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
@@ -132,7 +133,9 @@ class BindingsArray(ShapedMixin):
     @property
     def num_parameters(self) -> int:
         """The total number of parameters."""
-        return sum(val.shape[-1] for val in self._data.values())
+        if self._num_parameters is None:
+            self._num_parameters = sum(val.shape[-1] for val in self._data.values())
+        return self._num_parameters
 
     def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
         """Return a new circuit bound to the values at the provided index.
