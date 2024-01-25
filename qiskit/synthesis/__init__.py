@@ -84,13 +84,6 @@ Discrete Basis Synthesis
 
 .. autofunction:: generate_basic_approximations
 
-<<<<<<< HEAD
-=======
-Basis Change Synthesis
-======================
-
-.. autofunction:: synth_qft_line
-
 Unitary Synthesis
 =================
 
@@ -117,7 +110,6 @@ Two-Qubit Synthesis
    TwoQubitBasisDecomposer
    XXDecomposer
 
->>>>>>> 8887f4436 (Deprecate qiskit/quantum_info/synthesis and move to qiskit/synthesis (#11460))
 """
 
 from .evolution import (
@@ -154,12 +146,9 @@ from .cnotdihedral import (
 )
 from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
-<<<<<<< HEAD
-=======
-from .qft import synth_qft_line
+
 from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer
 from .two_qubit.xx_decompose import XXDecomposer
 from .two_qubit.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
->>>>>>> 8887f4436 (Deprecate qiskit/quantum_info/synthesis and move to qiskit/synthesis (#11460))
