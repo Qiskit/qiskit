@@ -10,8 +10,5 @@ upgrade:
     * :func:`~.two_qubit_cnot_decompose` has been moved to :mod:`qiskit.synthesis.two_qubits`
     * :func:`~.qs_decomposition` has been moved to :mod:`qiskit.synthesis.unitary`
 
-    The class :class:`.Quaternion` has been migrated from :mod:`qiskit.quantum_info.synthesis` to
-    :mod:`qiskit.quantum_info`. This move has not affected the usual import path of the class.
-
-    This function has been deprecated:
-    * :func:`~.cnot_rxx_decompose`
+    This function was removed, since it has already been deprecated in the 0.46 release:
+    * ``cnot_rxx_decompose``
