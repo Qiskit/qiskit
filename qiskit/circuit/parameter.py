@@ -116,7 +116,7 @@ class Parameter(ParameterExpression):
 
     @property
     def uuid(self) -> UUID:
-        """Returns the UUID of the :class:`Parameter`.
+        """Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
 
         In advanced use cases, this property can be passed to the
         :class:`Parameter` constructor to produce an instance that compares
