@@ -12,6 +12,8 @@
 
 """User interface of qpy serializer."""
 
+from __future__ import annotations
+
 from json import JSONEncoder, JSONDecoder
 from typing import Union, List, BinaryIO, Type, Optional
 from collections.abc import Iterable
@@ -76,6 +78,7 @@ def dump(
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = True,
+    version: int | None = None,
 ):
     """Write QPY binary data to a file
 
@@ -126,9 +129,23 @@ def dump(
             but not supported in all platforms. Please check that your target platform is supported
             by the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload. For this reason, the option defaults to False.
+        version: The QPY format version to emit. By default this defaults to
+            the latest supported format (which is currently 10), however for
+            compatibility reasons if you need to load the generated QPY payload with an older version
+            of Qiskit you can also select the minimum supported export version, which only can change
+            during a Qiskit major version release, to generate an older QPY format version. As of this
+            major release series the minimum supported export version is version 10.
+
+            .. note::
+
+                If specified with an older version of QPY the limitations and potential bugs stemming
+                from the QPY format at that version will persist. This should only be used if
+                compatibility with loading the payload with an older version of Qiskit is necessary.
+
     Raises:
         QpyError: When multiple data format is mixed in the output.
         TypeError: When invalid data type is input.
+        ValueError: When an unsupported version number is passed in for the ``version`` argument
     """
     if not isinstance(programs, Iterable):
         programs = [programs]
@@ -153,13 +170,21 @@ def dump(
     else:
         raise TypeError(f"'{program_type}' is not supported data type.")
 
+    if version is None:
+        version = common.QPY_VERSION
+    elif version not in {10, common.QPY_VERSION}:
+        raise ValueError(
+            f"The specified QPY version {version} is not support for dumping with this version, "
+            f"of Qiskit. The only supported versions are 10 and {common.QPY_VERSION}"
+        )
+
     version_match = VERSION_PATTERN_REGEX.search(__version__)
     version_parts = [int(x) for x in version_match.group("release").split(".")]
     encoding = type_keys.SymExprEncoding.assign(use_symengine)
     header = struct.pack(
         formats.FILE_HEADER_V10_PACK,
         b"QISKIT",
-        common.QPY_VERSION,
+        version,
         version_parts[0],
         version_parts[1],
         version_parts[2],

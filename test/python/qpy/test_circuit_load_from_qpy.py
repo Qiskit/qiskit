@@ -31,15 +31,23 @@ from qiskit.compiler import transpile
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, circuit):
+    def assert_roundtrip_equal(self, circuit, version=None):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(circuit, qpy_file)
+        dump(circuit, qpy_file, version=version)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
+        if version is not None:
+            qpy_file.seek(0)
+            file_version = struct.unpack("!6sB", qpy_file.read(7))[1]
+            self.assertEqual(
+                version,
+                file_version,
+                f"Generated QPY file version {file_version} does not match request version {version}",
+            )
 
 
 @ddt
@@ -185,3 +193,17 @@ class TestLayout(QpyCircuitTestCase):
             list(new_circuit.layout.input_qubit_mapping.values()),
         )
         self.assertEqual(tqc.layout.final_layout, new_circuit.layout.final_layout)
+
+    def test_invalid_version_value(self):
+        """Assert we raise an error with an invalid version request."""
+        qc = QuantumCircuit(2)
+        with self.assertRaises(ValueError):
+            dump(qc, io.BytesIO(), version=3)
+
+    def test_version_10_roundtrip(self):
+        """Test the version is set correctly when specified."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        self.assert_roundtrip_equal(qc, version=10)
