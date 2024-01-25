@@ -18,7 +18,6 @@ API Reference
    converters
    assembler
    dagcircuit
-   extensions
    passmanager
    providers_basicaer
    providers

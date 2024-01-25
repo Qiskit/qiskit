@@ -58,3 +58,6 @@ class IGate(SingletonGate):
     def power(self, exponent: float):
         """Raise gate to a power."""
         return IGate()
+
+    def __eq__(self, other):
+        return isinstance(other, IGate)

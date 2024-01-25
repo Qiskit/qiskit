@@ -295,12 +295,41 @@ class ObservablesArrayTestCase(QiskitTestCase):
         labels = np.array(bases.to_labels(), dtype=object)
         obs = ObservablesArray(qi.pauli_basis(2))
 
+        def various_formats(shape):
+            # call reshape with a single argument
+            yield [shape]
+            yield [(-1,) + shape[1:]]
+            yield [np.array(shape)]
+            yield [list(shape)]
+            yield [list(map(np.int64, shape))]
+            yield [tuple(map(np.int64, shape))]
+
+            # call reshape with multiple arguments
+            yield shape
+            yield np.array(shape)
+            yield list(shape)
+            yield list(map(np.int64, shape))
+            yield tuple(map(np.int64, shape))
+
         for shape in [(16,), (4, 4), (2, 4, 2), (2, 2, 2, 2), (1, 8, 1, 2)]:
             with self.subTest(shape):
-                obs_rs = obs.reshape(shape)
-                self.assertEqual(obs_rs.shape, shape)
-                labels_rs = labels.reshape(shape)
-                for idx in np.ndindex(shape):
-                    self.assertEqual(
-                        obs_rs[idx], {labels_rs[idx]: 1}, msg=f"failed for shape {shape}"
-                    )
+                for input_shape in various_formats(shape):
+                    obs_rs = obs.reshape(*input_shape)
+                    self.assertEqual(obs_rs.shape, shape)
+                    labels_rs = labels.reshape(shape)
+                    for idx in np.ndindex(shape):
+                        self.assertEqual(
+                            obs_rs[idx],
+                            {labels_rs[idx]: 1},
+                            msg=f"failed for shape {shape} with input format {input_shape}",
+                        )
+
+    def test_validate(self):
+        """Test the validate method"""
+        ObservablesArray({"XX": 1}).validate()
+        ObservablesArray([{"XX": 1}] * 5).validate()
+        ObservablesArray([{"XX": 1}] * 15).reshape((3, 5)).validate()
+
+        obs = ObservablesArray([{"XX": 1}, {"XYZ": 1}], validate=False)
+        with self.assertRaisesRegex(ValueError, "number of qubits must be the same"):
+            obs.validate()
