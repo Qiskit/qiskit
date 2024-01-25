@@ -209,7 +209,6 @@ def get_bit_reg_index(circuit, bit):
         int: index of the bit from the top of the circuit
         int: index of the bit within the register, if there is a register
     """
-    del reverse_bits
     bit_loc = circuit.find_bit(bit)
     bit_index = bit_loc.index
     register, reg_index = bit_loc.registers[0] if bit_loc.registers else (None, None)
@@ -294,7 +293,6 @@ def get_condition_label_val(condition, circuit, cregbundle):
         str: label to display for the condition
         list(str): list of 1's and 0's indicating values of condition
     """
-    del reverse_bits
     cond_is_bit = bool(isinstance(condition[0], Clbit))
     cond_val = int(condition[1])
 
