@@ -1,4 +1,8 @@
 ---
+features:
+  - |
+    Added a function :func:`~.qs_decomposition` to apply Quantum Shannon Decomposition of arbitrary unitaries.
+
 deprecations:
   - |
     The :mod:`qiskit.quantum_info.synthesis` module is deprecated and
@@ -9,7 +13,6 @@ deprecations:
     * :class:`~.TwoQubitBasisDecomposer` has been moved to :mod:`qiskit.synthesis.two_qubits`
     * :class:`~.XXDecomposer` has been moved to :mod:`qiskit.synthesis.two_qubits`
     * :func:`~.two_qubit_cnot_decompose` has been moved to :mod:`qiskit.synthesis.two_qubits`
-    * :func:`~.qs_decomposition` has been moved to :mod:`qiskit.synthesis.unitary`
 
     The class :class:`.Quaternion` has been migrated from :mod:`qiskit.quantum_info.synthesis` to
     :mod:`qiskit.quantum_info`. This move has not affected the usual import path of the class.
