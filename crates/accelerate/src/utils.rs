@@ -14,14 +14,6 @@ pub fn arg_sort<T: PartialOrd>(data: &[T]) -> Vec<usize> {
     indices
 }
 
-// TODO: Use traits and parameters
-/// Modulo operation. This should give the same result
-/// as `numpy.mod`.
-#[inline]
-pub fn modulo(a: f64, b: f64) -> f64 {
-    ((a % b) + b) % b
-}
-
 /// Return the eigenvalues of `unitary` as a Python `list`.
 #[pyfunction]
 #[pyo3(text_signature = "(unitary, /")]
