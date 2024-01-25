@@ -24,10 +24,9 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use std::f64::consts::PI;
 
-use faer::Faer;
 use faer::IntoFaerComplex;
-use faer::{mat, Mat, MatRef};
-use faer_core::{c64, scale, ComplexField};
+use faer::{mat, prelude::*, scale, Mat, MatRef};
+use faer_core::{c64, ComplexField};
 use numpy::PyReadonlyArray2;
 
 use crate::utils;

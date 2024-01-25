@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use faer::Faer;
+use faer::prelude::*;
 use faer::IntoFaerComplex;
 use num_complex::Complex;
 use numpy::{IntoPyArray, PyReadonlyArray2};
