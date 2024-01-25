@@ -31,7 +31,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.rx(params[0], 0)
         circuit.ry(params[1], 1)
         circuit.measure_all()
-        parameter_values = BindingsArray(kwvals={params: np.ones((10, 2))})
+        parameter_values = BindingsArray(data={params: np.ones((10, 2))})
         shots = 1000
 
         pub = SamplerPub(
@@ -149,7 +149,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.measure_all()
         pub1 = SamplerPub(
             circuit=circuit,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             shots=1000,
         )
         pub2 = SamplerPub.coerce(pub1, shots=shots)
@@ -165,7 +165,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.measure_all()
         pub1 = SamplerPub(
             circuit=circuit,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             shots=None,
         )
         pub2 = SamplerPub.coerce(pub1, shots=shots)

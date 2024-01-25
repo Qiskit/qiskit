@@ -30,7 +30,7 @@ class EstimatorPubTestCase(QiskitTestCase):
         circuit = QuantumCircuit(2)
         circuit.rx(params[0], 0)
         circuit.ry(params[1], 1)
-        parameter_values = BindingsArray(kwvals={params: np.ones((10, 2))})
+        parameter_values = BindingsArray(data={params: np.ones((10, 2))})
         observables = ObservablesArray([{"XX": 0.1}])
         precision = 0.05
 
@@ -174,7 +174,7 @@ class EstimatorPubTestCase(QiskitTestCase):
         pub1 = EstimatorPub(
             circuit,
             obs,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             precision=0.01,
         )
         pub2 = EstimatorPub.coerce(pub1, precision=precision)
@@ -191,7 +191,7 @@ class EstimatorPubTestCase(QiskitTestCase):
         pub1 = EstimatorPub(
             circuit,
             obs,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             precision=None,
         )
         pub2 = EstimatorPub.coerce(pub1, precision=precision)
