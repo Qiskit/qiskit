@@ -149,6 +149,16 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_11:
+
+Version 11
+==========
+
+Version 11 is identical to Version 10 except that for names in the CUSTOM_INSTRUCTION blocks
+have a suffix of the form ``"_{uuid_hex}"`` where ``uuid_hex`` is a uuid
+hexadecimal string such as returned by :attr:`.UUID.hex`. For example:
+``"b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``.
+
 .. _qpy_version_10:
 
 Version 10

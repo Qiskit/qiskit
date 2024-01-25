@@ -17,7 +17,7 @@ import struct
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats
@@ -137,6 +137,45 @@ class TestLayout(QpyCircuitTestCase):
         qc.measure_all()
         qc._layout = TranspileLayout(None, None, None)
         self.assert_roundtrip_equal(qc)
+
+    def test_overlapping_definitions(self):
+        """Test serialization of custom gates with overlapping definitions."""
+
+        class MyParamGate(Gate):
+            """Custom gate class with a parameter."""
+
+            def __init__(self, phi):
+                super().__init__("my_gate", 1, [phi])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.rx(self.params[0], 0)
+                self.definition = qc
+
+        theta = Parameter("theta")
+        two_theta = 2 * theta
+
+        qc = QuantumCircuit(1)
+        qc.append(MyParamGate(1.1), [0])
+        qc.append(MyParamGate(1.2), [0])
+        qc.append(MyParamGate(3.14159), [0])
+        qc.append(MyParamGate(theta), [0])
+        qc.append(MyParamGate(two_theta), [0])
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+        # Custom gate classes are lowered to Gate to avoid arbitrary code
+        # execution on deserialization. To compare circuit equality we
+        # need to go instruction by instruction and check that they're
+        # equivalent instead of doing a circuit equality check
+        for new_inst, old_inst in zip(new_circ.data, qc.data):
+            new_gate = new_inst.operation
+            old_gate = old_inst.operation
+            self.assertIsInstance(new_gate, Gate)
+            self.assertEqual(new_gate.name, old_gate.name)
+            self.assertEqual(new_gate.params, old_gate.params)
+            self.assertEqual(new_gate.definition, old_gate.definition)
 
     @data(0, 1, 2, 3)
     def test_custom_register_name(self, opt_level):

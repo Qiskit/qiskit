@@ -373,6 +373,9 @@ def _parse_custom_operation(
         ) = custom_operations[gate_name]
     else:
         type_str, num_qubits, num_clbits, definition = custom_operations[gate_name]
+    # Strip the trailing "_{uuid}" from the gate name if the version >=11
+    if version >= 11:
+        gate_name = "_".join(gate_name.split("_")[:-1])
     type_key = type_keys.CircuitInstruction(type_str)
 
     if type_key == type_keys.CircuitInstruction.INSTRUCTION:
@@ -572,7 +575,7 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 
 # pylint: disable=too-many-boolean-expressions
-def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
+def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine, version):
     if isinstance(instruction.operation, Instruction):
         gate_class_name = instruction.operation.base_class.__name__
     else:
@@ -594,12 +597,13 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         # ucr*_dg gates can have different numbers of parameters,
         # the uuid is appended to avoid storing a single definition
         # in circuits with multiple ucr*_dg gates.
-        if instruction.operation.name in ["ucrx_dg", "ucry_dg", "ucrz_dg"]:
-            gate_class_name += "_" + str(uuid.uuid4())
-
-        if gate_class_name not in custom_operations:
-            custom_operations[gate_class_name] = instruction.operation
-            custom_operations_list.append(gate_class_name)
+        if instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
+        elif version >= 11:
+            # Assign a uuid to each instance of a custom operation
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
+        custom_operations[gate_class_name] = instruction.operation
+        custom_operations_list.append(gate_class_name)
 
     elif gate_class_name == "ControlledGate":
         # controlled gates can have the same name but different parameter
@@ -724,7 +728,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine):
+def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine, version):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0
@@ -768,6 +772,7 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
                 custom_operations,
                 {},
                 use_symengine,
+                version,
             )
             base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
@@ -1002,7 +1007,9 @@ def _read_layout_v2(file_obj, circuit):
         circuit._layout._output_qubit_list = circuit.qubits
 
 
-def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=False):
+def write_circuit(
+    file_obj, circuit, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -1016,6 +1023,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        version (int): The QPY format version to use for serializing this circuit
     """
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1056,7 +1064,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
     for instruction in circuit.data:
         _write_instruction(
-            instruction_buffer, instruction, custom_operations, index_map, use_symengine
+            instruction_buffer, instruction, custom_operations, index_map, use_symengine, version
         )
 
     with io.BytesIO() as custom_operations_buffer:
@@ -1068,7 +1076,12 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
                 operation = custom_operations[name]
                 new_custom_operations.extend(
                     _write_custom_operation(
-                        custom_operations_buffer, name, operation, custom_operations, use_symengine
+                        custom_operations_buffer,
+                        name,
+                        operation,
+                        custom_operations,
+                        use_symengine,
+                        version,
                     )
                 )
 
