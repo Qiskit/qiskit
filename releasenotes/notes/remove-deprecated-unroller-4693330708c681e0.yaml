@@ -8,19 +8,15 @@ upgrade:
     Note that :class:`.BasisTranslator` and :class:`.UnrollCustomDefinitions` take different 
     arguments than ``Unroller``, as they requires a `EquivalenceLibrary` object to be passed in. 
 
-    Example Usage:
-    Instead of using ``Unroller`` as follows:
-      pm = PassManager([
-          Unroller(basis_gates)
-      ])
+    Where previously ``Unroller(basis_gates)`` could be used,
+    you can now use::
     
-    First create a EquivalenceLibrary like:
       from qiskit.circuit.library.standard_gates.equivalence_library import (
           StandardEquivalenceLibrary as std_eqlib,
       )
-    and then use ``BasisTranslator`` and ``UnrollCustomDefinitions`` as follows:
       pm = PassManager([
           UnrollCustomDefinitions(std_eqlib, basis_gates)
           BasisTranslator(std_eqlib, basis_gates),
       ])
+      translated = pm.run(circuit)
     
