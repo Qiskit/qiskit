@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023, 2024.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,15 +24,14 @@ class CommutativeInverseCancellation(TransformationPass):
     """Cancel pairs of inverse gates exploiting commutation relations."""
 
     def __init__(self, matrix_based: bool = False, max_qubits: int = 4):
-        """Initialize CommutativeInverseCancellation pass.
-
+        """
         Args:
-            matrix_based: if True, uses matrix representations to check whether two
+            matrix_based: If ``True``, uses matrix representations to check whether two
                 operations are inverse of each other. This makes the checks more powerful,
-                and in addition allows canceling pairs of operations that are inverse up to a
+                and, in addition, allows canceling pairs of operations that are inverse up to a
                 phase, while updating the global phase of the circuit accordingly.
                 Generally this leads to more reductions at the expense of increased runtime.
-            max_qubits: limits the number of qubits in matrix-based commutativity and
+            max_qubits: Limits the number of qubits in matrix-based commutativity and
                 inverse checks.
         """
         self._matrix_based = matrix_based
@@ -56,7 +55,7 @@ class CommutativeInverseCancellation(TransformationPass):
             return True
         return False
 
-    def _inverse_upto_phase(self, node1, node2):
+    def _check_inverse(self, node1, node2):
         """Checks whether op1 and op2 are inverse up to a phase, that is whether
         ``op2 = e^{i * d} op1^{-1})`` for some phase difference ``d``.
         If this is the case, we can replace ``op2 * op1`` by `e^{i * d} I``.
@@ -113,7 +112,7 @@ class CommutativeInverseCancellation(TransformationPass):
                     and topo_sorted_nodes[idx2].qargs == topo_sorted_nodes[idx1].qargs
                     and topo_sorted_nodes[idx2].cargs == topo_sorted_nodes[idx1].cargs
                 ):
-                    is_inverse, phase = self._inverse_upto_phase(
+                    is_inverse, phase = self._check_inverse(
                         topo_sorted_nodes[idx1], topo_sorted_nodes[idx2]
                     )
                     if is_inverse:
