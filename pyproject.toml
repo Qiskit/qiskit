@@ -62,15 +62,16 @@ csp-layout-pass = [
 all = ["qiskit[qasm3-import,visualization,crosstalk-pass,csp-layout-pass]"]
 
 [project.urls]
-Homepage = "https://qiskit.org"
-Documentation = "https://qiskit.org/documentation"
+Homepage = "https://www.ibm.com/quantum/qiskit"
+Documentation = "https://docs.quantum.ibm.com"
+"API Reference" = "https://docs.quantum.ibm.com/api/qiskit"
 Repository = "https://github.com/Qiskit/qiskit"
 Issues = "https://github.com/Qiskit/qiskit/issues"
-Changelog = "https://qiskit.org/documentation/release_notes.html"
+Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
 
 [project.entry-points."qiskit.unitary_synthesis"]
 default = "qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis"
-aqc = "qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin"
+aqc = "qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin"
 sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis"
 
 [project.entry-points."qiskit.synthesis"]
@@ -135,7 +136,7 @@ target-version = ['py38', 'py39', 'py310', 'py311']
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux*"
+skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686"
 test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -143,6 +144,10 @@ test-command = "python {project}/examples/python/stochastic_swap.py"
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+# Some jobs locally override the before-build and environment configuration if a
+# specific job override is needed. For example tier 1 platforms locally override
+# the before-build and environment configuration to enable PGO,
+# see: .github/workflows/wheels.yml for the jobs where this is done
 environment = 'RUSTUP_TOOLCHAIN="stable"'
 
 [tool.cibuildwheel.linux]

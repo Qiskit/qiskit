@@ -24,9 +24,9 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
 )
@@ -866,7 +866,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 default=None,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 

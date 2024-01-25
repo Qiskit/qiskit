@@ -19,20 +19,18 @@ the simulator. It is exponential in the number of qubits.
 
     UnitarySimulator().run(run_input)
 
-Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and 
-the output is a BasicAerJob object, which can later be queried for the Result object. The result 
+Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and
+the output is a BasicAerJob object, which can later be queried for the Result object. The result
 will contain a 'unitary' data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
 """
 import logging
 import uuid
 import time
-from math import log2, sqrt
 import warnings
 
 import numpy as np
 
-from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
@@ -54,12 +52,10 @@ logger = logging.getLogger(__name__)
 class UnitarySimulatorPy(BackendV1):
     """Python implementation of a unitary simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(sqrt(local_hardware_info()["memory"] * (1024**3) / 16)))
-
     DEFAULT_CONFIGURATION = {
         "backend_name": "unitary_simulator",
         "backend_version": "1.1.0",
-        "n_qubits": min(24, MAX_QUBITS_MEMORY),
+        "n_qubits": 24,
         "url": "https://github.com/Qiskit/qiskit-terra",
         "simulator": True,
         "local": True,
