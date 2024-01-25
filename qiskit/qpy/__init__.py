@@ -1352,3 +1352,4 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION

@@ -78,7 +78,7 @@ def dump(
     file_obj: BinaryIO,
     metadata_serializer: Optional[Type[JSONEncoder]] = None,
     use_symengine: bool = True,
-    version: int | None = None,
+    version: int = common.QPY_VERSION,
 ):
     """Write QPY binary data to a file
 
@@ -172,10 +172,11 @@ def dump(
 
     if version is None:
         version = common.QPY_VERSION
-    elif version not in {10, common.QPY_VERSION}:
+    elif version not in {common.QPY_COMPATIBILITY_VERSION, common.QPY_VERSION}:
         raise ValueError(
             f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions are 10 and {common.QPY_VERSION}"
+            f"of Qiskit. The only supported versions are {common.QPY_COMPATIBILITY_VERSION} and "
+            f"{common.QPY_VERSION}"
         )
 
     version_match = VERSION_PATTERN_REGEX.search(__version__)
