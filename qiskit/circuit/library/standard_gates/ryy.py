@@ -126,3 +126,8 @@ class RYYGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RYYGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RYYGate):
+            return self._compare_parameters(other)
+        return False

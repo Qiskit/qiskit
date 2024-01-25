@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import copy
 from itertools import zip_longest
+import math
 from typing import List, Type
 
 import numpy
@@ -628,3 +629,13 @@ class Instruction(Operation):
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
+
+    def _compare_parameters(self, other):
+        for x, y in zip(self.params, other.params):
+            try:
+                if not math.isclose(x, y, rel_tol=0, abs_tol=1e-10):
+                    return False
+            except TypeError:
+                if x != y:
+                    return False
+        return True

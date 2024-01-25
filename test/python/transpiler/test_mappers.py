@@ -72,8 +72,7 @@ import unittest
 import os
 import sys
 
-from qiskit import execute
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer, transpile
 from qiskit.qasm2 import dump
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SabreSwap
@@ -124,11 +123,9 @@ class CommonUtilitiesMixin:
             filename (string): Where the QASM is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(
-            transpiled_result,
-            sim_backend,
+        job = sim_backend.run(
+            transpile(transpiled_result, sim_backend, seed_transpiler=self.seed_transpiler),
             seed_simulator=self.seed_simulator,
-            seed_transpiler=self.seed_transpiler,
             shots=self.shots,
         )
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
@@ -295,7 +292,7 @@ class TestsSabreSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using SabreSwap."""
 
     pass_class = SabreSwap
-    additional_args = {"seed": 1242}
+    additional_args = {"seed": 1242, "trials": 2}
 
 
 if __name__ == "__main__":

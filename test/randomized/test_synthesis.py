@@ -12,16 +12,15 @@
 
 """Randomized tests of quantum synthesis."""
 import unittest
-from test.python.quantum_info.test_synthesis import CheckDecompositions
+from test.python.synthesis.test_synthesis import CheckDecompositions
 from hypothesis import given, strategies, settings
 import numpy as np
 
-from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
     Ud,
@@ -74,7 +73,7 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[3], rnd[4], rnd[5], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 0)
 
     @given(strategies.tuples(*[rotation] * 12), seed)
@@ -92,7 +91,7 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[9], rnd[10], rnd[11], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 1)
 
     @given(strategies.tuples(*[rotation] * 18), seed)
@@ -115,7 +114,7 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[15], rnd[16], rnd[17], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 2)
 
     @given(strategies.tuples(*[rotation] * 24), seed)
@@ -143,7 +142,7 @@ class TestSynthesis(CheckDecompositions):
         qc.u(rnd[21], rnd[22], rnd[23], qr[1])
 
         sim = UnitarySimulatorPy()
-        unitary = execute(qc, sim, seed_simulator=seed).result().get_unitary()
+        unitary = sim.run(qc, seed_simulator=seed).result().get_unitary()
         self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(unitary), 3)
 
 

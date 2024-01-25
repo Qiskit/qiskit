@@ -139,7 +139,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         .. code-block:: python
 
             import time
-            from qiskit.tools.parallel import parallel_map
+            from qiskit.utils import parallel_map
             def func(_):
                     time.sleep(0.1)
                     return 0

@@ -14,11 +14,13 @@
 
 import copy
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, Tuple, Union, Dict
 import dateutil.parser
 
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.utils.units import apply_prefix
+
+PropertyT = Tuple[Any, datetime.datetime]
 
 
 class Nduv:
@@ -279,8 +281,11 @@ class BackendProperties:
         return False
 
     def gate_property(
-        self, gate: str, qubits: Union[int, Iterable[int]] = None, name: str = None
-    ) -> Tuple[Any, datetime.datetime]:
+        self,
+        gate: str,
+        qubits: Union[int, Iterable[int]] = None,
+        name: str = None,
+    ) -> Union[Dict[Tuple[int, ...], Dict[str, PropertyT]], Dict[str, PropertyT], PropertyT,]:
         """
         Return the property of the given gate.
 
@@ -369,7 +374,11 @@ class BackendProperties:
         """
         return self.gate_property(gate, qubits, "gate_length")[0]  # Throw away datetime at index 1
 
-    def qubit_property(self, qubit: int, name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(
+        self,
+        qubit: int,
+        name: str = None,
+    ) -> Union[Dict[str, PropertyT], PropertyT,]:
         """
         Return the property of the given qubit.
 
