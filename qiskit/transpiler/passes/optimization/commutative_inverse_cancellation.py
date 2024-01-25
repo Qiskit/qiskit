@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,19 +23,20 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 class CommutativeInverseCancellation(TransformationPass):
     """Cancel pairs of inverse gates exploiting commutation relations."""
 
-    def __init__(self, max_qubits: int = 4, upto_phase_optimization: bool = False):
+    def __init__(self, matrix_based: bool = False, max_qubits: int = 4):
         """Initialize CommutativeInverseCancellation pass.
 
         Args:
-            max_qubits: limits the number of qubits in matrix-based commutativity and inverse
-                checks.
-            upto_phase_optimization: if True, also cancels out pairs of gates that are
-                inverse up to a phase, while keeping track of the phase difference in the
-                global phase of the circuit. However, this inverse check is now matrix-based
-                and becomes more expensive.
+            matrix_based: if True, uses matrix representations to check whether two
+                operations are inverse of each other. This makes the checks more powerful,
+                and in addition allows canceling pairs of operations that are inverse up to a
+                phase, while updating the global phase of the circuit accordingly.
+                Generally this leads to more reductions at the expense of increased runtime.
+            max_qubits: limits the number of qubits in matrix-based commutativity and
+                inverse checks.
         """
+        self._matrix_based = matrix_based
         self._max_qubits = max_qubits
-        self._upto_phase_optimization = upto_phase_optimization
         super().__init__()
 
     def _skip_node(self, node):
@@ -64,7 +65,7 @@ class CommutativeInverseCancellation(TransformationPass):
         are inverse up to a phase and that phase difference.
         """
         phase_difference = 0
-        if not self._upto_phase_optimization:
+        if not self._matrix_based:
             is_inverse = node1.op.inverse() == node2.op
         elif len(node2.qargs) > self._max_qubits:
             is_inverse = False
@@ -127,6 +128,7 @@ class CommutativeInverseCancellation(TransformationPass):
                     topo_sorted_nodes[idx2].op,
                     topo_sorted_nodes[idx2].qargs,
                     topo_sorted_nodes[idx2].cargs,
+                    max_num_qubits=self._max_qubits,
                 ):
                     break
 

@@ -1,14 +1,15 @@
 ---
 features:
   - |
-    Added two new arguments ``max_qubits`` and ``upto_phase_optimization`` to the
+    Added two new arguments ``matrix_based`` and ``max_qubits`` to the
     constructor of :class:`.CommutativeInverseCancellation` transpiler pass.
-    When ``upto_phase_optimization`` is ``True`` the pass also cancels pairs of
-    gates that are inverse up to a phase, and updates the global phase of the circuit
+    When ``matrix_based`` is ``True`` the pass uses matrix representations to
+    check whether two operations are inverse of each other. This makes the
+    checks more powerful, and in addition allows canceling pairs of operations
+    that are inverse up to a phase, while updating the global phase of the circuit
     accordingly. Generally this leads to more reductions at the expense of increased
-    runtime. Internally, the check is based on constructing and comparing unitary matrices
-    corresponding to various gates in the circuit. The argument ``max_qubits`` limits
-    the number of qubits in matrix-based commutativity and inverse checks. For example::
+    runtime. The argument ``max_qubits`` limits the number of qubits in matrix-based
+    commutativity and inverse checks. For example::
 
         import numpy as np
         from qiskit.circuit import QuantumCircuit
@@ -19,7 +20,7 @@ features:
         circuit.rz(np.pi / 4, 0)
         circuit.p(-np.pi / 4, 0)
 
-        passmanager = PassManager(CommutativeInverseCancellation(upto_phase_optimization=True))
+        passmanager = PassManager(CommutativeInverseCancellation(matrix_based=True))
         new_circuit = passmanager.run(circuit)
 
     The pass is able to cancel the ``RZ`` and ``P`` gates, while adjusting the circuit's global
