@@ -73,15 +73,6 @@ impl Arg for c64 {
     }
 }
 
-// Modulo operation restricted to positive divisors.
-// This will give the same result as `numpy.mod`
-// with the same restriction.
-#[inline]
-fn modulo(a: f64, b: f64) -> f64 {
-    assert!(b > 0.0);
-    a.rem_euclid(b)
-}
-
 fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     let pi = PI;
     let pi2 = PI / 2.0;
@@ -95,11 +86,11 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
         .collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs: Vec<_> = (0..3)
-        .map(|i| modulo((darg[i] + darg[3]) / 2.0, 2.0 * pi))
+        .map(|i| ((darg[i] + darg[3]) / 2.0).rem_euclid(2.0 * pi))
         .collect();
     let cstemp: Vec<f64> = cs
         .iter()
-        .map(|x| modulo(*x, pi2))
+        .map(|x| x.rem_euclid(pi2))
         .map(|x| x.min(pi2 - x))
         .collect();
     let mut order = utils::arg_sort(&cstemp);
