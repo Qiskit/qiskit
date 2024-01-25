@@ -64,7 +64,7 @@ class BindingsArray(ShapedMixin):
 
     def __init__(
         self,
-        kwvals: Mapping[ParameterLike, Iterable[ParameterValueType]] | ArrayLike | None = None,
+        data: Mapping[ParameterLike, Iterable[ParameterValueType]] | ArrayLike | None = None,
         shape: ShapeInput | None = None,
     ):
         r"""
@@ -72,12 +72,12 @@ class BindingsArray(ShapedMixin):
 
         The ``shape`` argument does not need to be provided whenever it can unambiguously
         be inferred from the provided arrays. Ambiguity arises whenever the key of an entry of
-        ``kwvals`` contains only one parameter and the corresponding array's shape ends in a one.
+        ``data`` contains only one parameter and the corresponding array's shape ends in a one.
         In this case, it can't be decided whether that one is an index over parameters, or whether
         it should be encorporated in :attr:`~shape`.
 
         Args:
-            kwvals: A mapping from one or more parameters to arrays of values to bind
+            data: A mapping from one or more parameters to arrays of values to bind
                 them to, where the last axis is over parameters.
             shape: The leading shape of every array in these bindings.
 
@@ -88,17 +88,17 @@ class BindingsArray(ShapedMixin):
         """
         super().__init__()
 
-        if kwvals is None:
-            self._kwvals = {}
+        if data is None:
+            self._data = {}
         else:
-            self._kwvals = {
+            self._data = {
                 _format_key((p,))
                 if isinstance(p, Parameter)
                 else _format_key(p): np.array(val, copy=False)
-                for p, val in kwvals.items()
+                for p, val in data.items()
             }
 
-        self._shape = _infer_shape(self._kwvals) if shape is None else shape_tuple(shape)
+        self._shape = _infer_shape(self._data) if shape is None else shape_tuple(shape)
 
         self.validate()
 
@@ -108,31 +108,31 @@ class BindingsArray(ShapedMixin):
         # on all unspecified trailing dimensions
         # separately, we choose to not disallow args which touch the last dimension, even though it
         # would not be a particularly friendly way to chop parameters
-        kwvals = {params: val[args] for params, val in self._kwvals.items()}
+        data = {params: val[args] for params, val in self._data.items()}
         try:
-            shape = next(kwvals.values()).shape[:-1]
+            shape = next(data.values()).shape[:-1]
         except StopIteration:
             shape = ()
-        return BindingsArray(kwvals, shape)
+        return BindingsArray(data, shape)
 
     def __repr__(self):
         descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
-        if num_kwval_params := sum(val.shape[-1] for val in self._kwvals.values()):
-            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
+        if num_kwval_params := sum(val.shape[-1] for val in self._data.values()):
+            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._data))), 5))
             if len(names) < num_kwval_params:
                 names.append("...")
             descriptions.append(f"parameters=[{', '.join(names)}]")
         return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
 
     @property
-    def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
+    def data(self) -> dict[tuple[str, ...], np.ndarray]:
         """The keyword values of this array."""
-        return self._kwvals
+        return self._data
 
     @property
     def num_parameters(self) -> int:
         """The total number of parameters."""
-        return sum(val.shape[-1] for val in self._kwvals.values())
+        return sum(val.shape[-1] for val in self._data.values())
 
     def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
         """Return a new circuit bound to the values at the provided index.
@@ -152,7 +152,7 @@ class BindingsArray(ShapedMixin):
 
         parameters = {
             param: val
-            for params, vals in self._kwvals.items()
+            for params, vals in self._data.items()
             for param, val in zip(params, vals[loc])
         }
         return circuit.assign_parameters(parameters)
@@ -206,8 +206,8 @@ class BindingsArray(ShapedMixin):
         if np.prod(shape, dtype=int) != self.size:
             raise ValueError("Reshaping cannot change the total number of elements.")
 
-        kwvals = {ps: val.reshape(shape + val.shape[-1:]) for ps, val in self._kwvals.items()}
-        return BindingsArray(kwvals, shape=shape)
+        data = {ps: val.reshape(shape + val.shape[-1:]) for ps, val in self._data.items()}
+        return BindingsArray(data, shape=shape)
 
     @classmethod
     def coerce(cls, bindings_array: BindingsArrayLike) -> BindingsArray:
@@ -222,7 +222,7 @@ class BindingsArray(ShapedMixin):
         if bindings_array is None:
             bindings_array = cls()
         elif isinstance(bindings_array, Mapping):
-            bindings_array = cls(kwvals=bindings_array)
+            bindings_array = cls(data=bindings_array)
         elif isinstance(bindings_array, BindingsArray):
             return bindings_array
         else:
@@ -231,8 +231,8 @@ class BindingsArray(ShapedMixin):
 
     def validate(self):
         """Validate the consistency in bindings_array."""
-        for parameters, val in self._kwvals.items():
-            val = self._kwvals[parameters] = _standardize_shape(val, self._shape)
+        for parameters, val in self._data.items():
+            val = self._data[parameters] = _standardize_shape(val, self._shape)
             if len(parameters) != val.shape[-1]:
                 raise ValueError(
                     f"Length of {parameters} inconsistent with last dimension of {val}"
@@ -260,11 +260,11 @@ def _standardize_shape(val: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
     return val
 
 
-def _infer_shape(kwvals: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ...]:
+def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ...]:
     """Return a shape tuple that consistently defines the leading dimensions of all arrays.
 
     Args:
-        kwvals: A mapping from tuples to arrays, where the length of each tuple should match the
+        data: A mapping from tuples to arrays, where the length of each tuple should match the
             last dimension of the corresponding array.
 
     Returns:
@@ -282,7 +282,7 @@ def _infer_shape(kwvals: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, 
         else:
             only_possible_shapes.intersection_update(possible_shapes)
 
-    for parameters, val in kwvals.items():
+    for parameters, val in data.items():
         if len(parameters) > 1:
             # the last dimension _has_  to be over parameters
             examine_array(val.shape[:-1])
