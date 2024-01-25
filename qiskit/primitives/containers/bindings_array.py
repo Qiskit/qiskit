@@ -270,6 +270,8 @@ class BindingsArray(ShapedMixin):
             bindings_array = cls(bindings_array)
         elif isinstance(bindings_array, Mapping):
             bindings_array = cls(kwvals=bindings_array)
+        elif isinstance(bindings_array, BindingsArray):
+            return bindings_array
         else:
             raise TypeError(f"Unsupported type {type(bindings_array)} is given.")
         return bindings_array
