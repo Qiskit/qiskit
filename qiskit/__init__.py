@@ -59,9 +59,6 @@ from qiskit import user_config as _user_config
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 
-# Please note these are global instances, not modules.
-from qiskit.providers.basic_provider import BasicProvider
-
 _config = _user_config.get_config()
 
 from qiskit.compiler import transpile, assemble, schedule, sequence
@@ -70,7 +67,6 @@ from .version import __version__
 
 __all__ = [
     "AncillaRegister",
-    "BasicProvider",
     "ClassicalRegister",
     "MissingOptionalLibraryError",
     "QiskitError",

@@ -76,8 +76,9 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
 
         .. code-block::
 
-            from qiskit import QuantumCircuit, execute, BasicProvider
+            from qiskit import QuantumCircuit
             from qiskit.quantum_info.analysis import hellinger_fidelity
+            from qiskit.providers.basic_provider import BasicSimulator
 
             qc = QuantumCircuit(5, 5)
             qc.h(2)
@@ -87,7 +88,7 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
             qc.cx(1, 0)
             qc.measure(range(5), range(5))
 
-            sim = BasicProvider.get_backend('basic_simulator')
+            sim = BasicSimulator()
             res1 = sim.run(qc).result()
             res2 = sim.run(qc).result()
 

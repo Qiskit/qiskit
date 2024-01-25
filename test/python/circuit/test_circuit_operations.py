@@ -16,8 +16,7 @@
 import numpy as np
 from ddt import data, ddt
 
-from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import BasicProvider, ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
@@ -29,6 +28,7 @@ from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -188,7 +188,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1.compose(qc2)
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
@@ -210,7 +210,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1 & qc2
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
@@ -232,7 +232,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc1 &= qc2
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
@@ -282,7 +282,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1.tensor(qc2)
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
@@ -303,7 +303,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1 ^ qc2
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
@@ -324,7 +324,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc1 ^= qc2
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         shots = 1024
         result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
