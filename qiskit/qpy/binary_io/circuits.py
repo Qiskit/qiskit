@@ -1081,7 +1081,7 @@ def _write_layout(file_obj, circuit):
                     bit_location = circuit.find_bit(qubit)
                     circuit_index, qreg_locations = bit_location
                     for qreg_location in qreg_locations:
-                        initial_layout_array.append((circuit_index, qreg_location.registers[0]))
+                        initial_layout_array.append((circuit_index, qreg_location[0]))
             else:
                 initial_layout_array.append((None, None))
 
