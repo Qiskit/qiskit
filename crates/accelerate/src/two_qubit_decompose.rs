@@ -49,7 +49,6 @@ fn transform_from_magic_basis(unitary: Mat<c64>) -> Mat<c64> {
     _b_nonnormalized_dagger * unitary * _b_nonnormalized
 }
 
-
 // faer::c64 and num_complex::Complex<f64> are both structs
 // holding two f64's. But several functions are not defined for
 // c64. So we implement them here. These things should be contribute
@@ -95,7 +94,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
         .map(|x| utils::modulo(*x, pi2))
         .map(|x| x.min(pi2 - x))
         .collect();
-    let mut order = utils::argsort(&cstemp);
+    let mut order = utils::arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
@@ -154,16 +153,13 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
     ];
-    let mut imax: usize = 0;
-    let mut max_fid = 0.0;
-    for (i, trace) in traces.into_iter().enumerate() {
-        let fid = trace_to_fid(trace) * basis_fidelity.powi(i as i32);
-        if fid > max_fid {
-            max_fid = fid;
-            imax = i
-        }
-    }
-    imax
+    traces
+        .into_iter()
+        .enumerate()
+        .map(|(idx, trace)| (idx, trace_to_fid(&trace) * basis_fidelity.powi(idx as i32)))
+        .min_by(|(_idx1, fid1), (_idx2, fid2)| fid2.partial_cmp(fid1).unwrap())
+        .unwrap()
+        .0
 }
 
 // The interface for abs2 is in flux. So use this for now.
@@ -173,8 +169,8 @@ fn myabs2(z: c64) -> f64 {
 
 /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
 /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
-fn trace_to_fid(trace: c64) -> f64 {
-    (4.0 + myabs2(trace)) / 20.0
+fn trace_to_fid(trace: &c64) -> f64 {
+    (4.0 + myabs2(*trace)) / 20.0
 }
 
 #[pymodule]
