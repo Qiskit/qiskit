@@ -51,9 +51,7 @@ class BasicProvider(ProviderV1):
         # and deprecated names.
         if name:
             try:
-                resolved_name = resolve_backend_name(
-                    name, backends, self._deprecated_backend_names(), {}
-                )
+                resolved_name = resolve_backend_name(name, backends, {}, {})
                 name = resolved_name
             except LookupError as ex:
                 raise QiskitBackendNotFoundError(
@@ -71,9 +69,7 @@ class BasicProvider(ProviderV1):
         # and deprecated names.
         if name:
             try:
-                resolved_name = resolve_backend_name(
-                    name, backends, self._deprecated_backend_names(), {}
-                )
+                resolved_name = resolve_backend_name(name, backends, {}, {})
                 new_backends = []
                 for backend in backends:
                     if backend.version == 1 and backend.name() == resolved_name:
