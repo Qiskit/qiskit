@@ -193,7 +193,7 @@ class QiskitTestCase(BaseQiskitTestCase):
 
         from qiskit.providers.basic_provider import BasicProvider
 
-        BasicProvider._backends = BasicProvider._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):

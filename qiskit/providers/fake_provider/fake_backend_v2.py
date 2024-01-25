@@ -181,7 +181,7 @@ class FakeBackend5QV2(BackendV2):
 
 
 class FakeBackendSimple(BackendV2):
-    """A fake simple backend that wraps BasicProvider to implement run()."""
+    """A fake simple backend that wraps BasicSimulator to implement run()."""
 
     def __init__(self):
         super().__init__(

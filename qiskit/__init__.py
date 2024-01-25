@@ -77,9 +77,6 @@ import qiskit.circuit.reset
 # Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-# Please note these are global instances, not modules.
-from qiskit.providers.basic_provider import BasicProvider
-
 _config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues
@@ -189,7 +186,6 @@ IBMQ = IBMQWrapper()
 __all__ = [
     "Aer",
     "AncillaRegister",
-    "BasicProvider",
     "ClassicalRegister",
     "IBMQ",
     "MissingOptionalLibraryError",
@@ -216,8 +212,8 @@ def __getattr__(name):
         module_name = _DEPRECATED_NAMES[name]
         warnings.warn(
             f"{name} is deprecated since Qiskit 0.46 and will be removed in Qiskit 1.0. "
-            f"The BasicAer module has been superseded by BasicProvider "
-            f"(`from qiskit import BasicProvider`), and all its classes have been renamed "
+            f"The BasicAer (qiskit.providers.basicaer) module has been superseded by  "
+            f"qiskit.providers.basic_provider, and all its classes have been renamed "
             f"to follow a new naming convention. More information and migration guidelines "
             f"can be found in the 0.46 API docs for BasicAer.",
             DeprecationWarning,

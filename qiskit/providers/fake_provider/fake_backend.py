@@ -303,12 +303,12 @@ class FakeBackendV2(BackendV2):
 
         This method runs circuit jobs (an individual or a list of QuantumCircuit
         ) and pulse jobs (an individual or a list of Schedule or ScheduleBlock)
-        using BasicProvider or Aer simulator and returns a
+        using a :class:`.BasicSimulator` or Aer simulator and returns a
         :class:`~qiskit.providers.Job` object.
 
         If qiskit-aer is installed, jobs will be run using AerSimulator with
         noise model of the fake backend. Otherwise, jobs will be run using
-        BasicProvider simulator without noise.
+        :class:`.BasicSimulator` without noise.
 
         Currently noisy simulation of a pulse job is not supported yet in
         FakeBackendV2.

@@ -12,8 +12,9 @@
 
 """Test executing multiple-register circuits on BasicProvider."""
 
-from qiskit import BasicProvider, transpile
+from qiskit import transpile
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.providers.basic_provider import BasicProvider
 from qiskit.test import QiskitTestCase
 
 
@@ -36,7 +37,7 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ.compose(meas)
 
-        backend_sim = BasicProvider.get_backend("basic_simulator")
+        backend_sim = BasicProvider().get_backend("basic_simulator")
 
         result = backend_sim.run(transpile(qc, seed_transpiler=34342)).result()
         counts = result.get_counts(qc)

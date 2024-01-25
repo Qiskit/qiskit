@@ -14,11 +14,10 @@
 
 import unittest
 
-from qiskit import BasicProvider
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.result import Result
-from qiskit.providers.basic_provider import BasicProviderError
+from qiskit.providers.basic_provider import BasicProviderError, BasicSimulator
 from qiskit.test import QiskitTestCase
 
 
@@ -32,7 +31,7 @@ class TestBasicProviderIntegration(QiskitTestCase):
         self._qc1 = QuantumCircuit(qr, cr, name="qc1")
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
-        self.backend = BasicProvider.get_backend("basic_simulator")
+        self.backend = BasicSimulator()
         self._result1 = self.backend.run(transpile(self._qc1)).result()
 
     def test_builtin_simulator_result_fields(self):

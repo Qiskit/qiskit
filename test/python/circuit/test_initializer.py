@@ -23,10 +23,10 @@ from qiskit import (
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
-    BasicProvider,
     transpile,
     assemble,
 )
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
@@ -268,7 +268,7 @@ class TestInitialize(QiskitTestCase):
         # statevector simulator does not support reset
         shots = 2000
         threshold = 0.005 * shots
-        backend = BasicProvider.get_backend("basic_simulator")
+        backend = BasicSimulator()
         job = backend.run(transpile(qc, backend), shots=shots, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
