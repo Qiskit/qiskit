@@ -313,4 +313,8 @@ def _param_name(param: Parameter | str) -> str:
     return param.name if isinstance(param, Parameter) else param
 
 
-BindingsArrayLike = Union[BindingsArray, Mapping[Union[Parameter, str], ArrayLike], None]
+BindingsArrayLike = Union[
+    BindingsArray,
+    "Mapping[Union[Parameter, str, Iterable[Union[Parameter, str]]], ArrayLike]",
+    None,
+]
