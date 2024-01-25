@@ -47,6 +47,7 @@ class QpyCircuitTestCase(QiskitTestCase):
         if first_layout is None and second_layout is None:
             self.assertTrue(first_layout == second_layout)
         else:
+            self.assertEqual(first_layout._p2v.keys(), second_layout._p2v.keys())
             for k in first_layout._p2v:
                 self.assertEqual(
                     first_qc.find_bit(first_layout._p2v[k]),
