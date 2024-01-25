@@ -862,6 +862,7 @@ class TestTranspile(QiskitTestCase):
             [15, 2],
             [15, 14],
         ]
+
         with patch.object(BarrierBeforeFinalMeasurements, "run", wraps=orig_pass.run) as mock_pass:
             transpile(
                 circ,
@@ -2366,7 +2367,6 @@ class TestTranspileParallel(QiskitTestCase):
 
         # Create backend with empty calibrations (PulseQobjEntries)
         backend = GenericFakeBackend(
-            basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=4,
             calibrate_instructions=False,
         )

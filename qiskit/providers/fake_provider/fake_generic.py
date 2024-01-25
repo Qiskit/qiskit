@@ -42,6 +42,44 @@ from qiskit.providers.models import (
 from qiskit.qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.utils import optionals as _optionals
 
+# Noise default values/ranges for duration and error of supported
+# instructions. There are two possible formats:
+# - (min_duration, max_duration, min_error, max_error),
+#   if the defaults are ranges.
+# - (duration, error), if the defaults are fixed values.
+_NOISE_DEFAULTS = {
+    "cx": (1e-8, 9e-7, 1e-5, 5e-3),
+    "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
+    "cz": (1e-8, 9e-7, 1e-5, 5e-3),
+    "id": (3e-8, 4e-8, 9e-5, 1e-4),
+    "rz": (0.0, 0.0),
+    "sx": (1e-8, 9e-7, 1e-5, 5e-3),
+    "x": (1e-8, 9e-7, 1e-5, 5e-3),
+    "measure": (1e-8, 9e-7, 1e-5, 5e-3),
+    "delay": (None, None),
+    "reset": (None, None),
+}
+
+# Ranges to sample qubit properties from.
+_QUBIT_PROPERTIES = {
+    "dt": 0.222e-9,
+    "t1": (100e-6, 200e-6),
+    "t2": (100e-6, 200e-6),
+    "frequency": (5e9, 5.5e9),
+}
+
+# The number of samples determines the pulse durations of the corresponding
+# instructions. This default defines pulses with durations in multiples of
+# 16 for consistency with the pulse granularity of real IBM devices, but
+# keeps the number smaller than what would be realistic for
+# manageability. If needed, more realistic durations could be added in the
+# future (order of 160dt for 1q gates, 1760dt for 2q gates and measure).
+_PULSE_LIBRARY = [
+    PulseLibraryItem(name="pulse_1", samples=np.linspace(0, 1.0, 16, dtype=np.complex128)),  # 16dt
+    PulseLibraryItem(name="pulse_2", samples=np.linspace(0, 1.0, 32, dtype=np.complex128)),  # 32dt
+    PulseLibraryItem(name="pulse_3", samples=np.linspace(0, 1.0, 64, dtype=np.complex128)),  # 64dt
+]
+
 
 class GenericFakeBackend(BackendV2):
     """
@@ -129,7 +167,6 @@ class GenericFakeBackend(BackendV2):
         self._num_qubits = num_qubits
         self._control_flow = control_flow
         self._calibrate_instructions = calibrate_instructions
-        self._noise_defaults = None
         self._supported_gates = get_standard_gate_name_mapping()
 
         if coupling_map is None:
@@ -181,56 +218,27 @@ class GenericFakeBackend(BackendV2):
     def meas_map(self) -> list[list[int]]:
         return self._target.concurrent_measurements
 
-    @property
-    def noise_defaults(self) -> dict[str, tuple | None]:
-        """Noise default values/ranges for duration and error of supported
-         instructions. There are two possible formats:
-
-            #. (min_duration, max_duration, min_error, max_error),
-                if the defaults are ranges
-            #. (duration, error), if the defaults are fixed values
-
-        Returns:
-            Dictionary mapping instruction names to noise defaults
-        """
-
-        if self._noise_defaults is None:
-            # gates with known noise approximations
-            default_dict = {
-                "cx": (1e-8, 9e-7, 1e-5, 5e-3),
-                "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
-                "cz": (1e-8, 9e-7, 1e-5, 5e-3),
-                "id": (3e-8, 4e-8, 9e-5, 1e-4),
-                "rz": (0.0, 0.0),
-                "sx": (1e-8, 9e-7, 1e-5, 5e-3),
-                "x": (1e-8, 9e-7, 1e-5, 5e-3),
-                "measure": (1e-8, 9e-7, 1e-5, 5e-3),
-                "delay": (None, None),
-                "reset": (None, None),
-            }
-            # add values for rest of the gates (untested)
-            for gate in self._supported_gates:
-                if gate not in default_dict:
-                    default_dict[gate] = (1e-8, 9e-7, 1e-5, 5e-3)
-            self._noise_defaults = default_dict
-
-        return self._noise_defaults
+    def _get_noise_defaults(self, name: str) -> tuple:
+        return _NOISE_DEFAULTS.get(name, (1e-8, 9e-7, 1e-5, 5e-3))
 
     def _build_generic_target(self):
         """
         This method generates a :class:`~.Target` instance with
         default qubit, instruction and calibration properties.
         """
-        # the qubit properties are currently not configurable.
+        # the qubit properties are sampled from default ranges
+        properties = _QUBIT_PROPERTIES
         self._target = Target(
             description=f"Generic Target with {self._num_qubits} qubits",
             num_qubits=self._num_qubits,
-            dt=0.222e-9,
+            dt=properties["dt"],
             qubit_properties=[
                 QubitProperties(
-                    t1=self._rng.uniform(100e-6, 200e-6),
-                    t2=self._rng.uniform(100e-6, 200e-6),
-                    frequency=self._rng.uniform(5e9, 5.5e9),
+                    t1=self._rng.uniform(properties["t1"][0], properties["t1"][1]),
+                    t2=self._rng.uniform(properties["t2"][0], properties["t2"][1]),
+                    frequency=self._rng.uniform(
+                        properties["frequency"][0], properties["frequency"][1]
+                    ),
                 )
                 for _ in range(self._num_qubits)
             ],
@@ -246,7 +254,7 @@ class GenericFakeBackend(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
-            noise_params = self.noise_defaults[name]
+            noise_params = self._get_noise_defaults(name)
             self._add_noisy_instruction_to_target(gate, noise_params)
 
         if self._control_flow:
@@ -297,30 +305,43 @@ class GenericFakeBackend(BackendV2):
 
         self._target.add_instruction(instruction, props)
 
-    def _generate_calibration_defaults(self) -> PulseDefaults:
-        """Generate calibration defaults for instructions specified via ``calibrate_instructions``.
-        By default, this method generates empty calibration schedules.
-        """
+    def _get_calibration_sequence(
+        self, inst: str, num_qubits: int, qargs: tuple[int]
+    ) -> list[PulseQobjInstruction]:
+        """Return calibration sequence for given instruction (defined by name and num_qubits) acting on qargs."""
 
-        # The number of samples determines the pulse durations of the corresponding
-        # instructions. This class generates pulses with durations in multiples of
-        # 16 for consistency with the pulse granularity of real IBM devices, but
-        # keeps the number smaller than what would be realistic for
-        # manageability. If needed, more realistic durations could be added in the
-        # future (order of 160 dt for 1q gates, 1760 for 2q gates and measure).
-
-        samples_1 = np.linspace(0, 1.0, 16, dtype=np.complex128)  # 16dt
-        samples_2 = np.linspace(0, 1.0, 32, dtype=np.complex128)  # 32dt
-        samples_3 = np.linspace(0, 1.0, 64, dtype=np.complex128)  # 64dt
-
-        pulse_library = [
-            PulseLibraryItem(name="pulse_1", samples=samples_1),
-            PulseLibraryItem(name="pulse_2", samples=samples_2),
-            PulseLibraryItem(name="pulse_3", samples=samples_3),
+        pulse_library = _PULSE_LIBRARY
+        # Note that the calibration pulses are different for
+        # 1q gates vs 2q gates vs measurement instructions.
+        if inst == "measure":
+            sequence = [
+                PulseQobjInstruction(
+                    name="acquire",
+                    duration=1792,
+                    t0=0,
+                    qubits=list(range(num_qubits)),
+                    memory_slot=list(range(num_qubits)),
+                )
+            ] + [PulseQobjInstruction(name=pulse_library[1], ch=f"m{i}", t0=0) for i in qargs]
+            return sequence
+        if num_qubits == 1:
+            return [
+                PulseQobjInstruction(name="fc", ch=f"u{qargs}", t0=0, phase="-P0"),
+                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs}", t0=0),
+            ]
+        return [
+            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
+            PulseQobjInstruction(name=pulse_library[2].name, ch=f"u{qargs[0]}", t0=0),
+            PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[1]}", t0=0),
+            PulseQobjInstruction(name="fc", ch=f"d{qargs[1]}", t0=0, phase=2.1),
         ]
 
-        # Unless explicitly given a series of gates to calibrate, this method
-        # will generate empty pulse schedules for all gates in self._basis_gates.
+    def _generate_calibration_defaults(self) -> PulseDefaults:
+        """Generate pulse calibration defaults if specified via ``calibrate_instructions``."""
+
+        # If self._calibrate_instructions==True, this method
+        # will generate default pulse schedules for all gates in self._basis_gates,
+        # except for `delay` and `reset`.
         calibration_buffer = self._basis_gates.copy()
         for inst in ["delay", "reset"]:
             calibration_buffer.remove(inst)
@@ -333,47 +354,29 @@ class GenericFakeBackend(BackendV2):
             num_qubits = self._supported_gates[inst].num_qubits
             qarg_set = self._coupling_map if num_qubits > 1 else list(range(self.num_qubits))
             if inst == "measure":
-                sequence = []
-                qubits = qarg_set
-                if self._calibrate_instructions:
-                    sequence = [
-                        PulseQobjInstruction(
-                            name="acquire",
-                            duration=1792,
-                            t0=0,
-                            qubits=list(range(self.num_qubits)),
-                            memory_slot=list(range(self.num_qubits)),
-                        )
-                    ] + [PulseQobjInstruction(name="pulse_2", ch=f"m{i}", t0=0) for i in qarg_set]
                 cmd_def.append(
                     Command(
                         name=inst,
-                        qubits=qubits,
-                        sequence=sequence,
+                        qubits=qarg_set,
+                        sequence=(
+                            self._get_calibration_sequence(inst, num_qubits, qarg_set)
+                            if self._calibrate_instructions
+                            else []
+                        ),
                     )
                 )
             else:
                 for qarg in qarg_set:
-                    sequence = []
                     qubits = [qarg] if num_qubits == 1 else qarg
-                    if self._calibrate_instructions:
-                        if num_qubits == 1:
-                            sequence = [
-                                PulseQobjInstruction(name="fc", ch=f"u{qarg}", t0=0, phase="-P0"),
-                                PulseQobjInstruction(name="pulse_1", ch=f"d{qarg}", t0=0),
-                            ]
-                        else:
-                            sequence = [
-                                PulseQobjInstruction(name="pulse_2", ch=f"d{qarg[0]}", t0=0),
-                                PulseQobjInstruction(name="pulse_3", ch=f"u{qarg[0]}", t0=0),
-                                PulseQobjInstruction(name="pulse_2", ch=f"d{qarg[1]}", t0=0),
-                                PulseQobjInstruction(name="fc", ch=f"d{qarg[1]}", t0=0, phase=2.1),
-                            ]
                     cmd_def.append(
                         Command(
                             name=inst,
                             qubits=qubits,
-                            sequence=sequence,
+                            sequence=(
+                                self._get_calibration_sequence(inst, num_qubits, qubits)
+                                if self._calibrate_instructions
+                                else []
+                            ),
                         )
                     )
 
@@ -383,7 +386,7 @@ class GenericFakeBackend(BackendV2):
             qubit_freq_est=qubit_freq_est,
             meas_freq_est=meas_freq_est,
             buffer=0,
-            pulse_library=pulse_library,
+            pulse_library=_PULSE_LIBRARY,
             cmd_def=cmd_def,
         )
 
