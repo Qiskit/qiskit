@@ -25,24 +25,31 @@ upgrade:
     The ``qiskit.providers.basicaer`` module and all of its classes have been
     removed following their deprecation on the 0.46 release. They have been
     replaced by the :mod:`qiskit.quantum_info` module and the new
-    :mod:`qiskit.providers.basic_provider` module. The migration from using
-    ``BasicAer`` to ``BasicProvider`` can be performed as follows::
+    :mod:`qiskit.providers.basic_provider` module.
 
-        Migrate from           |   Replace with
-        ---------------------------------------------------
-        basicaer               |  basic_provider
-        BasicAer               |  BasicProvider*
-        BasicAerProvider       |  BasicProvider*
-        BasicAerJob            |  BasicProviderJob
-        QasmSimulatorPy        |  BasicSimulator
-        UnitarySimulatorPy     |  use quantum_info.Operator
-        StatevectorSimulatorPy |  use quantum_info.Statevector
+    The migration from using ``qiskit.providers.basicaer`` to
+    :mod:`qiskit.providers.basic_provider` can be performed as follows::
 
-        * BasicAer maps to BasicProvider and
-          BasicAerProvider() maps to BasicProvider().
+        Migrate from                     |   Replace with
+        ------------------------------------------------------------------------------
+        :mod:`.basicaer`                 |  :mod:`.basic_provider`
+        :class:`.BasicAerProvider`       |  :class:`.BasicProvider`
+        :class:`.BasicAerJob`            |  :class:`.BasicProviderJob`
+        :class:`.QasmSimulatorPy`        |  :class:`.BasicSimulator`
+        :class:`.UnitarySimulatorPy`     |  use :class:`~.quantum_info.Operator`
+        :class:`.StatevectorSimulatorPy` |  use :class:`~.quantum_info.Statevector`
 
-    This example shows the migration path of the three simulators formerly present
-    in ``qiskit.providers.basicaer``::
+    A notable difference is that the new provider is no longer exposed through a global instance
+    (like ``BasicAer``), so it will not be valid to do ``from qiskit import BasicProvider``.
+    Instead, the provider class must be imported from its submodule and instantiated::
+
+        from qiskit.providers.basic_provider import BasicProvider
+        provider = BasicProvider()
+        backend = provider.get_backend("sim_name")
+
+    The following examples show the migration paths of the three simulators in ``BasicAer``.
+
+    1. Statevector simulator::
 
         from qiskit import QuantumCircuit
         qc = QuantumCircuit(3)
@@ -52,40 +59,53 @@ upgrade:
         qc.measure_all()
 
         # Former path
-        # --------
-        # 1. import BasicAer (provider)
         from qiskit import BasicAer
-
-        # 2. run with StatevectorSimulatorPy
         backend = BasicAer.get_backend("statevector_simulator")
         statevector = backend.run(qc).result().get_statevector()
 
-        # 3. run with UnitarySimulatorPy
+        # New path
+        qc.remove_final_measurements() # no measurements allowed
+        from qiskit.quantum_info import Statevector
+        statevector = Statevector(qc)
+
+    2. Unitary simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
         backend = BasicAer.get_backend("unitary_simulator")
         result = backend.run(qc).result()
 
-        # 4. run with QasmSimulatorPy
+        # New path
+        qc.remove_final_measurements() # no measurements allowed
+        from qiskit.quantum_info import Operator
+        result = Operator(qc).data
+
+    3. Qasm simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
         backend = BasicAer.get_backend("qasm_simulator")
         result = backend.run(qc).result()
 
         # New path
-        # --------
-        # 1. import BasicProvider
-        from qiskit import BasicProvider
-
-        # 2. run with quantum_info.Statevector
-        # Note: no measurements allowed
-        qc.remove_final_measurements()
-        from qiskit.quantum_info import Statevector
-        statevector = Statevector(qc)
-
-        # 3. run with quantum_info.Operator
-        # Note: no measurements allowed
-        from qiskit.quantum_info import Operator
-        result = Operator(qc).data
-
-        # 4. run with BasicSimulator
-        # Note: measurements required
-        qc.measure_all()
-        backend = BasicProvider.get_backend("basic_simulator")
+        from qiskit.providers.basic_provider import BasicProvider
+        backend = BasicProvider().get_backend("basic_simulator")
+        result = backend.run(qc).result()
+        # or, directly
+        from qiskit.providers.basic_provider import BasicSimulator
+        backend = BasicSimulator()
         result = backend.run(qc).result()
