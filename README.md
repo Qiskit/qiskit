@@ -28,7 +28,7 @@ pip install qiskit
 
 Pip will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-To install from source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
+To install from the source, follow the instructions in the [documentation](https://qiskit.org/documentation/contributing_to_qiskit.html#install-install-from-source-label).
 
 ## Create your first quantum program in Qiskit
 
@@ -71,7 +71,7 @@ Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `00
 To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
 
 ```python
-# 2. define the observable to be measured 
+# 2. Define the observable to be measured 
 from qiskit.quantum_info import SparsePauliOp
 operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 
@@ -110,7 +110,7 @@ some packages that provide implementations of a runtime primitive implementation
 
 * https://github.com/Qiskit/qiskit-ibm-runtime
 
-Qiskit also provides a lower-level abstract interface for describing quantum backends. This interface, located in
+Qiskit also provides a lower-level abstract interface for describing quantum backends. This interface, is located in
 ``qiskit.providers``, defines an abstract `BackendV2` class that providers can implement to represent their
 hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
 
@@ -124,7 +124,7 @@ hardware or simulators to Qiskit. The backend class includes a common interface 
 <!-- This is not an exhaustive list, and if you maintain a provider package please feel free to open a PR to add new providers -->
 
 You can refer to the documentation of these packages for further instructions
-on how to get access and use these systems.
+on how to get access to use these systems.
 
 ## Contribution Guidelines
 
@@ -157,13 +157,13 @@ release.
 
 Additionally, as part of each release detailed release notes are written to
 document in detail what has changed as part of a release. This includes any
-documentation on potential breaking changes on upgrade and new features.
+documentation on potential breaking changes on upgrades and new features.
 For example, you can find the release notes for the `0.9.0` release in the
 Qiskit documentation here:
 
 https://qiskit.org/documentation/release_notes.html#terra-0-9
 
-## Acknowledgements
+## Acknowledgments
 
 We acknowledge partial support for Qiskit development from the DOE Office of Science National Quantum Information Science Research Centers, Co-design Center for Quantum Advantage (C2QA) under contract number DE-SC0012704.
 
