@@ -32,11 +32,12 @@ def dagdependency_to_circuit(dagdependency):
         *dagdependency.cregs.values(),
         name=name,
     )
+
     circuit.metadata = dagdependency.metadata
 
     circuit.calibrations = dagdependency.calibrations
-
-    for node in dagdependency.topological_nodes():
-        circuit._append(CircuitInstruction(node.op.copy(), node.qargs, node.cargs))
+    depths = sorted(dagdependency.node_depths().items(), key=lambda x: x[1])
+    for node in depths:
+        circuit._append(CircuitInstruction(node[0].op.copy(), node[0].qargs, node[0].cargs))
 
     return circuit

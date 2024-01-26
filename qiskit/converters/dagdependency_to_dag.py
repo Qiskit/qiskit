@@ -37,10 +37,12 @@ def dagdependency_to_dag(dagdependency):
     for register in dagdependency.cregs.values():
         dagcircuit.add_creg(register)
 
-    for node in dagdependency.topological_nodes():
+    depths = sorted(dagdependency.node_depths().items(), key=lambda x: x[1])
+
+    for node in depths:
         # Get arguments for classical control (if any)
-        inst = node.op.copy()
-        dagcircuit.apply_operation_back(inst, node.qargs, node.cargs)
+        inst = node[0].op.copy()
+        dagcircuit.apply_operation_back(inst, node[0].qargs, node[0].cargs)
 
     # copy metadata
     dagcircuit.global_phase = dagdependency.global_phase

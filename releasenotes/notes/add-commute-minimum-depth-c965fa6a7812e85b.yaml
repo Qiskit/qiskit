@@ -1,0 +1,22 @@
+---
+prelude: >
+    Add CommuteMinimumDepth transpiler pass
+features:
+  - |
+    Updated :meth:`~.converters.dagdependency_to_circuit()` to return the circuit with
+    minimum depth. It traverses the DAG, sorts each node by it's
+    depth, and converts the DAG back into a circuit with optimal depth.
+
+  - |
+    Introduced a new transpiler pass CommuteMinimumDepth as proposed in `#7387 <https://github.com/Qiskit/qiskit/issues/7387>`, 
+    this optimizes the depth of circuits by commuting gates. It converts the 
+    circuit to a dagdependency and back. This can possiby improve performance 
+    of other TransformationPasses. This pass was added to the preset pass 
+    manager for optimization level 3 (I have no idea if I did this correctly 
+    so please feel free to advise).
+
+other:
+  - |
+    The :meth:`~.converters.dagdependency_to_circuit()` uses DFS, which is done
+    with python instead of rustworkx. This was done because the same edge may
+    need to be traversed multiple times, which I am not sure rustworkx supports.

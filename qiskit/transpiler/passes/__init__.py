@@ -88,6 +88,7 @@ Optimizations
    ResetAfterMeasureSimplification
    OptimizeCliffords
    NormalizeRXAngle
+   CommuteMinimumDepth
 
 Calibration
 =============
@@ -234,6 +235,7 @@ from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 from .optimization import NormalizeRXAngle
+from .optimization import CommuteMinimumDepth
 
 # circuit analysis
 from .analysis import ResourceEstimation

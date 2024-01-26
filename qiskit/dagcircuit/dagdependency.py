@@ -173,6 +173,30 @@ class DAGDependency:
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
 
+    def node_depths(self):
+        """Get the depth of each node in the dag.
+
+        Returns:
+            A dictionary of (DAGDepNode,int)
+        """
+        depths = {k.node_id: 0 for k in self.get_nodes()}
+
+        def dfs(nd, p):
+            # print((nd,p))
+            if depths[p] + 1 > depths[nd]:
+                depths[nd] = max(depths[nd], depths[p] + 1)
+                for c in self.direct_successors(nd):
+                    dfs(c, nd)
+
+        sources = [
+            nd.node_id
+            for nd in list(self.get_nodes())
+            if len(self.direct_predecessors(nd.node_id)) == 0
+        ]
+        for i in sources:
+            dfs(i, i)
+        return {self.get_node(nd): v for nd, v in zip(depths.keys(), depths.values())}
+
     def add_qubits(self, qubits):
         """Add individual qubit wires."""
         if any(not isinstance(qubit, Qubit) for qubit in qubits):
