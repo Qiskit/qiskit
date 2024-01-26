@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import copy
 from itertools import zip_longest
+import math
 from typing import List, Type
 
 import numpy
@@ -45,8 +46,7 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
-from qiskit.utils.deprecation import deprecate_func
-from .tools import pi_check
+
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -516,30 +516,6 @@ class Instruction(Operation):
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
-    @deprecate_func(
-        additional_msg=(
-            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
-            "safely be done on an object-by-object basis without context. No replacement will be "
-            "provided, because the premise is wrong."
-        ),
-        since="0.25.0",
-        package_name="qiskit-terra",
-    )
-    def qasm(self):
-        """Return a default OpenQASM string for the instruction.
-
-        Derived instructions may override this to print in a
-        different format (e.g. ``measure q[0] -> c[0];``).
-        """
-        name_param = self.name
-        if self.params:
-            name_param = "{}({})".format(
-                name_param,
-                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
-            )
-
-        return self._qasmif(name_param)
-
     def broadcast_arguments(self, qargs, cargs):
         """
         Validation of the arguments.
@@ -653,3 +629,13 @@ class Instruction(Operation):
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
+
+    def _compare_parameters(self, other):
+        for x, y in zip(self.params, other.params):
+            try:
+                if not math.isclose(x, y, rel_tol=0, abs_tol=1e-10):
+                    return False
+            except TypeError:
+                if x != y:
+                    return False
+        return True

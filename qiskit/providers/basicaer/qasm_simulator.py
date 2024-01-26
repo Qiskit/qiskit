@@ -31,11 +31,9 @@ import time
 import logging
 import warnings
 
-from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
 from qiskit.providers.backend import BackendV1
@@ -53,12 +51,10 @@ logger = logging.getLogger(__name__)
 class QasmSimulatorPy(BackendV1):
     """Python implementation of an OpenQASM 2 simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
-
     DEFAULT_CONFIGURATION = {
         "backend_name": "qasm_simulator",
         "backend_version": "2.1.0",
-        "n_qubits": min(24, MAX_QUBITS_MEMORY),
+        "n_qubits": 24,
         "url": "https://github.com/Qiskit/qiskit-terra",
         "simulator": True,
         "local": True,

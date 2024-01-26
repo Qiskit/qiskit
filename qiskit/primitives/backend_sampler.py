@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Sampler implementation for an artibtrary Backend object."""
+"""Sampler implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
@@ -205,5 +205,5 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job

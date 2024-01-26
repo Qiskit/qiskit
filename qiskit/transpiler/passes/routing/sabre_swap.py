@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,

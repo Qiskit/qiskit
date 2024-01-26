@@ -130,6 +130,11 @@ class UGate(Gate):
             dtype=dtype,
         )
 
+    def __eq__(self, other):
+        if isinstance(other, UGate):
+            return self._compare_parameters(other)
+        return False
+
 
 class _CUGateParams(list):
     # This awful class is to let `CUGate.params` have its keys settable (as

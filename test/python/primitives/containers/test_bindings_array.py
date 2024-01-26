@@ -12,7 +12,7 @@
 
 """Test BindingsArray"""
 
-
+import ddt
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
@@ -20,6 +20,7 @@ from qiskit.primitives import BindingsArray
 from qiskit.test import QiskitTestCase
 
 
+@ddt.ddt
 class BindingsArrayTestCase(QiskitTestCase):
     """Test the BindingsArray class"""
 
@@ -62,6 +63,19 @@ class BindingsArrayTestCase(QiskitTestCase):
                 vals=np.empty((5, 10)),
                 kwvals={(Parameter("a"), Parameter("b")): np.empty((5, 10, 3))},
             )
+
+    def test_repr(self):
+        """Test that the repr doesn't fail"""
+        # we are primarily interested in making sure some future change doesn't cause the repr to
+        # raise an error. it is more sensible for humans to detect a deficiency in the formatting
+        # itself, should one be uncovered
+        self.assertTrue(repr(BindingsArray()).startswith("BindingsArray"))
+        self.assertTrue(repr(BindingsArray(np.empty((1, 2, 3)))).startswith("BindingsArray"))
+        self.assertTrue(
+            repr(
+                BindingsArray([1], {"p": 2, "q": 5, ("a", "b", "c", "d"): [1, 22, 4, 5]})
+            ).startswith("BindingsArray")
+        )
 
     def test_bind_at_idx(self):
         """Test binding at a specified index"""
@@ -154,9 +168,8 @@ class BindingsArrayTestCase(QiskitTestCase):
 
     def test_reshape(self):
         """Test reshape"""
-        vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
-
         with self.subTest("reshape"):
+            vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
             ba = BindingsArray(vals)
             reshape_ba = ba.reshape((3, 2))
             self.assertEqual(reshape_ba.num_parameters, 50)
@@ -167,17 +180,17 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape((3, 2, 50))
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 3, 2, 50)))
 
-            circuit = self.circuit
-            bound_circuits = reshape_ba.bind_all(circuit)
-            self.assertEqual(bound_circuits.shape, (3, 2))
-            self.assertEqual(bound_circuits[0, 0], circuit.assign_parameters(reshape_vals[0, 0]))
-            self.assertEqual(bound_circuits[0, 1], circuit.assign_parameters(reshape_vals[0, 1]))
-            self.assertEqual(bound_circuits[1, 0], circuit.assign_parameters(reshape_vals[1, 0]))
-            self.assertEqual(bound_circuits[1, 1], circuit.assign_parameters(reshape_vals[1, 1]))
-            self.assertEqual(bound_circuits[2, 0], circuit.assign_parameters(reshape_vals[2, 0]))
-            self.assertEqual(bound_circuits[2, 1], circuit.assign_parameters(reshape_vals[2, 1]))
+            bound_circuits = list(reshape_ba.bind_all(self.circuit).ravel())
+            self.assertEqual(len(bound_circuits), 6)
+            self.assertEqual(bound_circuits[0], self.circuit.assign_parameters(reshape_vals[0, 0]))
+            self.assertEqual(bound_circuits[1], self.circuit.assign_parameters(reshape_vals[0, 1]))
+            self.assertEqual(bound_circuits[2], self.circuit.assign_parameters(reshape_vals[1, 0]))
+            self.assertEqual(bound_circuits[3], self.circuit.assign_parameters(reshape_vals[1, 1]))
+            self.assertEqual(bound_circuits[4], self.circuit.assign_parameters(reshape_vals[2, 0]))
+            self.assertEqual(bound_circuits[5], self.circuit.assign_parameters(reshape_vals[2, 1]))
 
         with self.subTest("flatten"):
+            vals = np.linspace(0, 1, 300).reshape((2, 3, 50))
             ba = BindingsArray(vals)
             reshape_ba = ba.reshape(6)
             self.assertEqual(reshape_ba.num_parameters, 50)
@@ -188,10 +201,37 @@ class BindingsArrayTestCase(QiskitTestCase):
             reshape_vals = vals.reshape(-1, 50)
             np.testing.assert_allclose(reshape_ba.vals, reshape_vals.reshape((1, 6, 50)))
 
-            bound_circuits = list(reshape_ba.bind_all(self.circuit))
+            bound_circuits = list(reshape_ba.bind_all(self.circuit).ravel())
             self.assertEqual(len(bound_circuits), 6)
             for i in range(6):
                 self.assertEqual(bound_circuits[i], self.circuit.assign_parameters(reshape_vals[i]))
+
+        with self.subTest("various_formats"):
+            ba = BindingsArray(
+                [np.empty((16, 7)), np.empty((16, 3))],
+                {Parameter("a"): np.empty(16), (Parameter("b"), Parameter("c")): np.empty((16, 2))},
+            )
+
+            def various_formats(shape):
+                # call reshape with a single argument
+                yield [shape]
+                yield [(-1,) + shape[1:]]
+                yield [np.array(shape)]
+                yield [list(shape)]
+                yield [list(map(np.int64, shape))]
+                yield [tuple(map(np.int64, shape))]
+
+                # call reshape with multiple arguments
+                yield shape
+                yield np.array(shape)
+                yield list(shape)
+                yield list(map(np.int64, shape))
+                yield tuple(map(np.int64, shape))
+
+            for shape in [(16,), (4, 4), (2, 4, 2), (2, 2, 2, 2), (1, 8, 1, 2)]:
+                for input_shape in various_formats(shape):
+                    reshaped_ba = ba.reshape(input_shape)
+                    self.assertEqual(reshaped_ba.shape, shape)
 
     def test_kwvals(self):
         """Test constructor with kwvals"""

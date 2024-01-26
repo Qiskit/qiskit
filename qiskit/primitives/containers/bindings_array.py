@@ -16,7 +16,7 @@ Bindings array class
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from itertools import chain
+from itertools import chain, islice
 from typing import Union
 
 import numpy as np
@@ -110,10 +110,10 @@ class BindingsArray(ShapedMixin):
             kwvals = {}
 
         vals = [vals] if isinstance(vals, np.ndarray) else [np.array(v, copy=False) for v in vals]
-        # TODO str will be used for internal data (_kwvals) instead of Parameter.
-        # This requires https://github.com/Qiskit/qiskit/issues/7107
         kwvals = {
-            (p,) if isinstance(p, Parameter) else tuple(p): np.array(val, copy=False)
+            _format_key((p,))
+            if isinstance(p, Parameter)
+            else _format_key(p): np.array(val, copy=False)
             for p, val in kwvals.items()
         }
 
@@ -145,10 +145,19 @@ class BindingsArray(ShapedMixin):
             shape = ()
         return BindingsArray(vals, kwvals, shape)
 
+    def __repr__(self):
+        descriptions = [f"shape={self.shape}", f"num_parameters={self.num_parameters}"]
+        if num_kwval_params := sum(val.shape[-1] for val in self._kwvals.values()):
+            names = list(islice(map(repr, chain.from_iterable(map(_format_key, self._kwvals))), 5))
+            if len(names) < num_kwval_params:
+                names.append("...")
+            descriptions.append(f"parameters=[{', '.join(names)}]")
+        return f"{type(self).__name__}(<{', '.join(descriptions)}>)"
+
     @property
     def kwvals(self) -> dict[tuple[str, ...], np.ndarray]:
         """The keyword values of this array."""
-        return {_format_key(k): v for k, v in self._kwvals.items()}
+        return self._kwvals
 
     @property
     def num_parameters(self) -> int:
@@ -215,7 +224,7 @@ class BindingsArray(ShapedMixin):
         """
         return self.reshape(self.size)
 
-    def reshape(self, shape: int | Iterable[int]) -> BindingsArray:
+    def reshape(self, *shape: int | Iterable[int]) -> BindingsArray:
         """Return a new :class:`~BindingsArray` with a different shape.
 
         This results in a new view of the same arrays.
@@ -229,12 +238,19 @@ class BindingsArray(ShapedMixin):
         Raises:
             ValueError: If the provided shape has a different product than the current size.
         """
-        shape = (shape, -1) if isinstance(shape, int) else (*shape, -1)
-        if np.prod(shape[:-1]).astype(int) != self.size:
+        shape = shape_tuple(shape)
+        if any(dim < 0 for dim in shape):
+            # to reliably catch the ValueError, we need to manually deal with negative values
+            positive_size = np.prod([dim for dim in shape if dim >= 0], dtype=int)
+            missing_dim = self.size // positive_size
+            shape = tuple(dim if dim >= 0 else missing_dim for dim in shape)
+
+        if np.prod(shape, dtype=int) != self.size:
             raise ValueError("Reshaping cannot change the total number of elements.")
-        vals = [val.reshape(shape) for val in self._vals]
-        kwvals = {params: val.reshape(shape) for params, val in self._kwvals.items()}
-        return BindingsArray(vals, kwvals, shape[:-1])
+
+        vals = [val.reshape(shape + val.shape[-1:]) for val in self._vals]
+        kwvals = {ps: val.reshape(shape + val.shape[-1:]) for ps, val in self._kwvals.items()}
+        return BindingsArray(vals, kwvals, shape=shape)
 
     @classmethod
     def coerce(cls, bindings_array: BindingsArrayLike) -> BindingsArray:
@@ -342,7 +358,11 @@ def _infer_shape(
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
-    return tuple(k.name if isinstance(k, Parameter) else k for k in key)
+    return tuple(map(_param_name, key))
+
+
+def _param_name(param: Parameter | str) -> str:
+    return param.name if isinstance(param, Parameter) else param
 
 
 BindingsArrayLike = Union[
