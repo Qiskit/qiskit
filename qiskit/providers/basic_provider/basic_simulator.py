@@ -61,8 +61,6 @@ logger = logging.getLogger(__name__)
 class BasicSimulator(BackendV2):
     """Python implementation of a basic (non-efficient) quantum simulator.
 
-    This implementation was originally based on the :class:`.BackendV1` interface,
-    and later migrated to follow :class:`.BackendV2`.
     """
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
