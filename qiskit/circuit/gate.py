@@ -77,23 +77,7 @@ class Gate(Instruction):
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-        from scipy.linalg import schur
-
-        # Should be diagonalized because it's a unitary.
-        decomposition, unitary = schur(Operator(self).data, output="complex")
-        # Raise the diagonal entries to the specified power
-        decomposition_power = []
-
-        decomposition_diagonal = decomposition.diagonal()
-        # assert off-diagonal are 0
-        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
-            raise CircuitError("The matrix is not diagonal")
-
-        for element in decomposition_diagonal:
-            decomposition_power.append(pow(element, exponent))
-        # Then reconstruct the resulting gate.
-        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
+        return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
 
     def __pow__(self, exponent: float) -> "Gate":
         return self.power(exponent)
