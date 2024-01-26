@@ -25,4 +25,5 @@ from .measures import (
     mutual_information,
     entanglement_of_formation,
     negativity,
+    mwb_measure,
 )

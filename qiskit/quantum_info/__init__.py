@@ -154,6 +154,7 @@ from .states import (
     shannon_entropy,
     state_fidelity,
     negativity,
+    mwb_measure,
 )
 from .quaternion import Quaternion
 
