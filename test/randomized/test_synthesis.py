@@ -12,7 +12,7 @@
 
 """Randomized tests of quantum synthesis."""
 import unittest
-from test.python.quantum_info.test_synthesis import CheckDecompositions
+from test.python.synthesis.test_synthesis import CheckDecompositions
 from hypothesis import given, strategies, settings
 import numpy as np
 
@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     two_qubit_cnot_decompose,
     TwoQubitBasisDecomposer,
     Ud,
