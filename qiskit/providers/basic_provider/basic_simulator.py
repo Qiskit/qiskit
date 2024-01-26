@@ -59,11 +59,7 @@ logger = logging.getLogger(__name__)
 
 
 class BasicSimulator(BackendV2):
-    """Python implementation of a basic (non-efficient) quantum simulator.
-
-    This implementation was originally based on the :class:`.BackendV1` interface,
-    and later migrated to follow :class:`.BackendV2`.
-    """
+    """Python implementation of a basic (non-efficient) quantum simulator."""
 
     # Formerly calculated as `int(log2(local_hardware_info()["memory"]*(1024**3)/16))`.
     # After the removal of `local_hardware_info()`, it's hardcoded to 24 qubits,
@@ -102,7 +98,7 @@ class BasicSimulator(BackendV2):
         self._configuration = None
 
         # Internal simulator variables
-        self._local_random = np.random.RandomState()
+        self._local_random = None
         self._classical_memory = 0
         self._classical_register = 0
         self._statevector = 0
@@ -262,7 +258,7 @@ class BasicSimulator(BackendV2):
         axis.remove(self._number_of_qubits - 1 - qubit)
         probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
         # Compute einsum index string for 1-qubit matrix multiplication
-        random_number = self._local_random.rand()
+        random_number = self._local_random.random()
         if random_number < probabilities[0]:
             return "0", probabilities[0]
         # Else outcome was '1'
@@ -583,7 +579,7 @@ class BasicSimulator(BackendV2):
             # and set the maximum value to be (2 ** 31) - 1
             seed_simulator = np.random.randint(2147483647, dtype="int32")
 
-        self._local_random.seed(seed=seed_simulator)
+        self._local_random = np.random.default_rng(seed=seed_simulator)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 

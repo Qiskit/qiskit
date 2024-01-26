@@ -256,7 +256,7 @@ class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
         #                                                         0
         self.log.info("test_teleport")
         pi = np.pi
-        shots = 2000
+        shots = 4000
         qr = QuantumRegister(3, "qr")
         cr0 = ClassicalRegister(1, "cr0")
         cr1 = ClassicalRegister(1, "cr1")
