@@ -431,3 +431,20 @@ class BindingsArrayTestCase(QiskitTestCase):
             self.assertEqual(ba.shape, (1,))
             self.assertEqual(len(ba.vals), 1)
             np.testing.assert_allclose(ba.vals[0], [[1, 2, 3]])
+
+    def test_coerce(self):
+        """Test the coerce() method."""
+        # BindingsArray passthrough
+        arg = BindingsArray({"a": np.linspace(0, 1, 5)})
+        ba = BindingsArray.coerce(arg)
+        self.assertEqual(ba, arg)
+
+        # dict-valued input
+        arg = {"a": np.linspace(0, 1, 5)}
+        ba = BindingsArray.coerce(arg)
+        self.assertEqual(ba.num_parameters, 1)
+
+        # None-valued input
+        arg = None
+        ba = BindingsArray.coerce(None)
+        self.assertEqual(ba.num_parameters, 0)
