@@ -109,6 +109,13 @@ class TestSetLayout(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             pass_manager.run(circuit)
 
+    def test_raise_if_int_list_layout_contains_duplicates(self):
+        """Test the error is raised if the specified intlist contains duplicates"""
+        circuit = QuantumCircuit(4)
+        layout_pass = SetLayout([0, 1, 1, 2])
+        with self.assertRaises(TranspilerError):
+            layout_pass(circuit)
+
 
 if __name__ == "__main__":
     unittest.main()
