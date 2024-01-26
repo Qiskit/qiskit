@@ -3235,6 +3235,19 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             transpile(qc, target=target, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
+    def test_barrier_no_leak_disjoint_connectivity(self, opt_level):
+        """Test that we don't leak an internal labelled barrier from disjoint layout processing."""
+        cmap = CouplingMap([(0, 1), (1, 2), (3, 4)])
+        qc = QuantumCircuit(cmap.size(), cmap.size())
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        qc.cx(3, 4)
+        qc.measure(qc.qubits, qc.clbits)
+        out = transpile(qc, coupling_map=cmap, optimization_level=opt_level)
+        self.assertNotIn("barrier", out.count_ops())
+
+    @data(0, 1, 2, 3)
     def test_transpile_does_not_affect_backend_coupling(self, opt_level):
         """Test that transpiliation of a circuit does not mutate the `CouplingMap` stored by a V2
         backend.  Regression test of gh-9997."""
