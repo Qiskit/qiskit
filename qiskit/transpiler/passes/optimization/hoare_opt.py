@@ -212,7 +212,7 @@ class HoareOptimizer(TransformationPass):
             remove_ctrl, new_dag, qb_idx = self._remove_control(gate, ctrlvar, trgtvar)
 
             if remove_ctrl:
-                dag.substitute_node_with_dag(node, new_dag)
+                replacement_nodes = dag.substitute_node_with_dag(node, new_dag)
                 gate = gate.base_gate
                 node.op = gate.to_mutable()
                 node.name = gate.name
@@ -220,6 +220,7 @@ class HoareOptimizer(TransformationPass):
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)
+                node = list(replacement_nodes.values())[0]
 
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
