@@ -19,7 +19,7 @@ from qiskit.circuit import Gate, Delay, Reset
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError

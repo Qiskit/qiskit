@@ -27,7 +27,7 @@ from qiskit.providers.fake_provider import FakeParis
 
 import qiskit.quantum_info as qi
 
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
 )
 

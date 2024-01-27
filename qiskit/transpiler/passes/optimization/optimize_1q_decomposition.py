@@ -17,7 +17,7 @@ import math
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
 from qiskit.circuit.library.standard_gates import (
     UGate,
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 # When expanding the list of supported gates this needs to updated in
 # lockstep with the VALID_BASES constant in src/euler_one_qubit_decomposer.rs
-# and the global variables in qiskit/quantum_info/synthesis/one_qubit_decompose.py
+# and the global variables in one_qubit_decompose.py
 NAME_MAP = {
     "u": UGate,
     "u1": U1Gate,
@@ -175,10 +175,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
+        new_error = 0.0
+        old_error = 0.0
+        if not uncalibrated_and_not_basis_p:
+            new_error = self._error(new_circ, qubit)
+            old_error = self._error(old_run, qubit)
+
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and self._error(new_circ, qubit) < self._error(old_run, qubit))
-            or math.isclose(self._error(new_circ, qubit)[0], 0)
+            or (uncalibrated_p and new_error < old_error)
+            or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
     @control_flow.trivial_recurse

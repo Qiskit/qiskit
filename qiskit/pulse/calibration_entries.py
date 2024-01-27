@@ -12,6 +12,7 @@
 
 """Internal format of calibration data in target."""
 import inspect
+import warnings
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 from typing import Callable, List, Union, Optional, Sequence, Any
@@ -20,6 +21,11 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
+from qiskit.exceptions import QiskitError
+
+
+IncompletePulseQobj = object()
+"""A None-like constant that represents the PulseQobj is incomplete."""
 
 
 class CalibrationPublisher(IntEnum):
@@ -314,11 +320,20 @@ class PulseQobjDef(ScheduleDef):
     def _build_schedule(self):
         """Build pulse schedule from cmd-def sequence."""
         schedule = Schedule(name=self._name)
-        for qobj_inst in self._source:
-            for qiskit_inst in self._converter._get_sequences(qobj_inst):
-                schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
-        self._definition = schedule
-        self._parse_argument()
+        try:
+            for qobj_inst in self._source:
+                for qiskit_inst in self._converter._get_sequences(qobj_inst):
+                    schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
+            self._definition = schedule
+            self._parse_argument()
+        except QiskitError as ex:
+            # When the play waveform data is missing in pulse_lib we cannot build schedule.
+            # Instead of raising an error, get_schedule should return None.
+            warnings.warn(
+                f"Pulse calibration cannot be built and the entry is ignored: {ex.message}.",
+                UserWarning,
+            )
+            self._definition = IncompletePulseQobj
 
     def define(
         self,
@@ -334,9 +349,11 @@ class PulseQobjDef(ScheduleDef):
             self._build_schedule()
         return super().get_signature()
 
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
+    def get_schedule(self, *args, **kwargs) -> Optional[Union[Schedule, ScheduleBlock]]:
         if self._definition is None:
             self._build_schedule()
+        if self._definition is IncompletePulseQobj:
+            return None
         return super().get_schedule(*args, **kwargs)
 
     def __eq__(self, other):
@@ -354,4 +371,6 @@ class PulseQobjDef(ScheduleDef):
         if self._definition is None:
             # Avoid parsing schedule for pretty print.
             return "PulseQobj"
+        if self._definition is IncompletePulseQobj:
+            return "None"
         return super().__str__()

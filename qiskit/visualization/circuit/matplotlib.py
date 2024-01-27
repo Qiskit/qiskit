@@ -777,6 +777,12 @@ class MatplotlibDrawer:
                 l_width.append(layer_widths[node][0])
                 node_data[node].x_index = x_index
 
+                # Special case of default case with no ops in it, need to push end
+                # of switch op one extra x_index
+                if isinstance(node.op, SwitchCaseOp):
+                    if len(node.op.blocks[-1]) == 0:
+                        curr_x_index += 1
+
             # adjust the column if there have been barriers encountered, but not plotted
             barrier_offset = 0
             if not self._plot_barriers:
@@ -784,7 +790,8 @@ class MatplotlibDrawer:
                 barrier_offset = (
                     -1 if all(getattr(nd.op, "_directive", False) for nd in layer) else 0
                 )
-            prev_x_index = curr_x_index + max(l_width) + barrier_offset - 1
+            max_lwidth = max(l_width) if l_width else 0
+            prev_x_index = curr_x_index + max_lwidth + barrier_offset - 1
 
         return prev_x_index + 1
 
@@ -1503,7 +1510,6 @@ class MatplotlibDrawer:
 
         if_width = node_data[node].width[0] + WID
         box_width = if_width
-
         # Add the else and case widths to the if_width
         for ewidth in node_data[node].width[1:]:
             if ewidth > 0.0:
@@ -1530,19 +1536,6 @@ class MatplotlibDrawer:
             y_shift = fold_level * (glob_data["n_lines"] + 1)
             end_x = xpos + box_width - x_shift
 
-            # FancyBbox allows rounded corners
-            box = glob_data["patches_mod"].FancyBboxPatch(
-                xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
-                width=box_width,
-                height=height,
-                boxstyle="round, pad=0.1",
-                fc="none",
-                ec=colors[node_data[node].nest_depth % 4],
-                linewidth=self._lwidth3,
-                zorder=PORDER_FLOW,
-            )
-            self._ax.add_patch(box)
-
             if isinstance(node.op, IfElseOp):
                 flow_text = "  If"
             elif isinstance(node.op, WhileLoopOp):
@@ -1552,12 +1545,32 @@ class MatplotlibDrawer:
             elif isinstance(node.op, SwitchCaseOp):
                 flow_text = "Switch"
 
+            # Some spacers. op_spacer moves 'Switch' back a bit for alignment,
+            # expr_spacer moves the expr over to line up with 'Switch' and
+            # empty_default_spacer makes the switch box longer if the default
+            # case is empty so text doesn't run past end of box.
             if isinstance(node.op, SwitchCaseOp):
                 op_spacer = 0.04
                 expr_spacer = 0.0
+                empty_default_spacer = 0.3 if len(node.op.blocks[-1]) == 0 else 0.0
             else:
                 op_spacer = 0.08
                 expr_spacer = 0.02
+                empty_default_spacer = 0.0
+
+            # FancyBbox allows rounded corners
+            box = glob_data["patches_mod"].FancyBboxPatch(
+                xy=(xpos - x_shift, ypos - 0.5 * HIG - y_shift),
+                width=box_width + empty_default_spacer,
+                height=height,
+                boxstyle="round, pad=0.1",
+                fc="none",
+                ec=colors[node_data[node].nest_depth % 4],
+                linewidth=self._lwidth3,
+                zorder=PORDER_FLOW,
+            )
+            self._ax.add_patch(box)
+
             # Indicate type of ControlFlowOp and if expression used, print below
             self._ax.text(
                 xpos - x_shift - op_spacer,
