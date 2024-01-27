@@ -120,9 +120,9 @@ class GenericFakeBackend(BackendV2):
                 for the fake backend. Multiple formats are supported:
 
                 #. :class:`~.CouplingMap` instance
-                #. List, must be given as an adjacency matrix, where each entry
-                   specifies all directed two-qubit interactions supported by the backend,
-                   e.g: ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
+                #. List, must be given as an edge list representing the two qubit interactions
+                   supported by the backend, for example:
+                   ``[[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]``
 
                 If ``coupling_map`` is specified, it must match the number of qubits
                 specified in ``num_qubits``. If ``coupling_map`` is not specified,
