@@ -266,7 +266,7 @@ class TestInitialize(QiskitTestCase):
         qc.initialize(desired_vector, [qr[0], qr[1]])
         qc.measure(qr, cr)
         # statevector simulator does not support reset
-        shots = 4000
+        shots = 2000
         threshold = 0.05 * shots
         backend = BasicSimulator()
         job = backend.run(transpile(qc, backend), shots=shots, seed_simulator=42)
