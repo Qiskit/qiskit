@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Set the ``layout`` property to the given layout."""
-from qiskit.transpiler import Layout, TranspilerError
+from qiskit.transpiler import Layout
+from qiskit.transpiler.exceptions import InvalidLayoutError
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
@@ -47,9 +48,13 @@ class SetLayout(AnalysisPass):
         """
         if isinstance(self.layout, list):
             if len(self.layout) != len(dag.qubits):
-                raise TranspilerError(
+                raise InvalidLayoutError(
                     "The length of the layout is different than the size of the "
                     f"circuit: {len(self.layout)} <> {len(dag.qubits)}"
+                )
+            if len(set(self.layout)) != len(self.layout):
+                raise InvalidLayoutError(
+                    f"The provided layout {self.layout} contains duplicate qubits"
                 )
             layout = Layout({phys: dag.qubits[i] for i, phys in enumerate(self.layout)})
         elif isinstance(self.layout, Layout):
@@ -57,7 +62,7 @@ class SetLayout(AnalysisPass):
         elif self.layout is None:
             layout = None
         else:
-            raise TranspilerError(
+            raise InvalidLayoutError(
                 f"SetLayout was intialized with the layout type: {type(self.layout)}"
             )
         self.property_set["layout"] = layout
