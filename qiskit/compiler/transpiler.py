@@ -67,6 +67,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     init_method: Optional[str] = None,
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
+    num_processes: Optional[int] = None,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -257,6 +258,11 @@ def transpile(  # pylint: disable=too-many-return-statements
             to support custom compilation target-specific passes/plugins which support
             backend-specific compilation techniques. If you'd prefer that these defaults were
             not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
+            environment variable. If set to ``None`` the system default or local user configuration
+            will be used.
 
     Returns:
         The transpiled circuit(s).
@@ -390,7 +396,7 @@ def transpile(  # pylint: disable=too-many-return-statements
                     optimization_method=optimization_method,
                     _skip_target=_skip_target,
                 )
-                out_circuits.append(pm.run(circuit, callback=callback))
+                out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
             for name, circ in zip(output_name, out_circuits):
                 circ.name = name
                 end_time = time()
