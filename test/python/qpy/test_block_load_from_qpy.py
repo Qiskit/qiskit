@@ -17,6 +17,7 @@ import unittest
 from ddt import ddt, data, unpack
 
 import numpy as np
+import symengine as sym
 
 from qiskit.pulse import builder, Schedule
 from qiskit.pulse.library import (
@@ -43,10 +44,6 @@ from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
 
 
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 class QpyScheduleTestCase(QiskitTestCase):
