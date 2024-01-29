@@ -14,6 +14,8 @@
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
 
+from abc import ABC, abstractmethod
+
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
 from . import DAGOpNode, DAGCircuit, DAGDependency
@@ -21,23 +23,110 @@ from .exceptions import DAGCircuitError
 
 
 
-class Block:
-    """This is the default block.
-    Should we make an abstract block and inherit both default and custom blocks from that?
+class Block(ABC):
     """
+    Abstract block interface.
+    """
+
+    @abstractmethod
+    def append_node(self, node):
+        """
+        Attempts to append the given node to the block.
+
+        More precisely, this should check if the given node can be appended to the current block.
+        If it can, then this should append the node (the actual details on doing this depend
+        on the application) and return ``True``.
+        If it cannot, then this should return ``False``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_nodes(self):
+        """
+        Returns the list of nodes used in the block.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def reverse(self):
+        """
+        Returns the block with nodes in the reversed order.
+        Maybe not every block can be reversed; should we also return ``None``?
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def size(self):
+        """
+        Returns the size of the block.
+
+        The size should measure how large the block is and does not necessarily need
+        to equal to the number of nodes in the block.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def split(self, split_blocks, split_layers):
+        """
+        Splits the block into sub-blocks. Returns a list of blocks.
+
+        The option ``split_blocks`` allows to split the block into sub-blocks over
+        disconnected qubit subsets.
+
+        The option ``split_layers`` allows to split the blocks into layers of
+        non-overlapping instructions (in other words, into depth-1 sub-blocks).
+        """
+        raise NotImplementedError
+
+
+
+
+
+class DefaultBlock(Block):
+    """Block class suitable for various simple collection strategies."""
 
     def __init__(self, nodes=None):
         self.nodes = [] if nodes is None else nodes
 
     def append_node(self, node):
+        """Attempts to append the given node to the block."""
         self.nodes.append(node)
         return True
 
     def get_nodes(self):
+        """Returns the list of nodes used in the block."""
         return self.nodes
 
     def reverse(self):
-        return Block(self.nodes[::-1])
+        """Returns the block with nodes in the reversed order."""
+        return DefaultBlock(self.nodes[::-1])
+
+    def size(self):
+        """Returns the size of the block."""
+        return len(self.nodes)
+
+    def split(self, split_blocks, split_layers) -> list:
+        """Splits the block into sub-blocks."""
+
+        output_blocks = [self]
+
+        if split_layers:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = split_block_into_layers(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        if split_blocks:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = BlockSplitter().run(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        return output_blocks
 
 
 
@@ -160,7 +249,7 @@ class BlockCollector:
     def collect_matching_block(
         self,
         filter_fn,
-        block_class=Block,
+        block_class=DefaultBlock,
         output_nodes=True
     ):
         """Iteratively collects the largest block of input nodes (that is, nodes with
@@ -204,7 +293,7 @@ class BlockCollector:
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
-        block_class=Block,
+        block_class=DefaultBlock,
         output_nodes=True,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
@@ -240,53 +329,34 @@ class BlockCollector:
             self.collect_matching_block(
                 filter_fn=not_filter_fn,
                 block_class=block_class,
-                output_nodes=output_nodes
+                output_nodes=False,
             )
             matching_block = self.collect_matching_block(
                 filter_fn=filter_fn,
                 block_class=block_class,
-                output_nodes=output_nodes
+                output_nodes=False
             )
-            if matching_block:
+            if matching_block.size() >= min_block_size:
                 matching_blocks.append(matching_block)
 
-        # This needs to be fixed for general blocks.
-        if output_nodes:
-            # If the option split_layers is set, refine blocks by splitting them into layers
-            # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
-            if split_layers:
-                tmp_blocks = []
-                for block in matching_blocks:
-                    tmp_blocks.extend(split_block_into_layers(block))
-                matching_blocks = tmp_blocks
-
-            # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-            # disconnected qubit subsets.
-            if split_blocks:
-                tmp_blocks = []
-                for block in matching_blocks:
-                    tmp_blocks.extend(BlockSplitter().run(block))
-                matching_blocks = tmp_blocks
-
+        if split_blocks or split_layers:
+            tmp_blocks = []
+            for block in matching_blocks:
+                tmp_blocks.extend(block.split(split_blocks=split_blocks, split_layers=split_layers))
+            matching_blocks = tmp_blocks
 
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
-            if output_nodes:
-                matching_blocks = [block[::-1] for block in matching_blocks[::-1]]
-            else:
-                matching_blocks = [block.reverse() for block in matching_blocks]
+            matching_blocks = [block.reverse() for block in matching_blocks[::-1]]
 
         # Keep only blocks with at least min_block_sizes.
-        if output_nodes:
-            matching_blocks = [
-                block for block in matching_blocks if len(block) >= min_block_size
-            ]
-        else:
-            matching_blocks = [
-                block for block in matching_blocks if len(block.get_nodes()) >= min_block_size
-            ]
+        matching_blocks = [
+            block for block in matching_blocks if len(block.get_nodes()) >= min_block_size
+        ]
 
+        if output_nodes:
+            return [block.get_nodes() for block in matching_blocks]
 
         return matching_blocks
 

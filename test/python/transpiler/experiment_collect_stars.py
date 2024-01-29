@@ -13,7 +13,7 @@
 """Temporary code for experimental purposes."""
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.dagcircuit.collect_blocks import BlockCollector, Block
+from qiskit.dagcircuit.collect_blocks import BlockCollector, DefaultBlock
 from qiskit.converters import (
     circuit_to_dag,
     circuit_to_dagdependency,
@@ -22,7 +22,7 @@ from qiskit.converters import (
 )
 
 
-class StarBlock(Block):
+class StarBlock(DefaultBlock):
 
     def __init__(self, nodes=None, center=None):
         self.center = center
