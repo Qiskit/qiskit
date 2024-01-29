@@ -620,7 +620,8 @@ class TestStatevectorSampler(QiskitTestCase):
         """Test the sampler works when there are no measurements."""
         qc = QuantumCircuit(2)
         sampler = StatevectorSampler()
-        result = sampler.run([qc]).result()
+        with self.assertWarns(UserWarning):
+            result = sampler.run([qc]).result()
 
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].data), 0)
