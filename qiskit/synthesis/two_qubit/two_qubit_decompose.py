@@ -1417,6 +1417,7 @@ class TwoQubitBasisDecomposer:
             self.basis.b, self.basis_fidelity, np.asarray(unitary, dtype=complex)
         )
 
+
 class TwoQubitDecomposeUpToDiagonal:
     """
     Class to decompose two qubit unitaries into the product of a diagonal gate
