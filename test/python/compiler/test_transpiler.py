@@ -153,6 +153,19 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertEqual(circuit2, circuit3)
 
+    @data(0, 1, 2, 3)
+    def test_num_processes_kwarg_concurrent_default(self, num_processes):
+        """Test that num_processes kwarg works when the system default parallel is false"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        target = FakeMumbaiV2().target
+        res = transpile([qc] * 3, target=target, num_processes=num_processes)
+        self.assertIsInstance(res, list)
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
+
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
         """Verify transpile() works with no coupling_map or backend."""
         qr = QuantumRegister(2, "qr")
@@ -2206,6 +2219,19 @@ class TestTranspileParallel(QiskitTestCase):
         qc.measure_all()
         target = FakeMumbaiV2().target
         res = transpile([qc] * 3, target=target, optimization_level=opt_level)
+        self.assertIsInstance(res, list)
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_num_processes_kwarg(self, num_processes):
+        """Test that num_processes kwarg works when the system default parallel is true"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        target = FakeMumbaiV2().target
+        res = transpile([qc] * 3, target=target, num_processes=num_processes)
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
