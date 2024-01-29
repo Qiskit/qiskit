@@ -427,7 +427,6 @@ def generate_control_flow_switch_circuits():
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
-    from qiskit.utils import optionals
 
     current_version = current_version_str.split(".")
     for i in range(len(current_version[2])):

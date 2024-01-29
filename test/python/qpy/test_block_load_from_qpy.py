@@ -44,8 +44,6 @@ from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
 
 
-
-
 class QpyScheduleTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
