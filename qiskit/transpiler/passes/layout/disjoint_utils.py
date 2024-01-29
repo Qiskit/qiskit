@@ -110,7 +110,7 @@ def split_barriers(dag: DAGCircuit):
         if node.op.label:
             barrier_uuid = f"{node.op.label}_uuid={uuid.uuid4()}"
         else:
-            barrier_uuid = uuid.uuid4()
+            barrier_uuid = f"_none_uuid={uuid.uuid4()}"
         split_dag = DAGCircuit()
         split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
         for i in range(num_qubits):
@@ -128,9 +128,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     uuid_map: dict[uuid.UUID, DAGOpNode] = {}
     for node in dag.op_nodes(Barrier):
         if node.op.label:
-            if isinstance(node.op.label, uuid.UUID) or (
-                isinstance(node.op.label, str) and "_uuid=" in node.op.label
-            ):
+            if "_uuid=" in node.op.label:
                 barrier_uuid = node.op.label
             else:
                 continue
@@ -144,9 +142,9 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 uuid_map[barrier_uuid] = node
     if not retain_uuid:
         for node in dag.op_nodes(Barrier):
-            if isinstance(node.op.label, uuid.UUID):
+            if isinstance(node.op.label, str) and node.op.label.startswith("_none_uuid="):
                 node.op.label = None
-            if isinstance(node.op.label, str) and "_uuid=" in node.op.label:
+            elif isinstance(node.op.label, str) and "_uuid=" in node.op.label:
                 original_label = "_uuid=".join(node.op.label.split("_uuid=")[:-1])
                 node.op.label = original_label
 
