@@ -131,10 +131,12 @@ def dump(
             deserialize the payload. For this reason, the option defaults to False.
         version: The QPY format version to emit. By default this defaults to
             the latest supported format (which is currently 10), however for
-            compatibility reasons if you need to load the generated QPY payload with an older version
-            of Qiskit you can also select the minimum supported export version, which only can change
-            during a Qiskit major version release, to generate an older QPY format version. As of this
-            major release series the minimum supported export version is version 10.
+            compatibility reasons if you need to load the generated QPY payload with an older
+            version of Qiskit you can also select an older QPY format version down to the minimum
+            supported export version, which only can change during a Qiskit major version release,
+            to generate an older QPY format version.  You can access the current QPY version and
+            minimum compatible version with :attr:`.qpy.QPY_VERSION` and
+            :attr:`.qpy.QPY_COMPATIBILITY_VERSION` respectively.
 
             .. note::
 
@@ -172,10 +174,10 @@ def dump(
 
     if version is None:
         version = common.QPY_VERSION
-    elif version not in {common.QPY_COMPATIBILITY_VERSION, common.QPY_VERSION}:
+    elif common.QPY_COMPATIBILITY_VERSION > version or version > common.QPY_VERSION:
         raise ValueError(
             f"The specified QPY version {version} is not support for dumping with this version, "
-            f"of Qiskit. The only supported versions are {common.QPY_COMPATIBILITY_VERSION} and "
+            f"of Qiskit. The only supported versions between {common.QPY_COMPATIBILITY_VERSION} and "
             f"{common.QPY_VERSION}"
         )
 
