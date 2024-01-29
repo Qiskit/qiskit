@@ -43,5 +43,5 @@ version = "0.14.0"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.1.0"
+version = "2.2.1"
 features = ["rayon"]

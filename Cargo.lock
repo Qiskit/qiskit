@@ -130,13 +130,14 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
+ "rayon",
 ]
 
 [[package]]
 name = "indexmap"
-version = "2.1.0"
+version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d530e1a18b1cb4c484e6e34556a0d948706958449fca0cab753d649f2bce3d1f"
+checksum = "433de089bd45971eecf4668ee0ee8f4cec17db4f8bd8f7bc3197a6ce37aa7d9b"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
@@ -304,7 +305,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
 ]
 
 [[package]]
@@ -340,7 +341,7 @@ checksum = "9a89dc7a5850d0e983be1ec2a463a171d20990487c3cfcd68b5363f1ee3d6fe0"
 dependencies = [
  "cfg-if",
  "hashbrown 0.14.3",
- "indexmap 2.1.0",
+ "indexmap 1.9.3",
  "indoc",
  "libc",
  "memoffset",
@@ -411,7 +412,7 @@ version = "1.0.0"
 dependencies = [
  "ahash",
  "hashbrown 0.14.3",
- "indexmap 2.1.0",
+ "indexmap 2.2.1",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -545,7 +546,7 @@ dependencies = [
  "ahash",
  "fixedbitset",
  "hashbrown 0.14.3",
- "indexmap 2.1.0",
+ "indexmap 1.9.3",
  "num-traits",
  "petgraph",
  "priority-queue",
