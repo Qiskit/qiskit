@@ -206,9 +206,11 @@ class QiskitTestCase(BaseQiskitTestCase):
         # We only use pandas transitively through seaborn, so it's their responsibility to mark if
         # their use of pandas would be a problem.
         warnings.filterwarnings(
-            "ignore",
+            "default",
             category=DeprecationWarning,
-            message="Pyarrow will become.*in the next major release of pandas",
+            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
+            # includes hard-break newlines all over the place.
+            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
             module=r"seaborn(\..*)?",
         )
 
