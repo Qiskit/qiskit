@@ -56,7 +56,7 @@ class FakeBackendV2(BackendV2):
 
     The class inherits :class:`~qiskit.providers.BackendV2` class. This version
     differs from earlier :class:`~qiskit.providers.fake_provider.FakeBackend` (V1) class in a
-    few aspects. Firstly, configuration attribute no longer exsists. Instead,
+    few aspects. Firstly, configuration attribute no longer exists. Instead,
     attributes exposing equivalent required immutable properties of the backend
     device are added. For example ``fake_backend.configuration().n_qubits`` is
     accessible from ``fake_backend.num_qubits`` now. Secondly, this version
@@ -73,9 +73,12 @@ class FakeBackendV2(BackendV2):
 
     def __init__(self):
         """FakeBackendV2 initializer."""
+        # This is a deprecation warning for the subclasses.
+        # FakeBackendV2 is not deprecated.
         warnings.warn(
-            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
-            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            message="Device-specific fake backends have been migrated to the "
+            "`qiskit_ibm_runtime` package. These classes are deprecated "
+            "as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
             "You should migrate your code to use "
             "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
             "instead of `from qiskit.providers.fake_provider import FakeExample`.",

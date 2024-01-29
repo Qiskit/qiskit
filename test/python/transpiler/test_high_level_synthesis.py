@@ -467,17 +467,18 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         mock_plugin_manager = MockPluginManager
         with warnings.catch_warnings():
             warnings.filterwarnings(action="ignore", category=DeprecationWarning)
-            with unittest.mock.patch(
-                "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
-                wraps=mock_plugin_manager,
-            ):
-                hls_config = HLSConfig(op_a=["needs_coupling_map"])
-                pm_good = PassManager(
-                    [HighLevelSynthesis(hls_config=hls_config, target=FakeBackend5QV2().target)]
-                )
+            backend = FakeBackend5QV2()
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            hls_config = HLSConfig(op_a=["needs_coupling_map"])
+            pm_good = PassManager(
+                [HighLevelSynthesis(hls_config=hls_config, target=backend.target)]
+            )
 
-                # HighLevelSynthesis is initialized with target.
-                pm_good.run(qc)
+            # HighLevelSynthesis is initialized with target.
+            pm_good.run(qc)
 
     def test_qubits_get_passed_to_plugins(self):
         """Check that setting ``use_qubit_indices`` works correctly."""

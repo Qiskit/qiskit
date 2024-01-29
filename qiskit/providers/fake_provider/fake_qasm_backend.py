@@ -37,9 +37,12 @@ class FakeQasmBackend(FakeBackend):
     backend_name = None
 
     def __init__(self):
+        # This is a deprecation warning for the subclasses.
+        # FakeQasmBackend is not deprecated.
         warnings.warn(
-            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
-            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            message="Device-specific fake backends have been migrated to the "
+            "`qiskit_ibm_runtime` package. These classes are deprecated "
+            "as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
             "You should migrate your code to use "
             "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
             "instead of `from qiskit.providers.fake_provider import FakeExample`.",
