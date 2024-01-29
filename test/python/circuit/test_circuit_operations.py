@@ -12,6 +12,7 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
+import copy
 
 import numpy as np
 from ddt import data, ddt
@@ -637,6 +638,20 @@ class TestCircuitOperations(QiskitTestCase):
         expected.measure(qr, cr)
 
         self.assertEqual(expected, circuit)
+
+    def test_measure_all_after_deepcopy(self):
+        """
+        Test measure_all on a circuit that has been deep-copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = copy.deepcopy(qc)
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        self.assertEqual(qc, qc2)
 
     def test_measure_all_not_add_bits_equal(self):
         """Test measure_all applies measurements to all qubits.
