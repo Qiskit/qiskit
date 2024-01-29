@@ -21,6 +21,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
 from qiskit.quantum_info import Operator
 
+
 class TestLocalInvariance(QiskitTestCase):
     """Test local invariance routines"""
 
