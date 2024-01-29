@@ -203,6 +203,17 @@ class QiskitTestCase(BaseQiskitTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
+        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
+        # their use of pandas would be a problem.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
+            # includes hard-break newlines all over the place.
+            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
+            module=r"seaborn(\..*)?",
+        )
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",

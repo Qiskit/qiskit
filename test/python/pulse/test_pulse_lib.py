@@ -15,6 +15,7 @@
 import unittest
 from unittest.mock import patch
 import numpy as np
+import symengine as sym
 
 from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
@@ -39,12 +40,6 @@ from qiskit.pulse.library import (
 
 from qiskit.pulse import functional_pulse, PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.utils import optionals as _optional
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 class TestWaveform(QiskitTestCase):
