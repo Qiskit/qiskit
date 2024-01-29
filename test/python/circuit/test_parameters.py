@@ -107,6 +107,16 @@ def raise_if_parameter_table_invalid(circuit):
 class TestParameters(QiskitTestCase):
     """Test Parameters."""
 
+    def test_equality(self):
+        """Test Parameter equality"""
+        param = Parameter("a")
+        param_copy = Parameter(param.name, uuid=param.uuid)
+        param_different = Parameter("a")
+
+        self.assertEqual(param, param, "Parameter does not equal itself")
+        self.assertEqual(param, param_copy, "Parameters with same data are not equal")
+        self.assertNotEqual(param, param_different, "Different Parameters are treated as equal")
+
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
         theta = Parameter("θ")
@@ -191,6 +201,24 @@ class TestParameters(QiskitTestCase):
 
         self.assertIs(qc.get_parameter("x"), x)
         self.assertIsNone(qc.get_parameter("y", None), None)
+
+    def test_setting_global_phase_invalidates_cache(self):
+        """Test that setting the global phase to a non-parametric value invalidates the `parameters`
+        cache of the circuit."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+        qc.global_phase = 0
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+
+        qc = QuantumCircuit(0, global_phase=0)
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+        qc.global_phase = x
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
 
     def test_has_parameter(self):
         """Test the `has_parameter` method."""
