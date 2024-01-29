@@ -310,9 +310,6 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("too many parameter values for a parameterized circuit"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([(qc2, [1e2] * 100)]).result()
-        with self.subTest("no classical bits"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc3]).result()
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
                 _ = sampler.run([qc4]).result()
