@@ -73,6 +73,15 @@ class FakeBackendV2(BackendV2):
 
     def __init__(self):
         """FakeBackendV2 initializer."""
+        warnings.warn(
+            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
+            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            "You should migrate your code to use "
+            "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+            "instead of `from qiskit.providers.fake_provider import FakeExample`.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
         self._conf_dict = self._get_conf_dict_from_json()
         self._props_dict = None
         self._defs_dict = None

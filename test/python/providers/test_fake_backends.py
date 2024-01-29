@@ -17,6 +17,7 @@ import datetime
 import itertools
 import operator
 import unittest
+import warnings
 
 from test import combine
 from ddt import ddt, data
@@ -76,8 +77,10 @@ from qiskit.circuit.controlflow import (
     SwitchCaseOp,
 )
 
-FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
-FAKE_PROVIDER = FakeProvider()
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
+    FAKE_PROVIDER = FakeProvider()
 
 
 @ddt

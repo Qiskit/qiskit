@@ -12,6 +12,7 @@
 
 """A test for visualizing device coupling maps"""
 import unittest
+import warnings
 
 from io import BytesIO
 from ddt import ddt, data
@@ -46,13 +47,15 @@ if optionals.HAS_PIL:
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""
 
-    backends = list(
-        filter(
-            lambda x: not x.configuration().simulator
-            and x.configuration().num_qubits in range(5, 21),
-            FakeProvider().backends(),
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        backends = list(
+            filter(
+                lambda x: not x.configuration().simulator
+                and x.configuration().num_qubits in range(5, 21),
+                FakeProvider().backends(),
+            )
         )
-    )
 
     @data(*backends)
     @unittest.skipIf(not optionals.HAS_MATPLOTLIB, "matplotlib not available.")

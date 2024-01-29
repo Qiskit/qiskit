@@ -61,7 +61,8 @@ class TestBackendOverview(QiskitTestCase):
             self.import_error = True
             qiskit.IBMQ = None
         self.ibmq_back = qiskit.IBMQ
-        qiskit.IBMQ = FakeProviderFactory()
+        with self.assertWarns(DeprecationWarning):
+            qiskit.IBMQ = FakeProviderFactory()
         self.addCleanup(self._restore_ibmq)
         if hasattr(providers, "ibmq"):
             self.prov_backup = providers.ibmq

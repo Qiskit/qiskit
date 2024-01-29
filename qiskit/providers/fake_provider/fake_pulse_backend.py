@@ -16,6 +16,7 @@ Fake backend abstract class for mock backends supporting OpenPulse.
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import PulseBackendConfiguration, PulseDefaults
+import warnings
 
 from .fake_qasm_backend import FakeQasmBackend
 from .utils.json_decoder import decode_pulse_defaults
@@ -25,6 +26,18 @@ class FakePulseBackend(FakeQasmBackend):
     """A fake pulse backend."""
 
     defs_filename = None
+
+    def __init__(self):
+        warnings.warn(
+            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
+            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            "You should migrate your code to use "
+            "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+            "instead of `from qiskit.providers.fake_provider import FakeExample`.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
+        super().__init__()
 
     def defaults(self):
         """Returns a snapshot of device defaults"""

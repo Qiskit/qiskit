@@ -23,6 +23,7 @@ from qiskit.qobj import (
     QasmQobjExperiment,
     QasmQobjConfig,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 from .fake_qasm_simulator import FakeQasmSimulator
 
@@ -30,6 +31,12 @@ from .fake_qasm_simulator import FakeQasmSimulator
 class FakeQobj(QasmQobj):
     """A fake `Qobj` instance."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.qobj.QasmQobj` class instead.",
+        since="0.46.0",
+        removal_timeline="Qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         qobj_id = "test_id"
         config = QasmQobjConfig(shots=1024, memory_slots=1)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,7 @@ Fake backend abstract class for mock backends.
 
 import json
 import os
+import warnings
 
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import BackendProperties, QasmBackendConfiguration
@@ -36,6 +37,15 @@ class FakeQasmBackend(FakeBackend):
     backend_name = None
 
     def __init__(self):
+        warnings.warn(
+            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
+            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            "You should migrate your code to use "
+            "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+            "instead of `from qiskit.providers.fake_provider import FakeExample`.",
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
         configuration = self._get_conf_from_json()
         self._defaults = None
         self._properties = None

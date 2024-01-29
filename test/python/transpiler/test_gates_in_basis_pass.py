@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test GatesInBasis pass."""
+import warnings
 
 from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, SwitchCaseOp, Clbit
 from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
@@ -95,7 +96,9 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_with_target(self):
         """Test circuit with all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            target = FakeBackend5QV2().target
         basis_gates = ["cx", "u"]  # not used
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -108,7 +111,9 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_not_in_basis_with_target(self):
         """Test circuit with not all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            target = FakeBackend5QV2().target
         basis_gates = ["cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -121,7 +126,9 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_not_on_all_qubits_with_target(self):
         """Test circuit with gate in global basis but not local basis."""
-        target = FakeBackend5QV2().target
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            target = FakeBackend5QV2().target
         basis_gates = ["ecr", "cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -134,7 +141,9 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_empty_circuit_with_target(self):
         """Test circuit with no gates with target."""
-        target = FakeBackend5QV2().target
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            target = FakeBackend5QV2().target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -187,7 +196,9 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_after_translation_with_target(self):
         """Test circuit with gates in basis after conditional translation."""
-        target = FakeBackend5QV2().target
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            target = FakeBackend5QV2().target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target)
