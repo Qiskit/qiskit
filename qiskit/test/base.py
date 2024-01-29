@@ -203,6 +203,15 @@ class QiskitTestCase(BaseQiskitTestCase):
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
 
+        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
+        # their use of pandas would be a problem.
+        warnings.filterwarnings(
+            "ignore",
+            category=DeprecationWarning,
+            message="Pyarrow will become.*in the next major release of pandas",
+            module=r"seaborn(\..*)?",
+        )
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
