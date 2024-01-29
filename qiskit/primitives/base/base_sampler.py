@@ -134,7 +134,7 @@ Here is an example of how sampler is used.
 from __future__ import annotations
 
 import warnings
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
@@ -267,7 +267,7 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
 BaseSampler = BaseSamplerV1
 
 
-class BaseSamplerV2:
+class BaseSamplerV2(ABC):
     """Sampler base class version 2.
 
     A Sampler returns samples of quantum circuit outputs.
@@ -278,7 +278,7 @@ class BaseSamplerV2:
 
     @abstractmethod
     def run(
-        self, pubs: Iterable[SamplerPubLike], shots: int | None = None
+        self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
         """Run and collect samples from each pub.
 
@@ -292,4 +292,3 @@ class BaseSamplerV2:
         Returns:
             The job object of Sampler's result.
         """
-        pass

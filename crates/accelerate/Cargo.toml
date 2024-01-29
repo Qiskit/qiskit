@@ -24,10 +24,10 @@ ahash = "0.8.6"
 num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
-rustworkx-core = "0.13"
+rustworkx-core = "0.14"
 
 [dependencies.smallvec]
-version = "1.12"
+version = "1.13"
 features = ["union"]
 
 [dependencies.pyo3]
@@ -43,5 +43,5 @@ version = "0.14.0"
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.1.0"
+version = "2.2.1"
 features = ["rayon"]

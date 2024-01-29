@@ -147,6 +147,7 @@ Synthesis
    HLSConfig
    SolovayKitaev
    SolovayKitaevSynthesis
+   AQCSynthesisPlugin
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -253,6 +254,7 @@ from .synthesis import HighLevelSynthesis
 from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import AQCSynthesisPlugin
 
 # calibration
 from .calibration import PulseGates

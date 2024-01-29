@@ -427,7 +427,6 @@ def generate_control_flow_switch_circuits():
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
-    from qiskit.utils import optionals
 
     current_version = current_version_str.split(".")
     for i in range(len(current_version[2])):
@@ -469,10 +468,8 @@ def generate_schedule_blocks():
             builder.acquire(1000, channels.AcquireChannel(0), channels.MemorySlot(0))
     schedule_blocks.append(block)
     # Raw symbolic pulse
-    if optionals.HAS_SYMENGINE:
-        import symengine as sym
-    else:
-        import sympy as sym
+    import symengine as sym
+
     duration, amp, t = sym.symbols("duration amp t")  # pylint: disable=invalid-name
     expr = amp * sym.sin(2 * sym.pi * t / duration)
     my_pulse = library.SymbolicPulse(
@@ -650,7 +647,7 @@ def generate_clifford_circuits():
             "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
         }
     )
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3, name="Clifford Circuits")
     qc.append(cliff, [0, 1, 2])
     return [qc]
 

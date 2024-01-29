@@ -16,7 +16,7 @@
 import numpy as np
 from ddt import data, ddt
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
@@ -189,7 +189,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc3 = qc1.compose(qc2)
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -211,7 +211,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc3 = qc1 & qc2
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -233,7 +233,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 &= qc2
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -283,7 +283,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc3 = qc1.tensor(qc2)
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -304,7 +304,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc3 = qc1 ^ qc2
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -325,7 +325,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 ^= qc2
         backend = BasicAer.get_backend("qasm_simulator")
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -846,6 +846,24 @@ class TestCircuitOperations(QiskitTestCase):
         # e.g. c3[0] is now the second clbit
         self.assertEqual(circuit.find_bit(c0[0]), BitLocations(0, [(c0, 0)]))
         self.assertEqual(circuit.find_bit(c3[0]), BitLocations(1, [(c3, 0)]))
+
+    def test_remove_final_measurements_parametric_global_phase(self):
+        """Test that a parametric global phase is respected in the table afterwards."""
+        a = Parameter("a")
+        qc = QuantumCircuit(2, 2, global_phase=a)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        expected = QuantumCircuit(2, global_phase=1)
+        expected.h(0)
+        expected.cx(0, 1)
+
+        self.assertEqual(
+            qc.remove_final_measurements(inplace=False).assign_parameters({a: 1}), expected
+        )
+        qc.remove_final_measurements(inplace=True)
+        self.assertEqual(qc.assign_parameters({a: 1}), expected)
 
     def test_reverse(self):
         """Test reverse method reverses but does not invert."""
