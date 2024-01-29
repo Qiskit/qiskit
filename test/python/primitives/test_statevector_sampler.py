@@ -619,6 +619,15 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertTrue(hasattr(data, creg_name))
             self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
 
+    def test_no_measurements(self):
+        """Test the sampler works when there are no measurements."""
+        qc = QuantumCircuit(2)
+        sampler = StatevectorSampler()
+        result = sampler.run([qc]).result()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0].data), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
