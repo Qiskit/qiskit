@@ -791,7 +791,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "redox_syscall",
- "smallvec 1.11.2",
+ "smallvec 1.13.1",
  "windows-targets",
 ]
 
@@ -941,7 +941,7 @@ dependencies = [
  "rand_pcg 0.3.1",
  "rayon",
  "rustworkx-core",
- "smallvec 1.11.2",
+ "smallvec 1.13.1",
 ]
 
 [[package]]
