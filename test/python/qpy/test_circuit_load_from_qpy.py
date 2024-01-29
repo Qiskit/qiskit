@@ -20,7 +20,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats
+from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspileLayout
@@ -200,10 +200,10 @@ class TestLayout(QpyCircuitTestCase):
         with self.assertRaises(ValueError):
             dump(qc, io.BytesIO(), version=3)
 
-    def test_version_10_roundtrip(self):
+    def test_compatibility_version_roundtrip(self):
         """Test the version is set correctly when specified."""
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        self.assert_roundtrip_equal(qc, version=10)
+        self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
