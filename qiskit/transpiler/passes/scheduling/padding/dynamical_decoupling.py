@@ -171,6 +171,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()
+            self._alignment = target.pulse_alignment
             for gate in dd_sequence:
                 if gate.name not in target.operation_names:
                     raise TranspilerError(
