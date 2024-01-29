@@ -23,7 +23,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.primitives import Estimator, EstimatorResult
 from qiskit.primitives.base import validation
 from qiskit.primitives.utils import _observable_key
-from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -68,7 +67,6 @@ class TestEstimator(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [hamiltonian1], [theta1])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956])
@@ -377,7 +375,7 @@ class TestObservableValidation(QiskitTestCase):
     @unpack
     def test_validate_observables_deprecated(self, obsevables, expected):
         """Test obsevables standardization."""
-        with self.assertRaises(DeprecationWarning):
+        with self.assertRaises(QiskitError):
             self.assertEqual(validation._validate_observables(obsevables), expected)
 
     @data(None, "ERROR")

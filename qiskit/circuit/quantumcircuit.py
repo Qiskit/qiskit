@@ -16,11 +16,9 @@
 
 from __future__ import annotations
 import copy
-import itertools
 import multiprocessing as mp
 import warnings
 import typing
-import math
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -45,10 +43,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .controlflow import ControlFlowOp
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
@@ -56,7 +52,7 @@ from .controlflow.for_loop import ForLoopOp, ForLoopContext
 from .controlflow.if_else import IfElseOp, IfContext
 from .controlflow.switch_case import SwitchCaseOp, SwitchContext
 from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
-from .classical import expr, types
+from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -68,12 +64,12 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
-from .store import Store
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
     from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
+    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -146,27 +142,9 @@ class QuantumCircuit:
             circuit. This gets stored as free-form data in a dict in the
             :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
             not be directly used in the circuit.
-        inputs: any variables to declare as ``input`` runtime variables for this circuit.  These
-            should already be existing :class:`.expr.Var` nodes that you build from somewhere else;
-            if you need to create the inputs as well, use :meth:`QuantumCircuit.add_input`.  The
-            variables given in this argument will be passed directly to :meth:`add_input`.  A
-            circuit cannot have both ``inputs`` and ``captures``.
-        captures: any variables that that this circuit scope should capture from a containing scope.
-            The variables given here will be passed directly to :meth:`add_capture`.  A circuit
-            cannot have both ``inputs`` and ``captures``.
-        declarations: any variables that this circuit should declare and initialize immediately.
-            You can order this input so that later declarations depend on earlier ones (including
-            inputs or captures). If you need to depend on values that will be computed later at
-            runtime, use :meth:`add_var` at an appropriate point in the circuit execution.
-
-            This argument is intended for convenient circuit initialization when you already have a
-            set of created variables.  The variables used here will be directly passed to
-            :meth:`add_var`, which you can use directly if this is the first time you are creating
-            the variable.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
-        CircuitError: if both ``inputs`` and ``captures`` are given.
 
     Examples:
 
@@ -226,9 +204,6 @@ class QuantumCircuit:
         name: str | None = None,
         global_phase: ParameterValueType = 0,
         metadata: dict | None = None,
-        inputs: Iterable[expr.Var] = (),
-        captures: Iterable[expr.Var] = (),
-        declarations: Mapping[expr.Var, expr.Expr] | Iterable[Tuple[expr.Var, expr.Expr]] = (),
     ):
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -301,20 +276,6 @@ class QuantumCircuit:
         self._layout = None
         self._global_phase: ParameterValueType = 0
         self.global_phase = global_phase
-
-        # Add classical variables.  Resolve inputs and captures first because they can't depend on
-        # anything, but declarations might depend on them.
-        self._vars_input: dict[str, expr.Var] = {}
-        self._vars_capture: dict[str, expr.Var] = {}
-        self._vars_local: dict[str, expr.Var] = {}
-        for input_ in inputs:
-            self.add_input(input_)
-        for capture in captures:
-            self.add_capture(capture)
-        if isinstance(declarations, Mapping):
-            declarations = declarations.items()
-        for var, initial in declarations:
-            self.add_var(var, initial)
 
         self.duration = None
         self.unit = "dt"
@@ -390,24 +351,6 @@ class QuantumCircuit:
         """
         return self._layout
 
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def header(cls) -> str:
-        """The OpenQASM 2.0 header statement."""
-        return "OPENQASM 2.0;"
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def extension_lib(cls) -> str:
-        """The standard OpenQASM 2 import statement."""
-        return 'include "qelib1.inc";'
-
     @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
@@ -437,7 +380,10 @@ class QuantumCircuit:
         else:
             data_input = list(data_input)
         self._data.clear()
+        self._parameters = None
         self._parameter_table = ParameterTable()
+        # Repopulate the parameter table with any global-phase entries.
+        self.global_phase = self.global_phase
         if not data_input:
             return
         if isinstance(data_input[0], CircuitInstruction):
@@ -564,12 +510,12 @@ class QuantumCircuit:
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
-        result._data = CircuitData(
-            copy.deepcopy(self._data.qubits, memo),
-            copy.deepcopy(self._data.clbits, memo),
-            (i.replace(operation=copy.deepcopy(i.operation, memo)) for i in self._data),
-            reserve=len(self._data),
+        result._data = self._data.copy()
+        result._data.replace_bits(
+            qubits=copy.deepcopy(self._data.qubits, memo),
+            clbits=copy.deepcopy(self._data.clbits, memo),
         )
+        result._data.map_ops(lambda op: copy.deepcopy(op, memo))
         return result
 
     @classmethod
@@ -950,6 +896,9 @@ class QuantumCircuit:
                 "Cannot emit a new composed circuit while a control-flow context is active."
             )
 
+        # Avoid mutating `dest` until as much of the error checking as possible is complete, to
+        # avoid an in-place composition getting `self` in a partially mutated state for a simple
+        # error that the user might want to correct in an interactive session.
         dest = self if inplace else self.copy()
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
@@ -985,18 +934,19 @@ class QuantumCircuit:
                     dest._append(instruction)
             else:
                 dest.append(other, qargs=qubits, cargs=clbits)
-            if inplace:
-                return None
-            return dest
+            return None if inplace else dest
 
         if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
                 "Trying to compose with another QuantumCircuit which has more 'in' edges."
             )
 
-        # number of qubits and clbits must match number in circuit or None
+        # Maps bits in 'other' to bits in 'dest'.
+        mapped_qubits: list[Qubit]
+        mapped_clbits: list[Clbit]
         edge_map: dict[Qubit | Clbit, Qubit | Clbit] = {}
         if qubits is None:
+            mapped_qubits = dest.qubits
             edge_map.update(zip(other.qubits, dest.qubits))
         else:
             mapped_qubits = dest.qbit_argument_conversion(qubits)
@@ -1005,9 +955,14 @@ class QuantumCircuit:
                     f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
                     f" match number of qubits in the circuit ({len(other.qubits)})."
                 )
+            if len(set(mapped_qubits)) != len(mapped_qubits):
+                raise CircuitError(
+                    f"Duplicate qubits referenced in 'qubits' parameter: '{mapped_qubits}'"
+                )
             edge_map.update(zip(other.qubits, mapped_qubits))
 
         if clbits is None:
+            mapped_clbits = dest.clbits
             edge_map.update(zip(other.clbits, dest.clbits))
         else:
             mapped_clbits = dest.cbit_argument_conversion(clbits)
@@ -1016,39 +971,52 @@ class QuantumCircuit:
                     f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
                     f" match number of clbits in the circuit ({len(other.clbits)})."
                 )
+            if len(set(mapped_clbits)) != len(mapped_clbits):
+                raise CircuitError(
+                    f"Duplicate clbits referenced in 'clbits' parameter: '{mapped_clbits}'"
+                )
             edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
-
-        variable_mapper = _classical_resource_map.VariableMapper(
-            dest.cregs, edge_map, dest.add_register
-        )
-        mapped_instrs: CircuitData = CircuitData(dest.qubits, dest.clbits, reserve=len(other.data))
-        for instr in other.data:
-            n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
-            n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
-            n_op = instr.operation.copy()
-            if (condition := getattr(n_op, "condition", None)) is not None:
-                n_op.condition = variable_mapper.map_condition(condition)
-            if isinstance(n_op, SwitchCaseOp):
-                n_op.target = variable_mapper.map_target(n_op.target)
-            mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
-
-        if front:
-            # adjust new instrs before original ones and update all parameters
-            mapped_instrs.extend(dest._data)
-            dest.clear()
-        circuit_scope = dest._current_scope()
-        for instr in mapped_instrs:
-            circuit_scope.append(instr)
 
         for gate, cals in other.calibrations.items():
             dest._calibrations[gate].update(cals)
 
+        dest.duration = None
+        dest.unit = "dt"
         dest.global_phase += other.global_phase
 
-        if inplace:
-            return None
+        if not other.data:
+            # Nothing left to do. Plus, accessing 'data' here is necessary
+            # to trigger any lazy building since we now access '_data'
+            # directly.
+            return None if inplace else dest
 
-        return dest
+        variable_mapper = _classical_resource_map.VariableMapper(
+            dest.cregs, edge_map, dest.add_register
+        )
+
+        def map_vars(op):
+            n_op = op.copy()
+            if (condition := getattr(n_op, "condition", None)) is not None:
+                n_op.condition = variable_mapper.map_condition(condition)
+            if isinstance(n_op, SwitchCaseOp):
+                n_op.target = variable_mapper.map_target(n_op.target)
+            return n_op
+
+        mapped_instrs: CircuitData = other._data.copy()
+        mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
+        mapped_instrs.map_ops(map_vars)
+
+        append_existing = None
+        if front:
+            append_existing = dest._data.copy()
+            dest.clear()
+
+        circuit_scope = dest._current_scope()
+        circuit_scope.extend(mapped_instrs)
+        if append_existing:
+            circuit_scope.extend(append_existing)
+
+        return None if inplace else dest
 
     def tensor(self, other: "QuantumCircuit", inplace: bool = False) -> Optional["QuantumCircuit"]:
         """Tensor ``self`` with ``other``.
@@ -1160,74 +1128,6 @@ class QuantumCircuit:
         Returns a list of ancilla bits in the order that the registers were added.
         """
         return self._ancillas
-
-    @property
-    def num_vars(self) -> int:
-        """The number of runtime classical variables in the circuit.
-
-        This is the length of the :meth:`iter_vars` iterable."""
-        return self.num_input_vars + self.num_captured_vars + self.num_declared_vars
-
-    @property
-    def num_input_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as circuit inputs.
-
-        This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
-        :attr:`num_captured_vars` must be zero."""
-        return len(self._vars_input)
-
-    @property
-    def num_captured_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as captured from an
-        enclosing scope.
-
-        This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
-        :attr:`num_input_vars` must be zero."""
-        return len(self._vars_capture)
-
-    @property
-    def num_declared_vars(self) -> int:
-        """The number of runtime classical variables in the circuit that are declared by this
-        circuit scope, excluding inputs or captures.
-
-        This is the length of the :meth:`iter_declared_vars` iterable."""
-        return len(self._vars_local)
-
-    def iter_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables in scope within this circuit.
-
-        This method will iterate over all variables in scope.  For more fine-grained iterators, see
-        :meth:`iter_declared_vars`, :meth:`iter_input_vars` and :meth:`iter_captured_vars`."""
-        if self._control_flow_scopes:
-            builder = self._control_flow_scopes[-1]
-            return itertools.chain(builder.iter_captured_vars(), builder.iter_local_vars())
-        return itertools.chain(
-            self._vars_input.values(), self._vars_capture.values(), self._vars_local.values()
-        )
-
-    def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared with automatic
-        storage duration in this scope.  This excludes input variables (see :meth:`iter_input_vars`)
-        and captured variables (see :meth:`iter_captured_vars`)."""
-        if self._control_flow_scopes:
-            return self._control_flow_scopes[-1].iter_local_vars()
-        return self._vars_local.values()
-
-    def iter_input_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared as inputs to this
-        circuit scope.  This excludes locally declared variables (see :meth:`iter_declared_vars`)
-        and captured variables (see :meth:`iter_captured_vars`)."""
-        if self._control_flow_scopes:
-            return ()
-        return self._vars_input.values()
-
-    def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are captured by this circuit
-        scope from a containing scope.  This excludes input variables (see :meth:`iter_input_vars`)
-        and locally declared variables (see :meth:`iter_declared_vars`)."""
-        if self._control_flow_scopes:
-            return self._control_flow_scopes[-1].iter_captured_vars()
-        return self._vars_capture.values()
 
     def __and__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Overload & to implement self.compose."""
@@ -1366,20 +1266,6 @@ class QuantumCircuit:
                     param = _validate_expr(circuit_scope, param)
             if is_parameter:
                 operation = copy.deepcopy(operation)
-        if isinstance(operation, ControlFlowOp):
-            # Verify that any variable bindings are valid.  Control-flow ops are already enforced
-            # by the class not to contain 'input' variables.
-            if bad_captures := {
-                var
-                for var in itertools.chain.from_iterable(
-                    block.iter_captured_vars() for block in operation.blocks
-                )
-                if not self.has_var(var)
-            }:
-                raise CircuitError(
-                    f"Control-flow op attempts to capture '{bad_captures}'"
-                    " which are not in this circuit"
-                )
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -1454,16 +1340,18 @@ class QuantumCircuit:
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
         self._data.append(instruction)
-        if isinstance(instruction.operation, Instruction):
-            self._update_parameter_table(instruction)
-
-        # mark as normal circuit if a new instruction is added
-        self.duration = None
-        self.unit = "dt"
+        self._track_operation(instruction.operation)
         return instruction.operation if old_style else instruction
 
-    def _update_parameter_table(self, instruction: CircuitInstruction):
-        for param_index, param in enumerate(instruction.operation.params):
+    def _track_operation(self, operation: Operation):
+        """Sync all non-data-list internal data structures for a newly tracked operation."""
+        if isinstance(operation, Instruction):
+            self._update_parameter_table(operation)
+        self.duration = None
+        self.unit = "dt"
+
+    def _update_parameter_table(self, instruction: Instruction):
+        for param_index, param in enumerate(instruction.params):
             if isinstance(param, (ParameterExpression, QuantumCircuit)):
                 # Scoped constructs like the control-flow ops use QuantumCircuit as a parameter.
                 atomic_parameters = set(param.parameters)
@@ -1472,300 +1360,87 @@ class QuantumCircuit:
 
             for parameter in atomic_parameters:
                 if parameter in self._parameter_table:
-                    self._parameter_table[parameter].add((instruction.operation, param_index))
+                    self._parameter_table[parameter].add((instruction, param_index))
                 else:
                     if parameter.name in self._parameter_table.get_names():
                         raise CircuitError(f"Name conflict on adding parameter: {parameter.name}")
                     self._parameter_table[parameter] = ParameterReferences(
-                        ((instruction.operation, param_index),)
+                        ((instruction, param_index),)
                     )
 
                     # clear cache if new parameter is added
                     self._parameters = None
 
     @typing.overload
-    def get_var(self, name: str, default: T) -> Union[expr.Var, T]:
+    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]:
         ...
 
     # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_var(self, name: str, default: type(...) = ...) -> expr.Var:
+    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter:
         ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
-    def get_var(self, name: str, default: typing.Any = ...):
-        """Retrieve a variable that is accessible in this circuit scope by name.
+    def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
+        """Retrieve a compile-time parameter that is accessible in this circuit scope by name.
 
         Args:
-            name: the name of the variable to retrieve.
-            default: if given, this value will be returned if the variable is not present.  If it
+            name: the name of the parameter to retrieve.
+            default: if given, this value will be returned if the parameter is not present.  If it
                 is not given, a :exc:`KeyError` is raised instead.
 
         Returns:
-            The corresponding variable.
+            The corresponding parameter.
 
         Raises:
-            KeyError: if no default is given, but the variable does not exist.
+            KeyError: if no default is given, but the parameter does not exist in the circuit.
 
         Examples:
-            Retrieve a variable by name from a circuit::
+            Retrieve a parameter by name from a circuit::
 
-                from qiskit.circuit import QuantumCircuit
+                from qiskit.circuit import QuantumCircuit, Parameter
 
-                # Create a circuit and create a variable in it.
-                qc = QuantumCircuit()
-                my_var = qc.add_var("my_var", False)
+                my_param = Parameter("my_param")
 
-                # We can use 'my_var' as a variable, but let's say we've lost the Python object and
-                # need to retrieve it.
-                my_var_again = qc.get_var("my_var")
+                # Create a parametrised circuit.
+                qc = QuantumCircuit(1)
+                qc.rx(my_param, 0)
 
-                assert my_var is my_var_again
+                # We can use 'my_param' as a parameter, but let's say we've lost the Python object
+                # and need to retrieve it.
+                my_param_again = qc.get_parameter("my_param")
+
+                assert my_param is my_param_again
 
             Get a variable from a circuit by name, returning some default if it is not present::
 
-                assert qc.get_var("my_var", None) is my_var
-                assert qc.get_var("unknown_variable", None) is None
+                assert qc.get_parameter("my_param", None) is my_param
+                assert qc.get_parameter("unknown_param", None) is None
         """
-        if (out := self._current_scope().get_var(name)) is not None:
-            return out
-        if default is Ellipsis:
-            raise KeyError(f"no variable named '{name}' is present")
-        return default
+        if (parameter := self._parameter_table.parameter_from_name(name, None)) is None:
+            if default is Ellipsis:
+                raise KeyError(f"no parameter named '{name}' is present")
+            return default
+        return parameter
 
-    def has_var(self, name_or_var: str | expr.Var, /) -> bool:
-        """Check whether a variable is accessible in this scope.
+    def has_parameter(self, name_or_param: str | Parameter, /) -> bool:
+        """Check whether a parameter object exists in this circuit.
 
         Args:
-            name_or_var: the variable, or name of a variable to check.  If this is a
-                :class:`.expr.Var` node, the variable must be exactly the given one for this
+            name_or_param: the parameter, or name of a parameter to check.  If this is a
+                :class:`.Parameter` node, the parameter must be exactly the given one for this
                 function to return ``True``.
 
         Returns:
-            whether a matching variable is accessible.
+            whether a matching parameter is assignable in this circuit.
 
         See also:
-            :meth:`QuantumCircuit.get_var`: retrieve a named variable from a circuit.
+            :meth:`QuantumCircuit.get_parameter`
+                Retrieve the :class:`.Parameter` instance from this circuit by name.
         """
-        if isinstance(name_or_var, str):
-            return self.get_var(name_or_var, None) is not None
-        return self.get_var(name_or_var.name, None) == name_or_var
-
-    def _prepare_new_var(
-        self, name_or_var: str | expr.Var, type_: types.Type | None, /
-    ) -> expr.Var:
-        """The common logic for preparing and validating a new :class:`~.expr.Var` for the circuit.
-
-        The given ``type_`` can be ``None`` if the variable specifier is already a :class:`.Var`,
-        and must be a :class:`~.types.Type` if it is a string.  The argument is ignored if the given
-        first argument is a :class:`.Var` already.
-
-        Returns the validated variable, which is guaranteed to be safe to add to the circuit."""
-        if isinstance(name_or_var, str):
-            if type_ is None:
-                raise CircuitError("the type must be known when creating a 'Var' from a string")
-            var = expr.Var.new(name_or_var, type_)
-        else:
-            var = name_or_var
-            if not var.standalone:
-                raise CircuitError(
-                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances."
-                    " Use `add_bits` or `add_register` as appropriate."
-                )
-
-        # The `var` is guaranteed to have a name because we already excluded the cases where it's
-        # wrapping a bit/register.
-        if (previous := self.get_var(var.name, default=None)) is not None:
-            if previous == var:
-                raise CircuitError(f"'{var}' is already present in the circuit")
-            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        return var
-
-    def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
-        """Add a classical variable with automatic storage and scope to this circuit.
-
-        The variable is considered to have been "declared" at the beginning of the circuit, but it
-        only becomes initialized at the point of the circuit that you call this method, so it can
-        depend on variables defined before it.
-
-        Args:
-            name_or_var: either a string of the variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit.
-            initial: the value to initialize this variable with.  If the first argument was given
-                as a string name, the type of the resulting variable is inferred from the initial
-                expression; to control this more manually, either use :meth:`.Var.new` to manually
-                construct a new variable with the desired type, or use :func:`.expr.cast` to cast
-                the initializer to the desired type.
-
-                This must be either a :class:`~.expr.Expr` node, or a value that can be lifted to
-                one using :class:`.expr.lift`.
-
-        Returns:
-            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
-            object will be returned.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-
-        Examples:
-            Define a new variable given just a name and an initializer expression::
-
-                from qiskit.circuit import QuantumCircuit
-
-                qc = QuantumCircuit(2)
-                my_var = qc.add_var("my_var", False)
-
-            Reuse a variable that may have been taken from a related circuit, or otherwise
-            constructed manually, and initialize it to some more complicated expression::
-
-                from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-                from qiskit.circuit.classical import expr, types
-
-                my_var = expr.Var.new("my_var", types.Uint(8))
-
-                cr1 = ClassicalRegister(8, "cr1")
-                cr2 = ClassicalRegister(8, "cr2")
-                qc = QuantumCircuit(QuantumRegister(8), cr1, cr2)
-
-                # Get some measurement results into each register.
-                qc.h(0)
-                for i in range(1, 8):
-                    qc.cx(0, i)
-                qc.measure(range(8), cr1)
-
-                qc.reset(range(8))
-                qc.h(0)
-                for i in range(1, 8):
-                    qc.cx(0, i)
-                qc.measure(range(8), cr2)
-
-                # Now when we add the variable, it is initialized using the runtime state of the two
-                # classical registers we measured into above.
-                qc.add_var(my_var, expr.bit_and(cr1, cr2))
-        """
-        # Validate the initialiser first to catch cases where the variable to be declared is being
-        # used in the initialiser.
-        circuit_scope = self._current_scope()
-        initial = _validate_expr(circuit_scope, expr.lift(initial))
-        if isinstance(name_or_var, str):
-            var = expr.Var.new(name_or_var, initial.type)
-        elif not name_or_var.standalone:
-            raise CircuitError(
-                "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances."
-            )
-        else:
-            var = name_or_var
-        circuit_scope.add_uninitialized_var(var)
-        try:
-            # Store is responsible for ensuring the type safety of the initialisation.
-            store = Store(var, initial)
-        except CircuitError:
-            circuit_scope.remove_var(var)
-            raise
-        circuit_scope.append(CircuitInstruction(store, (), ()))
-        return var
-
-    def add_uninitialized_var(self, var: expr.Var, /):
-        """Add a variable with no initializer.
-
-        In most cases, you should use :meth:`add_var` to initialize the variable.  To use this
-        function, you must already hold a :class:`~.expr.Var` instance, as the use of the function
-        typically only makes sense in copying contexts.
-
-        .. warning::
-
-            Qiskit makes no assertions about what an uninitialized variable will evaluate to at
-            runtime, and some hardware may reject this as an error.
-
-            You should treat this function with caution, and as a low-level primitive that is useful
-            only in special cases of programmatically rebuilding two like circuits.
-
-        Args:
-            var: the variable to add.
-        """
-        # This function is deliberately meant to be a bit harder to find, to have a long descriptive
-        # name, and to be a bit less ergonomic than `add_var` (i.e. not allowing the (name, type)
-        # overload) to discourage people from using it when they should use `add_var`.
-        #
-        # This function exists so that there is a method to emulate `copy_empty_like`'s behaviour of
-        # adding uninitialised variables, which there's no obvious way around.  We need to be sure
-        # that _some_ sort of handling of uninitialised variables is taken into account in our
-        # structures, so that doesn't become a huge edge case, even though we make no assertions
-        # about the _meaning_ if such an expression was run on hardware.
-        if self._control_flow_scopes:
-            raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
-        if not var.standalone:
-            raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
-        self._builder_api.add_uninitialized_var(var)
-
-    def add_capture(self, var: expr.Var):
-        """Add a variable to the circuit that it should capture from a scope it will be contained
-        within.
-
-        This method requires a :class:`~.expr.Var` node to enforce that you've got a handle to one,
-        because you will need to declare the same variable using the same object into the outer
-        circuit.
-
-        This is a low-level method, which is only really useful if you are manually constructing
-        control-flow operations. You typically will not need to call this method, assuming you
-        are using the builder interface for control-flow scopes (``with`` context-manager statements
-        for :meth:`if_test` and the other scoping constructs).  The builder interface will
-        automatically make the inner scopes closures on your behalf by capturing any variables that
-        are used within them.
-
-        Args:
-            var: the variable to capture from an enclosing scope.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-        """
-        if self._control_flow_scopes:
-            # Allow manual capturing.  Not sure why it'd be useful, but there's a clear expected
-            # behaviour here.
-            self._control_flow_scopes[-1].use_var(var)
-            return
-        if self._vars_input:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so cannot be closures"
-            )
-        self._vars_capture[var.name] = self._prepare_new_var(var, None)
-
-    @typing.overload
-    def add_input(self, name_or_var: str, type_: types.Type, /) -> expr.Var:
-        ...
-
-    @typing.overload
-    def add_input(self, name_or_var: expr.Var, type_: None = None, /) -> expr.Var:
-        ...
-
-    def add_input(  # pylint: disable=missing-raises-doc
-        self, name_or_var: str | expr.Var, type_: types.Type | None = None, /
-    ) -> expr.Var:
-        """Register a variable as an input to the circuit.
-
-        Args:
-            name_or_var: either a string name, or an existing :class:`~.expr.Var` node to use as the
-                input variable.
-            type_: if the name is given as a string, then this must be a :class:`~.types.Type` to
-                use for the variable.  If the variable is given as an existing :class:`~.expr.Var`,
-                then this must not be given, and will instead be read from the object itself.
-
-        Returns:
-            the variable created, or the same variable as was passed in.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-        """
-        if self._control_flow_scopes:
-            raise CircuitError("cannot add an input variable in a control-flow scope")
-        if self._vars_capture:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
-        if isinstance(name_or_var, expr.Var) and type_ is not None:
-            raise ValueError("cannot give an explicit type with an existing Var")
-        var = self._prepare_new_var(name_or_var, type_)
-        self._vars_input[var.name] = var
-        return var
+        if isinstance(name_or_param, str):
+            return self.get_parameter(name_or_param, None) is not None
+        return self.get_parameter(name_or_param.name) == name_or_param
 
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
         """Add registers."""
@@ -1840,7 +1515,9 @@ class QuantumCircuit:
 
     def add_bits(self, bits: Iterable[Bit]) -> None:
         """Add Bits to the circuit."""
-        duplicate_bits = set(self._qubit_indices).union(self._clbit_indices).intersection(bits)
+        duplicate_bits = {
+            bit for bit in bits if bit in self._qubit_indices or bit in self._clbit_indices
+        }
         if duplicate_bits:
             raise CircuitError(f"Attempted to add bits found already in circuit: {duplicate_bits}")
 
@@ -1987,7 +1664,7 @@ class QuantumCircuit:
         style: dict | str | None = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = None,
+        reverse_bits: bool | None = None,
         justify: str | None = None,
         vertical_compression: str | None = "medium",
         idle_wires: bool = True,
@@ -1997,11 +1674,11 @@ class QuantumCircuit:
         # safely forward-referenced.
         ax: Any | None = None,
         initial_state: bool = False,
-        cregbundle: bool = None,
-        wire_order: list = None,
+        cregbundle: bool | None = None,
+        wire_order: list[int] | None = None,
         expr_len: int = 30,
     ):
-        """Draw the quantum circuit. Use the output parameter to choose the drawing format:
+        r"""Draw the quantum circuit. Use the output parameter to choose the drawing format:
 
         **text**: ASCII art TextDrawing that can be printed in the console.
 
@@ -2019,81 +1696,77 @@ class QuantumCircuit:
             these completely.
 
         Args:
-            output (str): select the output method to use for drawing the circuit.
+            output: Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
                 By default the `text` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output
                 kwarg is set, that backend will always be used over the default in
                 the user config file.
-            scale (float): scale of image to draw (shrink if < 1.0). Only used by
-                the `mpl`, `latex` and `latex_source` outputs. Defaults to 1.0.
-            filename (str): file path to save image to. Defaults to None.
-            style (dict or str): dictionary of style or file name of style json file.
-                This option is only used by the `mpl` or `latex` output type.
-                If `style` is a str, it is used as the path to a json file
-                which contains a style dict. The file will be opened, parsed, and
-                then any style elements in the dict will replace the default values
-                in the input dict. A file to be loaded must end in ``.json``, but
-                the name entered here can omit ``.json``. For example,
-                ``style='iqp.json'`` or ``style='iqp'``.
-                If `style` is a dict and the ``'name'`` key is set, that name
-                will be used to load a json file, followed by loading the other
-                items in the style dict. For example, ``style={'name': 'iqp'}``.
-                If `style` is not a str and `name` is not a key in the style dict,
-                then the default value from the user config file (usually
-                ``~/.qiskit/settings.conf``) will be used, for example,
-                ``circuit_mpl_style = iqp``.
-                If none of these are set, the `clifford` style will be used.
-                The search path for style json files can be specified in the user
-                config, for example,
-                ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
-                information on the contents.
-            interactive (bool): when set to true, show the circuit in a new window
-                (for `mpl` this depends on the matplotlib backend being used
+            scale: Scale of image to draw (shrink if ``< 1.0``). Only used by
+                the ``mpl``, ``latex`` and ``latex_source`` outputs. Defaults to ``1.0``.
+            filename: File path to save image to. Defaults to ``None`` (result not saved in a file).
+            style: Style name, file name of style JSON file, or a dictionary specifying the style.
+
+                * The supported style names are ``"iqp"`` (default), ``"iqp-dark"``, ``"clifford"``,
+                  ``"textbook"`` and ``"bw"``.
+                * If given a JSON file, e.g. ``my_style.json`` or ``my_style`` (the ``.json``
+                  extension may be omitted), this function attempts to load the style dictionary
+                  from that location. Note, that the JSON file must completely specify the
+                  visualization specifications. The file is searched for in
+                  ``qiskit/visualization/circuit/styles``, the current working directory, and
+                  the location specified in ``~/.qiskit/settings.conf``.
+                * If a dictionary, every entry overrides the default configuration. If the
+                  ``"name"`` key is given, the default configuration is given by that style.
+                  For example, ``{"name": "textbook", "subfontsize": 5}`` loads the ``"texbook"``
+                  style and sets the subfontsize (e.g. the gate angles) to ``5``.
+                * If ``None`` the default style ``"iqp"`` is used or, if given, the default style
+                  specified in ``~/.qiskit/settings.conf``.
+
+            interactive: When set to ``True``, show the circuit in a new window
+                (for ``mpl`` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
-                `latex_source` output type this has no effect and will be silently
-                ignored. Defaults to False.
-            reverse_bits (bool): when set to True, reverse the bit order inside
-                registers for the output visualization. Defaults to False unless the
+                ``latex_source`` output type this has no effect and will be silently
+                ignored. Defaults to ``False``.
+            reverse_bits: When set to ``True``, reverse the bit order inside
+                registers for the output visualization. Defaults to ``False`` unless the
                 user config file (usually ``~/.qiskit/settings.conf``) has an
                 alternative value set. For example, ``circuit_reverse_bits = True``.
-            plot_barriers (bool): enable/disable drawing barriers in the output
-                circuit. Defaults to True.
-            justify (string): options are ``left``, ``right`` or ``none``. If
+            plot_barriers: Enable/disable drawing barriers in the output
+                circuit. Defaults to ``True``.
+            justify: Options are ``left``, ``right`` or ``none``. If
                 anything else is supplied, it defaults to left justified. It refers
                 to where gates should be placed in the output circuit if there is
                 an option. ``none`` results in each gate being placed in its own
                 column.
-            vertical_compression (string): ``high``, ``medium`` or ``low``. It
+            vertical_compression: ``high``, ``medium`` or ``low``. It
                 merges the lines generated by the `text` output so the drawing
                 will take less vertical room.  Default is ``medium``. Only used by
-                the `text` output, will be silently ignored otherwise.
-            idle_wires (bool): include idle wires (wires with no circuit elements)
-                in output visualization. Default is True.
-            with_layout (bool): include layout information, with labels on the
-                physical layout. Default is True.
-            fold (int): sets pagination. It can be disabled using -1. In `text`,
+                the ``text`` output, will be silently ignored otherwise.
+            idle_wires: Include idle wires (wires with no circuit elements)
+                in output visualization. Default is ``True``.
+            with_layout: Include layout information, with labels on the
+                physical layout. Default is ``True``.
+            fold: Sets pagination. It can be disabled using -1. In ``text``,
                 sets the length of the lines. This is useful when the drawing does
                 not fit in the console. If None (default), it will try to guess the
                 console width using ``shutil.get_terminal_size()``. However, if
                 running in jupyter, the default line length is set to 80 characters.
-                In `mpl`, it is the number of (visual) layers before folding.
+                In ``mpl``, it is the number of (visual) layers before folding.
                 Default is 25.
-            ax (matplotlib.axes.Axes): Only used by the `mpl` backend. An optional
-                Axes object to be used for the visualization output. If none is
+            ax: Only used by the `mpl` backend. An optional ``matplotlib.axes.Axes``
+                object to be used for the visualization output. If none is
                 specified, a new matplotlib Figure will be created and used.
                 Additionally, if specified there will be no returned Figure since
                 it is redundant.
-            initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
-                Default is False.
-            cregbundle (bool): Optional. If set True, bundle classical registers.
-                Default is True, except for when ``output`` is set to  ``"text"``.
-            wire_order (list): Optional. A list of integers used to reorder the display
+            initial_state: Adds :math:`|0\rangle` in the beginning of the qubit wires and
+                :math:`0` to classical wires. Default is ``False``.
+            cregbundle: If set to ``True``, bundle classical registers.
+                Default is ``True``, except for when ``output`` is set to  ``"text"``.
+            wire_order: A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
                 in the range 0 to (``num_qubits`` + ``num_clbits``).
-            expr_len (int): Optional. The number of characters to display if an :class:`~.expr.Expr`
+            expr_len: The number of characters to display if an :class:`~.expr.Expr`
                 is used for the condition in a :class:`.ControlFlowOp`. If this number is exceeded,
                 the string will be truncated at that number and '...' added to the end.
 
@@ -2101,13 +1774,13 @@ class QuantumCircuit:
             :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
             :class:`str`:
 
-            * `TextDrawing` (output='text')
+            * ``TextDrawing`` (if ``output='text'``)
                 A drawing that can be printed as ascii art.
-            * `matplotlib.figure.Figure` (output='mpl')
+            * ``matplotlib.figure.Figure`` (if ``output='mpl'``)
                 A matplotlib figure object for the circuit diagram.
-            * `PIL.Image` (output='latex')
+            * ``PIL.Image`` (if ``output='latex``')
                 An in-memory representation of the image of the circuit diagram.
-            * `str` (output='latex_source')
+            * ``str`` (if ``output='latex_source'``)
                 The LaTeX source code for visualizing the circuit diagram.
 
         Raises:
@@ -2119,11 +1792,9 @@ class QuantumCircuit:
                :include-source:
 
                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-               q = QuantumRegister(1)
-               c = ClassicalRegister(1)
-               qc = QuantumCircuit(q, c)
-               qc.h(q)
-               qc.measure(q, c)
+               qc = QuantumCircuit(1, 1)
+               qc.h(0)
+               qc.measure(0, 0)
                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
@@ -2407,11 +2078,21 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the specified name
         """
         cpy = self.copy_empty_like(name)
+        cpy._data = self._data.copy()
 
-        operation_copies = {
-            id(instruction.operation): instruction.operation.copy() for instruction in self._data
-        }
+        # The special global-phase sentinel doesn't need copying, but it's
+        # added here to ensure it's recognised. The global phase itself was
+        # already copied over in `copy_empty_like`.
+        operation_copies = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
+        def memo_copy(op):
+            if (out := operation_copies.get(id(op))) is not None:
+                return out
+            copied = op.copy()
+            operation_copies[id(op)] = copied
+            return copied
+
+        cpy._data.map_ops(memo_copy)
         cpy._parameter_table = ParameterTable(
             {
                 param: ParameterReferences(
@@ -2421,13 +2102,6 @@ class QuantumCircuit:
                 for param in self._parameter_table
             }
         )
-
-        cpy._data.reserve(len(self._data))
-        cpy._data.extend(
-            instruction.replace(operation=operation_copies[id(instruction.operation)])
-            for instruction in self._data
-        )
-
         return cpy
 
     def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
@@ -2437,14 +2111,6 @@ class QuantumCircuit:
             * name, calibrations and other metadata
             * global phase
             * all the qubits and clbits, including the registers
-
-        .. warning::
-
-            If the circuit contains any local variable declarations (those added by the
-            ``declarations`` argument to the circuit constructor, or using :meth:`add_var`), they
-            will be **uninitialized** in the output circuit.  You will need to manually add store
-            instructions for them (see :class:`.Store` and :meth:`.QuantumCircuit.store`) to
-            initialize them.
 
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
@@ -2465,14 +2131,11 @@ class QuantumCircuit:
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
-        # Note that this causes the local variables to be uninitialised, because the stores are not
-        # copied.  This can leave the circuit in a potentially dangerous state for users if they
-        # don't re-add initialiser stores.
-        cpy._vars_local = self._vars_local.copy()
-        cpy._vars_input = self._vars_input.copy()
-        cpy._vars_capture = self._vars_capture.copy()
-
         cpy._parameter_table = ParameterTable()
+        for parameter in getattr(cpy.global_phase, "parameters", ()):
+            cpy._parameter_table[parameter] = ParameterReferences(
+                [(ParameterTable.GLOBAL_PHASE, None)]
+            )
         cpy._data = CircuitData(self._data.qubits, self._data.clbits)
 
         cpy._calibrations = copy.deepcopy(self._calibrations)
@@ -2489,6 +2152,8 @@ class QuantumCircuit:
         """
         self._data.clear()
         self._parameter_table.clear()
+        # Repopulate the parameter table with any phase symbols.
+        self.global_phase = self.global_phase
 
     def _create_creg(self, length: int, name: str) -> ClassicalRegister:
         """Creates a creg, checking if ClassicalRegister with same name exists"""
@@ -2524,31 +2189,6 @@ class QuantumCircuit:
         from .reset import Reset
 
         return self.append(Reset(), [qubit], [])
-
-    def store(self, lvalue: typing.Any, rvalue: typing.Any, /) -> InstructionSet:
-        """Store the result of the given runtime classical expression ``rvalue`` in the memory
-        location defined by ``lvalue``.
-
-        Typically ``lvalue`` will be a :class:`~.expr.Var` node and ``rvalue`` will be some
-        :class:`~.expr.Expr` to write into it, but anything that :func:`.expr.lift` can raise to an
-        :class:`~.expr.Expr` is permissible in both places, and it will be called on them.
-
-        Args:
-            lvalue: a valid specifier for a memory location in the circuit.  This will typically be
-                a :class:`~.expr.Var` node, but you can also write to :class:`.Clbit` or
-                :class:`.ClassicalRegister` memory locations if your hardware supports it.  The
-                memory location must already be present in the circuit.
-            rvalue: a runtime classical expression whose result should be written into the given
-                memory location.
-
-        .. seealso::
-            :class:`~.circuit.Store`
-                The backing :class:`~.circuit.Instruction` class that represents this operation.
-
-            :meth:`add_var`
-                Create a new variable in the circuit that can be written to with this method.
-        """
-        return self.append(Store(expr.lift(lvalue), expr.lift(rvalue)), (), ())
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
@@ -2744,6 +2384,8 @@ class QuantumCircuit:
         # Clear instruction info
         circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
         circ._parameter_table.clear()
+        # Repopulate the parameter table with any global-phase entries.
+        circ.global_phase = circ.global_phase
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -2825,9 +2467,21 @@ class QuantumCircuit:
         Args:
             angle (float, ParameterExpression): radians
         """
-        if not (isinstance(angle, ParameterExpression) and angle.parameters):
-            # Set the phase to the [0, 2π) interval
-            angle = float(angle) % (2 * np.pi)
+        # If we're currently parametric, we need to throw away the references.  This setter is
+        # called by some subclasses before the inner `_global_phase` is initialised.
+        global_phase_reference = (ParameterTable.GLOBAL_PHASE, None)
+        if isinstance(previous := getattr(self, "_global_phase", None), ParameterExpression):
+            self._parameters = None
+            self._parameter_table.discard_references(previous, global_phase_reference)
+
+        if isinstance(angle, ParameterExpression) and angle.parameters:
+            for parameter in angle.parameters:
+                if parameter not in self._parameter_table:
+                    self._parameters = None
+                    self._parameter_table[parameter] = ParameterReferences(())
+                self._parameter_table[parameter].add(global_phase_reference)
+        else:
+            angle = _normalize_global_phase(angle)
         if self._control_flow_scopes:
             self._control_flow_scopes[-1].global_phase = angle
         else:
@@ -2901,10 +2555,7 @@ class QuantumCircuit:
     @property
     def num_parameters(self) -> int:
         """The number of parameter objects in the circuit."""
-        # Avoid a (potential) object creation if we can.
-        if self._parameters is not None:
-            return len(self._parameters)
-        return len(self._unsorted_parameters())
+        return len(self._parameter_table)
 
     def _unsorted_parameters(self) -> set[Parameter]:
         """Efficiently get all parameters in the circuit, without any sorting overhead.
@@ -2917,11 +2568,7 @@ class QuantumCircuit:
         """
         # This should be free, by accessing the actual backing data structure of the table, but that
         # means that we need to copy it if adding keys from the global phase.
-        parameters = self._parameter_table.get_keys()
-        if isinstance(self.global_phase, ParameterExpression):
-            # Deliberate copy.
-            parameters = parameters | self.global_phase.parameters
-        return parameters
+        return self._parameter_table.get_keys()
 
     @overload
     def assign_parameters(
@@ -2955,7 +2602,7 @@ class QuantumCircuit:
     ) -> Optional["QuantumCircuit"]:
         """Assign parameters to new parameters or values.
 
-        If ``parameters`` is passed as a dictionary, the keys must be :class:`.Parameter`
+        If ``parameters`` is passed as a dictionary, the keys should be :class:`.Parameter`
         instances in the current circuit. The values of the dictionary can either be numeric values
         or new parameter objects.
 
@@ -2965,6 +2612,16 @@ class QuantumCircuit:
 
         The values can be assigned to the current circuit object or to a copy of it.
 
+        .. note::
+            When ``parameters`` is given as a mapping, it is permissible to have keys that are
+            strings of the parameter names; these will be looked up using :meth:`get_parameter`.
+            You can also have keys that are :class:`.ParameterVector` instances, and in this case,
+            the dictionary value should be a sequence of values of the same length as the vector.
+
+            If you use either of these cases, you must leave the setting ``flat_input=False``;
+            changing this to ``True`` enables the fast path, where all keys must be
+            :class:`.Parameter` instances.
+
         Args:
             parameters: Either a dictionary or iterable specifying the new parameter values.
             inplace: If False, a copy of the circuit with the bound parameters is returned.
@@ -2972,7 +2629,9 @@ class QuantumCircuit:
             flat_input: If ``True`` and ``parameters`` is a mapping type, it is assumed to be
                 exactly a mapping of ``{parameter: value}``.  By default (``False``), the mapping
                 may also contain :class:`.ParameterVector` keys that point to a corresponding
-                sequence of values, and these will be unrolled during the mapping.
+                sequence of values, and these will be unrolled during the mapping, or string keys,
+                which will be converted to :class:`.Parameter` instances using
+                :meth:`get_parameter`.
             strict: If ``False``, any parameters given in the mapping that are not used in the
                 circuit will be ignored.  If ``True`` (the default), an error will be raised
                 indicating a logic error.
@@ -3073,7 +2732,12 @@ class QuantumCircuit:
             )
             for operation, index in references:
                 seen_operations[id(operation)] = operation
-                assignee = operation.params[index]
+                if operation is ParameterTable.GLOBAL_PHASE:
+                    assignee = target.global_phase
+                    validate = _normalize_global_phase
+                else:
+                    assignee = operation.params[index]
+                    validate = operation.validate_parameter
                 if isinstance(assignee, ParameterExpression):
                     new_parameter = assignee.assign(to_bind, bound_value)
                     for parameter in update_parameters:
@@ -3081,15 +2745,7 @@ class QuantumCircuit:
                             target._parameter_table[parameter] = ParameterReferences(())
                         target._parameter_table[parameter].add((operation, index))
                     if not new_parameter.parameters:
-                        if new_parameter.is_real():
-                            new_parameter = (
-                                int(new_parameter)
-                                if new_parameter._symbol_expr.is_integer
-                                else float(new_parameter)
-                            )
-                        else:
-                            new_parameter = complex(new_parameter)
-                        new_parameter = operation.validate_parameter(new_parameter)
+                        new_parameter = validate(new_parameter.numeric())
                 elif isinstance(assignee, QuantumCircuit):
                     new_parameter = assignee.assign_parameters(
                         {to_bind: bound_value}, inplace=False, flat_input=True
@@ -3099,7 +2755,12 @@ class QuantumCircuit:
                         f"Saw an unknown type during symbolic binding: {assignee}."
                         " This may indicate an internal logic error in symbol tracking."
                     )
-                operation.params[index] = new_parameter
+                if operation is ParameterTable.GLOBAL_PHASE:
+                    # We've already handled parameter table updates in bulk, so we need to skip the
+                    # public setter trying to do it again.
+                    target._global_phase = new_parameter
+                else:
+                    operation.params[index] = new_parameter
 
         # After we've been through everything at the top level, make a single visit to each
         # operation we've seen, rebinding its definition if necessary.
@@ -3110,12 +2771,6 @@ class QuantumCircuit:
                 definition.assign_parameters(
                     parameter_binds.mapping, inplace=True, flat_input=True, strict=False
                 )
-
-        if isinstance(target.global_phase, ParameterExpression):
-            new_phase = target.global_phase
-            for parameter in new_phase.parameters & parameter_binds.mapping.keys():
-                new_phase = new_phase.assign(parameter, parameter_binds.mapping[parameter])
-            target.global_phase = new_phase
 
         # Finally, assign the parameters inside any of the calibrations.  We don't track these in
         # the `ParameterTable`, so we manually reconstruct things.
@@ -3130,9 +2785,9 @@ class QuantumCircuit:
                 for to_bind in contained:
                     parameter = parameter.assign(to_bind, parameter_binds.mapping[to_bind])
                 if not parameter.parameters:
-                    parameter = (
-                        int(parameter) if parameter._symbol_expr.is_integer else float(parameter)
-                    )
+                    parameter = parameter.numeric()
+                    if isinstance(parameter, complex):
+                        raise TypeError(f"Calibration cannot use complex number: '{parameter}'")
                 new_parameters[i] = parameter
                 modified = True
             if modified:
@@ -3154,9 +2809,8 @@ class QuantumCircuit:
         )
         return None if inplace else target
 
-    @staticmethod
     def _unroll_param_dict(
-        parameter_binds: Mapping[Parameter, ParameterValueType]
+        self, parameter_binds: Mapping[Parameter, ParameterValueType]
     ) -> Mapping[Parameter, ParameterValueType]:
         out = {}
         for parameter, value in parameter_binds.items():
@@ -3167,44 +2821,11 @@ class QuantumCircuit:
                         f" but was assigned to {len(value)} values."
                     )
                 out.update(zip(parameter, value))
+            elif isinstance(parameter, str):
+                out[self.get_parameter(parameter)] = value
             else:
                 out[parameter] = value
         return out
-
-    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
-    def bind_parameters(
-        self, values: Union[Mapping[Parameter, float], Sequence[float]]
-    ) -> "QuantumCircuit":
-        """Assign numeric parameters to values yielding a new circuit.
-
-        If the values are given as list or array they are bound to the circuit in the order
-        of :attr:`parameters` (see the docstring for more details).
-
-        To assign new Parameter objects or bind the values in-place, without yielding a new
-        circuit, use the :meth:`assign_parameters` method.
-
-        Args:
-            values: ``{parameter: value, ...}`` or ``[value1, value2, ...]``
-
-        Raises:
-            CircuitError: If values is a dict and contains parameters not present in the circuit.
-            TypeError: If values contains a ParameterExpression.
-
-        Returns:
-            Copy of self with assignment substitution.
-        """
-        if isinstance(values, dict):
-            if any(isinstance(value, ParameterExpression) for value in values.values()):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
-        else:
-            if any(isinstance(value, ParameterExpression) for value in values):
-                raise TypeError(
-                    "Found ParameterExpression in values; use assign_parameters() instead."
-                )
-            return self.assign_parameters(values)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
@@ -3219,13 +2840,15 @@ class QuantumCircuit:
         """
         from .barrier import Barrier
 
-        qubits = (
+        if qargs:
             # This uses a `dict` not a `set` to guarantee a deterministic order to the arguments.
-            list({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
-            if qargs
-            else self.qubits.copy()
-        )
-        return self.append(Barrier(len(qubits), label=label), qubits, [])
+            qubits = tuple({q: None for qarg in qargs for q in self.qbit_argument_conversion(qarg)})
+            return self.append(CircuitInstruction(Barrier(len(qubits), label=label), qubits, ()))
+        else:
+            qubits = self.qubits.copy()
+            return self._current_scope().append(
+                CircuitInstruction(Barrier(len(qubits), label=label), qubits, ())
+            )
 
     def delay(
         self,
@@ -3249,32 +2872,9 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        qubits: list[QubitSpecifier] = []
-        if qarg is None:  # -> apply delays to all qubits
-            for q in self.qubits:
-                qubits.append(q)
-        else:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, (range, tuple)):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
-        instructions = InstructionSet(
-            resource_requester=self._current_scope().resolve_classical_resource
-        )
-        for q in qubits:
-            inst: tuple[
-                Instruction, Sequence[QubitSpecifier] | None, Sequence[ClbitSpecifier] | None
-            ] = (Delay(duration, unit), [q], [])
-            self.append(*inst)
-            instructions.add(*inst)
-        return instructions
+        if qarg is None:
+            qarg = self.qubits
+        return self.append(Delay(duration, unit=unit), [qarg], [])
 
     def h(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.
@@ -3318,23 +2918,6 @@ class QuantumCircuit:
         return self.append(
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Use QuantumCircuit.id as direct replacement.",
-    )
-    def i(self, qubit: QubitSpecifier) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.IGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            qubit: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-        """
-        return self.id(qubit)
 
     def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
@@ -3920,33 +3503,6 @@ class QuantumCircuit:
             [],
         )
 
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Use QuantumCircuit.cswap as direct replacement.",
-    )
-    def fredkin(
-        self,
-        control_qubit: QubitSpecifier,
-        target_qubit1: QubitSpecifier,
-        target_qubit2: QubitSpecifier,
-    ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.CSwapGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubit: The qubit(s) used as the control.
-            target_qubit1: The qubit(s) targeted by the gate.
-            target_qubit2: The qubit(s) targeted by the gate.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.cswap: the same function with a different name.
-        """
-        return self.cswap(control_qubit, target_qubit1, target_qubit2)
-
     def sx(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXGate`.
 
@@ -4144,34 +3700,6 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
-    def cnot(
-        self,
-        control_qubit: QubitSpecifier,
-        target_qubit: QubitSpecifier,
-        label: str | None = None,
-        ctrl_state: str | int | None = None,
-    ) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.CXGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubit: The qubit(s) used as the control.
-            target_qubit: The qubit(s) targeted by the gate.
-            label: The string label of the gate in the circuit.
-            ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.cx: the same function with a different name.
-        """
-        return self.cx(control_qubit, target_qubit, label, ctrl_state)
-
     def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
@@ -4217,30 +3745,6 @@ class QuantumCircuit:
             [control_qubit1, control_qubit2, target_qubit],
             [],
         )
-
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
-    def toffoli(
-        self,
-        control_qubit1: QubitSpecifier,
-        control_qubit2: QubitSpecifier,
-        target_qubit: QubitSpecifier,
-    ) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubit1: The qubit(s) used as the first control.
-            control_qubit2: The qubit(s) used as the second control.
-            target_qubit: The qubit(s) targeted by the gate.
-
-        Returns:
-            A handle to the instructions created.
-
-        See Also:
-            QuantumCircuit.ccx: the same gate with a different name.
-        """
-        return self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     def mcx(
         self,
@@ -4319,44 +3823,6 @@ class QuantumCircuit:
             ancilla_qubits = []
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
-
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
-    def mct(
-        self,
-        control_qubits: Sequence[QubitSpecifier],
-        target_qubit: QubitSpecifier,
-        ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
-        mode: str = "noancilla",
-    ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.MCXGate`.
-
-        The multi-cX gate can be implemented using different techniques, which use different numbers
-        of ancilla qubits and have varying circuit depth. These modes are:
-
-        - ``'noancilla'``: Requires 0 ancilla qubits.
-        - ``'recursion'``: Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
-        - ``'v-chain'``: Requires 2 less ancillas than the number of control qubits.
-        - ``'v-chain-dirty'``: Same as for the clean ancillas (but the circuit will be longer).
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            control_qubits: The qubits used as the controls.
-            target_qubit: The qubit(s) targeted by the gate.
-            ancilla_qubits: The qubits used as the ancillae, if the mode requires them.
-            mode: The choice of mode, explained further above.
-
-        Returns:
-            A handle to the instructions created.
-
-        Raises:
-            ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
-            AttributeError: if no ancilla qubits are passed, but some are needed.
-
-        See Also:
-            QuantumCircuit.mcx: the same gate with a different name.
-        """
-        return self.mcx(control_qubits, target_qubit, ancilla_qubits, mode)
 
     def y(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.YGate`.
@@ -4494,19 +3960,131 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
+    def prepare_state(
+        self,
+        state: Statevector | Sequence[complex] | str | int,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        label: str | None = None,
+        normalize: bool = False,
+    ) -> InstructionSet:
+        r"""Prepare qubits in a specific state.
+
+        This class implements a state preparing unitary. Unlike
+        :meth:`.initialize` it does not reset the qubits first.
+
+        Args:
+            state: The state to initialize to, can be either of the following.
+
+                * Statevector or vector of complex amplitudes to initialize to.
+                * Labels of basis states of the Pauli eigenstates Z, X, Y. See
+                  :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
+                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
+                * An integer that is used as a bitmap indicating which qubits to initialize to
+                  :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
+                  2 to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
+
+            qubits: Qubits to initialize. If ``None`` the initialization is applied to all qubits in
+                the circuit.
+            label: An optional label for the gate
+            normalize: Whether to normalize an input array to a unit vector.
+
+        Returns:
+            A handle to the instruction that was just initialized
+
+        Examples:
+            Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
+
+            .. code-block::
+
+            import numpy as np
+            from qiskit import QuantumCircuit
+
+            circuit = QuantumCircuit(1)
+            circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+            circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌─────────────────────────────────────┐
+                q_0: ┤ State Preparation(0.70711,-0.70711) ├
+                     └─────────────────────────────────────┘
+
+
+            Prepare from a string two qubits in the state :math:`|10\rangle`.
+            The order of the labels is reversed with respect to qubit index.
+            More information about labels for basis states are in
+            :meth:`.Statevector.from_label`.
+
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.prepare_state('01', circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌─────────────────────────┐
+                q_0: ┤0                        ├
+                     │  State Preparation(0,1) │
+                q_1: ┤1                        ├
+                     └─────────────────────────┘
+
+
+            Initialize two qubits from an array of complex amplitudes
+            .. code-block::
+
+                import numpy as np
+                from qiskit import QuantumCircuit
+
+                circuit = QuantumCircuit(2)
+                circuit.prepare_state([0, 1/np.sqrt(2), -1.j/np.sqrt(2), 0], circuit.qubits)
+                circuit.draw()
+
+            output:
+
+            .. parsed-literal::
+
+                     ┌───────────────────────────────────────────┐
+                q_0: ┤0                                          ├
+                     │  State Preparation(0,0.70711,-0.70711j,0) │
+                q_1: ┤1                                          ├
+                     └───────────────────────────────────────────┘
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library.data_preparation import StatePreparation
+
+        if qubits is None:
+            qubits = self.qubits
+        elif isinstance(qubits, (int, np.integer, slice, Qubit)):
+            qubits = [qubits]
+
+        num_qubits = len(qubits) if isinstance(state, int) else None
+
+        return self.append(
+            StatePreparation(state, num_qubits, label=label, normalize=normalize), qubits
+        )
+
     def initialize(
         self,
-        params: Sequence[complex] | str | int,
+        params: Statevector | Sequence[complex] | str | int,
         qubits: Sequence[QubitSpecifier] | None = None,
         normalize: bool = False,
     ):
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`qiskit.extensions.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`qiskit.extensions.Initialize` instruction.
+        :class:`~qiskit.circuit.library.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.
@@ -4647,515 +4225,6 @@ class QuantumCircuit:
                 qubits = [qubits]
 
         return self.append(gate, qubits, [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, compose the circuit with a qiskit.circuit.library.Diagonal circuit.",
-        pending=True,
-    )
-    def diagonal(self, diag, qubit):
-        """Attach a diagonal gate to a circuit.
-
-        The decomposition is based on Theorem 7 given in "Synthesis of Quantum Logic Circuits" by
-        Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
-
-        Args:
-            diag (list): list of the 2^k diagonal entries (for a diagonal gate on k qubits).
-                Must contain at least two entries
-            qubit (QuantumRegister | list): list of k qubits the diagonal is
-                acting on (the order of the qubits specifies the computational basis in which the
-                diagonal gate is provided: the first element in diag acts on the state where all
-                the qubits in q are in the state 0, the second entry acts on the state where all
-                the qubits q[1],...,q[k-1] are in the state zero and q[0] is in the state 1,
-                and so on)
-
-        Returns:
-            QuantumCircuit: the diagonal gate which was attached to the circuit.
-
-        Raises:
-            QiskitError: if the list of the diagonal entries or the qubit list is in bad format;
-                if the number of diagonal entries is not 2^k, where k denotes the number of qubits
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.diagonal import DiagonalGate
-
-        if isinstance(qubit, QuantumRegister):
-            qubit = qubit[:]
-        # Check if q has type "list"
-        if not isinstance(qubit, list):
-            raise QiskitError(
-                "The qubits must be provided as a list (also if there is only one qubit)."
-            )
-        # Check if diag has type "list"
-        if not isinstance(diag, list):
-            raise QiskitError("The diagonal entries are not provided in a list.")
-        num_action_qubits = math.log2(len(diag))
-        if not len(qubit) == num_action_qubits:
-            raise QiskitError(
-                "The number of diagonal entries does not correspond to the number of qubits."
-            )
-
-        return self.append(DiagonalGate(diag), qubit)
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.Isometry to the circuit.",
-        pending=True,
-    )
-    def iso(
-        self,
-        isometry,
-        q_input,
-        q_ancillas_for_output,
-        q_ancillas_zero=None,
-        q_ancillas_dirty=None,
-        epsilon=1e-10,
-    ):
-        """
-        Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
-        this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
-        on n qubits (m=0).
-        The decomposition used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
-
-        Args:
-            isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
-                dimension 2^n×2^m with orthonormal columns (given in the computational basis
-                specified by the order of the ancillas and the input qubits, where the ancillas
-                are considered to be more significant than the input qubits.).
-            q_input (QuantumRegister | list[Qubit]): list of m qubits where the input
-                to the isometry is fed in (empty list for state preparation).
-            q_ancillas_for_output (QuantumRegister | list[Qubit]): list of n-m ancilla
-                qubits that are used for the output of the isometry and which are assumed to start
-                in the zero state. The qubits are listed with increasing significance.
-            q_ancillas_zero (QuantumRegister | list[Qubit]): list of ancilla qubits
-                which are assumed to start in the zero state. Default is q_ancillas_zero = None.
-            q_ancillas_dirty (QuantumRegister | list[Qubit]): list of ancilla qubits
-                which can start in an arbitrary state. Default is q_ancillas_dirty = None.
-            epsilon (float): error tolerance of calculations.
-                Default is epsilon = _EPS.
-
-        Returns:
-            QuantumCircuit: the isometry is attached to the quantum circuit.
-
-        Raises:
-            QiskitError: if the array is not an isometry of the correct size corresponding to
-                the provided number of qubits.
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.isometry import Isometry
-
-        if q_input is None:
-            q_input = []
-        if q_ancillas_for_output is None:
-            q_ancillas_for_output = []
-        if q_ancillas_zero is None:
-            q_ancillas_zero = []
-        if q_ancillas_dirty is None:
-            q_ancillas_dirty = []
-
-        if isinstance(q_input, QuantumRegister):
-            q_input = q_input[:]
-        if isinstance(q_ancillas_for_output, QuantumRegister):
-            q_ancillas_for_output = q_ancillas_for_output[:]
-        if isinstance(q_ancillas_zero, QuantumRegister):
-            q_ancillas_zero = q_ancillas_zero[:]
-        if isinstance(q_ancillas_dirty, QuantumRegister):
-            q_ancillas_dirty = q_ancillas_dirty[:]
-
-        return self.append(
-            Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty), epsilon=epsilon),
-            q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty,
-        )
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.HamiltonianGate to the circuit.",
-        pending=True,
-    )
-    def hamiltonian(self, operator, time, qubits, label=None):
-        """Apply hamiltonian evolution to qubits.
-
-        This gate resolves to a :class:`~.library.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
-        which can be decomposed into basis gates if it is 2 qubits or less, or
-        simulated directly in Aer for more qubits.
-
-        Args:
-            operator (matrix or Operator): a hermitian operator.
-            time (float or ParameterExpression): time evolution parameter.
-            qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
-                transformation to.
-            label (str): unitary name for backend [Default: None].
-
-        Returns:
-            QuantumCircuit: The quantum circuit.
-        """
-        # pylint: disable=cyclic-import
-        from .library.hamiltonian_gate import HamiltonianGate
-
-        if not isinstance(qubits, list):
-            qubits = [qubits]
-
-        return self.append(HamiltonianGate(data=operator, time=time, label=label), qubits, [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.UCGate to the circuit.",
-        pending=True,
-    )
-    def uc(self, gate_list, q_controls, q_target, up_to_diagonal=False):
-        """Attach a uniformly controlled gates (also called multiplexed gates) to a circuit.
-
-        The decomposition was introduced by Bergholm et al. in
-        https://arxiv.org/pdf/quant-ph/0410066.pdf.
-
-        Args:
-            gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}],
-                where each single-qubit unitary U_i is a given as a 2*2 array
-            q_controls (QuantumRegister | list[(QuantumRegister,int)]): list of k control qubits.
-                The qubits are ordered according to their significance in the computational basis.
-                For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)),
-                the unitary U_0 is performed if q[1] and q[2] are in the state zero, U_1 is
-                performed if q[2] is in the state zero and q[1] is in the state one, and so on
-            q_target (QuantumRegister | tuple(QuantumRegister, int)):  target qubit, where we act on with
-                the single-qubit gates.
-            up_to_diagonal (bool): If set to True, the uniformly controlled gate is decomposed up
-                to a diagonal gate, i.e. a unitary u' is implemented such that there exists a
-                diagonal gate d with u = d.dot(u'), where the unitary u describes the uniformly
-                controlled gate
-
-        Returns:
-            QuantumCircuit: the uniformly controlled gate is attached to the circuit.
-
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.uc import UCGate
-
-        if isinstance(q_controls, QuantumRegister):
-            q_controls = q_controls[:]
-        if isinstance(q_target, QuantumRegister):
-            q_target = q_target[:]
-            if len(q_target) == 1:
-                q_target = q_target[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if q_controls has type "list"
-        if not isinstance(q_controls, list):
-            raise QiskitError(
-                "The control qubits must be provided as a list"
-                " (also if there is only one control qubit)."
-            )
-        # Check if gate_list has type "list"
-        if not isinstance(gate_list, list):
-            raise QiskitError("The single-qubit unitaries are not provided in a list.")
-            # Check if number of gates in gate_list is a positive power of two
-        num_contr = math.log2(len(gate_list))
-        if num_contr < 0 or not num_contr.is_integer():
-            raise QiskitError(
-                "The number of controlled single-qubit gates is not a non negative power of 2."
-            )
-        # Check if number of control qubits does correspond to the number of single-qubit rotations
-        if num_contr != len(q_controls):
-            raise QiskitError(
-                "Number of controlled gates does not correspond to the number of control qubits."
-            )
-        return self.append(UCGate(gate_list, up_to_diagonal), [q_target] + q_controls)
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.UCRXGate to the circuit.",
-        pending=True,
-    )
-    def ucrx(
-        self,
-        angle_list: list[float],
-        q_controls: Sequence[QubitSpecifier],
-        q_target: QubitSpecifier,
-    ):
-        r"""Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
-
-        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
-
-        Args:
-            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-            q_controls (Sequence[QubitSpecifier]): list of k control qubits
-                (or empty list if no controls). The control qubits are ordered according to their
-                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
-                (with ``q = QuantumRegister(2)``), the rotation ``Rx(a_0)`` is performed if ``q[0]``
-                and ``q[1]`` are in the state zero, the rotation ``Rx(a_1)`` is performed if ``q[0]``
-                is in the state one and ``q[1]`` is in the state zero, and so on
-            q_target (QubitSpecifier): target qubit, where we act on with
-                the single-qubit rotation gates
-
-        Returns:
-            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
-
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.ucrx import UCRXGate
-
-        if isinstance(q_controls, QuantumRegister):
-            q_controls = q_controls[:]
-        if isinstance(q_target, QuantumRegister):
-            q_target = q_target[:]
-            if len(q_target) == 1:
-                q_target = q_target[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if q_controls has type "list"
-        if not isinstance(angle_list, list):
-            raise QiskitError("The angles must be provided as a list.")
-        num_contr = math.log2(len(angle_list))
-        if num_contr < 0 or not num_contr.is_integer():
-            raise QiskitError(
-                "The number of controlled rotation gates is not a non-negative power of 2."
-            )
-        # Check if number of control qubits does correspond to the number of rotations
-        if num_contr != len(q_controls):
-            raise QiskitError(
-                "Number of controlled rotations does not correspond to the number of control-qubits."
-            )
-        return self.append(UCRXGate(angle_list), [q_target] + q_controls, [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.UCRYGate to the circuit.",
-        pending=True,
-    )
-    def ucry(
-        self,
-        angle_list: list[float],
-        q_controls: Sequence[QubitSpecifier],
-        q_target: QubitSpecifier,
-    ):
-        r"""Attach a uniformly controlled (also called multiplexed) Ry rotation gate to a circuit.
-
-        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
-
-        Args:
-            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-            q_controls (Sequence[QubitSpecifier]): list of k control qubits
-                (or empty list if no controls). The control qubits are ordered according to their
-                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
-                (with ``q = QuantumRegister(2)``), the rotation ``Ry(a_0)`` is performed if ``q[0]``
-                and ``q[1]`` are in the state zero, the rotation ``Ry(a_1)`` is performed if ``q[0]``
-                is in the state one and ``q[1]`` is in the state zero, and so on
-            q_target (QubitSpecifier): target qubit, where we act on with
-                the single-qubit rotation gates
-
-        Returns:
-            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
-
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.ucry import UCRYGate
-
-        if isinstance(q_controls, QuantumRegister):
-            q_controls = q_controls[:]
-        if isinstance(q_target, QuantumRegister):
-            q_target = q_target[:]
-            if len(q_target) == 1:
-                q_target = q_target[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if q_controls has type "list"
-        if not isinstance(angle_list, list):
-            raise QiskitError("The angles must be provided as a list.")
-        num_contr = math.log2(len(angle_list))
-        if num_contr < 0 or not num_contr.is_integer():
-            raise QiskitError(
-                "The number of controlled rotation gates is not a non-negative power of 2."
-            )
-        # Check if number of control qubits does correspond to the number of rotations
-        if num_contr != len(q_controls):
-            raise QiskitError(
-                "Number of controlled rotations does not correspond to the number of control-qubits."
-            )
-        return self.append(UCRYGate(angle_list), [q_target] + q_controls, [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="Instead, append a qiskit.circuit.library.UCRZGate to the circuit.",
-        pending=True,
-    )
-    def ucrz(
-        self,
-        angle_list: list[float],
-        q_controls: Sequence[QubitSpecifier],
-        q_target: QubitSpecifier,
-    ):
-        r"""Attach a uniformly controlled (also called multiplexed) Rz rotation gate to a circuit.
-
-        The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
-
-        Args:
-            angle_list (list[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-            q_controls (Sequence[QubitSpecifier]): list of k control qubits
-                (or empty list if no controls). The control qubits are ordered according to their
-                significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
-                (with ``q = QuantumRegister(2)``), the rotation ``Rz(a_0)`` is performed if ``q[0]``
-                and ``q[1]`` are in the state zero, the rotation ``Rz(a_1)`` is performed if ``q[0]``
-                is in the state one and ``q[1]`` is in the state zero, and so on
-            q_target (QubitSpecifier): target qubit, where we act on with
-                the single-qubit rotation gates
-
-        Returns:
-            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
-
-        Raises:
-            QiskitError: if the list number of control qubits does not correspond to the provided
-                number of single-qubit unitaries; if an input is of the wrong type
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.ucrz import UCRZGate
-
-        if isinstance(q_controls, QuantumRegister):
-            q_controls = q_controls[:]
-        if isinstance(q_target, QuantumRegister):
-            q_target = q_target[:]
-            if len(q_target) == 1:
-                q_target = q_target[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if q_controls has type "list"
-        if not isinstance(angle_list, list):
-            raise QiskitError("The angles must be provided as a list.")
-        num_contr = math.log2(len(angle_list))
-        if num_contr < 0 or not num_contr.is_integer():
-            raise QiskitError(
-                "The number of controlled rotation gates is not a non-negative power of 2."
-            )
-        # Check if number of control qubits does correspond to the number of rotations
-        if num_contr != len(q_controls):
-            raise QiskitError(
-                "Number of controlled rotations does not correspond to the number of control-qubits."
-            )
-        return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
-
-    @deprecate_func(
-        since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method."
-    )
-    def squ(
-        self,
-        unitary_matrix,
-        qubit,
-        mode="ZYZ",
-        up_to_diagonal=False,
-    ):
-        """Decompose an arbitrary 2*2 unitary into three rotation gates.
-
-        Note that the decomposition is up to a global phase shift.
-        (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
-        "Quantum computation and quantum information".)
-
-        Args:
-            unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
-            qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
-            mode (string): determines the used decomposition by providing the rotation axes.
-                The allowed modes are: "ZYZ" (default)
-            up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
-                a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
-                diagonal gate d with u = d.dot(u')
-
-        Returns:
-            InstructionSet: The single-qubit unitary instruction attached to the circuit.
-
-        Raises:
-            QiskitError: if the format is wrong; if the array u is not unitary
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
-
-        if isinstance(qubit, QuantumRegister):
-            qubit = qubit[:]
-            if len(qubit) == 1:
-                qubit = qubit[0]
-            else:
-                raise QiskitError(
-                    "The target qubit is a QuantumRegister containing more than one qubit."
-                )
-        # Check if there is one target qubit provided
-        if not isinstance(qubit, Qubit):
-            raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            squ = SingleQubitUnitary(unitary_matrix, mode, up_to_diagonal)
-
-        return self.append(squ, [qubit], [])
-
-    @deprecate_func(
-        since="0.45.0",
-        additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
-        "instructions, see "
-        "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
-    )
-    def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
-        """Take a statevector snapshot of the internal simulator representation.
-        Works on all qubits, and prevents reordering (like barrier).
-
-        For other types of snapshots use the Snapshot extension directly.
-
-        Args:
-            label (str): a snapshot label to report the result.
-            snapshot_type (str): the type of the snapshot.
-            qubits (list or None): the qubits to apply snapshot to [Default: None].
-            params (list or None): the parameters for snapshot_type [Default: None].
-
-        Returns:
-            QuantumCircuit: with attached command
-
-        Raises:
-            ExtensionError: malformed command
-        """
-        # pylint: disable-cyclic-import
-        from qiskit.extensions.simulator.snapshot import Snapshot
-        from qiskit.extensions.exceptions import ExtensionError
-
-        # If no qubits are specified we add all qubits so it acts as a barrier
-        # This is needed for full register snapshots like statevector
-        if isinstance(qubits, QuantumRegister):
-            qubits = qubits[:]
-        if not qubits:
-            tuples = []
-            if isinstance(self, QuantumCircuit):
-                for register in self.qregs:
-                    tuples.append(register)
-            if not tuples:
-                raise ExtensionError("no qubits for snapshot")
-            qubits = []
-            for tuple_element in tuples:
-                if isinstance(tuple_element, QuantumRegister):
-                    for j in range(tuple_element.size):
-                        qubits.append(tuple_element[j])
-                else:
-                    qubits.append(tuple_element)
-
-        # catch deprecation warning from instantiating the Snapshot instruction,
-        # as a warning is already triggered from this method
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            snap = Snapshot(
-                label, snapshot_type=snapshot_type, num_qubits=len(qubits), params=params
-            )
-
-        return self.append(snap, qubits)
 
     def _current_scope(self) -> CircuitScopeInterface:
         if self._control_flow_scopes:
@@ -5896,10 +4965,6 @@ class QuantumCircuit:
         return 0  # If there are no instructions over bits
 
 
-# isometry is an alias for iso
-QuantumCircuit.isometry = QuantumCircuit.iso
-
-
 class _OuterCircuitScopeInterface(CircuitScopeInterface):
     # This is an explicit interface-fulfilling object friend of QuantumCircuit that acts as its
     # implementation of the control-flow builder scope methods.
@@ -5916,6 +4981,10 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def append(self, instruction):
         # QuantumCircuit._append is semi-public, so we just call back to it.
         return self.circuit._append(instruction)
+
+    def extend(self, data: CircuitData):
+        self.circuit._data.extend(data)
+        data.foreach_op(self.circuit._track_operation)
 
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
@@ -5940,24 +5009,6 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
-
-    def add_uninitialized_var(self, var):
-        var = self.circuit._prepare_new_var(var, None)
-        self.circuit._vars_local[var.name] = var
-
-    def remove_var(self, var):
-        self.circuit._vars_local.pop(var.name)
-
-    def get_var(self, name):
-        if (out := self.circuit._vars_local.get(name)) is not None:
-            return out
-        if (out := self.circuit._vars_capture.get(name)) is not None:
-            return out
-        return self.circuit._vars_input.get(name)
-
-    def use_var(self, var):
-        if self.get_var(var.name) != var:
-            raise CircuitError(f"'{var}' is not present in this circuit")
 
 
 def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:
@@ -6072,3 +5123,11 @@ def _bit_argument_conversion_scalar(specifier, bit_sequence, bit_set, type_):
         else f"Invalid bit index: '{specifier}' of type '{type(specifier)}'"
     )
     raise CircuitError(message)
+
+
+def _normalize_global_phase(angle):
+    """Return the normalized form of an angle for use in the global phase.  This coerces to float if
+    possible, and fixes to the interval :math:`[0, 2\\pi)`."""
+    if isinstance(angle, ParameterExpression) and angle.parameters:
+        return angle
+    return float(angle) % (2.0 * np.pi)

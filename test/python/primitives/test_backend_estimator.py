@@ -25,16 +25,14 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers import JobV1
-from qiskit.providers.fake_provider import FakeNairobi
+from qiskit.providers.fake_provider import FakeNairobi, GenericBackendV2
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
-BACKENDS = [FakeNairobi(), BackendV2Converter(FakeNairobi()), FakeBackendSimple()]
+BACKENDS = [FakeNairobi(), BackendV2Converter(FakeNairobi()), GenericBackendV2()]
 
 
 class CallbackPass(DummyAP):
@@ -92,7 +90,6 @@ class TestBackendEstimator(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [hamiltonian1], [theta1])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)
