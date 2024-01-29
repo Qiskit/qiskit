@@ -1,10 +1,7 @@
 # This code is part of Qiskit.
 #
-<<<<<<< HEAD
 # (C) Copyright IBM 2017, 2023.
-=======
 # (C) Copyright IBM 2017, 2024.
->>>>>>> b4582a970 (Add fake generic and modify tests (#10266))
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -161,22 +158,6 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertEqual(circuit2, circuit3)
 
-<<<<<<< HEAD
-=======
-    @data(0, 1, 2, 3)
-    def test_num_processes_kwarg_concurrent_default(self, num_processes):
-        """Test that num_processes kwarg works when the system default parallel is false"""
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure_all()
-        target = GenericBackendV2(num_qubits=27).target
-        res = transpile([qc] * 3, target=target, num_processes=num_processes)
-        self.assertIsInstance(res, list)
-        for circ in res:
-            self.assertIsInstance(circ, QuantumCircuit)
-
->>>>>>> b4582a970 (Add fake generic and modify tests (#10266))
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
         """Verify transpile() works with no coupling_map or backend."""
         qr = QuantumRegister(2, "qr")
@@ -2321,22 +2302,6 @@ class TestTranspileParallel(QiskitTestCase):
             self.assertIsInstance(circ, QuantumCircuit)
 
     @data(0, 1, 2, 3)
-<<<<<<< HEAD
-=======
-    def test_parallel_num_processes_kwarg(self, num_processes):
-        """Test that num_processes kwarg works when the system default parallel is true"""
-        qc = QuantumCircuit(2)
-        qc.h(0)
-        qc.cx(0, 1)
-        qc.measure_all()
-        target = GenericBackendV2(num_qubits=27).target
-        res = transpile([qc] * 3, target=target, num_processes=num_processes)
-        self.assertIsInstance(res, list)
-        for circ in res:
-            self.assertIsInstance(circ, QuantumCircuit)
-
-    @data(0, 1, 2, 3)
->>>>>>> b4582a970 (Add fake generic and modify tests (#10266))
     def test_parallel_dispatch(self, opt_level):
         """Test that transpile in parallel works for all optimization levels."""
         backend = FakeRueschlikon()
