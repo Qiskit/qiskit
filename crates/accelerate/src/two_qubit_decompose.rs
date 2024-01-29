@@ -31,6 +31,9 @@ use numpy::PyReadonlyArray2;
 
 use crate::utils;
 
+const PI2: f64 = PI / 2.0;
+const PI4: f64 = PI / 4.0;
+const PI32: f64 = 3.0 * PI2;
 // FIXME: zero and one exist but I cant find the right incantation
 const C0: c64 = c64 { re: 0.0, im: 0.0 };
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
@@ -74,9 +77,6 @@ impl Arg for c64 {
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
-    let pi = PI;
-    let pi2 = PI / 2.0;
-    let pi4 = PI / 4.0;
     let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
     let uup = transform_from_magic_basis(uscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
@@ -86,42 +86,41 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
         .collect();
     darg[3] = -darg[0] - darg[1] - darg[2];
     let mut cs: Vec<_> = (0..3)
-        .map(|i| ((darg[i] + darg[3]) / 2.0).rem_euclid(2.0 * pi))
+        .map(|i| ((darg[i] + darg[3]) / 2.0).rem_euclid(2.0 * PI))
         .collect();
     let cstemp: Vec<f64> = cs
         .iter()
-        .map(|x| x.rem_euclid(pi2))
-        .map(|x| x.min(pi2 - x))
+        .map(|x| x.rem_euclid(PI2))
+        .map(|x| x.min(PI2 - x))
         .collect();
     let mut order = utils::arg_sort(&cstemp);
     (order[0], order[1], order[2]) = (order[1], order[2], order[0]);
     (cs[0], cs[1], cs[2]) = (cs[order[0]], cs[order[1]], cs[order[2]]);
 
     // Flip into Weyl chamber
-    let pi32 = 3.0 * pi2;
-    if cs[0] > pi2 {
-        cs[0] -= pi32;
+    if cs[0] > PI2 {
+        cs[0] -= PI32;
     }
-    if cs[1] > pi2 {
-        cs[1] -= pi32;
+    if cs[1] > PI2 {
+        cs[1] -= PI32;
     }
     let mut conjs = 0;
-    if cs[0] > pi4 {
-        cs[0] = pi2 - cs[0];
+    if cs[0] > PI4 {
+        cs[0] = PI2 - cs[0];
         conjs += 1;
     }
-    if cs[1] > pi4 {
-        cs[1] = pi2 - cs[1];
+    if cs[1] > PI4 {
+        cs[1] = PI2 - cs[1];
         conjs += 1;
     }
-    if cs[2] > pi2 {
-        cs[2] -= pi32;
+    if cs[2] > PI2 {
+        cs[2] -= PI32;
     }
     if conjs == 1 {
-        cs[2] = pi2 - cs[2];
+        cs[2] = PI2 - cs[2];
     }
-    if cs[2] > pi4 {
-        cs[2] -= pi2;
+    if cs[2] > PI4 {
+        cs[2] -= PI2;
     }
     [cs[1], cs[0], cs[2]]
 }
@@ -139,15 +138,14 @@ pub fn _num_basis_gates(
 
 fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) -> usize {
     let [a, b, c] = __weyl_coordinates(unitary);
-    let pi4 = PI / 4.0;
     let traces = [
         c64::new(
             4.0 * (a.cos() * b.cos() * c.cos()),
             4.0 * (a.sin() * b.sin() * c.sin()),
         ),
         c64::new(
-            4.0 * (pi4 - a).cos() * (basis_b - b).cos() * c.cos(),
-            4.0 * (pi4 - a).sin() * (basis_b - b).sin() * c.sin(),
+            4.0 * (PI4 - a).cos() * (basis_b - b).cos() * c.cos(),
+            4.0 * (PI4 - a).sin() * (basis_b - b).sin() * c.sin(),
         ),
         c64::new(4.0 * c.cos(), 0.0),
         c64::new(4.0, 0.0),
