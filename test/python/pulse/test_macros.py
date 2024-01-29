@@ -24,7 +24,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeHanoi, GenericFakeBackend
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeHanoi, GenericBackendV2
 from qiskit.test import QiskitTestCase
 
 
@@ -37,7 +37,7 @@ class TestMeasure(QiskitTestCase):
         self.backend_v1 = FakeHanoi()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
-        self.backend_v2 = GenericFakeBackend(
+        self.backend_v2 = GenericBackendV2(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=27,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
@@ -214,7 +214,7 @@ class TestMeasureAll(QiskitTestCase):
         super().setUp()
         self.backend_v1 = FakeOpenPulse2Q()
         self.inst_map = self.backend_v1.defaults().instruction_schedule_map
-        self.backend_v2 = GenericFakeBackend(
+        self.backend_v2 = GenericBackendV2(
             basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=2,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
