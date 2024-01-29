@@ -21,11 +21,20 @@ import numpy as np
 
 import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 # Single qubit gates supported by ``single_gate_params``.
 SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
 
 
+@deprecate_func(
+    since="0.46.0",
+    removal_timeline="in Qiskit 1.0.0",
+    additional_msg="The qiskit.providers.basicaer module has been superseded "
+    "by qiskit.providers.basic_provider, and all its classes have been renamed "
+    "to follow a new naming convention. "
+    "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+)
 def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
     """Get the matrix for a single qubit.
 
@@ -38,6 +47,7 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
         QiskitError: If a gate outside the supported set is passed in for the
             ``Gate`` argument.
     """
+
     if params is None:
         params = []
 
@@ -73,11 +83,28 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
 _CX_MATRIX = gates.CXGate().to_matrix()
 
 
+@deprecate_func(
+    since="0.46.0",
+    removal_timeline="in Qiskit 1.0.0",
+    additional_msg="The qiskit.providers.basicaer module has been superseded "
+    "by qiskit.providers.basic_provider, and all its classes have been renamed "
+    "to follow a new naming convention. "
+    "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+)
 def cx_gate_matrix():
     """Get the matrix for a controlled-NOT gate."""
+
     return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
 
 
+@deprecate_func(
+    since="0.46.0",
+    removal_timeline="in Qiskit 1.0.0",
+    additional_msg="The qiskit.providers.basicaer module has been superseded "
+    "by qiskit.providers.basic_provider, and all its classes have been renamed "
+    "to follow a new naming convention. "
+    "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+)
 def einsum_matmul_index(gate_indices, number_of_qubits):
     """Return the index string for Numpy.einsum matrix-matrix multiplication.
 
@@ -109,6 +136,14 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
     )
 
 
+@deprecate_func(
+    since="0.46.0",
+    removal_timeline="in Qiskit 1.0.0",
+    additional_msg="The qiskit.providers.basicaer module has been superseded "
+    "by qiskit.providers.basic_provider, and all its classes have been renamed "
+    "to follow a new naming convention. "
+    "Use the function in qiskit.providers.basic_provider.basic_provider_tools instead.",
+)
 def einsum_vecmul_index(gate_indices, number_of_qubits):
     """Return the index string for Numpy.einsum matrix-vector multiplication.
 

@@ -35,7 +35,7 @@ from qiskit.opflow import (
     MatrixExpectation,
     CircuitSampler,
 )
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 
 
 class TestMatrixExpectation(QiskitOpflowTestCase):

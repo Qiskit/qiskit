@@ -23,7 +23,10 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.algorithms import eval_observables
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    QuantumCircuit,
+)
 from qiskit.circuit.library import EfficientSU2
 from qiskit.opflow import (
     PauliSumOp,

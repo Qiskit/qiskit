@@ -13,8 +13,9 @@
 """BasicAer provider integration tests."""
 
 import unittest
+import warnings
 
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.result import Result
 from qiskit.providers.basicaer import BasicAerError
@@ -32,7 +33,9 @@ class TestBasicAerIntegration(QiskitTestCase):
         self._qc2 = QuantumCircuit(qr, cr, name="qc2")
         self._qc1.measure(qr[0], cr[0])
         self.backend = BasicAer.get_backend("qasm_simulator")
-        self._result1 = self.backend.run(self._qc1).result()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            self._result1 = self.backend.run(self._qc1).result()
 
     def test_builtin_simulator_result_fields(self):
         """Test components of a result from a local simulator."""
@@ -51,7 +54,9 @@ class TestBasicAerIntegration(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        job = self.backend.run(qc)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(qc)
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -65,7 +70,9 @@ class TestBasicAerIntegration(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
         qc_extra = QuantumCircuit(qubit_reg, clbit_reg, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
-        job = self.backend.run([qc, qc_extra])
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run([qc, qc_extra])
         result = job.result()
         self.assertIsInstance(result, Result)
 
@@ -74,8 +81,10 @@ class TestBasicAerIntegration(QiskitTestCase):
         qc = QuantumCircuit(50, 1)
         qc.x(0)
         qc.measure(0, 0)
-        with self.assertRaises(BasicAerError):
-            self.backend.run(qc)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            with self.assertRaises(BasicAerError):
+                self.backend.run(qc)
 
 
 if __name__ == "__main__":

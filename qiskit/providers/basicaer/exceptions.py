@@ -15,11 +15,19 @@ Exception for errors raised by Basic Aer.
 """
 
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class BasicAerError(QiskitError):
     """Base class for errors raised by Basic Aer."""
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
+        "Use the new qiskit.providers.basic_provider.BasicProviderError class instead.",
+    )
     def __init__(self, *message):
         """Set the error message."""
         super().__init__(*message)

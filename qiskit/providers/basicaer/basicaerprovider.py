@@ -20,6 +20,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.providers.providerutils import resolve_backend_name, filter_backends
+from qiskit.utils.deprecation import deprecate_func
 
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy
@@ -34,13 +35,21 @@ SIMULATORS = [QasmSimulatorPy, StatevectorSimulatorPy, UnitarySimulatorPy]
 class BasicAerProvider(ProviderV1):
     """Provider for Basic Aer backends."""
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider, and all its classes have been renamed "
+        "to follow a new naming convention. "
+        "Use the new qiskit.providers.basic_provider.BasicProvider class instead.",
+    )
     def __init__(self):
         super().__init__()
-
         # Populate the list of Basic Aer backends.
         self._backends = self._verify_backends()
 
     def get_backend(self, name=None, **kwargs):
+
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution

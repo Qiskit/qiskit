@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,8 +15,9 @@
 """Test scheduled circuit (quantum circuit with duration)."""
 from ddt import ddt, data
 from qiskit import QuantumCircuit, QiskitError
-from qiskit import transpile, assemble, BasicAer
+from qiskit import transpile, assemble
 from qiskit.circuit import Parameter
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -34,7 +35,7 @@ class TestScheduledCircuit(QiskitTestCase):
         self.backend_without_dt = FakeParis()
         delattr(self.backend_without_dt.configuration(), "dt")
         self.dt = 2.2222222222222221e-10
-        self.simulator_backend = BasicAer.get_backend("qasm_simulator")
+        self.simulator_backend = BasicSimulator()
 
     def test_schedule_circuit_when_backend_tells_dt(self):
         """dt is known to transpiler by backend"""

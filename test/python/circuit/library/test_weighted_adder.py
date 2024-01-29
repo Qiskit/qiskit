@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,9 +18,9 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -34,8 +34,7 @@ class TestWeightedAdder(QiskitTestCase):
         circuit.h(list(range(adder.num_state_qubits)))
         circuit.append(adder.to_instruction(), list(range(adder.num_qubits)))
 
-        backend = BasicAer.get_backend("statevector_simulator")
-        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
+        statevector = Statevector(circuit)
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
@@ -67,7 +66,7 @@ class TestWeightedAdder(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="default weights"):
             adder.num_state_qubits = 3
@@ -81,7 +80,7 @@ class TestWeightedAdder(QiskitTestCase):
         with self.subTest(msg="mismatching number of state qubits and weights"):
             with self.assertRaises(ValueError):
                 adder.weights = [0, 1, 2, 3]
-                print(adder.draw())
+                _ = str(adder.draw())
 
         with self.subTest(msg="change all attributes"):
             adder.num_state_qubits = 4

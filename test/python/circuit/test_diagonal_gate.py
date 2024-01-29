@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,13 +16,14 @@
 import unittest
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, assemble
+from qiskit import QuantumCircuit, QuantumRegister, assemble
 
 from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.extensions.quantum_initializer import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
 
 
 class TestDiagonalGate(QiskitTestCase):
@@ -51,9 +52,7 @@ class TestDiagonalGate(QiskitTestCase):
                 # Decompose the gate
                 qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"], optimization_level=0)
                 # Simulate the decomposed gate
-                simulator = BasicAer.get_backend("unitary_simulator")
-                result = simulator.run(qc).result()
-                unitary = result.get_unitary(qc)
+                unitary = Operator(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
                 self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=False))
 

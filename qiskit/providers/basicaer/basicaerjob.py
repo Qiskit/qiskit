@@ -17,6 +17,7 @@ import warnings
 
 from qiskit.providers import JobStatus
 from qiskit.providers.job import JobV1
+from qiskit.utils.deprecation import deprecate_func
 
 
 class BasicAerJob(JobV1):
@@ -24,6 +25,14 @@ class BasicAerJob(JobV1):
 
     _async = False
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider, and all its classes have been renamed "
+        "to follow a new naming convention. "
+        "Use the new qiskit.providers.basic_provider.BasicProviderJob class instead.",
+    )
     def __init__(self, backend, job_id, result):
         super().__init__(backend, job_id)
         self._result = result

@@ -17,7 +17,13 @@ from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    ClassicalRegister,
+    QuantumCircuit,
+    transpile,
+)
+
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate, StatePreparation

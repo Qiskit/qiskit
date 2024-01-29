@@ -18,9 +18,9 @@ import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -35,10 +35,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
         circuit = QuantumCircuit(num_state_qubits + 1 + num_ancilla_qubits)
         circuit.h(list(range(num_state_qubits)))
         circuit.append(function_circuit.to_instruction(), list(range(circuit.num_qubits)))
-
-        backend = BasicAer.get_backend("statevector_simulator")
-        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
-
+        statevector = Statevector(circuit)
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):
             i = bin(i)[2:].zfill(circuit.num_qubits)[num_ancilla_qubits:]
@@ -103,7 +100,7 @@ class TestPiecewiseChebyshev(QiskitTestCase):
 
         with self.subTest(msg="missing number of state qubits"):
             with self.assertRaises(AttributeError):  # no state qubits set
-                print(pw_approximation.draw())
+                _ = str(pw_approximation.draw())
 
         with self.subTest(msg="default setup, just setting number of state qubits"):
             pw_approximation.num_state_qubits = 2

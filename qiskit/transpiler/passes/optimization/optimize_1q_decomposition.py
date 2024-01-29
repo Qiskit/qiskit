@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -94,7 +94,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self.error_map = self._build_error_map()
 
     def _build_error_map(self):
-        if self._target is not None:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is not None and self._target.num_qubits is not None:
             error_map = euler_one_qubit_decomposer.OneQubitGateErrorMap(self._target.num_qubits)
             for qubit in range(self._target.num_qubits):
                 gate_error = {}
@@ -118,7 +119,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         When multiple synthesis options are available, it prefers the one with the lowest
         error when the circuit is applied to `qubit`.
         """
-        if self._target:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is not None and self._target.num_qubits is not None:
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:

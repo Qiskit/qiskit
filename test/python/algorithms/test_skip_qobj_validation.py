@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import QiskitError
 

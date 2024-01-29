@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,13 +15,13 @@
 import os
 import unittest
 
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qobj import QasmQobj
 
 
@@ -31,14 +31,14 @@ class TestCompiler(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.seed_simulator = 42
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicSimulator()
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
 
         Pass if the results are correct.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         coupling_map = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
 
         qr = QuantumRegister(5)
@@ -80,7 +80,7 @@ class TestCompiler(QiskitTestCase):
         If all correct should return data with the same stats. The circuit may
         be different.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
 
         qr = QuantumRegister(3, "qr")
         cr = ClassicalRegister(3, "cr")
@@ -113,7 +113,7 @@ class TestCompiler(QiskitTestCase):
 
         Uses the mapper. Pass if results are correct.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         coupling_map = [
             [0, 1],
             [0, 8],
@@ -202,7 +202,7 @@ class TestCompiler(QiskitTestCase):
 
     def test_no_conflict_backend_passmanager(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5037"""
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         qc = QuantumCircuit(2)
         qc.append(U1Gate(0), [0])
         qc.measure_all()
@@ -257,7 +257,7 @@ class TestCompiler(QiskitTestCase):
         qc.append(U2Gate(3.14, 1.57), [qr[0]])
         qc.barrier(qr)
         qc.measure(qr, cr)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         qrtrue = transpile(qc, backend, seed_transpiler=8)
         rtrue = backend.run(qrtrue, seed_simulator=42).result()
         qrfalse = PassManager().run(qc)
@@ -309,12 +309,7 @@ class TestCompiler(QiskitTestCase):
         )
         count1 = result1.result().get_counts()
         result2 = self.backend.run(
-            transpile(
-                circ,
-                backend=self.backend,
-                coupling_map=None,
-                seed_transpiler=8,
-            ),
+            transpile(circ, backend=self.backend, coupling_map=None, seed_transpiler=8),
             seed_simulator=self.seed_simulator,
             shots=shots,
         )

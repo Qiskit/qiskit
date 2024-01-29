@@ -12,6 +12,7 @@
 """Test StateVectorSimulatorPy."""
 
 import unittest
+import warnings
 
 import numpy as np
 
@@ -76,7 +77,11 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
-                job = self.backend.run(transpile(circuit, self.backend))
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, message=r".*BasicAer.*"
+                    )
+                    job = self.backend.run(transpile(circuit, self.backend))
                 result = job.result()
                 psi_out = result.get_statevector(0)
                 fidelity = state_fidelity(psi_target, psi_out)
