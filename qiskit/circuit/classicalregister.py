@@ -17,9 +17,6 @@ Classical register reference object.
 """
 import itertools
 
-from qiskit.circuit.exceptions import CircuitError
-
-from qiskit.utils.deprecation import deprecate_func
 from .register import Register
 from .bit import Bit
 
@@ -27,25 +24,7 @@ from .bit import Bit
 class Clbit(Bit):
     """Implement a classical bit."""
 
-    __slots__ = ()
-
-    def __init__(self, register=None, index=None):
-        """Creates a classical bit.
-
-        Args:
-            register (ClassicalRegister): Optional. A classical register containing the bit.
-            index (int): Optional. The index of the bit in its containing register.
-
-        Raises:
-            CircuitError: if the provided register is not a valid :class:`ClassicalRegister`
-        """
-
-        if register is None or isinstance(register, ClassicalRegister):
-            super().__init__(register, index)
-        else:
-            raise CircuitError(
-                "Clbit needs a ClassicalRegister and %s was provided" % type(register).__name__
-            )
+    pass
 
 
 class ClassicalRegister(Register):
@@ -56,16 +35,3 @@ class ClassicalRegister(Register):
     # Prefix to use for auto naming.
     prefix = "c"
     bit_type = Clbit
-
-    @deprecate_func(
-        additional_msg=(
-            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
-            "safely be done on an object-by-object basis without context. No replacement will be "
-            "provided, because the premise is wrong."
-        ),
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def qasm(self):
-        """Return OPENQASM string for this register."""
-        return "creg %s[%d];" % (self.name, self.size)
