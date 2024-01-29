@@ -8,7 +8,6 @@ upgrade:
     * :class:`~.TwoQubitBasisDecomposer` has been moved to :mod:`qiskit.synthesis.two_qubits`
     * :class:`~.XXDecomposer` has been moved to :mod:`qiskit.synthesis.two_qubits`
     * :func:`~.two_qubit_cnot_decompose` has been moved to :mod:`qiskit.synthesis.two_qubits`
-    * :func:`~.qs_decomposition` has been moved to :mod:`qiskit.synthesis.unitary`
 
     This function was removed, since it has already been deprecated in the 0.46 release:
     * ``cnot_rxx_decompose``
