@@ -73,7 +73,7 @@ impl Arg for c64 {
     }
 }
 
-fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
+fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     let pi = PI;
     let pi2 = PI / 2.0;
     let pi4 = PI / 4.0;
@@ -123,7 +123,7 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> (f64, f64, f64) {
     if cs[2] > pi4 {
         cs[2] -= pi2;
     }
-    (cs[1], cs[0], cs[2])
+    [cs[1], cs[0], cs[2]]
 }
 
 #[pyfunction]
@@ -138,7 +138,7 @@ pub fn _num_basis_gates(
 }
 
 fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) -> usize {
-    let (a, b, c) = __weyl_coordinates(unitary);
+    let [a, b, c] = __weyl_coordinates(unitary);
     let pi4 = PI / 4.0;
     let traces = [
         c64::new(
