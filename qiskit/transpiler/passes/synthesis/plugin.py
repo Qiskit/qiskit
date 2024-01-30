@@ -284,6 +284,36 @@ argument::
 
 will return a list of all the installed Clifford synthesis plugins.
 
+Available Plugins
+-----------------
+
+High-level synthesis plugins that are directly available in Qiskit include plugins
+for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
+:class:`.PermutationGate` objects.
+Some of these plugins implicitly target all-to-all connectivity. This is not a
+practical limitation since
+:class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
+typically runs before layout and routing, which will ensure that the final circuit
+adheres to the device connectivity by inserting additional SWAP gates. A good example
+is the permutation synthesis plugin ``ACGSynthesisPermutation`` which can synthesize
+any permutation with at most 2 layers of SWAP gates.
+On the other hand, some plugins implicitly target linear connectivity.
+Typically, the synthesizing circuits have larger depth and the number of gates,
+however no additional SWAP gates would be inserted if the following layout pass chose a
+consecutive line of qubits inside the topology of the device. A good example of this is
+the permutation synthesis plugin ``KMSSynthesisPermutation`` which can synthesize any
+permutation of ``n`` qubits in depth ``n``. Typically, it is difficult to know in advance
+which of the two approaches: synthesizing circuits for all-to-all connectivity and
+inserting SWAP gates vs. synthesizing circuits for linear connectivity and inserting less
+or no SWAP gates lead a better final circuit, so it likely makes sense to try both and
+see which gives better results.
+Finally, some plugins can target a given connectivity, and hence should be run after the
+layout is set. In this case the synthesized circuit automatically adheres to
+the topology of the device. A good example of this is the permutation synthesis plugin
+``TokenSwapperSynthesisPermutation`` which is able to synthesize arbitrary permutations
+with respect to arbitrary coupling maps.
+For more detail, please refer to description of each individual plugin.
+
 Plugin API
 ==========
 
@@ -307,6 +337,25 @@ High-Level Synthesis Plugins
    HighLevelSynthesisPluginManager
    high_level_synthesis_plugin_names
 
+Available Plugins
+-----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DefaultSynthesisClifford
+   AGSynthesisClifford
+   BMSynthesisClifford
+   GreedySynthesisClifford
+   LayerSynthesisClifford
+   LayerLnnSynthesisClifford
+   DefaultSynthesisLinearFunction
+   KMSSynthesisLinearFunction
+   PMHSynthesisLinearFunction
+   KMSSynthesisPermutation
+   BasicSynthesisPermutation
+   ACGSynthesisPermutation
+   TokenSwapperSynthesisPermutation
 """
 
 import abc
