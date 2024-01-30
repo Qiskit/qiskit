@@ -343,7 +343,7 @@ class BindingsArrayTestCase(QiskitTestCase):
     )
     @ddt.unpack
     def test_shape_with_0(self, shape, num_params, do_inference):
-        "Tests various combinations of inputs that include 0-d axes."
+        """Tests various combinations of inputs that include 0-d axes."""
         ba = BindingsArray(
             {tuple(f"a{idx}" for idx in range(num_params)): np.empty(shape + (num_params,))},
             shape=(None if do_inference else shape),
