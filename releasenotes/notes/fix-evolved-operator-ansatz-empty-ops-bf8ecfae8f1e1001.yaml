@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The `EvolvedOperatorAnsatz` now correctly handles the case where the
+    `operators` argument is an empty list. Previously, this would result in an
+    error.
