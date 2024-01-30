@@ -1264,6 +1264,12 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
             _ = old_two_qubit_cnot_decompose(unitary)
 
+        # pylint: disable = unused-import
+        with self.assertWarns(DeprecationWarning):
+            from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+                TwoQubitWeylDecomposition as old_TwoQubitWeylDecomposition,
+            )
+
 
 @ddt
 class TestPulseOptimalDecompose(CheckDecompositions):
