@@ -18,9 +18,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Mapping as MappingType
+from collections.abc import Iterable, Mapping as _Mapping
 from functools import lru_cache
-from typing import Iterable, Mapping, Union, overload
+from typing import Union, Mapping, overload
 from numbers import Complex
 
 import numpy as np
@@ -36,7 +36,7 @@ ObservableLike = Union[
     str,
     Pauli,
     SparsePauliOp,
-    Mapping[Union[str, Pauli], float],  # TODO: Clean up abc vs typing
+    Mapping[Union[str, Pauli], float],
 ]
 """Types that can be natively used to construct a Hermitian Estimator observable."""
 
@@ -188,7 +188,7 @@ class ObservablesArray(ShapedMixin):
             return {observable: 1}
 
         # Mapping conversion (with possible Pauli keys)
-        if isinstance(observable, MappingType):
+        if isinstance(observable, _Mapping):
             num_qubits = len(next(iter(observable)))
             unique = defaultdict(float)
             for basis, coeff in observable.items():
@@ -232,7 +232,7 @@ class ObservablesArray(ShapedMixin):
         """
         if isinstance(observables, ObservablesArray):
             return observables
-        if isinstance(observables, (str, SparsePauliOp, Pauli, Mapping)):
+        if isinstance(observables, (str, SparsePauliOp, Pauli, _Mapping)):
             observables = [observables]
         return cls(observables)
 

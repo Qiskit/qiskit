@@ -15,9 +15,9 @@ Bindings array class
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from typing import Mapping, Union, Tuple
+from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
-from typing import Union
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -29,7 +29,7 @@ from .shape import ShapedMixin, ShapeInput, shape_tuple
 ParameterLike = Union[Parameter, str]
 """A parameter or parameter name."""
 
-BindingsArrayLike = Mapping[Union[ParameterLike, tuple[ParameterLike, ...]], ArrayLike]
+BindingsArrayLike = Mapping[Union[ParameterLike, Tuple[ParameterLike, ...]], ArrayLike]
 """A mapping of numeric bindings for circuit parameters.
 
 This allows array values for single or multi-dimensional sweeps over parameter values.
@@ -292,7 +292,7 @@ class BindingsArray(ShapedMixin):
         """
         if bindings_array is None:
             bindings_array = cls()
-        elif isinstance(bindings_array, Mapping):
+        elif isinstance(bindings_array, _Mapping):
             bindings_array = cls(data=bindings_array)
         elif isinstance(bindings_array, BindingsArray):
             return bindings_array
