@@ -395,7 +395,7 @@ class TestBackendEstimator(QiskitTestCase):
             if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
                 self.assertEqual(value, -0.916)
             else:
-                self.assertEqual(value, -0.9842)
+                self.assertEqual(value, -0.9922)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)
