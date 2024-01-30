@@ -73,7 +73,9 @@ class FakeBackendV2(BackendV2):
     backend_name = None
 
     @deprecate_func(
-        additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
+        additional_msg="All fake backend instances based on real device snapshots "
+        "(`FakeVigo`,`FakeSherbrooke`,...) have been migrated to the "
+        "`qiskit_ibm_runtime` package. "
         "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
         "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
         "instead of `from qiskit.providers.fake_provider import FakeExample`. ",
