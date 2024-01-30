@@ -1,25 +1,4 @@
 ---
-features:
-  - |
-    A new :mod:`qiskit.providers.basic_provider` module has been introduced
-    to replace ``qiskit.providers.basicaer``. This module contains provider
-    tools that mirror those of the ``BasicAer`` provider and offers a single,
-    non-efficient, statevector based simulator: :class:`.BasicSimulator`.
-    This simulator based on the :class:`.BackendV2` interface and is
-    exclusively intended for testing and simple prototyping, for more
-    advanced simulation capabilities, please refer to the ``qiskit-aer``
-    package.
-
-  - |
-    The :class:`.Target` interface and transpiler pipeline now support
-    target definitions with ``num_qubits=None``. This is to support the
-    creation of :class:`.Target` based simulators with a flexible number of qubits.
-    A target with ``num_qubits=None`` will exclusively contain global
-    instructions (with ``qargs=None``) and when given to the transpiler,
-    it is expected that the transpiler will not resize the circuit.
-    This change in the :class:`.Target` requires future transpiler passes
-    to account for the case where ``target.num_qubits is None``.
-
 upgrade:
   - |
     The ``qiskit.providers.basicaer`` module and all of its classes have been

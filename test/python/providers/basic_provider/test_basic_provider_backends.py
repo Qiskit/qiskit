@@ -38,7 +38,3 @@ class TestBasicProviderBackends(QiskitTestCase):
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
         self.assertRaises(QiskitBackendNotFoundError, BasicProvider().get_backend, "bad_name")
-
-    def test_aliases_return_empty_list(self):
-        """Test backends() return an empty list if name is unknown."""
-        self.assertEqual(BasicProvider().backends("bad_name"), [])

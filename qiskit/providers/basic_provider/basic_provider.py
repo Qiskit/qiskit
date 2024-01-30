@@ -45,41 +45,20 @@ class BasicProvider(ProviderV1):
         self._backends = self._verify_backends()
 
     def get_backend(self, name: str | None = None, **kwargs) -> Backend:
-        backends = self._backends.values()
-
-        # Special handling of the `name` parameter, to support alias resolution
-        # and deprecated names.
-        if name:
-            try:
-                resolved_name = resolve_backend_name(name, backends, {}, {})
-                name = resolved_name
-            except LookupError as ex:
-                raise QiskitBackendNotFoundError(
-                    f"The '{name}' backend is not installed in your system."
-                ) from ex
-
         return super().get_backend(name=name, **kwargs)
 
     def backends(
         self, name: str | None = None, filters: Callable | None = None, **kwargs
     ) -> list[Backend]:
         backends = self._backends.values()
-
-        # Special handling of the `name` parameter, to support alias resolution
-        # and deprecated names.
         if name:
-            try:
-                resolved_name = resolve_backend_name(name, backends, {}, {})
-                new_backends = []
-                for backend in backends:
-                    if backend.version == 1 and backend.name() == resolved_name:
-                        new_backends.append(backend)
-                    elif backend.version == 2 and backend.name == resolved_name:
-                        new_backends.append(backend)
-                backends = new_backends
-            except LookupError:
-                return []
-
+            available = [
+                backend.name() if backend.version == 1 else backend.name for backend in backends
+            ]
+            if name not in available:
+                raise QiskitBackendNotFoundError(
+                    f"The '{name}' backend is not installed in your system."
+                )
         return filter_backends(backends, filters=filters, **kwargs)
 
     def _verify_backends(self) -> OrderedDict[str, Backend]:
