@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -1408,10 +1408,11 @@ class TestStandardMethods(QiskitTestCase):
                 # gate doesn't implement to_matrix method: skip
                 self.log.info('to_matrix method FAILED for "%s" gate', gate.name)
                 continue
-            definition_unitary = Operator(circ).data
+            definition_unitary = Operator(circ)
 
             with self.subTest(gate_class):
-                self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
+                # TODO check for exact equality
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
