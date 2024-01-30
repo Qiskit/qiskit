@@ -1,4 +1,7 @@
 ---
+upgrade:
+  - |
+    Qiskit 1.0 now requires version 0.14.0 of ``rustworkx``.
 features:
   - |
     Added a new :class:`.HighLevelSynthesisPlugin` for :class:`.PermutationGate`
