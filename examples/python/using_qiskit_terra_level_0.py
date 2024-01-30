@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,16 +14,13 @@
 Example showing how to use Qiskit at introduction level.
 
 This example shows the most basic way to use Qiskit. It builds some circuits
-and runs them on both the BasicAer (local Qiskit provider) or IBM Quantum (remote IBM Quantum provider).
-
-To control the compile parameters we have provided a transpile function which can be used
-as a level 1 user.
-
+and runs them on the BasicProvider (local Qiskit provider).
 """
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit
-from qiskit import transpile, BasicAer
+from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
@@ -36,12 +33,8 @@ qc2 = QuantumCircuit(2, 2)
 qc2.h([0, 1])
 qc2.measure([0, 1], [0, 1])
 
-# setting up the backend
-print("(BasicAER Backends)")
-print(BasicAer.backends())
-
 # running the job
-sim_backend = BasicAer.get_backend("qasm_simulator")
+sim_backend = BasicSimulator()
 job_sim = sim_backend.run(transpile([qc1, qc2], sim_backend))
 sim_result = job_sim.result()
 
