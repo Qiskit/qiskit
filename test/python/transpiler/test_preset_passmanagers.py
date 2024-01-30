@@ -134,7 +134,9 @@ class TestPresetPassManager(QiskitTestCase):
         backend = FakeMelbourne()
 
         with self.assertWarns(DeprecationWarning):
-            result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
+            result = transpile(
+                qc, backend, layout_method="noise_adaptive", optimization_level=level
+            )
 
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(result.num_qubits, 14)
