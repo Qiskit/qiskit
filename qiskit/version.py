@@ -109,11 +109,9 @@ class QiskitVersion(Mapping):
             stacklevel=3,
         )
         try:
-            # TODO: Update to use qiskit_aer instead when we remove the
-            # namespace redirect
-            from qiskit.providers import aer
+            import qiskit_aer
 
-            self._version_dict["qiskit-aer"] = aer.__version__
+            self._version_dict["qiskit-aer"] = qiskit_aer.__version__
         except Exception:
             self._version_dict["qiskit-aer"] = None
         try:

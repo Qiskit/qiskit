@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import QiskitError
 
@@ -106,7 +106,7 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         # build noise model
         # Asymmetric readout error on qubit-0 only
         try:
-            from qiskit.providers.aer.noise import NoiseModel
+            from qiskit_aer.noise import NoiseModel
             from qiskit_aer import Aer
 
             self.backend = Aer.get_backend("qasm_simulator")

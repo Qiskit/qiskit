@@ -14,6 +14,7 @@
 
 import logging
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.utils import optionals
 
 logger = logging.getLogger(__name__)
 
@@ -79,18 +80,7 @@ def has_ibmq():
 )
 def has_aer():
     """Check if Aer is installed."""
-    if not _PROVIDER_CHECK.checked_aer:
-        try:
-            from qiskit.providers.aer import AerProvider
-
-            _PROVIDER_CHECK.has_aer = True
-        except Exception as ex:  # pylint: disable=broad-except
-            _PROVIDER_CHECK.has_aer = False
-            logger.debug("AerProvider not loaded: '%s'", str(ex))
-
-        _PROVIDER_CHECK.checked_aer = True
-
-    return _PROVIDER_CHECK.has_aer
+    return bool(optionals.HAS_AER)
 
 
 @deprecate_func(
@@ -107,11 +97,11 @@ def is_aer_provider(backend):
         bool: True is AerProvider
     """
     if has_aer():
-        from qiskit.providers.aer import AerProvider
+        from qiskit_aer import AerProvider
 
         if isinstance(_get_backend_provider(backend), AerProvider):
             return True
-        from qiskit.providers.aer.backends.aerbackend import AerBackend
+        from qiskit_aer.backends.aerbackend import AerBackend
 
         return isinstance(backend, AerBackend)
 
@@ -192,7 +182,7 @@ def is_statevector_backend(backend):
         return False
     backend_interface_version = _get_backend_interface_version(backend)
     if has_aer():
-        from qiskit.providers.aer.backends import AerSimulator, StatevectorSimulator
+        from qiskit_aer.backends import AerSimulator, StatevectorSimulator
 
         if isinstance(backend, StatevectorSimulator):
             return True

@@ -16,7 +16,7 @@ import unittest
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 
-from qiskit import QuantumCircuit, BasicAer, execute
+from qiskit import QuantumCircuit, BasicAer  # pylint: disable=no-name-in-module
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 
@@ -85,13 +85,11 @@ class TestStateConstruction(QiskitOpflowTestCase):
         qc = QuantumCircuit(3)
         # REMEMBER: This is Qubit 2 in Operator land.
         qc.h(0)
-        sv_res = execute(qc, BasicAer.get_backend("statevector_simulator")).result()
+        sv_res = BasicAer.get_backend("statevector_simulator").run(qc).result()
         sv_vector = sv_res.get_statevector()
         qc_op = PrimitiveOp(qc) @ Zero
 
-        qasm_res = execute(
-            qc_op.to_circuit(meas=True), BasicAer.get_backend("qasm_simulator")
-        ).result()
+        qasm_res = BasicAer.get_backend("qasm_simulator").run(qc_op.to_circuit(meas=True)).result()
 
         np.testing.assert_array_almost_equal(
             StateFn(sv_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]

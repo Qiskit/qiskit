@@ -28,6 +28,7 @@ from math import log2
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
 from qiskit.providers.models import QasmBackendConfiguration
+from qiskit.utils.deprecation import deprecate_func
 from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,14 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     # Override base class value to return the final state vector
     SHOW_FINAL_STATE = True
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
+        "The new module has no replacement for this class. "
+        "Use the qiskit.quantum_info.Statevector class instead.",
+    )
     def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(

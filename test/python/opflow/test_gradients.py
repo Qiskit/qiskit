@@ -20,7 +20,7 @@ from itertools import product
 import numpy as np
 from ddt import ddt, data, idata, unpack
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer  # pylint: disable=no-name-in-module
 from qiskit.test import slow_test
 from qiskit.utils import QuantumInstance
 from qiskit.exceptions import MissingOptionalLibraryError

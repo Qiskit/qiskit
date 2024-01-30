@@ -419,7 +419,7 @@ def prepare_state(self, state, qubits=None, label=None, normalize=False):
     r"""Prepare qubits in a specific state.
 
     This class implements a state preparing unitary. Unlike
-    :class:`qiskit.extensions.Initialize` it does not reset the qubits first.
+    :class:`~qiskit.circuit.library.Initialize` it does not reset the qubits first.
 
     Args:
         state (str or list or int or Statevector):

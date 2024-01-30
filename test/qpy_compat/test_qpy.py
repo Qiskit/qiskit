@@ -623,6 +623,21 @@ def generate_layout_circuits():
     return [qc]
 
 
+def generate_clifford_circuits():
+    """Test qpy circuits with Clifford operations."""
+    from qiskit.quantum_info import Clifford
+
+    cliff = Clifford.from_dict(
+        {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+    )
+    qc = QuantumCircuit(3, name="Clifford Circuits")
+    qc.append(cliff, [0, 1, 2])
+    return [qc]
+
+
 def generate_control_flow_expr():
     """`IfElseOp`, `WhileLoopOp` and `SwitchCaseOp` with `Expr` nodes in their discriminators."""
     from qiskit.circuit.classical import expr, types
@@ -752,6 +767,8 @@ def generate_circuits(version_parts):
             "acquire_inst_with_kernel_and_disc.qpy"
         ] = generate_acquire_instruction_with_kernel_and_discriminator()
         output_circuits["control_flow_expr.qpy"] = generate_control_flow_expr()
+    if version_parts >= (0, 45, 2):
+        output_circuits["clifford.qpy"] = generate_clifford_circuits()
     return output_circuits
 
 

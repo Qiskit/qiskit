@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,11 +19,12 @@ from test import combine
 import numpy as np
 from ddt import ddt
 from qiskit.quantum_info.random import random_unitary
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
 
 squs = [
     np.eye(2, 2),
@@ -50,9 +51,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(qc).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         if up_to_diagonal:
             with self.assertWarns(DeprecationWarning):
                 squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
