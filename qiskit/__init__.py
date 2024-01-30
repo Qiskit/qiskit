@@ -14,12 +14,25 @@
 
 """Main Qiskit public functionality."""
 
+from importlib.metadata import version, PackageNotFoundError
 import pkgutil
 import sys
 import warnings
 
 import qiskit._accelerate
 
+try:
+    version("qiskit")
+except PackageNotFoundError:
+    warnings.warn(
+        "The `qiskit` package is not installed, only `qiskit-terra` is installed. "
+        "Starting in Qiskit 1.0.0 only the `qiskit` package will be published. Migrate "
+        "any requirements files still using `qiskit-terra` to use `qiskit` instead. Also "
+        "when upgrading ensure you create a new venv instead of trying to "
+        "upgrade in place.",
+        FutureWarning,
+        stacklevel=2,
+    )
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
