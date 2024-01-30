@@ -161,7 +161,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
     make_data_bin,
