@@ -32,7 +32,11 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
-BACKENDS = [FakeNairobi(), BackendV2Converter(FakeNairobi()), GenericBackendV2(num_qubits=5)]
+BACKENDS = [
+    FakeNairobi(),
+    BackendV2Converter(FakeNairobi()),
+    GenericBackendV2(num_qubits=5, seed=42),
+]
 
 
 class CallbackPass(DummyAP):
@@ -391,7 +395,7 @@ class TestBackendEstimator(QiskitTestCase):
             if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
                 self.assertEqual(value, -0.916)
             else:
-                self.assertEqual(value, -1)
+                self.assertEqual(value, -0.9842)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)

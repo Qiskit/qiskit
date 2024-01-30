@@ -296,6 +296,7 @@ class TestPulseGate(QiskitTestCase):
             num_qubits=5,
             coupling_map=BOGOTA_CMAP,
             calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
+            seed=42,
         ).target
 
         qc = circuit.QuantumCircuit(2)

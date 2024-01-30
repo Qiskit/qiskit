@@ -232,20 +232,6 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(q[0], c[0])
         qc.measure(q[1], c[1])
         qc.measure(q[1], c[1])
-
-        for inst in self.backend.defaults().instruction_schedule_map.instructions:
-            for qarg in self.backend.defaults().instruction_schedule_map.qubits_with_instruction(
-                inst
-            ):
-                try:
-                    qargs = tuple(qarg)
-                except TypeError:
-                    qargs = (qarg,)
-                print(
-                    inst, qargs, self.backend.defaults().instruction_schedule_map.get(inst, qargs)
-                )
-
-        print("---\n")
         sched = schedule(qc, self.backend, method="as_soon_as_possible")
         expected = Schedule(
             self.inst_map.get("u2", [0], 3.14, 1.57),
@@ -526,7 +512,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         super().setUp()
         self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True)
         self.inst_map = self.backend.instruction_schedule_map
-        # Pulse sequence used to calibrate "measure" in
+        # self.pulse_2_samples is the pulse sequence used to calibrate "measure" in
         # GenericBackendV2. See class construction for more details.
         self.pulse_2_samples = np.linspace(0, 1.0, 32, dtype=np.complex128)
 
