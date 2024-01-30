@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,7 +31,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
-from qiskit.providers.basicaer.qasm_simulator import QasmSimulatorPy
+from qiskit.providers.basic_provider.basic_simulator import BasicSimulator
 
 
 class FakeBackendV2(BackendV2):
@@ -42,7 +42,7 @@ class FakeBackendV2(BackendV2):
             None,
             name="FakeV2",
             description="A fake BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         self._qubit_properties = [
@@ -116,7 +116,7 @@ class FakeBackend5QV2(BackendV2):
             None,
             name="Fake5QV2",
             description="A fake BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         qubit_properties = [
@@ -181,14 +181,14 @@ class FakeBackend5QV2(BackendV2):
 
 
 class FakeBackendSimple(BackendV2):
-    """A fake simple backend that wraps BasicAer to implement run()."""
+    """A fake simple backend that wraps BasicSimulator to implement run()."""
 
     def __init__(self):
         super().__init__(
             None,
             name="FakeSimpleV2",
             description="A fake simple BackendV2 example",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         self._lam = Parameter("lambda")
@@ -198,7 +198,7 @@ class FakeBackendSimple(BackendV2):
         self._target.add_instruction(RZGate(self._lam))
         self._target.add_instruction(CXGate())
         self._target.add_instruction(Measure())
-        self._runner = QasmSimulatorPy()
+        self._runner = BasicSimulator()
 
     @property
     def target(self):
@@ -210,7 +210,7 @@ class FakeBackendSimple(BackendV2):
 
     @classmethod
     def _default_options(cls):
-        return QasmSimulatorPy._default_options()
+        return BasicSimulator._default_options()
 
     def run(self, run_input, **options):
         self._runner._options = self._options

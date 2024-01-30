@@ -1,0 +1,112 @@
+---
+features:
+  - |
+    A new :mod:`qiskit.providers.basic_provider` module has been introduced
+    to replace ``qiskit.providers.basicaer``. This module contains provider
+    tools that mirror those of the ``BasicAer`` provider and offers a single,
+    non-efficient, statevector based simulator: :class:`.BasicSimulator`.
+    This simulator based on the :class:`.BackendV2` interface and is
+    exclusively intended for testing and simple prototyping, for more
+    advanced simulation capabilities, please refer to the ``qiskit-aer``
+    package.
+
+  - |
+    The :class:`.Target` interface and transpiler pipeline now support
+    target definitions with ``num_qubits=None``. This is to support the
+    creation of :class:`.Target`-based simulators with a flexible number of qubits.
+    A target with ``num_qubits=None`` will exclusively contain global
+    instructions (with ``qargs=None``) and when given to the transpiler,
+    it is expected that the transpiler will not resize the circuit.
+    This change in the :class:`.Target` requires future transpiler passes
+    to account for the case where ``target.num_qubits is None``.
+
+deprecations:
+  - |
+    The ``qiskit.providers.basicaer`` module and all of its classes are deprecated
+    from Qiskit 0.46 onwards. Their use should be replaced with
+    the :mod:`qiskit.quantum_info` module and the new
+    :mod:`qiskit.providers.basic_provider` module.
+
+    The migration from using :mod:`qiskit.providers.basicaer` to
+    :mod:`qiskit.providers.basic_provider` can be performed as follows::
+
+        Migrate from                     |   Replace with
+        ------------------------------------------------------------------------------
+        :mod:`.basicaer`                 |  :mod:`.basic_provider`
+        :class:`.BasicAerProvider`       |  :class:`.BasicProvider`
+        :class:`.BasicAerJob`            |  :class:`.BasicProviderJob`
+        :class:`.QasmSimulatorPy`        |  :class:`.BasicSimulator`
+        :class:`.UnitarySimulatorPy`     |  use :class:`~.quantum_info.Operator`
+        :class:`.StatevectorSimulatorPy` |  use :class:`~.quantum_info.Statevector`
+
+
+    A notable difference is that the new provider is no longer exposed through a global instance
+    (like ``BasicAer``), so it will not be valid to do ``from qiskit import BasicProvider``.
+    Instead, the provider class must be imported from its submodule and instantiated::
+
+        from qiskit.providers.basic_provider import BasicProvider
+        provider = BasicProvider()
+        backend = provider.get_backend("sim_name")
+
+    The following examples show the migration paths of the three simulators in :mod:`.basicaer`.
+
+    1. Statevector simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("statevector_simulator")
+        statevector = backend.run(qc).result().get_statevector()
+
+        # New path
+        qc.remove_final_measurements() # no measurements allowed
+        from qiskit.quantum_info import Statevector
+        statevector = Statevector(qc)
+
+    2. Unitary simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("unitary_simulator")
+        result = backend.run(qc).result()
+
+        # New path
+        qc.remove_final_measurements() # no measurements allowed
+        from qiskit.quantum_info import Operator
+        result = Operator(qc).data
+
+    3. Qasm simulator::
+
+        from qiskit import QuantumCircuit
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.cx(1,2)
+        qc.measure_all()
+
+        # Former path
+        from qiskit import BasicAer
+        backend = BasicAer.get_backend("qasm_simulator")
+        result = backend.run(qc).result()
+
+        # New path
+        from qiskit.providers.basic_provider import BasicProvider
+        backend = BasicProvider().get_backend("basic_simulator")
+        result = backend.run(qc).result()
+        # or, directly
+        from qiskit.providers.basic_provider import BasicSimulator
+        backend = BasicSimulator()
+        result = backend.run(qc).result(

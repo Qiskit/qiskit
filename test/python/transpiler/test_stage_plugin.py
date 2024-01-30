@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,7 +29,7 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     passmanager_stage_plugins,
 )
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.basic_provider import BasicSimulator
 
 
 class TestStagePassManagerPlugin(QiskitTestCase):
@@ -110,6 +110,6 @@ class TestBuiltinPlugins(QiskitTestCase):
             optimization_level=optimization_level,
             routing_method=routing_method,
         )
-        backend = QasmSimulatorPy()
+        backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)

@@ -169,10 +169,10 @@ def _read_symbolic_pulse(file_obj, version):
 
         # And warn that this will change in future releases:
         warnings.warn(
-            "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
+            "Complex amp support for symbolic library pulses is deprecated. Once removed "
+            "in Qiskit 1.0.0, library pulses loaded from old QPY files (Terra version < 0.23),"
             " will be converted automatically to float (amp,angle) representation.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
         )
         class_name = "ScalableSymbolicPulse"
 
@@ -484,7 +484,7 @@ def _dumps_operand(operand, use_symengine):
 def _write_element(file_obj, element, metadata_serializer, use_symengine):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
-        write_schedule_block(file_obj, element, metadata_serializer)
+        write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
     else:
         type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)

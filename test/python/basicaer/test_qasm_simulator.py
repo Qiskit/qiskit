@@ -17,6 +17,7 @@ import unittest
 import io
 from logging import StreamHandler, getLogger
 import sys
+import warnings
 
 import numpy as np
 
@@ -61,7 +62,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         qr = QuantumRegister(2, "qr")
         cr = ClassicalRegister(4, "cr")
         circuit = QuantumCircuit(qr, cr)
-        execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        with self.assertWarns(DeprecationWarning):
+            execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
         self.log_output.seek(0)
         # Filter unrelated log lines
         output_lines = self.log_output.readlines()
@@ -75,9 +77,11 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
-        result = self.backend.run(
-            self.transpiled_circuit, shots=shots, seed_simulator=self.seed
-        ).result()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            result = self.backend.run(
+                self.transpiled_circuit, shots=shots, seed_simulator=self.seed
+            ).result()
         self.assertEqual(result.success, True)
 
     def test_measure_sampler_repeated_qubits(self):
@@ -92,7 +96,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.measure(qr[1], cr[2])
         circuit.measure(qr[0], cr[3])
         target = {"0110": shots}
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -109,7 +115,11 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             circuit.x(qr[qubit])
             circuit.measure(qr[qubit], cr[0])
             target = {"1": shots}
-            job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, message=r".*basicaer.*"
+                )
+                job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target)
@@ -146,16 +156,20 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.barrier(qr)
         circuit.measure(qr[3], cr[3])
         target = {"1011": shots}
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
-        result = self.backend.run(
-            self.transpiled_circuit, shots=1000, seed_simulator=self.seed
-        ).result()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            result = self.backend.run(
+                self.transpiled_circuit, shots=1000, seed_simulator=self.seed
+            ).result()
         shots = 1024
         threshold = 0.04 * shots
         counts = result.get_counts("test")
@@ -215,12 +229,13 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
-        job = execute(
-            [circuit_if_true, circuit_if_false],
-            backend=self.backend,
-            shots=shots,
-            seed_simulator=self.seed,
-        )
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(
+                [circuit_if_true, circuit_if_false],
+                shots=shots,
+                seed_simulator=self.seed,
+            )
 
         result = job.result()
         counts_if_true = result.get_counts(circuit_if_true)
@@ -252,7 +267,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.measure(qr[2], cr[2])
         circuit.h(qr[0]).c_if(cr[0], True)
         circuit.measure(qr[0], cr1[0])
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
         result = job.result().get_counts()
         target = {"0 110": 100}
         self.assertEqual(result, target)
@@ -292,7 +309,11 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(
+                transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
+            )
         results = job.result()
         data = results.get_counts("teleport")
         alice = {
@@ -306,7 +327,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             "1": data["1 0 0"] + data["1 1 0"] + data["1 0 1"] + data["1 1 1"],
         }
         self.log.info("test_teleport: circuit:")
-        self.log.info(circuit.qasm())
+        with self.assertWarns(DeprecationWarning):
+            self.log.info(circuit.qasm())
         self.log.info("test_teleport: data %s", data)
         self.log.info("test_teleport: alice %s", alice)
         self.log.info("test_teleport: bob %s", bob)
@@ -345,7 +367,9 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-        job = execute(circ, backend=self.backend, shots=shots, memory=True)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(circ, shots=shots, memory=True)
         result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
@@ -372,7 +396,11 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             circuit = QuantumCircuit(qr, cr)
             circuit.unitary(multi_x, qr)
             circuit.measure(qr, cr)
-            job = execute(circuit, self.backend, shots=shots)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", category=DeprecationWarning, message=r".*basicaer.*"
+                )
+                job = self.backend.run(transpile(circuit, self.backend), shots=shots)
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)

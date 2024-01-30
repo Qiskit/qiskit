@@ -57,7 +57,7 @@ class NormalizeRXAngle(TransformationPass):
                 corresponding RX gates with SX and X gates.
             resolution_in_radian (float): Resolution for RX rotation angle quantization.
                 If set to zero, this pass won't modify the rotation angles in the given DAG.
-                (=Provides aribitary-angle RX)
+                (=Provides arbitrary-angle RX)
         """
         super().__init__()
         self.target = target

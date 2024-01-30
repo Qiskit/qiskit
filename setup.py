@@ -57,7 +57,7 @@ csp_requirements = ["python-constraint>=1.4"]
 
 setup(
     name="qiskit-terra",
-    version="0.45.0",
+    version="0.45.2",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -78,6 +78,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
@@ -116,7 +117,7 @@ setup(
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
-            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+            "aqc = qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin",
             "sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis",
         ],
         "qiskit.synthesis": [

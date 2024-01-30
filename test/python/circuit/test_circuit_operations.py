@@ -16,7 +16,7 @@
 import numpy as np
 from ddt import data, ddt
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classicalregister import Clbit
@@ -27,6 +27,7 @@ from qiskit.circuit.library.standard_gates import SGate
 from qiskit.circuit.quantumcircuit import BitLocations
 from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -186,9 +187,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1.compose(qc2)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -208,9 +209,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc3 = qc1 & qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -230,9 +231,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc2.measure(qr[1], cr[1])
 
         qc1 &= qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -280,9 +281,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1.tensor(qc2)
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -301,9 +302,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc3 = qc1 ^ qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc3, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc3, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -322,9 +323,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc1.measure(0, 0)
 
         qc1 ^= qc2
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed_simulator=78).result()
+        result = backend.run(qc1, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {"00": shots / 2, "01": shots / 2}
         threshold = 0.04 * shots
@@ -419,6 +420,27 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(len(qc.data), 0)
         self.assertEqual(len(qc._parameter_table), 0)
+
+    def test_barrier(self):
+        """Test multiple argument forms of barrier."""
+        qr1, qr2 = QuantumRegister(3, "qr1"), QuantumRegister(4, "qr2")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.barrier()  # All qubits.
+        qc.barrier(0, 1)
+        qc.barrier([4, 2])
+        qc.barrier(qr1)
+        qc.barrier(slice(3, 5))
+        qc.barrier({1, 4, 2}, range(5, 7))
+
+        expected = QuantumCircuit(qr1, qr2)
+        expected.append(Barrier(expected.num_qubits), expected.qubits.copy(), [])
+        expected.append(Barrier(2), [expected.qubits[0], expected.qubits[1]], [])
+        expected.append(Barrier(2), [expected.qubits[2], expected.qubits[4]], [])
+        expected.append(Barrier(3), expected.qubits[0:3], [])
+        expected.append(Barrier(2), [expected.qubits[3], expected.qubits[4]], [])
+        expected.append(Barrier(5), [expected.qubits[x] for x in [1, 2, 4, 5, 6]], [])
+
+        self.assertEqual(qc, expected)
 
     def test_measure_active(self):
         """Test measure_active

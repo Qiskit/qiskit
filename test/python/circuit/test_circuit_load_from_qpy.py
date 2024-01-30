@@ -51,7 +51,7 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
@@ -1458,14 +1458,14 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
         qc = QuantumCircuit(2)
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             qc.diagonal([1, -1, -1, 1], [0, 1])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
+        # DiagonalGate (and some of the qiskit.circuit.library gates) have non-deterministic
         # definitions with regard to internal instruction names, so cannot be directly compared for
         # equality.
         self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
@@ -1684,6 +1684,45 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
             from qiskit.circuit.qpy_serialization import dump, load
+
+    @ddt.data(0, "01", [1, 0, 0, 0])
+    def test_valid_circuit_with_initialize_instruction(self, param):
+        """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
+        qc = QuantumCircuit(2)
+        qc.initialize(param, qc.qubits)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_clifford(self):
+        """Test that circuits with Clifford operations can be saved and retrieved correctly."""
+        cliff1 = Clifford.from_dict(
+            {
+                "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+                "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            }
+        )
+        cliff2 = Clifford.from_dict(
+            {
+                "stabilizer": ["+YX", "+ZZ"],
+                "destabilizer": ["+IZ", "+YI"],
+            }
+        )
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(cliff1, [2, 4, 5])
+        circuit.h(4)
+        circuit.append(cliff2, [3, 0])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

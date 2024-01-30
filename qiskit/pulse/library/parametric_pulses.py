@@ -56,8 +56,8 @@ class ParametricPulse(Pulse):
 
     .. warning::
 
-        This class is superseded by :class:`.SymbolicPulse` and will be deprecated
-        and eventually removed in the future because of the poor flexibility
+        This class was superseded by :class:`.SymbolicPulse` and is deprecated.
+        It will be removed in Qiskit 1.0 because of the poor flexibility
         for defining a new waveform type and serializing it through the :mod:`qiskit.qpy` framework.
 
     """
@@ -68,9 +68,9 @@ class ParametricPulse(Pulse):
             "Instead, use SymbolicPulse because of QPY serialization support. See "
             "qiskit.pulse.library.symbolic_pulses for details."
         ),
-        since="0.22",
+        since="0.46",
         package_name="qiskit-terra",
-        pending=True,
+        removal_timeline="in Qiskit 1.0",
     )
     def __init__(
         self,
@@ -138,9 +138,9 @@ class Gaussian(ParametricPulse):
             "Instead, use Gaussian from qiskit.pulse.library.symbolic_pulses because of "
             "QPY serialization support."
         ),
-        since="0.22",
+        since="0.46",
         package_name="qiskit-terra",
-        pending=True,
+        removal_timeline="in Qiskit 1.0",
     )
     def __init__(
         self,
@@ -251,9 +251,9 @@ class GaussianSquare(ParametricPulse):
             "Instead, use GaussianSquare from qiskit.pulse.library.symbolic_pulses because of "
             "QPY serialization support."
         ),
-        since="0.22",
+        since="0.46",
         package_name="qiskit-terra",
-        pending=True,
+        removal_timeline="in Qiskit 1.0",
     )
     def __init__(
         self,
@@ -422,9 +422,9 @@ class Drag(ParametricPulse):
             "Instead, use Drag from qiskit.pulse.library.symbolic_pulses because of "
             "QPY serialization support."
         ),
-        since="0.22",
+        since="0.46",
         package_name="qiskit-terra",
-        pending=True,
+        removal_timeline="in Qiskit 1.0",
     )
     def __init__(
         self,
@@ -546,9 +546,9 @@ class Constant(ParametricPulse):
             "Instead, use Constant from qiskit.pulse.library.symbolic_pulses because of "
             "QPY serialization support."
         ),
-        since="0.22",
+        since="0.46",
         package_name="qiskit-terra",
-        pending=True,
+        removal_timeline="in Qiskit 1.0",
     )
     def __init__(
         self,

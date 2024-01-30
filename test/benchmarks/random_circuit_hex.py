@@ -15,8 +15,8 @@
 
 import copy
 
-from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.synthesis.one_qubit import OneQubitEulerDecomposer
 
 try:
     from qiskit.compiler import transpile

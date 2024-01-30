@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -2044,6 +2044,34 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
+    def test_switch_case_op_empty_default(self):
+        """Test the SwitchCaseOp with empty default case"""
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(3, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+
+        circuit.h([0, 1, 2])
+        circuit.measure([0, 1, 2], [0, 1, 2])
+
+        with circuit.switch(creg) as case:
+            with case(0, 1, 2):
+                circuit.x(0)
+            with case(case.DEFAULT):
+                pass
+        circuit.h(0)
+
+        fname = "switch_case_empty_default.png"
+        self.circuit_drawer(circuit, output="mpl", cregbundle=False, filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
     def test_if_with_expression(self):
         """Test the IfElseOp with an expression"""
         qr = QuantumRegister(3, "qr")
@@ -2177,6 +2205,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
+
         fname = "nested_layout_control_flow.png"
         self.circuit_drawer(tqc, output="mpl", filename=fname)
 
@@ -2207,6 +2236,37 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 PendingDeprecationWarning, 'Instead, use "iqp" and "iqp-dark"'
             ):
                 qc.draw("mpl", style=style)
+
+    def test_no_qreg_names_after_layout(self):
+        """Test that full register names are not shown after transpilation.
+        See https://github.com/Qiskit/qiskit-terra/issues/11038"""
+        backend = FakeBelemV2()
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        circuit = transpile(
+            qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre", seed_transpiler=42
+        )
+
+        fname = "qreg_names_after_layout.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, 0.9999)
+
+    def test_qcstyle_legacy_import(self):
+        """Test importing from the legacy import location raises a deprecation warning."""
+        with self.assertRaises(DeprecationWarning):
+            # pylint: disable=unused-import
+            from qiskit.visualization.qcstyle import DefaultStyle
 
 
 if __name__ == "__main__":

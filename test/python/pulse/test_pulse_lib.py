@@ -189,7 +189,8 @@ class TestParametricPulses(QiskitTestCase):
         gauss = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
         sample_pulse = gauss.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
-        pulse_lib_gauss = gaussian(duration=25, sigma=4, amp=0.5j, zero_ends=True).samples
+        with self.assertWarns(DeprecationWarning):
+            pulse_lib_gauss = gaussian(duration=25, sigma=4, amp=0.5j, zero_ends=True).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss)
 
     def test_gaussian_square_pulse(self):
@@ -197,18 +198,20 @@ class TestParametricPulses(QiskitTestCase):
         gauss_sq = GaussianSquare(duration=125, sigma=4, amp=0.5, width=100, angle=np.pi / 2)
         sample_pulse = gauss_sq.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
-        pulse_lib_gauss_sq = gaussian_square(
-            duration=125, sigma=4, amp=0.5j, width=100, zero_ends=True
-        ).samples
+        with self.assertWarns(DeprecationWarning):
+            pulse_lib_gauss_sq = gaussian_square(
+                duration=125, sigma=4, amp=0.5j, width=100, zero_ends=True
+            ).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss_sq)
         gauss_sq = GaussianSquare(
             duration=125, sigma=4, amp=0.5, risefall_sigma_ratio=3.125, angle=np.pi / 2
         )
         sample_pulse = gauss_sq.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
-        pulse_lib_gauss_sq = gaussian_square(
-            duration=125, sigma=4, amp=0.5j, width=100, zero_ends=True
-        ).samples
+        with self.assertWarns(DeprecationWarning):
+            pulse_lib_gauss_sq = gaussian_square(
+                duration=125, sigma=4, amp=0.5j, width=100, zero_ends=True
+            ).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_gauss_sq)
 
     def test_gauss_square_extremes(self):
@@ -374,7 +377,8 @@ class TestParametricPulses(QiskitTestCase):
         drag = Drag(duration=25, sigma=4, amp=0.5, beta=1, angle=np.pi / 2)
         sample_pulse = drag.get_waveform()
         self.assertIsInstance(sample_pulse, Waveform)
-        pulse_lib_drag = pl_drag(duration=25, sigma=4, amp=0.5j, beta=1, zero_ends=True).samples
+        with self.assertWarns(DeprecationWarning):
+            pulse_lib_drag = pl_drag(duration=25, sigma=4, amp=0.5j, beta=1, zero_ends=True).samples
         np.testing.assert_almost_equal(sample_pulse.samples, pulse_lib_drag)
 
     def test_drag_validation(self):
@@ -426,7 +430,8 @@ class TestParametricPulses(QiskitTestCase):
         phase = 0
 
         sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase)
-        sin_waveform = sin(duration=duration, amp=amp, freq=freq, phase=phase)
+        with self.assertWarns(DeprecationWarning):
+            sin_waveform = sin(duration=duration, amp=amp, freq=freq, phase=phase)
 
         np.testing.assert_almost_equal(sin_pulse.get_waveform().samples, sin_waveform.samples)
 
@@ -440,7 +445,8 @@ class TestParametricPulses(QiskitTestCase):
         freq = 0.1
         phase = 0
         cos_pulse = Cos(duration=duration, amp=amp, freq=freq, phase=phase)
-        cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        with self.assertWarns(DeprecationWarning):
+            cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=phase)
         np.testing.assert_almost_equal(cos_pulse.get_waveform().samples, cos_waveform.samples)
 
         shifted_sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase + np.pi / 2)
@@ -457,7 +463,8 @@ class TestParametricPulses(QiskitTestCase):
         freq = 0.1
         phase = 0.3
         square_pulse = Square(duration=duration, amp=amp, freq=freq, phase=phase)
-        square_waveform = square(duration=duration, amp=amp, freq=freq, phase=phase / 2)
+        with self.assertWarns(DeprecationWarning):
+            square_waveform = square(duration=duration, amp=amp, freq=freq, phase=phase / 2)
 
         np.testing.assert_almost_equal(square_pulse.get_waveform().samples, square_waveform.samples)
 
@@ -471,7 +478,8 @@ class TestParametricPulses(QiskitTestCase):
         freq = 0.1
         phase = 0.5
         sawtooth_pulse = Sawtooth(duration=duration, amp=amp, freq=freq, phase=phase)
-        sawtooth_waveform = sawtooth(duration=duration, amp=amp, freq=freq, phase=phase / 2)
+        with self.assertWarns(DeprecationWarning):
+            sawtooth_waveform = sawtooth(duration=duration, amp=amp, freq=freq, phase=phase / 2)
         # Note that the phase definition in `Sawtooth` was changed compared to `sawtooth`
         np.testing.assert_almost_equal(
             sawtooth_pulse.get_waveform().samples, sawtooth_waveform.samples
@@ -491,7 +499,8 @@ class TestParametricPulses(QiskitTestCase):
         freq = 0.1
         phase = 0.5
         triangle_pulse = Triangle(duration=duration, amp=amp, freq=freq, phase=phase)
-        triangle_waveform = triangle(duration=duration, amp=amp, freq=freq, phase=phase)
+        with self.assertWarns(DeprecationWarning):
+            triangle_waveform = triangle(duration=duration, amp=amp, freq=freq, phase=phase)
         np.testing.assert_almost_equal(
             triangle_pulse.get_waveform().samples, triangle_waveform.samples
         )
@@ -509,7 +518,8 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5
         sigma = 100
         gaussian_deriv_pulse = GaussianDeriv(duration=duration, amp=amp, sigma=sigma)
-        gaussian_deriv_waveform = gaussian_deriv(duration=duration, amp=amp, sigma=sigma)
+        with self.assertWarns(DeprecationWarning):
+            gaussian_deriv_waveform = gaussian_deriv(duration=duration, amp=amp, sigma=sigma)
         np.testing.assert_almost_equal(
             gaussian_deriv_pulse.get_waveform().samples, gaussian_deriv_waveform.samples
         )
@@ -523,12 +533,14 @@ class TestParametricPulses(QiskitTestCase):
         sigma = 10
         # Zero ends = True
         sech_pulse = Sech(duration=duration, amp=amp, sigma=sigma)
-        sech_waveform = sech(duration=duration, amp=amp, sigma=sigma)
+        with self.assertWarns(DeprecationWarning):
+            sech_waveform = sech(duration=duration, amp=amp, sigma=sigma)
         np.testing.assert_almost_equal(sech_pulse.get_waveform().samples, sech_waveform.samples)
 
         # Zero ends = False
         sech_pulse = Sech(duration=duration, amp=amp, sigma=sigma, zero_ends=False)
-        sech_waveform = sech(duration=duration, amp=amp, sigma=sigma, zero_ends=False)
+        with self.assertWarns(DeprecationWarning):
+            sech_waveform = sech(duration=duration, amp=amp, sigma=sigma, zero_ends=False)
         np.testing.assert_almost_equal(sech_pulse.get_waveform().samples, sech_waveform.samples)
 
         with self.assertRaises(PulseError):
@@ -540,7 +552,8 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5
         sigma = 10
         sech_deriv_pulse = SechDeriv(duration=duration, amp=amp, sigma=sigma)
-        sech_deriv_waveform = sech_deriv(duration=duration, amp=amp, sigma=sigma)
+        with self.assertWarns(DeprecationWarning):
+            sech_deriv_waveform = sech_deriv(duration=duration, amp=amp, sigma=sigma)
         np.testing.assert_almost_equal(
             sech_deriv_pulse.get_waveform().samples, sech_deriv_waveform.samples
         )

@@ -17,6 +17,12 @@ Qasm (:mod:`qiskit.qasm`)
 
 .. currentmodule:: qiskit.qasm
 
+.. deprecated:: 0.46.0
+
+   The :mod:`qiskit.qasm` module has been deprecated and superseded by the :mod:`qiskit.qasm2`
+   module which provides a faster more correct parser.
+
+
 QASM Routines
 =============
 
@@ -36,12 +42,22 @@ Pygments
     :class-doc-from: class
 """
 
+import warnings
+
 from numpy import pi
 
 from qiskit.utils.optionals import HAS_PYGMENTS
 
 from .qasm import Qasm
 from .exceptions import QasmError
+
+
+warnings.warn(
+    "The `qiskit.qasm` has been deprecated and superseded by the `qiskit.qasm2` module. "
+    "`qiskit.qasm` will be removed in the Qiskit 1.0.0 release.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def __getattr__(name):

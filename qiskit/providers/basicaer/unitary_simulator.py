@@ -17,11 +17,11 @@ the simulator. It is exponential in the number of qubits.
 
 .. code-block:: python
 
-    UnitarySimulator().run(qobj)
+    UnitarySimulator().run(run_input)
 
-Where the input is a Qobj object and the output is a BasicAerJob object, which can
-later be queried for the Result object. The result will contain a 'unitary'
-data field, which is a 2**n x 2**n complex numpy array representing the
+Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and
+the output is a BasicAerJob object, which can later be queried for the Result object. The result
+will contain a 'unitary' data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
 """
 import logging
@@ -39,6 +39,7 @@ from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import SINGLE_QUBIT_GATES
@@ -102,6 +103,14 @@ class UnitarySimulatorPy(BackendV1):
 
     DEFAULT_OPTIONS = {"initial_unitary": None, "chop_threshold": 1e-15}
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
+        "The new module has no replacement for this class. "
+        "Use the qiskit.quantum_info.Operator class instead.",
+    )
     def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(
@@ -203,11 +212,18 @@ class UnitarySimulatorPy(BackendV1):
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
-    def run(self, qobj, **backend_options):
-        """Run qobj asynchronously.
+    @deprecate_arg(
+        "run_input",
+        deprecation_description="Using a QasmQobj for the first argument to UnitarySimulatorPy.run()",
+        since="0.46.0",
+        pending=False,
+        predicate=lambda run_input: not isinstance(run_input, (QuantumCircuit, list)),
+    )
+    def run(self, run_input, **backend_options):
+        """Run experiments in run_input asynchronously.
 
         Args:
-            qobj (Qobj): payload of the experiment
+            run_input (Qobj, QuantumCircuit, list): payload of the experiment
             backend_options (dict): backend options
 
         Returns:
@@ -222,7 +238,7 @@ class UnitarySimulatorPy(BackendV1):
             The "initial_unitary" option specifies a custom initial unitary
             matrix for the simulator to be used instead of the identity
             matrix. This size of this matrix must be correct for the number
-            of qubits inall experiments in the qobj.
+            of qubits in all experiments in the run_input.
 
             The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output unitary. The default
@@ -238,7 +254,7 @@ class UnitarySimulatorPy(BackendV1):
                     "chop_threshold": 1e-15
                 }
         """
-        if isinstance(qobj, (QuantumCircuit, list)):
+        if isinstance(run_input, (QuantumCircuit, list)):
             from qiskit.compiler import assemble
 
             out_options = {}
@@ -249,9 +265,10 @@ class UnitarySimulatorPy(BackendV1):
                     )
                 else:
                     out_options[key] = backend_options[key]
-            qobj = assemble(qobj, self, **out_options)
+            qobj = assemble(run_input, self, **out_options)
             qobj_options = qobj.config
         else:
+            qobj = run_input
             qobj_options = None
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())

@@ -12,10 +12,19 @@
 
 """Algorithms Test Case"""
 
+import warnings
 from qiskit.test import QiskitTestCase
 
 
 class QiskitAlgorithmsTestCase(QiskitTestCase):
     """Algorithms test Case"""
 
-    pass
+    def setUp(self):
+        super().setUp()
+        # ignore basicaer msgs
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+
+    def tearDown(self):
+        super().tearDown()
+        # restore basicaer msgs
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*basicaer.*")

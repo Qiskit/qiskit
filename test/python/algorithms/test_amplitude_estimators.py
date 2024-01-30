@@ -16,7 +16,11 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, idata, data, unpack
-from qiskit import QuantumRegister, QuantumCircuit, BasicAer
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    QuantumCircuit,
+    QuantumRegister,
+)
 from qiskit.circuit.library import QFT, GroverOperator
 from qiskit.utils import QuantumInstance
 from qiskit.algorithms import (
