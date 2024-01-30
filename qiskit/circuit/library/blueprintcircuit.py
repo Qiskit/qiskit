@@ -122,11 +122,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().parameters
 
-    def qasm(self, formatted=False, filename=None, encoding=None):
-        if not self._is_built:
-            self._build()
-        return super().qasm(formatted, filename, encoding)
-
     def _append(self, instruction, _qargs=None, _cargs=None):
         if not self._is_built:
             self._build()
@@ -182,6 +177,16 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         if not self._is_built:
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
+
+    def copy_empty_like(self, name=None):
+        if not self._is_built:
+            self._build()
+        cpy = super().copy_empty_like(name=name)
+        # The base `copy_empty_like` will typically trigger code that `BlueprintCircuit` treats as
+        # an "invalidation", so we have to manually restore properties deleted by that that
+        # `copy_empty_like` is supposed to propagate.
+        cpy.global_phase = self.global_phase
+        return cpy
 
     def copy(self, name=None):
         if not self._is_built:

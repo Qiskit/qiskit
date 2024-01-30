@@ -124,6 +124,11 @@ class RZGate(Gate):
         (theta,) = self.params
         return RZGate(exponent * theta)
 
+    def __eq__(self, other):
+        if isinstance(other, RZGate):
+            return self._compare_parameters(other)
+        return False
+
 
 class CRZGate(ControlledGate):
     r"""Controlled-RZ gate.
@@ -259,3 +264,8 @@ class CRZGate(ControlledGate):
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRZGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

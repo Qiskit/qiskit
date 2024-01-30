@@ -108,24 +108,64 @@ class Cast(Expr):
 
 @typing.final
 class Var(Expr):
-    """A classical variable."""
+    """A classical variable.
+
+    Variables are immutable after construction, so they can be used as dictionary keys."""
 
     __slots__ = ("var",)
 
+    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister
+    """A reference to the backing data storage of the :class:`Var` instance.  When lifting
+    old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
+    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`."""
+
     def __init__(
-        self, var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister, type: types.Type
+        self,
+        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister,
+        type: types.Type,
     ):
-        self.type = type
-        self.var = var
+        super().__setattr__("type", type)
+        super().__setattr__("var", var)
+
+    @property
+    def standalone(self) -> bool:
+        """Whether this :class:`Var` is a standalone variable that owns its storage location.
+        This is currently always ``False``, but will expand in the future to support memory-owning
+        storage locations."""
+        return False
 
     def accept(self, visitor, /):
         return visitor.visit_var(self)
+
+    def __setattr__(self, key, value):
+        if hasattr(self, key):
+            raise AttributeError(f"'Var' object attribute '{key}' is read-only")
+        raise AttributeError(f"'Var' object has no attribute '{key}'")
+
+    def __hash__(self):
+        return hash((self.type, self.var))
 
     def __eq__(self, other):
         return isinstance(other, Var) and self.type == other.type and self.var == other.var
 
     def __repr__(self):
         return f"Var({self.var}, {self.type})"
+
+    def __getstate__(self):
+        return (self.var, self.type)
+
+    def __setstate__(self, state):
+        var, type = state
+        super().__setattr__("type", type)
+        super().__setattr__("var", var)
+
+    def __copy__(self):
+        # I am immutable...
+        return self
+
+    def __deepcopy__(self, memo):
+        # ... as are all my consituent parts.
+        return self
 
 
 @typing.final

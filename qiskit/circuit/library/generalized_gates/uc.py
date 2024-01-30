@@ -35,7 +35,7 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=cyclic-import
-from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
 from .diagonal import Diagonal
 

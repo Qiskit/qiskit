@@ -18,7 +18,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder
 
@@ -35,7 +35,7 @@ class TestWeightedAdder(QiskitTestCase):
         circuit.append(adder.to_instruction(), list(range(adder.num_qubits)))
 
         backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(circuit, backend).result().get_statevector()
+        statevector = backend.run(transpile(circuit, backend)).result().get_statevector()
 
         probabilities = defaultdict(float)
         for i, statevector_amplitude in enumerate(statevector):

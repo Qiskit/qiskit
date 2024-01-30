@@ -92,6 +92,12 @@ load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
 
+If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
+raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
+and how the feature will be internally handled.
+
+.. autoexception:: QPYLoadingDeprecatedFeatureWarning
+
 .. _qpy_format:
 
 **********
@@ -1335,7 +1341,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
-from .exceptions import QpyError
+from .exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.

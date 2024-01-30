@@ -54,7 +54,7 @@ load external plugins via corresponding entry points.
        operate on 1 or 2 qubits.
    * - ``layout``
      - ``qiskit.transpiler.layout``
-     - ``trivial``, ``dense``, ``noise_adaptive``, ``sabre``, ``default``
+     - ``trivial``, ``dense``, ``sabre``, ``default``
      - The output from this stage is expected to have the ``layout`` property
        set field set with a :class:`~.Layout` object. Additionally, the circuit is
        typically expected to be embedded so that it is expanded to include all
@@ -134,23 +134,19 @@ and falls back to using :class:`~.TrivialLayout` if
 
 The second step is to expose the :class:`~.PassManagerStagePlugin`
 subclass as a setuptools entry point in the package metadata. This can be done
-by simply adding an ``entry_points`` entry to the ``setuptools.setup`` call in
-the ``setup.py`` or the plugin package with the necessary entry points under the
-appropriate namespace for the stage your plugin is for. You can see the list
-of stages, entry points, and expectations from the stage in :ref:`stage_table`.
-For example, continuing from the example plugin above::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the appropriate namespace for the stage your plugin is for. You can see the list of
+stages, entry points, and expectations from the stage in :ref:`stage_table`.  For example,
+continuing from the example plugin above::
 
-    entry_points = {
-        'qiskit.transpiler.layout': [
-            'vf2 = qiskit_plugin_pkg.module.plugin:VF2LayoutPlugin',
-        ]
-    },
+.. code-block:: toml
 
-Note that the entry point ``name = path`` is a single string not a Python
-expression. There isn't a limit to the number of plugins a single package can
-include as long as each plugin has a unique name. So a single package can
-expose multiple plugins if necessary. Refer to :ref:`stage_table` for a list
-of reserved names for each stage.
+    [project.entry-points."qiskit.transpiler.layout"]
+    "vf2" = "qiskit_plugin_pkg.module.plugin:VF2LayoutPlugin"
+
+There isn't a limit to the number of plugins a single package can include as long as each plugin has
+a unique name. So a single package can expose multiple plugins if necessary. Refer to
+:ref:`stage_table` for a list of reserved names for each stage.
 
 Plugin API
 ==========

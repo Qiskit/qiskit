@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """Test operations on the builder interfaces for control flow in dynamic QuantumCircuits."""
 
 import copy
@@ -28,7 +30,6 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp, CASE_DEFAULT
-from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
 from qiskit.circuit.controlflow.if_else import IfElsePlaceholder
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
@@ -3504,23 +3505,6 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
                 r"When using 'switch' with cases, you must pass qubits and clbits\.",
             ):
                 test.switch(test.clbits[0], [(False, body)], qubits=qubits, clbits=clbits)
-
-    @ddt.data(None, [Clbit()], 0)
-    def test_builder_block_add_bits_reject_bad_bits(self, bit):
-        """Test that :obj:`.ControlFlowBuilderBlock` raises if something is given that is an
-        incorrect type.
-
-        This isn't intended to be something users do at all; the builder block is an internal
-        construct only, but this keeps coverage checking happy."""
-
-        def dummy_requester(resource):
-            raise CircuitError
-
-        builder_block = ControlFlowBuilderBlock(
-            qubits=(), clbits=(), resource_requester=dummy_requester
-        )
-        with self.assertRaisesRegex(TypeError, r"Can only add qubits or classical bits.*"):
-            builder_block.add_bits([bit])
 
     def test_compose_front_inplace_invalid_within_builder(self):
         """Test that `QuantumCircuit.compose` raises a sensible error when called within a
