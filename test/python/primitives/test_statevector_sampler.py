@@ -615,8 +615,8 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertTrue(hasattr(data, creg_name))
             self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
 
-    def test_no_measurements(self):
-        """Test the sampler works when there are no measurements."""
+    def test_no_cregs(self):
+        """Test that the sampler works when there are no classical register in the circuit."""
         qc = QuantumCircuit(2)
         sampler = StatevectorSampler()
         with self.assertWarns(UserWarning):
