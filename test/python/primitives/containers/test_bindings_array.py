@@ -321,3 +321,36 @@ class BindingsArrayTestCase(QiskitTestCase):
         arg = None
         ba = BindingsArray.coerce(None)
         self.assertEqual(ba.num_parameters, 0)
+
+    @ddt.data(
+        ((0,), 0, True),
+        ((), 0, True),
+        # ((0,), 1, True), this shouldn't work because we don't know if shape is (0,) or (0, 1)
+        ((0,), 2, True),
+        ((1,), 0, True),
+        ((0,), 0, False),
+        ((2, 3), 0, True),
+        ((), 0, False),
+        ((0,), 1, False),
+        ((0,), 2, False),
+        ((1,), 0, False),
+        ((2, 3), 0, False),
+    )
+    @ddt.unpack
+    def test_shape_with_0(self, shape, num_params, do_inference):
+        "Tests various combinations of inputs that include 0-d axes."
+        ba = BindingsArray(
+            {tuple(f"a{idx}" for idx in range(num_params)): np.empty(shape + (num_params,))},
+            shape=(None if do_inference else shape),
+        )
+        self.assertEqual(ba.shape, shape)
+        self.assertEqual(ba.num_parameters, num_params)
+
+        if num_params == 1:
+            # if there is 1 parameter, we should be allowed to leave it off as an axis
+            ba = BindingsArray(
+                {tuple(f"a{idx}" for idx in range(num_params)): np.empty(shape)},
+                shape=(None if do_inference else shape),
+            )
+            self.assertEqual(ba.shape, shape)
+            self.assertEqual(ba.num_parameters, num_params)

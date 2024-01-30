@@ -64,7 +64,7 @@ class BindingsArray(ShapedMixin):
 
     def __init__(
         self,
-        data: Mapping[ParameterLike, Iterable[ParameterValueType]] | ArrayLike | None = None,
+        data: Mapping[ParameterLike, Iterable[ParameterValueType]] | None = None,
         shape: ShapeInput | None = None,
     ):
         r"""
@@ -286,14 +286,19 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             only_possible_shapes.intersection_update(possible_shapes)
 
     for parameters, val in data.items():
-        if len(parameters) > 1:
+        if len(parameters) != 1:
             # the last dimension _has_  to be over parameters
             examine_array(val.shape[:-1])
-        elif val.shape == () or val.shape == (1,) or val.shape[-1] != 1:
-            # if the last dimension is not 1 or shape is () or (1,) then the shape is the shape
+        elif val.shape in {(), (1,)}:
+            # here we specify special cases:
+            # * val.shape == (): we want float-like to be 0d
+            # * val.shape == (1,): we want to support {("a",): [1]} as float-like
+            examine_array(val.shape)
+        elif val.shape[-1] != 1:
+            # there's one param but the last dimension is not 1: last dimension isn't over params
             examine_array(val.shape)
         else:
-            # the last dimension could be over parameters or not
+            # only ambiguous case: the last dimension could be over parameters or not
             examine_array(val.shape, val.shape[:-1])
 
     if only_possible_shapes is None:
@@ -302,7 +307,10 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
         return next(iter(only_possible_shapes))
     elif len(only_possible_shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
-    raise ValueError("Could not unambiguously determine the intended shape; specify shape manually")
+    raise ValueError(
+        f"Could not unambiguously determine the intended shape, all shapes {only_possible_shapes} "
+        "are consistent with the input; specify shape manually."
+    )
 
 
 def _format_key(key: tuple[Parameter | str, ...]):
