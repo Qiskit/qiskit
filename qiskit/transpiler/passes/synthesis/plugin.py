@@ -135,7 +135,7 @@ points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
 .. code-block:: toml
 
-    [project.entry-points."qiskit.unitary-synthesis"]
+    [project.entry-points."qiskit.unitary_synthesis"]
     "special" = "qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis"
 
 There isn't a limit to the number of plugins a single package can
