@@ -26,23 +26,7 @@ from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
 
-LIMA_CM = CouplingMap([[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]])
-YORKTOWN_CM = CouplingMap(
-    [
-        [0, 1],
-        [0, 2],
-        [1, 0],
-        [1, 2],
-        [2, 0],
-        [2, 1],
-        [2, 3],
-        [2, 4],
-        [3, 2],
-        [3, 4],
-        [4, 2],
-        [4, 3],
-    ]
-)
+from .. import LIMA_CMAP, YORKTOWN_CMAP
 
 
 class TestVF2PostLayout(QiskitTestCase):
@@ -133,7 +117,7 @@ class TestVF2PostLayout(QiskitTestCase):
         """Test no solution found for empty circuit with v2 backend"""
         qc = QuantumCircuit(2, 2)
         target = GenericBackendV2(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM, seed=42
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
         ).target
         vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
@@ -174,7 +158,7 @@ class TestVF2PostLayout(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.ccx(0, 1, 2)
         target = GenericBackendV2(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM, seed=42
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
         ).target
         vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
@@ -188,7 +172,7 @@ class TestVF2PostLayout(QiskitTestCase):
         with qc.for_loop((1,)):
             qc.ccx(0, 1, 2)
         target = GenericBackendV2(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM, seed=42
+            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CMAP, seed=42
         ).target
         vf2_pass = VF2PostLayout(target=target)
         vf2_pass.run(circuit_to_dag(qc))
@@ -299,7 +283,10 @@ class TestVF2PostLayout(QiskitTestCase):
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
         """Test best mappings with multiple registers"""
         backend = GenericBackendV2(
-            num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LIMA_CM, seed=123
+            num_qubits=5,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LIMA_CMAP,
+            seed=123,
         )
 
         for i in range(len(backend.target.instructions)):
@@ -330,7 +317,7 @@ class TestVF2PostLayout(QiskitTestCase):
         backend = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         )
 
@@ -353,7 +340,7 @@ class TestVF2PostLayout(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         ).target
 
@@ -378,7 +365,7 @@ class TestVF2PostLayout(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         ).target
         qc = QuantumCircuit(2)
@@ -393,11 +380,10 @@ class TestVF2PostLayout(QiskitTestCase):
 
     def test_target_invalid_2q_gate_control_flow(self):
         """Test that we don't find a solution with a gate outside target."""
-        # from qiskit.providers.fake_provider import FakeYorktownV2
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         ).target
         qc = QuantumCircuit(2)
@@ -492,7 +478,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         ).target
         vf2_pass = VF2PostLayout(target=target)
@@ -511,7 +497,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=42,
         ).target
 
@@ -599,7 +585,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=LIMA_CM,
+            coupling_map=LIMA_CMAP,
             seed=self.seed,
         ).target
         vf2_pass = VF2PostLayout(target=target, strict_direction=False)
@@ -630,7 +616,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         target = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=LIMA_CM,
+            coupling_map=LIMA_CMAP,
             seed=self.seed,
         ).target
         vf2_pass = VF2PostLayout(target=target, strict_direction=False)
@@ -692,7 +678,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         backend = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=LIMA_CM,
+            coupling_map=LIMA_CMAP,
             seed=self.seed,
         )
         qr_a = QuantumRegister(2)
@@ -720,7 +706,7 @@ class TestVF2PostLayoutUndirected(QiskitTestCase):
         backend = GenericBackendV2(
             num_qubits=5,
             basis_gates=["cx", "id", "rz", "sx", "x"],
-            coupling_map=YORKTOWN_CM,
+            coupling_map=YORKTOWN_CMAP,
             seed=self.seed,
         )
 

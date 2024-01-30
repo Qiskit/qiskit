@@ -893,7 +893,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(ZGate(), [qc.qubits[0]])
         dag = circuit_to_dag(qc)
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"])
+        backend = GenericBackendV2(num_qubits=5)
         unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
@@ -904,7 +904,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
         dag = circuit_to_dag(qc)
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"])
+        backend = GenericBackendV2(num_qubits=5)
         unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
@@ -915,7 +915,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4), [0, 1])
         dag = circuit_to_dag(qc)
-        target = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"]).target
+        target = GenericBackendV2(num_qubits=5).target
         target.add_instruction(IfElseOp, name="if_else")
         target.add_instruction(ZGate())
         target.add_instruction(ECRGate())
