@@ -30,6 +30,11 @@ from .utils import bound_circuit_to_instruction
 class StatevectorEstimator(BaseEstimatorV2):
     """
     Simple implementation of :class:`BaseEstimatorV2` with full state vector simulation.
+    
+    This class is implemented via :class:`~.Statevector` which turns provided circuits into 
+    pure state vectors. These states are subsequently acted on by :class:~.SparsePauliOp`,
+    which implies that, at present, this implementation is only compatible with Pauli-based
+    observables.
     """
 
     def __init__(
