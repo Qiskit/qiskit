@@ -516,6 +516,19 @@ class DAGDependency:
             dag._multi_graph.add_edge(edges[0], edges[1], edges[2])
         return dag
 
+    def copy_empty_like(self):
+        """Return a copy of self with the same structure but empty.
+        Returns:
+            DAGDependency: An empty copy of self.
+        """
+        target_dag = DAGDependency()
+        target_dag.name = self.name
+        target_dag.cregs = self.cregs.copy()
+        target_dag.qregs = self.qregs.copy()
+
+        return target_dag
+
+
     def draw(self, scale=0.7, filename=None, style="color"):
         """
         Draws the DAGDependency graph.
