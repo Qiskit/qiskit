@@ -34,7 +34,7 @@ class FakeQobj(QasmQobj):
     @deprecate_func(
         additional_msg="Use the `qiskit.qobj.QasmQobj` class directly instead.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):

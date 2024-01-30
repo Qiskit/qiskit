@@ -80,8 +80,7 @@ class FakeBackendV2(BackendV2):
         "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
         "instead of `from qiskit.providers.fake_provider import FakeExample`. ",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
-        package_name="qiskit",
+        removal_timeline="in qiskit 1.0",
     )
     def __init__(self):
         """FakeBackendV2 initializer."""

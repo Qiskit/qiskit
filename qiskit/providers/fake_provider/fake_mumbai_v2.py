@@ -40,7 +40,7 @@ class FakeMumbaiFractionalCX(BackendV2):
         additional_msg="Use the `qiskit.providers.basic_provider.GenericBackendV2` "
         "class instead.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):

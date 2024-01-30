@@ -30,7 +30,7 @@ class FakeJob(JobV1):
     @deprecate_func(
         additional_msg="Use the `qiskit.providers.JobV1` class directly instead.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self, backend, job_id, fn):

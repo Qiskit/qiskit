@@ -35,7 +35,7 @@ class FakeProviderFactory:
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):
@@ -102,7 +102,7 @@ class FakeProviderForBackendV2(ProviderV1):
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):
@@ -185,7 +185,7 @@ class FakeProvider(ProviderV1):
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):

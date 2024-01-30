@@ -38,7 +38,7 @@ class ConfigurableFakeBackend(FakeBackend):
     @deprecate_func(
         since="0.46.0",
         additional_msg="Use a suitable FakeBackend instead.",
-        removal_timeline="Qiskit 1.0",
+        removal_timeline="in qiskit 1.0",
     )
     def __init__(
         self,
