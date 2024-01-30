@@ -13,6 +13,7 @@
 """Test Providers that support BackendV2 interface"""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
@@ -29,8 +30,10 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._provider = FakeProvider()
-        self._qasm = FakeBackendSimple()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._provider = FakeProvider()
+            self._qasm = FakeBackendSimple()
         self.seed = 50
 
     def test_vqe_qasm(self):

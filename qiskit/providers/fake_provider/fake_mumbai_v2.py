@@ -30,11 +30,19 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
+from qiskit.utils.deprecation import deprecate_func
 
 
 class FakeMumbaiFractionalCX(BackendV2):
     """A fake mumbai backend."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.basic_provider.GenericBackendV2` "
+        "class instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         super().__init__(
             name="FakeMumbaiFractionalCX",

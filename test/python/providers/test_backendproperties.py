@@ -27,7 +27,8 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
+        with self.assertWarns(DeprecationWarning):
+            self.provider = FakeProvider()
         self.backend = self.provider.get_backend("fake_ourense")
         self.properties = self.backend.properties()
         self.ref_gate = next(

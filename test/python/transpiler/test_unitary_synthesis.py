@@ -15,6 +15,7 @@
 """
 Tests for the default UnitarySynthesis transpiler pass.
 """
+import warnings
 
 from test import combine
 import unittest
@@ -604,7 +605,9 @@ class TestUnitarySynthesis(QiskitTestCase):
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
     def test_coupling_map_transpile_with_backendv2(self, opt_level, bidirectional):
-        backend = FakeBackend5QV2(bidirectional)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2(bidirectional)
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [0, 1])
@@ -656,7 +659,9 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeBackend5QV2(bidirectional)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2(bidirectional)
         tqc = transpile(
             circ,
             backend=backend,
@@ -681,7 +686,9 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeBackendV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackendV2()
         tqc = transpile(
             circ,
             backend=backend,
@@ -699,7 +706,9 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [0, 1])
-        backend = FakeMumbaiFractionalCX()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeMumbaiFractionalCX()
         synth_pass = UnitarySynthesis(target=backend.target)
         tqc = synth_pass(circ)
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}

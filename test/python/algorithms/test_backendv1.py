@@ -31,7 +31,9 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._provider = FakeProvider()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._provider = FakeProvider()
         self._qasm = self._provider.get_backend("fake_qasm_simulator")
         self.seed = 50
 

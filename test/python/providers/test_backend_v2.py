@@ -14,6 +14,7 @@
 # pylint: disable=missing-module-docstring
 
 import math
+import warnings
 
 from test import combine
 
@@ -38,7 +39,9 @@ from qiskit.pulse import channels
 class TestBackendV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.backend = FakeBackendV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            self.backend = FakeBackendV2()
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
@@ -61,15 +64,19 @@ class TestBackendV2(QiskitTestCase):
 
     def test_legacy_qubit_properties(self):
         """Test that qubit props work for backends not using properties in target."""
-        props = FakeBackendV2LegacyQubitProps().qubit_properties([1, 0])
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            props = FakeBackendV2LegacyQubitProps().qubit_properties([1, 0])
         self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
         self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
         self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
 
     def test_no_qubit_properties_raises(self):
         """Ensure that if no qubit properties are defined we raise correctly."""
-        with self.assertRaises(NotImplementedError):
-            FakeBackendSimple().qubit_properties(0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            with self.assertRaises(NotImplementedError):
+                FakeBackendSimple().qubit_properties(0)
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
@@ -101,7 +108,9 @@ class TestBackendV2(QiskitTestCase):
         name="{gate}_level_{opt_level}_bidirectional_{bidirectional}",
     )
     def test_5q_ghz(self, opt_level, gate, bidirectional):
-        backend = FakeBackend5QV2(bidirectional)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2(bidirectional)
         qc = QuantumCircuit(5)
         qc.h(0)
         getattr(qc, gate)(0, 1)
@@ -158,7 +167,9 @@ class TestBackendV2(QiskitTestCase):
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""
-        backend = FakeMumbaiFractionalCX()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeMumbaiFractionalCX()
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)

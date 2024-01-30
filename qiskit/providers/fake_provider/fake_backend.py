@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2023.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,6 +33,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.providers import basic_provider
 from qiskit.transpiler import Target
 from qiskit.providers.backend_compat import convert_to_target
+from qiskit.utils.deprecation import deprecate_func
 
 from .utils.json_decoder import (
     decode_backend_configuration,
@@ -56,7 +57,7 @@ class FakeBackendV2(BackendV2):
 
     The class inherits :class:`~qiskit.providers.BackendV2` class. This version
     differs from earlier :class:`~qiskit.providers.fake_provider.FakeBackend` (V1) class in a
-    few aspects. Firstly, configuration attribute no longer exsists. Instead,
+    few aspects. Firstly, configuration attribute no longer exists. Instead,
     attributes exposing equivalent required immutable properties of the backend
     device are added. For example ``fake_backend.configuration().n_qubits`` is
     accessible from ``fake_backend.num_qubits`` now. Secondly, this version
@@ -71,6 +72,16 @@ class FakeBackendV2(BackendV2):
     defs_filename = None
     backend_name = None
 
+    @deprecate_func(
+        additional_msg="All fake backend instances based on real device snapshots "
+        "(`FakeVigo`,`FakeSherbrooke`,...) have been migrated to the "
+        "`qiskit_ibm_runtime` package. "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
+        "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+        "instead of `from qiskit.providers.fake_provider import FakeExample`. ",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+    )
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()

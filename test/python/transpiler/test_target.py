@@ -13,6 +13,7 @@
 # pylint: disable=missing-docstring
 
 import math
+import warnings
 
 from qiskit.circuit.library import (
     RZGate,
@@ -55,7 +56,9 @@ from qiskit.providers.fake_provider import (
 class TestTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.fake_backend = FakeBackendV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            self.fake_backend = FakeBackendV2()
         self.fake_backend_target = self.fake_backend.target
         self.theta = Parameter("theta")
         self.phi = Parameter("phi")
@@ -1052,7 +1055,9 @@ Instructions:
         self.assertFalse(self.ideal_sim_target.instruction_supported("cx", (0, 1, 2)))
 
     def test_instruction_supported_parameters(self):
-        mumbai = FakeMumbaiFractionalCX()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            mumbai = FakeMumbaiFractionalCX()
         self.assertTrue(
             mumbai.target.instruction_supported(
                 qargs=(0, 1), operation_class=RZXGate, parameters=[math.pi / 4]

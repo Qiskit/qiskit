@@ -15,6 +15,7 @@ Fake OpenQASM simulator.
 """
 
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from qiskit.utils.deprecation import deprecate_func
 
 from .fake_backend import FakeBackend
 
@@ -22,6 +23,12 @@ from .fake_backend import FakeBackend
 class FakeQasmSimulator(FakeBackend):
     """A fake simulator backend."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.basic_provider.BasicSimulator` class instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         configuration = QasmBackendConfiguration(
             backend_name="fake_qasm_simulator",

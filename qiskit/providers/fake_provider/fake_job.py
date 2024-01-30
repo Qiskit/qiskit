@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,6 +19,7 @@ from concurrent import futures
 
 from qiskit.providers import JobV1
 from qiskit.providers.jobstatus import JobStatus
+from qiskit.utils.deprecation import deprecate_func
 
 
 class FakeJob(JobV1):
@@ -26,6 +27,12 @@ class FakeJob(JobV1):
 
     _executor = futures.ThreadPoolExecutor()
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.JobV1` class directly instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
         self._backend = backend

@@ -27,7 +27,8 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
+        with self.assertWarns(DeprecationWarning):
+            self.provider = FakeProvider()
         self.config = self.provider.get_backend("fake_openpulse_2q").configuration()
 
     def test_simple_config(self):

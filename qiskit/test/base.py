@@ -245,7 +245,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
         allow_aer_DeprecationWarning_message = [
             # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
             "Setting metadata to None.*",
@@ -257,11 +256,15 @@ class QiskitTestCase(BaseQiskitTestCase):
             "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be removed "
             "in the Qiskit 1.0 release.",
         ]
-
         for msg in allow_aer_DeprecationWarning_message:
             warnings.filterwarnings(
                 "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
             )
+        # Ignore fake backend deprecation warnings to avoid over-crowding the test log
+        ignore_fake_backend_message = r".*have been migrated to the `qiskit_ibm_runtime` package.*"
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, message=ignore_fake_backend_message
+        )
 
 
 class FullQiskitTestCase(QiskitTestCase):
