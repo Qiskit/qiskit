@@ -31,7 +31,6 @@ Estimator
    BaseEstimator
    Estimator
    BackendEstimator
-   EstimatorPub
 
 EstimatorV2
 ===========
@@ -52,7 +51,6 @@ Sampler
    BackendSampler
    BaseSamplerV2
    StatevectorSampler
-   SamplerPub
 
 Results
 =======
@@ -72,12 +70,13 @@ from .base import BaseEstimator, BaseSampler, BaseSamplerV2
 from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
-    BindingsArray,
-    EstimatorPub,
-    ObservablesArray,
     PrimitiveResult,
     PubResult,
-    SamplerPub,
+    EstimatorPubLike,
+    SamplerPubLike,
+    BindingsArrayLike,
+    ObservableLike,
+    ObservablesArrayLike,
 )
 from .estimator import Estimator
 from .sampler import Sampler

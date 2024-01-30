@@ -22,7 +22,8 @@ import numpy as np
 from qiskit.quantum_info import SparsePauliOp, Statevector
 
 from .base import BaseEstimatorV2
-from .containers import EstimatorPub, EstimatorPubLike, PrimitiveResult, PubResult
+from .containers import EstimatorPubLike, PrimitiveResult, PubResult
+from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 

@@ -32,10 +32,10 @@ from .containers import (
     BitArray,
     PrimitiveResult,
     PubResult,
-    SamplerPub,
     SamplerPubLike,
     make_data_bin,
 )
+from .containers.sampler_pub import SamplerPub
 from .containers.bit_array import _min_num_bytes
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction

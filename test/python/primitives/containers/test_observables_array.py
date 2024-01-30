@@ -17,7 +17,7 @@ import ddt
 import numpy as np
 
 import qiskit.quantum_info as qi
-from qiskit.primitives import ObservablesArray
+from qiskit.primitives.containers.observables_array import ObservablesArray
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 

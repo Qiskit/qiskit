@@ -30,21 +30,22 @@ from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
 
-BasisObservable = Mapping[str, complex]
-"""Representation type of a single observable."""
 
-BasisObservableLike = Union[
+ObservableLike = Union[
     str,
     Pauli,
     SparsePauliOp,
-    Mapping[Union[str, Pauli], complex],
-    Iterable[Union[str, Pauli, SparsePauliOp]],
+    Mapping[Union[str, Pauli], float],  # TODO: Clean up abc vs typing
 ]
-"""Types that can be natively used to construct a :const:`BasisObservable`."""
+"""Types that can be natively used to construct a Hermitian Estimator observable."""
+
+
+ObservablesArrayLike = Union[ObservableLike, ArrayLike]
+"""Types that can be natively converted to an array of Hermitian Estimator observables."""
 
 
 class ObservablesArray(ShapedMixin):
-    """An ND-array of :const:`.BasisObservable` for an :class:`.Estimator` primitive."""
+    """An ND-array of Hermitian observables for an :class:`.Estimator` primitive."""
 
     __slots__ = ("_array", "_shape")
     ALLOWED_BASIS: str = "IXYZ01+-lr"
@@ -52,7 +53,7 @@ class ObservablesArray(ShapedMixin):
 
     def __init__(
         self,
-        observables: BasisObservableLike | ArrayLike,
+        observables: ObservablesArrayLike,
         copy: bool = True,
         validate: bool = True,
     ):
@@ -106,7 +107,7 @@ class ObservablesArray(ShapedMixin):
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
-    def __getitem__(self, args: int | tuple[int, ...]) -> BasisObservable:
+    def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]:
         ...
 
     @overload
@@ -145,7 +146,7 @@ class ObservablesArray(ShapedMixin):
         return self.reshape(self.size)
 
     @classmethod
-    def format_observable(cls, observable: BasisObservableLike) -> BasisObservable:
+    def format_observable(cls, observable: ObservableLike) -> Mapping[str, float]:
         """Format an observable-like object into a :const:`BasisObservable`.
 
         Args:
@@ -158,7 +159,7 @@ class ObservablesArray(ShapedMixin):
             TypeError: If the input cannot be formatted because its type is not valid.
             ValueError: If the input observable is invalid.
         """
-
+        # TODO: ERROR ON NON HERMITIAN PAULI/SPARSE PAULI
         # Pauli-type conversions
         if isinstance(observable, SparsePauliOp):
             # Call simplify to combine duplicate keys before converting to a mapping
@@ -242,16 +243,6 @@ class ObservablesArray(ShapedMixin):
                 f"Observable basis string '{basis}' contains invalid characters {invalid_chars},"
                 f" allowed characters are {list(cls.ALLOWED_BASIS)}.",
             )
-
-
-ObservablesArrayLike = Union[ObservablesArray, ArrayLike, BasisObservableLike]
-"""Types that can be natively converted to an ObservablesArray"""
-
-
-class PauliArray(ObservablesArray):
-    """An ND-array of Pauli-basis observables for an :class:`.Estimator` primitive."""
-
-    ALLOWED_BASIS = "IXYZ"
 
 
 @lru_cache(1)

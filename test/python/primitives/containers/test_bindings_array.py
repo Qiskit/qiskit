@@ -16,8 +16,8 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
-from qiskit.primitives import BindingsArray
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.primitives.containers.bindings_array import BindingsArray
+from qiskit import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

@@ -27,6 +27,24 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 ParameterLike = Union[Parameter, str]
+"""A parameter or parameter name."""
+
+BindingsArrayLike = Mapping[Union[ParameterLike, tuple[ParameterLike, ...]], ArrayLike]
+"""A mapping of numeric bindings for circuit parameters.
+
+This allows array values for single or multi-dimensional sweeps over parameter values.
+
+The mapping keys can be single or tuple of Parameter or parameter name strings.
+The values can be a float for a single parameter an N-dimensional array like where
+the array's last dimension indexes the circuit parameters, with its leading dimensions
+representing the array shape of its parameter bindings.
+
+Examples:
+- 0-d array (single binding): ``{"a": 4, ("b", "c"): [5, 6]}``
+- Single array (last index for parameters): ``{ParameterVector("a", 100): np.ones((10, 10, 100)))``
+- Multiple arrays (last index for parameters, flexible dimensions):
+  ``{("c", "a"): np.ones((10, 10, 2)), "b": np.zeros((10, 10))}``
+"""
 
 
 class BindingsArray(ShapedMixin):
@@ -63,7 +81,7 @@ class BindingsArray(ShapedMixin):
 
     def __init__(
         self,
-        data: Mapping[ParameterLike, ArrayLike | float] | None = None,
+        data: BindingsArrayLike | None = None,
         shape: ShapeInput | None = None,
     ):
         r"""
@@ -365,10 +383,3 @@ def _format_key(key: tuple[Parameter | str, ...]):
 
 def _param_name(param: Parameter | str) -> str:
     return param.name if isinstance(param, Parameter) else param
-
-
-BindingsArrayLike = Union[
-    BindingsArray,
-    "Mapping[Union[Parameter, str, Iterable[Union[Parameter, str]]], ArrayLike]",
-    None,
-]
