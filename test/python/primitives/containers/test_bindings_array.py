@@ -59,6 +59,11 @@ class BindingsArrayTestCase(QiskitTestCase):
                 data={(Parameter("a"), Parameter("b")): np.empty((5, 10, 3))},
             )
 
+        with self.assertRaisesRegex(TypeError, "complex"):
+            BindingsArray(
+                data={"a": 1j},
+            )
+
     def test_repr(self):
         """Test that the repr doesn't fail"""
         # we are primarily interested in making sure some future change doesn't cause the repr to

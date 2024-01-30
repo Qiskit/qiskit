@@ -23,7 +23,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parameterexpression import ParameterValueType
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
@@ -33,38 +32,38 @@ ParameterLike = Union[Parameter, str]
 class BindingsArray(ShapedMixin):
     r"""Stores parameter binding value sets for a :class:`qiskit.QuantumCircuit`.
 
-        A single parameter binding set provides numeric values to bind to a circuit with free
-        :class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued collection
-        of such sets. The simplest example is a 0-d array consisting of a single parameter binding set,
-        whereas an n-d array of parameter binding sets represents an n-d sweep over values.
+    A single parameter binding set provides numeric values to bind to a circuit with free
+    :class:`qiskit.circuit.Parameter`\s. An instance of this class stores an array-valued collection
+    of such sets. The simplest example is a 0-d array consisting of a single parameter binding set,
+    whereas an n-d array of parameter binding sets represents an n-d sweep over values.
 
-        The storage format is a dictionary of arrays attached to parameters, ``{params_0: values_0,
-        ...}``. A convention is used where the last dimension of each array indexes (a subset of)
-        circuit parameters. For example, if the last dimension of ``values_0`` is 25, then it represents
-        an array of possible binding values for the 25 distinct parameters ``params_0``, where its
-        leading shape is the array :attr:`~.shape` of its binding array. This allows flexibility about
-        whether values for different parameters are stored in one big array, or across several smaller
-        arrays. It also allows different parameters to use different dtypes.
+    The storage format is a dictionary of arrays attached to parameters, ``{params_0: values_0,
+    ...}``. A convention is used where the last dimension of each array indexes (a subset of)
+    circuit parameters. For example, if the last dimension of ``values_0`` is 25, then it represents
+    an array of possible binding values for the 25 distinct parameters ``params_0``, where its
+    leading shape is the array :attr:`~.shape` of its binding array. This allows flexibility about
+    whether values for different parameters are stored in one big array, or across several smaller
+    arrays.
 
-        .. code-block:: python
+    .. code-block:: python
 
-            # 0-d array (i.e. only one binding)
-            BindingsArray({"a": 4, ("b", "c"): [5, 6]})
-    ß
-            # single array, last index is parameters
-            parameters = tuple(f"a{idx}" for idx in range(100))
-            BindingsArray({parameters: np.empty((10, 10, 100))})
+        # 0-d array (i.e. only one binding)
+        BindingsArray({"a": 4, ("b", "c"): [5, 6]})
 
-            # multiple arrays, where each last index is parameters. notice that it's smart enough to
-            # figure out that a missing last dimension corresponds to a single parameter.
-            BindingsArray(
-                {("c", "a"): np.empty((10, 10, 2)), "b": np.empty((10, 10), dtype=int)}
-            )
+        # single array, last index is parameters
+        parameters = tuple(f"a{idx}" for idx in range(100))
+        BindingsArray({parameters: np.ones((10, 10, 100))})
+
+        # multiple arrays, where each last index is parameters. notice that it's smart enough to
+        # figure out that a missing last dimension corresponds to a single parameter.
+        BindingsArray(
+            {("c", "a"): np.zeros((10, 10, 2)), "b": np.ones((10, 10))}
+        )
     """
 
     def __init__(
         self,
-        data: Mapping[ParameterLike, Iterable[ParameterValueType]] | None = None,
+        data: Mapping[ParameterLike, ArrayLike | float] | None = None,
         shape: ShapeInput | None = None,
     ):
         r"""
@@ -76,6 +75,10 @@ class BindingsArray(ShapedMixin):
         In this case, it can't be decided whether that one is an index over parameters, or whether
         it should be encorporated in :attr:`~shape`.
 
+        Since :class:`~.Parameter` objects are only allowed to represent float values, this
+        class casts all given values to float. If an incompatible dtype is given, such as complex
+        numbers, a ``TypeError`` will be raised.
+
         Args:
             data: A mapping from one or more parameters to arrays of values to bind
                 them to, where the last axis is over parameters.
@@ -85,6 +88,7 @@ class BindingsArray(ShapedMixin):
             ValueError: If all inputs are ``None``.
             ValueError: If the shape cannot be automatically inferred from the arrays, or if there
                 is some inconsistency in the shape of the given arrays.
+            TypeError: If some of the vaules can't be cast to a float type.
         """
         super().__init__()
 
@@ -92,10 +96,10 @@ class BindingsArray(ShapedMixin):
             self._data = {}
         else:
             self._data = {
-                _format_key((p,))
-                if isinstance(p, Parameter)
-                else _format_key(p): np.array(val, copy=False)
-                for p, val in data.items()
+                _format_key((key,))
+                if isinstance(key, (Parameter, str))
+                else _format_key(key): np.asarray(val, dtype=float)
+                for key, val in data.items()
             }
 
         self._shape = _infer_shape(self._data) if shape is None else shape_tuple(shape)
