@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -76,8 +76,9 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
 
         .. code-block::
 
-            from qiskit import QuantumCircuit, BasicAer
+            from qiskit import QuantumCircuit
             from qiskit.quantum_info.analysis import hellinger_fidelity
+            from qiskit.providers.basic_provider import BasicSimulator
 
             qc = QuantumCircuit(5, 5)
             qc.h(2)
@@ -87,7 +88,7 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
             qc.cx(1, 0)
             qc.measure(range(5), range(5))
 
-            sim = BasicAer.get_backend('qasm_simulator')
+            sim = BasicSimulator()
             res1 = sim.run(qc).result()
             res2 = sim.run(qc).result()
 

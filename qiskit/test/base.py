@@ -185,9 +185,15 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
         from qiskit.providers.basicaer import BasicAer
 
         BasicAer._backends = BasicAer._verify_backends()
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*basicaer.*")
+
+        from qiskit.providers.basic_provider import BasicProvider
+
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):

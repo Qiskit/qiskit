@@ -19,8 +19,8 @@ the simulator. It is exponential in the number of qubits.
 
     UnitarySimulator().run(run_input)
 
-Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and 
-the output is a BasicAerJob object, which can later be queried for the Result object. The result 
+Where the input is a either Qobj object (deprecated) or QuantumCircuit or a list of circuits and
+the output is a BasicAerJob object, which can later be queried for the Result object. The result
 will contain a 'unitary' data field, which is a 2**n x 2**n complex numpy array representing the
 circuit's unitary matrix.
 """
@@ -39,7 +39,7 @@ from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import SINGLE_QUBIT_GATES
@@ -103,6 +103,14 @@ class UnitarySimulatorPy(BackendV1):
 
     DEFAULT_OPTIONS = {"initial_unitary": None, "chop_threshold": 1e-15}
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
+        "The new module has no replacement for this class. "
+        "Use the qiskit.quantum_info.Operator class instead.",
+    )
     def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(

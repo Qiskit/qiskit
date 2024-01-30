@@ -13,6 +13,7 @@
 """Tests for unitary simulator."""
 
 import unittest
+import warnings
 
 import numpy as np
 
@@ -35,7 +36,9 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        job = self.backend.run(transpile(circuits, self.backend))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(transpile(circuits, self.backend))
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         for u_sim, u_ref in zip(sim_unitaries, reference_unitaries):
@@ -108,7 +111,11 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
                 # Simulate output on circuit
                 circuit = QuantumCircuit(qr)
                 circuit.unitary(unitary, qr)
-                job = self.backend.run(transpile(circuit, self.backend))
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore", category=DeprecationWarning, message=r".*basicaer.*"
+                    )
+                    job = self.backend.run(transpile(circuit, self.backend))
                 result = job.result()
                 unitary_out = Operator(result.get_unitary(0))
                 fidelity = process_fidelity(unitary_target, unitary_out)
@@ -124,7 +131,9 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         circuit.z(q[0])
         circuit.x(q[0])
 
-        job = self.backend.run(transpile(circuit, self.backend))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
+            job = self.backend.run(transpile(circuit, self.backend))
         result = job.result()
 
         unitary_out = result.get_unitary(circuit)

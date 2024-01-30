@@ -12,7 +12,8 @@
 
 """Test executing multiple-register circuits on BasicAer."""
 
-from qiskit import BasicAer
+import warnings
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Operator, Statevector, process_fidelity, state_fidelity
 from qiskit.test import QiskitTestCase
@@ -37,23 +38,29 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ.compose(meas)
 
-        backend_sim = BasicAer.get_backend("qasm_simulator")
+        # filter warnings raised by deprecated functionality in BasicAer backends .run() method
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
 
-        result = backend_sim.run(qc).result()
-        counts = result.get_counts(qc)
+            backend_sim = BasicAer.get_backend("qasm_simulator")
 
-        target = {"01 10": 1024}
+            result = backend_sim.run(qc).result()
+            counts = result.get_counts(qc)
 
-        backend_sim = BasicAer.get_backend("statevector_simulator")
-        result = backend_sim.run(circ).result()
-        state = result.get_statevector(circ)
+            target = {"01 10": 1024}
 
-        backend_sim = BasicAer.get_backend("unitary_simulator")
-        result = backend_sim.run(circ).result()
-        unitary = Operator(result.get_unitary(circ))
+            backend_sim = BasicAer.get_backend("statevector_simulator")
+            result = backend_sim.run(circ).result()
+            state = result.get_statevector(circ)
 
-        self.assertEqual(counts, target)
-        self.assertAlmostEqual(state_fidelity(Statevector.from_label("0110"), state), 1.0, places=7)
-        self.assertAlmostEqual(
-            process_fidelity(Operator.from_label("IXXI"), unitary), 1.0, places=7
-        )
+            backend_sim = BasicAer.get_backend("unitary_simulator")
+            result = backend_sim.run(circ).result()
+            unitary = Operator(result.get_unitary(circ))
+
+            self.assertEqual(counts, target)
+            self.assertAlmostEqual(
+                state_fidelity(Statevector.from_label("0110"), state), 1.0, places=7
+            )
+            self.assertAlmostEqual(
+                process_fidelity(Operator.from_label("IXXI"), unitary), 1.0, places=7
+            )

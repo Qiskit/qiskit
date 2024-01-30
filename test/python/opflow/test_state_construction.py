@@ -16,7 +16,7 @@ import unittest
 from test.python.opflow import QiskitOpflowTestCase
 import numpy as np
 
-from qiskit import QuantumCircuit, BasicAer
+from qiskit import QuantumCircuit, BasicAer  # pylint: disable=no-name-in-module
 from qiskit.circuit import ParameterVector
 from qiskit.quantum_info import Statevector
 

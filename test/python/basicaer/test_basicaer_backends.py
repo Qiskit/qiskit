@@ -12,7 +12,7 @@
 
 """BasicAer Backends Test."""
 
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
 from qiskit.test import providers

@@ -207,7 +207,8 @@ class HighLevelSynthesis(TransformationPass):
 
         self._top_level_only = self._basis_gates is None and self._target is None
 
-        if not self._top_level_only and self._target is None:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if not self._top_level_only and (self._target is None or self._target.num_qubits is None):
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
             self._device_insts = basic_insts | set(self._basis_gates)
 
@@ -305,12 +306,13 @@ class HighLevelSynthesis(TransformationPass):
         controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
         if not controlled_gate_open_ctrl:
             qargs = tuple(qubits) if qubits is not None else None
+            # include path for when target exists but target.num_qubits is None (BasicSimulator)
             inst_supported = (
                 self._target.instruction_supported(
                     operation_name=op.name,
                     qargs=qargs,
                 )
-                if self._target is not None
+                if self._target is not None and self._target.num_qubits is not None
                 else op.name in self._device_insts
             )
             if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):

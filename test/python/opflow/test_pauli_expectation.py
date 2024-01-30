@@ -19,7 +19,7 @@ from test.python.opflow import QiskitOpflowTestCase
 
 import numpy as np
 
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.opflow import (
     CX,
     CircuitSampler,

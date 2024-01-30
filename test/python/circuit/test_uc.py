@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,7 +25,7 @@ from scipy.linalg import block_diag
 
 from qiskit.circuit.library.generalized_gates import UCGate
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
@@ -66,9 +66,7 @@ class TestUCGate(QiskitTestCase):
         # Decompose the gate
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
         # Simulate the decomposed gate
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(qc).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         if up_to_diagonal:
             ucg = UCGate(squs, up_to_diagonal=up_to_diagonal)
             unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
@@ -85,9 +83,7 @@ class TestUCGate(QiskitTestCase):
         uc = UCGate(gates, up_to_diagonal=False)
         qc.append(uc, q)
 
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = simulator.run(transpile(qc, simulator)).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         unitary_desired = _get_ucg_matrix(gates)
 
         self.assertTrue(np.allclose(unitary_desired, unitary))

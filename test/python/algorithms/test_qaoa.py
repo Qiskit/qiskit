@@ -28,7 +28,11 @@ from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
 from qiskit.opflow import I, X, Z, PauliSumOp
 
-from qiskit import BasicAer, QuantumCircuit, QuantumRegister
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    QuantumCircuit,
+    QuantumRegister,
+)
 
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Pauli

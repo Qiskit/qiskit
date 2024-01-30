@@ -21,7 +21,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import data, ddt, idata, unpack
 
-from qiskit import BasicAer, QuantumCircuit
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    QuantumCircuit,
+)
 from qiskit.algorithms import AmplificationProblem, Grover
 from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.primitives import Sampler

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,10 +20,11 @@ Fake Provider (:mod:`qiskit.providers.fake_provider`)
 Overview
 ========
 
-The fake provider module contains fake providers and fake backends classes. The fake backends are
-built to mimic the behaviors of IBM Quantum systems using system snapshots. The system snapshots
-contain important information about the quantum system such as coupling map, basis gates, qubit
-properties (T1, T2, error rate, etc.) which are useful for testing the transpiler and performing
+The fake provider module contains fake providers, fake backends and other simulated backend
+implementations. The fake backends are built to mimic the behaviors of IBM Quantum systems
+using system snapshots. The system snapshots contain important information about the quantum
+system such as coupling map, basis gates, qubit properties (T1, T2, error rate, etc.) which
+are useful for testing the transpiler and performing
 noisy simulation of the system.
 
 Example Usage
@@ -224,6 +225,7 @@ Special fake backends are fake backends that were created for special testing pu
     FakeBackend5QV2
     FakeMumbaiFractionalCX
     ConfigurableFakeBackend
+    GenericBackendV2
 
 Fake Backend Base Classes
 =========================
@@ -255,7 +257,7 @@ from .fake_provider import FakeProviderFactory, FakeProviderForBackendV2, FakePr
 # Standard fake backends with IBM Quantum systems snapshots
 from .backends import *
 
-# Special fake backends for special testing perpurposes
+# Special fake backends for special testing purposes
 from .fake_qasm_simulator import FakeQasmSimulator
 from .fake_openpulse_2q import FakeOpenPulse2Q
 from .fake_openpulse_3q import FakeOpenPulse3Q
@@ -265,3 +267,4 @@ from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 # Configurable fake backend
 from .utils.configurable_backend import ConfigurableFakeBackend
+from .generic_backend_v2 import GenericBackendV2
