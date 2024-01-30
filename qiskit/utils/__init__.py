@@ -62,7 +62,6 @@ from . import optionals
 from .circuit_utils import summarize_circuits
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .name_unnamed_args import name_args
-from .experimental import ExperimentalQiskitAPI
 
 __all__ = [
     "LazyDependencyManager",
@@ -80,5 +79,4 @@ __all__ = [
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",
-    "ExperimentalQiskitAPI",
 ]
