@@ -19,7 +19,7 @@ from math import pi
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
@@ -37,7 +37,6 @@ from qiskit.circuit.library import (
     YGate,
     GlobalPhaseGate,
 )
-from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
@@ -1380,7 +1379,6 @@ class TestStandardMethods(QiskitTestCase):
 
         params = [0.1 * (i + 1) for i in range(10)]
         gate_class_list = Gate.__subclasses__() + ControlledGate.__subclasses__()
-        simulator = BasicAer.get_backend("unitary_simulator")
         for gate_class in gate_class_list:
             if hasattr(gate_class, "__abstractmethods__"):
                 # gate_class is abstract
@@ -1410,11 +1408,10 @@ class TestStandardMethods(QiskitTestCase):
                 # gate doesn't implement to_matrix method: skip
                 self.log.info('to_matrix method FAILED for "%s" gate', gate.name)
                 continue
-            definition_unitary = execute([circ], simulator).result().get_unitary()
+            definition_unitary = Operator(circ).data
 
             with self.subTest(gate_class):
-                # TODO check for exact equality once BasicAer can handle global phase
-                self.assertTrue(matrix_equal(definition_unitary, gate_matrix, ignore_phase=True))
+                self.assertTrue(matrix_equal(definition_unitary, gate_matrix))
                 self.assertTrue(is_unitary_matrix(gate_matrix))
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")

@@ -133,6 +133,11 @@ class PhaseGate(Gate):
         (theta,) = self.params
         return PhaseGate(exponent * theta)
 
+    def __eq__(self, other):
+        if isinstance(other, PhaseGate):
+            return self._compare_parameters(other)
+        return False
+
 
 class CPhaseGate(ControlledGate):
     r"""Controlled-Phase gate.
@@ -262,6 +267,11 @@ class CPhaseGate(ControlledGate):
         """Raise gate to a power."""
         (theta,) = self.params
         return CPhaseGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, CPhaseGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False
 
 
 class MCPhaseGate(ControlledGate):

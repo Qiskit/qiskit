@@ -39,6 +39,7 @@ class DataBinTestCase(QiskitTestCase):
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
         my_bin = data_bin_cls(alpha, beta)
+        self.assertEqual(len(my_bin), 2)
         self.assertTrue(np.all(my_bin.alpha == alpha))
         self.assertTrue(np.all(my_bin.beta == beta))
         self.assertTrue("alpha=" in str(my_bin))
@@ -62,3 +63,9 @@ class DataBinTestCase(QiskitTestCase):
         self.assertEqual(my_bin.beta, 5)
         self.assertTrue("alpha=" in str(my_bin))
         self.assertTrue(">" not in str(my_bin))
+
+    def test_make_databin_no_fields(self):
+        """Test the make_data_bin() function when no fields are given."""
+        data_bin_cls = make_data_bin([])
+        data_bin = data_bin_cls()
+        self.assertEqual(len(data_bin), 0)
