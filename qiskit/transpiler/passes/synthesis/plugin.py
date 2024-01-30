@@ -135,7 +135,7 @@ points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
 .. code-block:: toml
 
-    [project.entry-points."qiskit.unitary-synthesis"]
+    [project.entry-points."qiskit.unitary_synthesis"]
     "special" = "qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis"
 
 There isn't a limit to the number of plugins a single package can
@@ -149,7 +149,7 @@ Unitary Synthesis Plugin Configuration
 For some unitary synthesis plugins that expose multiple options and tunables
 the plugin interface has an option for users to provide a free form
 configuration dictionary. This will be passed through to the ``run()`` method
-as the ``config`` kwarg. If your plugin has these configuration options you
+as the ``options`` kwarg. If your plugin has these configuration options you
 should clearly document how a user should specify these configuration options
 and how they're used as it's a free form field.
 
