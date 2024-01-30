@@ -1248,6 +1248,7 @@ Exceptions
 .. autoexception:: CouplingError
 .. autoexception:: LayoutError
 .. autoexception:: CircuitTooWideForTarget
+.. autoexception:: InvalidLayoutError
 
 """
 
@@ -1266,6 +1267,7 @@ from .exceptions import (
     CouplingError,
     LayoutError,
     CircuitTooWideForTarget,
+    InvalidLayoutError,
 )
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap

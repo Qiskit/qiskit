@@ -39,13 +39,13 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
-from qiskit.synthesis.two_qubit.weyl import weyl_coordinates, transform_to_magic_basis
+from qiskit.synthesis.two_qubit.weyl import transform_to_magic_basis
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
 from qiskit.utils.deprecation import deprecate_arg
-
+from qiskit._accelerate import two_qubit_decompose
 
 logger = logging.getLogger(__name__)
 
@@ -1413,23 +1413,9 @@ class TwoQubitBasisDecomposer:
         """Computes the number of basis gates needed in
         a decomposition of input unitary
         """
-        unitary = np.asarray(unitary, dtype=complex)
-        a, b, c = weyl_coordinates(unitary)[:]
-        traces = [
-            4
-            * (
-                math.cos(a) * math.cos(b) * math.cos(c)
-                + 1j * math.sin(a) * math.sin(b) * math.sin(c)
-            ),
-            4
-            * (
-                math.cos(np.pi / 4 - a) * math.cos(self.basis.b - b) * math.cos(c)
-                + 1j * math.sin(np.pi / 4 - a) * math.sin(self.basis.b - b) * math.sin(c)
-            ),
-            4 * math.cos(c),
-            4,
-        ]
-        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
+        return two_qubit_decompose._num_basis_gates(
+            self.basis.b, self.basis_fidelity, np.asarray(unitary, dtype=complex)
+        )
 
 
 class TwoQubitDecomposeUpToDiagonal:
