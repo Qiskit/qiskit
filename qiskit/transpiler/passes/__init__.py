@@ -87,6 +87,7 @@ Optimizations
    ResetAfterMeasureSimplification
    OptimizeCliffords
    NormalizeRXAngle
+   OptimizeAnnotated
 
 Calibration
 =============
@@ -232,6 +233,7 @@ from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 from .optimization import NormalizeRXAngle
+from .optimization import OptimizeAnnotated
 
 # circuit analysis
 from .analysis import ResourceEstimation
