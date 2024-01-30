@@ -31,7 +31,6 @@ from qiskit.circuit import Gate, Instruction, Parameter, ParameterExpression, Pa
 from qiskit.circuit.parametertable import ParameterReferences, ParameterTable, ParameterView
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
-from qiskit.execute_function import execute
 from qiskit import pulse
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -107,6 +106,16 @@ def raise_if_parameter_table_invalid(circuit):
 @ddt
 class TestParameters(QiskitTestCase):
     """Test Parameters."""
+
+    def test_equality(self):
+        """Test Parameter equality"""
+        param = Parameter("a")
+        param_copy = Parameter(param.name, uuid=param.uuid)
+        param_different = Parameter("a")
+
+        self.assertEqual(param, param, "Parameter does not equal itself")
+        self.assertEqual(param, param_copy, "Parameters with same data are not equal")
+        self.assertNotEqual(param, param_different, "Different Parameters are treated as equal")
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -192,6 +201,24 @@ class TestParameters(QiskitTestCase):
 
         self.assertIs(qc.get_parameter("x"), x)
         self.assertIsNone(qc.get_parameter("y", None), None)
+
+    def test_setting_global_phase_invalidates_cache(self):
+        """Test that setting the global phase to a non-parametric value invalidates the `parameters`
+        cache of the circuit."""
+        x = Parameter("x")
+        qc = QuantumCircuit(0, global_phase=x)
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
+        qc.global_phase = 0
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+
+        qc = QuantumCircuit(0, global_phase=0)
+        self.assertEqual(qc.global_phase, 0)
+        self.assertEqual(set(qc.parameters), set())
+        qc.global_phase = x
+        self.assertEqual(qc.global_phase, x)
+        self.assertEqual(set(qc.parameters), {x})
 
     def test_has_parameter(self):
         """Test the `has_parameter` method."""
@@ -954,12 +981,8 @@ class TestParameters(QiskitTestCase):
 
         circuits = [qc1, qc2]
 
-        job = execute(
-            circuits,
-            BasicAer.get_backend("unitary_simulator"),
-            shots=512,
-            parameter_binds=[{theta: 1}],
-        )
+        backend = BasicAer.get_backend("unitary_simulator")
+        job = backend.run(transpile(circuits, backend), shots=512, parameter_binds=[{theta: 1}])
 
         self.assertTrue(len(job.result().results), 2)
 
@@ -1149,7 +1172,8 @@ class TestParameters(QiskitTestCase):
         bound_qc = unbound_qc.assign_parameters({theta: numpy.pi / 2})
 
         shots = 1024
-        job = execute(bound_qc, backend=BasicAer.get_backend("qasm_simulator"), shots=shots)
+        backend = BasicAer.get_backend("qasm_simulator")
+        job = backend.run(transpile(bound_qc, backend), shots=shots)
         self.assertDictAlmostEqual(job.result().get_counts(), {"1": shots}, 0.05 * shots)
 
     def test_num_parameters(self):
@@ -1185,7 +1209,7 @@ class TestParameters(QiskitTestCase):
 
         plist = [{theta: i} for i in range(reps)]
         simulator = BasicAer.get_backend("qasm_simulator")
-        result = execute(qc, backend=simulator, parameter_binds=plist).result()
+        result = simulator.run(transpile(qc, simulator), parameter_binds=plist).result()
         result_names = {res.name for res in result.results}
         self.assertEqual(reps, len(result_names))
 
@@ -1523,38 +1547,36 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "Name conflict"):
             expr.subs({x: y_second})
 
-    def test_expressions_of_parameter_with_constant(self):
+    @data(2, 1.3, 0, -1, -1.0, numpy.pi, 1j)
+    def test_expressions_of_parameter_with_constant(self, const):
         """Verify operating on a Parameter with a constant."""
-
-        good_constants = [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]
 
         x = Parameter("x")
 
         for op, rel_tol in self.supported_operations.items():
-            for const in good_constants:
-                expr = op(const, x)
-                bound_expr = expr.bind({x: 2.3})
+            expr = op(const, x)
+            bound_expr = expr.bind({x: 2.3})
 
-                res = complex(bound_expr)
-                expected = op(const, 2.3)
-                if rel_tol > 0:
-                    self.assertTrue(
-                        cmath.isclose(res, expected, rel_tol=rel_tol), f"{res} != {expected}"
-                    )
-                else:
-                    self.assertEqual(res, expected)
+            res = complex(bound_expr)
+            expected = op(const, 2.3)
+            if rel_tol > 0:
+                self.assertTrue(
+                    cmath.isclose(res, expected, rel_tol=rel_tol), f"{res} != {expected}"
+                )
+            else:
+                self.assertEqual(res, expected)
 
-                # Division by zero will raise. Tested elsewhere.
-                if const == 0 and op == truediv:
-                    continue
+            # Division by zero will raise. Tested elsewhere.
+            if const == 0 and op == truediv:
+                continue
 
-                # Repeat above, swapping position of Parameter and constant.
-                expr = op(x, const)
-                bound_expr = expr.bind({x: 2.3})
+            # Repeat above, swapping position of Parameter and constant.
+            expr = op(x, const)
+            bound_expr = expr.bind({x: 2.3})
 
-                res = complex(bound_expr)
-                expected = op(2.3, const)
-                self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
+            res = complex(bound_expr)
+            expected = op(2.3, const)
+            self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
 
     def test_complex_parameter_bound_to_real(self):
         """Test a complex parameter expression can be real if bound correctly."""

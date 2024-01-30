@@ -12,7 +12,7 @@
 
 """Qiskit BasicAer integration tests."""
 
-from qiskit import execute, QuantumCircuit
+from qiskit import transpile
 
 
 class BasicAerBackendTestMixin:
@@ -37,7 +37,7 @@ class BasicAerBackendTestMixin:
 
     def test_run_circuit(self):
         """Test running a single circuit."""
-        job = execute(self.circuit, self.backend)
+        job = self.backend.run(transpile(self.circuit, self.backend))
         result = job.result()
         self.assertEqual(result.success, True)
         return result

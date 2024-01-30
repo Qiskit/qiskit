@@ -60,10 +60,11 @@ class SamplerPubTestCase(QiskitTestCase):
         with self.assertRaises(TypeError, msg=f"shots type {type(shots)} should raise TypeError"):
             SamplerPub(QuantumCircuit(), shots=shots)
 
-    def test_invalidate_shots_value(self):
+    @ddt.data(-1, 0)
+    def test_invalidate_shots_value(self, shots):
         """Test invalid shots argument value"""
-        with self.assertRaises(ValueError, msg="negative shots should raise ValueError"):
-            SamplerPub(QuantumCircuit(), shots=-1)
+        with self.assertRaises(ValueError, msg="non-positive shots should raise ValueError"):
+            SamplerPub(QuantumCircuit(), shots=shots)
 
     @ddt.idata(range(5))
     def test_validate_no_parameters(self, num_params):

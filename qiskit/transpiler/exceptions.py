@@ -53,3 +53,7 @@ class LayoutError(QiskitError):
 
 class CircuitTooWideForTarget(TranspilerError):
     """Error raised if the circuit is too wide for the target."""
+
+
+class InvalidLayoutError(TranspilerError):
+    """Error raised when a user provided layout is invalid."""

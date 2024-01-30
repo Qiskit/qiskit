@@ -63,7 +63,7 @@ a pulse:
 .. plot::
    :include-source:
 
-   from qiskit import execute, pulse
+   from qiskit import pulse
 
    d0 = pulse.DriveChannel(0)
 
@@ -74,8 +74,8 @@ a pulse:
 
 The builder initializes a :class:`.pulse.Schedule`, ``pulse_prog``
 and then begins to construct the program within the context. The output pulse
-schedule will survive after the context is exited and can be executed like a
-normal Qiskit schedule using ``qiskit.execute(pulse_prog, backend)``.
+schedule will survive after the context is exited and can be transpiled and executed like a
+normal Qiskit schedule using ``backend.run(transpile(pulse_prog, backend))``.
 
 Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
@@ -783,7 +783,7 @@ def build(
 
     .. code-block::
 
-        from qiskit import execute, pulse
+        from qiskit import transpile, pulse
         from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
@@ -800,7 +800,7 @@ def build(
 
     .. code-block:: python
 
-        qiskit.execute(pulse_prog, backend)
+        backend.run(transpile(pulse_prog, backend))
 
     Args:
         backend (Backend): A Qiskit backend. If not supplied certain

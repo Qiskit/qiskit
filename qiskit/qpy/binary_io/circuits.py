@@ -24,7 +24,6 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -34,7 +33,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
 from qiskit.quantum_info.operators import SparsePauliOp, Clifford
@@ -43,7 +41,6 @@ from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
-
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
@@ -284,10 +281,6 @@ def _read_instruction(
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
         gate_class = getattr(circuit_mod, gate_name)
-    elif hasattr(extensions, gate_name):
-        gate_class = getattr(extensions, gate_name)
-    elif hasattr(quantum_initializer, gate_name):
-        gate_class = getattr(quantum_initializer, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
     elif gate_name == "Clifford":
@@ -590,8 +583,6 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         (
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
-            and not hasattr(extensions, gate_class_name)
-            and not hasattr(quantum_initializer, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
             and gate_class_name != "Clifford"
         )
