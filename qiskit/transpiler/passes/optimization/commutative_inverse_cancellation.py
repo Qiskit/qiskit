@@ -95,7 +95,6 @@ class CommutativeInverseCancellation(TransformationPass):
         cc = scc
         phase_update = 0
 
-
         for idx1 in range(0, circ_size):
             if self._skip_node(topo_sorted_nodes[idx1]):
                 continue
