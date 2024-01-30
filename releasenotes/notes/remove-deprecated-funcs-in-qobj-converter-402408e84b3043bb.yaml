@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    Removed deprecated functions in :class:`.InstructionToQobjConverter`
+    Removed deprecated methods in :class:`.InstructionToQobjConverter`
     and :class:`.QobjToInstructionConverter`. This includes
 
     * :meth:`.InstructionToQobjConverter.convert_acquire`
@@ -23,5 +23,5 @@ upgrade:
     * :meth:`.QobjToInstructionConverter.convert_parametric`
     * :meth:`.QobjToInstructionConverter.convert_snapshot`
 
-    These public functions are all replaced with protected ones which are implicitly called from
+    These public methods are all replaced with protected ones which are implicitly called from
     the single entry point, i.e. call dunder method of the classes.
