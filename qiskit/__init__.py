@@ -35,6 +35,7 @@ else:
             " Any packages that depend on 'qiskit-terra' are not compatible with Qiskit 1.0 and"
             " will need to be updated."
             " Qiskit unfortunately cannot enforce this requirement during environment resolution."
+            " See https://qisk.it/packaging-1-0 for more detail."
         )
 
 import qiskit._accelerate
