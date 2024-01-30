@@ -215,7 +215,7 @@ class ForLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid

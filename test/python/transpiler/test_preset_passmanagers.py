@@ -19,7 +19,6 @@ from ddt import ddt, data
 
 import numpy as np
 
-import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
@@ -122,21 +121,6 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=["u1", "u2", "u3", "cx"], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(result.num_qubits, circuit.num_qubits)
-
-    @combine(level=[0, 1, 2, 3], name="level{level}")
-    def test_7677(self, level):
-        """Melbourne (with inconsistency configuration/properties) should not fail with noise_adaptive
-        See: https://github.com/Qiskit/qiskit/issues/7677
-        """
-        qc = QuantumCircuit(12)  # circuit has 12 qubits (and only uses 3)
-        qc.cx(1, 8)
-        qc.cx(1, 11)
-        backend = FakeMelbourne()
-
-        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
-
-        self.assertIsInstance(result, QuantumCircuit)
-        self.assertEqual(result.num_qubits, 14)
 
     def test_layout_3239(self, level=3):
         """Test final layout after preset level3 passmanager does not include diagonal gates
@@ -287,11 +271,6 @@ class TestPresetPassManager(QiskitTestCase):
         )
         self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
 
-    def test_get_vf2_call_limit_deprecated(self):
-        """Test that calling test_get_vf2_call_limit emits deprecation warning."""
-        with self.assertWarns(DeprecationWarning):
-            qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit(optimization_level=3)
-
 
 @ddt
 class TestTranspileLevels(QiskitTestCase):
@@ -361,28 +340,6 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
         self.assertIn("CheckGateDirection", self.passes)
-
-    @data(0, 1, 2, 3)
-    def test_5409(self, level):
-        """The parameter layout_method='noise_adaptive' should be honored
-        See: https://github.com/Qiskit/qiskit-terra/issues/5409
-        """
-        qr = QuantumRegister(5, "q")
-        qc = QuantumCircuit(qr)
-        qc.cx(qr[2], qr[4])
-        backend = FakeMelbourne()
-
-        _ = transpile(
-            qc,
-            backend,
-            layout_method="noise_adaptive",
-            optimization_level=level,
-            callback=self.callback,
-        )
-
-        self.assertIn("SetLayout", self.passes)
-        self.assertIn("ApplyLayout", self.passes)
-        self.assertIn("NoiseAdaptiveLayout", self.passes)
 
     @data(0, 1, 2, 3)
     def test_symmetric_coupling_map(self, level):
@@ -1333,13 +1290,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1367,13 +1322,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1401,13 +1354,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1435,14 +1386,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        post_translation_pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     def test_generate_preset_pass_manager_with_list_coupling_map(self):
