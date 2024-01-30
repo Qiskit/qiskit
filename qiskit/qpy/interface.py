@@ -130,7 +130,7 @@ def dump(
             by the symengine library before setting this option, as it will be required by qpy to
             deserialize the payload. For this reason, the option defaults to False.
         version: The QPY format version to emit. By default this defaults to
-            the latest supported format (which is currently 10), however for
+            the latest supported format of :attr:`~.qpy.QPY_VERSION`, however for
             compatibility reasons if you need to load the generated QPY payload with an older
             version of Qiskit you can also select an older QPY format version down to the minimum
             supported export version, which only can change during a Qiskit major version release,
