@@ -33,6 +33,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.providers import basic_provider
 from qiskit.transpiler import Target
 from qiskit.providers.backend_compat import convert_to_target
+from qiskit.utils.deprecation import deprecate_func
 
 from .utils.json_decoder import (
     decode_backend_configuration,
@@ -71,6 +72,15 @@ class FakeBackendV2(BackendV2):
     defs_filename = None
     backend_name = None
 
+    @deprecate_func(
+        additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
+        "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+        "instead of `from qiskit.providers.fake_provider import FakeExample`. ",
+        since="0.46.0",
+        removal_timeline="Qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         """FakeBackendV2 initializer."""
         self._conf_dict = self._get_conf_dict_from_json()
@@ -88,20 +98,6 @@ class FakeBackendV2(BackendV2):
 
         if "channels" in self._conf_dict:
             self._parse_channels(self._conf_dict["channels"])
-
-        # This is a deprecation warning for the subclasses.
-        # FakeBackendV2 is not deprecated.
-        warnings.warn(
-            message="All fake backend instances based on real device snapshots (`FakeVigo`,"
-            "`FakeSherbrooke`,...) have been migrated to the `qiskit_ibm_runtime` package. "
-            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
-            "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
-            "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
-            "instead of `from qiskit.providers.fake_provider import FakeExample`. "
-            "If you are using a custom fake backend implementation, you don't need to take any action.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
 
     def _parse_channels(self, channels):
         type_map = {
