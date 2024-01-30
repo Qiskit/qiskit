@@ -359,3 +359,61 @@ class BindingsArrayTestCase(QiskitTestCase):
             )
             self.assertEqual(ba.shape, shape)
             self.assertEqual(ba.num_parameters, num_params)
+
+    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
+    @ddt.unpack
+    def test_as_array_bad_param_raises(self, kwvals_str, args_str):
+        """Test as_array() raises when a parameter key is missing."""
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
+
+        ba = BindingsArray({(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
+        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 1 received"):
+            ba.as_array([args_param("b")])
+
+        ba = BindingsArray({(kwval_param("a"), kwval_param("b")): np.empty((5, 2))})
+        with self.assertRaisesRegex(ValueError, "Expected 2 parameters but 3 received"):
+            ba.as_array([args_param("b"), args_param("a"), args_param("b")])
+
+        with self.assertRaisesRegex(ValueError, "Could not find placement for parameter 'a'"):
+            ba.as_array([args_param("b"), args_param("c")])
+
+    @ddt.idata([(True, True), (True, False), (False, True), (False, False)])
+    @ddt.unpack
+    def test_as_array(self, kwvals_str, args_str):
+        """Test as_array() works for various combinations of string/Parameter inputs."""
+        kwval_param = lambda param: Parameter(param) if kwvals_str else param
+        args_param = lambda param: Parameter(param) if args_str else param
+
+        arr_a = np.linspace(0, 20, 250).reshape((25, 5, 2))
+        arr_b = np.linspace(0, 5, 375).reshape((25, 5, 3))
+        ba = BindingsArray(
+            {
+                (kwval_param("a"), kwval_param("b")): arr_a,
+                (kwval_param("c"), kwval_param("d"), kwval_param("e")): arr_b,
+            }
+        )
+        np.testing.assert_allclose(ba.as_array(), np.concatenate([arr_a, arr_b], axis=2))
+
+        params = map(args_param, "dabec")
+        expected = [arr_b[..., 1], arr_a[..., 0], arr_a[..., 1], arr_b[..., 2], arr_b[..., 0]]
+        expected = np.concatenate([arr[..., None] for arr in expected], axis=2)
+        np.testing.assert_allclose(ba.as_array(params), expected)
+
+    def test_as_array_cases(self):
+        """Test as_array() works in various edge cases."""
+        ba = BindingsArray({(): np.ones((1, 2, 0))})
+        arr = ba.as_array()
+        self.assertEqual(arr.shape, (1, 2, 0))
+
+        ba = BindingsArray({(): np.ones((0,))})
+        arr = ba.as_array()
+        self.assertEqual(arr.shape, (0,))
+
+        ba = BindingsArray({("a", "b", "c"): np.ones((0, 3))})
+        arr = ba.as_array()
+        self.assertEqual(arr.shape, (0, 3))
+
+        ba = BindingsArray({"a": np.ones((0, 1))}, shape=(0,))
+        arr = ba.as_array()
+        self.assertEqual(arr.shape, (0, 1))

@@ -141,6 +141,52 @@ class BindingsArray(ShapedMixin):
             self._num_parameters = sum(val.shape[-1] for val in self._data.values())
         return self._num_parameters
 
+    def as_array(self, parameters: Iterable[ParameterLike] | None = None) -> np.ndarray:
+        """Return the contents of this bindings array as a single NumPy array.
+
+        The parameters are indexed along the last dimension of the returned array.
+
+        Parameters:
+            parameters: Optional parameters that determine the order of the output.
+
+        Returns:
+            This bindings array as a single NumPy array.
+
+        Raises:
+            ValueError: If ``parameters`` are provided, but do not match those found in ``data``.
+        """
+        position = 0
+        ret = np.empty(shape_tuple(self.shape, self.num_parameters))
+
+        if parameters is None:
+            # preserve the order of both the dict and the parameters in the keys
+            for arr in self.data.values():
+                size = arr.shape[-1]
+                ret[..., position : position + size] = arr
+                position += size
+        else:
+            # use the order of the provided parameters
+            parameters = list(parameters)
+            if len(parameters) != self.num_parameters:
+                raise ValueError(
+                    f"Expected {self.num_parameters} parameters but {len(parameters)} received."
+                )
+
+            # If we make it through the following loop without a KeyError, we will know that the
+            # data parameters are a subset of the given parameters. However, the above check
+            # ensures there are at least as many of them as parameters. Thus we will know that
+            # set(parameters) == set(chain(*data.values())).
+            idx_lookup = {_param_name(parameter): idx for idx, parameter in enumerate(parameters)}
+            for arr_params, arr in self.data.items():
+                try:
+                    idxs = [idx_lookup[_param_name(param)] + position for param in arr_params]
+                except KeyError as ex:
+                    missing = next(p for p in map(_param_name, arr_params) if p not in idx_lookup)
+                    raise ValueError(f"Could not find placement for parameter '{missing}'.") from ex
+                ret[..., idxs] = arr
+
+        return ret
+
     def bind(self, circuit: QuantumCircuit, loc: tuple[int, ...]) -> QuantumCircuit:
         """Return a new circuit bound to the values at the provided index.
 
@@ -295,8 +341,8 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
             examine_array(val.shape[:-1])
         elif val.shape in {(), (1,)}:
             # here we specify special cases:
-            # * val.shape == (): we want float-like to be 0d
-            # * val.shape == (1,): we want to support {("a",): [1]} as float-like
+            #  * val.shape == (): we want float-like to be 0d
+            #  * val.shape == (1,): we want to support {("a",): [1]} as float-like
             examine_array(val.shape)
         elif val.shape[-1] != 1:
             # there's one param but the last dimension is not 1: last dimension isn't over params
@@ -312,8 +358,8 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
     elif len(only_possible_shapes) == 0:
         raise ValueError("Could not find any consistent shape.")
     raise ValueError(
-        f"Could not unambiguously determine the intended shape, all shapes {only_possible_shapes} "
-        "are consistent with the input; specify shape manually."
+        "Could not unambiguously determine the intended shape, all shapes in "
+        f"{only_possible_shapes} are consistent with the input; specify shape manually."
     )
 
 
