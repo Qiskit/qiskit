@@ -338,24 +338,61 @@ High-Level Synthesis Plugins
    high_level_synthesis_plugin_names
 
 Available Plugins
------------------
+=================
+
+The below are the plugin classes which includes documentation on the various
+methods that are implemented by each plugin and the corresponding plugin name
+to use the method (this is not the class name). These classes should not be
+used directly, but instead should be used through the plugin interface documented
+above. The classes are listed here to find the documentation for each of the included
+plugins.
+
+Unitary Synthesis Plugins
+-------------------------
 
 .. autosummary::
    :toctree: ../stubs/
 
-   DefaultSynthesisClifford
-   AGSynthesisClifford
-   BMSynthesisClifford
-   GreedySynthesisClifford
-   LayerSynthesisClifford
-   LayerLnnSynthesisClifford
-   DefaultSynthesisLinearFunction
-   KMSSynthesisLinearFunction
-   PMHSynthesisLinearFunction
-   KMSSynthesisPermutation
-   BasicSynthesisPermutation
-   ACGSynthesisPermutation
-   TokenSwapperSynthesisPermutation
+   ~qiskit.transpiler.passes.synthesis.unitary_synthesis.DefaultUnitarySynthesis
+   ~qiskit.transpiler.passes.synthesis.aqc_plugin.AGSynthesisClifford
+   ~qiskit.transpiler.passes.synthesis.aqc_plugin.ACGSynthesisPermutation
+   ~qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis.SolovayKitaevSynthesis
+
+
+High Level Synthesis
+--------------------
+
+Clifford Synthesis
+''''''''''''''''''
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.DefaultSynthesisClifford
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.BMSynthesisClifford
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.GreedySynthesisClifford
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.LayerSynthesisClifford
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.LayerLnnSynthesisClifford
+
+Linear Function Synthesis
+'''''''''''''''''''''''''
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.DefaultSynthesisLinearFunction
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.KMSSynthesisLinearFunction
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.PMHSynthesisLinearFunction
+
+Permutation Synthesis
+'''''''''''''''''''''
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.KMSSynthesisPermutation
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.BasicSynthesisPermutation
+   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.TokenSwapperSynthesisPermutation
 """
 
 import abc
