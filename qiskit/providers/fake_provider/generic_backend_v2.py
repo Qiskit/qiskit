@@ -33,7 +33,7 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler import CouplingMap, Target, InstructionProperties, QubitProperties
 from qiskit.providers import Options
-from qiskit.providers.basicaer import BasicAer
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import (
     PulseDefaults,
@@ -251,15 +251,15 @@ class GenericBackendV2(BackendV2):
                     name="acquire",
                     duration=1792,
                     t0=0,
-                    qubits=list(range(num_qubits)),
-                    memory_slot=list(range(num_qubits)),
+                    qubits=qargs,
+                    memory_slot=qargs,
                 )
-            ] + [PulseQobjInstruction(name=pulse_library[1], ch=f"m{i}", t0=0) for i in qargs]
+            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
             return sequence
         if num_qubits == 1:
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
             ]
         return [
             PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
@@ -441,12 +441,12 @@ class GenericBackendV2(BackendV2):
 
         This method runs circuit jobs (an individual or a list of :class:`~.QuantumCircuit`
         ) and pulse jobs (an individual or a list of :class:`~.Schedule` or
-        :class:`~.ScheduleBlock`) using :class:`~.BasicAer` or Aer simulator and returns a
+        :class:`~.ScheduleBlock`) using :class:`~.BasicSimulator` or Aer simulator and returns a
         :class:`~qiskit.providers.Job` object.
 
         If qiskit-aer is installed, jobs will be run using the ``AerSimulator`` with
         noise model of the backend. Otherwise, jobs will be run using the
-        ``BasicAer`` simulator without noise.
+        ``BasicSimulator`` simulator without noise.
 
         Noisy simulations of pulse jobs are not yet supported in :class:`~.GenericBackendV2`.
 
@@ -489,7 +489,7 @@ class GenericBackendV2(BackendV2):
             raise QiskitError("Pulse simulation is currently not supported for V2 backends.")
         # circuit job
         if not _optionals.HAS_AER:
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+            warnings.warn("Aer not found using BasicSimulator and no noise", RuntimeWarning)
         if self._sim is None:
             self._setup_sim()
         self._sim._options = self._options
@@ -508,7 +508,7 @@ class GenericBackendV2(BackendV2):
             # it when run() is called
             self.set_options(noise_model=noise_model)
         else:
-            self._sim = BasicAer.get_backend("qasm_simulator")
+            self._sim = BasicSimulator()
 
     @classmethod
     def _default_options(cls) -> Options:
@@ -517,7 +517,7 @@ class GenericBackendV2(BackendV2):
 
             return AerSimulator._default_options()
         else:
-            return BasicAer.get_backend("qasm_simulator")._default_options()
+            return BasicSimulator._default_options()
 
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
