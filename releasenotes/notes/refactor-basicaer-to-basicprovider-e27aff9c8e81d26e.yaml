@@ -11,12 +11,12 @@ upgrade:
 
         Migrate from                     |   Replace with
         ------------------------------------------------------------------------------
-        :mod:`.basicaer`                 |  :mod:`.basic_provider`
-        :class:`.BasicAerProvider`       |  :class:`.BasicProvider`
-        :class:`.BasicAerJob`            |  :class:`.BasicProviderJob`
-        :class:`.QasmSimulatorPy`        |  :class:`.BasicSimulator`
-        :class:`.UnitarySimulatorPy`     |  use :class:`~.quantum_info.Operator`
-        :class:`.StatevectorSimulatorPy` |  use :class:`~.quantum_info.Statevector`
+        ``qiskit.providers.basicaer` |  :mod:`.basic_provider`
+        ``BasicAerProvider``         |  :class:`.BasicProvider`
+        ``BasicAerJob``              |  :class:`.BasicProviderJob`
+        ``QasmSimulatorPy``          |  :class:`.BasicSimulator`
+        ``UnitarySimulatorPy``       |  use :class:`~.quantum_info.Operator`
+        ``StatevectorSimulatorPy``   |  use :class:`~.quantum_info.Statevector`
 
     A notable difference is that the new provider is no longer exposed through a global instance
     (like ``BasicAer``), so it will not be valid to do ``from qiskit import BasicProvider``.
