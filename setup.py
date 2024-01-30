@@ -96,7 +96,8 @@ setup(
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
         "Documentation": "https://docs.quantum.ibm.com",
-        "Source Code": "https://github.com/Qiskit/qiskit-terra",
+        "Source Code": "https://github.com/Qiskit/qiskit",
+        "Homepage": "https://www.ibm.com/quantum/qiskit",
     },
     rust_extensions=[
         RustExtension(

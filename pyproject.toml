@@ -116,11 +116,3 @@ enable = [
 
 [tool.pylint.spelling]
 spelling-private-dict-file = ".local-spellings"
-
-[project.urls]
-Homepage = "https://www.ibm.com/quantum/qiskit"
-Documentation = "https://docs.quantum.ibm.com"
-"API Reference" = "https://docs.quantum.ibm.com/api/qiskit"
-Repository = "https://github.com/Qiskit/qiskit"
-Issues = "https://github.com/Qiskit/qiskit/issues"
-Changelog = "https://docs.quantum.ibm.com/api/qiskit/release-notes"
