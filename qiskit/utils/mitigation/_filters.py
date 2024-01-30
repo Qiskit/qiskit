@@ -111,7 +111,7 @@ class MeasurementFilter:
         """
         from scipy.optimize import minimize
         from scipy import linalg as la
-        from .. import parallel_map  # pylint: disable=cyclic-import
+        from qiskit.utils.parallel import parallel_map  # pylint: disable=cyclic-import
 
         # check forms of raw_data
         if isinstance(raw_data, dict):
