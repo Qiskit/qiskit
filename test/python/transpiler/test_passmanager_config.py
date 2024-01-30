@@ -40,7 +40,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=27)
+        backend = GenericBackendV2(num_qubits=27)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,10 +17,9 @@ import ddt
 from qiskit import pulse, circuit, transpile
 from qiskit.providers.fake_provider import FakeAthens, GenericBackendV2
 from qiskit.quantum_info.random import random_unitary
-from qiskit.transpiler import CouplingMap
 from qiskit.test import QiskitTestCase
 
-ATHENS_CMAP = CouplingMap([[0, 1], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3]])
+from .. import BOGOTA_CMAP
 
 
 @ddt.ddt
@@ -30,7 +29,6 @@ class TestPulseGate(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.basis_gates = ["cx", "id", "rz", "sx", "x"]
         self.sched_param = circuit.Parameter("P0")
 
         with pulse.build(name="sx_q0") as custom_sx_q0:
@@ -76,8 +74,7 @@ class TestPulseGate(QiskitTestCase):
 
         target = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
-            coupling_map=ATHENS_CMAP,
+            coupling_map=BOGOTA_CMAP,
             calibrate_instructions=True,
         ).target
 
@@ -120,8 +117,7 @@ class TestPulseGate(QiskitTestCase):
         """Test transpile with custom calibrations."""
         target = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
-            coupling_map=ATHENS_CMAP,
+            coupling_map=BOGOTA_CMAP,
             calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
         ).target
 
@@ -298,8 +294,7 @@ class TestPulseGate(QiskitTestCase):
         # This doesn't have custom schedule definition
         target = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
-            coupling_map=ATHENS_CMAP,
+            coupling_map=BOGOTA_CMAP,
             calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
         ).target
 
@@ -343,7 +338,6 @@ class TestPulseGate(QiskitTestCase):
 
         backend = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
             calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
         )
 
@@ -388,7 +382,6 @@ class TestPulseGate(QiskitTestCase):
 
         backend = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
             calibrate_instructions=True,
         )
         transpiled_qc = transpile(
@@ -415,7 +408,6 @@ class TestPulseGate(QiskitTestCase):
         """
         backend = GenericBackendV2(
             num_qubits=5,
-            basis_gates=self.basis_gates,
             calibrate_instructions=True,
         )
         original_sx0 = backend.target["sx"][(0,)].calibration

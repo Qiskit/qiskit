@@ -39,31 +39,7 @@ from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
-TENERIFE_CMAP = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
-RUESCHLIKON_CMAP = [
-    [1, 0],
-    [1, 2],
-    [2, 3],
-    [3, 4],
-    [3, 14],
-    [5, 4],
-    [6, 5],
-    [6, 7],
-    [6, 11],
-    [7, 10],
-    [8, 7],
-    [9, 8],
-    [9, 10],
-    [11, 10],
-    [12, 5],
-    [12, 11],
-    [12, 13],
-    [13, 4],
-    [13, 14],
-    [15, 0],
-    [15, 2],
-    [15, 14],
-]
+from .. import TENERIFE_CMAP, RUESCHLIKON_CMAP
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -484,7 +460,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
 
     def test_3q_circuit_vigo_with_custom_scores(self):
         """Test custom ErrorMap from analysis pass are used for scoring."""
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5)
         target = backend.target
 
         class FakeScore(AnalysisPass):

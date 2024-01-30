@@ -31,7 +31,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
 
-MUMBAI_CMAP = CouplingMap(FakeMumbai().configuration().coupling_map)
+from .. import MUMBAI_CMAP, RUESCHLIKON_CMAP
 
 
 @ddt
@@ -372,33 +372,7 @@ class TestStochasticSwap(QiskitTestCase):
         """Circuit not remapped if matches topology.
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        coupling = CouplingMap(
-            [
-                [1, 0],
-                [1, 2],
-                [2, 3],
-                [3, 4],
-                [3, 14],
-                [5, 4],
-                [6, 5],
-                [6, 7],
-                [6, 11],
-                [7, 10],
-                [8, 7],
-                [9, 8],
-                [9, 10],
-                [11, 10],
-                [12, 5],
-                [12, 11],
-                [12, 13],
-                [13, 4],
-                [13, 14],
-                [15, 0],
-                [15, 0],
-                [15, 2],
-                [15, 14],
-            ]
-        )
+        coupling = CouplingMap(RUESCHLIKON_CMAP)
         qr = QuantumRegister(16, "q")
         cr = ClassicalRegister(16, "c")
         circ = QuantumCircuit(qr, cr)

@@ -310,13 +310,12 @@ class TestBackendSampler(QiskitTestCase):
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits(num_qubits=5)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=backend)
+        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
         result = sampler.run([qc, qc2]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
@@ -358,8 +357,8 @@ class TestBackendSampler(QiskitTestCase):
             qc.break_loop().c_if(0, True)
 
         backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=15)
         sampler = BackendSampler(backend, skip_transpilation=True)
-        sampler.set_options(seed_simulator=15)
         sampler.set_transpile_options(seed_transpiler=15)
         result = sampler.run(qc).result()
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,7 +32,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
 
-MUMBAI_CMAP = CouplingMap(FakeMumbai().configuration().coupling_map)
+from .. import MUMBAI_CMAP
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):

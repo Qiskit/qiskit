@@ -99,7 +99,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -113,7 +113,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -124,7 +124,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -149,7 +149,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -161,7 +161,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=127)
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()

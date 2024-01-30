@@ -60,7 +60,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
         """Check that RZ is added before and after RX,
         if RX rotation angle is negative"""
 
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"])
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
@@ -83,7 +83,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
     )
     def test_angle_wrapping_works(self, raw_theta, correct_wrapped_theta):
         """Check that RX rotation angles are correctly wrapped to [0, pi]"""
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"])
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
@@ -118,7 +118,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
         """Test that quantize_angles() adds a new calibration only if
         the requested angle is not in the vicinity of the already generated angles.
         """
-        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "x", "id", "sx", "rz"])
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
 
         qc = QuantumCircuit(1)

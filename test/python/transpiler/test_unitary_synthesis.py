@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -66,6 +66,8 @@ from qiskit.circuit import Parameter, Gate
 
 
 class FakeBackend2QV2(GenericBackendV2):
+    """A 2-qubit fake backend"""
+
     def __init__(self):
         super().__init__(num_qubits=2, basis_gates=["rx", "u"], seed=42)
         cx_props = {
@@ -79,6 +81,8 @@ class FakeBackend2QV2(GenericBackendV2):
 
 
 class FakeBackend5QV2(GenericBackendV2):
+    """A 5-qubit fake backend"""
+
     def __init__(self, bidirectional=True):
         super().__init__(num_qubits=5, basis_gates=["u"], seed=42)
         cx_props = {

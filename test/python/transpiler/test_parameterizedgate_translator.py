@@ -64,7 +64,7 @@ class TestTranslateParameterized(QiskitTestCase):
 
     def test_target(self):
         """Test unrolling with a target."""
-        target = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5).target
+        target = GenericBackendV2(num_qubits=5).target
         circuit = TwoLocal(2, "rz", "cx", reps=2, entanglement="linear")
 
         translator = TranslateParameterizedGates(target=target)

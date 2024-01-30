@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,8 +34,7 @@ from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import Operator
 from qiskit.pulse import channels
 
-BOGOTA_CMAP = [[0, 1], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3]]
-TENERIFE_CMAP = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+from .. import BOGOTA_CMAP, TENERIFE_CMAP
 
 
 @ddt
@@ -204,9 +203,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_drive_channel(self, qubit):
         """Test getting drive channel with qubit index."""
-        backend = GenericBackendV2(
-            num_qubits=5, basis_gates=["id", "x", "sx", "cx", "rz"], coupling_map=BOGOTA_CMAP
-        )
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.drive_channel(qubit)
         ref = channels.DriveChannel(qubit)
         self.assertEqual(chan, ref)
@@ -214,9 +211,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_measure_channel(self, qubit):
         """Test getting measure channel with qubit index."""
-        backend = GenericBackendV2(
-            num_qubits=5, basis_gates=["id", "x", "sx", "cx", "rz"], coupling_map=BOGOTA_CMAP
-        )
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.measure_channel(qubit)
         ref = channels.MeasureChannel(qubit)
         self.assertEqual(chan, ref)
@@ -224,9 +219,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_acquire_channel(self, qubit):
         """Test getting acquire channel with qubit index."""
-        backend = GenericBackendV2(
-            num_qubits=5, basis_gates=["id", "x", "sx", "cx", "rz"], coupling_map=BOGOTA_CMAP
-        )
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.acquire_channel(qubit)
         ref = channels.AcquireChannel(qubit)
         self.assertEqual(chan, ref)
@@ -244,9 +237,7 @@ class TestBackendV2(QiskitTestCase):
             (1, 0): 1,
             (0, 1): 0,
         }
-        backend = GenericBackendV2(
-            num_qubits=5, basis_gates=["id", "x", "sx", "cx", "rz"], coupling_map=BOGOTA_CMAP
-        )
+        backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP)
         chan = backend.control_channel(qubits)[0]
         ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
         self.assertEqual(chan, ref)

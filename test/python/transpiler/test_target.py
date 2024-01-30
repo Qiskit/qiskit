@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,7 +32,6 @@ from qiskit.circuit.library import (
     CZGate,
 )
 from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
