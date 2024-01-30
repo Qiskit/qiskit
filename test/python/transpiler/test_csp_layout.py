@@ -16,11 +16,11 @@ import unittest
 from time import process_time
 
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CSPLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider.fake_generic import GenericTarget
 from qiskit.utils import optionals
 
 # fmt: off
@@ -115,11 +115,11 @@ class TestCSPLayout(QiskitTestCase):
             [4, 2],
             [4, 3],
         ]
-        target = GenericTarget(
-            basis_gates=["cx", "id", "rz", "sx", "x"],
+        target = GenericBackendV2(
             num_qubits=5,
-            coupling_map=CouplingMap(yorktown_cm),
-        )
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=yorktown_cm,
+        ).target
 
         qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)

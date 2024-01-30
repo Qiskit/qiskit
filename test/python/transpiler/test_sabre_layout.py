@@ -24,7 +24,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import FakeAlmaden, FakeGeneric
+from qiskit.providers.fake_provider import FakeAlmaden, GenericBackendV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
@@ -160,7 +160,7 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr1[1], qr0[0])
 
         dag = circuit_to_dag(circuit)
-        target = FakeGeneric(
+        target = GenericBackendV2(
             num_qubits=20, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=self.cmap20
         ).target
         pass_ = SabreLayout(target, seed=0, swap_trials=32, layout_trials=32)
@@ -425,7 +425,7 @@ class TestSabrePreLayout(QiskitTestCase):
     def test_integration_with_pass_manager(self):
         """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
         cmap20 = FakeAlmaden().configuration().coupling_map
-        backend = FakeGeneric(
+        backend = GenericBackendV2(
             num_qubits=20, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=cmap20, seed=42
         )
         pm = generate_preset_pass_manager(

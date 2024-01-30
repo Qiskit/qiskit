@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, FakeGeneric
+from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, GenericBackendV2
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
@@ -40,7 +40,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=27)
+        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=27)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)
@@ -114,7 +114,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	sx(0,): 7.111111111111111e-08 s
 	x(0,): 7.111111111111111e-08 s
 	measure(0,): 4.977777777777777e-06 s
-	
+
 	backend_properties: {'backend_name': 'ibmq_armonk',
 	 'backend_version': '2.4.3',
 	 'gates': [{'gate': 'id',

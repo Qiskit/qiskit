@@ -310,7 +310,7 @@ class TestBackendSampler(QiskitTestCase):
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits()
+        backend = FakeBackendLimitedCircuits(num_qubits=5)
         qc = QuantumCircuit(1)
         qc.measure_all()
         qc2 = QuantumCircuit(1)

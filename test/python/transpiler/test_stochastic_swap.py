@@ -26,8 +26,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai
-from qiskit.providers.fake_provider.fake_generic import GenericTarget
+from qiskit.providers.fake_provider import FakeMumbai, GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
@@ -1534,11 +1533,11 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="stochastic",
             layout_method="dense",
             seed_transpiler=12342,
-            target=GenericTarget(
+            target=GenericBackendV2(
                 num_qubits=27,
                 basis_gates=["cx", "id", "rz", "sx", "x"],
                 coupling_map=MUMBAI_CMAP,
-            ),
+            ).target,
         )
         self.assert_valid_circuit(tqc)
 

@@ -19,7 +19,7 @@ from qiskit.pulse import macros
 
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.providers.fake_provider import FakeGeneric
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import instructions
 from qiskit.test import QiskitTestCase
 
@@ -88,12 +88,10 @@ class TestBuilderV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        basis_gates = ["cx", "id", "rz", "sx", "x"]
-        self.backend = FakeGeneric(
-            basis_gates=basis_gates,
+        self.backend = GenericBackendV2(
             num_qubits=27,
             coupling_map=MUMBAI_CMAP,
-            calibrate_instructions=basis_gates + ["measure"],
+            calibrate_instructions=True,
         )
 
     def assertScheduleEqual(self, program, target):

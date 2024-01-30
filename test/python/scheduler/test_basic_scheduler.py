@@ -12,6 +12,7 @@
 
 """Test cases for the pulse scheduler passes."""
 
+import numpy as np
 from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, schedule
 from qiskit.circuit import Gate, Parameter
@@ -29,6 +30,7 @@ from qiskit.pulse import (
     Play,
     Waveform,
     transforms,
+    Delay,
 )
 from qiskit.pulse import build, macros, play, InstructionScheduleMap
 
@@ -36,7 +38,7 @@ from qiskit.providers.fake_provider import (
     FakeBackend,
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
-    FakeGeneric,
+    GenericBackendV2,
 )
 from qiskit.test import QiskitTestCase
 
@@ -523,45 +525,11 @@ class TestBasicScheduleV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        basis_gates = ["cx", "x", "id", "sx", "rz"]
-        self.backend = FakeGeneric(
-            num_qubits=3, basis_gates=basis_gates, calibrate_instructions=basis_gates + ["measure"]
-        )
+        self.backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True)
         self.inst_map = self.backend.instruction_schedule_map
-        self.pulse_2_samples = [
-            0.0 + 0.0j,
-            0.03225806 + 0.0j,
-            0.06451613 + 0.0j,
-            0.09677419 + 0.0j,
-            0.12903226 + 0.0j,
-            0.16129032 + 0.0j,
-            0.19354839 + 0.0j,
-            0.22580645 + 0.0j,
-            0.25806452 + 0.0j,
-            0.29032258 + 0.0j,
-            0.32258065 + 0.0j,
-            0.35483871 + 0.0j,
-            0.38709677 + 0.0j,
-            0.41935484 + 0.0j,
-            0.4516129 + 0.0j,
-            0.48387097 + 0.0j,
-            0.51612903 + 0.0j,
-            0.5483871 + 0.0j,
-            0.58064516 + 0.0j,
-            0.61290323 + 0.0j,
-            0.64516129 + 0.0j,
-            0.67741935 + 0.0j,
-            0.70967742 + 0.0j,
-            0.74193548 + 0.0j,
-            0.77419355 + 0.0j,
-            0.80645161 + 0.0j,
-            0.83870968 + 0.0j,
-            0.87096774 + 0.0j,
-            0.90322581 + 0.0j,
-            0.93548387 + 0.0j,
-            0.96774194 + 0.0j,
-            1.0 + 0.0j,
-        ]
+        # Pulse sequence used to calibrate "measure" in
+        # GenericBackendV2. See class construction for more details.
+        self.pulse_2_samples = np.linspace(0, 1.0, 32, dtype=np.complex128)
 
     def test_alap_pass(self):
         """Test ALAP scheduling."""
@@ -594,7 +562,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         # so all the π/2 pulse here should be right shifted.
         #
         # Calculations:
-        #   Duration of the π/2 pulse for FakeGeneric backend is 16dt
+        #   Duration of the π/2 pulse for GenericBackendV2 backend is 16dt
         #   first π/2 pulse on q0 should start at 16dt because of 'as_late_as_possible'.
         #   first π/2 pulse on q1 should start 0dt.
         #   second π/2 pulse on q1 should start with a delay of 16dt.
@@ -1134,29 +1102,33 @@ class TestBasicScheduleV2(QiskitTestCase):
         is actually Schedule for just qubit_0"""
         sched_from_backend = self.backend.instruction_schedule_map.get("measure", [0])
         expected_sched = Schedule(
-            (0, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
-            (0, Acquire(1472, AcquireChannel(2), MemorySlot(2))),
-            (0, Acquire(1472, AcquireChannel(3), MemorySlot(3))),
-            (0, Acquire(1472, AcquireChannel(4), MemorySlot(4))),
-            (0, Acquire(1472, AcquireChannel(5), MemorySlot(5))),
-            (0, Acquire(1472, AcquireChannel(6), MemorySlot(6))),
             (
                 0,
                 Play(
-                    GaussianSquare(
-                        duration=1472,
-                        sigma=64,
-                        width=1216,
-                        amp=0.24000000000000002,
-                        angle=-0.24730169436555283,
-                        name="M_m0",
-                    ),
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
                     MeasureChannel(0),
-                    name="M_m0",
+                    name="pulse_2",
                 ),
             ),
-            (1472, Delay(1568, MeasureChannel(0))),
+            (
+                0,
+                Play(
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
+                    MeasureChannel(1),
+                    name="pulse_2",
+                ),
+            ),
+            (
+                0,
+                Play(
+                    Waveform(samples=self.pulse_2_samples, name="pulse_2"),
+                    MeasureChannel(2),
+                    name="pulse_2",
+                ),
+            ),
+            (0, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
+            (0, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
+            (0, Acquire(1792, AcquireChannel(2), MemorySlot(2))),
             name="measure",
         )
         self.assertEqual(sched_from_backend, expected_sched)

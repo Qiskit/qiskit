@@ -32,7 +32,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
-BACKENDS = [FakeNairobi(), BackendV2Converter(FakeNairobi()), GenericBackendV2()]
+BACKENDS = [FakeNairobi(), BackendV2Converter(FakeNairobi()), GenericBackendV2(num_qubits=5)]
 
 
 class CallbackPass(DummyAP):
@@ -273,14 +273,14 @@ class TestBackendEstimator(QiskitTestCase):
     def test_job_size_limit_v2(self):
         """Test BackendEstimator respects job size limit"""
 
-        class FakeBackendLimitedCircuits(FakeBackendSimple):
+        class FakeBackendLimitedCircuits(GenericBackendV2):
             """FakeBackend V2 with job size limit."""
 
             @property
             def max_circuits(self):
                 return 1
 
-        backend = FakeBackendLimitedCircuits()
+        backend = FakeBackendLimitedCircuits(num_qubits=5)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -390,7 +390,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
 
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
+            if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
                 self.assertEqual(value, -0.916)
             else:
                 self.assertEqual(value, -1)
@@ -406,7 +406,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
 
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
+            if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
                 self.assertEqual(value, -0.8902)
             else:
                 self.assertEqual(value, -1)

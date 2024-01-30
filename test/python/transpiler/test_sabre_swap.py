@@ -24,8 +24,7 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import FakeMumbai
-from qiskit.providers.fake_provider.fake_generic import GenericTarget
+from qiskit.providers.fake_provider import FakeMumbai, GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -1389,9 +1388,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="sabre",
             layout_method="sabre",
             seed_transpiler=12342,
-            target=GenericTarget(
-                num_qubits=27, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=MUMBAI_CMAP
-            ),
+            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP).target,
         )
         self.assert_valid_circuit(tqc)
 

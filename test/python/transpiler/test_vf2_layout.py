@@ -31,7 +31,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeManhattan,
-    FakeGeneric,
+    GenericBackendV2,
 )
 from qiskit.circuit import Measure
 from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
@@ -484,7 +484,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
 
     def test_3q_circuit_vigo_with_custom_scores(self):
         """Test custom ErrorMap from analysis pass are used for scoring."""
-        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5)
+        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=5)
         target = backend.target
 
         class FakeScore(AnalysisPass):
@@ -739,7 +739,7 @@ class TestMultipleTrials(QiskitTestCase):
 
         Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8667
         """
-        backend = FakeGeneric(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=16)
+        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=16)
         qr = QuantumRegister(16, name="qr")
         cr = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
