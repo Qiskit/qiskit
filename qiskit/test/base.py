@@ -261,10 +261,7 @@ class QiskitTestCase(BaseQiskitTestCase):
                 "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
             )
         # Ignore fake backend deprecation warnings to avoid over-crowding the test log
-        ignore_fake_backend_message = (
-            r"Device-specific fake backends have been migrated "
-            r"to the `qiskit_ibm_runtime` package.*"
-        )
+        ignore_fake_backend_message = r".*have been migrated to the `qiskit_ibm_runtime` package.*"
         warnings.filterwarnings(
             "ignore", category=DeprecationWarning, message=ignore_fake_backend_message
         )

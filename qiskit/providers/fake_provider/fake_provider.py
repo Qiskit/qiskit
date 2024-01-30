@@ -31,7 +31,7 @@ class FakeProviderFactory:
 
     @deprecate_func(
         additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
-        "You should migrate your code to "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
@@ -98,10 +98,11 @@ class FakeProviderForBackendV2(ProviderV1):
 
     @deprecate_func(
         additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
-        "You should migrate your code to "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
+        removal_timeline="Qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):
@@ -180,10 +181,11 @@ class FakeProvider(ProviderV1):
 
     @deprecate_func(
         additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
-        "You should migrate your code to "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
         "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
         "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
         since="0.46.0",
+        removal_timeline="Qiskit 1.0",
         package_name="qiskit",
     )
     def __init__(self):

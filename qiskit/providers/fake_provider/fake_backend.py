@@ -92,11 +92,13 @@ class FakeBackendV2(BackendV2):
         # This is a deprecation warning for the subclasses.
         # FakeBackendV2 is not deprecated.
         warnings.warn(
-            message="Device-specific fake backends have been migrated to the `qiskit_ibm_runtime` package. "
+            message="All fake backend instances based on real device snapshots (`FakeVigo`,"
+            "`FakeSherbrooke`,...) have been migrated to the `qiskit_ibm_runtime` package. "
             "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
-            "You should migrate your code to use "
+            "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
             "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
-            "instead of `from qiskit.providers.fake_provider import FakeExample`.",
+            "instead of `from qiskit.providers.fake_provider import FakeExample`. "
+            "If you are using a custom fake backend implementation, you don't need to take any action.",
             category=DeprecationWarning,
             stacklevel=2,
         )
