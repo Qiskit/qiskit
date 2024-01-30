@@ -15,6 +15,7 @@
 """Main Qiskit public functionality."""
 
 import importlib.metadata
+import importlib.util
 import os
 import sys
 import warnings
@@ -25,8 +26,13 @@ except importlib.metadata.PackageNotFoundError:
     # All good!
     pass
 else:
+    # 'qiskit.tools' is present in all 0.x series of Qiskit and not in Qiskit 1.0+.  If a dev has an
+    # editable install and switches from 0.x branches to 1.0+ branches, they might have an empty
+    # `qiskit/tools` folder in their path, which will appear as a "namespace package" with no valid
+    # location.  We catch that case as "not actually having Qiskit 0.x" as a convenience to devs.
+    _has_tools = getattr(importlib.util.find_spec("qiskit.tools"), "has_location", False)
     _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
-    if not _suppress_error:
+    if not _suppress_error and _has_tools:
         raise ImportError(
             "Qiskit is installed in an invalid environment that has both Qiskit 1.0+"
             " and an earlier version."
