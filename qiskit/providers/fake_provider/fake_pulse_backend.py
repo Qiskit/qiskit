@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -29,6 +29,7 @@ class FakePulseBackend(FakeQasmBackend):
     defs_filename = None
 
     def __init__(self):
+        super().__init__()
         # This is a deprecation warning for the subclasses.
         # FakePulseBackend is not deprecated.
         warnings.warn(
@@ -41,7 +42,6 @@ class FakePulseBackend(FakeQasmBackend):
             category=DeprecationWarning,
             stacklevel=3,
         )
-        super().__init__()
 
     def defaults(self):
         """Returns a snapshot of device defaults"""

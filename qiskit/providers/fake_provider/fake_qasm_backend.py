@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -37,6 +37,10 @@ class FakeQasmBackend(FakeBackend):
     backend_name = None
 
     def __init__(self):
+        configuration = self._get_conf_from_json()
+        self._defaults = None
+        self._properties = None
+        super().__init__(configuration)
         # This is a deprecation warning for the subclasses.
         # FakeQasmBackend is not deprecated.
         warnings.warn(
@@ -49,10 +53,6 @@ class FakeQasmBackend(FakeBackend):
             category=DeprecationWarning,
             stacklevel=3,
         )
-        configuration = self._get_conf_from_json()
-        self._defaults = None
-        self._properties = None
-        super().__init__(configuration)
 
     def properties(self):
         """Returns a snapshot of device properties"""
