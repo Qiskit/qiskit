@@ -14,6 +14,7 @@
 
 """Test scheduled circuit (quantum circuit with duration)."""
 from ddt import ddt, data
+
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import transpile, assemble
 from qiskit.circuit import Parameter
@@ -21,8 +22,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-
-from qiskit.test.base import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

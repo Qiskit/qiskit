@@ -35,7 +35,7 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 

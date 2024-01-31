@@ -12,5 +12,4 @@
 
 """Functionality and helpers for testing Qiskit."""
 
-from .base import QiskitTestCase
 from .decorators import slow_test

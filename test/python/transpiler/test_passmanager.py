@@ -29,12 +29,10 @@ from qiskit.passmanager.flow_controllers import (
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
-from qiskit.test import QiskitTestCase
-
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManager(QiskitTestCase):

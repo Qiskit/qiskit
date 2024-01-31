@@ -19,10 +19,7 @@ import os
 import sys
 import unittest
 from logging import StreamHandler, getLogger
-
-from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
-
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
@@ -88,7 +85,6 @@ from qiskit.providers.options import Options
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
-from qiskit.test import QiskitTestCase, slow_test
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
@@ -96,6 +92,7 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirecti
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
+from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
 
 class CustomCX(Gate):
