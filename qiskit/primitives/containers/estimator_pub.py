@@ -29,6 +29,9 @@ from .bindings_array import BindingsArray, BindingsArrayLike
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin
 
+# Public API classes
+__all__ = ["EstimatorPubLike"]
+
 
 class EstimatorPub(ShapedMixin):
     """Primitive Unified Bloc for any Estimator primitive.
@@ -193,3 +196,20 @@ EstimatorPubLike = Union[
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
 ]
+"""A Pub (Primitive Unified Bloc) for an Estimator primitive.
+
+A fully specified estimator pub is a tuple ``(circuit, observables, parameter_values, precision)``.
+
+If precision is provided this should be used for the target precision of an
+estimator, if ``precision=None`` the estimator will determine the target precision.
+
+.. note::
+
+    An Estimator Pub can also be initialized in the following formats which
+    will be converted to the full Pub tuple:
+
+    * ``circuit
+    * ``(circuit,)``
+    * ``(circuit, observables)``
+    * ``(circuit, observalbes, parameter_values)``
+"""
