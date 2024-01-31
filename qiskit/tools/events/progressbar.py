@@ -48,7 +48,7 @@
 import time
 import datetime
 import sys
-from qiskit.tools.events.pubsub import Subscriber
+from .pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):

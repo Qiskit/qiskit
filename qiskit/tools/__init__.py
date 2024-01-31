@@ -17,15 +17,6 @@ Qiskit Tools (:mod:`qiskit.tools`)
 
 .. currentmodule:: qiskit.tools
 
-Parallel Routines
------------------
-
-A helper function for calling a custom function with python ``ProcessPoolExecutor``.
-Tasks can be executed in parallel using this function.
-It has a built-in event publisher to show the progress of the parallel tasks.
-
-.. autofunction:: parallel_map
-
 Monitoring
 ----------
 
@@ -38,7 +29,34 @@ A helper module to get IBM backend information and submitted job status.
 .. automodule:: qiskit.tools.events
 
 """
+import importlib
+import warnings
 
-from .parallel import parallel_map
-from .monitor import job_monitor, backend_monitor, backend_overview
-from .events import progressbar
+
+_DEPRECATED_NAMES = {
+    "parallel_map": "qiskit.utils",
+    "parallel": "qiskit.utils.parallel",
+}
+
+
+_DEPRECATED_REMOVALS = {"job_monitor", "backend_monitor", "backend_overview", "progressbar"}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit 0.46.0 "
+            f"and will be removed in Qiskit 1.0.0. Import from '{module_name}' instead ",
+            DeprecationWarning,
+            2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    if name in _DEPRECATED_REMOVALS:
+        warnings.warn(
+            f"'{name}' has been deprecated and will be removed in Qiskit 1.0.0.",
+            DeprecationWarning,
+            2,
+        )
+        return getattr(importlib.import_module(".monitor", "qiskit.tools"), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

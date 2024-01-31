@@ -21,5 +21,10 @@ A helper component for publishing and subscribing to events.
 
 .. autoclass:: TextProgressBar
 """
+import warnings
 
 from .progressbar import TextProgressBar
+
+warnings.warn(
+    "qiskit.tools.events is deprecated and will be removed in Qiskit 1.0.0", DeprecationWarning, 2
+)

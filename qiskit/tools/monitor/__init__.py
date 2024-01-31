@@ -12,5 +12,12 @@
 
 """A module for monitoring jobs, backends, etc."""
 
+import warnings
+
 from .job_monitor import job_monitor
 from .overview import backend_monitor, backend_overview
+
+
+warnings.warn(
+    "qiskit.tools.monitor is deprecated and will be removed in Qiskit 1.0.0", DeprecationWarning, 2
+)

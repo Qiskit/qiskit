@@ -52,6 +52,15 @@ runtime parameters controlling circuit compilation and execution. Quantum
 are run on a device or simulator by passing a QuantumInstance setup with the desired
 backend etc.
 
+Parallel Routines
+-----------------
+A helper function for calling a custom function with python
+``ProcessPoolExecutor``. Tasks can be executed in parallel using this function.
+It has a built-in event publisher to show the progress of the parallel
+tasks.
+
+.. autofunction:: parallel_map
+
 
 Optional Dependency Checkers (:mod:`qiskit.utils.optionals`)
 ============================================================
@@ -81,6 +90,8 @@ from .backend_utils import has_ibmq, has_aer
 from .name_unnamed_args import name_args
 from .algorithm_globals import algorithm_globals
 
+from .parallel import parallel_map
+
 
 __all__ = [
     "LazyDependencyManager",
@@ -102,4 +113,5 @@ __all__ = [
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",
+    "parallel_map",
 ]

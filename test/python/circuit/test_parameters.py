@@ -37,7 +37,7 @@ from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import FakeOurense
-from qiskit.tools import parallel_map
+from qiskit.utils import parallel_map
 
 
 def raise_if_parameter_table_invalid(circuit):
