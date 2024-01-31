@@ -13,6 +13,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 import copy
+import pickle
 
 import numpy as np
 from ddt import data, ddt
@@ -639,6 +640,23 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_all_after_copy(self):
+        """
+        Test measure_all on a circuit that has been copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = qc.copy()
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
     def test_measure_all_after_deepcopy(self):
         """
         Test measure_all on a circuit that has been deep-copied.
@@ -651,6 +669,26 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure_all()
         qc2.measure_all()
 
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
+    def test_measure_all_after_pickle(self):
+        """
+        Test measure_all on a circuit that has been pickled.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = pickle.loads(pickle.dumps(qc))
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
         self.assertEqual(qc, qc2)
 
     def test_measure_all_not_add_bits_equal(self):
