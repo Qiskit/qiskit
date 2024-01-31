@@ -355,7 +355,7 @@ def generate_routing_passmanager(
                 condition=_run_post_layout_condition,
             ),
         )
-        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+        routing.append(ConditionalController(ApplyLayout(), condition=_apply_post_layout_condition))
 
     return routing
 
