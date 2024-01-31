@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,9 +15,11 @@
 import ddt
 
 from qiskit import pulse, circuit, transpile
-from qiskit.providers.fake_provider import FakeAthens, FakeAthensV2
+from qiskit.providers.fake_provider import FakeAthens, GenericBackendV2
 from qiskit.quantum_info.random import random_unitary
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import BOGOTA_CMAP
 
 
 @ddt.ddt
@@ -69,8 +71,12 @@ class TestPulseGate(QiskitTestCase):
 
     def test_transpile_with_backend_target(self):
         """Test transpile without custom calibrations from target."""
-        backend = FakeAthensV2()
-        target = backend.target
+
+        target = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=BOGOTA_CMAP,
+            calibrate_instructions=True,
+        ).target
 
         qc = circuit.QuantumCircuit(2)
         qc.sx(0)
@@ -109,8 +115,12 @@ class TestPulseGate(QiskitTestCase):
 
     def test_transpile_with_custom_basis_gate_in_target(self):
         """Test transpile with custom calibrations."""
-        backend = FakeAthensV2()
-        target = backend.target
+        target = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=BOGOTA_CMAP,
+            calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
+        ).target
+
         target["sx"][(0,)].calibration = self.custom_sx_q0
         target["sx"][(1,)].calibration = self.custom_sx_q1
 
@@ -282,7 +292,12 @@ class TestPulseGate(QiskitTestCase):
         instmap.add("cx", (0, 1), self.custom_cx_q01)
 
         # This doesn't have custom schedule definition
-        target = FakeAthensV2().target
+        target = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=BOGOTA_CMAP,
+            calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
+            seed=42,
+        ).target
 
         qc = circuit.QuantumCircuit(2)
         qc.append(random_unitary(4, seed=123), [0, 1])
@@ -322,9 +337,14 @@ class TestPulseGate(QiskitTestCase):
         qc.append(random_unitary(4, seed=123), [0, 1])
         qc.measure_all()
 
+        backend = GenericBackendV2(
+            num_qubits=5,
+            calibrate_instructions=FakeAthens().defaults().instruction_schedule_map,
+        )
+
         transpiled_qc = transpile(
             qc,
-            FakeAthensV2(),
+            backend,
             optimization_level=opt_level,
             inst_map=instmap,
             initial_layout=[0, 1],
@@ -361,9 +381,13 @@ class TestPulseGate(QiskitTestCase):
         qc.append(gate, [0])
         qc.measure_all()
 
+        backend = GenericBackendV2(
+            num_qubits=5,
+            calibrate_instructions=True,
+        )
         transpiled_qc = transpile(
             qc,
-            FakeAthensV2(),
+            backend,
             optimization_level=opt_level,
             inst_map=instmap,
             initial_layout=[0],
@@ -383,7 +407,10 @@ class TestPulseGate(QiskitTestCase):
         This should not override the source object since the same backend may
         be used for future transpile without intention of instruction overriding.
         """
-        backend = FakeAthensV2()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            calibrate_instructions=True,
+        )
         original_sx0 = backend.target["sx"][(0,)].calibration
 
         instmap = FakeAthens().defaults().instruction_schedule_map
@@ -395,7 +422,7 @@ class TestPulseGate(QiskitTestCase):
 
         transpiled_qc = transpile(
             qc,
-            FakeAthensV2(),
+            backend,
             inst_map=instmap,
             initial_layout=[0],
         )

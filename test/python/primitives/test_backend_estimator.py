@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for Estimator."""
+"""Tests for BackendEstimator."""
 
 import unittest
 from unittest.mock import patch
@@ -21,8 +21,8 @@ from ddt import ddt
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
+from qiskit.providers.fake_provider import FakeNairobi, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
@@ -31,7 +31,11 @@ from test import combine  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
+BACKENDS = [
+    FakeNairobi(),
+    BackendV2Converter(FakeNairobi()),
+    GenericBackendV2(num_qubits=5, seed=42),
+]
 
 
 class CallbackPass(DummyAP):
@@ -271,14 +275,14 @@ class TestBackendEstimator(QiskitTestCase):
     def test_job_size_limit_v2(self):
         """Test BackendEstimator respects job size limit"""
 
-        class FakeNairobiLimitedCircuits(FakeNairobiV2):
-            """FakeNairobiV2 with job size limit."""
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
                 return 1
 
-        backend = FakeNairobiLimitedCircuits()
+        backend = FakeBackendLimitedCircuits(num_qubits=5)
         backend.set_options(seed_simulator=123)
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
@@ -387,10 +391,11 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.916)
+            if optionals.HAS_AER:
+                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.916
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)
@@ -402,10 +407,11 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, FakeBackendSimple):
-                self.assertEqual(value, -0.8902)
+            if optionals.HAS_AER:
+                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.8902
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_circuit_with_measurement(self):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,9 +20,10 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
-from qiskit.providers.fake_provider import FakeVigoV2
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, CouplingMap
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class TestApplyLayout(QiskitTestCase):
@@ -125,7 +126,7 @@ class TestApplyLayout(QiskitTestCase):
         for i in range(5):
             qc.cx(i % qubits, int(i + qubits / 2) % qubits)
         initial_pm = PassManager([SetLayout([1, 3, 4])])
-        cmap = FakeVigoV2().coupling_map
+        cmap = CouplingMap(YORKTOWN_CMAP)
         initial_pm += common.generate_embed_passmanager(cmap)
         first_layout_circ = initial_pm.run(qc)
         out_pass = ApplyLayout()
