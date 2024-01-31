@@ -1986,7 +1986,7 @@ def _collect_scoped_parameters(
     """
     warnings.warn(
         "Scoped parameters may not work correctly with parameter assignment.",
-        stacklevel=3
+        stacklevel=3,
     )
     parameters_out = {}
     for param in schedule._parameter_manager.parameters:
