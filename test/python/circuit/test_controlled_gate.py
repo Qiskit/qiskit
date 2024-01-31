@@ -14,7 +14,6 @@
 """Test Qiskit's controlled gate operation."""
 
 import unittest
-from test import combine
 
 import numpy as np
 from numpy import pi
