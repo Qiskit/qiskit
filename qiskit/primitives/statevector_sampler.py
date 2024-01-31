@@ -100,10 +100,7 @@ class StatevectorSampler(BaseSamplerV2):
         # Instantiate a new statevector simulation based sampler object.
         sampler = StatevectorSampler()
 
-        # Estimate the expectation value for all 300 combinations of observables and parameter values,
-        # where the pub result will have shape (3, 100). This shape results from the fact that our
-        # BindingsArray will have shape (100,), and our observables have shape (3, 1), giving the
-        # broadcasted shape (3, 100).
+        # Start a job that will return shots for all 100 parameter value sets.
         job = sampler.run([(circuit, params)], shots=256)
 
         # Extract the result for the 0th pub (this example only has one pub).

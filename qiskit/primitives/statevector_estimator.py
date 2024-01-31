@@ -36,6 +36,60 @@ class StatevectorEstimator(BaseEstimatorV2):
     pure state vectors. These states are subsequently acted on by :class:~.SparsePauliOp`,
     which implies that, at present, this implementation is only compatible with Pauli-based
     observables.
+
+    Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
+    called an estimator primitive unified bloc (PUB), produces its own array-based result. The
+    :meth:`~.EstimatorV2.run` method can be given many pubs at once.
+
+    .. code: python
+
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import StatevectorEstimator
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Define a circuit with two parameters.
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        circuit.ry(Parameter("a"), 0)
+        circuit.rz(Parameter("b"), 0)
+        circuit.cx(0, 1)
+        circuit.h(0)
+
+        # Define a sweep over parameter values, where the second axis is over
+        # the two parameters in the circuit.
+        params = np.vstack([
+            np.linspace(-np.pi, np.pi, 100),
+            np.linspace(-4 * np.pi, 4 * np.pi, 100)
+        ]).T
+
+        # Define three observables. Many formats are supported here including classes
+        # such as qiskit.quantum_info.SparsePauliOp. The inner length-1 lists cause this array
+        # of observables to have shape (3, 1), rather than shape (3,) if they were omitted.
+        observables = [["XX"], [{"IX": 0.5, "IY": 0.5}], ["ZZ"]]
+
+        # Instantiate a new statevector simulation based estimator object.
+        estimator = StatevectorEstimator()
+
+        # Estimate the expectation value for all 300 combinations of observables and parameter
+        # values, where the pub result will have shape (3, 100). This shape is due to our array
+        # of parameter bindings having shape (100,), combined with our array of observables having
+        # shape (3, 1)
+        job = estimator.run([(circuit, observables, params)])
+
+        # Extract the result for the 0th pub (this example only has one pub).
+        result = job.result()[0]
+
+        # Pull out the array-based expectation value estimate data from the result and
+        # plot a trace for each observable.
+        for idx, pauli in enumerate(observables):
+            plt.plot(result.data.evs[idx], label=pauli)
+        plt.legend()
+
+        # Error-bar information is also available, but the error is always 0 for the StatevectorEstimator.
+        result.data.stds
     """
 
     def __init__(
