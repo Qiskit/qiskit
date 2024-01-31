@@ -44,10 +44,6 @@ class BindingsArrayTestCase(QiskitTestCase):
         with self.assertRaisesRegex(ValueError, r"Array with shape \(\) inconsistent with \(1,\)"):
             BindingsArray(data={Parameter("a"): 0}, shape=(1,))
 
-        with self.assertRaisesRegex(ValueError, "ambiguous"):
-            # could have shape (1,) or (1, 1)
-            BindingsArray(data={Parameter("a"): [[1]]})
-
         with self.assertRaisesRegex(ValueError, r"\(3, 5\) inconsistent with \(2,\)"):
             BindingsArray({"a": np.empty((3, 5))}, shape=2)
 
@@ -270,11 +266,11 @@ class BindingsArrayTestCase(QiskitTestCase):
 
         with self.subTest("Single kwval"):
             ba = BindingsArray(data={Parameter("a"): [0.0]})
-            self.assertEqual(ba.shape, (1,))
+            self.assertEqual(ba.shape, ())
 
         with self.subTest("Single kwval ndarray"):
             ba = BindingsArray(data={Parameter("a"): np.array([0.0])})
-            self.assertEqual(ba.shape, (1,))
+            self.assertEqual(ba.shape, ())
 
         with self.subTest("Multi kwval"):
             ba = BindingsArray(data={Parameter("a"): [0.0, 1.0]})
@@ -286,7 +282,7 @@ class BindingsArrayTestCase(QiskitTestCase):
 
         with self.subTest("Multiple data single"):
             ba = BindingsArray(data={Parameter("a"): [0.0], Parameter("b"): [1.0]})
-            self.assertEqual(ba.shape, (1,))
+            self.assertEqual(ba.shape, ())
 
         with self.subTest("Multiple data multi"):
             ba = BindingsArray(data={Parameter("a"): [0.0, 1.0], Parameter("b"): [1.0, 0.0]})
@@ -330,7 +326,7 @@ class BindingsArrayTestCase(QiskitTestCase):
     @ddt.data(
         ((0,), 0, True),
         ((), 0, True),
-        # ((0,), 1, True), this shouldn't work because we don't know if shape is (0,) or (0, 1)
+        ((0,), 1, True),  # this shouldn't work because we don't know if shape is (0,) or (0, 1)
         ((0,), 2, True),
         ((1,), 0, True),
         ((0,), 0, False),

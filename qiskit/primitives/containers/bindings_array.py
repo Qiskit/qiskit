@@ -37,13 +37,13 @@ class BindingsArray(ShapedMixin):
     of such sets. The simplest example is a 0-d array consisting of a single parameter binding set,
     whereas an n-d array of parameter binding sets represents an n-d sweep over values.
 
-    The storage format is a dictionary of arrays attached to parameters, ``{params_0: values_0,
-    ...}``. A convention is used where the last dimension of each array indexes (a subset of)
-    circuit parameters. For example, if the last dimension of ``values_0`` is 25, then it represents
-    an array of possible binding values for the 25 distinct parameters ``params_0``, where its
-    leading shape is the array :attr:`~.shape` of its binding array. This allows flexibility about
-    whether values for different parameters are stored in one big array, or across several smaller
-    arrays.
+    The storage format is a dictionary of arrays attached to parameters,
+    ``{params_0: values_0,...}``. A convention is used where the last dimension of each array
+    indexes (a subset of) circuit parameters. For example, if the last dimension of ``values_0`` is
+    25, then it represents an array of possible binding values for the 25 distinct parameters
+    ``params_0``, where its leading shape is the array :attr:`~.shape` of its binding array. This
+    allows flexibility about whether values for different parameters are stored in one big array, or
+    across several smaller arrays.
 
     .. code-block:: python
 
@@ -337,19 +337,15 @@ def _infer_shape(data: dict[tuple[Parameter, ...], np.ndarray]) -> tuple[int, ..
 
     for parameters, val in data.items():
         if len(parameters) != 1:
-            # the last dimension _has_  to be over parameters
+            # the last dimension _has_ to be over parameters
             examine_array(val.shape[:-1])
-        elif val.shape in {(), (1,)}:
-            # here we specify special cases:
-            #  * val.shape == (): we want float-like to be 0d
-            #  * val.shape == (1,): we want to support {("a",): [1]} as float-like
-            examine_array(val.shape)
-        elif val.shape[-1] != 1:
-            # there's one param but the last dimension is not 1: last dimension isn't over params
-            examine_array(val.shape)
+        elif val.shape and val.shape[-1] == 1:
+            # this case is a convention, and separated from the previous case for clarity:
+            # if the last axis is 1-d, make an assumption that it is for our 1 parameter
+            examine_array(val.shape[:-1])
         else:
-            # only ambiguous case: the last dimension could be over parameters or not
-            examine_array(val.shape, val.shape[:-1])
+            # otherwise, the user has left off the last axis and we'll be nice to them
+            examine_array(val.shape)
 
     if only_possible_shapes is None:
         return ()

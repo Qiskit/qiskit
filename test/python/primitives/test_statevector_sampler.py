@@ -219,10 +219,10 @@ class TestStatevectorSampler(QiskitTestCase):
                 ({param: np.pi}, np.array({1: self._shots})),
                 ({"x": np.array(np.pi)}, np.array({1: self._shots})),
                 ({param: np.array(np.pi)}, np.array({1: self._shots})),
-                ({"x": [np.pi]}, np.array([{1: self._shots}])),
-                ({param: [np.pi]}, np.array([{1: self._shots}])),
-                ({"x": np.array([np.pi])}, np.array([{1: self._shots}])),
-                ({param: np.array([np.pi])}, np.array([{1: self._shots}])),
+                ({"x": [np.pi]}, np.array({1: self._shots})),
+                ({param: [np.pi]}, np.array({1: self._shots})),
+                ({"x": np.array([np.pi])}, np.array({1: self._shots})),
+                ({param: np.array([np.pi])}, np.array({1: self._shots})),
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
