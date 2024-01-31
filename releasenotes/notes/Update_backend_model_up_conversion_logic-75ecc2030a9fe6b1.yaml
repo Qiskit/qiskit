@@ -1,19 +1,20 @@
 ---
 upgrade:
   - |
-    The new logic provides better backend model up-conversion mechanism, and better handling of control flow instructions.
+    Changed default value of two arguments :code:`add_delay` and :code:`filter_faulty` in
+    the :func:`.qiskit.providers.backend_compat.convert_to_target`.
+    Now this conversion function adds delay instruction and removes faulty instructions by default.
 fixes:
   - |
-    Fixes return of improper Schedule by Backend.instruction_schedule_map.get('measure', [0])
+    Fixes return of improper measurement schedule that may occur in the following program
 
     .. code-block:: python
 
-      #import a fake backend which is a sub-class of BackendV2.
+      # import a fake backend which is a sub-class of BackendV2.
       from qiskit.providers.fake_provider import FakePerth
       backend = FakePerth()
       sched = backend.instruction_schedule_map.get('measure', [0])
 
-    The issue was that the :code:`sched` contained Schedule for measure operation on
-    all qubits of the backend instead of having the Schedule for measure operation
-    on just qubit_0.
-
+    This unexpectedly returned a measure schedule including all device qubits,
+    which was fixed in this release.
+    Now this returns a schedule for qubit 0 as intended.

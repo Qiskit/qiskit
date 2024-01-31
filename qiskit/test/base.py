@@ -28,11 +28,11 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-from qiskit.tools.parallel import get_platform_parallel_default
+from qiskit.utils.parallel import get_platform_parallel_default
+from qiskit.exceptions import QiskitWarning
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
-from .utils import Path, setup_test_logging
 
 
 __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
@@ -98,19 +98,6 @@ class BaseQiskitTestCase(BaseTestCase):
                 "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__teardown_called = True
-
-    @staticmethod
-    def _get_resource_path(filename, path=Path.TEST):
-        """Get the absolute path to a resource.
-
-        Args:
-            filename (string): filename or relative path to the resource.
-            path (Path): path used as relative to the filename.
-
-        Returns:
-            str: the absolute path to the resource.
-        """
-        return os.path.normpath(os.path.join(path.value, filename))
 
     def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
         """Extra assertion method to give a better error message when two circuits are unequal."""
@@ -185,22 +172,48 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basicaer import BasicAer
+        from qiskit.providers.basic_provider import BasicProvider
 
-        BasicAer._backends = BasicAer._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Determines if the TestCase is using IBMQ credentials.
-        cls.using_ibmq_credentials = False
         # Set logging to file and stdout if the LOG_LEVEL envar is set.
         cls.log = logging.getLogger(cls.__name__)
-        if os.getenv("LOG_LEVEL"):
-            filename = "%s.log" % os.path.splitext(inspect.getfile(cls))[0]
-            setup_test_logging(cls.log, os.getenv("LOG_LEVEL"), filename)
+
+        if log_level := os.getenv("LOG_LEVEL"):
+            log_fmt = f"{cls.log.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
+            formatter = logging.Formatter(log_fmt)
+            file_handler = logging.FileHandler(f"{os.path.splitext(inspect.getfile(cls))[0]}.log")
+            file_handler.setFormatter(formatter)
+            cls.log.addHandler(file_handler)
+
+            if os.getenv("STREAM_LOG"):
+                # Set up the stream handler.
+                stream_handler = logging.StreamHandler()
+                stream_handler.setFormatter(formatter)
+                cls.log.addHandler(stream_handler)
+
+            # Set the logging level from the environment variable, defaulting
+            # to INFO if it is not a valid level.
+            level = logging._nameToLevel.get(log_level, logging.INFO)
+            cls.log.setLevel(level)
 
         warnings.filterwarnings("error", category=DeprecationWarning)
+        warnings.filterwarnings("error", category=QiskitWarning)
+
+        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
+        # their use of pandas would be a problem.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
+            # includes hard-break newlines all over the place.
+            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
+            module=r"seaborn(\..*)?",
+        )
+
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",
             "test.python.pulse.test_block",
@@ -228,20 +241,6 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
-        allow_aer_DeprecationWarning_message = [
-            # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
-            "Setting metadata to None.*",
-            # and this one once Qiskit/qiskit-aer#1945 is merged and released.
-            r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
-            r"deprecated as of qiskit 0\.45\.0\. It will be removed no earlier than 3 "
-            r"months after the release date\. Use QuantumCircuit\.id as direct replacement\.",
-        ]
-
-        for msg in allow_aer_DeprecationWarning_message:
-            warnings.filterwarnings(
-                "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
-            )
 
 
 class FullQiskitTestCase(QiskitTestCase):

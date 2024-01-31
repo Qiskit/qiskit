@@ -1,0 +1,16 @@
+deprecations:
+  - |
+    Removing deprecated visualization code (deprecated in 0.22).
+    
+    For :func:`.plot_histogram` visualization: Passing :class:`.QuasiDistribution`, 
+    :class:`.ProbDistribution`, or a distribution dictionary to the `data` argument is deprecated.
+    If you would like to plot a histogram from a :class:`.QuasiDistribution`,
+    :class:`.ProbDistribution`, or a distribution dictionary you should be using the
+    :func:`.plot_distribution` function.
+
+    Also removed reverse-bits argument deprecation from 
+    -- :func:`.get_bit_get_index`
+    -- :func:`.get_condition_label_val`
+    
+
+    

@@ -171,16 +171,7 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
     for t0, inst in schedule.children:
         # note that schedule.instructions unintentionally flatten the nested schedule.
         # this should be performed by another transformer node.
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            # convert into schedule if block is given
-            if isinstance(subroutine, ScheduleBlock):
-                subroutine = block_to_schedule(subroutine)
-            # recursively inline the program
-            inline_schedule = _inline_schedule(subroutine)
-            ret_schedule.insert(t0, inline_schedule, inplace=True)
-        elif isinstance(inst, Schedule):
+        if isinstance(inst, Schedule):
             # recursively inline the program
             inline_schedule = _inline_schedule(inst)
             ret_schedule.insert(t0, inline_schedule, inplace=True)
@@ -196,19 +187,7 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
     """
     ret_block = ScheduleBlock.initialize_from(block)
     for inst in block.blocks:
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            if isinstance(subroutine, Schedule):
-                raise PulseError(
-                    f"A subroutine {subroutine.name} is a pulse Schedule. "
-                    "This program cannot be inserted into ScheduleBlock because "
-                    "t0 associated with instruction will be lost."
-                )
-            # recursively inline the program
-            inline_block = _inline_block(subroutine)
-            ret_block.append(inline_block, inplace=True)
-        elif isinstance(inst, ScheduleBlock):
+        if isinstance(inst, ScheduleBlock):
             # recursively inline the program
             inline_block = _inline_block(inst)
             ret_block.append(inline_block, inplace=True)
