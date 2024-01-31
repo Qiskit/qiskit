@@ -1,10 +1,16 @@
 ---
 prelude: |
     Qiskit 0.45.3 is a point release with no code changes other than to raise an :exc:`ImportError`
-    if it detects it has been installed in an invalid environment with Qiskit 1.0+.
+    if it detects it has been installed in an invalid environment with Qiskit >=1.0.
 
     Please read `our migration guide about the new packaging <https://qisk.it/1-0-packaging-migration>`__
     for help on errors, preparing for Qiskit 1.0, and more detailed background information.
+
+    .. note::
+
+      Qiskit 1.0 is due to release approximately two weeks after Qiskit 0.45.3,
+      on the 15th of February 2024, and might not yet be available when you
+      read this message.  This change is being made proactively.
 
     The packaging structure of Qiskit is changing in Qiskit 1.0, and unfortunately the changed
     requirements cannot be fully communicated to ``pip``, especially if ``pip install --upgrade``
@@ -13,7 +19,7 @@ prelude: |
     will not resolve.
 
     If ``import qiskit`` raises an :exc:`ImportError` for you, your environment is in an invalid
-    state, and versions of Qiskit 0.45/0.46 and 1.0 are both reachable, which will result in subtley
+    state, and versions of Qiskit 0.45/0.46 and 1.0 are both reachable, which will result in subtly
     broken code.  You will need to create a new virtual environment, and ensure that *only* one of
     the two versions are installed.  In particular, if you are intending to install Qiskit 1.0,
     you must have no packages that depend on ``qiskit-terra`` installed; these packages are
