@@ -19,9 +19,11 @@ from qiskit.pulse import macros
 
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.providers.fake_provider import FakeMumbaiV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import instructions
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP
 
 
 class TestBuilderV2(QiskitTestCase):
@@ -29,7 +31,11 @@ class TestBuilderV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeMumbaiV2()
+        self.backend = GenericBackendV2(
+            num_qubits=27,
+            coupling_map=MUMBAI_CMAP,
+            calibrate_instructions=True,
+        )
 
     def assertScheduleEqual(self, program, target):
         """Assert an error when two pulse programs are not equal.

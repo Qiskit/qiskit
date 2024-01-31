@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ import struct
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
-from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
+from qiskit.providers.fake_provider import FakeHanoi, GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
@@ -107,7 +107,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -121,7 +121,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -132,7 +132,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -196,7 +196,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -208,7 +208,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()

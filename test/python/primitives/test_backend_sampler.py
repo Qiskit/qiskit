@@ -22,7 +22,8 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus
-from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.providers.fake_provider import FakeNairobi, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
@@ -31,7 +32,10 @@ from test import combine  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+BACKENDS = [
+    FakeNairobi(),
+    BackendV2Converter(FakeNairobi()),
+]
 
 
 class CallbackPass(DummyAP):
@@ -298,8 +302,8 @@ class TestBackendSampler(QiskitTestCase):
     def test_primitive_job_size_limit_backend_v2(self):
         """Test primitive respects backend's job size limit."""
 
-        class FakeNairobiLimitedCircuits(FakeNairobiV2):
-            """FakeNairobiV2 with job size limit."""
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
@@ -310,7 +314,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=FakeNairobiLimitedCircuits())
+        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
         result = sampler.run([qc, qc2]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)

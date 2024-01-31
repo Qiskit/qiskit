@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,8 +21,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
+from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -63,6 +62,43 @@ from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+
+class FakeBackend2QV2(GenericBackendV2):
+    """A 2-qubit fake backend"""
+
+    def __init__(self):
+        super().__init__(num_qubits=2, basis_gates=["rx", "u"], seed=42)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        self._target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 0): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        self._target.add_instruction(ECRGate(), ecr_props)
+
+
+class FakeBackend5QV2(GenericBackendV2):
+    """A 5-qubit fake backend"""
+
+    def __init__(self, bidirectional=True):
+        super().__init__(num_qubits=5, basis_gates=["u"], seed=42)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (3, 4): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        if bidirectional:
+            cx_props[(1, 0)] = InstructionProperties(duration=6.23e-7, error=0.00099115)
+            cx_props[(4, 3)] = InstructionProperties(duration=7.23e-7, error=0.00099115)
+        self._target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 2): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+            (2, 3): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        if bidirectional:
+            ecr_props[(2, 1)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
+            ecr_props[(3, 2)] = InstructionProperties(duration=5.52e-9, error=0.0000232115)
 
 
 @ddt
@@ -680,7 +716,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeBackendV2()
+        backend = FakeBackend2QV2()
         tqc = transpile(
             circ,
             backend=backend,
@@ -856,7 +892,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.append(ZGate(), [qc.qubits[0]])
         dag = circuit_to_dag(qc)
-        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        backend = GenericBackendV2(num_qubits=5)
+        unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(qc, result_qc)
@@ -866,7 +903,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
         dag = circuit_to_dag(qc)
-        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        backend = GenericBackendV2(num_qubits=5)
+        unitary_synth_pass = UnitarySynthesis(target=backend.target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(1))
@@ -876,7 +914,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.unitary(np.eye(4), [0, 1])
         dag = circuit_to_dag(qc)
-        target = FakeBelemV2().target
+        target = GenericBackendV2(num_qubits=5).target
         target.add_instruction(IfElseOp, name="if_else")
         target.add_instruction(ZGate())
         target.add_instruction(ECRGate())
