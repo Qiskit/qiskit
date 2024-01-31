@@ -272,9 +272,9 @@ pub fn eval_measure_carg(
 ) -> PyResult<BroadcastItem> {
     match carg {
         asg::LValue::Identifier(iden) => {
-            let symbol_id = iden.as_ref().map_err(|err| {
-                QASM3ImporterError::new_err(format!("internal error: {:?}", err))
-            })?;
+            let symbol_id = iden
+                .as_ref()
+                .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
             broadcast_bits_for_identifier(py, &our_symbols.clbits, &our_symbols.cregs, symbol_id)
         }
         asg::LValue::IndexedIdentifier(indexed) => {
