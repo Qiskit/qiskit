@@ -21,7 +21,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, GenericBackendV2
+from qiskit.providers.fake_provider import Fake5QV1, FakeMumbaiFractionalCX, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -145,7 +145,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify two qubit unitaries are synthesized to match basis gates."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap(conf.coupling_map)
@@ -179,7 +179,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify two qubit unitaries are synthesized to match basis gates."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap(conf.coupling_map)
@@ -215,7 +215,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         across multiple registers."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr0 = QuantumRegister(1)
         qr1 = QuantumRegister(1)
@@ -250,7 +250,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify natural cx direction is used when specified in coupling map."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -293,7 +293,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         when natural_direction is None."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -336,7 +336,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         when natural_direction is None."""
         # TODO: should make check more explicit e.g. explicitly set gate
         # direction in test instead of using specific fake backend
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -376,7 +376,7 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_two_qubit_synthesis_not_pulse_optimal(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
@@ -412,7 +412,7 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_two_qubit_pulse_optimal_true_raises(self):
         """Verify raises if pulse optimal==True but cx is not in the backend basis."""
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         # this assumes iswawp pulse optimal decomposition doesn't exist
         conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
@@ -435,7 +435,7 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_natural_direction_true_duration_fallback(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         # conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
         qr = QuantumRegister(2)
@@ -459,7 +459,7 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
         """Verify not attempting pulse optimal decomposition when pulse_optimize==False."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         for _, nduv in backend.properties()._gates["cx"].items():
             nduv["gate_length"] = (4e-7, nduv["gate_length"][1])
@@ -482,7 +482,7 @@ class TestUnitarySynthesis(QiskitTestCase):
     def test_two_qubit_pulse_optimal_none_optimal(self):
         """Verify pulse optimal decomposition when pulse_optimize==None."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         qr = QuantumRegister(2)
         coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
@@ -509,7 +509,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Verify pulse optimal decomposition when pulse_optimize==None doesn't
         raise when pulse optimal decomposition unknown."""
         # this assumes iswawp pulse optimal decomposition doesn't exist
-        backend = FakeVigo()
+        backend = Fake5QV1()
         conf = backend.configuration()
         conf.basis_gates = [gate if gate != "cx" else "iswap" for gate in conf.basis_gates]
         qr = QuantumRegister(2)
@@ -659,7 +659,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
         circ.append(random_unitary(4, seed=1), [1, 0])
-        backend = FakeVigo()
+        backend = Fake5QV1()
         tqc = transpile(
             circ,
             backend=backend,

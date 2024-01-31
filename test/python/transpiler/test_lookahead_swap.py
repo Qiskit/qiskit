@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,8 +21,9 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.providers.fake_provider import FakeMelbourne
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MELBOURNE_CMAP
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -265,8 +266,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[13], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
-
+        cmap = CouplingMap(MELBOURNE_CMAP)
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 
         self.assertIsInstance(out, DAGCircuit)
@@ -291,7 +291,7 @@ class TestLookaheadSwap(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        cmap = CouplingMap(FakeMelbourne().configuration().coupling_map)
+        cmap = CouplingMap(MELBOURNE_CMAP)
 
         out = LookaheadSwap(cmap, search_depth=4, search_width=4).run(dag)
 

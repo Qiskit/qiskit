@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,7 @@
 Test the BackendStatus.
 """
 
-from qiskit.providers.fake_provider import FakeLondon
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.providers.models import BackendStatus
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -35,7 +35,7 @@ class TestBackendConfiguration(QiskitTestCase):
 
     def test_fake_backend_status(self):
         """Test backend status for one of the fake backends"""
-        fake_backend = FakeLondon()
+        fake_backend = Fake5QV1()
         backend_status = fake_backend.status()
         self.assertIsInstance(backend_status, BackendStatus)
 
