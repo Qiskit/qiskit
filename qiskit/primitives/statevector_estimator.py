@@ -45,6 +45,7 @@ class StatevectorEstimator(BaseEstimatorV2):
 
         from qiskit.circuit import Parameter, QuantumCircuit
         from qiskit.primitives import StatevectorEstimator
+        from qiskit.quantum_info import Pauli, SparsePauliOp
 
         import matplotlib.pyplot as plt
         import numpy as np
@@ -68,7 +69,7 @@ class StatevectorEstimator(BaseEstimatorV2):
         # Define three observables. Many formats are supported here including classes
         # such as qiskit.quantum_info.SparsePauliOp. The inner length-1 lists cause this array
         # of observables to have shape (3, 1), rather than shape (3,) if they were omitted.
-        observables = [["XX"], [{"IX": 0.5, "IY": 0.5}], ["ZZ"]]
+        observables = [[SparsePauliOp(["XX", "IY"], [0.5, 0.5])], [Pauli("XX")], [Pauli("IY")]]
 
         # Instantiate a new statevector simulation based estimator object.
         estimator = StatevectorEstimator()
