@@ -105,6 +105,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	sx(0,): 7.111111111111111e-08 s
 	x(0,): 7.111111111111111e-08 s
 	measure(0,): 4.977777777777777e-06 s
+	
 	backend_properties: {'backend_name': 'ibmq_armonk',
 	 'backend_version': '2.4.3',
 	 'gates': [{'gate': 'id',
