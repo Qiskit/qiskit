@@ -6,5 +6,6 @@ fixes:
     error.
   - |
     From now on, :class:`.EvolvedOperatorAnsatz` will not have any `qregs` when
-    thera are zero qubits. This behavior  aligns more consistently with its 
-    superclass :class:`.QuantumCircuit`.
+    thera are zero qubits, instead of having a :class:`.QuantumRegister` instance
+    with zero qubits. This behavior aligns more consistently with its superclass 
+    :class:`.QuantumCircuit`.
