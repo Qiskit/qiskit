@@ -184,7 +184,8 @@ the extension ``qiskit-qasm3-import`` installed to use it.
 Qiskit is developing a native parser, written in Rust, which is available as part of the core Qiskit
 package.  This parser is still in its early experimental stages, so is missing features and its
 interface is changing and expanding, but it is typically orders of magnitude more performant for the
-subset of OpenQASM 3 it currently supports.
+subset of OpenQASM 3 it currently supports, and its internals produce better error diagnostics on
+parsing failures.
 
 You can use the experimental interface immediately, with similar functions to the main interface
 above:
