@@ -142,11 +142,13 @@ class MCMT(QuantumCircuit):
 
         return base_gate
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None, annotated=False):
         """Return the controlled version of the MCMT circuit."""
-        if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
-            return MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
-        return super().control(num_ctrl_qubits, label, ctrl_state)
+        if not annotated and ctrl_state is None:
+            gate = MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
+        else:
+            gate = super().control(num_ctrl_qubits, label, ctrl_state, annotated=annotated)
+        return gate
 
     def inverse(self):
         """Return the inverse MCMT circuit, which is itself."""
