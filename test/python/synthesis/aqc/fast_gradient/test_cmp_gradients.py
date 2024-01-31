@@ -22,10 +22,10 @@ import numpy as np
 from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
 from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
-from test.python.synthesis.aqc.fast_gradient.utils_for_testing import (
+from test.python.synthesis.aqc.fast_gradient.utils_for_testing import (  # pylint: disable=wrong-import-order
     rand_circuit,
     rand_su_mat,
-)  # pylint: disable=wrong-import-order
+)
 
 
 class TestCompareGradientImpls(QiskitTestCase):

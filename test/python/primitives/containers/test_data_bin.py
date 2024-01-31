@@ -19,7 +19,7 @@ import numpy.typing as npt
 
 from qiskit.primitives.containers import make_data_bin
 from qiskit.primitives.containers.data_bin import DataBin, DataBinMeta
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class DataBinTestCase(QiskitTestCase):

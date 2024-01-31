@@ -20,7 +20,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray, StatevectorEstimator
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStatevectorEstimator(QiskitTestCase):

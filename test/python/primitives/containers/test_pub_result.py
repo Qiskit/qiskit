@@ -14,7 +14,7 @@
 """Unit tests for PubResult."""
 
 from qiskit.primitives.containers import PubResult, make_data_bin
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class PubResultCase(QiskitTestCase):

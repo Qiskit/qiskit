@@ -21,7 +21,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.transpiler.passes import OptimizeAnnotated
-from qiskit.test import QiskitTestCase
+from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):

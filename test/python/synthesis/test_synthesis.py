@@ -17,7 +17,6 @@ import unittest
 import contextlib
 import logging
 import math
-
 import numpy as np
 import scipy
 import scipy.stats
@@ -75,6 +74,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitDecomposeUpToDiagonal,
 )
 from qiskit.synthesis.unitary import qsd
+from test import combine  # pylint: disable=wrong-import-order
 from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
