@@ -51,6 +51,7 @@ from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils.multiprocessing import is_main_process
 
 
@@ -880,6 +881,12 @@ class ScheduleBlock:
 
     .. rubric:: Program Scoping
 
+    .. note::
+
+        The :meth:`~ScheduleBlock.scoped_parameters` and
+        :meth:`~ScheduleBlock.search_parameters` methods described in this
+        section are deprecated.
+
     When you call a subroutine from another subroutine, or append a schedule block
     to another schedule block, the management of references and parameters
     can be a hard task. Schedule block offers a convenient feature to help with this
@@ -1225,6 +1232,13 @@ class ScheduleBlock:
 
         return out_params
 
+    @deprecate_func(
+        additional_msg=(
+            "There is no alternative to this method. Parameters must be mapped "
+            "to references by checking the reference schedules directly."
+        ),
+        since="0.46.0",
+    )
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
 
@@ -1623,6 +1637,13 @@ class ScheduleBlock:
         matched = [p for p in self.parameters if p.name == parameter_name]
         return matched
 
+    @deprecate_func(
+        additional_msg=(
+            "There is no alternative to this method. Parameters must be mapped "
+            "to references by checking the reference schedules directly."
+        ),
+        since="0.46.0",
+    )
     def search_parameters(self, parameter_regex: str) -> List[Parameter]:
         """Search parameter with regular expression.
 
@@ -1963,6 +1984,10 @@ def _collect_scoped_parameters(
     Returns:
         A dictionary of scoped parameter objects.
     """
+    warnings.warn(
+        "Scoped parameters may not work correctly with parameter assignment.",
+        stacklevel=3
+    )
     parameters_out = {}
     for param in schedule._parameter_manager.parameters:
         new_name = f"{current_scope}{Reference.scope_delimiter}{param.name}"
