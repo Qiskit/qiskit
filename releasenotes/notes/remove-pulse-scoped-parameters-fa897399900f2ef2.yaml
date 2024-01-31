@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The ``scoped_parameters`` and ``search_parameters`` methods have been
+    removed from the `.ScheduleBlock` class. These methods returned
+    `.Parameter` objects that partially linked to the parameters in the
+    `.ScheduleBlock` instance but assigning values using these objects did not
+    work correctly. Users should use `.ScheduleBlock.parameters` instead and
+    iterate through `.ScheduleBlock.references` and compare to the
+    `.Schedule.parameters` attributes of the subreferences when needing to
+    distinguish which subroutine a parameter is used in. See `#11654
+    https://github.com/Qiskit/qiskit/issues/11654`__ for more information.
