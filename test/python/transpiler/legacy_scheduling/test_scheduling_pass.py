@@ -24,7 +24,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.target import Target, InstructionProperties
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

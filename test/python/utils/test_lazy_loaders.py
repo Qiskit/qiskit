@@ -23,7 +23,7 @@ import ddt
 
 from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
 from qiskit.utils import LazyImportTester, LazySubprocessTester
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def available_importer(**kwargs):

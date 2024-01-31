@@ -23,7 +23,7 @@ from qiskit.utils.deprecation import (
     deprecate_func,
     deprecate_function,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @deprecate_func(

@@ -19,7 +19,7 @@ from unittest import mock
 
 from qiskit import exceptions
 from qiskit import user_config
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUserConfig(QiskitTestCase):

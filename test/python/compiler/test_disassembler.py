@@ -28,7 +28,7 @@ from qiskit.circuit.library import RXGate, Isometry
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _parametric_to_waveforms(schedule):

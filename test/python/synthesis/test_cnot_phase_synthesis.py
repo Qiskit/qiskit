@@ -20,7 +20,7 @@ from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

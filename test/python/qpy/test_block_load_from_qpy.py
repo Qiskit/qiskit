@@ -40,7 +40,7 @@ from qiskit.circuit import Parameter, QuantumCircuit, Gate
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyScheduleTestCase(QiskitTestCase):

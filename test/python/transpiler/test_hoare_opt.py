@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit.library import XGate, RZGate, CSwapGate, SwapGate
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.quantum_info import Statevector
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @unittest.skipUnless(optionals.HAS_Z3, "z3-solver needs to be installed to run these tests")

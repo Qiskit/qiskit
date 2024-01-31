@@ -19,7 +19,7 @@ from qiskit import transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGenericBackendV2(QiskitTestCase):

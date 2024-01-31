@@ -26,7 +26,7 @@ from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.transpiler import PassManager
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
 
 

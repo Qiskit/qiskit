@@ -15,7 +15,7 @@
 import unittest
 from ddt import ddt, data
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import utils
 

@@ -17,7 +17,7 @@ import unittest
 from ddt import data, ddt, unpack
 
 from qiskit.quantum_info import SparsePauliOp, anti_commutator, commutator, double_commutator
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 I = SparsePauliOp("I")
 X = SparsePauliOp("X")

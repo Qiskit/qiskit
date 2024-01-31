@@ -34,8 +34,7 @@ from qiskit.quantum_info import Operator
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import FakeOurense
 from qiskit.utils import parallel_map
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 def raise_if_parameter_table_invalid(circuit):

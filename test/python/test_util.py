@@ -15,7 +15,7 @@
 from unittest import mock
 
 from qiskit.utils import multiprocessing
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUtil(QiskitTestCase):

@@ -16,7 +16,7 @@ import math
 
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.dagcircuit import DAGCircuit
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMinimumPointtPass(QiskitTestCase):

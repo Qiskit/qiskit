@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import StatePreparation
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

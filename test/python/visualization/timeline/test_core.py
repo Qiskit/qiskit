@@ -14,7 +14,7 @@
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.visualization.timeline import core, stylesheet, generators, layouts
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCanvas(QiskitTestCase):

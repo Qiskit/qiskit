@@ -15,7 +15,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PropertySet
 from ._dummy_passes import PassD_TP_NR_NP, PassE_AP_NR_NP, PassN_AP_NR_NP
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassCall(QiskitTestCase):

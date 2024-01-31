@@ -18,7 +18,7 @@ import numpy as np
 
 import qiskit.quantum_info as qi
 from qiskit.primitives import ObservablesArray
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

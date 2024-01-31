@@ -41,7 +41,7 @@ from qiskit.quantum_info.operators import (
 )
 from qiskit.quantum_info.random import random_clifford, random_pauli_list
 from test import combine  # pylint: disable=wrong-import-order
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .test_pauli import pauli_group_labels
 

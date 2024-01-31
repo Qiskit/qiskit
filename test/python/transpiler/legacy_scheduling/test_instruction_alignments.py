@@ -21,7 +21,7 @@ from qiskit.transpiler.passes import (
     ALAPSchedule,
     TimeUnitConversion,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAlignMeasures(QiskitTestCase):

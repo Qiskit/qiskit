@@ -20,7 +20,7 @@ import sys
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
 from qiskit.passmanager import DoWhileController, ConditionalController
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from ._dummy_passes import (
     PassA_TP_NR_NP,
     PassB_TP_RA_PA,

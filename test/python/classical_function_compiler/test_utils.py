@@ -14,7 +14,7 @@
 import unittest
 
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .utils import get_truthtable_from_function
 from . import examples

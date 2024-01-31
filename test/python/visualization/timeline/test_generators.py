@@ -17,7 +17,7 @@
 import qiskit
 from qiskit.visualization.timeline import generators, types, stylesheet
 from qiskit.circuit import library, Delay
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGates(QiskitTestCase):

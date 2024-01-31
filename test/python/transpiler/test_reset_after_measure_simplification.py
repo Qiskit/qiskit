@@ -15,7 +15,7 @@
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.transpiler.passes.optimization import ResetAfterMeasureSimplification
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestResetAfterMeasureSimplificationt(QiskitTestCase):

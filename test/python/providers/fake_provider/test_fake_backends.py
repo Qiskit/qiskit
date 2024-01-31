@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.providers.fake_provider import FakeAthens, FakePerth
 from qiskit.utils import optionals
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def get_test_circuit():

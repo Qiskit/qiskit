@@ -14,7 +14,7 @@
 
 import qiskit
 from qiskit.visualization.timeline import layouts
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBitArrange(QiskitTestCase):

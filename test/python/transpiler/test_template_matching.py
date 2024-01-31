@@ -38,7 +38,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from test.python.quantum_info.operators.symplectic.test_clifford import (  # pylint: disable=wrong-import-order
     random_clifford_circuit,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):

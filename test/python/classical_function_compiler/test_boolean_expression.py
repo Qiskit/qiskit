@@ -19,7 +19,7 @@ from ddt import ddt, unpack, data
 from qiskit import transpile
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression

@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.pulse import library
 from qiskit.pulse.library import samplers
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:

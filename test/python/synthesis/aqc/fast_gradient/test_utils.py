@@ -22,7 +22,7 @@ import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as myu
 from qiskit.synthesis.unitary.aqc.elementary_operations import rx_matrix as _rx
 from qiskit.synthesis.unitary.aqc.elementary_operations import ry_matrix as _ry
 from qiskit.synthesis.unitary.aqc.elementary_operations import rz_matrix as _rz
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut  # pylint: disable=wrong-import-order
 
 

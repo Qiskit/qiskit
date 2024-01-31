@@ -20,7 +20,7 @@ from qiskit.circuit import Delay
 from qiskit.circuit import Parameter, ParameterVector
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.exceptions import CircuitError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDelayClass(QiskitTestCase):

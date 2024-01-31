@@ -25,7 +25,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.qasm2 import dumps
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnitaryGate(QiskitTestCase):

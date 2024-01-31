@@ -25,7 +25,7 @@ from qiskit.circuit import (
     CircuitInstruction,
 )
 from qiskit.circuit.library import BlueprintCircuit, XGate
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class MockBlueprint(BlueprintCircuit):

@@ -19,7 +19,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
 from qiskit.converters import circuit_to_dag
 from qiskit.quantum_info import Operator, Statevector, DensityMatrix
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGroverOperator(QiskitTestCase):

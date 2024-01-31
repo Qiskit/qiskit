@@ -14,7 +14,7 @@
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2 import events
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestChannelEvents(QiskitTestCase):

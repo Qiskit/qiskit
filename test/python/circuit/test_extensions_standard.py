@@ -41,7 +41,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.quantum_info import Operator
 from qiskit import transpile
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStandard1Q(QiskitTestCase):

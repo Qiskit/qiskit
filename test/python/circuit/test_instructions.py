@@ -33,7 +33,7 @@ from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, TGate
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):

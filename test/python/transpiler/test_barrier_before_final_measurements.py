@@ -18,7 +18,7 @@ import unittest
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Clbit
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBarrierBeforeFinalMeasurements(QiskitTestCase):

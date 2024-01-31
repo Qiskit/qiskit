@@ -30,7 +30,7 @@ from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, Transpil
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import optionals
 from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):

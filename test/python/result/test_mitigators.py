@@ -34,7 +34,7 @@ from qiskit.result.mitigation.utils import (
 )
 from qiskit.result.utils import marginal_counts
 from qiskit.providers.fake_provider import FakeYorktown
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestReadoutMitigation(QiskitTestCase):

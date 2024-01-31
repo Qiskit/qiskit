@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap, Layout, Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.exceptions import TranspilerError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFullAncillaAllocation(QiskitTestCase):

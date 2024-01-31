@@ -23,7 +23,7 @@ from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qobj import QasmQobj
 from qiskit.qasm2 import dumps
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCompiler(QiskitTestCase):

@@ -22,7 +22,7 @@ from qiskit.compiler import transpile
 from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDiagonalGate(QiskitTestCase):

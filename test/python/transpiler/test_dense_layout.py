@@ -25,7 +25,7 @@ from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import FakeTokyo
 from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDenseLayout(QiskitTestCase):

@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.providers.fake_provider import FakeParis
 import qiskit.quantum_info as qi
 from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEchoRZXWeylDecomposition(QiskitTestCase):

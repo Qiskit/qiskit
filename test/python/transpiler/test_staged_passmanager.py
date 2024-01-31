@@ -24,7 +24,7 @@ from qiskit.transpiler.passes import Optimize1qGates, Depth, BasicSwap, BasisTra
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

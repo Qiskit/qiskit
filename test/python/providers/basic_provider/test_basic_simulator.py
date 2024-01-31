@@ -20,7 +20,7 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qasm2 import dumps
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 from . import BasicProviderBackendTestMixin

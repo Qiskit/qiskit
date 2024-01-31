@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import NumTensorFactors
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestNumTensorsFactorPass(QiskitTestCase):

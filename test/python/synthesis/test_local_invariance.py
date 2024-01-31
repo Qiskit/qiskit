@@ -19,7 +19,7 @@ from numpy.testing import assert_allclose
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
 from qiskit.quantum_info import Operator
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLocalInvariance(QiskitTestCase):

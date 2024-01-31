@@ -21,7 +21,7 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeWashington
 from qiskit.pulse import library, instructions
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilder(QiskitTestCase):

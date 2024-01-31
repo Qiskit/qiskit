@@ -21,7 +21,7 @@ from filecmp import cmp as cmpfile
 from shutil import copyfile
 
 from qiskit.utils import optionals as _optionals
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if _optionals.HAS_MATPLOTLIB:
     import matplotlib

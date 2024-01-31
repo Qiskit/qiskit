@@ -17,7 +17,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.fake_provider import FakeOpenPulse3Q
 from qiskit.compiler.scheduler import schedule
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitScheduler(QiskitTestCase):

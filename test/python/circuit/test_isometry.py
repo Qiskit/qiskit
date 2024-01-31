@@ -22,7 +22,7 @@ from qiskit import QuantumRegister
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.generalized_gates import Isometry
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

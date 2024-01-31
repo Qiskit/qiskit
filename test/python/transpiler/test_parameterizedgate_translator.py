@@ -19,7 +19,7 @@ from qiskit.circuit.library import TwoLocal
 from qiskit.exceptions import QiskitError
 from qiskit.transpiler.passes import TranslateParameterizedGates
 from qiskit.providers.fake_provider import FakeAthensV2
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestTranslateParameterized(QiskitTestCase):

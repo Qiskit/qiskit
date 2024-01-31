@@ -27,7 +27,7 @@ from qiskit.quantum_info.random import (
     random_quantum_channel,
     random_unitary,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

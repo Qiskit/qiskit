@@ -21,7 +21,7 @@ from qiskit.utils import optionals
 from qiskit import visualization
 from qiskit.visualization.circuit import text
 from qiskit.visualization.exceptions import VisualizationError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure

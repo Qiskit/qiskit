@@ -38,7 +38,7 @@ from qiskit.pulse.library import (
     SechDeriv,
 )
 from qiskit.pulse import functional_pulse, PulseError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestWaveform(QiskitTestCase):

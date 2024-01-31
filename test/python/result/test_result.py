@@ -20,7 +20,7 @@ from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.qobj import QobjExperimentHeader
 from qiskit.exceptions import QiskitError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestResultOperations(QiskitTestCase):

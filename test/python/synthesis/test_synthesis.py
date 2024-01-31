@@ -75,7 +75,7 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
 )
 from qiskit.synthesis.unitary import qsd
 from test import combine  # pylint: disable=wrong-import-order
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def make_oneq_cliffords():

@@ -24,7 +24,7 @@ from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
 from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
 from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.python.synthesis.aqc.sample_data import (  # pylint: disable=wrong-import-order
     ORIGINAL_CIRCUIT,
     INITIAL_THETAS,

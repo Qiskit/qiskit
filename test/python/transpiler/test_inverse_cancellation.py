@@ -32,7 +32,7 @@ from qiskit.circuit.library import (
     CZGate,
     RZGate,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInverseCancellation(QiskitTestCase):

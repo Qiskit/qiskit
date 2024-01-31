@@ -24,7 +24,7 @@ from qiskit.providers.fake_provider import FakeLima, FakeYorktown, FakeLimaV2, F
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestVF2PostLayout(QiskitTestCase):

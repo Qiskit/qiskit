@@ -19,7 +19,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.quantum_info.analysis import hellinger_fidelity
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAnalyzation(QiskitTestCase):

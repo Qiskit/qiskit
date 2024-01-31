@@ -36,7 +36,7 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeHanoi,
 )
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class RxGate(Gate):

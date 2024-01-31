@@ -31,7 +31,7 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     unitary_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import DefaultUnitarySynthesis
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class _MockExtensionManager:

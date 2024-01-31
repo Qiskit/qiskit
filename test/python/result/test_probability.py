@@ -13,7 +13,7 @@
 """Test conversion to probability distribution"""
 
 from qiskit.result import ProbDistribution
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestProbDistribution(QiskitTestCase):

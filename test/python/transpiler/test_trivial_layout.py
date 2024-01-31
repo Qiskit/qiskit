@@ -22,7 +22,7 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestTrivialLayout(QiskitTestCase):

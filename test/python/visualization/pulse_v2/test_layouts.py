@@ -14,7 +14,7 @@
 
 from qiskit import pulse
 from qiskit.visualization.pulse_v2 import layouts, device_info
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestChannelArrangement(QiskitTestCase):

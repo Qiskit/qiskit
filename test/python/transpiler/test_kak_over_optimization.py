@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.circuit.library import CU1Gate
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestKAKOverOptim(QiskitTestCase):

@@ -14,7 +14,7 @@
 
 from qiskit.providers.basic_provider.basic_provider import BasicProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicProviderBackends(QiskitTestCase):

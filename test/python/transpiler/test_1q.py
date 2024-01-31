@@ -19,7 +19,7 @@ from qiskit.compiler import transpile
 from qiskit.providers.fake_provider import Fake1Q
 from qiskit.transpiler import TranspilerError
 from test import combine  # pylint: disable=wrong-import-order
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def emptycircuit():

@@ -26,7 +26,7 @@ from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
 from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 

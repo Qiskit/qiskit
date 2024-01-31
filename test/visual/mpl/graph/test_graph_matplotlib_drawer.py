@@ -31,7 +31,7 @@ from qiskit.providers.fake_provider import (
     FakeManhattan,
 )
 from qiskit.quantum_info import Statevector
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:

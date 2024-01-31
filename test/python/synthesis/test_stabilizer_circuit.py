@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, StabilizerState, random_clifford
 from qiskit.quantum_info.operators import Clifford
 from test import combine  # pylint: disable=wrong-import-order
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

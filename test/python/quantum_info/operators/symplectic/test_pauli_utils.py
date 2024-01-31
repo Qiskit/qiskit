@@ -16,7 +16,7 @@
 import unittest
 
 from qiskit.quantum_info import PauliList, pauli_basis
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPauliBasis(QiskitTestCase):

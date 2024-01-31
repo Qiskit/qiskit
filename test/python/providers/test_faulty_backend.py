@@ -13,7 +13,7 @@
 """Testing a Faulty Ourense Backend."""
 
 from qiskit.providers.backend_compat import convert_to_target
-from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from .faulty_backends import (
     FakeOurenseFaultyCX01CX10,
     FakeOurenseFaultyQ1,
