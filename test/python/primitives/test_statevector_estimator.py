@@ -18,7 +18,10 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray, StatevectorEstimator
+from qiskit.primitives import StatevectorEstimator
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.observables_array import ObservablesArray
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.quantum_info import SparsePauliOp
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
