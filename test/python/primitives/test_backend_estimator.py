@@ -277,7 +277,7 @@ class TestBackendEstimator(QiskitTestCase):
         """Test BackendEstimator respects job size limit"""
 
         class FakeBackendLimitedCircuits(GenericBackendV2):
-            """FakeBackend V2 with job size limit."""
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):

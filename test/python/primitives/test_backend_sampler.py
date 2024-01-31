@@ -304,7 +304,7 @@ class TestBackendSampler(QiskitTestCase):
         """Test primitive respects backend's job size limit."""
 
         class FakeBackendLimitedCircuits(GenericBackendV2):
-            """FakeBackend V2 with job size limit."""
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
@@ -320,7 +320,6 @@ class TestBackendSampler(QiskitTestCase):
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
 
-        print(result.quasi_dists)
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
