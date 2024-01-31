@@ -319,3 +319,35 @@ class TestQASM3Import(QiskitTestCase):
         expected = QuantumCircuit([Qubit()])
         expected.x(0)
         self.assertEqual(parsed, expected)
+
+    def test_gate_broadcast(self):
+        program = """
+            OPENQASM 3.0;
+            include "stdgates.inc";
+            qubit[2] q0;
+            qubit q1;
+            qubit[2] q2;
+            h q0;
+            cx q0, q1;
+            cx q0[0], q2;
+            cx q0, q2;
+            ccx q0[{1, 0}], q1, q2;
+        """
+        parsed = qasm3.loads_experimental(program)
+        q0, q1, q2 = QuantumRegister(2, "q0"), Qubit(), QuantumRegister(2, "q2")
+        expected = QuantumCircuit(q0, [q1], q2)
+        expected.h(q0[0])
+        expected.h(q0[1])
+        #
+        expected.cx(q0[0], q1)
+        expected.cx(q0[1], q1)
+        #
+        expected.cx(q0[0], q2[0])
+        expected.cx(q0[0], q2[1])
+        #
+        expected.cx(q0[0], q2[0])
+        expected.cx(q0[1], q2[1])
+        #
+        expected.ccx(q0[1], q1, q2[0])
+        expected.ccx(q0[0], q1, q2[1])
+        self.assertEqual(parsed, expected)
