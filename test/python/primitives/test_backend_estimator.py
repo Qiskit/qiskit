@@ -392,10 +392,11 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
-                self.assertEqual(value, -0.916)
+            if optionals.HAS_AER:
+                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.916
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)
@@ -407,10 +408,11 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            if optionals.HAS_AER and not isinstance(backend, GenericBackendV2):
-                self.assertEqual(value, -0.8902)
+            if optionals.HAS_AER:
+                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.8902
             else:
-                self.assertEqual(value, -1)
+                ref_value = -1
+            self.assertEqual(value, ref_value)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_circuit_with_measurement(self):
