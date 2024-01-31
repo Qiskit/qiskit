@@ -19,7 +19,7 @@ from qiskit.providers.fake_provider import FakeAthens, GenericBackendV2
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 
-from .. import BOGOTA_CMAP
+from test.python.legacy_cmaps import BOGOTA_CMAP
 
 
 @ddt.ddt

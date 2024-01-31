@@ -23,7 +23,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import instructions
 from qiskit.test import QiskitTestCase
 
-from .. import MUMBAI_CMAP
+from test.python.legacy_cmaps import MUMBAI_CMAP
 
 
 class TestBuilderV2(QiskitTestCase):

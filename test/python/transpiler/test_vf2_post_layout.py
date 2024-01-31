@@ -26,7 +26,7 @@ from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
 
-from .. import LIMA_CMAP, YORKTOWN_CMAP
+from test.python.legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP
 
 
 class TestVF2PostLayout(QiskitTestCase):

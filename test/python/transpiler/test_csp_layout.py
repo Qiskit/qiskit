@@ -23,7 +23,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
 
-from .. import TENERIFE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, YORKTOWN_CMAP
+from test.python.legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP, YORKTOWN_CMAP
 
 
 @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")

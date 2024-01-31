@@ -23,7 +23,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import PassManager, CouplingMap
 
-from .. import YORKTOWN_CMAP
+from test.python.legacy_cmaps import YORKTOWN_CMAP
 
 
 class TestApplyLayout(QiskitTestCase):

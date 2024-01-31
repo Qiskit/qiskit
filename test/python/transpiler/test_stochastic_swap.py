@@ -31,7 +31,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
 
-from .. import MUMBAI_CMAP, RUESCHLIKON_CMAP
+from test.python.legacy_cmaps import MUMBAI_CMAP, RUESCHLIKON_CMAP
 
 
 @ddt

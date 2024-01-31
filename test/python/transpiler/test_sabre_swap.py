@@ -32,7 +32,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
 
-from .. import MUMBAI_CMAP
+from test.python.legacy_cmaps import MUMBAI_CMAP
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):

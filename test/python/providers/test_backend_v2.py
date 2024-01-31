@@ -34,7 +34,7 @@ from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import Operator
 from qiskit.pulse import channels
 
-from .. import BOGOTA_CMAP, TENERIFE_CMAP
+from test.python.legacy_cmaps import BOGOTA_CMAP, TENERIFE_CMAP
 
 
 @ddt
