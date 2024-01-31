@@ -42,7 +42,7 @@ features:
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.EstimatorV2.run` method can be given many pubs at once. 
 
-    .. code: python
+    .. code-block:: python
 
         from qiskit.circuit import Parameter, QuantumCircuit
         from qiskit.primitives import StatevectorEstimator

@@ -64,7 +64,7 @@ class StatevectorSampler(BaseSamplerV2):
     primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
     be given many pubs at once.
 
-    .. code: python
+    .. code-block:: python
 
         from qiskit.circuit import Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
         from qiskit.primitives import StatevectorSampler

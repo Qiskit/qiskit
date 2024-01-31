@@ -39,9 +39,9 @@ class StatevectorEstimator(BaseEstimatorV2):
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
-    :meth:`~.EstimatorV2.run` method can be given many pubs at once.
+    :meth:`~.EstimatorV2.run` method can be given a sequence of pubs to run in one call.
 
-    .. code: python
+    .. code-block:: python
 
         from qiskit.circuit import Parameter, QuantumCircuit
         from qiskit.primitives import StatevectorEstimator
@@ -77,7 +77,8 @@ class StatevectorEstimator(BaseEstimatorV2):
         # values, where the pub result will have shape (3, 100). This shape is due to our array
         # of parameter bindings having shape (100,), combined with our array of observables having
         # shape (3, 1)
-        job = estimator.run([(circuit, observables, params)])
+        pub = (circuit, observables, params)
+        job = estimator.run([pub])
 
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
