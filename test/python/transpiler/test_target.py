@@ -46,6 +46,8 @@ from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import (
     GenericBackendV2,
     FakeMumbaiFractionalCX,
+    Fake5QV1,
+    Fake7QPulseV1,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
