@@ -23,9 +23,9 @@ features:
 
     The new types which are used for inputs and outputs are:
 
-    * :class:`.SamplerPubLike`\: primitive unified bloc (PUB) of sampler inputs; a union type
+    * :const:`.SamplerPubLike`\: primitive unified bloc (PUB) of sampler inputs; a union type
       of allowed inputs to a sampler
-    * :class:`.EstimatorPubLike`\: Primitive unified bloc (PUB) of estimator inputs; a union
+    * :const:`.EstimatorPubLike`\: Primitive unified bloc (PUB) of estimator inputs; a union
       type of allowed inputs to an estimator
     * :class:`.PubResult`\: the data and metadata resulting from a single PUB's execution
     * :class:`.DataBin`\: A namespace to hold data from a single PUB's execution
@@ -101,7 +101,7 @@ features:
     primitive unified bloc (PUB), produces its own array-based result. The :meth:`~.SamplerV2.run`
     method can be given many pubs at once. 
 
-    .. code: python
+    .. code-block:: python
 
         from qiskit.circuit import Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
         from qiskit.primitives import StatevectorSampler
