@@ -13,7 +13,6 @@
 """Isometry tests."""
 
 import unittest
-
 import numpy as np
 from ddt import ddt, data
 
@@ -21,7 +20,6 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import execute
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.generalized_gates import Isometry
@@ -52,11 +50,10 @@ class TestIsometry(QiskitTestCase):
             iso = iso.reshape((len(iso), 1))
         num_q_output = int(np.log2(iso.shape[0]))
         num_q_input = int(np.log2(iso.shape[1]))
-        q = QuantumRegister(num_q_output)
-        qc = QuantumCircuit(q)
+        qc = QuantumCircuit(num_q_output)
 
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.iso(iso, q[:num_q_input], q[num_q_input:])
+        gate = Isometry(iso, num_ancillas_zero=0, num_ancillas_dirty=0)
+        qc.append(gate, qc.qubits)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
@@ -66,7 +63,7 @@ class TestIsometry(QiskitTestCase):
 
         # Simulate the decomposed gate
         simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
+        result = simulator.run(qc).result()
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
@@ -93,12 +90,11 @@ class TestIsometry(QiskitTestCase):
             iso = iso.reshape((len(iso), 1))
         num_q_output = int(np.log2(iso.shape[0]))
         num_q_input = int(np.log2(iso.shape[1]))
-        q = QuantumRegister(num_q_output)
-        qc = QuantumCircuit(q)
+        qc = QuantumCircuit(num_q_output)
 
         # Compute isometry with custom tolerance
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=1e-3)
+        gate = Isometry(iso, num_ancillas_zero=0, num_ancillas_dirty=0, epsilon=1e-3)
+        qc.append(gate, qc.qubits)
 
         # Verify the circuit can be decomposed
         self.assertIsInstance(qc.decompose(), QuantumCircuit)
@@ -108,7 +104,7 @@ class TestIsometry(QiskitTestCase):
 
         # Simulate the decomposed gate
         simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
+        result = simulator.run(qc).result()
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
 

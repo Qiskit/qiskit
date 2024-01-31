@@ -16,6 +16,7 @@ from qiskit.circuit import QuantumCircuit, ForLoopOp, IfElseOp, SwitchCaseOp, Cl
 from qiskit.circuit.library import HGate, CXGate, UGate, XGate, ZGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary
+from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
@@ -86,8 +87,10 @@ class TestGatesInBasisPass(QiskitTestCase):
         pm = PassManager()
         pm.append(analysis_pass)
         pm.append(
-            BasisTranslator(SessionEquivalenceLibrary, basis_gates),
-            condition=lambda property_set: not property_set["all_gates_in_basis"],
+            ConditionalController(
+                BasisTranslator(SessionEquivalenceLibrary, basis_gates),
+                condition=lambda property_set: not property_set["all_gates_in_basis"],
+            )
         )
         pm.append(analysis_pass)
         pm.run(circuit)
@@ -200,8 +203,10 @@ class TestGatesInBasisPass(QiskitTestCase):
         pm = PassManager()
         pm.append(analysis_pass)
         pm.append(
-            BasisTranslator(SessionEquivalenceLibrary, basis_gates, target=target),
-            condition=lambda property_set: not property_set["all_gates_in_basis"],
+            ConditionalController(
+                BasisTranslator(SessionEquivalenceLibrary, basis_gates, target=target),
+                condition=lambda property_set: not property_set["all_gates_in_basis"],
+            )
         )
         pm.append(analysis_pass)
         pm.run(circuit)

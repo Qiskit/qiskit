@@ -15,14 +15,26 @@
 from qiskit import BasicAer
 from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-from test.utils import providers  # pylint: disable=wrong-import-order
+from test.utils import providers, QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestBasicAerBackends(providers.ProviderTestCase):
+class TestBasicAerBackends(QiskitTestCase):
     """Qiskit BasicAer Backends (Object) Tests."""
 
-    provider_cls = BasicAerProvider
-    backend_name = "qasm_simulator"
+    def setUp(self):
+        super().setUp()
+        self.provider = BasicAerProvider()
+        self.backend_name = "qasm_simulator"
+
+    def test_backends(self):
+        """Test the provider has backends."""
+        backends = self.provider.backends()
+        self.assertTrue(len(backends) > 0)
+
+    def test_get_backend(self):
+        """Test getting a backend from the provider."""
+        backend = self.provider.get_backend(name=self.backend_name)
+        self.assertEqual(backend.name(), self.backend_name)
 
     def test_deprecated(self):
         """Test that deprecated names map the same backends as the new names."""

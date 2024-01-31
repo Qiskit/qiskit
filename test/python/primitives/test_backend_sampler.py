@@ -21,7 +21,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
-from qiskit.providers import JobStatus, JobV1
+from qiskit.providers import JobStatus
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.transpiler import PassManager
@@ -114,7 +114,6 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         job = sampler.run(circuits=[bell], shots=1000)
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)

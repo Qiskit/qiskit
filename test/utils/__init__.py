@@ -12,6 +12,5 @@
 
 """Functionality and helpers for testing Qiskit."""
 
-from .base import QiskitTestCase, Path
-from .decorators import requires_aer_provider, online_test, slow_test
-from .reference_circuits import ReferenceCircuits
+from .base import QiskitTestCase
+from .decorators import slow_test

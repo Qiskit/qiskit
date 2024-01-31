@@ -745,6 +745,20 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(test)
         self.assertEqual(result, expected)
 
+    def test_prefer_no_substitution_if_all_ideal(self):
+        """Test that gates are not substituted if all our ideal gates in basis."""
+        target = Target(num_qubits=1)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(error=0)})
+        target.add_instruction(
+            UGate(Parameter("a"), Parameter("b"), Parameter("c")),
+            {(0,): InstructionProperties(error=0)},
+        )
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        opt_pass = Optimize1qGatesDecomposition(target)
+        res = opt_pass(qc)
+        self.assertEqual(res, qc)
+
 
 if __name__ == "__main__":
     unittest.main()

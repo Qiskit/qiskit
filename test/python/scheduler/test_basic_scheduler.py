@@ -1139,3 +1139,35 @@ class TestBasicScheduleV2(QiskitTestCase):
         ref_sched += Play(Gaussian(100, 0.1, 10), DriveChannel(0))
 
         self.assertEqual(sched, ref_sched)
+
+    def test_inst_sched_map_get_measure_0(self):
+        """Test that Schedule returned by backend.instruction_schedule_map.get('measure', [0])
+        is actually Schedule for just qubit_0"""
+        sched_from_backend = self.backend.instruction_schedule_map.get("measure", [0])
+        expected_sched = Schedule(
+            (0, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
+            (0, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0, Acquire(1472, AcquireChannel(2), MemorySlot(2))),
+            (0, Acquire(1472, AcquireChannel(3), MemorySlot(3))),
+            (0, Acquire(1472, AcquireChannel(4), MemorySlot(4))),
+            (0, Acquire(1472, AcquireChannel(5), MemorySlot(5))),
+            (0, Acquire(1472, AcquireChannel(6), MemorySlot(6))),
+            (
+                0,
+                Play(
+                    GaussianSquare(
+                        duration=1472,
+                        sigma=64,
+                        width=1216,
+                        amp=0.24000000000000002,
+                        angle=-0.24730169436555283,
+                        name="M_m0",
+                    ),
+                    MeasureChannel(0),
+                    name="M_m0",
+                ),
+            ),
+            (1472, Delay(1568, MeasureChannel(0))),
+            name="measure",
+        )
+        self.assertEqual(sched_from_backend, expected_sched)

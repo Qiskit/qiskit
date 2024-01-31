@@ -102,7 +102,7 @@ class TestOperationClass(QiskitTestCase):
 
     def test_isometry_as_operation(self):
         """Test that we can instantiate an object of class
-        :class:`~qiskit.extensions.quantum_initializer.Isometry` and that
+        :class:`~qiskit.circuit.library.Isometry` and that
         it has the expected name, num_qubits and num_clbits.
         """
         op = Isometry(np.eye(4, 4), 3, 2)
@@ -113,7 +113,7 @@ class TestOperationClass(QiskitTestCase):
 
     def test_initialize_as_operation(self):
         """Test that we can instantiate an object of class
-        :class:`~qiskit.extensions.quantum_initializer.Initialize` and that
+        :class:`~qiskit.circuit.library.Initialize` and that
         it has the expected name, num_qubits and num_clbits.
         """
         desired_vector = [0.5, 0.5, 0.5, 0.5]

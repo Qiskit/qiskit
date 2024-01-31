@@ -498,6 +498,18 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
 
+    def test_floating_point_power(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power(0.25), expected_op)
+
     def test_expand(self):
         """Test expand method."""
         mat1 = self.UX

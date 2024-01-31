@@ -16,7 +16,7 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit import BasicAer, execute
+from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
 from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -34,7 +34,7 @@ class TestIntegerComparator(QiskitTestCase):
 
         # run simulation
         backend = BasicAer.get_backend("statevector_simulator")
-        statevector = execute(qc, backend).result().get_statevector()
+        statevector = backend.run(transpile(qc, backend)).result().get_statevector()
         for i, amplitude in enumerate(statevector):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:
