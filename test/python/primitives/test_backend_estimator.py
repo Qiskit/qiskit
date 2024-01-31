@@ -15,23 +15,21 @@
 import unittest
 from unittest.mock import patch
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
-from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
+
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
 
@@ -91,7 +89,6 @@ class TestBackendEstimator(QiskitTestCase):
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         job = estimator.run([psi1], [hamiltonian1], [theta1])
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [1.5555572817900956], rtol=0.5, atol=0.2)

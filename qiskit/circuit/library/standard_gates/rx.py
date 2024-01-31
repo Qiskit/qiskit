@@ -41,12 +41,12 @@ class RXGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        RX(\theta) = \exp\left(-i \th X\right) =
+        RX(\theta) = \exp\left(-i \rotationangle X\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                -i\sin\left(\th\right) & \cos\left(\th\right)
+                \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
             \end{pmatrix}
     """
 
@@ -122,6 +122,11 @@ class RXGate(Gate):
         (theta,) = self.params
         return RXGate(exponent * theta)
 
+    def __eq__(self, other):
+        if isinstance(other, RXGate):
+            return self._compare_parameters(other)
+        return False
+
 
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
@@ -142,15 +147,15 @@ class CRXGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
-                0 & \cos\left(\th\right) & 0 & -i\sin\left(\th\right) \\
+                0 & \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) \\
                 0 & 0 & 1 & 0 \\
-                0 & -i\sin\left(\th\right) & 0 & \cos\left(\th\right)
+                0 & -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -169,15 +174,15 @@ class CRXGate(ControlledGate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CRX(\theta)\ q_1, q_0 =
             |0\rangle\langle0| \otimes I + |1\rangle\langle1| \otimes RX(\theta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0 \\
                     0 & 1 & 0 & 0 \\
-                    0 & 0 & \cos\left(\th\right)   & -i\sin\left(\th\right) \\
-                    0 & 0 & -i\sin\left(\th\right) & \cos\left(\th\right)
+                    0 & 0 & \cos\left(\rotationangle\right)   & -i\sin\left(\rotationangle\right) \\
+                    0 & 0 & -i\sin\left(\rotationangle\right) & \cos\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
@@ -253,3 +258,8 @@ class CRXGate(ControlledGate):
             return numpy.array(
                 [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRXGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

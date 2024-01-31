@@ -110,6 +110,9 @@ class HGate(SingletonGate):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
 
+    def __eq__(self, other):
+        return isinstance(other, HGate)
+
 
 @with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
 class CHGate(SingletonControlledGate):
@@ -231,3 +234,6 @@ class CHGate(SingletonControlledGate):
     def inverse(self):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CHGate) and self.ctrl_state == other.ctrl_state

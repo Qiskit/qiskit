@@ -79,6 +79,19 @@ during serialization or deserialization.
 
 .. autoexception:: QpyError
 
+Attributes:
+    QPY_VERSION (int): The current QPY format version as of this release. This
+        is the default value of the ``version`` keyword argument on
+        :func:`.qpy.dump` and also the upper bound for accepted values for
+        the same argument. This is also the upper bond on the versions supported
+        by :func:`.qpy.load`.
+
+    QPY_COMPATIBILITY_VERSION (int): The current minimum compatibility QPY
+        format version. This is the minimum version that :func:`.qpy.dump`
+        will accept for the ``version`` keyword argument. :func:`.qpy.load`
+        will be able to load all released format versions of QPY (up until
+        ``QPY_VERSION``).
+
 QPY Compatibility
 =================
 
@@ -91,6 +104,12 @@ For example, if you generated a QPY file using qiskit-terra 0.18.1 you could
 load that QPY file with qiskit-terra 0.19.0 and a hypothetical qiskit-terra
 0.29.0. However, loading that QPY file with 0.18.0 is not supported and may not
 work.
+
+If a feature being loaded is deprecated in the corresponding qiskit release, QPY will
+raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation period
+and how the feature will be internally handled.
+
+.. autoexception:: QPYLoadingDeprecatedFeatureWarning
 
 .. _qpy_format:
 
@@ -142,6 +161,16 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_11:
+
+Version 11
+==========
+
+Version 11 is identical to Version 10 except that for names in the CUSTOM_INSTRUCTION blocks
+have a suffix of the form ``"_{uuid_hex}"`` where ``uuid_hex`` is a uuid
+hexadecimal string such as returned by :attr:`.UUID.hex`. For example:
+``"b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``.
 
 .. _qpy_version_10:
 
@@ -1335,7 +1364,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
-from .exceptions import QpyError
+from .exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.
@@ -1346,3 +1375,4 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION

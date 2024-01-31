@@ -15,7 +15,6 @@
 """Test Qiskit's Instruction class."""
 
 import unittest.mock
-
 import numpy as np
 
 from qiskit.circuit import (
@@ -32,9 +31,9 @@ from qiskit.circuit import (
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, TGate
 from qiskit.circuit.classical import expr
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):
@@ -654,15 +653,6 @@ class TestInstructions(QiskitTestCase):
             with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
                 instruction = RZGate(0)
                 instruction.label = 0
-
-    def test_deprecation_warnings_qasm_methods(self):
-        """Test deprecation warnings for qasm methods."""
-        with self.subTest("built in gates"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                HGate().qasm()
-        with self.subTest("User constructed Instruction"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
 
 
 if __name__ == "__main__":

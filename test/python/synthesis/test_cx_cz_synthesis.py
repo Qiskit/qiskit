@@ -16,19 +16,16 @@ import unittest
 from test import combine
 import numpy as np
 from ddt import ddt
+
 from qiskit import QuantumCircuit
-
 from qiskit.quantum_info import Clifford
-
 from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_depth_line_my
 from qiskit.synthesis.linear import (
     synth_cnot_depth_line_kms,
     random_invertible_binary_matrix,
 )
-
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
-
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

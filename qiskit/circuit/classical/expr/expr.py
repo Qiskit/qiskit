@@ -31,7 +31,6 @@ __all__ = [
 import abc
 import enum
 import typing
-import uuid
 
 from .. import types
 
@@ -111,49 +110,29 @@ class Cast(Expr):
 class Var(Expr):
     """A classical variable.
 
-    These variables take two forms: a new-style variable that owns its storage location and has an
-    associated name; and an old-style variable that wraps a :class:`.Clbit` or
-    :class:`.ClassicalRegister` instance that is owned by some containing circuit.  In general,
-    construction of variables for use in programs should use :meth:`Var.new` or
-    :meth:`.QuantumCircuit.add_var`.
-
     Variables are immutable after construction, so they can be used as dictionary keys."""
 
-    __slots__ = ("var", "name")
+    __slots__ = ("var",)
 
-    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID
+    var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister
     """A reference to the backing data storage of the :class:`Var` instance.  When lifting
     old-style :class:`.Clbit` or :class:`.ClassicalRegister` instances into a :class:`Var`,
-    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`.  If the variable is a
-    new-style classical variable (one that owns its own storage separate to the old
-    :class:`.Clbit`/:class:`.ClassicalRegister` model), this field will be a :class:`~uuid.UUID`
-    to uniquely identify it."""
-    name: str | None
-    """The name of the variable.  This is required to exist if the backing :attr:`var` attribute
-    is a :class:`~uuid.UUID`, i.e. if it is a new-style variable, and must be ``None`` if it is
-    an old-style variable."""
+    this is exactly the :class:`.Clbit` or :class:`.ClassicalRegister`."""
 
     def __init__(
         self,
-        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister | uuid.UUID,
+        var: qiskit.circuit.Clbit | qiskit.circuit.ClassicalRegister,
         type: types.Type,
-        *,
-        name: str | None = None,
     ):
         super().__setattr__("type", type)
         super().__setattr__("var", var)
-        super().__setattr__("name", name)
-
-    @classmethod
-    def new(cls, name: str, type: types.Type) -> typing.Self:
-        """Generate a new named variable that owns its own backing storage."""
-        return cls(uuid.uuid4(), type, name=name)
 
     @property
     def standalone(self) -> bool:
-        """Whether this :class:`Var` is a standalone variable that owns its storage location.  If
-        false, this is a wrapper :class:`Var` around a pre-existing circuit object."""
-        return isinstance(self.var, uuid.UUID)
+        """Whether this :class:`Var` is a standalone variable that owns its storage location.
+        This is currently always ``False``, but will expand in the future to support memory-owning
+        storage locations."""
+        return False
 
     def accept(self, visitor, /):
         return visitor.visit_var(self)
@@ -164,29 +143,21 @@ class Var(Expr):
         raise AttributeError(f"'Var' object has no attribute '{key}'")
 
     def __hash__(self):
-        return hash((self.type, self.var, self.name))
+        return hash((self.type, self.var))
 
     def __eq__(self, other):
-        return (
-            isinstance(other, Var)
-            and self.type == other.type
-            and self.var == other.var
-            and self.name == other.name
-        )
+        return isinstance(other, Var) and self.type == other.type and self.var == other.var
 
     def __repr__(self):
-        if self.name is None:
-            return f"Var({self.var}, {self.type})"
-        return f"Var({self.var}, {self.type}, name='{self.name}')"
+        return f"Var({self.var}, {self.type})"
 
     def __getstate__(self):
-        return (self.var, self.type, self.name)
+        return (self.var, self.type)
 
     def __setstate__(self, state):
-        var, type, name = state
+        var, type = state
         super().__setattr__("type", type)
         super().__setattr__("var", var)
-        super().__setattr__("name", name)
 
     def __copy__(self):
         # I am immutable...

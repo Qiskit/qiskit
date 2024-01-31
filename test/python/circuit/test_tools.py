@@ -16,9 +16,10 @@ import unittest
 from test import combine
 from ddt import ddt
 from numpy import pi
-from qiskit.test import QiskitTestCase
+
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.circuit import Parameter
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

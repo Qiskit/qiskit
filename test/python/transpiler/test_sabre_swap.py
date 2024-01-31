@@ -28,9 +28,9 @@ from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
@@ -274,7 +274,7 @@ class TestSabreSwap(QiskitTestCase):
         if not optionals.HAS_AER:
             return
 
-        from qiskit import Aer
+        from qiskit_aer import Aer
 
         sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()

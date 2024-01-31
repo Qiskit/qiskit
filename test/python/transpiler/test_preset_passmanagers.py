@@ -19,7 +19,6 @@ from ddt import ddt, data
 
 import numpy as np
 
-import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
@@ -30,7 +29,6 @@ from qiskit.transpiler.passes import (
     PadDynamicalDecoupling,
     RemoveResetInZeroState,
 )
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeBelem,
     FakeTenerife,
@@ -48,6 +46,7 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers import level0, level1, level2, level3
 from qiskit.transpiler.passes import Collect2qBlocks, GatesInBasis
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import OptimizationPassManager
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def mock_get_passmanager_stage(
@@ -271,11 +270,6 @@ class TestPresetPassManager(QiskitTestCase):
             translation_method="synthesis",
         )
         self.assertEqual(gates_in_basis_true_count + 1, collect_2q_blocks_count)
-
-    def test_get_vf2_call_limit_deprecated(self):
-        """Test that calling test_get_vf2_call_limit emits deprecation warning."""
-        with self.assertWarns(DeprecationWarning):
-            qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit(optimization_level=3)
 
 
 @ddt
@@ -1296,13 +1290,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1330,13 +1322,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1364,13 +1354,11 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
         post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
+            x.__class__.__name__ for x in pm.translation.to_flow_controller().tasks
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
@@ -1398,14 +1386,10 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        post_translation_pass_list = [x.__class__.__name__ for x in pm.to_flow_controller().tasks]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     def test_generate_preset_pass_manager_with_list_coupling_map(self):
@@ -1539,22 +1523,21 @@ class TestIntegrationControlFlow(QiskitTestCase):
         def callback(pass_, **_):
             calls.add(pass_.name())
 
-        with self.assertWarns(DeprecationWarning):
-            transpiled = transpile(
-                circuit,
-                basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
-                layout_method="trivial",
-                translation_method="unroller",
-                coupling_map=coupling_map,
-                optimization_level=optimization_level,
-                seed_transpiler=2022_10_04,
-                callback=callback,
-            )
+        transpiled = transpile(
+            circuit,
+            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
+            layout_method="trivial",
+            translation_method="translator",
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+            callback=callback,
+        )
         self.assertIsInstance(transpiled, QuantumCircuit)
         self.assertIsNot(getattr(transpiled, "_layout", None), None)
 
         self.assertIn("TrivialLayout", calls)
-        self.assertIn("Unroller", calls)
+        self.assertIn("BasisTranslator", calls)
         self.assertNotIn("DenseLayout", calls)
         self.assertNotIn("SabreLayout", calls)
 
