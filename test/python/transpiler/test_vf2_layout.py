@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -460,7 +460,7 @@ class TestVF2LayoutBackend(LayoutTestCase):
 
     def test_3q_circuit_vigo_with_custom_scores(self):
         """Test custom ErrorMap from analysis pass are used for scoring."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         target = backend.target
 
         class FakeScore(AnalysisPass):
@@ -715,7 +715,9 @@ class TestMultipleTrials(QiskitTestCase):
 
         Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8667
         """
-        backend = GenericBackendV2(basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=16)
+        backend = GenericBackendV2(
+            basis_gates=["cx", "id", "rz", "sx", "x"], num_qubits=16, seed=42
+        )
         qr = QuantumRegister(16, name="qr")
         cr = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
