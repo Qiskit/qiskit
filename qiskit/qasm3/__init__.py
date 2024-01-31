@@ -192,7 +192,11 @@ above:
 .. autofunction:: load_experimental
 .. autofunction:: loads_experimental
 
-These two functions both raise :exc:`.ExperimentalWarning`; you can disable this warning by doing::
+These two functions are both experimental, meaning they issue an :exc:`.ExperimentalWarning` on
+usage, and their interfaces may be subject to change within the Qiskit 1.0.  In particular, the
+native parser may be promoted to be the default version of :func:`load` and :func:`loads`.  If you
+are happy to accept the risk of using the experimental interface, you can disable the warning by
+doing::
 
     import warnings
     from qiskit.exceptions import ExperimentalWarning

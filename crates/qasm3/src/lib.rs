@@ -33,6 +33,12 @@ const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
 
 /// Load an OpenQASM 3 program from a string into a :class:`.QuantumCircuit`.
 ///
+/// .. warning::
+///
+///     This native version of the OpenQASM 3 importer is currently experimental.  It is typically
+///     much faster than :func:`~qiskit.qasm3.loads`, but has a reduced supported feature set,
+///     which will expand over time.
+///
 /// Args:
 ///     source (str): the program source in a Python string.
 ///     custom_gates (Iterable[CustomGate]): Python constructors to use for particular named gates.
@@ -91,6 +97,12 @@ pub fn loads(
 }
 
 /// Load an OpenQASM 3 program from a source file into a :class:`.QuantumCircuit`.
+///
+/// .. warning::
+///
+///     This native version of the OpenQASM 3 importer is currently experimental.  It is typically
+///     much faster than :func:`~qiskit.qasm3.load`, but has a reduced supported feature set, which
+///     will expand over time.
 ///
 /// Args:
 ///     pathlike_or_filelike (str | os.PathLike | io.TextIOBase): the program source.  This can
