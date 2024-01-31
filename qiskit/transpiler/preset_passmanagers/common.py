@@ -14,13 +14,13 @@
 """Common preset passmanager generators."""
 
 import collections
-import warnings
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.utils.deprecation import deprecate_func
 
+from qiskit.passmanager import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import Unroller
@@ -149,13 +149,11 @@ def generate_control_flow_options_check(
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            out.append(Error(message), condition=_has_control_flow)
+        out.append(ConditionalController(Error(message), condition=_has_control_flow))
     backend_control = _InvalidControlFlowForBackend(basis_gates, target)
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        out.append(Error(backend_control.message), condition=backend_control.condition)
+    out.append(
+        ConditionalController(Error(backend_control.message), condition=backend_control.condition)
+    )
     return out
 
 
@@ -164,9 +162,7 @@ def generate_error_on_control_flow(message):
     circuit."""
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        out.append(Error(message), condition=_has_control_flow)
+    out.append(ConditionalController(Error(message), condition=_has_control_flow))
     return out
 
 
@@ -179,10 +175,8 @@ def if_has_control_flow_else(if_present, if_absent):
         if_absent = if_absent.to_flow_controller()
     out = PassManager()
     out.append(ContainsInstruction(CONTROL_FLOW_OP_NAMES, recurse=False))
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
-        out.append(if_present, condition=_has_control_flow)
-        out.append(if_absent, condition=_without_control_flow)
+    out.append(ConditionalController(if_present, condition=_has_control_flow))
+    out.append(ConditionalController(if_absent, condition=_without_control_flow))
     return out
 
 
@@ -337,21 +331,18 @@ def generate_routing_passmanager(
         return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            routing.append(
+        routing.append(
+            ConditionalController(
                 [BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition
             )
+        )
     else:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            routing.append([routing_pass], condition=_swap_condition)
+        routing.append(ConditionalController([routing_pass], condition=_swap_condition))
 
     is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
     if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            routing.append(
+        routing.append(
+            ConditionalController(
                 VF2PostLayout(
                     target,
                     coupling_map,
@@ -362,8 +353,9 @@ def generate_routing_passmanager(
                     strict_direction=False,
                 ),
                 condition=_run_post_layout_condition,
-            )
-            routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
+            ),
+        )
+        routing.append(ApplyLayout(), condition=_apply_post_layout_condition)
 
     return routing
 
@@ -390,11 +382,11 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
         def _direction_condition(property_set):
             return not property_set["is_direction_mapped"]
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            pre_opt.append(
+        pre_opt.append(
+            ConditionalController(
                 [GateDirection(coupling_map, target=target)], condition=_direction_condition
             )
+        )
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
@@ -559,11 +551,11 @@ def generate_scheduling(
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            scheduling.append(
+        scheduling.append(
+            ConditionalController(
                 TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
             )
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1
@@ -581,15 +573,15 @@ def generate_scheduling(
                 pulse_alignment=timing_constraints.pulse_alignment,
             )
         )
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            scheduling.append(
+        scheduling.append(
+            ConditionalController(
                 ConstrainedReschedule(
                     acquire_alignment=timing_constraints.acquire_alignment,
                     pulse_alignment=timing_constraints.pulse_alignment,
                 ),
                 condition=_require_alignment,
             )
+        )
         scheduling.append(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,

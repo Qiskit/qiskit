@@ -54,6 +54,9 @@ class PassManager(BasePassManager):
         """
         # For backward compatibility.
         self._pass_sets = []
+        # Revolting hack to let us eagerly switch to `FlowControllerLinear` in `to_flow_controller`
+        # (called by `BasePassManager.run`) before the deprecation expires.
+        self.__skip_running_pass_manager = False
 
         super().__init__(
             tasks=passes,
@@ -244,10 +247,10 @@ class PassManager(BasePassManager):
     def to_flow_controller(self) -> RunningPassManager:
         # For backward compatibility.
         # This method will be resolved to the base class and return FlowControllerLinear
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            flatten_tasks = list(self._flatten_tasks(self._tasks))
-            return RunningPassManager(flatten_tasks)
+        if self.__skip_running_pass_manager:
+            return super().to_flow_controller()
+        flatten_tasks = list(self._flatten_tasks(self._tasks))
+        return RunningPassManager(flatten_tasks)
 
     # pylint: disable=arguments-differ
     def run(
@@ -300,11 +303,15 @@ class PassManager(BasePassManager):
         if callback is not None:
             callback = _legacy_style_callback(callback)
 
-        return super().run(
-            in_programs=circuits,
-            callback=callback,
-            output_name=output_name,
-        )
+        previous, self.__skip_running_pass_manager = self.__skip_running_pass_manager, True
+        try:
+            return super().run(
+                in_programs=circuits,
+                callback=callback,
+                output_name=output_name,
+            )
+        finally:
+            self.__skip_running_pass_manager = previous
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the pass manager.

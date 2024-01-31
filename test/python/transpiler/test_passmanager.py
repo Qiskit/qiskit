@@ -147,9 +147,12 @@ class TestPassManager(QiskitTestCase):
             with self.assertWarns(DeprecationWarning):
                 # Deprecated append with controller kwargs
                 inner.append(DummyPass(f"{prefix} 2"), condition=lambda _: False)
+            with self.assertWarns(DeprecationWarning):
                 inner.append(DummyPass(f"{prefix} 3"), condition=lambda _: True)
+            with self.assertWarns(DeprecationWarning):
                 inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
-            return inner.to_flow_controller()
+            with self.assertWarns(DeprecationWarning):
+                return inner.to_flow_controller()
 
         self.assertIsInstance(make_inner("test"), FlowControllerLinear)
 
