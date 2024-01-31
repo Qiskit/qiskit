@@ -145,6 +145,8 @@ def parallel_map(  # pylint: disable=dangerous-default-value
                     return 0
             parallel_map(func, list(range(10)));
     """
+    if num_processes is None:
+        num_processes = CPU_COUNT
     if len(values) == 0:
         return []
     if len(values) == 1:

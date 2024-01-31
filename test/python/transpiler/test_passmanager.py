@@ -28,8 +28,13 @@ from qiskit.passmanager.flow_controllers import (
 )
 from qiskit.transpiler import PassManager, PropertySet, TransformationPass
 from qiskit.transpiler.passes import CommutativeCancellation
-from qiskit.transpiler.passes import Optimize1qGates, Unroller
+from qiskit.transpiler.passes import Optimize1qGates, BasisTranslator
 from qiskit.test import QiskitTestCase
+
+
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 
 
 class TestPassManager(QiskitTestCase):
@@ -60,14 +65,13 @@ class TestPassManager(QiskitTestCase):
             calls.append(out_dict)
 
         passmanager = PassManager()
-        with self.assertWarns(DeprecationWarning):
-            passmanager.append(Unroller(["u2"]))
+        passmanager.append(BasisTranslator(std_eqlib, ["u2"]))
         passmanager.append(Optimize1qGates())
         passmanager.run(circuit, callback=callback)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(calls[0]), 5)
         self.assertEqual(calls[0]["count"], 0)
-        self.assertEqual(calls[0]["pass_"].name(), "Unroller")
+        self.assertEqual(calls[0]["pass_"].name(), "BasisTranslator")
         self.assertEqual(expected_start_dag, calls[0]["dag"])
         self.assertIsInstance(calls[0]["time"], float)
         self.assertEqual(calls[0]["property_set"], PropertySet())

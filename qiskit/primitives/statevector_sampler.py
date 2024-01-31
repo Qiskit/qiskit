@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable
+import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -79,6 +80,12 @@ class StatevectorSampler(BaseSamplerV2):
         if shots is None:
             shots = self._default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
+        if any(len(pub.circuit.cregs) == 0 for pub in coerced_pubs):
+            warnings.warn(
+                "One of your circuits has no output classical registers and so the result "
+                "will be empty. Did you mean to add measurement instructions?",
+                UserWarning,
+            )
 
         job = PrimitiveJob(self._run, coerced_pubs)
         job._submit()

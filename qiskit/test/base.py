@@ -172,9 +172,9 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basicaer import BasicAer
+        from qiskit.providers.basic_provider import BasicProvider
 
-        BasicAer._backends = BasicAer._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):
@@ -202,6 +202,17 @@ class QiskitTestCase(BaseQiskitTestCase):
 
         warnings.filterwarnings("error", category=DeprecationWarning)
         warnings.filterwarnings("error", category=QiskitWarning)
+
+        # We only use pandas transitively through seaborn, so it's their responsibility to mark if
+        # their use of pandas would be a problem.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            # The `(?s)` magic is to force use of the `re.DOTALL` flag, because the Pandas message
+            # includes hard-break newlines all over the place.
+            message="(?s).*Pyarrow.*required dependency.*next major release of pandas",
+            module=r"seaborn(\..*)?",
+        )
 
         allow_DeprecationWarning_modules = [
             "test.python.pulse.test_builder",

@@ -79,6 +79,19 @@ during serialization or deserialization.
 
 .. autoexception:: QpyError
 
+Attributes:
+    QPY_VERSION (int): The current QPY format version as of this release. This
+        is the default value of the ``version`` keyword argument on
+        :func:`.qpy.dump` and also the upper bound for accepted values for
+        the same argument. This is also the upper bond on the versions supported
+        by :func:`.qpy.load`.
+
+    QPY_COMPATIBILITY_VERSION (int): The current minimum compatibility QPY
+        format version. This is the minimum version that :func:`.qpy.dump`
+        will accept for the ``version`` keyword argument. :func:`.qpy.load`
+        will be able to load all released format versions of QPY (up until
+        ``QPY_VERSION``).
+
 QPY Compatibility
 =================
 
@@ -1362,3 +1375,4 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION

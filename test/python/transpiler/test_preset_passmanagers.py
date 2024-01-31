@@ -1523,22 +1523,21 @@ class TestIntegrationControlFlow(QiskitTestCase):
         def callback(pass_, **_):
             calls.add(pass_.name())
 
-        with self.assertWarns(DeprecationWarning):
-            transpiled = transpile(
-                circuit,
-                basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
-                layout_method="trivial",
-                translation_method="unroller",
-                coupling_map=coupling_map,
-                optimization_level=optimization_level,
-                seed_transpiler=2022_10_04,
-                callback=callback,
-            )
+        transpiled = transpile(
+            circuit,
+            basis_gates=["u3", "cx", "if_else", "for_loop", "while_loop"],
+            layout_method="trivial",
+            translation_method="translator",
+            coupling_map=coupling_map,
+            optimization_level=optimization_level,
+            seed_transpiler=2022_10_04,
+            callback=callback,
+        )
         self.assertIsInstance(transpiled, QuantumCircuit)
         self.assertIsNot(getattr(transpiled, "_layout", None), None)
 
         self.assertIn("TrivialLayout", calls)
-        self.assertIn("Unroller", calls)
+        self.assertIn("BasisTranslator", calls)
         self.assertNotIn("DenseLayout", calls)
         self.assertNotIn("SabreLayout", calls)
 
