@@ -65,7 +65,9 @@ is not present, but will raise :exc:`OptionalDependencyImportWarning` to let you
 When experimental features are being used, Qiskit will raise :exc:`ExperimentalWarning`.
 
 .. warning::
-    Qiskit experimental features can break at any minor release and their API might change without previous notification. Their use is not recommended in production.
+
+    Qiskit experimental features can break at any minor release and their API might change without
+    previous notification. Their use is not recommended in production.
 
 .. autoexception:: ExperimentalWarning
 
