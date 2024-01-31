@@ -414,7 +414,7 @@ def _parse_custom_operation(
         inst_obj.definition = definition
         return inst_obj
 
-    if version >= 5 and type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
+    if version >= 11 and type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
         with io.BytesIO(base_gate_raw) as base_gate_obj:
             base_gate = _read_instruction(
                 base_gate_obj, None, registers, custom_operations, version, vectors, use_symengine
