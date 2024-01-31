@@ -2,7 +2,7 @@
 features:
   - |
     Version 2 of the primitives was introduced via a new base class for both the sampler and the
-    estimator, along with new container types for their inputs and outputs. The emphasis of this new
+    estimator, along with new types for their inputs and outputs. The emphasis of this new
     version is on performing vectorized calls to the primitive ``run()`` methods, so that sweeps
     over parameter value sets and observables can be efficiently specified. See
     :class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator` for reference implementations
@@ -21,29 +21,17 @@ features:
     * :class:`.BaseSamplerV2`
     * :class:`.BaseEstimatorV2`
 
-    The new container types which are used for inputs and outputs are:
+    The new types which are used for inputs and outputs are:
 
-    * :class:`.SamplerPub`\: primitive unified bloc (PUB) of sampler inputs
-    * :class:`.EstimatorPub`\: Primitive unified bloc (PUB) of estimator inputs
-    * :class:`.BindingsArray`\: an array-valued collection of parameter value sets to bind against a 
-      circuit
-    * :class:`.ObservablesArray`\: an array-valued collection of observables
+    * :class:`.SamplerPubLike`\: primitive unified bloc (PUB) of sampler inputs; a union type
+      of allowed inputs to a sampler
+    * :class:`.EstimatorPubLike`\: Primitive unified bloc (PUB) of estimator inputs; a union
+      type of allowed inputs to an estimator
     * :class:`.PubResult`\: the data and metadata resulting from a single PUB's execution
     * :class:`.DataBin`\: A namespace to hold data from a single PUB's execution
     * :class:`.BitArray`\: an array-valued collection of bitstrings in a dense format
     * :class:`.PrimitiveResult`: an iterable of :class:`.PubResult`\s along with metadata
 
-    Some of the above types have corresponding union types that define exactly which formats are
-    natively compatible with their associated class for automatic coersion:
-
-    * :class:`.EstimatorPubLike`\: accepts a circuit and an observables-like, and optionionally 
-      bindings-array-like and shots
-    * :class:`.SamplerPubLike`\: accepts a circuit and optionally bindingns-array-like and shots
-    * :class:`.ObservablesArrayLike`\: accepts :class:`.SparsePauliOp`, dictionaries, strings of 
-      Paulis, etc.
-    * :class:`.BindingsArrayLike`\: accepts NumPy arrays, lists of floats, dictionaries with 
-      parameter names, etc.
-       
   - |
     The reference implementation :class:`~.StatevectorEstimator` of :class:`~.BaseEstimatorV2` was
     added. As seen in the example below, this estimator (and all V2 estimators) supports providing
