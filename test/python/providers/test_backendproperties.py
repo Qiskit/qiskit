@@ -15,8 +15,8 @@
 import copy
 
 from qiskit.providers.fake_provider import FakeProvider, FakeOurense
-from qiskit.test import QiskitTestCase
 from qiskit.providers.exceptions import BackendPropertyError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BackendpropertiesTestCase(QiskitTestCase):

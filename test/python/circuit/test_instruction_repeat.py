@@ -16,10 +16,10 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import SGate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRepeatInt1Q(QiskitTestCase):

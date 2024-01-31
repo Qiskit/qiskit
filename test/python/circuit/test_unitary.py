@@ -18,7 +18,6 @@ from numpy.testing import assert_allclose
 
 import qiskit
 from qiskit.circuit.library import UnitaryGate
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -26,6 +25,7 @@ from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnitaryGate(QiskitTestCase):

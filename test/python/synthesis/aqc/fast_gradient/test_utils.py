@@ -16,13 +16,14 @@ Tests for utility functions.
 
 import unittest
 import random
-import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut
 import numpy as np
+
 import qiskit.synthesis.unitary.aqc.fast_gradient.fast_grad_utils as myu
-from qiskit.test import QiskitTestCase
 from qiskit.synthesis.unitary.aqc.elementary_operations import rx_matrix as _rx
 from qiskit.synthesis.unitary.aqc.elementary_operations import ry_matrix as _ry
 from qiskit.synthesis.unitary.aqc.elementary_operations import rz_matrix as _rz
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+import test.python.synthesis.aqc.fast_gradient.utils_for_testing as tut  # pylint: disable=wrong-import-order
 
 
 class TestUtils(QiskitTestCase):

@@ -12,7 +12,6 @@
 """Tests for operator measures."""
 
 import unittest
-from test import combine
 from ddt import ddt
 
 import numpy as np
@@ -22,7 +21,8 @@ from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

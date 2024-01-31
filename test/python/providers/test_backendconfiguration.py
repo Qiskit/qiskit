@@ -15,11 +15,10 @@ Test that the PulseBackendConfiguration methods work as expected with a mocked P
 import collections
 import copy
 
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeProvider
-
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, ControlChannel, AcquireChannel
 from qiskit.providers import BackendConfigurationError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBackendConfiguration(QiskitTestCase):

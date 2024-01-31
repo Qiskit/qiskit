@@ -17,11 +17,10 @@ from __future__ import annotations
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any
-
 from ddt import data, ddt, unpack
 
 from qiskit.primitives.base.base_result import _BasePrimitiveResult as BasePrimitiveResult
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 ################################################################################
