@@ -2050,7 +2050,7 @@ if (c[0]) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 int switch_dummy;
@@ -2084,7 +2084,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2121,7 +2121,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2156,7 +2156,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2189,7 +2189,7 @@ switch (switch_dummy) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] switch_dummy;
 int switch_dummy__generated0;
@@ -2236,7 +2236,7 @@ switch (switch_dummy__generated1) {
 
         test = dumps(circuit)
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit[2] c;
 int switch_dummy;
@@ -2279,7 +2279,7 @@ if (c == 1) {
         qc.switch(expr.bit_and(cr, 3), [(3, case1)], [0], [])
 
         expected = """\
-OPENQASM 3;
+OPENQASM 3.0;
 include "stdgates.inc";
 bit _bit0;
 bit[2] cr;
