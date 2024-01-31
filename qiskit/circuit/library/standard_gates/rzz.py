@@ -139,3 +139,8 @@ class RZZGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZZGate):
+            return self._compare_parameters(other)
+        return False

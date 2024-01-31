@@ -15,24 +15,27 @@
 import math
 import unittest
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
-from qiskit.providers import JobStatus, JobV1
-from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import QiskitTestCase
+from qiskit.providers import JobStatus
+from qiskit.providers.fake_provider import FakeNairobi, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
 
-BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+BACKENDS = [
+    FakeNairobi(),
+    BackendV2Converter(FakeNairobi()),
+]
 
 
 class CallbackPass(DummyAP):
@@ -115,7 +118,6 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         job = sampler.run(circuits=[bell], shots=1000)
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
@@ -300,8 +302,8 @@ class TestBackendSampler(QiskitTestCase):
     def test_primitive_job_size_limit_backend_v2(self):
         """Test primitive respects backend's job size limit."""
 
-        class FakeNairobiLimitedCircuits(FakeNairobiV2):
-            """FakeNairobiV2 with job size limit."""
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
 
             @property
             def max_circuits(self):
@@ -312,7 +314,7 @@ class TestBackendSampler(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.x(0)
         qc2.measure_all()
-        sampler = BackendSampler(backend=FakeNairobiLimitedCircuits())
+        sampler = BackendSampler(backend=FakeBackendLimitedCircuits(num_qubits=5))
         result = sampler.run([qc, qc2]).result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(len(result.quasi_dists), 2)
@@ -387,7 +389,7 @@ class TestBackendSampler(QiskitTestCase):
         # We need a noise-free backend here (shot noise is fine) to ensure that
         # the only bit string measured is "0001". With device noise, it could happen that
         # strings with a leading 1 are measured and then the truncation cannot be tested.
-        sampler = BackendSampler(backend=QasmSimulatorPy())
+        sampler = BackendSampler(backend=BasicSimulator())
 
         result = sampler.run(qc).result()
         probs = result.quasi_dists[0].binary_probabilities()

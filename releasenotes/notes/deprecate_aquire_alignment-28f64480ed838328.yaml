@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The method ``qiskit.transpiler.target.Target.aquire_alignment``, deprecated in 0.24, has been removed. The method ``qiskit.transpiler.target.Target.acquire_alignment`` should be used instead.

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add :class:`~.BaseEstimatorV2` primitive base class for EstimatorV2 based on
+    `the RFC <https://github.com/Qiskit/RFCs/blob/master/0015-estimator-interface.md>`_.

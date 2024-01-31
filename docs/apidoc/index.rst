@@ -12,16 +12,14 @@ API Reference
    circuit_classical
    circuit_singleton
    compiler
-   execute
    visualization
    classicalfunction
    converters
    assembler
    dagcircuit
-   extensions
    passmanager
-   providers_basicaer
    providers
+   providers_basic_provider
    providers_fake_provider
    providers_models
    pulse

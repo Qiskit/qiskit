@@ -12,6 +12,8 @@
 
 """Annotated Operations."""
 
+from __future__ import annotations
+
 import dataclasses
 from typing import Union, List
 
@@ -149,6 +151,35 @@ class AnnotatedOperation(Operation):
             else:
                 raise CircuitError(f"Unknown modifier {modifier}.")
         return operator
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: int | str | None = None,
+        annotated: bool = True,
+    ) -> AnnotatedOperation:
+        """
+        Return the controlled version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            num_ctrl_qubits: number of controls to add to gate (default: ``1``)
+            label: ignored (used for consistency with other control methods)
+            ctrl_state: The control state in decimal or as a bitstring
+                (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: ignored (used for consistency with other control methods)
+
+        Returns:
+            Controlled version of the given operation.
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(
+            ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        )
+        return AnnotatedOperation(self.base_op, extended_modifiers)
 
 
 def _canonicalize_modifiers(modifiers):

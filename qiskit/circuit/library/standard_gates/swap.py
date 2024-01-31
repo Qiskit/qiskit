@@ -89,6 +89,7 @@ class SwapGate(SingletonGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-SWAP gate.
 
@@ -99,18 +100,29 @@ class SwapGate(SingletonGate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CSwapGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
     def inverse(self):
         """Return inverse Swap gate (itself)."""
         return SwapGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, SwapGate)
 
 
 @with_controlled_gate_array(_SWAP_ARRAY, num_ctrl_qubits=1)
@@ -244,3 +256,6 @@ class CSwapGate(SingletonControlledGate):
     def inverse(self):
         """Return inverse CSwap gate (itself)."""
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CSwapGate) and self.ctrl_state == other.ctrl_state

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,14 +22,16 @@ from qiskit.transpiler import CouplingMap, PassManager, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMumbai, GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP, RUESCHLIKON_CMAP
 
 
 @ddt
@@ -370,33 +372,7 @@ class TestStochasticSwap(QiskitTestCase):
         """Circuit not remapped if matches topology.
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        coupling = CouplingMap(
-            [
-                [1, 0],
-                [1, 2],
-                [2, 3],
-                [3, 4],
-                [3, 14],
-                [5, 4],
-                [6, 5],
-                [6, 7],
-                [6, 11],
-                [7, 10],
-                [8, 7],
-                [9, 8],
-                [9, 10],
-                [11, 10],
-                [12, 5],
-                [12, 11],
-                [12, 13],
-                [13, 4],
-                [13, 14],
-                [15, 0],
-                [15, 0],
-                [15, 2],
-                [15, 14],
-            ]
-        )
+        coupling = CouplingMap(RUESCHLIKON_CMAP)
         qr = QuantumRegister(16, "q")
         cr = ClassicalRegister(16, "c")
         circ = QuantumCircuit(qr, cr)
@@ -1531,7 +1507,10 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="stochastic",
             layout_method="dense",
             seed_transpiler=12342,
-            target=FakeMumbaiV2().target,
+            target=GenericBackendV2(
+                num_qubits=27,
+                coupling_map=MUMBAI_CMAP,
+            ).target,
         )
         self.assert_valid_circuit(tqc)
 
