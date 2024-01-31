@@ -20,7 +20,7 @@ from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.target import Target
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLayoutScoreError(QiskitTestCase):

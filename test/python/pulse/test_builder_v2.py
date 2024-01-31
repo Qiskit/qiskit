@@ -21,7 +21,7 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.providers.fake_provider import FakeMumbaiV2
 from qiskit.pulse import instructions
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilderV2(QiskitTestCase):

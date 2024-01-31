@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,8 +17,6 @@ import unittest
 import contextlib
 import logging
 import math
-from test import combine
-
 import numpy as np
 import scipy
 import scipy.stats
@@ -75,9 +73,9 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     decompose_two_qubit_product_gate,
     TwoQubitDecomposeUpToDiagonal,
 )
-
 from qiskit.synthesis.unitary import qsd
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def make_oneq_cliffords():

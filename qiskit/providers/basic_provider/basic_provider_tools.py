@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Contains functions used by the basic aer simulators.
+"""Contains functions used by the basic provider simulators.
 
 """
+from __future__ import annotations
 
 from string import ascii_uppercase, ascii_lowercase
-from typing import List, Optional
 
 import numpy as np
 
@@ -26,7 +26,7 @@ from qiskit.exceptions import QiskitError
 SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
 
 
-def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
+def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarray:
     """Get the matrix for a single qubit.
 
     Args:
@@ -73,12 +73,12 @@ def single_gate_matrix(gate: str, params: Optional[List[float]] = None):
 _CX_MATRIX = gates.CXGate().to_matrix()
 
 
-def cx_gate_matrix():
+def cx_gate_matrix() -> np.ndarray:
     """Get the matrix for a controlled-NOT gate."""
-    return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]], dtype=complex)
+    return _CX_MATRIX
 
 
-def einsum_matmul_index(gate_indices, number_of_qubits):
+def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
     """Return the index string for Numpy.einsum matrix-matrix multiplication.
 
     The returned indices are to perform a matrix multiplication A.B where
@@ -102,14 +102,10 @@ def einsum_matmul_index(gate_indices, number_of_qubits):
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return "{mat_l}{mat_r}, ".format(
-        mat_l=mat_l, mat_r=mat_r
-    ) + "{tens_lin}{tens_r}->{tens_lout}{tens_r}".format(
-        tens_lin=tens_lin, tens_lout=tens_lout, tens_r=tens_r
-    )
+    return f"{mat_l}{mat_r}, {tens_lin}{tens_r}->{tens_lout}{tens_r}"
 
 
-def einsum_vecmul_index(gate_indices, number_of_qubits):
+def einsum_vecmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
     """Return the index string for Numpy.einsum matrix-vector multiplication.
 
     The returned indices are to perform a matrix multiplication A.v where
@@ -130,12 +126,12 @@ def einsum_vecmul_index(gate_indices, number_of_qubits):
 
     # Combine indices into matrix multiplication string format
     # for numpy.einsum function
-    return f"{mat_l}{mat_r}, " + "{tens_lin}->{tens_lout}".format(
-        tens_lin=tens_lin, tens_lout=tens_lout
-    )
+    return f"{mat_l}{mat_r}, {tens_lin}->{tens_lout}"
 
 
-def _einsum_matmul_index_helper(gate_indices, number_of_qubits):
+def _einsum_matmul_index_helper(
+    gate_indices: list[int], number_of_qubits: int
+) -> tuple[str, str, str, str]:
     """Return the index string for Numpy.einsum matrix multiplication.
 
     The returned indices are to perform a matrix multiplication A.v where

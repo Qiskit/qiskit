@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,12 +14,12 @@
 """Tests for local invariance routines."""
 
 import unittest
-
 from numpy.testing import assert_allclose
-from qiskit import QuantumCircuit, QuantumRegister, transpile
-from qiskit.test import QiskitTestCase
-from qiskit.providers.basicaer import UnitarySimulatorPy
+
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.synthesis.two_qubit.local_invariance import two_qubit_local_invariants
+from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLocalInvariance(QiskitTestCase):
@@ -29,18 +29,17 @@ class TestLocalInvariance(QiskitTestCase):
         """Check the local invariance parameters
         for known simple cases.
         """
-        sim = UnitarySimulatorPy()
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
-        U = sim.run(qc).result().get_unitary()
+        U = Operator(qc)
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [1, 0, 3])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
-        U = sim.run(qc).result().get_unitary()
+        U = Operator(qc)
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [0, 0, 1])
 
@@ -48,14 +47,14 @@ class TestLocalInvariance(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
         qc.cx(qr[0], qr[1])
-        U = sim.run(qc).result().get_unitary()
+        U = Operator(qc)
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [0, 0, -1])
 
         qr = QuantumRegister(2, name="q")
         qc = QuantumCircuit(qr)
         qc.swap(qr[1], qr[0])
-        U = sim.run(transpile(qc, sim)).result().get_unitary()
+        U = Operator(qc)
         vec = two_qubit_local_invariants(U)
         assert_allclose(vec, [-1, 0, -3])
 

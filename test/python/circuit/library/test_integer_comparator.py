@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,10 +16,10 @@ import unittest
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, transpile
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import IntegerComparator
+from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -33,8 +33,7 @@ class TestIntegerComparator(QiskitTestCase):
         qc.append(comp, list(range(comp.num_qubits)))  # add comparator
 
         # run simulation
-        backend = BasicAer.get_backend("statevector_simulator")
-        statevector = backend.run(transpile(qc, backend)).result().get_statevector()
+        statevector = Statevector(qc)
         for i, amplitude in enumerate(statevector):
             prob = np.abs(amplitude) ** 2
             if prob > 1e-6:

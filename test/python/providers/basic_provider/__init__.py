@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,34 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Qiskit BasicAer integration tests."""
+"""Qiskit BasicProvider integration tests."""
 
 from qiskit import transpile
 
 
-class BasicAerBackendTestMixin:
-    """Test mixins for BasicAer backend tests."""
+class BasicProviderBackendTestMixin:
+    """Test mixins for BasicProvider backend tests."""
 
     def test_configuration(self):
         """Test backend.configuration()."""
         configuration = self.backend.configuration()
         return configuration
 
-    def test_properties(self):
-        """Test backend.properties()."""
-        properties = self.backend.properties()
-        if self.backend.configuration().simulator:
-            self.assertEqual(properties, None)
-        return properties
-
-    def test_status(self):
-        """Test backend.status()."""
-        status = self.backend.status()
-        return status
-
     def test_run_circuit(self):
         """Test running a single circuit."""
-        job = self.backend.run(transpile(self.circuit, self.backend))
+        transpiled_qc = transpile(self.circuit, self.backend)
+        job = self.backend.run(transpiled_qc)
         result = job.result()
         self.assertEqual(result.success, True)
         return result
