@@ -599,7 +599,7 @@ class DefaultCase(Expression):
 class SwitchStatementV1(Statement):
     """AST node for the proposed 'switch-case' extension to OpenQASM 3.
 
-    The stabilised form of the syntax instead uses :class:`.SwitchStatement`."""
+    The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
 
     def __init__(
         self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
