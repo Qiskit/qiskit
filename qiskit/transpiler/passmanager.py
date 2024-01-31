@@ -28,7 +28,7 @@ from qiskit.passmanager.passmanager import BasePassManager
 from qiskit.passmanager.base_tasks import Task, BaseController
 from qiskit.passmanager.flow_controllers import FlowController
 from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
@@ -54,6 +54,9 @@ class PassManager(BasePassManager):
         """
         # For backward compatibility.
         self._pass_sets = []
+        # Revolting hack to let us eagerly switch to `FlowControllerLinear` in `to_flow_controller`
+        # (called by `BasePassManager.run`) before the deprecation expires.
+        self.__skip_running_pass_manager = False
 
         super().__init__(
             tasks=passes,
@@ -104,10 +107,9 @@ class PassManager(BasePassManager):
 
     @deprecate_arg(
         name="max_iteration",
-        since="0.25",
+        since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
+        removal_timeline="in the 1.0 release",
     )
     def append(
         self,
@@ -116,6 +118,12 @@ class PassManager(BasePassManager):
         **flow_controller_conditions: Any,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
+
+        .. deprecated:: 0.45
+
+            Creating flow controllers with :code:`flow_controller_conditions` keyword arguments
+            was deprecated. Instead, you must explicitly instantiate a controller
+            and set the controller to :code:`passes` argument.
 
         Args:
             passes: A set of passes (a pass set) to be added to schedule. A pass set is a list of
@@ -161,10 +169,9 @@ class PassManager(BasePassManager):
 
     @deprecate_arg(
         name="max_iteration",
-        since="0.25",
+        since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        pending=True,
-        package_name="qiskit-terra",
+        removal_timeline="in the 1.0 release",
     )
     def replace(
         self,
@@ -174,6 +181,12 @@ class PassManager(BasePassManager):
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
+
+        .. deprecated:: 0.45
+
+            Creating flow controllers with :code:`flow_controller_conditions` keyword arguments
+            was deprecated. Instead, you must explicitly instantiate a controller
+            and set the controller to :code:`passes` argument.
 
         Args:
             index: Pass index to replace, based on the position in passes().
@@ -234,6 +247,8 @@ class PassManager(BasePassManager):
     def to_flow_controller(self) -> RunningPassManager:
         # For backward compatibility.
         # This method will be resolved to the base class and return FlowControllerLinear
+        if self.__skip_running_pass_manager:
+            return super().to_flow_controller()
         flatten_tasks = list(self._flatten_tasks(self._tasks))
         return RunningPassManager(flatten_tasks)
 
@@ -288,11 +303,15 @@ class PassManager(BasePassManager):
         if callback is not None:
             callback = _legacy_style_callback(callback)
 
-        return super().run(
-            in_programs=circuits,
-            callback=callback,
-            output_name=output_name,
-        )
+        previous, self.__skip_running_pass_manager = self.__skip_running_pass_manager, True
+        try:
+            return super().run(
+                in_programs=circuits,
+                callback=callback,
+                output_name=output_name,
+            )
+        finally:
+            self.__skip_running_pass_manager = previous
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the pass manager.
@@ -320,6 +339,14 @@ class PassManager(BasePassManager):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
+    @deprecate_func(
+        since="0.46",
+        additional_msg=(
+            "Use .to_flow_controller().tasks instead. "
+            "This returns a sequence of linearized base task instances in tuple format."
+        ),
+        removal_timeline="in the 1.0 release",
+    )
     def passes(self) -> list[dict[str, BasePass]]:
         """Return a list structure of the appended passes and its options.
 
@@ -595,9 +622,9 @@ def _legacy_build_flow_controller(
         A built controller.
     """
     warnings.warn(
-        "Building a flow controller with keyword arguments is going to be deprecated. "
+        "Building a flow controller with keyword arguments is deprecated. "
         "Custom controllers must be explicitly instantiated and appended to the task list.",
-        PendingDeprecationWarning,
+        DeprecationWarning,
         stacklevel=3,
     )
     if isinstance(tasks, Task):

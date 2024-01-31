@@ -21,13 +21,13 @@ class FencedObject:
     of these attributes is accessed."""
 
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg=(
             "Internal use of FencedObject is already removed from pass manager. "
             "Implementation of a task subclass with protection for input object modification "
             "is now responsibility of the developer."
         ),
-        pending=True,
+        removal_timeline="in the 1.0 release",
     )
     def __init__(self, instance, attributes_to_fence):
         self._wrapped = instance
@@ -66,6 +66,15 @@ class FencedObject:
 class FencedPropertySet(FencedObject):
     """A property set that cannot be written (via __setitem__)"""
 
+    @deprecate_func(
+        since="0.46.0",
+        additional_msg=(
+            "Internal use of FencedObject is already removed from pass manager. "
+            "Implementation of a task subclass with protection for input object modification "
+            "is now responsibility of the developer."
+        ),
+        removal_timeline="in the 1.0 release",
+    )
     def __init__(self, property_set_instance):
         super().__init__(property_set_instance, ["__setitem__"])
 
@@ -73,6 +82,14 @@ class FencedPropertySet(FencedObject):
 class FencedDAGCircuit(FencedObject):
     """A dag circuit that cannot be modified (via remove_op_node)"""
 
-    # FIXME: add more fenced methods of the dag after dagcircuit rewrite
+    @deprecate_func(
+        since="0.46.0",
+        additional_msg=(
+            "Internal use of FencedObject is already removed from pass manager. "
+            "Implementation of a task subclass with protection for input object modification "
+            "is now responsibility of the developer."
+        ),
+        removal_timeline="in the 1.0 release",
+    )
     def __init__(self, dag_circuit_instance):
         super().__init__(dag_circuit_instance, ["remove_op_node"])

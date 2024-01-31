@@ -44,9 +44,16 @@ from qiskit.transpiler.passes.optimization import (
 from qiskit.transpiler.passes import Depth, Size, FixedPoint, MinimumPoint
 from qiskit.transpiler.passes.utils.gates_basis import GatesInBasis
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import UnitarySynthesis
-from qiskit.passmanager.flow_controllers import ConditionalController
+from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
+
+
+def _to_flow_controller(pass_manager):
+    """Convert a PassManager to a flow-controller, skipping the deprecated `RunningPassManager`
+    from the base class."""
+    # pylint: disable=bad-super-call
+    return super(type(pass_manager), PassManager).to_flow_controller(pass_manager)
 
 
 class DefaultInitPassManager(PassManagerStagePlugin):
@@ -511,7 +518,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
             else:
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
-            unroll = [pass_ for x in translation.passes() for pass_ in x["passes"]]
+            unroll = _to_flow_controller(translation)
             # Build nested Flow controllers
             def _unroll_condition(property_set):
                 return not property_set["all_gates_in_basis"]
@@ -531,7 +538,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 if optimization_level == 3
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
-            optimization.append(opt_loop, do_while=_opt_control)
+            optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
             return optimization
         else:
             return None
@@ -625,13 +632,19 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
         layout = PassManager()
         layout.append(_given_layout)
         if optimization_level == 0:
-            layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+            layout.append(
+                ConditionalController(
+                    TrivialLayout(coupling_map), condition=_choose_layout_condition
+                )
+            )
             layout += common.generate_embed_passmanager(coupling_map)
             return layout
         elif optimization_level == 1:
             layout.append(
-                [TrivialLayout(coupling_map), CheckMap(coupling_map)],
-                condition=_choose_layout_condition,
+                ConditionalController(
+                    [TrivialLayout(coupling_map), CheckMap(coupling_map)],
+                    condition=_choose_layout_condition,
+                )
             )
             choose_layout_1 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
@@ -641,7 +654,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
-            layout.append(choose_layout_1, condition=_layout_not_perfect)
+            layout.append(ConditionalController(choose_layout_1, condition=_layout_not_perfect))
             choose_layout_2 = SabreLayout(
                 coupling_map,
                 max_iterations=2,
@@ -652,7 +665,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_2], condition=_vf2_match_not_found
+                ConditionalController(
+                    [BarrierBeforeFinalMeasurements(), choose_layout_2],
+                    condition=_vf2_match_not_found,
+                )
             )
         elif optimization_level == 2:
             choose_layout_0 = VF2Layout(
@@ -663,7 +679,9 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=25000,  # Limits layout scoring to < 10s on ~400 qubit devices
             )
-            layout.append(choose_layout_0, condition=_choose_layout_condition)
+            layout.append(
+                ConditionalController(choose_layout_0, condition=_choose_layout_condition)
+            )
             choose_layout_1 = SabreLayout(
                 coupling_map,
                 max_iterations=2,
@@ -674,7 +692,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                ConditionalController(
+                    [BarrierBeforeFinalMeasurements(), choose_layout_1],
+                    condition=_vf2_match_not_found,
+                )
             )
         elif optimization_level == 3:
             choose_layout_0 = VF2Layout(
@@ -685,7 +706,9 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 target=pass_manager_config.target,
                 max_trials=250000,  # Limits layout scoring to < 60s on ~400 qubit devices
             )
-            layout.append(choose_layout_0, condition=_choose_layout_condition)
+            layout.append(
+                ConditionalController(choose_layout_0, condition=_choose_layout_condition)
+            )
             choose_layout_1 = SabreLayout(
                 coupling_map,
                 max_iterations=4,
@@ -696,15 +719,16 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and pass_manager_config.routing_method != "sabre",
             )
             layout.append(
-                [BarrierBeforeFinalMeasurements(), choose_layout_1], condition=_vf2_match_not_found
+                ConditionalController(
+                    [BarrierBeforeFinalMeasurements(), choose_layout_1],
+                    condition=_vf2_match_not_found,
+                )
             )
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
 
         embed = common.generate_embed_passmanager(coupling_map)
-        layout.append(
-            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
-        )
+        layout.append(ConditionalController(_to_flow_controller(embed), condition=_swap_mapped))
         return layout
 
 
@@ -724,7 +748,9 @@ class TrivialLayoutPassManager(PassManagerStagePlugin):
 
         layout = PassManager()
         layout.append(_given_layout)
-        layout.append(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+        layout.append(
+            ConditionalController(TrivialLayout(coupling_map), condition=_choose_layout_condition)
+        )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
 
@@ -746,12 +772,14 @@ class DenseLayoutPassManager(PassManagerStagePlugin):
         layout = PassManager()
         layout.append(_given_layout)
         layout.append(
-            DenseLayout(
-                coupling_map=pass_manager_config.coupling_map,
-                backend_prop=pass_manager_config.backend_properties,
-                target=pass_manager_config.target,
-            ),
-            condition=_choose_layout_condition,
+            ConditionalController(
+                DenseLayout(
+                    coupling_map=pass_manager_config.coupling_map,
+                    backend_prop=pass_manager_config.backend_properties,
+                    target=pass_manager_config.target,
+                ),
+                condition=_choose_layout_condition,
+            )
         )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
@@ -775,14 +803,19 @@ class NoiseAdaptiveLayoutPassManager(PassManagerStagePlugin):
         layout.append(_given_layout)
         if pass_manager_config.target is None:
             layout.append(
-                NoiseAdaptiveLayout(
-                    pass_manager_config.backend_properties, pass_manager_config.coupling_map
-                ),
-                condition=_choose_layout_condition,
+                ConditionalController(
+                    NoiseAdaptiveLayout(
+                        pass_manager_config.backend_properties, pass_manager_config.coupling_map
+                    ),
+                    condition=_choose_layout_condition,
+                )
             )
         else:
             layout.append(
-                NoiseAdaptiveLayout(pass_manager_config.target), condition=_choose_layout_condition
+                ConditionalController(
+                    NoiseAdaptiveLayout(pass_manager_config.target),
+                    condition=_choose_layout_condition,
+                )
             )
         layout += common.generate_embed_passmanager(coupling_map)
         return layout
@@ -850,10 +883,11 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
         else:
             raise TranspilerError(f"Invalid optimization level: {optimization_level}")
         layout.append(
-            [BarrierBeforeFinalMeasurements(), layout_pass], condition=_choose_layout_condition
+            ConditionalController(
+                [BarrierBeforeFinalMeasurements(), layout_pass],
+                condition=_choose_layout_condition,
+            )
         )
         embed = common.generate_embed_passmanager(coupling_map)
-        layout.append(
-            [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
-        )
+        layout.append(ConditionalController(_to_flow_controller(embed), condition=_swap_mapped))
         return layout

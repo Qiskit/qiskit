@@ -86,10 +86,12 @@ class TestGatesInBasisPass(QiskitTestCase):
         self.assertFalse(property_set["all_gates_in_basis"])
         pm = PassManager()
         pm.append(analysis_pass)
-        pm.append(
-            BasisTranslator(SessionEquivalenceLibrary, basis_gates),
-            condition=lambda property_set: not property_set["all_gates_in_basis"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            pm.append(
+                BasisTranslator(SessionEquivalenceLibrary, basis_gates),
+                condition=lambda property_set: not property_set["all_gates_in_basis"],
+            )
         pm.append(analysis_pass)
         pm.run(circuit)
         self.assertTrue(pm.property_set["all_gates_in_basis"])
@@ -210,10 +212,12 @@ class TestGatesInBasisPass(QiskitTestCase):
         self.assertFalse(property_set["all_gates_in_basis"])
         pm = PassManager()
         pm.append(analysis_pass)
-        pm.append(
-            BasisTranslator(SessionEquivalenceLibrary, basis_gates, target=target),
-            condition=lambda property_set: not property_set["all_gates_in_basis"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            pm.append(
+                BasisTranslator(SessionEquivalenceLibrary, basis_gates, target=target),
+                condition=lambda property_set: not property_set["all_gates_in_basis"],
+            )
         pm.append(analysis_pass)
         pm.run(circuit)
         self.assertTrue(pm.property_set["all_gates_in_basis"])

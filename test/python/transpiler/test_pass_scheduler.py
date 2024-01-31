@@ -135,9 +135,11 @@ class TestUseCases(SchedulerTestCase):
     def test_conditional_passes_true(self):
         """A pass set with a conditional parameter. The callable is True."""
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+            )
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -170,9 +172,11 @@ class TestUseCases(SchedulerTestCase):
     def test_conditional_passes_false(self):
         """A pass set with a conditional parameter. The callable is False."""
         self.passmanager.append(PassE_AP_NR_NP(False))
-        self.passmanager.append(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+            )
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -182,11 +186,13 @@ class TestUseCases(SchedulerTestCase):
     def test_conditional_and_loop(self):
         """Run a conditional first, then a loop."""
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-            condition=lambda property_set: property_set["property"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+                condition=lambda property_set: property_set["property"],
+            )
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -245,11 +251,13 @@ class TestUseCases(SchedulerTestCase):
             FlowController.add_flow_controller("condition", ConditionalController)
 
         self.passmanager.append(PassK_check_fixed_point_property())
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-            condition=lambda property_set: not property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+                condition=lambda property_set: not property_set["property_fixed_point"],
+            )
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -379,10 +387,12 @@ class TestUseCases(SchedulerTestCase):
 
     def test_fixed_point_pass(self):
         """A pass set with a do_while parameter that checks for a fixed point."""
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            )
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -491,11 +501,13 @@ class TestUseCases(SchedulerTestCase):
     def test_fixed_point_pass_max_iteration(self):
         """A pass set with a do_while parameter that checks that
         the max_iteration is raised."""
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-            max_iteration=2,
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs and max_iteration
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+                max_iteration=2,
+            )
         self.assertSchedulerRaises(
             self.circuit,
             self.passmanager,
@@ -540,12 +552,14 @@ class TestUseCases(SchedulerTestCase):
                 [PassA_TP_NR_NP()], condition=lambda property_set: property_set["property"] >= 5
             )
         ]
-        self.passmanager.append(
-            [PassK_check_fixed_point_property()]
-            + nested_conditional
-            + [PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property()]
+                + nested_conditional
+                + [PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            )
         expected = [
             "run analysis pass PassG_calculates_dag_property",
             "set property as 8 (from dag.property)",
@@ -616,7 +630,9 @@ class TestControlFlowPlugin(SchedulerTestCase):
         """Adds a control flow plugin with a single parameter and runs it."""
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_x_times", DoXTimesController)
-        self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertScheduler(
             self.circuit,
             self.passmanager,
@@ -640,11 +656,13 @@ class TestControlFlowPlugin(SchedulerTestCase):
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_while", DoWhileController)
         self.assertEqual(controllers_length, len(FlowController.registered_controllers))
-        self.passmanager.append(
-            [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
-            do_while=lambda property_set: True,
-            max_iteration=2,
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassB_TP_RA_PA(), PassC_TP_RA_PA()],
+                do_while=lambda property_set: True,
+                max_iteration=2,
+            )
         self.assertSchedulerRaises(
             self.circuit,
             self.passmanager,
@@ -678,7 +696,8 @@ class TestDumpPasses(SchedulerTestCase):
             {"flow_controllers": {}, "passes": [PassC_TP_RA_PA()]},
             {"flow_controllers": {}, "passes": [PassB_TP_RA_PA()]},
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_passes_in_linear(self):
         """Dump passes in the same FlowControllerLinear"""
@@ -702,29 +721,35 @@ class TestDumpPasses(SchedulerTestCase):
                 ],
             }
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
         """Dump passes in a custom flow controller."""
         passmanager = PassManager()
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_x_times", DoXTimesController)
-        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
 
         expected = [
             {"passes": [PassB_TP_RA_PA(), PassC_TP_RA_PA()], "flow_controllers": {"do_x_times"}}
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
     def test_conditional_and_loop(self):
         """Dump passes with a conditional and a loop."""
         passmanager = PassManager()
         passmanager.append(PassE_AP_NR_NP(True))
-        passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-            condition=lambda property_set: property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+                condition=lambda property_set: property_set["property_fixed_point"],
+            )
 
         expected = [
             {"passes": [PassE_AP_NR_NP(True)], "flow_controllers": {}},
@@ -737,7 +762,8 @@ class TestDumpPasses(SchedulerTestCase):
                 "flow_controllers": {"condition", "do_while"},
             },
         ]
-        self.assertEqual(expected, passmanager.passes())
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(expected, passmanager.passes())
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -806,7 +832,9 @@ class TestLogPasses(QiskitTestCase):
         passmanager = PassManager()
         with self.assertWarns(DeprecationWarning):
             FlowController.add_flow_controller("do_x_times", DoXTimesController)
-        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
         self.assertPassLog(
             passmanager,
             [
@@ -824,11 +852,13 @@ class TestLogPasses(QiskitTestCase):
         """Dump passes with a conditional and a loop"""
         passmanager = PassManager()
         passmanager.append(PassE_AP_NR_NP(True))
-        passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-            condition=lambda property_set: property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+                condition=lambda property_set: property_set["property_fixed_point"],
+            )
         self.assertPassLog(passmanager, ["PassE_AP_NR_NP"])
 
 
@@ -857,9 +887,11 @@ class TestPassManagerReuse(SchedulerTestCase):
     def test_conditional_twice(self):
         """Run a conditional twice."""
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+            )
 
         expected = [
             "run analysis pass PassE_AP_NR_NP",
@@ -872,10 +904,12 @@ class TestPassManagerReuse(SchedulerTestCase):
 
     def test_fixed_point_twice(self):
         """A fixed point scheduler, twice."""
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            )
 
         expected = [
             "run analysis pass PassG_calculates_dag_property",
@@ -1014,9 +1048,11 @@ class TestPassManagerChanges(SchedulerTestCase):
         self.passmanager.append(PassE_AP_NR_NP(False))
         self.passmanager.append(PassB_TP_RA_PA())
 
-        self.passmanager.replace(
-            1, PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated replace with controller kwargs
+            self.passmanager.replace(
+                1, PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+            )
 
         expected = ["run analysis pass PassE_AP_NR_NP", "set property as False"]
         self.assertScheduler(self.circuit, self.passmanager, expected)
@@ -1070,11 +1106,13 @@ class TestPassManagerSlicing(SchedulerTestCase):
     def test_accessing_passmanager_by_index_with_condition(self):
         """test accessing PassManager's conditioned passes by index"""
         self.passmanager.append(PassF_reduce_dag_property())
-        self.passmanager.append(
-            [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
-            condition=lambda property_set: True,
-            do_while=lambda property_set: not property_set["property_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                [PassK_check_fixed_point_property(), PassA_TP_NR_NP(), PassF_reduce_dag_property()],
+                condition=lambda property_set: True,
+                do_while=lambda property_set: not property_set["property_fixed_point"],
+            )
 
         new_passmanager = self.passmanager[1]
 
@@ -1144,9 +1182,11 @@ class TestPassManagerSlicing(SchedulerTestCase):
         """test accessing PassManager's passes by range with condition"""
         self.passmanager.append(PassB_TP_RA_PA())
         self.passmanager.append(PassE_AP_NR_NP(True))
-        self.passmanager.append(
-            PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager.append(
+                PassA_TP_NR_NP(), condition=lambda property_set: property_set["property"]
+            )
         self.passmanager.append(PassB_TP_RA_PA())
 
         new_passmanager = self.passmanager[1:3]
@@ -1193,9 +1233,11 @@ class TestPassManagerConcatenation(SchedulerTestCase):
         """test adding two pass managers with condition"""
         self.passmanager1.append(PassE_AP_NR_NP(True))
         self.passmanager1.append(PassB_TP_RA_PA())
-        self.passmanager2.append(
-            PassC_TP_RA_PA(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager2.append(
+                PassC_TP_RA_PA(), condition=lambda property_set: property_set["property"]
+            )
         self.passmanager2.append(PassB_TP_RA_PA())
 
         new_passmanager = self.passmanager1 + self.passmanager2
@@ -1246,9 +1288,11 @@ class TestPassManagerConcatenation(SchedulerTestCase):
     def test_adding_list_of_passes_to_passmanager_with_condition(self):
         """test adding a list of passes to a PassManager that have conditions"""
         self.passmanager1.append(PassE_AP_NR_NP(False))
-        self.passmanager1.append(
-            PassB_TP_RA_PA(), condition=lambda property_set: property_set["property"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.passmanager1.append(
+                PassB_TP_RA_PA(), condition=lambda property_set: property_set["property"]
+            )
 
         self.passmanager1 += PassC_TP_RA_PA()
 

@@ -144,20 +144,29 @@ class TestPassManager(QiskitTestCase):
         def make_inner(prefix):
             inner = PassManager()
             inner.append(DummyPass(f"{prefix} 1"))
-            inner.append(DummyPass(f"{prefix} 2"), condition=lambda _: False)
-            inner.append(DummyPass(f"{prefix} 3"), condition=lambda _: True)
-            inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
-            return inner.to_flow_controller()
+            with self.assertWarns(DeprecationWarning):
+                # Deprecated append with controller kwargs
+                inner.append(DummyPass(f"{prefix} 2"), condition=lambda _: False)
+            with self.assertWarns(DeprecationWarning):
+                inner.append(DummyPass(f"{prefix} 3"), condition=lambda _: True)
+            with self.assertWarns(DeprecationWarning):
+                inner.append(DummyPass(f"{prefix} 4"), do_while=repeat(1))
+            with self.assertWarns(DeprecationWarning):
+                return inner.to_flow_controller()
 
         self.assertIsInstance(make_inner("test"), FlowControllerLinear)
 
         outer = PassManager()
         outer.append(make_inner("first"))
-        outer.append(make_inner("second"), condition=lambda _: False)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            outer.append(make_inner("second"), condition=lambda _: False)
         # The intent of this `condition=repeat(1)` is to ensure that the outer condition is only
         # checked once and not flattened into the inner controllers; an inner pass invalidating the
         # condition should not affect subsequent passes once the initial condition was met.
-        outer.append(make_inner("third"), condition=repeat(1))
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            outer.append(make_inner("third"), condition=repeat(1))
 
         calls = []
 

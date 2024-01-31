@@ -310,10 +310,12 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         expected.measure(qr[0], cr[0])
 
         pass_manager = PassManager()
-        pass_manager.append(
-            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            pass_manager.append(
+                [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
@@ -339,10 +341,12 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         expected.measure(qr[0], cr[0])
 
         pass_manager = PassManager()
-        pass_manager.append(
-            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            pass_manager.append(
+                [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         after = pass_manager.run(circuit)
 
         self.assertEqual(expected, after)
