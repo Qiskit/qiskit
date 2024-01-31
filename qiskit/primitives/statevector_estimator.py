@@ -88,7 +88,8 @@ class StatevectorEstimator(BaseEstimatorV2):
             plt.plot(result.data.evs[idx], label=pauli)
         plt.legend()
 
-        # Error-bar information is also available, but the error is always 0 for the StatevectorEstimator.
+        # Error-bar information is also available, but the error is always 0 for the
+        # StatevectorEstimator.
         result.data.stds
     """
 
