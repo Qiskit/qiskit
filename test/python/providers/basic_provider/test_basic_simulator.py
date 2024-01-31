@@ -14,14 +14,14 @@
 
 import os
 import unittest
-
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.test import QiskitTestCase
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from . import BasicProviderBackendTestMixin
 

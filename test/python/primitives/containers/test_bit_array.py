@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.primitives.containers import BitArray
 from qiskit.result import Counts
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def u_8(arr):

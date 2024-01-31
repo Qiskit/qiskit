@@ -25,7 +25,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeProviderForBackendV2,
     FakeProvider,
@@ -77,6 +76,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
 FAKE_PROVIDER = FakeProvider()

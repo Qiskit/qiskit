@@ -15,14 +15,13 @@
 import unittest
 from inspect import signature
 from math import pi
-
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
+
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, ControlledGate
 from qiskit.circuit.library import (
     U1Gate,
@@ -42,6 +41,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.quantum_info import Operator
 from qiskit import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStandard1Q(QiskitTestCase):

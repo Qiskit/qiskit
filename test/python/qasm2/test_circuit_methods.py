@@ -18,14 +18,13 @@ import os
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Gate, Parameter
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.qasm2 import dumps
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class LoadFromQasmTest(QiskitTestCase):

@@ -16,13 +16,12 @@
 
 from ddt import data, ddt
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import bit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import AncillaRegister
 from qiskit.circuit import ClassicalRegister
-
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

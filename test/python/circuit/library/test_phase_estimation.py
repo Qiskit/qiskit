@@ -13,13 +13,12 @@
 """Test library of phase estimation circuits."""
 
 import unittest
-
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseEstimation, QFT
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPhaseEstimation(QiskitTestCase):

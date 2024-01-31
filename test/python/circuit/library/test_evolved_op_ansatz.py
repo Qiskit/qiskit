@@ -20,7 +20,7 @@ from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 from qiskit.circuit.library import HamiltonianGate
 from qiskit.circuit.library.n_local import EvolvedOperatorAnsatz
 from qiskit.synthesis.evolution import MatrixExponential
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEvolvedOperatorAnsatz(QiskitTestCase):

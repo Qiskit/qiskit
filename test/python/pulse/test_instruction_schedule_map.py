@@ -33,8 +33,8 @@ from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
