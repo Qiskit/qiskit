@@ -88,6 +88,7 @@ sk = "qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevS
 "permutation.kms" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation"
 "permutation.basic" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation"
 "permutation.acg" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation"
+"permutation.token_swapper" = "qiskit.transpiler.passes.synthesis.high_level_synthesis:TokenSwapperSynthesisPermutation"
 
 [project.entry-points."qiskit.transpiler.init"]
 default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPassManager"
@@ -95,7 +96,6 @@ default = "qiskit.transpiler.preset_passmanagers.builtin_plugins:DefaultInitPass
 [project.entry-points."qiskit.transpiler.translation"]
 synthesis = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnitarySynthesisPassManager"
 translator = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasisTranslatorPassManager"
-unroller = "qiskit.transpiler.preset_passmanagers.builtin_plugins:UnrollerPassManager"
 
 [project.entry-points."qiskit.transpiler.routing"]
 basic = "qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager"

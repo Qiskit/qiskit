@@ -27,8 +27,6 @@ import sys
 import warnings
 import unittest
 from unittest.util import safe_repr
-from enum import Enum
-from itertools import product
 
 from qiskit.utils.parallel import get_platform_parallel_default
 from qiskit.exceptions import QiskitWarning
@@ -64,21 +62,6 @@ else:
         """Base test class."""
 
         pass
-
-
-class Path(Enum):
-    """Helper with paths commonly used during the tests."""
-
-    # Main SDK path:    qiskit/
-    SDK = qiskit_path[0]
-    # test.python path: qiskit/test/python/
-    TEST = os.path.normpath(os.path.join(SDK, "..", "test", "python"))
-    # Examples path:    examples/
-    EXAMPLES = os.path.normpath(os.path.join(SDK, "..", "examples"))
-    # Schemas path:     qiskit/schemas
-    SCHEMAS = os.path.normpath(os.path.join(SDK, "schemas"))
-    # Sample QASMs path: qiskit/test/python/qasm
-    QASMS = os.path.normpath(os.path.join(TEST, "qasm"))
 
 
 @enforce_subclasses_call(["setUp", "setUpClass", "tearDown", "tearDownClass"])
@@ -189,9 +172,9 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
-        from qiskit.providers.basicaer import BasicAer
+        from qiskit.providers.basic_provider import BasicProvider
 
-        BasicAer._backends = BasicAer._verify_backends()
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):
@@ -338,58 +321,6 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return error_msg[:-2] + msg_suffix
     else:
         return ""
-
-
-def setup_test_logging(logger, log_level, filename):
-    """Set logging to file and stdout for a logger.
-
-    Args:
-        logger (Logger): logger object to be updated.
-        log_level (str): logging level.
-        filename (str): name of the output file.
-    """
-    # Set up formatter.
-    log_fmt = f"{logger.name}.%(funcName)s:%(levelname)s:%(asctime)s: %(message)s"
-    formatter = logging.Formatter(log_fmt)
-
-    # Set up the file handler.
-    file_handler = logging.FileHandler(filename)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    if os.getenv("STREAM_LOG"):
-        # Set up the stream handler.
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(stream_handler)
-
-    # Set the logging level from the environment variable, defaulting
-    # to INFO if it is not a valid level.
-    level = logging._nameToLevel.get(log_level, logging.INFO)
-    logger.setLevel(level)
-
-
-class Case(dict):
-    """<no description>"""
-
-    pass
-
-
-def generate_cases(docstring, dsc=None, name=None, **kwargs):
-    """Combines kwargs in Cartesian product and creates Case with them"""
-    ret = []
-    keys = kwargs.keys()
-    vals = kwargs.values()
-    for values in product(*vals):
-        case = Case(zip(keys, values))
-        if docstring is not None:
-            setattr(case, "__doc__", docstring.format(**case))
-        if dsc is not None:
-            setattr(case, "__doc__", dsc.format(**case))
-        if name is not None:
-            setattr(case, "__name__", name.format(**case))
-        ret.append(case)
-    return ret
 
 
 # Maintain naming backwards compatibility for downstream packages.

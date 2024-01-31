@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,8 +27,7 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
     passmanager_stage_plugins,
 )
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.basicaer import QasmSimulatorPy
-from test import combine  # pylint: disable=wrong-import-order
+from qiskit.providers.basic_provider import BasicSimulator
 from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -110,7 +109,7 @@ class TestBuiltinPlugins(QiskitTestCase):
             optimization_level=optimization_level,
             routing_method=routing_method,
         )
-        backend = QasmSimulatorPy()
+        backend = BasicSimulator()
         counts = backend.run(tqc, shots=1000).result().get_counts()
         self.assertDictAlmostEqual(counts, {"0000": 500, "1111": 500}, delta=100)
 
@@ -119,7 +118,7 @@ class TestBuiltinPlugins(QiskitTestCase):
     )
     def test_unitary_synthesis_plugins(self, optimization_level):
         """Test unitary synthesis plugins"""
-        backend = QasmSimulatorPy()
+        backend = BasicSimulator()
         with self.assertRaises(TranspilerError):
             _ = generate_preset_pass_manager(
                 optimization_level=optimization_level,

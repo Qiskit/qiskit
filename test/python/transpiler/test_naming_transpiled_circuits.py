@@ -16,7 +16,7 @@ import unittest
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit import BasicAer
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler.exceptions import TranspilerError
 from test.utils import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -27,7 +27,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.basis_gates = ["u1", "u2", "u3", "cx"]
-        self.backend = BasicAer.get_backend("qasm_simulator")
+        self.backend = BasicSimulator()
 
         self.circuit0 = QuantumCircuit(name="circuit0")
         self.circuit1 = QuantumCircuit(name="circuit1")
