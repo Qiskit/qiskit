@@ -53,15 +53,16 @@ class StatevectorSampler(BaseSamplerV2):
     """
     Simple implementation of :class:`BaseSamplerV2` using full state vector simulation.
 
+    This class is implemented via :class:`~.Statevector` which turns provided circuits into
+    pure state vectors, and is therefore incompatible with mid-circuit measurements (although
+    other implementions may be).
+
     As seen in the example below, this sampler supports providing arrays of parameter value sets to
     bind against a single circuit.
 
     Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
-    primitive unified bloc (PUB), produces its own array-based result. The :meth:`~run` method can
-    be given many pubs at once. Formally, the types of the second entry of a sampler pub is
-    :class:`BindingsArray`, but, as seen in the example, there is a type coersion strategy
-    implemented by :class:`~.SamplerPub` to allow a diverse set of alternative types for
-    convenience.
+    primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
+    be given many pubs at once.
 
     .. code: python
 
