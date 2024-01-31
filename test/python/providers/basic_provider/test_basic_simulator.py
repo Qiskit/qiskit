@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,38 +10,28 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test QASM simulator."""
+"""Test basic simulator."""
 
 import os
 import unittest
-import io
-from logging import StreamHandler, getLogger
-import sys
 
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile, assemble
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.test import QiskitTestCase
 from qiskit.qasm2 import dumps
 
-from . import BasicAerBackendTestMixin
+from . import BasicProviderBackendTestMixin
 
 
-class StreamHandlerRaiseException(StreamHandler):
-    """Handler class that will raise an exception on formatting errors."""
-
-    def handleError(self, record):
-        raise sys.exc_info()
-
-
-class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
-    """Test the Basic qasm_simulator."""
+class TestBasicSimulator(QiskitTestCase, BasicProviderBackendTestMixin):
+    """Test the basic provider simulator."""
 
     def setUp(self):
         super().setUp()
-        self.backend = QasmSimulatorPy()
+        self.backend = BasicSimulator()
         bell = QuantumCircuit(2, 2)
         bell.h(0)
         bell.cx(0, 1)
@@ -49,19 +39,17 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         self.circuit = bell
 
         self.seed = 88
-        qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
+        self.backend = BasicSimulator()
+        qasm_dir = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "qasm"
+        )
         qasm_filename = os.path.join(qasm_dir, "example.qasm")
         qcirc = QuantumCircuit.from_qasm_file(qasm_filename)
         qcirc.name = "test"
         self.transpiled_circuit = transpile(qcirc, backend=self.backend)
         self.qobj = assemble(self.transpiled_circuit, shots=1000, seed_simulator=self.seed)
-        logger = getLogger()
-        self.addCleanup(logger.setLevel, logger.level)
-        logger.setLevel("DEBUG")
-        self.log_output = io.StringIO()
-        logger.addHandler(StreamHandlerRaiseException(self.log_output))
 
-    def test_qasm_simulator_single_shot(self):
+    def test_basic_simulator_single_shot(self):
         """Test single shot run."""
         shots = 1
         result = self.backend.run(
@@ -81,7 +69,9 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         circuit.measure(qr[1], cr[2])
         circuit.measure(qr[0], cr[3])
         target = {"0110": shots}
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(
+            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
+        )
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
@@ -98,7 +88,9 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
             circuit.x(qr[qubit])
             circuit.measure(qr[qubit], cr[0])
             target = {"1": shots}
-            job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
+            job = self.backend.run(
+                transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
+            )
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target)
@@ -135,12 +127,14 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         circuit.barrier(qr)
         circuit.measure(qr[3], cr[3])
         target = {"1011": shots}
-        job = self.backend.run(circuit, shots=shots, seed_simulator=self.seed)
+        job = self.backend.run(
+            transpile(circuit, self.backend), shots=shots, seed_simulator=self.seed
+        )
         result = job.result()
         counts = result.get_counts(0)
         self.assertEqual(counts, target)
 
-    def test_qasm_simulator(self):
+    def test_basic_simulator(self):
         """Test data counts output for single circuit run against reference."""
         result = self.backend.run(
             self.transpiled_circuit, shots=1000, seed_simulator=self.seed
@@ -205,11 +199,10 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
         job = self.backend.run(
-            [circuit_if_true, circuit_if_false],
+            transpile([circuit_if_true, circuit_if_false], self.backend),
             shots=shots,
             seed_simulator=self.seed,
         )
-
         result = job.result()
         counts_if_true = result.get_counts(circuit_if_true)
         counts_if_false = result.get_counts(circuit_if_false)
@@ -263,7 +256,7 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         #                                                         0
         self.log.info("test_teleport")
         pi = np.pi
-        shots = 2000
+        shots = 4000
         qr = QuantumRegister(3, "qr")
         cr0 = ClassicalRegister(1, "cr0")
         cr1 = ClassicalRegister(1, "cr1")
@@ -335,7 +328,9 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-        job = self.backend.run(circ, shots=shots, memory=True)
+        job = self.backend.run(
+            transpile(circ, self.backend), shots=shots, seed_simulator=self.seed, memory=True
+        )
         result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
@@ -362,7 +357,7 @@ class TestBasicAerQasmSimulator(QiskitTestCase, BasicAerBackendTestMixin):
             circuit = QuantumCircuit(qr, cr)
             circuit.unitary(multi_x, qr)
             circuit.measure(qr, cr)
-            job = self.backend.run(transpile(circuit), shots=shots)
+            job = self.backend.run(transpile(circuit, self.backend), shots=shots)
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target_counts)

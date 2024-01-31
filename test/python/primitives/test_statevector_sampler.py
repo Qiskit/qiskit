@@ -288,10 +288,9 @@ class TestStatevectorSampler(QiskitTestCase):
         qc1.measure_all()
         qc2 = RealAmplitudes(num_qubits=1, reps=1)
         qc2.measure_all()
-        qc3 = QuantumCircuit(1)
-        qc4 = QuantumCircuit(1, 1)
-        with qc4.for_loop(range(5)):
-            qc4.h(0)
+        qc3 = QuantumCircuit(1, 1)
+        with qc3.for_loop(range(5)):
+            qc3.h(0)
 
         sampler = StatevectorSampler()
         with self.subTest("set parameter values to a non-parameterized circuit"):
@@ -310,12 +309,9 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("too many parameter values for a parameterized circuit"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([(qc2, [1e2] * 100)]).result()
-        with self.subTest("no classical bits"):
-            with self.assertRaises(ValueError):
-                _ = sampler.run([qc3]).result()
         with self.subTest("with control flow"):
             with self.assertRaises(QiskitError):
-                _ = sampler.run([qc4]).result()
+                _ = sampler.run([qc3]).result()
         with self.subTest("negative shots, run arg"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([qc1], shots=-1).result()
@@ -618,6 +614,16 @@ class TestStatevectorSampler(QiskitTestCase):
         for creg_name in target:
             self.assertTrue(hasattr(data, creg_name))
             self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
+
+    def test_no_cregs(self):
+        """Test that the sampler works when there are no classical register in the circuit."""
+        qc = QuantumCircuit(2)
+        sampler = StatevectorSampler()
+        with self.assertWarns(UserWarning):
+            result = sampler.run([qc]).result()
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result[0].data), 0)
 
 
 if __name__ == "__main__":
