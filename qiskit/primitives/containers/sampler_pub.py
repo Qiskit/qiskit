@@ -26,6 +26,9 @@ from qiskit import QuantumCircuit
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .shape import ShapedMixin
 
+# Public API classes
+__all__ = ["SamplerPubLike"]
+
 
 class SamplerPub(ShapedMixin):
     """Pub (Primitive Unified Bloc) for a Sampler.

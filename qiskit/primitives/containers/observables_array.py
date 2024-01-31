@@ -31,6 +31,8 @@ from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
 
+# Public API classes
+__all__ = ["ObservableLike", "ObservablesArrayLike"]
 
 ObservableLike = Union[
     str,

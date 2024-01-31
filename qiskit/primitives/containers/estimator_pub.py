@@ -29,6 +29,9 @@ from .bindings_array import BindingsArray, BindingsArrayLike
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin
 
+# Public API classes
+__all__ = ["EstimatorPubLike"]
+
 
 class EstimatorPub(ShapedMixin):
     """Primitive Unified Bloc for any Estimator primitive.

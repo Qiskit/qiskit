@@ -26,6 +26,10 @@ from qiskit.circuit import Parameter, QuantumCircuit
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
+# Public API classes
+__all__ = ["ParameterLike", "BindingsArrayLike"]
+
+
 ParameterLike = Union[Parameter, str]
 """A parameter or parameter name."""
 
