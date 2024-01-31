@@ -528,7 +528,7 @@ class BasicPrinter:
         self.stream.write("}")
         self._end_line()
 
-    def _visit_SwitchStatementV1(self, node: ast.SwitchStatementV1) -> None:
+    def _visit_SwitchStatementPreview(self, node: ast.SwitchStatementPreview) -> None:
         # This is the pre-release syntax, which had lots of extra `break` statements in it.
         self._start_line()
         self.stream.write("switch (")

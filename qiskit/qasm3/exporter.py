@@ -857,7 +857,7 @@ class QASM3Builder:
 
             return [
                 ast.AssignmentStatement(target, real_target),
-                ast.SwitchStatementV1(
+                ast.SwitchStatementPreview(
                     target,
                     (
                         case(values, block)
