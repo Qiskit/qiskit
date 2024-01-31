@@ -273,7 +273,7 @@ pub fn eval_measure_carg(
     match carg {
         asg::LValue::Identifier(iden) => {
             let symbol_id = iden.as_ref().map_err(|err| {
-                QASM3ImporterError::new_err(format!("internal logic error: {:?}", err))
+                QASM3ImporterError::new_err(format!("internal error: {:?}", err))
             })?;
             broadcast_bits_for_identifier(py, &our_symbols.clbits, &our_symbols.cregs, symbol_id)
         }
@@ -307,7 +307,7 @@ pub fn expect_gate_operand(expr: &asg::TExpr) -> PyResult<&asg::GateOperand> {
     match expr.expression() {
         asg::Expr::GateOperand(operand) => Ok(operand),
         expr => Err(QASM3ImporterError::new_err(format!(
-            "internal logic error: not a gate operand {:?}",
+            "internal error: not a gate operand {:?}",
             expr
         ))),
     }

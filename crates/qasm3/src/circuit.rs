@@ -111,7 +111,7 @@ impl PyGate {
             self.constructor.call1(py, args.as_ref(py))
         } else {
             Err(QASM3ImporterError::new_err(format!(
-                "internal logic error: wrong number of params for {} (got {}, expected {})",
+                "internal error: wrong number of params for {} (got {}, expected {})",
                 &self.name, received_num_params, self.num_params
             )))
         }

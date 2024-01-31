@@ -61,7 +61,7 @@ impl BuilderState {
         let name_id = decl
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
         let name_symbol = &ast_symbols[name_id];
         match name_symbol.symbol_type() {
             Type::Bit(is_const) => {
@@ -88,7 +88,7 @@ impl BuilderState {
                             self.add_creg(py, name_id.clone(), name_symbol.name(), *size)
                         }
                         _ => Err(QASM3ImporterError::new_err(
-                            "cannot handle quantum registers with more than one dimension",
+                            "cannot handle classical registers with more than one dimension",
                         )),
                     }
                 }
@@ -109,7 +109,7 @@ impl BuilderState {
         let name_id = decl
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
         let name_symbol = &ast_symbols[name_id];
         match name_symbol.symbol_type() {
             Type::Qubit => self.add_qubit(py, name_id.clone()),
@@ -137,9 +137,9 @@ impl BuilderState {
         let gate_id = call
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
         let gate = self.symbols.gates.get(gate_id).ok_or_else(|| {
-            QASM3ImporterError::new_err(format!("internal logic error: unknown gate {:?}", gate_id))
+            QASM3ImporterError::new_err(format!("internal error: unknown gate {:?}", gate_id))
         })?;
         let params = PyTuple::new(
             py,
@@ -233,7 +233,7 @@ impl BuilderState {
         let name_id = decl
             .name()
             .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error {:?}", err)))?;
+            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
         let name_symbol = &ast_symbols[name_id];
         let pygate = self.pygates.get(name_symbol.name()).ok_or_else(|| {
             QASM3ImporterError::new_err(format!(
@@ -301,9 +301,12 @@ impl BuilderState {
             .insert(ast_symbol, qubit.clone_ref(py))
             .is_some()
         {
-            panic!("internal logic error: attempted to add the same qubit multiple times")
+            Err(QASM3ImporterError::new_err(
+                "internal error: attempted to add the same qubit multiple times",
+            ))
+        } else {
+            self.qc.add_qubit(py, qubit)
         }
-        self.qc.add_qubit(py, qubit)
     }
 
     fn add_clbit(&mut self, py: Python, ast_symbol: SymbolId) -> PyResult<()> {
@@ -314,9 +317,12 @@ impl BuilderState {
             .insert(ast_symbol, clbit.clone_ref(py))
             .is_some()
         {
-            panic!("internal logic error: attempted to add the same clbit multiple times")
+            Err(QASM3ImporterError::new_err(
+                "internal error: attempted to add the same clbit multiple times",
+            ))
+        } else {
+            self.qc.add_clbit(py, clbit)
         }
-        self.qc.add_clbit(py, clbit)
     }
 
     fn add_qreg<T: IntoPy<Py<PyString>>>(
@@ -329,9 +335,12 @@ impl BuilderState {
         let qreg = self.module.new_qreg(py, name, size)?;
         self.qc.add_qreg(py, &qreg)?;
         if self.symbols.qregs.insert(ast_symbol, qreg).is_some() {
-            panic!("internal logic error: attempted to add the same register multiple times")
+            Err(QASM3ImporterError::new_err(
+                "internal error: attempted to add the same register multiple times",
+            ))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 
     fn add_creg<T: IntoPy<Py<PyString>>>(
@@ -344,9 +353,12 @@ impl BuilderState {
         let creg = self.module.new_creg(py, name, size)?;
         self.qc.add_creg(py, &creg)?;
         if self.symbols.cregs.insert(ast_symbol, creg).is_some() {
-            panic!("internal logic error: attempted to add the same register multiple times")
+            Err(QASM3ImporterError::new_err(
+                "internal error: attempted to add the same register multiple times",
+            ))
+        } else {
+            Ok(())
         }
-        Ok(())
     }
 }
 
