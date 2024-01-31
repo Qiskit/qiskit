@@ -58,7 +58,6 @@ Basis Change
    TranslateParameterizedGates
    Unroll3qOrMore
    UnrollCustomDefinitions
-   Unroller
 
 Optimizations
 =============
@@ -88,6 +87,7 @@ Optimizations
    ResetAfterMeasureSimplification
    OptimizeCliffords
    NormalizeRXAngle
+   OptimizeAnnotated
 
 Calibration
 =============
@@ -204,7 +204,6 @@ from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
-from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
@@ -234,6 +233,7 @@ from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 from .optimization import NormalizeRXAngle
+from .optimization import OptimizeAnnotated
 
 # circuit analysis
 from .analysis import ResourceEstimation

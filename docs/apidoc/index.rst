@@ -18,8 +18,8 @@ API Reference
    assembler
    dagcircuit
    passmanager
-   providers_basicaer
    providers
+   providers_basic_provider
    providers_fake_provider
    providers_models
    pulse

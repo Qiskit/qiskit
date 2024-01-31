@@ -19,7 +19,7 @@ from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
 from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
-from qiskit.transpiler.passes import GateDirection, Unroller
+from qiskit.transpiler.passes import GateDirection, BasisTranslator
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
@@ -28,6 +28,10 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.utils import optionals
+
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -54,8 +58,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         )
         self.pass_manager.append(FullAncillaAllocation(coupling_map))
         self.pass_manager.append(EnlargeWithAncilla())
-        with self.assertWarns(DeprecationWarning):
-            self.pass_manager.append(Unroller(basis_gates))
+        self.pass_manager.append(BasisTranslator(std_eqlib, basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
         self.pass_manager.append(
             DoWhileController(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)

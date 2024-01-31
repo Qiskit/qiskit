@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,8 +19,8 @@ from qiskit.providers import JobStatus
 from qiskit.providers.job import JobV1
 
 
-class BasicAerJob(JobV1):
-    """BasicAerJob class."""
+class BasicProviderJob(JobV1):
+    """BasicProviderJob class."""
 
     _async = False
 
@@ -45,7 +45,7 @@ class BasicAerJob(JobV1):
         if timeout is not None:
             warnings.warn(
                 "The timeout kwarg doesn't have any meaning with "
-                "BasicAer because execution is synchronous and the "
+                "BasicProvider because execution is synchronous and the "
                 "result already exists when run() returns.",
                 UserWarning,
             )

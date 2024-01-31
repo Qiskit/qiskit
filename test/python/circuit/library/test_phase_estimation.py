@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -63,7 +63,7 @@ class TestPhaseEstimation(QiskitTestCase):
             inplace=True,
         )
         circuit.compose(pec, inplace=True)
-        actual = Statevector.from_instruction(circuit).data
+        actual = Statevector(circuit)
         np.testing.assert_almost_equal(reference, actual)
 
     def test_phase_estimation(self):
