@@ -25,7 +25,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeProviderForBackendV2,
@@ -36,10 +35,12 @@ from qiskit.providers.fake_provider import (
     FakeWashington,
     FakeSherbrooke,
     FakePrague,
+    FakeOpenPulse2Q,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
+from qiskit.providers.models import GateConfig
 from qiskit.utils import optionals
 from qiskit.circuit.library import (
     SXGate,
@@ -102,12 +103,10 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
-        job = execute(
-            self.circuit,
-            backend,
+        job = backend.run(
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()
@@ -126,12 +125,10 @@ class TestFakeBackends(QiskitTestCase):
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name
             )
-        job = execute(
-            self.circuit,
-            backend,
+        job = backend.run(
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()
@@ -235,6 +232,19 @@ class TestFakeBackends(QiskitTestCase):
         qc.measure_all()
         res = transpile(qc, backend_v2)
         self.assertIn("delay", res.count_ops())
+
+    def test_converter_with_missing_gate_property(self):
+        """Test converting to V2 model with irregular backend data."""
+        backend = FakeOpenPulse2Q()
+
+        # The backend includes pulse calibration definition for U2, but its property is gone.
+        # Note that u2 is a basis gate of this device.
+        # Since gate property is not provided, the gate broadcasts to all qubits as ideal instruction.
+        del backend._properties._gates["u2"]
+
+        # This should not raise error
+        backend_v2 = BackendV2Converter(backend, add_delay=True)
+        self.assertDictEqual(backend_v2.target["u2"], {None: None})
 
     def test_non_cx_tests(self):
         backend = FakePrague()
@@ -557,6 +567,23 @@ class TestFakeBackends(QiskitTestCase):
         backend = BackendV2Converter(backend=FakeYorktown(), filter_faulty=True, add_delay=False)
 
         self.assertEqual(backend.target.qargs, expected)
+
+    def test_backend_v2_converter_with_meaningless_gate_config(self):
+        """Test backend with broken gate config can be converted only with properties data."""
+        backend_v1 = FakeYorktown()
+        backend_v1.configuration().gates = [
+            GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
+        ]
+        backend_v2 = BackendV2Converter(
+            backend=backend_v1,
+            filter_faulty=True,
+            add_delay=False,
+        )
+        ops_with_measure = backend_v2.target.operation_names
+        self.assertCountEqual(
+            ops_with_measure,
+            backend_v1.configuration().basis_gates + ["measure"],
+        )
 
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,7 +25,7 @@ from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.utils import optionals
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -1168,7 +1168,7 @@ class TestStatevector(QiskitTestCase):
         probs = state.probabilities(qargs)
 
         # Estimate target probs from simulator measurement
-        sim = QasmSimulatorPy()
+        sim = BasicSimulator()
         shots = 5000
         seed = 100
         circ = transpile(state_circ, sim)

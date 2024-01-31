@@ -123,6 +123,9 @@ class XGate(SingletonGate):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
+    def __eq__(self, other):
+        return isinstance(other, XGate)
+
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=1)
 class CXGate(SingletonControlledGate):
@@ -243,6 +246,9 @@ class CXGate(SingletonControlledGate):
     def inverse(self):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
@@ -414,6 +420,9 @@ class CCXGate(SingletonControlledGate):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
+    def __eq__(self, other):
+        return isinstance(other, CCXGate) and self.ctrl_state == other.ctrl_state
+
 
 @with_gate_array(
     [
@@ -485,6 +494,9 @@ class RCCXGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, RCCXGate)
 
 
 class C3SXGate(SingletonControlledGate):
@@ -588,6 +600,9 @@ class C3SXGate(SingletonControlledGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, C3SXGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
@@ -724,6 +739,9 @@ class C3XGate(SingletonControlledGate):
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
+    def __eq__(self, other):
+        return isinstance(other, C3XGate) and self.ctrl_state == other.ctrl_state
+
 
 @with_gate_array(
     [
@@ -819,6 +837,9 @@ class RC3XGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, RC3XGate)
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=4, cached_states=(15,))
@@ -939,6 +960,9 @@ class C4XGate(SingletonControlledGate):
     def inverse(self):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
+
+    def __eq__(self, other):
+        return isinstance(other, C4XGate) and self.ctrl_state == other.ctrl_state
 
 
 class MCXGate(ControlledGate):

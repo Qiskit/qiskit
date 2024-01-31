@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    A bug that :func:`.convert_to_target` or :class:`.BackendV2Converter` raises unexpected
+    error was solved. The bug occurs when the backend to convert includes calibration
+    for a gate that doesn't have definition in the backend properties.
+    Such gate should be broadcasted to all qubits as an ideal error-free instruction
+    even though actual calibrations for finite set of qubits are reported.
+upgrade:
+  - |
+    Update properties and defaults information of :class:`.FakeOpenPulse2Q` backend.
+    Information for some missing instructions are added.

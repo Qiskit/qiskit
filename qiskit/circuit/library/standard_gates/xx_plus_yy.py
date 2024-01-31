@@ -178,3 +178,8 @@ class XXPlusYYGate(Gate):
         """Raise gate to a power."""
         theta, beta = self.params
         return XXPlusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXPlusYYGate):
+            return self._compare_parameters(other)
+        return False

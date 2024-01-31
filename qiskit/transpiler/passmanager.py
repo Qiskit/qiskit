@@ -129,6 +129,7 @@ class PassManager(BasePassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable = None,
+        num_processes: int = None,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -167,6 +168,10 @@ class PassManager(BasePassManager):
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+            num_processes: The maximum number of parallel processes to launch if parallel
+                execution is enabled. This argument overrides ``num_processes`` in the user
+                configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
+                to ``None`` the system default or local user configuration will be used.
 
         Returns:
             The transformed circuit(s).
@@ -178,6 +183,7 @@ class PassManager(BasePassManager):
             in_programs=circuits,
             callback=callback,
             output_name=output_name,
+            num_processes=num_processes,
         )
 
     def draw(self, filename=None, style=None, raw=False):
@@ -385,9 +391,10 @@ class StagedPassManager(PassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
+        num_processes: int = None,
     ) -> _CircuitsT:
         self._update_passmanager()
-        return super().run(circuits, output_name, callback)
+        return super().run(circuits, output_name, callback, num_processes=num_processes)
 
     def to_flow_controller(self) -> FlowControllerLinear:
         self._update_passmanager()
