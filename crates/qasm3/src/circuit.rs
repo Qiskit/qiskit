@@ -60,11 +60,11 @@ macro_rules! register_type {
         }
 
         impl ::pyo3::ToPyObject for $name {
-            fn to_object(&self, _py: Python) -> Py<PyAny> {
+            fn to_object(&self, py: Python) -> Py<PyAny> {
                 // _Technically_, allowing access this internal object can let the Rust-space
                 // wrapper get out-of-sync since we keep a direct handle to the list, but in
                 // practice, the field it's viewing is private and "inaccessible" from Python.
-                self.object.clone()
+                self.object.clone_ref(py)
             }
         }
     };
