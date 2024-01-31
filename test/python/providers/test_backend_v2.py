@@ -28,9 +28,7 @@ from qiskit.compiler import transpile
 from qiskit.test.base import QiskitTestCase
 from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import FakeMumbaiFractionalCX, GenericBackendV2
-
-# TODO: replace FakeBackendSimple with BasicSimulator once it's merged
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import Operator
 from qiskit.pulse import channels
 
@@ -90,7 +88,7 @@ class TestBackendV2(QiskitTestCase):
     def test_no_qubit_properties_raises(self):
         """Ensure that if no qubit properties are defined we raise correctly."""
         with self.assertRaises(NotImplementedError):
-            FakeBackendSimple().qubit_properties(0)
+            BasicSimulator().qubit_properties(0)
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
