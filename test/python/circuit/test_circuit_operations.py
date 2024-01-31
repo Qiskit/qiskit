@@ -808,9 +808,9 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.rz(theta, qr)
         circuit.measure(qr, cr)
         circuit.remove_final_measurements()
-        copy = circuit.copy()
+        copied = circuit.copy()
 
-        self.assertEqual(copy, circuit)
+        self.assertEqual(copied, circuit)
 
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit
