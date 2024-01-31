@@ -1,0 +1,15 @@
+---
+deprecations:
+  - |
+    The :class:`.NoiseAdaptiveLayout` transpiler pass and the corresponding
+    ``"noise_adaptive"`` layout stage plugin have been deprecated and will
+    be removed in the 1.0.0 release. This pass has been largely superseded by
+    :class:`.VF2Layout` and :class:`.VF2PostLayout` which will set a layout
+    based on the reported noise characteristics of a backend.
+  - |
+    The :class:`.CrosstalkAdaptiveSchedule` transpiler pass has been deprecated
+    and will be removed in the 1.0.0 release. This pass was not usable any
+    longer because its internal operation was dependent on custom properties
+    being set in the :class:`.BackendProperties` payload of a
+    :class:`.BackendV1` instance. As no backends are setting these fields
+    the pass has been deprecated.

@@ -62,7 +62,8 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
             gates=gate_list,
             general=[],
         )
-        nalayout = NoiseAdaptiveLayout(bprop)
+        with self.assertWarns(DeprecationWarning):
+            nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
         initial_layout = nalayout.property_set["layout"]
         self.assertNotEqual(initial_layout[qr[0]], 0)
@@ -92,7 +93,8 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
             gates=gate_list,
             general=[],
         )
-        nalayout = NoiseAdaptiveLayout(bprop)
+        with self.assertWarns(DeprecationWarning):
+            nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
         initial_layout = nalayout.property_set["layout"]
         self.assertNotEqual(initial_layout[qr[0]], 2)
@@ -138,7 +140,8 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
             gates=gate_list,
             general=[],
         )
-        nalayout = NoiseAdaptiveLayout(bprop)
+        with self.assertWarns(DeprecationWarning):
+            nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
         initial_layout = nalayout.property_set["layout"]
         for qid in range(4):

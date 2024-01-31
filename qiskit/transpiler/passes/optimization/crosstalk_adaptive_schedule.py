@@ -40,6 +40,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 NUM_PREC = 10
 TWOQ_XTALK_THRESH = 3
@@ -50,6 +51,11 @@ ONEQ_XTALK_THRESH = 2
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
+    @deprecate_func(
+        since="0.46",
+        package_name="qiskit",
+        removal_timeline="in the 1.0.0 release",
+    )
     def __init__(
         self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None, target=None
     ):

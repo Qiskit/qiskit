@@ -133,7 +133,10 @@ class TestPresetPassManager(QiskitTestCase):
         qc.cx(1, 11)
         backend = FakeMelbourne()
 
-        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
+        with self.assertWarns(DeprecationWarning):
+            result = transpile(
+                qc, backend, layout_method="noise_adaptive", optimization_level=level
+            )
 
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(result.num_qubits, 14)
@@ -372,13 +375,14 @@ class TestPassesInspection(QiskitTestCase):
         qc.cx(qr[2], qr[4])
         backend = FakeMelbourne()
 
-        _ = transpile(
-            qc,
-            backend,
-            layout_method="noise_adaptive",
-            optimization_level=level,
-            callback=self.callback,
-        )
+        with self.assertWarns(DeprecationWarning):
+            _ = transpile(
+                qc,
+                backend,
+                layout_method="noise_adaptive",
+                optimization_level=level,
+                callback=self.callback,
+            )
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
