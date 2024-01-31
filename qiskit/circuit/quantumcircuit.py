@@ -505,8 +505,10 @@ class QuantumCircuit:
         #   copy.deepcopy(memo).
         cls = self.__class__
         result = cls.__new__(cls)
-        for k in self.__dict__.keys() - {"_data"}:
+        for k in self.__dict__.keys() - {"_data", "_builder_api"}:
             setattr(result, k, copy.deepcopy(self.__dict__[k], memo))
+
+        result._builder_api = _OuterCircuitScopeInterface(result)
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
