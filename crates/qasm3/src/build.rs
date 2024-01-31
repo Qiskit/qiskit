@@ -131,8 +131,8 @@ impl BuilderState {
         ast_symbols: &SymbolTable,
         call: &asg::GateCall,
     ) -> PyResult<()> {
-        if call.modifiers().len() > 0 {
-            return Err(QASM3ImporterError::new_err("gate modifiers not handled"));
+        if !call.modifiers().is_empty() {
+            return Err(QASM3ImporterError::new_err("gate modifiers not currently handled"));
         }
         let gate_id = call
             .name()
