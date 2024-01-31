@@ -594,14 +594,15 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
+        if version >= 11:
+            # Assign a uuid to each instance of a custom operation
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
         # ucr*_dg gates can have different numbers of parameters,
         # the uuid is appended to avoid storing a single definition
         # in circuits with multiple ucr*_dg gates.
-        if instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+        elif instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
             gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
-        elif version >= 11:
-            # Assign a uuid to each instance of a custom operation
-            gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
+
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
