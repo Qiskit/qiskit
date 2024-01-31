@@ -53,6 +53,7 @@ class RunningPassManager(FlowControllerLinear):
             "qiskit.passmanager.flow_controllers.FlowControllerLinear. "
             "Directly use the base class instead."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def __init__(
         self,
@@ -65,9 +66,10 @@ class RunningPassManager(FlowControllerLinear):
     @deprecate_func(
         since="0.45.0",
         additional_msg=(
-            "Building the pipline of the tasks is responsibility of PassManager. "
+            "Building the pipeline of the tasks is responsibility of PassManager. "
             "RunningPassManager should not modify prepared pipeline at running time."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def append(
         self,
@@ -101,9 +103,9 @@ class RunningPassManager(FlowControllerLinear):
 
     # pylint: disable=arguments-differ
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Now RunningPassManager is a subclass of flow controller.",
-        pending=True,
+        removal_timeline="in the 1.0 release",
     )
     def run(
         self,

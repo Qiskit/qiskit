@@ -195,10 +195,6 @@ class ConditionalController(BaseController):
 class FlowController(BaseController):
     """A legacy factory for other flow controllers.
 
-    .. deprecated:: 0.46
-
-        This class was deprecated. This will be removed in Qiskit 1.0.
-
     .. warning::
 
         This class is primarily for compatibility with legacy versions of Qiskit, and in general,
@@ -243,14 +239,15 @@ class FlowController(BaseController):
     ]
 
     @deprecate_func(
-        since="0.46",
+        since="0.46.0",
         additional_msg=(
             "The base class of flow controller is now "
-            "qiskit.passmanager.flow_controllers.BaseController. "
+            "qiskit.passmanager.BaseController. "
             "This class exists only for the controller namespace used to map a controller name to"
             "the corresponding class object, which is used to instantiate a controller with "
             "keyword argument in PassManager.append method. This pattern was also deprecated."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def __init__(
         self,
@@ -262,10 +259,11 @@ class FlowController(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg=(
-            "Controller object must be explicitly instantiated. "
-            "Building controller with keyword arguments may yield race condition when "
+            "FlowController objects must be explicitly instantiated. "
+            "Building controllers with keyword arguments ignores the order when "
             "multiple keyword arguments are provided together, which is likely unsafe."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def controller_factory(
         cls,
@@ -309,10 +307,11 @@ class FlowController(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg=(
-            "Controller factory method is deprecated and managing the custom flow controllers "
-            "with alias no longer helps building the task pipeline. "
+            "The controller factory method is deprecated and managing the custom flow controllers "
+            "with aliases no longer helps building the task pipeline. "
             "Controllers must be explicitly instantiated and appended to the pipeline."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def add_flow_controller(
         cls,
@@ -333,10 +332,11 @@ class FlowController(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg=(
-            "Controller factory method is deprecated and managing the custom flow controllers "
-            "with alias no longer helps building the task pipeline. "
+            "The controller factory method is deprecated and managing the custom flow controllers "
+            "with aliases no longer helps building the task pipeline. "
             "Controllers must be explicitly instantiated and appended to the pipeline."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def remove_flow_controller(
         cls,

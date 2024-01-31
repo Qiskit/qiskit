@@ -106,7 +106,7 @@ class PassManager(BasePassManager):
         name="max_iteration",
         since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        package_name="qiskit-terra",
+        removal_timeline="in the 1.0 release",
     )
     def append(
         self,
@@ -168,7 +168,7 @@ class PassManager(BasePassManager):
         name="max_iteration",
         since="0.46",
         additional_msg="'max_iteration' can be set in the constructor.",
-        package_name="qiskit-terra",
+        removal_timeline="in the 1.0 release",
     )
     def replace(
         self,
@@ -338,6 +338,7 @@ class PassManager(BasePassManager):
             "Use .to_flow_controller().tasks instead. "
             "This returns a sequence of linearized base task instances in tuple format."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def passes(self) -> list[dict[str, BasePass]]:
         """Return a list structure of the appended passes and its options.
@@ -614,7 +615,7 @@ def _legacy_build_flow_controller(
         A built controller.
     """
     warnings.warn(
-        "Building a flow controller with keyword arguments was deprecated. "
+        "Building a flow controller with keyword arguments is deprecated. "
         "Custom controllers must be explicitly instantiated and appended to the task list.",
         DeprecationWarning,
         stacklevel=3,
