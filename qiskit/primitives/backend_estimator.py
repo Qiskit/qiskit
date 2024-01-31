@@ -15,7 +15,6 @@ Expectation value class
 
 from __future__ import annotations
 
-import typing
 from collections.abc import Sequence
 from itertools import accumulate
 
@@ -40,9 +39,6 @@ from qiskit.transpiler.passes import (
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 
 def _run_circuits(
@@ -268,7 +264,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ):
@@ -295,7 +291,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
-        job.submit()
+        job._submit()
         return job
 
     @staticmethod

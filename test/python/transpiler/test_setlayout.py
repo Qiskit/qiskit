@@ -17,8 +17,8 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import SetLayout, ApplyLayout, FullAncillaAllocation
-from qiskit.test import QiskitTestCase
-from qiskit.transpiler import PassManager, TranspilerError
+from qiskit.transpiler import PassManager, TranspilerError, InvalidLayoutError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSetLayout(QiskitTestCase):
@@ -108,6 +108,13 @@ class TestSetLayout(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             pass_manager.run(circuit)
+
+    def test_raise_if_int_list_layout_contains_duplicates(self):
+        """Test the error is raised if the specified intlist contains duplicates"""
+        circuit = QuantumCircuit(4)
+        layout_pass = SetLayout([0, 1, 1, 2])
+        with self.assertRaises(InvalidLayoutError):
+            layout_pass(circuit)
 
 
 if __name__ == "__main__":

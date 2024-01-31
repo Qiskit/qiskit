@@ -28,9 +28,9 @@ from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
@@ -123,6 +123,29 @@ class TestSabreSwap(QiskitTestCase):
         qc.cx(1, 0)
         qc.cx(4, 3)  # F
         qc.cx(0, 4)
+
+        passmanager = PassManager(SabreSwap(coupling, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
+    def test_2q_barriers_not_routed(self):
+        """Test that a 2q barrier is not routed."""
+        coupling = CouplingMap.from_line(5)
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.barrier(0, 1)
+        qc.barrier(0, 2)
+        qc.barrier(0, 3)
+        qc.barrier(2, 3)
+        qc.h(0)
+        qc.barrier(1, 2)
+        qc.barrier(1, 0)
+        qc.barrier(1, 3)
+        qc.barrier(1, 4)
+        qc.barrier(4, 3)
+        qc.barrier(0, 4)
 
         passmanager = PassManager(SabreSwap(coupling, "basic"))
         new_qc = passmanager.run(qc)
@@ -251,7 +274,7 @@ class TestSabreSwap(QiskitTestCase):
         if not optionals.HAS_AER:
             return
 
-        from qiskit import Aer
+        from qiskit_aer import Aer
 
         sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()

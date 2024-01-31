@@ -16,15 +16,10 @@
 import itertools
 import math
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreSwap
-
-try:
-    from qiskit.compiler import transpile
-except ImportError:
-    from qiskit.transpiler import transpile
 
 
 def build_model_circuit(qreg, circuit=None):

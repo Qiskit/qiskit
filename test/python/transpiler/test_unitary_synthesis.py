@@ -16,14 +16,11 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
-from test import combine
 import unittest
 import numpy as np
-
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -64,6 +61,8 @@ from qiskit.circuit.library import (
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -344,25 +343,36 @@ class TestUnitarySynthesis(QiskitTestCase):
         backend = FakeVigo()
         conf = backend.configuration()
         qr = QuantumRegister(2)
-        coupling_map = CouplingMap([[0, 1], [1, 2], [1, 3], [3, 4]])
-        triv_layout_pass = TrivialLayout(coupling_map)
         qc = QuantumCircuit(qr)
         qc.unitary(random_unitary(4, seed=12), [0, 1])
-        unisynth_pass = UnitarySynthesis(
-            basis_gates=conf.basis_gates,
-            coupling_map=coupling_map,
-            backend_props=backend.properties(),
-            pulse_optimize=False,
-            natural_direction=True,
+        coupling_map = CouplingMap([[0, 1]])
+        pm_nonoptimal = PassManager(
+            [
+                TrivialLayout(coupling_map),
+                UnitarySynthesis(
+                    basis_gates=conf.basis_gates,
+                    coupling_map=coupling_map,
+                    backend_props=backend.properties(),
+                    pulse_optimize=False,
+                    natural_direction=True,
+                ),
+            ]
         )
-        pm = PassManager([triv_layout_pass, unisynth_pass])
-        qc_out = pm.run(qc)
-        if isinstance(qc_out, QuantumCircuit):
-            num_ops = qc_out.count_ops()
-        else:
-            num_ops = qc_out[0].count_ops()
-        self.assertIn("sx", num_ops)
-        self.assertGreaterEqual(num_ops["sx"], 16)
+        pm_optimal = PassManager(
+            [
+                TrivialLayout(coupling_map),
+                UnitarySynthesis(
+                    basis_gates=conf.basis_gates,
+                    coupling_map=coupling_map,
+                    backend_props=backend.properties(),
+                    pulse_optimize=True,
+                    natural_direction=True,
+                ),
+            ]
+        )
+        qc_nonoptimal = pm_nonoptimal.run(qc)
+        qc_optimal = pm_optimal.run(qc)
+        self.assertGreater(qc_nonoptimal.count_ops()["sx"], qc_optimal.count_ops()["sx"])
 
     def test_two_qubit_pulse_optimal_true_raises(self):
         """Verify raises if pulse optimal==True but cx is not in the backend basis."""

@@ -16,11 +16,11 @@ from math import pi, erf
 
 import numpy as np
 from ddt import data, ddt
-from qiskit.converters import circuit_to_dag
 
+from qiskit.converters import circuit_to_dag
 from qiskit import circuit, schedule, QiskitError, QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library.standard_gates import SXGate, RZGate, RXGate
+from qiskit.circuit.library.standard_gates import SXGate, RXGate
 from qiskit.providers.fake_provider import FakeHanoi  # TODO - include FakeHanoiV2, FakeSherbrooke
 from qiskit.providers.fake_provider import FakeArmonk
 from qiskit.providers.fake_provider import FakeBelemV2
@@ -38,13 +38,13 @@ from qiskit.pulse import (
 from qiskit.pulse import builder
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.dagcircuit import DAGOpNode
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes.calibration.builders import (
     RZXCalibrationBuilder,
     RZXCalibrationBuilderNoEcho,
     RXCalibrationBuilder,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCalibrationBuilder(QiskitTestCase):
@@ -118,12 +118,13 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         """A helper function to generate reference pulse schedule for forward direction."""
         duration = self.compute_stretch_duration(u0p_play, theta)
         width = self.compute_stretch_width(u0p_play, theta)
+        inst_sched_map = backend.defaults().instruction_schedule_map
 
         with builder.build(
             backend,
             default_alignment="sequential",
-            default_transpiler_settings={"optimization_level": 0},
         ) as ref_sched:
+
             with builder.align_left():
                 # Positive CRs
                 u0p_params = u0p_play.pulse.parameters
@@ -140,7 +141,9 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            # Get Schedule for 'x' gate from the backend.
+            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
+
             with builder.align_left():
                 # Negative CRs
                 u0m_params = u0m_play.pulse.parameters
@@ -157,7 +160,9 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+            # Get Schedule for 'x' gate from the backend.
+            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
+
         return ref_sched
 
     def build_reverse(
@@ -172,19 +177,36 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         """A helper function to generate reference pulse schedule for backward direction."""
         duration = self.compute_stretch_duration(u0p_play, theta)
         width = self.compute_stretch_width(u0p_play, theta)
+        inst_sched_map = backend.defaults().instruction_schedule_map
+
+        rz_qc_q0 = QuantumCircuit(1)
+        rz_qc_q0.rz(pi / 2, 0)
+
+        rz_qc_q1 = QuantumCircuit(2)
+        rz_qc_q1.rz(pi / 2, 1)
+
+        rz_sched_q0 = schedule(rz_qc_q0, backend)
+        rz_sched_q1 = schedule(rz_qc_q1, backend)
 
         with builder.build(
             backend,
             default_alignment="sequential",
-            default_transpiler_settings={"optimization_level": 0},
         ) as ref_sched:
-            # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+
+            # Get Schedule from the backend for Gates equivalent to Hadamard gates.
+            with builder.align_left():
+                builder.call(rz_sched_q0)
+                builder.call(
+                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(0,)).get_schedule()
+                )
+                builder.call(rz_sched_q0)
+
+                builder.call(rz_sched_q1)
+                builder.call(
+                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(1,)).get_schedule()
+                )
+                builder.call(rz_sched_q1)
+
             with builder.align_left():
                 # Positive CRs
                 u0p_params = u0p_play.pulse.parameters
@@ -201,7 +223,10 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
+
+            # Get Schedule for 'x' gate from the backend.
+            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
+
             with builder.align_left():
                 # Negative CRs
                 u0m_params = u0m_play.pulse.parameters
@@ -218,14 +243,23 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
                 )
-            builder.x(0)
-            # Hadamard gates
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(SXGate(), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
-            builder.call_gate(SXGate(), qubits=(1,))
-            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+
+            # Get Schedule for 'x' gate from the backend.
+            builder.call(inst_sched_map._get_calibration_entry("x", (0,)).get_schedule())
+
+            # Get Schedule from the backend for Gates equivalent to Hadamard gates.
+            with builder.align_left():
+                builder.call(rz_sched_q0)
+                builder.call(
+                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(0,)).get_schedule()
+                )
+                builder.call(rz_sched_q0)
+
+                builder.call(rz_sched_q1)
+                builder.call(
+                    inst_sched_map._get_calibration_entry(SXGate(), qubits=(1,)).get_schedule()
+                )
+                builder.call(rz_sched_q1)
 
         return ref_sched
 

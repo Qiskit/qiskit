@@ -14,24 +14,36 @@
 
 import math
 import unittest
-from unittest.mock import patch
-from test import combine
-from test.python.transpiler._dummy_passes import DummyTP
-
+from multiprocessing import Manager
 import numpy as np
 from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
-from qiskit.providers import JobStatus, JobV1
+from qiskit.providers import JobStatus
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
-from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test import QiskitTestCase
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
+
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+
+class CallbackPass(DummyAP):
+    """A dummy analysis pass that calls a callback when executed"""
+
+    def __init__(self, message, callback):
+        super().__init__()
+        self.message = message
+        self.callback = callback
+
+    def run(self, dag):
+        self.callback(self.message)
 
 
 @ddt
@@ -102,7 +114,6 @@ class TestBackendSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
         job = sampler.run(circuits=[bell], shots=1000)
-        self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
         self.assertEqual(result.quasi_dists[0].shots, 1000)
@@ -374,7 +385,7 @@ class TestBackendSampler(QiskitTestCase):
         # We need a noise-free backend here (shot noise is fine) to ensure that
         # the only bit string measured is "0001". With device noise, it could happen that
         # strings with a leading 1 are measured and then the truncation cannot be tested.
-        sampler = BackendSampler(backend=QasmSimulatorPy())
+        sampler = BackendSampler(backend=BasicSimulator())
 
         result = sampler.run(qc).result()
         probs = result.quasi_dists[0].binary_probabilities()
@@ -386,24 +397,40 @@ class TestBackendSampler(QiskitTestCase):
         """Test bound pass manager."""
 
         with self.subTest("Test single circuit"):
+            messages = []
 
-            dummy_pass = DummyTP()
+            def callback(msg):
+                messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
-                sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
-                _ = sampler.run(self._circuit[0]).result()
-                self.assertEqual(mock_pass.call_count, 1)
+            bound_counter = CallbackPass("bound_pass_manager", callback)
+            bound_pass = PassManager(bound_counter)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run([self._circuit[0]]).result()
+            expected = [
+                "bound_pass_manager",
+            ]
+            self.assertEqual(messages, expected)
 
         with self.subTest("Test circuit batch"):
+            with Manager() as manager:
+                # The multiprocessing manager is used to share data
+                # between different processes. Pass Managers parallelize
+                # execution for batches of circuits, so this is necessary
+                # to keep track of the callback calls for num_circuits > 1
+                messages = manager.list()
 
-            dummy_pass = DummyTP()
+                def callback(msg):  # pylint: disable=function-redefined
+                    messages.append(msg)
 
-            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
-                bound_pass = PassManager(dummy_pass)
+                bound_counter = CallbackPass("bound_pass_manager", callback)
+                bound_pass = PassManager(bound_counter)
                 sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-                self.assertEqual(mock_pass.call_count, 2)
+                expected = [
+                    "bound_pass_manager",
+                    "bound_pass_manager",
+                ]
+                self.assertEqual(list(messages), expected)
 
 
 if __name__ == "__main__":

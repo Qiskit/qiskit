@@ -16,7 +16,6 @@ import pickle
 
 import numpy as np
 
-from qiskit.pulse import library
 from qiskit.circuit.library.standard_gates import U1Gate, U3Gate, CXGate, XGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -34,8 +33,8 @@ from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeAthens
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionScheduleMap(QiskitTestCase):
@@ -350,14 +349,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         def test_func(dur: int):
             sched = Schedule()
-            with self.assertWarns(DeprecationWarning):
-                waveform = library.constant(int(dur), amp)
+            waveform = Constant(int(dur), amp).get_waveform()
             sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        with self.assertWarns(DeprecationWarning):
-            cons_waveform = library.constant(dur_val, amp)
+        cons_waveform = Constant(dur_val, amp).get_waveform()
         expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
@@ -375,14 +372,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
         def test_func(dur: ParameterExpression, t_val: int):
             dur_bound = dur.bind({t_param: t_val})
             sched = Schedule()
-            with self.assertWarns(DeprecationWarning):
-                waveform = library.constant(int(float(dur_bound)), amp)
+            waveform = Constant(int(float(dur_bound)), amp).get_waveform()
             sched += Play(waveform, DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
-        with self.assertWarns(DeprecationWarning):
-            cons_waveform = library.constant(10, amp)
+        cons_waveform = Constant(10, amp).get_waveform()
         expected_sched += Play(cons_waveform, DriveChannel(0))
 
         inst_map = InstructionScheduleMap()

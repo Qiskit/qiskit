@@ -24,9 +24,9 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
 )
@@ -331,6 +331,11 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
+
+        Raises:
+            TranspilerError: if ``method`` was specified but is not found in the
+                installed plugins list. The list of installed plugins can be queried with
+                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -358,6 +363,9 @@ class UnitarySynthesis(TransformationPass):
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
+            raise TranspilerError(f"Specified method '{self.method}' not found in plugin list")
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on ``dag``.
 
@@ -366,15 +374,7 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
-
-        Raises:
-            TranspilerError: if ``method`` was specified for the class and is not
-                found in the installed plugins list. The list of installed
-                plugins can be queried with
-                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method != "default" and self.method not in self.plugins.ext_plugins:
-            raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
 
         # If there aren't any gates to synthesize in the circuit we can skip all the iteration
         # and just return.
@@ -866,7 +866,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 default=None,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 

@@ -14,12 +14,11 @@
 
 import copy
 import pickle
-
 import ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -56,3 +55,30 @@ class TestExprProperties(QiskitTestCase):
         self.assertEqual(obj, copy.copy(obj))
         self.assertEqual(obj, copy.deepcopy(obj))
         self.assertEqual(obj, pickle.loads(pickle.dumps(obj)))
+
+    def test_var_standalone(self):
+        """Test that the ``Var.standalone`` property is set correctly."""
+        self.assertFalse(expr.Var(Clbit(), types.Bool()).standalone)
+        self.assertFalse(expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)).standalone)
+
+    def test_var_hashable(self):
+        clbits = [Clbit(), Clbit()]
+        cregs = [ClassicalRegister(2, "cr1"), ClassicalRegister(2, "cr2")]
+
+        vars_ = [
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
+        duplicates = [
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
+
+        # Smoke test.
+        self.assertEqual(vars_, duplicates)
+        # Actual test of hashability properties.
+        self.assertEqual(set(vars_ + duplicates), set(vars_))

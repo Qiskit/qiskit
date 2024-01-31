@@ -14,11 +14,16 @@
 
 from __future__ import annotations
 
-from qiskit.circuit import Clbit, ClassicalRegister, QuantumCircuit
+from typing import TYPE_CHECKING
+
+from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr
 from qiskit.circuit.exceptions import CircuitError
 from ._builder_utils import validate_condition, condition_resources
 from .control_flow import ControlFlowOp
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class WhileLoopOp(ControlFlowOp):
@@ -70,6 +75,9 @@ class WhileLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         (body,) = parameters
 
         if not isinstance(body, QuantumCircuit):
@@ -160,7 +168,7 @@ class WhileLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         self._circuit.append(
             WhileLoopOp(self._condition, body, label=self._label),
             body.qubits,
