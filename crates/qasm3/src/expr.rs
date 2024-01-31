@@ -54,6 +54,9 @@ pub fn eval_gate_param(
                 )))
             }
         }
+        Type::Angle(_, _) => Err(QASM3ImporterError::new_err(
+            "the OpenQASM 3 'angle' type is not yet supported",
+        )),
         ty => Err(QASM3ImporterError::new_err(format!(
             "expected an angle-like type, but saw {:?}",
             ty
