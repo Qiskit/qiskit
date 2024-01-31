@@ -55,10 +55,10 @@ class RVGate(Gate):
             v_y (float): y-component
             v_z (float): z-component
             basis (str, optional): basis (see
-                :class:`~qiskit.quantum_info.synthesis.one_qubit_decompose.OneQubitEulerDecomposer`)
+                :class:`~qiskit.synthesis.one_qubit.one_qubit_decompose.OneQubitEulerDecomposer`)
         """
         # pylint: disable=cyclic-import
-        from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
+        from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
 
         super().__init__("rv", 1, [v_x, v_y, v_z])
         self._decomposer = OneQubitEulerDecomposer(basis=basis)

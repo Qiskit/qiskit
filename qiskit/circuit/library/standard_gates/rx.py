@@ -93,20 +93,15 @@ class RXGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
-                gate.base_gate.label = self.label
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CRXGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -127,6 +122,11 @@ class RXGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RXGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CRXGate(ControlledGate):
@@ -259,3 +259,8 @@ class CRXGate(ControlledGate):
             return numpy.array(
                 [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRXGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

@@ -112,25 +112,23 @@ class YGate(SingletonGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)"""
         return YGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, YGate)
 
 
 @with_controlled_gate_array(_Y_ARRAY, num_ctrl_qubits=1)
@@ -234,3 +232,6 @@ class CYGate(SingletonControlledGate):
     def inverse(self, annotated: bool = False):
         """Return inverted CY gate (itself)."""
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CYGate) and self.ctrl_state == other.ctrl_state

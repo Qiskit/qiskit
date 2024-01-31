@@ -126,3 +126,8 @@ class RXXGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RXXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RXXGate):
+            return self._compare_parameters(other)
+        return False

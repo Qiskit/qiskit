@@ -116,19 +116,14 @@ class ZGate(SingletonGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CZGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -139,6 +134,9 @@ class ZGate(SingletonGate):
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, ZGate)
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=1)
@@ -220,6 +218,9 @@ class CZGate(SingletonControlledGate):
     def inverse(self, annotated: bool = False):
         """Return inverted CZ gate (itself)."""
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CZGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_Z_ARRAY, num_ctrl_qubits=2, cached_states=(3,))
@@ -307,3 +308,6 @@ class CCZGate(SingletonControlledGate):
     def inverse(self, annotated: bool = False):
         """Return inverted CCZ gate (itself)."""
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CCZGate) and self.ctrl_state == other.ctrl_state

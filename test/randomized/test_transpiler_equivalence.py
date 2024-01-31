@@ -48,12 +48,13 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
 """
 
 import os
+from test.utils.base import dicts_almost_equal
+
 from math import pi
 
 from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
-
 import hypothesis.strategies as st
 
 from qiskit import transpile, qasm2
@@ -89,7 +90,6 @@ from qiskit.providers.fake_provider import (
     FakeToronto,
     FakeValencia,
 )
-from qiskit.test.base import dicts_almost_equal
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *

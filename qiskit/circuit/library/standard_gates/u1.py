@@ -132,23 +132,18 @@ class U1Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
-                gate.base_gate.label = self.label
-            elif ctrl_state is None and num_ctrl_qubits > 1:
-                gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
-                gate.base_gate.label = self.label
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
+        elif not annotated and ctrl_state is None and num_ctrl_qubits > 1:
+            gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
+            gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -273,20 +268,15 @@ class CU1Gate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if ctrl_state is None:
-                gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
-                gate.base_gate.label = self.label
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and ctrl_state is None:
+            gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
+            gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -408,8 +398,11 @@ class MCU1Gate(ControlledGate):
             )
             gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 

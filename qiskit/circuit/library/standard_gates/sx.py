@@ -111,21 +111,19 @@ class SXGate(SingletonGate):
         Returns:
             SingletonControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
+
+    def __eq__(self, other):
+        return isinstance(other, SXGate)
 
 
 @with_gate_array(_SXDG_ARRAY)
@@ -183,6 +181,9 @@ class SXdgGate(SingletonGate):
     def inverse(self, annotated: bool = False):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
+
+    def __eq__(self, other):
+        return isinstance(other, SXdgGate)
 
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
@@ -281,3 +282,6 @@ class CSXGate(SingletonControlledGate):
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state

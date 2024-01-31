@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,11 +14,10 @@
 
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, FakeHanoiV2
-from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, GenericBackendV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManagerConfig(QiskitTestCase):
@@ -40,7 +39,7 @@ class TestPassManagerConfig(QiskitTestCase):
 
     def test_config_from_backend_v2(self):
         """Test from_backend() with a BackendV2 instance."""
-        backend = FakeHanoiV2()
+        backend = GenericBackendV2(num_qubits=27)
         config = PassManagerConfig.from_backend(backend)
         self.assertEqual(config.basis_gates, backend.operation_names)
         self.assertEqual(config.inst_map, backend.instruction_schedule_map)
@@ -79,14 +78,6 @@ class TestPassManagerConfig(QiskitTestCase):
         config = PassManagerConfig.from_backend(backend)
         self.assertIsInstance(config, PassManagerConfig)
         self.assertIsNone(config.inst_map)
-
-    def test_simulator_backend_v1(self):
-        """Test that from_backend() works with backendv1 simulator."""
-        backend = QasmSimulatorPy()
-        config = PassManagerConfig.from_backend(backend)
-        self.assertIsInstance(config, PassManagerConfig)
-        self.assertIsNone(config.inst_map)
-        self.assertIsNone(config.coupling_map)
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""

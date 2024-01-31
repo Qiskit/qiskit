@@ -96,25 +96,23 @@ class HGate(SingletonGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CHGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CHGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted H gate (itself)."""
         return HGate()  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, HGate)
 
 
 @with_controlled_gate_array(_H_ARRAY, num_ctrl_qubits=1)
@@ -237,3 +235,6 @@ class CHGate(SingletonControlledGate):
     def inverse(self, annotated: bool = False):
         """Return inverted CH gate (itself)."""
         return CHGate(ctrl_state=self.ctrl_state)  # self-inverse
+
+    def __eq__(self, other):
+        return isinstance(other, CHGate) and self.ctrl_state == other.ctrl_state

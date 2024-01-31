@@ -47,6 +47,9 @@ class DataBin(metaclass=DataBinMeta):
     _FIELD_TYPES: tuple[type, ...] = ()
     """The types of each field."""
 
+    def __len__(self):
+        return len(self._FIELDS)
+
     def __repr__(self):
         vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
         return f"{type(self)}({', '.join(vals)})"
@@ -71,7 +74,7 @@ def make_data_bin(
     Returns:
         A new class.
     """
-    field_names, field_types = zip(*fields)
+    field_names, field_types = zip(*fields) if fields else ([], [])
     for name in field_names:
         if name in DataBin._RESTRICTED_NAMES:
             raise ValueError(f"'{name}' is a restricted name for a DataBin.")

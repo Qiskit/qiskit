@@ -157,8 +157,8 @@ class AnnotatedOperation(Operation):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
-        annotated: bool = False,
-    ):
+        annotated: bool = True,
+    ) -> AnnotatedOperation:
         """
         Return the controlled version of itself.
 
@@ -175,9 +175,11 @@ class AnnotatedOperation(Operation):
             Controlled version of the given operation.
         """
         # pylint: disable=unused-argument
-        return AnnotatedOperation(
-            self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(
+            ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
         )
+        return AnnotatedOperation(self.base_op, extended_modifiers)
 
     def inverse(self, annotated: bool = False):
         """

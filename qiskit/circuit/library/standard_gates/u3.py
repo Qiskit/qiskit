@@ -121,20 +121,15 @@ class U3Gate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
-                gate.base_gate.label = self.label
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
+            gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -208,6 +203,8 @@ class CU3Gate(ControlledGate):
             q_1: ──────■──────
 
         .. math::
+
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             CU3(\theta, \phi, \lambda)\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I +

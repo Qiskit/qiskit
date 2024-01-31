@@ -86,6 +86,9 @@ class TGate(SingletonGate):
         """Raise gate to a power."""
         return PhaseGate(0.25 * numpy.pi * exponent)
 
+    def __eq__(self, other):
+        return isinstance(other, TGate)
+
 
 @with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
 class TdgGate(SingletonGate):
@@ -148,3 +151,6 @@ class TdgGate(SingletonGate):
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(-0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TdgGate)

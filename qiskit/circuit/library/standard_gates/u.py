@@ -108,27 +108,22 @@ class UGate(Gate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CUGate(
-                    self.params[0],
-                    self.params[1],
-                    self.params[2],
-                    0,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                )
-                gate.base_gate.label = self.label
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CUGate(
+                self.params[0],
+                self.params[1],
+                self.params[2],
+                0,
+                label=label,
+                ctrl_state=ctrl_state,
+            )
+            gate.base_gate.label = self.label
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -144,6 +139,11 @@ class UGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def __eq__(self, other):
+        if isinstance(other, UGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class _CUGateParams(list):
