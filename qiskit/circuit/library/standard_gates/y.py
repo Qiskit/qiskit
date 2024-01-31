@@ -17,7 +17,6 @@ from typing import Optional, Union
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 
@@ -112,19 +111,14 @@ class YGate(SingletonGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if num_ctrl_qubits == 1:
-                gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            else:
-                gate = super().control(
-                    num_ctrl_qubits=num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    annotated=annotated,
-                )
+        if not annotated and num_ctrl_qubits == 1:
+            gate = CYGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 

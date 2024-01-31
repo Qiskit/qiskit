@@ -17,7 +17,6 @@ from math import ceil, pi
 import numpy
 from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
@@ -124,8 +123,11 @@ class XGate(SingletonGate):
                 _base_label=self.label,
             )
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -253,8 +255,11 @@ class CXGate(SingletonControlledGate):
                 _base_label=self.label,
             )
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -431,8 +436,11 @@ class CCXGate(SingletonControlledGate):
                 _base_label=self.label,
             )
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -768,8 +776,11 @@ class C3XGate(SingletonControlledGate):
                 _base_label=self.label,
             )
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -993,8 +1004,11 @@ class C4XGate(SingletonControlledGate):
                 _base_label=self.label,
             )
         else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
         return gate
 
@@ -1121,21 +1135,16 @@ class MCXGate(ControlledGate):
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if not annotated:
-            if ctrl_state is None:
-                # use __class__ so this works for derived classes
-                gate = self.__class__(
-                    self.num_ctrl_qubits + num_ctrl_qubits,
-                    label=label,
-                    ctrl_state=ctrl_state,
-                    _base_label=self.label,
-                )
-            else:
-                gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
-        else:
-            gate = AnnotatedOperation(
-                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+        if not annotated and ctrl_state is None:
+            # use __class__ so this works for derived classes
+            gate = self.__class__(
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=self.label,
             )
+        else:
+            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
         return gate
 
 
