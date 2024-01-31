@@ -13,7 +13,6 @@
 """Tests for Sampler."""
 
 import unittest
-
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -21,7 +20,7 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
 from qiskit.primitives import Sampler, SamplerResult
 from qiskit.providers import JobStatus
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSampler(QiskitTestCase):

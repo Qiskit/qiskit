@@ -26,13 +26,13 @@ import scipy.linalg as la
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import Permutation, PermutationGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 

@@ -17,8 +17,9 @@ Estimator Pub class
 
 from __future__ import annotations
 
-from typing import Tuple, Union
 from numbers import Real
+from collections.abc import Mapping
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -134,9 +135,18 @@ class EstimatorPub(ShapedMixin):
             )
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
-        parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 2 else None
+
+        if len(pub) > 2 and pub[2] is not None:
+            values = pub[2]
+            if not isinstance(values, Mapping):
+                values = {tuple(circuit.parameters): values}
+            parameter_values = BindingsArray.coerce(values)
+        else:
+            parameter_values = None
+
         if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
+
         return cls(
             circuit=circuit,
             observables=observables,

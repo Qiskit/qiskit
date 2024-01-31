@@ -26,8 +26,8 @@ from qiskit import qasm3
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister, Qubit, Clbit
 from qiskit.circuit import library as lib
-from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @unittest.skipUnless(optionals.HAS_QASM3_IMPORT, "need qiskit-qasm3-import for OpenQASM 3 imports")

@@ -64,8 +64,12 @@ is not present, but will raise :exc:`OptionalDependencyImportWarning` to let you
 
 When experimental features are being used, Qiskit will raise :exc:`ExperimentalWarning`.
 
-.. autoexception:: ExperimentalWarning
+.. warning::
 
+    Qiskit experimental features can break at any minor release and their API might change without
+    previous notification. Their use is not recommended in production.
+
+.. autoexception:: ExperimentalWarning
 
 Filtering warnings
 ------------------
@@ -74,7 +78,7 @@ Python has built-in mechanisms to filter warnings, described in the documentatio
 :mod:`warnings` module.  You can use these subclasses in your warning filters from within Python to
 silence warnings you are not interested in.  For example, if you are knowingly using experimental
 features and are comfortable that they make break in later versions, you can silence
-:exc:`ExperimentalWarning` like this:
+:exc:`ExperimentalWarning` like this::
 
     import warnings
     from qiskit.exceptions import ExperimentalWarning

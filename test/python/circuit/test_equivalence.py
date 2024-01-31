@@ -14,11 +14,9 @@
 """Test Qiskit's EquivalenceLibrary class."""
 
 import unittest
+
 import numpy as np
-
 import rustworkx as rx
-
-from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
@@ -27,6 +25,7 @@ from qiskit.converters import circuit_to_instruction, circuit_to_gate
 from qiskit.circuit import EquivalenceLibrary
 from qiskit.utils import optionals
 from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
