@@ -94,10 +94,10 @@ class TestStatevectorEstimator(QiskitTestCase):
         theta1, theta2, theta3 = self.theta
 
         obs1 = ObservablesArray.coerce([hamiltonian1, hamiltonian3])
-        bind1 = BindingsArray.coerce([theta1, theta3])
+        bind1 = BindingsArray.coerce({tuple(psi1.parameters): [theta1, theta3]})
         pub1 = EstimatorPub(psi1, obs1, bind1)
         obs2 = ObservablesArray.coerce(hamiltonian2)
-        bind2 = BindingsArray.coerce(theta2)
+        bind2 = BindingsArray.coerce({tuple(psi2.parameters): theta2})
         pub2 = EstimatorPub(psi2, obs2, bind2)
 
         estimator = StatevectorEstimator()
@@ -135,10 +135,7 @@ class TestStatevectorEstimator(QiskitTestCase):
             op = SparsePauliOp("Z")
             param_vals = [
                 [np.pi],
-                [[np.pi]],
                 np.array([np.pi]),
-                np.array([[np.pi]]),
-                [np.array([np.pi])],
             ]
             target = [-1]
             for val in param_vals:

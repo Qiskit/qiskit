@@ -78,9 +78,9 @@ class TestStatevectorSampler(QiskitTestCase):
 
     def test_sampler_run(self):
         """Test run()."""
-        bell, _, target = self._cases[1]
 
         with self.subTest("single"):
+            bell, _, target = self._cases[1]
             sampler = StatevectorSampler(seed=self._seed)
             job = sampler.run([bell], shots=self._shots)
             result = job.result()
@@ -93,8 +93,10 @@ class TestStatevectorSampler(QiskitTestCase):
             self._assert_allclose(result[0].data.meas, np.array(target))
 
         with self.subTest("single with param"):
+            pqc, param_vals, target = self._cases[2]
             sampler = StatevectorSampler(seed=self._seed)
-            job = sampler.run([(bell, ())], shots=self._shots)
+            params = (param.name for param in pqc.parameters)
+            job = sampler.run([(pqc, {params: param_vals})], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
             self.assertIsInstance(result.metadata, dict)
@@ -104,21 +106,13 @@ class TestStatevectorSampler(QiskitTestCase):
             self.assertIsInstance(result[0].data.meas, BitArray)
             self._assert_allclose(result[0].data.meas, np.array(target))
 
-        with self.subTest("single array"):
-            sampler = StatevectorSampler(seed=self._seed)
-            job = sampler.run([(bell, [()])], shots=self._shots)
-            result = job.result()
-            self.assertIsInstance(result, PrimitiveResult)
-            self.assertIsInstance(result.metadata, dict)
-            self.assertEqual(len(result), 1)
-            self.assertIsInstance(result[0], PubResult)
-            self.assertIsInstance(result[0].data, DataBin)
-            self.assertIsInstance(result[0].data.meas, BitArray)
-            self._assert_allclose(result[0].data.meas, np.array([target]))
-
         with self.subTest("multiple"):
+            pqc, param_vals, target = self._cases[2]
             sampler = StatevectorSampler(seed=self._seed)
-            job = sampler.run([(bell, [(), (), ()])], shots=self._shots)
+            params = (param.name for param in pqc.parameters)
+            job = sampler.run(
+                [(pqc, {params: [param_vals, param_vals, param_vals]})], shots=self._shots
+            )
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
             self.assertIsInstance(result.metadata, dict)
@@ -206,14 +200,7 @@ class TestStatevectorSampler(QiskitTestCase):
             circuit, _, target = self._cases[1]
             param_target = [
                 (None, np.array(target)),
-                ((), np.array(target)),
-                ([], np.array(target)),
-                (np.array([]), np.array(target)),
-                (((),), np.array([target])),
-                (([],), np.array([target])),
-                ([[]], np.array([target])),
-                ([()], np.array([target])),
-                (np.array([[]]), np.array([target])),
+                ({}, np.array(target)),
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
@@ -228,12 +215,14 @@ class TestStatevectorSampler(QiskitTestCase):
             circuit.ry(param, 0)
             circuit.measure(0, 0)
             param_target = [
-                ([np.pi], np.array({1: self._shots})),
-                ((np.pi,), np.array({1: self._shots})),
-                (np.array([np.pi]), np.array({1: self._shots})),
-                ([[np.pi]], np.array([{1: self._shots}])),
-                (((np.pi,),), np.array([{1: self._shots}])),
-                (np.array([[np.pi]]), np.array([{1: self._shots}])),
+                ({"x": np.pi}, np.array({1: self._shots})),
+                ({param: np.pi}, np.array({1: self._shots})),
+                ({"x": np.array(np.pi)}, np.array({1: self._shots})),
+                ({param: np.array(np.pi)}, np.array({1: self._shots})),
+                ({"x": [np.pi]}, np.array({1: self._shots})),
+                ({param: [np.pi]}, np.array({1: self._shots})),
+                ({"x": np.array([np.pi])}, np.array({1: self._shots})),
+                ({param: np.array([np.pi])}, np.array({1: self._shots})),
             ]
             for param, target in param_target:
                 with self.subTest(f"{circuit.name} w/ {param}"):
