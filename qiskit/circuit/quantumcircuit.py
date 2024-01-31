@@ -788,6 +788,7 @@ class QuantumCircuit:
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ) -> "QuantumCircuit":
         """Control this circuit on ``num_ctrl_qubits`` qubits.
 
@@ -796,6 +797,8 @@ class QuantumCircuit:
             label (str): An optional label to give the controlled operation for visualization.
             ctrl_state (str or int): The control state in decimal or as a bitstring
                 (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             QuantumCircuit: The controlled version of this circuit.
@@ -812,7 +815,7 @@ class QuantumCircuit:
                 "be in the circuit for this operation."
             ) from ex
 
-        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
+        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state, annotated)
         control_qreg = QuantumRegister(num_ctrl_qubits)
         controlled_circ = QuantumCircuit(
             control_qreg, self.qubits, *self.qregs, name=f"c_{self.name}"
