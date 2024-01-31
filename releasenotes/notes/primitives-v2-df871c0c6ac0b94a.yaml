@@ -12,7 +12,7 @@ features:
     method that specifies the targeted precision of the expectation value estimates. Analagously,
     the sampler has moved ``shots`` out of the options and into the arguments of the
     :meth:`~.BaseSamplerV2.run` method. The sampler has also been changed to return the outputs
-    (e.g. bitstrings) from every shot, rather than providing a :class:`~.Counts`-like return, and
+    (e.g. bitstrings) from every shot, rather than providing a :class:`~.Counts`\-like return, and
     also to store data from separate :class:`~.ClassicalRegister`\s . This enables derived classes
     to implement sampler support for circuits with classical control flow.
     
