@@ -78,7 +78,8 @@ features:
         # values, where the pub result will have shape (3, 100). This shape is due to our array 
         # of parameter bindings having shape (100,), combined with our array of observables having
         # shape (3, 1)
-        job = estimator.run([(circuit, observables, params)])
+        pub = (circuit, observables, params)
+        job = estimator.run([pub])
 
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
@@ -138,7 +139,8 @@ features:
         sampler = StatevectorSampler()
 
         # Start a job that will return shots for all 100 parameter value sets.
-        job = sampler.run([(circuit, params)], shots=256)
+        pub = (circuit, params)
+        job = sampler.run([pub], shots=256)
 
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]

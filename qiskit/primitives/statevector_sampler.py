@@ -101,7 +101,8 @@ class StatevectorSampler(BaseSamplerV2):
         sampler = StatevectorSampler()
 
         # Start a job that will return shots for all 100 parameter value sets.
-        job = sampler.run([(circuit, params)], shots=256)
+        pub = (circuit, params)
+        job = sampler.run([pub], shots=256)
 
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
