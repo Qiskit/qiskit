@@ -18,7 +18,6 @@ from collections.abc import Callable
 
 from qiskit import circuit
 from qiskit.circuit import ControlledGate, Gate, QuantumRegister, QuantumCircuit
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.exceptions import QiskitError
 
 # pylint: disable=cyclic-import

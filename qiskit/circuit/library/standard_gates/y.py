@@ -17,7 +17,6 @@ from typing import Optional, Union
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.singleton import SingletonGate, SingletonControlledGate, stdlib_singleton_key
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import with_gate_array, with_controlled_gate_array
 

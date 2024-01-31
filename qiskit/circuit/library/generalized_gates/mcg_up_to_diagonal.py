@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
@@ -79,17 +78,19 @@ class MCGupDiag(Gate):
 
         Note that the resulting Gate object has an empty ``params`` property.
         """
-        if annotated:
-            return AnnotatedOperation(self, InverseModifier())
+        if not annotated:
+            inverse_gate = Gate(
+                name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
+            )  # removing the params because arrays are deprecated
 
-        inverse_gate = Gate(
-            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
-        )  # removing the params because arrays are deprecated
-
-        definition = QuantumCircuit(*self.definition.qregs)
-        for inst in reversed(self._definition):
-            definition._append(inst.replace(operation=inst.operation.inverse(annotated=annotated)))
-        inverse_gate.definition = definition
+            definition = QuantumCircuit(*self.definition.qregs)
+            for inst in reversed(self._definition):
+                definition._append(
+                    inst.replace(operation=inst.operation.inverse(annotated=annotated))
+                )
+            inverse_gate.definition = definition
+        else:
+            inverse_gate = super().inverse(annotated=annotated)
         return inverse_gate
 
     # Returns the diagonal up to which the gate is implemented.
