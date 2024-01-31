@@ -15,10 +15,6 @@
 import unittest
 from unittest.mock import patch
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
@@ -28,9 +24,12 @@ from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendSimple
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
+
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2(), FakeBackendSimple()]
 

@@ -323,8 +323,5 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
         return ""
 
 
-# Maintain naming backwards compatibility for downstream packages.
-BasicQiskitTestCase = QiskitTestCase
-
 if _optionals.HAS_TESTTOOLS and _optionals.HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase

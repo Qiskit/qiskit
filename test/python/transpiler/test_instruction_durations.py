@@ -18,12 +18,11 @@ from qiskit.circuit import Delay, Parameter
 from qiskit.providers.fake_provider import FakeParis, FakeTokyo
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-
-from qiskit.test.base import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
-    """Test Test InstructionDurations class."""
+    """Test InstructionDurations class."""
 
     def test_empty(self):
         durations = InstructionDurations()
