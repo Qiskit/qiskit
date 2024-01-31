@@ -162,6 +162,42 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_11:
+
+Version 11
+==========
+
+Version 11 is identical to Version 10 except that it adds support for :class:`.AnnotatedOperation`
+objects. The base operation of an annotated operation is stored using the INSTRUCTION block,
+and an additional ``type`` value ``'a'``is added to indicate that the custom instruction is an
+annotated operation. The list of modifiers are stored as instruction parameters using INSTRUCTION_PARAM,
+with an additional value ``'m'`` is added to indicate that the parameter is of type
+:class:`~qiskit.circuit.annotated_operation.Modifier`. Each modifier is stored using the
+MODIFIER struct.
+
+.. _modifier_qpy:
+
+MODIFIER
+--------
+
+This represents :class:`~qiskit.circuit.annotated_operation.Modifier`
+
+.. code-block:: c
+
+    struct {
+        char type;
+        uint32_t num_ctrl_qubits;
+        uint32_t ctrl_state;
+        double power;
+    }
+
+This is sufficient to store different types of modifiers required for serializing objects
+of type :class:`.AnnotatedOperation`.
+The field ``type`` is either ``'i'``, ``'c'`` or ``'p'``, representing whether the modifier
+is respectively an inverse modifier, a control modifier or a power modifier. In the second
+case, the fields ``num_ctrl_qubits`` and ``ctrl_state`` specify the control logic of the base
+operation, and in the third case the field ``power`` represents the power of the base operation.
+
 .. _qpy_version_10:
 
 Version 10
