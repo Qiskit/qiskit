@@ -33,6 +33,14 @@ Estimator
    BackendEstimator
    EstimatorPub
 
+EstimatorV2
+===========
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   StatevectorEstimator
+
 Sampler
 =======
 
@@ -65,12 +73,13 @@ from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
     BindingsArray,
+    EstimatorPub,
     ObservablesArray,
     PrimitiveResult,
     PubResult,
     SamplerPub,
-    EstimatorPub,
 )
 from .estimator import Estimator
 from .sampler import Sampler
+from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler

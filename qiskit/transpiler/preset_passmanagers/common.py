@@ -22,7 +22,6 @@ from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.passmanager.flow_controllers import ConditionalController
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
-from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import Collect2qBlocks
@@ -65,7 +64,7 @@ _CONTROL_FLOW_STATES = {
         working={"none", "stochastic", "sabre"}, not_working={"lookahead", "basic"}
     ),
     "translation_method": _ControlFlowState(
-        working={"translator", "synthesis", "unroller"},
+        working={"translator", "synthesis"},
         not_working=set(),
     ),
     "optimization_method": _ControlFlowState(working=set(), not_working=set()),
@@ -447,9 +446,7 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
-    if method == "unroller":
-        unroll = [Unroller(basis=basis_gates, target=target)]
-    elif method == "translator":
+    if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
             # UnitaryGates before custom unrolling

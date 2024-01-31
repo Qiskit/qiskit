@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,7 +22,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestQobjIdentifiers(QiskitTestCase):
-    """Check the Qobj compiled for different backends create names properly"""
+    """Check the Qobj create names properly"""
 
     def setUp(self):
         super().setUp()
@@ -35,19 +35,7 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.cr_name = cr.name
         self.circuits = [qc]
 
-    def test_builtin_qasm_simulator_py(self):
-        qobj = assemble(self.circuits)
-        exp = qobj.experiments[0]
-        self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
-        self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))
-
-    def test_builtin_qasm_simulator(self):
-        qobj = assemble(self.circuits)
-        exp = qobj.experiments[0]
-        self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
-        self.assertIn(self.cr_name, (x[0] for x in exp.header.clbit_labels))
-
-    def test_builtin_unitary_simulator_py(self):
+    def test_qobj_identifiers(self):
         qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, (x[0] for x in exp.header.qubit_labels))
