@@ -13,14 +13,12 @@
 """Test commutation checker class ."""
 
 import unittest
+
 import numpy as np
 
 from qiskit import ClassicalRegister
-from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
-from qiskit.test import QiskitTestCase
-
 from qiskit.circuit import QuantumRegister, Parameter, Qubit
-from qiskit.circuit import CommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
 from qiskit.circuit.library import (
     ZGate,
@@ -34,6 +32,7 @@ from qiskit.circuit.library import (
     Reset,
     LinearFunction,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCommutationChecker(QiskitTestCase):

@@ -14,11 +14,12 @@
 
 import unittest
 
-from qiskit import BasicAer, QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, transpile
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info.analysis.average import average_data
 from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.quantum_info.analysis import hellinger_fidelity
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAnalyzation(QiskitTestCase):
@@ -34,7 +35,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = {"00": 1, "11": 1, "01": -1, "10": -1}
@@ -59,7 +60,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[1], cr[1])
         qc.measure(qr[2], cr[2])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [1, -1, -1, 1, -1, 1, 1, -1]
@@ -85,7 +86,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
         shots = 10000
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         result = backend.run(qc, shots=shots).result()
         counts = result.get_counts(qc)
         observable = [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
@@ -132,7 +133,7 @@ class TestAnalyzation(QiskitTestCase):
         qc.cx(1, 0)
         qc.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicSimulator()
 
         res = sim.run(qc).result()
 
@@ -185,7 +186,7 @@ class TestAnalyzation(QiskitTestCase):
         qc2.cx(1, 0)
         qc2.measure(range(5), range(5))
 
-        sim = BasicAer.get_backend("qasm_simulator")
+        sim = BasicSimulator()
 
         res1 = sim.run(qc).result()
         res2 = sim.run(transpile(qc2, sim)).result()

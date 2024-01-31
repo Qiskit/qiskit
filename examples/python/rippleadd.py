@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,13 +16,13 @@ Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import BasicAer
 from qiskit import transpile
+from qiskit.providers.basic_provider import BasicSimulator
 
 ###############################################################
 # Set the backend name and coupling map.
 ###############################################################
-backend = BasicAer.get_backend("qasm_simulator")
+backend = BasicSimulator()
 coupling_map = [
     [0, 1],
     [0, 8],

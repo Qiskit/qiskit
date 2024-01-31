@@ -20,10 +20,10 @@ from scipy.optimize import minimize
 from qiskit import QuantumCircuit
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes.synthesis import AQCSynthesisPlugin
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAQCSynthesisPlugin(QiskitTestCase):

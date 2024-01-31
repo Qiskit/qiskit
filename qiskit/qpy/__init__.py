@@ -79,6 +79,19 @@ during serialization or deserialization.
 
 .. autoexception:: QpyError
 
+Attributes:
+    QPY_VERSION (int): The current QPY format version as of this release. This
+        is the default value of the ``version`` keyword argument on
+        :func:`.qpy.dump` and also the upper bound for accepted values for
+        the same argument. This is also the upper bond on the versions supported
+        by :func:`.qpy.load`.
+
+    QPY_COMPATIBILITY_VERSION (int): The current minimum compatibility QPY
+        format version. This is the minimum version that :func:`.qpy.dump`
+        will accept for the ``version`` keyword argument. :func:`.qpy.load`
+        will be able to load all released format versions of QPY (up until
+        ``QPY_VERSION``).
+
 QPY Compatibility
 =================
 
@@ -148,6 +161,16 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_11:
+
+Version 11
+==========
+
+Version 11 is identical to Version 10 except that for names in the CUSTOM_INSTRUCTION blocks
+have a suffix of the form ``"_{uuid_hex}"`` where ``uuid_hex`` is a uuid
+hexadecimal string such as returned by :attr:`.UUID.hex`. For example:
+``"b3ecab5b4d6a4eb6bc2b2dbf18d83e1e"``.
 
 .. _qpy_version_10:
 
@@ -1352,3 +1375,4 @@ from .binary_io import (
     _read_parameter_expression,
     _read_parameter_expression_v3,
 )
+from .common import QPY_VERSION, QPY_COMPATIBILITY_VERSION

@@ -17,29 +17,37 @@ import struct
 
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
 from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
 from qiskit.exceptions import QiskitError
-from qiskit.qpy import dump, load, formats
+from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, circuit):
+    def assert_roundtrip_equal(self, circuit, version=None):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(circuit, qpy_file)
+        dump(circuit, qpy_file, version=version)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
 
         self.assertEqual(circuit, new_circuit)
         self.assertEqual(circuit.layout, new_circuit.layout)
+        if version is not None:
+            qpy_file.seek(0)
+            file_version = struct.unpack("!6sB", qpy_file.read(7))[1]
+            self.assertEqual(
+                version,
+                file_version,
+                f"Generated QPY file version {file_version} does not match request version {version}",
+            )
 
 
 @ddt
@@ -138,6 +146,45 @@ class TestLayout(QpyCircuitTestCase):
         qc._layout = TranspileLayout(None, None, None)
         self.assert_roundtrip_equal(qc)
 
+    def test_overlapping_definitions(self):
+        """Test serialization of custom gates with overlapping definitions."""
+
+        class MyParamGate(Gate):
+            """Custom gate class with a parameter."""
+
+            def __init__(self, phi):
+                super().__init__("my_gate", 1, [phi])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.rx(self.params[0], 0)
+                self.definition = qc
+
+        theta = Parameter("theta")
+        two_theta = 2 * theta
+
+        qc = QuantumCircuit(1)
+        qc.append(MyParamGate(1.1), [0])
+        qc.append(MyParamGate(1.2), [0])
+        qc.append(MyParamGate(3.14159), [0])
+        qc.append(MyParamGate(theta), [0])
+        qc.append(MyParamGate(two_theta), [0])
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+        # Custom gate classes are lowered to Gate to avoid arbitrary code
+        # execution on deserialization. To compare circuit equality we
+        # need to go instruction by instruction and check that they're
+        # equivalent instead of doing a circuit equality check
+        for new_inst, old_inst in zip(new_circ.data, qc.data):
+            new_gate = new_inst.operation
+            old_gate = old_inst.operation
+            self.assertIsInstance(new_gate, Gate)
+            self.assertEqual(new_gate.name, old_gate.name)
+            self.assertEqual(new_gate.params, old_gate.params)
+            self.assertEqual(new_gate.definition, old_gate.definition)
+
     @data(0, 1, 2, 3)
     def test_custom_register_name(self, opt_level):
         """Test layout preserved with custom register names."""
@@ -185,3 +232,67 @@ class TestLayout(QpyCircuitTestCase):
             list(new_circuit.layout.input_qubit_mapping.values()),
         )
         self.assertEqual(tqc.layout.final_layout, new_circuit.layout.final_layout)
+
+
+class TestVersionArg(QpyCircuitTestCase):
+    """Test explicitly setting a qpy version in dump()."""
+
+    def test_custom_gate_name_overlap_persists_with_minimum_version(self):
+        """Assert the fix in version 11 doesn't get used if an older version is request."""
+
+        class MyParamGate(Gate):
+            """Custom gate class with a parameter."""
+
+            def __init__(self, phi):
+                super().__init__("my_gate", 1, [phi])
+
+            def _define(self):
+                qc = QuantumCircuit(1)
+                qc.rx(self.params[0], 0)
+                self.definition = qc
+
+        theta = Parameter("theta")
+        two_theta = 2 * theta
+
+        qc = QuantumCircuit(1)
+        qc.append(MyParamGate(1.1), [0])
+        qc.append(MyParamGate(1.2), [0])
+        qc.append(MyParamGate(3.14159), [0])
+        qc.append(MyParamGate(theta), [0])
+        qc.append(MyParamGate(two_theta), [0])
+        with io.BytesIO() as qpy_file:
+            dump(qc, qpy_file, version=10)
+            qpy_file.seek(0)
+            new_circ = load(qpy_file)[0]
+        # Custom gate classes are lowered to Gate to avoid arbitrary code
+        # execution on deserialization. To compare circuit equality we
+        # need to go instruction by instruction and check that they're
+        # equivalent instead of doing a circuit equality check
+        first_gate = None
+        for new_inst, old_inst in zip(new_circ.data, qc.data):
+            new_gate = new_inst.operation
+            old_gate = old_inst.operation
+            self.assertIsInstance(new_gate, Gate)
+            self.assertEqual(new_gate.name, old_gate.name)
+            self.assertEqual(new_gate.params, old_gate.params)
+            if first_gate is None:
+                first_gate = new_gate
+                continue
+            # This is incorrect behavior. This test is explicitly validating
+            # that the version kwarg being set to 10 causes the buggy behavior
+            # on that version of qpy
+            self.assertEqual(new_gate.definition, first_gate.definition)
+
+    def test_invalid_version_value(self):
+        """Assert we raise an error with an invalid version request."""
+        qc = QuantumCircuit(2)
+        with self.assertRaises(ValueError):
+            dump(qc, io.BytesIO(), version=3)
+
+    def test_compatibility_version_roundtrip(self):
+        """Test the version is set correctly when specified."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)

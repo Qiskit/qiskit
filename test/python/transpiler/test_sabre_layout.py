@@ -22,13 +22,13 @@ from qiskit.transpiler import CouplingMap, AnalysisPass, PassManager
 from qiskit.transpiler.passes import SabreLayout, DenseLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import FakeAlmaden, FakeAlmadenV2
 from qiskit.providers.fake_provider import FakeKolkata
 from qiskit.providers.fake_provider import FakeMontreal
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSabreLayout(QiskitTestCase):

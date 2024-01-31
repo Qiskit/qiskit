@@ -17,8 +17,8 @@ import io
 from logging import StreamHandler, getLogger
 import sys
 import copy
-
 import numpy as np
+
 from qiskit import pulse
 from qiskit.circuit import Instruction, Gate, Parameter, ParameterVector
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -30,13 +30,13 @@ from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.qobj import QasmQobj, PulseQobj
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse.macros import measure
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
     FakeYorktown,
     FakeHanoi,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class RxGate(Gate):
