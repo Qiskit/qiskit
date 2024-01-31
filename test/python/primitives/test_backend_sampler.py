@@ -15,10 +15,6 @@
 import math
 import unittest
 from multiprocessing import Manager
-
-from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
-
 import numpy as np
 from ddt import ddt
 
@@ -29,9 +25,12 @@ from qiskit.providers import JobStatus
 from qiskit.providers.fake_provider import FakeNairobi, GenericBackendV2
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
+from test.python.transpiler._dummy_passes import DummyAP  # pylint: disable=wrong-import-order
+
 
 BACKENDS = [
     FakeNairobi(),

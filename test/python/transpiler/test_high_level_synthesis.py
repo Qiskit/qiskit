@@ -16,6 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
+
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
@@ -40,7 +41,6 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
     HighLevelSynthesisPluginManager,
@@ -62,7 +62,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
 # higher-level objects written by a user.

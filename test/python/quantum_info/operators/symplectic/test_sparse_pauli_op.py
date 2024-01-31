@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,8 +14,6 @@
 
 import itertools as it
 import unittest
-from test import combine
-
 import numpy as np
 from ddt import ddt
 
@@ -23,12 +21,13 @@ from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):

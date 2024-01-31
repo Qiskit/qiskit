@@ -13,21 +13,22 @@
 Tests AQC framework using hardcoded and randomly generated circuits.
 """
 from functools import partial
-
 import unittest
-from test.python.synthesis.aqc.sample_data import ORIGINAL_CIRCUIT, INITIAL_THETAS
-
 from ddt import ddt, data
 import numpy as np
 from scipy.optimize import minimize
 
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.synthesis.unitary.aqc.aqc import AQC
 from qiskit.synthesis.unitary.aqc.cnot_structures import make_cnot_network
 from qiskit.synthesis.unitary.aqc.cnot_unit_circuit import CNOTUnitCircuit
 from qiskit.synthesis.unitary.aqc.cnot_unit_objective import DefaultCNOTUnitObjective
 from qiskit.synthesis.unitary.aqc.fast_gradient.fast_gradient import FastCNOTUnitObjective
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.synthesis.aqc.sample_data import (  # pylint: disable=wrong-import-order
+    ORIGINAL_CIRCUIT,
+    INITIAL_THETAS,
+)
 
 
 @ddt

@@ -22,8 +22,8 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitToInstruction(QiskitTestCase):

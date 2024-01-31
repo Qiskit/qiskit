@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,13 +20,13 @@ from qiskit.circuit.library import CXGate, XGate
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLima, FakeYorktown, GenericBackendV2
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
 from qiskit.transpiler.target import Target, InstructionProperties
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from test.python.legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP
+from ..legacy_cmaps import LIMA_CMAP, YORKTOWN_CMAP
 
 
 class TestVF2PostLayout(QiskitTestCase):
@@ -288,10 +288,6 @@ class TestVF2PostLayout(QiskitTestCase):
             coupling_map=LIMA_CMAP,
             seed=123,
         )
-
-        for i in range(len(backend.target.instructions)):
-            print(backend.target.instructions[i], backend.target.instruction_properties(i))
-
         qr_a = QuantumRegister(2)
         qr_b = QuantumRegister(3)
         qc = QuantumCircuit(qr_a, qr_b)

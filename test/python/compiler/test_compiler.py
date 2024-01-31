@@ -19,11 +19,11 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qobj import QasmQobj
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCompiler(QiskitTestCase):

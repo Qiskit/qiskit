@@ -17,13 +17,12 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumCircuit, assemble
-
 from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.circuit.library.generalized_gates import DiagonalGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestDiagonalGate(QiskitTestCase):

@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.result import Result
 from qiskit.providers.basic_provider import BasicProviderError, BasicSimulator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBasicProviderIntegration(QiskitTestCase):

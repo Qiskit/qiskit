@@ -14,10 +14,10 @@
 
 from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, GenericBackendV2
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManagerConfig(QiskitTestCase):

@@ -32,7 +32,7 @@ from qiskit.pulse.calibration_entries import (
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj.converters.pulse_instruction import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseLibraryItem, PulseQobjInstruction
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSchedule(QiskitTestCase):

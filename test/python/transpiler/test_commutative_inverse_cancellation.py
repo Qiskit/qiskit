@@ -15,13 +15,13 @@
 import unittest
 import numpy as np
 from ddt import ddt, data
-from qiskit.test import QiskitTestCase
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RZGate, UnitaryGate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import CommutativeInverseCancellation
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

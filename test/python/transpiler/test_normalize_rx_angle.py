@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,14 +17,13 @@ import numpy as np
 from ddt import ddt, named_data
 
 from qiskit import QuantumCircuit
-
 from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
     NormalizeRXAngle,
 )
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import Target
 from qiskit.circuit.library.standard_gates import SXGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

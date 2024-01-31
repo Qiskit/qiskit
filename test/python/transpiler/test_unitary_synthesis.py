@@ -16,14 +16,11 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
-from test import combine
 import unittest
 import numpy as np
-
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
@@ -63,6 +60,8 @@ from qiskit.circuit.library import (
 from qiskit.circuit import Measure
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class FakeBackend2QV2(GenericBackendV2):

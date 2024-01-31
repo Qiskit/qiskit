@@ -16,14 +16,14 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler import PassManager, CouplingMap
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from test.python.legacy_cmaps import YORKTOWN_CMAP
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 
 class TestApplyLayout(QiskitTestCase):

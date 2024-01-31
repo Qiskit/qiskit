@@ -14,13 +14,11 @@
 """Test Qiskit's controlled gate operation."""
 
 import unittest
-from test import combine
 import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
 from qiskit.circuit.exceptions import CircuitError
@@ -82,6 +80,8 @@ from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .gate_utils import _get_free_params
 
