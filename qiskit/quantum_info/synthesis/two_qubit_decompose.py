@@ -27,7 +27,21 @@ arXiv:1811.12926 [quant-ph] (2018).
 from __future__ import annotations
 import warnings
 
-from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
+    TwoQubitWeylDecomposition,
+    TwoQubitControlledUDecomposer,
+    TwoQubitDecomposeUpToDiagonal,
+    TwoQubitWeylIdEquiv,
+    TwoQubitWeylSWAPEquiv,
+    TwoQubitWeylPartialSWAPEquiv,
+    TwoQubitWeylPartialSWAPFlipEquiv,
+    TwoQubitWeylControlledEquiv,
+    TwoQubitWeylMirrorControlledEquiv,
+    TwoQubitWeylfSimaabEquiv,
+    TwoQubitWeylfSimabbEquiv,
+    TwoQubitWeylfSimabmbEquiv,
+    TwoQubitWeylGeneral,
+)
 
 warnings.warn(
     "The qiskit.quantum_info.synthesis module is deprecated since Qiskit 0.46.0."

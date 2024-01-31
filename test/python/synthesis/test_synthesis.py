@@ -1266,9 +1266,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
 
         # pylint: disable = unused-import
         with self.assertWarns(DeprecationWarning):
-            from qiskit.quantum_info.synthesis.two_qubit_decompose import (
-                TwoQubitWeylDecomposition as old_TwoQubitWeylDecomposition,
-            )
+            import qiskit.quantum_info.synthesis.two_qubit_decompose
 
 
 @ddt
