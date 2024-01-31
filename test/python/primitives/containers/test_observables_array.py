@@ -13,13 +13,12 @@
 """Test ObservablesArray"""
 
 import itertools as it
-
 import ddt
 import numpy as np
 
 import qiskit.quantum_info as qi
 from qiskit.primitives import ObservablesArray
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

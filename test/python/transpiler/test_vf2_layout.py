@@ -27,7 +27,6 @@ from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeTenerife,
     FakeVigoV2,
@@ -41,6 +40,7 @@ from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
 from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class LayoutTestCase(QiskitTestCase):

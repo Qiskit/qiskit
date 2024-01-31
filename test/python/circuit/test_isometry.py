@@ -13,17 +13,16 @@
 """Isometry tests."""
 
 import unittest
-
 import numpy as np
 from ddt import ddt, data
 
 from qiskit.quantum_info.random import random_unitary
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
 from qiskit.circuit.library.generalized_gates import Isometry
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

@@ -17,10 +17,10 @@ from collections import defaultdict
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.arithmetic.piecewise_chebyshev import PiecewiseChebyshev
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
