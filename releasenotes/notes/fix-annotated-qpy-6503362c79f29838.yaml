@@ -3,4 +3,4 @@ fixes:
   - |
     QPY (using :func:`.qpy.dump` and :func:`.qpy.load`) will now correctly serialize
     and deserialize quantum circuits with annotated operations
-    (:class:`~.AnnotatedOperation`).
+    (:class:`.AnnotatedOperation`).
