@@ -626,7 +626,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name not in ["Clifford", "AnnotatedOperation"]
+            and gate_class_name not in {"Clifford", "AnnotatedOperation"}
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
