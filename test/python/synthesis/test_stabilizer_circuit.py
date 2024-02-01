@@ -14,19 +14,15 @@ from __future__ import annotations
 
 import unittest
 from collections.abc import Collection
-
-from test import combine
-
 from ddt import ddt
-
 import numpy as np
 
 from qiskit.synthesis import synth_circuit_from_stabilizers
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, StabilizerState, random_clifford
 from qiskit.quantum_info.operators import Clifford
-
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

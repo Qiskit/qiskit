@@ -80,7 +80,7 @@ class SGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
@@ -148,7 +148,7 @@ class SdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
@@ -225,7 +225,7 @@ class CSGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=pi / 2).definition
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of CSGate (CSdgGate)."""
         return CSdgGate(ctrl_state=self.ctrl_state)
 
@@ -301,7 +301,7 @@ class CSdgGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of CSdgGate (CSGate)."""
         return CSGate(ctrl_state=self.ctrl_state)
 

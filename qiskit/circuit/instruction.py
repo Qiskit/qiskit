@@ -47,6 +47,8 @@ from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
 
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
+
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -417,22 +419,36 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
-        If the instruction is composite (i.e. has a definition),
-        then its definition will be recursively inverted.
+        If `annotated` is `False`, the inverse instruction is implemented as
+        a fresh instruction with the recursively inverted definition.
+
+        If `annotated` is `True`, the inverse instruction is implemented as
+        :class:`.AnnotatedOperation`, and corresponds to the given instruction
+        annotated with the "inverse modifier".
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+        In particular, they can choose how to handle the argument ``annotated``
+        which may include ignoring it and always returning a concrete gate class
+        if the inverse is defined as a standard gate.
+
+        Args:
+            annotated: if set to `True` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            The inverse operation.
 
         Raises:
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 

@@ -18,9 +18,12 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BindingsArray, EstimatorPub, ObservablesArray, StatevectorEstimator
+from qiskit.primitives import StatevectorEstimator
+from qiskit.primitives.containers.estimator_pub import EstimatorPub
+from qiskit.primitives.containers.observables_array import ObservablesArray
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStatevectorEstimator(QiskitTestCase):
@@ -94,10 +97,10 @@ class TestStatevectorEstimator(QiskitTestCase):
         theta1, theta2, theta3 = self.theta
 
         obs1 = ObservablesArray.coerce([hamiltonian1, hamiltonian3])
-        bind1 = BindingsArray.coerce([theta1, theta3])
+        bind1 = BindingsArray.coerce({tuple(psi1.parameters): [theta1, theta3]})
         pub1 = EstimatorPub(psi1, obs1, bind1)
         obs2 = ObservablesArray.coerce(hamiltonian2)
-        bind2 = BindingsArray.coerce(theta2)
+        bind2 = BindingsArray.coerce({tuple(psi2.parameters): theta2})
         pub2 = EstimatorPub(psi2, obs2, bind2)
 
         estimator = StatevectorEstimator()
@@ -135,10 +138,7 @@ class TestStatevectorEstimator(QiskitTestCase):
             op = SparsePauliOp("Z")
             param_vals = [
                 [np.pi],
-                [[np.pi]],
                 np.array([np.pi]),
-                np.array([[np.pi]]),
-                [np.array([np.pi])],
             ]
             target = [-1]
             for val in param_vals:

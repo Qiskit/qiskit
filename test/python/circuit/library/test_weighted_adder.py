@@ -17,10 +17,10 @@ from collections import defaultdict
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import WeightedAdder
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

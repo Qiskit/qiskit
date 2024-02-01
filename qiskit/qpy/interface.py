@@ -199,7 +199,11 @@ def dump(
 
     for program in programs:
         writer(
-            file_obj, program, metadata_serializer=metadata_serializer, use_symengine=use_symengine
+            file_obj,
+            program,
+            metadata_serializer=metadata_serializer,
+            use_symengine=use_symengine,
+            version=version,
         )
 
 

@@ -1059,8 +1059,10 @@ class SparsePauliOp(LinearOp):
 
     def assign_parameters(
         self,
-        parameters: Mapping[Parameter, complex | ParameterExpression]
-        | Sequence[complex | ParameterExpression],
+        parameters: (
+            Mapping[Parameter, complex | ParameterExpression]
+            | Sequence[complex | ParameterExpression]
+        ),
         inplace: bool = False,
     ) -> SparsePauliOp | None:
         r"""Bind the free ``Parameter``\s in the coefficients to provided values.

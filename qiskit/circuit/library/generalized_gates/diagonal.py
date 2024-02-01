@@ -149,7 +149,7 @@ class DiagonalGate(Gate):
         else:
             return complex(super().validate_parameter(parameter))
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the inverse of the diagonal gate."""
         return DiagonalGate([np.conj(entry) for entry in self.params])
 

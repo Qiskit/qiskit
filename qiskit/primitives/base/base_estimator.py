@@ -150,30 +150,26 @@ Here is an example of how the estimator is used.
 
 from __future__ import annotations
 
-import warnings
 from abc import abstractmethod, ABC
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
-
 import numpy as np
 from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_func
 
 from ..containers import (
     make_data_bin,
     DataBin,
-    EstimatorPub,
     EstimatorPubLike,
     PrimitiveResult,
     PubResult,
 )
+from ..containers.estimator_pub import EstimatorPub
 from . import validation
 from .base_primitive import BasePrimitive
 from .base_primitive_job import BasePrimitiveJob
@@ -202,27 +198,6 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
             options: Default options.
         """
         super().__init__(options)
-
-    def __getattr__(self, name: str) -> any:
-        # Work around to enable deprecation of the init attributes in BaseEstimator incase
-        # existing subclasses depend on them (which some do)
-        dep_defaults = {
-            "_circuits": [],
-            "_observables": [],
-            "_parameters": [],
-        }
-        if name not in dep_defaults:
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-        warnings.warn(
-            f"The init attribute `{name}` in BaseEstimator is deprecated as of Qiskit 0.46."
-            " To continue to use this attribute in a subclass and avoid this warning the"
-            " subclass should initialize it itself.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        setattr(self, name, dep_defaults[name])
-        return getattr(self, name)
 
     def run(
         self,
@@ -293,50 +268,6 @@ class BaseEstimatorV1(BasePrimitive, Generic[T]):
     ) -> T:
         raise NotImplementedError("The subclass of BaseEstimator must implement `_run` method.")
 
-    @staticmethod
-    @deprecate_func(since="0.46.0")
-    def _validate_observables(
-        observables: Sequence[BaseOperator | str] | BaseOperator | str,
-    ) -> tuple[SparsePauliOp, ...]:
-        return validation._validate_observables(observables)
-
-    @staticmethod
-    @deprecate_func(since="0.46.0")
-    def _cross_validate_circuits_observables(
-        circuits: tuple[QuantumCircuit, ...], observables: tuple[BaseOperator, ...]
-    ) -> None:
-        return validation._cross_validate_circuits_observables(circuits, observables)
-
-    @property
-    @deprecate_func(since="0.46.0", is_property=True)
-    def circuits(self) -> tuple[QuantumCircuit, ...]:
-        """Quantum circuits that represents quantum states.
-
-        Returns:
-            The quantum circuits.
-        """
-        return tuple(self._circuits)
-
-    @property
-    @deprecate_func(since="0.46.0", is_property=True)
-    def observables(self) -> tuple[SparsePauliOp, ...]:
-        """Observables to be estimated.
-
-        Returns:
-            The observables.
-        """
-        return tuple(self._observables)
-
-    @property
-    @deprecate_func(since="0.46.0", is_property=True)
-    def parameters(self) -> tuple[ParameterView, ...]:
-        """Parameters of the quantum circuits.
-
-        Returns:
-            Parameters, where ``parameters[i][j]`` is the j-th parameter of the i-th circuit.
-        """
-        return tuple(self._parameters)
-
 
 BaseEstimator = BaseEstimatorV1
 
@@ -367,12 +298,11 @@ class BaseEstimatorV2(ABC):
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
         Args:
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
-                  ``(circuit, observables, parameter_values)``.
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
+                  or ``(circuit, observables, parameter_values)``.
             precision: The target precision for expectation value estimates of each
-                       run :class:`.EstimatorPub` that does not specify its own
-                       precision. If None the estimator's default precision value
-                       will be used.
+                       run Estimator Pub that does not specify its own precision. If None
+                       the estimator's default precision value will be used.
 
         Returns:
             A job object that contains results.

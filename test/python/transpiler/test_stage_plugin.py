@@ -14,13 +14,10 @@
 Tests for the staged transpiler plugins.
 """
 
-from test import combine
-
 import ddt
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.preset_passmanagers.builtin_plugins import BasicSwapPassManager
@@ -31,6 +28,8 @@ from qiskit.transpiler.preset_passmanagers.plugin import (
 )
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.providers.basic_provider import BasicSimulator
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestStagePassManagerPlugin(QiskitTestCase):
