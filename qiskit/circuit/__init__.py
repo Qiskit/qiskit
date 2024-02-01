@@ -397,3 +397,5 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+
+from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

@@ -30,6 +30,13 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    Modifier,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -130,6 +137,8 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
+    elif type_key == type_keys.Value.MODIFIER:
+        param = common.data_from_binary(data_bytes, _read_modifier)
     elif type_key == type_keys.Container.RANGE:
         data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, data_bytes))
         param = range(data.start, data.stop, data.step)
@@ -408,6 +417,14 @@ def _parse_custom_operation(
         inst_obj.definition = definition
         return inst_obj
 
+    if version >= 11 and type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
+        with io.BytesIO(base_gate_raw) as base_gate_obj:
+            base_gate = _read_instruction(
+                base_gate_obj, None, registers, custom_operations, version, vectors, use_symengine
+            )
+        inst_obj = AnnotatedOperation(base_op=base_gate, modifiers=params)
+        return inst_obj
+
     if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
         return definition
 
@@ -451,6 +468,25 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
     synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
     return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
     return return_gate
+
+
+def _read_modifier(file_obj):
+    modifier = formats.MODIFIER_DEF._make(
+        struct.unpack(
+            formats.MODIFIER_DEF_PACK,
+            file_obj.read(formats.MODIFIER_DEF_SIZE),
+        )
+    )
+    if modifier.type == b"i":
+        return InverseModifier()
+    elif modifier.type == b"c":
+        return ControlModifier(
+            num_ctrl_qubits=modifier.num_ctrl_qubits, ctrl_state=modifier.ctrl_state
+        )
+    elif modifier.type == b"p":
+        return PowerModifier(power=modifier.power)
+    else:
+        raise TypeError("Unsupported modifier.")
 
 
 def _read_custom_operations(file_obj, version, vectors):
@@ -547,6 +583,9 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
+    elif isinstance(param, Modifier):
+        type_key = type_keys.Value.MODIFIER
+        data_bytes = common.data_to_binary(param, _write_modifier)
     elif isinstance(param, range):
         type_key = type_keys.Container.RANGE
         data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
@@ -606,8 +645,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
-    elif gate_class_name == "ControlledGate":
-        # controlled gates can have the same name but different parameter
+    elif gate_class_name in {"ControlledGate", "AnnotatedOperation"}:
+        # controlled or annotated gates can have the same name but different parameter
         # values, the uuid is appended to avoid storing a single definition
         # in circuits with multiple controlled gates.
         gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
@@ -646,8 +685,10 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         ]
     elif isinstance(instruction.operation, Clifford):
         instruction_params = [instruction.operation.tableau]
+    elif isinstance(instruction.operation, AnnotatedOperation):
+        instruction_params = instruction.operation.modifiers
     else:
-        instruction_params = instruction.operation.params
+        instruction_params = getattr(instruction.operation, "params", [])
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
@@ -729,6 +770,31 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
+def _write_modifier(file_obj, modifier):
+    if isinstance(modifier, InverseModifier):
+        type_key = b"i"
+        num_ctrl_qubits = 0
+        ctrl_state = 0
+        power = 0.0
+    elif isinstance(modifier, ControlModifier):
+        type_key = b"c"
+        num_ctrl_qubits = modifier.num_ctrl_qubits
+        ctrl_state = modifier.ctrl_state
+        power = 0.0
+    elif isinstance(modifier, PowerModifier):
+        type_key = b"p"
+        num_ctrl_qubits = 0
+        ctrl_state = 0
+        power = modifier.power
+    else:
+        raise TypeError("Unsupported modifier.")
+
+    modifier_data = struct.pack(
+        formats.MODIFIER_DEF_PACK, type_key, num_ctrl_qubits, ctrl_state, power
+    )
+    file_obj.write(modifier_data)
+
+
 def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine, version):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
@@ -759,6 +825,9 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
         num_ctrl_qubits = operation.num_ctrl_qubits
         ctrl_state = operation.ctrl_state
         base_gate = operation.base_gate
+    elif type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
+        has_definition = False
+        base_gate = operation.base_op
     elif operation.definition is not None:
         has_definition = True
         data = common.data_to_binary(operation.definition, write_circuit)
