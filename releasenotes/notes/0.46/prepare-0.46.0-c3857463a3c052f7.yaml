@@ -1,5 +1,5 @@
 ---
-prelude: >
+prelude: |
     The 0.46.0 release is the final minor version release for the 0.x series.
     This release primarily adds new deprecation warnings for API changes coming
     in the future major version release 1.0.0. It is fully compatible with the
@@ -115,10 +115,10 @@ features:
           qc.measure(i, creg[i])
       qc.ecr(20, 21).c_if(creg, 0)
 
-      # Define backend with custom basis gates 
+      # Define backend with custom basis gates
       # and control flow instructions
       backend = GenericBackendV2(
-            num_qubits=25, 
+            num_qubits=25,
             basis_gates = ["ecr","id","rz","sx","x"],
             control_flow=True)
 
@@ -202,7 +202,7 @@ deprecations:
     in this module you can update your imports from ``qiskit.tools`` to
     :mod:`qiskit.utils`.
   - |
-    The module ``qiskit.test`` is deprecated. This module contains tooling and helpers for internal 
+    The module ``qiskit.test`` is deprecated. This module contains tooling and helpers for internal
     Qiskit testing, and most of its functionality had been moved or is not used in Qiskit anymore.
     In practice, the module was never meant to be used externally. If any of the code in the module
     is absolutely necessary beyond Qiskit, consider copying that code out into your own test infrastructure.
@@ -292,9 +292,9 @@ deprecations:
     * :func:`~qiskit.pulse.builder.u2`,
     * :func:`~qiskit.pulse.builder.u3`,
     * :func:`~qiskit.pulse.builder.x`
-        
+
     As well as input arguments of type :class:`.QuantumCircuit` type in :func:`~qiskit.pulse.builder.call`.
-    
+
     If you still wish to inject backend calibrated schedules,
     you can use following pattern instead of calling gate commands.
 
@@ -333,12 +333,12 @@ deprecations:
     gate instruction, rather than writing the entire program with the pulse model.
 
     The following arguments in :func:`~qiskit.pulse.builder.build` have also been deprecated:
- 
+
     * :code:`default_transpiler_settings`
     * :code:`default_circuit_scheduler_settings`
-    
+
     Together with the functions:
-   
+
     * :func:`~qiskit.pulse.builder.active_transpiler_settings`
     * :func:`~qiskit.pulse.builder.active_circuit_scheduler_settings`
     * :func:`~qiskit.pulse.builder.transpiler_settings`
@@ -490,7 +490,7 @@ deprecations:
     deprecated in the symbolic pulse library - use ``float`` ``amp`` and  ``angle`` instead.
 
   - |
-    The :class:`.ConfigurableFakeBackend` class, which has mainly been used for internal 
+    The :class:`.ConfigurableFakeBackend` class, which has mainly been used for internal
     testing, is now deprecated. It will be removed in the Qiskit 1.0.0 release. Instead, you
     can use the :class:`.GenericBackendV2` class to build a similar backend for testing.
 
@@ -506,8 +506,8 @@ deprecations:
     * :class:`~.qiskit.pulse.Gaussian`
     * :class:`~.qiskit.pulse.GaussianSquare`
 
-- |
-  The :mod:`qiskit.providers.basicaer` module and all of its classes are deprecated
+  - |
+    The :mod:`qiskit.providers.basicaer` module and all of its classes are deprecated
     from Qiskit 0.46 onwards. Their use should be replaced with
     the :mod:`qiskit.quantum_info` module and the new
     :mod:`qiskit.providers.basic_provider` module.
@@ -595,7 +595,7 @@ deprecations:
         from qiskit.providers.basic_provider import BasicSimulator
         backend = BasicSimulator()
         result = backend.run(qc).result()
-  
+
   - |
     Using a :class:`~.PauliList` as an observable that is implicitly
     converted to a :class:`~.SparsePauliOp` with coefficients 1 when calling
