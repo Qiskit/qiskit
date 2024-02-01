@@ -218,9 +218,14 @@ at most 3 qubits, using the method ``synth_clifford_bm``.
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by adding
+<<<<<<< HEAD
 an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
 for the plugin package with the necessary entry points under the
 ``qiskit.synthesis`` namespace. For example::
+=======
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the ``qiskit.synthesis`` namespace. For example:
+>>>>>>> 653b9426e (fix typo (#11689))
 
     entry_points = {
         'qiskit.synthesis': [
