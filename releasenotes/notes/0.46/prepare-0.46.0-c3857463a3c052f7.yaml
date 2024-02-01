@@ -18,7 +18,7 @@ prelude: >
       If your project depends on Qiskit, it may rely on functionality that will no longer
       be supported in Qiskit 1.0.0. For this reason, we recommend that you proactively cap your
       supported version to ``<1.0``. Qiskit 1.0.0 is scheduled to release approximately two weeks
-      after Qiskit 0.46.0, on the 15th of February 2024, and might not yet be available when
+      after Qiskit 0.46.0, on 2024-02-15, and might not yet be available when
       you read this message.
 
     The packaging structure of Qiskit is changing in Qiskit 1.0, and unfortunately the changed
