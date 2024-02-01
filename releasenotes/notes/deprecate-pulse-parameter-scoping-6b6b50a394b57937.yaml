@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The :meth:`.ScheduleBlock.scoped_parameters` and
+    :meth:`.ScheduleBlock.search_parameters` methods have been deprecated.
+    These methods produce :class:`.Parameter` objects with names modified to
+    indicate pulse scoping. The original intention of the methods was that
+    these objects would still link to the original unscoped :class:`.Parameter`
+    objects. However, the modification of the name breaks the link so that
+    assigning using the scoped version does not work. See `#11654
+    <https://github.com/Qiskit/qiskit/issues/11654>`__ for more context.

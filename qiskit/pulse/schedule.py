@@ -51,6 +51,7 @@ from qiskit.pulse.exceptions import PulseError, UnassignedReferenceError
 from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils.multiprocessing import is_main_process
 
 
@@ -880,6 +881,12 @@ class ScheduleBlock:
 
     .. rubric:: Program Scoping
 
+    .. note::
+
+        The :meth:`~ScheduleBlock.scoped_parameters` and
+        :meth:`~ScheduleBlock.search_parameters` methods described in this
+        section are deprecated.
+
     When you call a subroutine from another subroutine, or append a schedule block
     to another schedule block, the management of references and parameters
     can be a hard task. Schedule block offers a convenient feature to help with this
@@ -1225,8 +1232,21 @@ class ScheduleBlock:
 
         return out_params
 
+    @deprecate_func(
+        additional_msg=(
+            "There is no alternative to this method. Parameters must be mapped "
+            "to references by checking the reference schedules directly."
+        ),
+        since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
+
+        .. warning::
+
+            Scoped parameters do not work correctly with Qiskit's data model for parameter
+            assignment.  This implementation is consequently being removed in Qiskit 1.0.
 
         .. note::
 
@@ -1623,8 +1643,21 @@ class ScheduleBlock:
         matched = [p for p in self.parameters if p.name == parameter_name]
         return matched
 
+    @deprecate_func(
+        additional_msg=(
+            "There is no alternative to this method. Parameters must be mapped "
+            "to references by checking the reference schedules directly."
+        ),
+        since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def search_parameters(self, parameter_regex: str) -> List[Parameter]:
         """Search parameter with regular expression.
+
+        .. warning::
+
+            Scoped parameters do not work correctly with Qiskit's data model for parameter
+            assignment.  This implementation is consequently being removed in Qiskit 1.0.
 
         This method looks for the scope-aware parameters.
         For example,
