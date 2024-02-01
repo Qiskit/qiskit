@@ -151,6 +151,7 @@ class Pauli(BasePauli):
         print('P[:] =', repr(P[:]))
         print('P[::-1] =, repr(P[::-1]))
     """
+
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
