@@ -66,7 +66,7 @@ def _is_deprecated_data_format(data) -> bool:
     since="0.22.0",
     additional_msg="Instead, use ``plot_distribution()``.",
     predicate=_is_deprecated_data_format,
-    pending=True,
+    pending=False,
     package_name="qiskit-terra",
 )
 def plot_histogram(
