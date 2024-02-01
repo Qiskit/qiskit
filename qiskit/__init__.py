@@ -14,25 +14,39 @@
 
 """Main Qiskit public functionality."""
 
-from importlib.metadata import version, PackageNotFoundError
+import os
 import pkgutil
 import sys
 import warnings
-
-import qiskit._accelerate
+import importlib.metadata
 
 try:
-    version("qiskit")
-except PackageNotFoundError:
+    _qiskit_version = importlib.metadata.version("qiskit")
+except importlib.metadata.PackageNotFoundError:
     warnings.warn(
-        "The `qiskit` package is not installed, only `qiskit-terra` is installed. "
-        "Starting in Qiskit 1.0.0 only the `qiskit` package will be published. Migrate "
-        "any requirements files still using `qiskit-terra` to use `qiskit` instead. Also "
-        "when upgrading ensure you create a new venv instead of trying to "
-        "upgrade in place.",
+        "The `qiskit` package is not installed, only `qiskit-terra` is installed."
+        " Starting in Qiskit 1.0.0 only the `qiskit` package will be published."
+        " Migrate any requirements files still using `qiskit-terra` to use `qiskit` instead."
+        " See https://qisk.it/1-0-packaging-migration for more detail.",
         FutureWarning,
         stacklevel=2,
     )
+else:
+    _major, _ = _qiskit_version.split(".", 1)
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    if int(_major) > 0 and not _suppress_error:
+        raise ImportError(
+            "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
+            " and an earlier version."
+            " You should create a new virtual environment, and ensure that you do not mix"
+            " dependencies between Qiskit <1.0 and >=1.0."
+            " Any packages that depend on 'qiskit-terra' are not compatible with Qiskit 1.0 and"
+            " will need to be updated."
+            " Qiskit unfortunately cannot enforce this requirement during environment resolution."
+            " See https://qisk.it/packaging-1-0 for more detail."
+        )
+
+import qiskit._accelerate
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
@@ -220,8 +234,6 @@ _DEPRECATED_NAMES = {
 
 def __getattr__(name):
     if name in _DEPRECATED_NAMES:
-        import importlib
-
         module_name = _DEPRECATED_NAMES[name]
         warnings.warn(
             f"{name} is deprecated since Qiskit 0.46 and will be removed in Qiskit 1.0. "

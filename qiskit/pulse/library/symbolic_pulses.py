@@ -728,8 +728,10 @@ class Gaussian(metaclass=_PulseType):
 
     .. math::
 
+        \begin{aligned}
         f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
         f(x) &= \text{A} \times  \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        \end{aligned}
 
     where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling, and
     :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`.
@@ -802,8 +804,10 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -813,6 +817,7 @@ class GaussianSquare(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
                 & x < \\text{risefall}\\\\
@@ -826,6 +831,7 @@ class GaussianSquare(metaclass=_PulseType):
         \\end{cases}\\\\
         f(x) &= \\text{A} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling, and
     :math:`\\text{A} = \\text{amp} \\times \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -948,8 +954,10 @@ def GaussianSquareDrag(
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -960,8 +968,10 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         g(x, c, σ) &= \\exp\\Bigl(-\\frac12 \\frac{(x - c)^2}{σ^2}\\Bigr)\\\\
         g'(x, c, σ) &= \\frac{g(x, c, σ)-g(-1, c, σ)}{1-g(-1, c, σ)}
+        \\end{aligned}
 
     From these, the lifted DRAG curve :math:`d'(x, c, σ, β)` can be written as
 
@@ -974,6 +984,7 @@ def GaussianSquareDrag(
 
     .. math::
 
+        \\begin{aligned}
         f'(x) &= \\begin{cases}\
             \\text{A} \\times d'(x, \\text{risefall}, \\text{sigma}, \\text{beta})\
                 & x < \\text{risefall}\\\\
@@ -987,6 +998,7 @@ def GaussianSquareDrag(
                 )\
                 & \\text{risefall} + \\text{width} \\le x\
         \\end{cases}\\\\
+        \\end{aligned}
 
     where :math:`\\text{A} = \\text{amp} \\times
     \\exp\\left(i\\times\\text{angle}\\right)`.
@@ -1093,12 +1105,14 @@ def gaussian_square_echo(
 
     .. math::
 
+        \\begin{aligned}
         g_e(x) &= \\begin{cases}\
             f_{\\text{active}} + f_{\\text{echo}}(x)\
                 & x < \\frac{\\text{duration}}{2}\\\\
             f_{\\text{active}} - f_{\\text{echo}}(x)\
                 & \\frac{\\text{duration}}{2} < x\
         \\end{cases}\\\\
+        \\end{aligned}
 
     One case where this pulse can be used is when implementing a direct CNOT gate with
     a cross-resonance superconducting qubit architecture. When applying this pulse to
@@ -1111,8 +1125,10 @@ def gaussian_square_echo(
 
     .. math::
 
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\begin{aligned}
+        \\text{risefall} &= \\text{risefall\\_sigma\\_ratio} \\times \\text{sigma}\\\\
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+        \\end{aligned}
 
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
 
@@ -1347,11 +1363,13 @@ class Drag(metaclass=_PulseType):
 
     .. math::
 
+        \\begin{aligned}
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
         g'(x) &= \\text{A}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
         f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
             \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
             \\quad 0 \\le x < \\text{duration}
+        \\end{aligned}
 
     where :math:`g(x)` is a standard unlifted Gaussian waveform, :math:`g'(x)` is the lifted
     :class:`~qiskit.pulse.library.Gaussian` waveform, and
