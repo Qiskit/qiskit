@@ -596,11 +596,31 @@ class DefaultCase(Expression):
     """An object representing the `default` special label in switch statements."""
 
 
-class SwitchStatement(Statement):
-    """AST node for the proposed 'switch-case' extension to OpenQASM 3."""
+class SwitchStatementPreview(Statement):
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3, before the syntax was
+    stabilized.  This corresponds to the :attr:`.ExperimentalFeatures.SWITCH_CASE_V1` logic.
+
+    The stabilized form of the syntax instead uses :class:`.SwitchStatement`."""
 
     def __init__(
         self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
     ):
         self.target = target
         self.cases = [(tuple(values), case) for values, case in cases]
+
+
+class SwitchStatement(Statement):
+    """AST node for the stable 'switch' statement of OpenQASM 3.
+
+    The only real difference from an AST form is that the default is required to be separate; it
+    cannot be joined with other cases (even though that's meaningless, the V1 syntax permitted it)."""
+
+    def __init__(
+        self,
+        target: Expression,
+        cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]],
+        default: Optional[ProgramBlock] = None,
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]
+        self.default = default
