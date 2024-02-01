@@ -431,7 +431,9 @@ class Instruction(Operation):
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
-        In particular, they can choose how to handle the argument `annotated`.
+        In particular, they can choose how to handle the argument ``annotated``
+        which may include ignoring it and always returning a concrete gate class
+        if the inverse is defined as a standard gate.
 
         Args:
             annotated: if set to `True` the output inverse gate will be returned
