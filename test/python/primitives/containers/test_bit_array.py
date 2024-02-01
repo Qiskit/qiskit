@@ -108,6 +108,29 @@ class BitArrayTestCase(QiskitTestCase):
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1, val3: 1, val4: 2})
 
+    def test_get_bitstrings(self):
+        """Test conversion to bitstrings."""
+        # note that [234, 100] requires 16 bits, not 15; we are testing that get_counts ignores the
+        # junk columns
+        bit_array = BitArray(u_8([[3, 5], [3, 5], [234, 100]]), num_bits=15)
+        bs1 = "0000011" + "00000101"  # 3, 5
+        bs2 = "1101010" + "01100100"  # 234, 100
+        self.assertEqual(bit_array.get_bitstrings(), [bs1, bs1, bs2])
+
+        bit_array = BitArray(
+            u_8([[[3, 5], [3, 5], [234, 100]], [[0, 1], [1, 0], [1, 0]]]),
+            num_bits=15,
+        )
+        bs1 = "0000011" + "00000101"  # 3, 5
+        bs2 = "1101010" + "01100100"  # 234, 100
+        self.assertEqual(bit_array.get_bitstrings(0), [bs1, bs1, bs2])
+        bs3 = "0000000" + "00000001"  # 0, 1
+        bs4 = "0000001" + "00000000"  # 1, 0
+        self.assertEqual(bit_array.get_bitstrings(1), [bs3, bs4, bs4])
+
+        # test that providing no location takes the union over all shots
+        self.assertEqual(bit_array.get_bitstrings(), [bs1, bs1, bs2, bs3, bs4, bs4])
+
     def test_equality(self):
         """Test the equality operator"""
         ba1 = BitArray.from_bool_array([[1, 0, 0], [1, 1, 0]])
