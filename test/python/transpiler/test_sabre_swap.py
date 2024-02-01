@@ -24,7 +24,7 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import FakeMumbai, GenericBackendV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
@@ -1326,7 +1326,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = FakeMumbai()
+        cls.backend = Fake27QPulseV1()
         cls.backend.configuration().coupling_map = MUMBAI_CMAP
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)

@@ -6,7 +6,7 @@
 # possible so it's easy to develop multiple packages from the same venv.
 
 # Style
-black[jupyter]~=22.0
+black[jupyter]~=24.1
 
 
 # Lint
