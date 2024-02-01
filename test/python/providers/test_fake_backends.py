@@ -16,7 +16,6 @@
 import datetime
 import itertools
 import operator
-import platform
 import unittest
 
 from test import combine
@@ -80,7 +79,8 @@ from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 BACKENDS = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
 
 BACKENDS_V2 = []
-for n in [5, 7, 16, 20, 27, 65, 127]:
+# NOTE: Do not go any larger to avoid noise model construction performance issues
+for n in [5, 7]:
     BACKENDS_V2.append(GenericBackendV2(num_qubits=n))
 
 
@@ -105,11 +105,10 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
-        if optionals.HAS_AER and platform.system() == "Windows":
-            self.skipTest("Skipping this test to workaround issues with aer on Windows.")
         job = backend.run(
-            transpile(self.circuit, backend, seed_transpiler=42),
-            optimization_level=optimization_level,
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
             seed_simulator=42,
         )
         result = job.result()
@@ -130,8 +129,9 @@ class TestFakeBackends(QiskitTestCase):
                 % backend.configuration().backend_name
             )
         job = backend.run(
-            transpile(self.circuit, backend, seed_transpiler=42),
-            optimization_level=optimization_level,
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
             seed_simulator=42,
         )
         result = job.result()
