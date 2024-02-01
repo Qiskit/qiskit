@@ -2165,7 +2165,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 qc.cx(0, 1)
             with case(case.DEFAULT):
                 qc.h(0)
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
@@ -2198,7 +2198,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with case(case.DEFAULT):
                 with qc.if_test((creg[1], 0)):
                     qc.h(0)
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=0)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)

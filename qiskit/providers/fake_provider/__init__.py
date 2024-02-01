@@ -101,5 +101,5 @@ from .fake_openpulse_3q import FakeOpenPulse3Q
 from .fake_1q import Fake1Q
 
 # Generic fake backends
-from .backends_v1 import *
+from .backends_v1 import Fake5QV1, Fake20QV1, Fake7QPulseV1, Fake27QPulseV1, Fake127QPulseV1
 from .generic_backend_v2 import GenericBackendV2
