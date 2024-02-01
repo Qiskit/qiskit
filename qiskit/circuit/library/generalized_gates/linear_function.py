@@ -67,12 +67,14 @@ class LinearFunction(Gate):
 
     def __init__(
         self,
-        linear: list[list]
-        | np.ndarray[bool]
-        | QuantumCircuit
-        | LinearFunction
-        | PermutationGate
-        | Clifford,
+        linear: (
+            list[list]
+            | np.ndarray[bool]
+            | QuantumCircuit
+            | LinearFunction
+            | PermutationGate
+            | Clifford
+        ),
         validate_input: bool = False,
     ) -> None:
         """Create a new linear function.

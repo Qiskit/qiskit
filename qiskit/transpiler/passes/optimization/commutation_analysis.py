@@ -52,7 +52,7 @@ class CommutationAnalysis(AnalysisPass):
 
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
-            for (_, _, edge_wire) in dag.edges(node):
+            for _, _, edge_wire in dag.edges(node):
                 self.property_set["commutation_set"][(node, edge_wire)] = -1
 
         # Construct the commutation set

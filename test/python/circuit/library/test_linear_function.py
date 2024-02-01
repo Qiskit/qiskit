@@ -37,7 +37,6 @@ def random_linear_circuit(
     clifford=False,
     recursion_depth=0,
 ):
-
     """Generate a pseudo random linear circuit."""
 
     if num_qubits == 0:
