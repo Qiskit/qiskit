@@ -131,9 +131,9 @@ class TestApplyLayout(QiskitTestCase):
         first_layout_circ = initial_pm.run(qc)
         out_pass = ApplyLayout()
         out_pass.property_set["layout"] = first_layout_circ.layout.initial_layout
-        out_pass.property_set[
-            "original_qubit_indices"
-        ] = first_layout_circ.layout.input_qubit_mapping
+        out_pass.property_set["original_qubit_indices"] = (
+            first_layout_circ.layout.input_qubit_mapping
+        )
         out_pass.property_set["final_layout"] = Layout(
             {
                 first_layout_circ.qubits[0]: 0,
