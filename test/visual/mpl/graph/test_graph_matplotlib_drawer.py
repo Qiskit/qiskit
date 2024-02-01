@@ -26,7 +26,7 @@ from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.quantum_info import Statevector
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.visual import VisualTestUtilities  # pylint: disable=wrong-import-order
-from test.python.legacy_cmaps import (
+from test.python.legacy_cmaps import (  # pylint: disable=wrong-import-order
     YORKTOWN_CMAP,
     LAGOS_CMAP,
     RUESCHLIKON_CMAP,
