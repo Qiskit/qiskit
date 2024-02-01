@@ -22,7 +22,7 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator, EstimatorResult
-from qiskit.primitives.base import validation
+from qiskit.primitives.base import validation, BaseEstimator
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
 from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
