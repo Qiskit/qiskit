@@ -25,6 +25,7 @@ from qiskit.utils.deprecation import deprecate_func
     additional_msg="Instead, use the function qiskit.synthesis.synth_cnotdihedral_full.",
     since="0.23.0",
     package_name="qiskit-terra",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def decompose_cnotdihedral(elem):
     """DEPRECATED: Decompose a CNOTDihedral element into a QuantumCircuit.

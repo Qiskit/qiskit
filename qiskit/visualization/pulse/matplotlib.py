@@ -58,7 +58,7 @@ class EventsOutputChannels:
             "pulse visualization."
         ),
         since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
+        removal_timeline="in the Qiskit 1.0 release",
         package_name="qiskit-terra",
     )
     def __init__(self, t0: int, tf: int):
@@ -296,7 +296,7 @@ class WaveformDrawer:
             "pulse visualization."
         ),
         since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
+        removal_timeline="in the Qiskit 1.0 release",
         package_name="qiskit-terra",
     )
     def __init__(self, style: PulseStyle):
@@ -400,7 +400,7 @@ class ScheduleDrawer:
             "pulse visualization."
         ),
         since="0.23.0",
-        removal_timeline="no earlier than 6 months after the release date",
+        removal_timeline="in the Qiskit 1.0 release",
         package_name="qiskit-terra",
     )
     def __init__(self, style: SchedStyle):

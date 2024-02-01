@@ -20,6 +20,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -33,6 +34,7 @@ def normalize_vector(vector):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -46,6 +48,7 @@ def is_power_of_2(num):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -67,6 +70,7 @@ def log2(num):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -106,6 +110,7 @@ def is_power(num, return_decomposition=False):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -127,6 +132,7 @@ def next_power_of_2_base(n):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -170,6 +176,7 @@ def transpositions(permutation: List[int]) -> List[Tuple[int, int]]:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "

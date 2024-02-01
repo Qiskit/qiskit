@@ -25,6 +25,7 @@ class Snapshot(Instruction):
     _directive = True
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.45.0",
         additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
         "instructions, see "

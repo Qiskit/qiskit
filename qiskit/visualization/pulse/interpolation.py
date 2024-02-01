@@ -31,8 +31,8 @@ from qiskit.utils.deprecation import deprecate_func
         "pulse visualization."
     ),
     since="0.23.0",
-    removal_timeline="no earlier than 6 months after the release date",
     package_name="qiskit-terra",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def interp1d(
     time: np.ndarray, samples: np.ndarray, nop: int, kind: str = "linear"
@@ -72,7 +72,7 @@ def interp1d(
         "pulse visualization."
     ),
     since="0.23.0",
-    removal_timeline="no earlier than 6 months after the release date",
+    removal_timeline="in the Qiskit 1.0 release",
     package_name="qiskit-terra",
 )
 def step_wise(

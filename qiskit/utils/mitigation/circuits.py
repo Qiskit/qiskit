@@ -23,6 +23,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -42,6 +43,7 @@ def count_keys(num_qubits: int) -> List[str]:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -124,6 +126,7 @@ def complete_meas_cal(
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",

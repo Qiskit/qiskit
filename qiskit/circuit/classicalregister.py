@@ -65,6 +65,7 @@ class ClassicalRegister(Register):
         ),
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def qasm(self):
         """Return OPENQASM string for this register."""

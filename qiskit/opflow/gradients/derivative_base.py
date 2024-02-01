@@ -48,6 +48,7 @@ class DerivativeBase(ConverterBase):
     """
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
@@ -137,6 +138,7 @@ class DerivativeBase(ConverterBase):
 
     @staticmethod
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.18.0",
         package_name="qiskit-terra",
         additional_msg="Instead, use the ParameterExpression.gradient method.",

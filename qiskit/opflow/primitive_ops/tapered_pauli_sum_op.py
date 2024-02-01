@@ -36,6 +36,7 @@ class TaperedPauliSumOp(PauliSumOp):
     """Deprecated: Class for PauliSumOp after tapering"""
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
@@ -90,6 +91,7 @@ class Z2Symmetries:
     """Deprecated: Z2 Symmetries"""
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",

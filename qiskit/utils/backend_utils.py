@@ -52,6 +52,7 @@ def _get_backend_provider(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -74,6 +75,7 @@ def has_ibmq():
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -84,6 +86,7 @@ def has_aer():
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -109,6 +112,7 @@ def is_aer_provider(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -127,6 +131,7 @@ def is_basicaer_provider(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -148,6 +153,7 @@ def is_ibmq_provider(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -165,6 +171,7 @@ def is_aer_statevector_backend(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -200,6 +207,7 @@ def is_statevector_backend(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -223,6 +231,7 @@ def is_simulator_backend(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -246,6 +255,7 @@ def is_local_backend(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -267,6 +277,7 @@ def is_aer_qasm(backend):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",

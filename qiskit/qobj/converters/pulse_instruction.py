@@ -506,6 +506,7 @@ class InstructionToQobjConverter:
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def convert_acquire(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -514,6 +515,7 @@ class InstructionToQobjConverter:
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def convert_bundled_acquires(self, shift, instructions_):
         return self._convert_bundled_acquire(instructions_, shift)
@@ -522,6 +524,7 @@ class InstructionToQobjConverter:
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def convert_set_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -530,6 +533,7 @@ class InstructionToQobjConverter:
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def convert_shift_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -538,11 +542,13 @@ class InstructionToQobjConverter:
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def convert_set_phase(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -551,6 +557,7 @@ class InstructionToQobjConverter:
         return self._convert_instruction(instruction, shift)
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -559,6 +566,7 @@ class InstructionToQobjConverter:
         return self._convert_instruction(instruction, shift)
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -567,6 +575,7 @@ class InstructionToQobjConverter:
         return self._convert_instruction(instruction, shift)
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -969,6 +978,7 @@ class QobjToInstructionConverter:
             )
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -981,6 +991,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -993,6 +1004,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1005,6 +1017,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1017,6 +1030,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1029,6 +1043,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1041,6 +1056,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1050,6 +1066,7 @@ class QobjToInstructionConverter:
             self._pulse_library[pulse.name] = pulse.samples
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",
@@ -1062,6 +1079,7 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg="Instead, call converter instance directory.",
         since="0.23.0",
         package_name="qiskit-terra",

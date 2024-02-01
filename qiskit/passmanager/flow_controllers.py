@@ -48,6 +48,7 @@ class FlowControllerLinear(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def append(
         self,
@@ -104,6 +105,7 @@ class DoWhileController(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def append(
         self,
@@ -164,6 +166,7 @@ class ConditionalController(BaseController):
     @deprecate_func(
         since="0.45.0",
         additional_msg="All tasks must be provided at construction time of the controller object.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def append(
         self,

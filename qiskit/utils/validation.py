@@ -19,6 +19,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -40,6 +41,7 @@ def validate_in_set(name: str, value: object, values: Set[object]) -> None:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -61,6 +63,7 @@ def validate_min(name: str, value: float, minimum: float) -> None:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -82,6 +85,7 @@ def validate_min_exclusive(name: str, value: float, minimum: float) -> None:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -103,6 +107,7 @@ def validate_max(name: str, value: float, maximum: float) -> None:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -124,6 +129,7 @@ def validate_max_exclusive(name: str, value: float, maximum: float) -> None:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -146,6 +152,7 @@ def validate_range(name: str, value: float, minimum: float, maximum: float) -> N
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -168,6 +175,7 @@ def validate_range_exclusive(name: str, value: float, minimum: float, maximum: f
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -190,6 +198,7 @@ def validate_range_exclusive_min(name: str, value: float, minimum: float, maximu
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     additional_msg=(
         "This algorithm utility has been migrated to an independent package: "
         "https://github.com/qiskit-community/qiskit-algorithms. You can run "

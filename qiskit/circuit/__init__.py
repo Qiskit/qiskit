@@ -436,7 +436,7 @@ def __getattr__(name):
         module_name = _DEPRECATED_NAMES[name]
         warnings.warn(
             f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
-            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
+            f"and will be removed in Qiskit 1.0.  Import from '{module_name}' instead. "
             "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
             DeprecationWarning,
             stacklevel=2,
