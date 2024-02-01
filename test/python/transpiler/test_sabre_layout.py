@@ -23,12 +23,12 @@ from qiskit.transpiler.passes import SabreLayout, DenseLayout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.compiler.transpiler import transpile
-from qiskit.providers.fake_provider import FakeAlmaden, GenericBackendV2
-from qiskit.providers.fake_provider import FakeKolkata
-from qiskit.providers.fake_provider import FakeMontreal
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import ALMADEN_CMAP
 
 
 class TestSabreLayout(QiskitTestCase):
@@ -36,7 +36,7 @@ class TestSabreLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap20 = FakeAlmaden().configuration().coupling_map
+        self.cmap20 = ALMADEN_CMAP
 
     def test_5q_circuit_20q_coupling(self):
         """Test finds layout for 5q circuit on 20q device."""
@@ -194,7 +194,7 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-        res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
+        res = transpile(qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234)
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
@@ -246,7 +246,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         )
         res = transpile(
             qc,
-            FakeMontreal(),
+            Fake27QPulseV1(),
             layout_method="sabre",
             routing_method="stochastic",
             seed_transpiler=12345,
@@ -422,8 +422,7 @@ class TestSabrePreLayout(QiskitTestCase):
 
     def test_integration_with_pass_manager(self):
         """Tests SabrePreLayoutIntegration with the rest of PassManager pipeline."""
-        cmap20 = FakeAlmaden().configuration().coupling_map
-        backend = GenericBackendV2(num_qubits=20, coupling_map=cmap20, seed=42)
+        backend = GenericBackendV2(num_qubits=20, coupling_map=ALMADEN_CMAP, seed=42)
         pm = generate_preset_pass_manager(
             0, backend, layout_method="sabre", routing_method="sabre", seed_transpiler=0
         )

@@ -24,7 +24,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeHanoi, GenericBackendV2
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake27QPulseV1, GenericBackendV2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -34,11 +34,9 @@ class TestMeasure(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = FakeOpenPulse2Q()
-        self.backend_v1 = FakeHanoi()
         self.inst_map = self.backend.defaults().instruction_schedule_map
-
+        self.backend_v1 = Fake27QPulseV1()
         self.backend_v2 = GenericBackendV2(
-            basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=27,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
         )
@@ -173,7 +171,7 @@ class TestMeasure(QiskitTestCase):
     def test_output_with_measure_v1_and_measure_v2_sched_with_meas_map(self):
         """Test make outputs of measure_v1 and measure_v2
         with custom meas_map as list and dict consistent."""
-        num_qubits_list_measure_v1 = list(range(FakeHanoi().configuration().num_qubits))
+        num_qubits_list_measure_v1 = list(range(Fake27QPulseV1().configuration().num_qubits))
         num_qubits_list_measure_v2 = list(range(self.backend_v2.num_qubits))
         sched_with_meas_map_list_v1 = macros.measure(
             qubits=[0], backend=self.backend_v1, meas_map=[num_qubits_list_measure_v1]
@@ -215,7 +213,6 @@ class TestMeasureAll(QiskitTestCase):
         self.backend_v1 = FakeOpenPulse2Q()
         self.inst_map = self.backend_v1.defaults().instruction_schedule_map
         self.backend_v2 = GenericBackendV2(
-            basis_gates=["cx", "id", "rz", "sx", "x"],
             num_qubits=2,
             calibrate_instructions=self.backend_v1.defaults().instruction_schedule_map,
         )

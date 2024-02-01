@@ -434,7 +434,8 @@ class GenericBackendV2(BackendV2):
                     instruction.name, qargs
                 )
                 for qubit in qargs:
-                    self._target[instruction.name][(qubit,)].calibration = calibration_entry
+                    if qubit < self.num_qubits:
+                        self._target[instruction.name][(qubit,)].calibration = calibration_entry
 
     def run(self, run_input, **options):
         """Run on the backend using a simulator.
