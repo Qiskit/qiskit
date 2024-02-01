@@ -36,7 +36,6 @@ import copy
 import functools
 import itertools
 import multiprocessing as mp
-import re
 import sys
 import warnings
 from collections.abc import Callable, Iterable
