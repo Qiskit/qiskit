@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    :class:`.BlueprintCircuit` subclasses will now behave correctly when the semi-public method
-    :meth:`.QuantumCircuit._append` is used with the blueprint in an unbuilt state, *i.e.* the
-    circuit will be built before attempting the append.

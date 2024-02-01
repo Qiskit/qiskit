@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    Deprecate the :mod:`qiskit.visualization.qcstyle` module. Use
-    :mod:`qiskit.visualization.circuit.qcstyle` as direct replacement.

@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug in the :class:`.StabilizerState` string representation.

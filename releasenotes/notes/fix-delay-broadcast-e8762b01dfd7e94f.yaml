@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    The qubit-argument broadcasting of :meth:`.QuantumCircuit.delay` now correctly produces
-    individual :class:`~.circuit.Delay` instructions for each qubit, as intended.  Previously, when
-    given certain iterables (such as :class:`set`\ s), it would instead silently produce an invalid
-    circuit that might fail in unusual locations.

@@ -1,7 +1,0 @@
----
-deprecations:
-  - |
-    Implicit conversion from a dense ``BaseOperator`` to a :class:`~.SparsePauliOp`
-    in ``Estimator`` observable arguments is deprecated as of Qiskit 0.46 and will
-    be removed in Qiskit 1.0. You should explicitly convert to a SparsePauli op
-    using ``SparsePauliOp.from_operator(op)`` instead.

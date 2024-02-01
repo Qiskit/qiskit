@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with :func:`.qpy.dump` which would cause the function to
-    potentially ignore the value of ``use_symengine`` when serializing a
-    :class:`.ScheduleBlock` object. This would result in an invalid QPY
-    payload being generated as it would report it was using symengine for
-    symbolic expressions but actually contain sympy serialized data.

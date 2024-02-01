@@ -21,6 +21,10 @@ from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     two_qubit_cnot_decompose,
 )
+from qiskit.quantum_info.quaternion import Quaternion
+
+from .cnotdihedral_decompose import decompose_cnotdihedral
+from .clifford_decompose import decompose_clifford
 
 warnings.warn(
     "The qiskit.quantum_info.synthesis module is deprecated since Qiskit 0.46.0."

@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed the :func:`hash` of Qiskit Pulse ``Channel`` objects (such as :class:`.DriveChannel`) in
-    cases where the channel was transferred from one Python process to another that used a different
-    hash seed.
