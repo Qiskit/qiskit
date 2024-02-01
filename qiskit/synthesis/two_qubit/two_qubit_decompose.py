@@ -93,18 +93,19 @@ _id = np.array([[1, 0], [0, 1]], dtype=complex)
 
 
 class TwoQubitWeylDecomposition:
-    r"""
+    r"""Two-qubit Weyl decomposition.
+
     Decompose two-qubit unitary
 
     .. math::
 
-        U = ({K_1}^l \otimes {K_1}^r) \dot e^{(i a xx + i b yy + i c zz)} \dot ({K_2}^l \otimes {K_2}^r)
+        U = ({K_1}^l \otimes {K_1}^r) \dot e^{(i a XX + i b YY + i c ZZ)} \dot ({K_2}^l \otimes {K_2}^r)
 
     where
 
     .. math::
 
-        U \in U(4)
+        U \in U(4),~
         {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
 
     and we stay in the "Weyl Chamber"
