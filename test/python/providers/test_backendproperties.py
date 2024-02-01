@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 
 import copy
 
-from qiskit.providers.fake_provider import FakeProvider, FakeOurense
+from qiskit.providers.fake_provider import FakeProvider, Fake5QV1
 from qiskit.providers.exceptions import BackendPropertyError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -22,7 +22,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
-    backend = FakeOurense()
+    backend = Fake5QV1()
     backend_name = "fake_ourense"
 
     def setUp(self):

@@ -26,9 +26,12 @@ from qiskit import QuantumCircuit
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .shape import ShapedMixin
 
+# Public API classes
+__all__ = ["SamplerPubLike"]
+
 
 class SamplerPub(ShapedMixin):
-    """Pub (Primitive Unified Bloc) for Sampler.
+    """Pub (Primitive Unified Bloc) for a Sampler.
 
     Pub is composed of tuple (circuit, parameter_values, shots).
 
@@ -151,9 +154,24 @@ class SamplerPub(ShapedMixin):
 
 
 SamplerPubLike = Union[
-    SamplerPub,
     QuantumCircuit,
     Tuple[QuantumCircuit],
     Tuple[QuantumCircuit, BindingsArrayLike],
     Tuple[QuantumCircuit, BindingsArrayLike, Union[Integral, None]],
 ]
+"""A Pub (Primitive Unified Bloc) for a Sampler.
+
+A fully specified sample Pub is a tuple ``(circuit, parameter_values, shots)``.
+
+If shots are provided this number of shots will be run with the sampler,
+if ``shots=None`` the number of run shots is determined by the sampler.
+
+.. note::
+
+    A Sampler Pub can also be initialized in the following formats which
+    will be converted to the full Pub tuple:
+
+    * ``circuit
+    * ``(circuit,)``
+    * ``(circuit, parameter_values)``
+"""

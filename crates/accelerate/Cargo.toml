@@ -39,11 +39,11 @@ version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.14.0"
+workspace = true
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.2.1"
+workspace = true
 features = ["rayon"]
 
 [dependencies.faer]

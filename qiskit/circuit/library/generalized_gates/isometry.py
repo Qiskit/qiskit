@@ -516,7 +516,7 @@ def _get_binary_rep_as_list(n, num_digits):
 
 
 def _merge_UCGate_and_diag(single_qubit_gates, diag):
-    for (i, gate) in enumerate(single_qubit_gates):
+    for i, gate in enumerate(single_qubit_gates):
         single_qubit_gates[i] = np.array([[diag[2 * i], 0.0], [0.0, diag[2 * i + 1]]]).dot(gate)
     return single_qubit_gates
 
