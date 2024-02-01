@@ -717,8 +717,8 @@ and we can view this layout selection graphically using
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.providers.fake_provider import Fake1QV1
-      backend = Fake1QV1()
+      from qiskit.providers.fake_provider import Fake5QV1
+      backend = Fake5QV1()
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
@@ -736,8 +736,8 @@ and we can view this layout selection graphically using
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.providers.fake_provider import Fake1QV1
-      backend = Fake1QV1()
+      from qiskit.providers.fake_provider import Fake5QV1
+      backend = Fake5QV1()
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
@@ -759,8 +759,8 @@ corresponding value is the label for the physical qubit to map onto:
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.visualization import plot_circuit_layout
-   from qiskit.providers.fake_provider import Fake1QV1
-   backend = Fake1QV1()
+   from qiskit.providers.fake_provider import Fake5QV1
+   backend = Fake5QV1()
 
    ghz = QuantumCircuit(3, 3)
    ghz.h(0)
