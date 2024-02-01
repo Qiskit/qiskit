@@ -285,7 +285,11 @@ class BackendProperties:
         gate: str,
         qubits: Union[int, Iterable[int]] = None,
         name: str = None,
-    ) -> Union[Dict[Tuple[int, ...], Dict[str, PropertyT]], Dict[str, PropertyT], PropertyT,]:
+    ) -> Union[
+        Dict[Tuple[int, ...], Dict[str, PropertyT]],
+        Dict[str, PropertyT],
+        PropertyT,
+    ]:
         """
         Return the property of the given gate.
 
@@ -378,7 +382,10 @@ class BackendProperties:
         self,
         qubit: int,
         name: str = None,
-    ) -> Union[Dict[str, PropertyT], PropertyT,]:
+    ) -> Union[
+        Dict[str, PropertyT],
+        PropertyT,
+    ]:
         """
         Return the property of the given qubit.
 

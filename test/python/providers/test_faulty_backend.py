@@ -10,22 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Testing a Faulty Ourense Backend."""
+"""Testing a Faulty 7QV1Pulse Backend."""
 
 from qiskit.providers.backend_compat import convert_to_target
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from .faulty_backends import (
-    FakeOurenseFaultyCX01CX10,
-    FakeOurenseFaultyQ1,
-    FakeOurenseFaultyCX13CX31,
+    Fake7QV1FaultyCX01CX10,
+    Fake7QV1FaultyQ1,
+    Fake7QV1FaultyCX13CX31,
 )
 
 
 class FaultyQubitBackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyQ1,
-    which is like FakeOurense but with a faulty 1Q"""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyQ1,
+    which is like Fake7QV1 but with a faulty 1Q"""
 
-    backend = FakeOurenseFaultyQ1()
+    backend = Fake7QV1FaultyQ1()
 
     def test_operational_false(self):
         """Test operation status of the qubit. Q1 is non-operational"""
@@ -73,10 +73,10 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
 
 
 class FaultyGate13BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
-    which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyCX13CX31,
+    which is like Fake7QV1 but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX13CX31()
+    backend = Fake7QV1FaultyCX13CX31()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
@@ -92,10 +92,10 @@ class FaultyGate13BackendTestCase(QiskitTestCase):
 
 
 class FaultyGate01BackendTestCase(QiskitTestCase):
-    """Test operational-related methods of backend.properties() with FakeOurenseFaultyCX13CX31,
-    which is like FakeOurense but with a faulty CX(Q1, Q3) and symmetric."""
+    """Test operational-related methods of backend.properties() with Fake7QV1FaultyCX13CX31,
+    which is like Fake7QV1 but with a faulty CX(Q1, Q3) and symmetric."""
 
-    backend = FakeOurenseFaultyCX01CX10()
+    backend = Fake7QV1FaultyCX01CX10()
 
     def test_operational_gate(self):
         """Test is_gate_operational method."""
