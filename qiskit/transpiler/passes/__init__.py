@@ -143,7 +143,6 @@ Synthesis
    :toctree: ../stubs/
 
    UnitarySynthesis
-   LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
    HLSConfig
