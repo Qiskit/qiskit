@@ -1268,6 +1268,12 @@ class TestTwoQubitDecompose(CheckDecompositions):
         with self.assertWarns(DeprecationWarning):
             import qiskit.quantum_info.synthesis.two_qubit_decompose
 
+        with self.assertWarns(DeprecationWarning):
+            import qiskit.quantum_info.synthesis.local_invariance
+
+        with self.assertWarns(DeprecationWarning):
+            import qiskit.quantum_info.synthesis.weyl
+
 
 @ddt
 class TestPulseOptimalDecompose(CheckDecompositions):
