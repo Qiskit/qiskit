@@ -165,11 +165,11 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from ..containers import (
     make_data_bin,
     DataBin,
-    EstimatorPub,
     EstimatorPubLike,
     PrimitiveResult,
     PubResult,
 )
+from ..containers.estimator_pub import EstimatorPub
 from . import validation
 from .base_primitive import BasePrimitive
 from .base_primitive_job import BasePrimitiveJob
@@ -298,12 +298,11 @@ class BaseEstimatorV2(ABC):
         """Estimate expectation values for each provided pub (Primitive Unified Bloc).
 
         Args:
-            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)`` or
-                  ``(circuit, observables, parameter_values)``.
+            pubs: An iterable of pub-like objects, such as tuples ``(circuit, observables)``
+                  or ``(circuit, observables, parameter_values)``.
             precision: The target precision for expectation value estimates of each
-                       run :class:`.EstimatorPub` that does not specify its own
-                       precision. If None the estimator's default precision value
-                       will be used.
+                       run Estimator Pub that does not specify its own precision. If None
+                       the estimator's default precision value will be used.
 
         Returns:
             A job object that contains results.

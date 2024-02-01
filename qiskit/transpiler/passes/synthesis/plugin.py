@@ -216,7 +216,7 @@ The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by adding
 an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
-points under the ``qiskit.unitary_synthesis`` namespace. For example:
+points under the ``qiskit.synthesis`` namespace. For example:
 
 .. code-block:: toml
 

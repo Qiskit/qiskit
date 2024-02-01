@@ -251,15 +251,15 @@ class GenericBackendV2(BackendV2):
                     name="acquire",
                     duration=1792,
                     t0=0,
-                    qubits=list(range(num_qubits)),
-                    memory_slot=list(range(num_qubits)),
+                    qubits=qargs,
+                    memory_slot=qargs,
                 )
-            ] + [PulseQobjInstruction(name=pulse_library[1], ch=f"m{i}", t0=0) for i in qargs]
+            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
             return sequence
         if num_qubits == 1:
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
             ]
         return [
             PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
@@ -434,7 +434,8 @@ class GenericBackendV2(BackendV2):
                     instruction.name, qargs
                 )
                 for qubit in qargs:
-                    self._target[instruction.name][(qubit,)].calibration = calibration_entry
+                    if qubit < self.num_qubits:
+                        self._target[instruction.name][(qubit,)].calibration = calibration_entry
 
     def run(self, run_input, **options):
         """Run on the backend using a simulator.

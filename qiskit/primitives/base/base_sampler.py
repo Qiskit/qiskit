@@ -234,9 +234,9 @@ class BaseSamplerV2(ABC):
         Args:
             pubs: An iterable of pub-like objects. For example, a list of circuits
                   or tuples ``(circuit, parameter_values)``.
-            shots: The total number of shots to sample for each :class:`.SamplerPub`.
-                   that does not specify its own shots. If ``None``, the primitive's
-                   default shots value will be used, which can vary by implementation.
+            shots: The total number of shots to sample for each sampler pub that does
+                   not specify its own shots. If ``None``, the primitive's default
+                   shots value will be used, which can vary by implementation.
 
         Returns:
             The job object of Sampler's result.

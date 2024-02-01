@@ -33,8 +33,8 @@ from qiskit.pulse.macros import measure
 from qiskit.providers.fake_provider import (
     FakeOpenPulse2Q,
     FakeOpenPulse3Q,
-    FakeYorktown,
-    FakeHanoi,
+    Fake5QV1,
+    Fake27QPulseV1,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -63,7 +63,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.circ.cx(qr[0], qr[1])
         self.circ.measure(qr, cr)
 
-        self.backend = FakeYorktown()
+        self.backend = Fake5QV1()
         self.backend_config = self.backend.configuration()
         self.num_qubits = self.backend_config.n_qubits
 
@@ -1193,7 +1193,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_pulse_name_conflicts_in_other_schedule(self):
         """Test two pulses with the same name in different schedule can be resolved."""
-        backend = FakeHanoi()
+        backend = Fake27QPulseV1()
         defaults = backend.defaults()
 
         schedules = []
@@ -1351,7 +1351,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg over backend"""
-        backend = FakeHanoi()
+        backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
@@ -1366,7 +1366,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_parametric_pulse_kwarg_empty_list_with_backend_setting(self):
         """Test that parametric pulses respect the kwarg as empty list over backend"""
-        backend = FakeHanoi()
+        backend = Fake27QPulseV1()
 
         qc = QuantumCircuit(1, 1)
         qc.x(0)
