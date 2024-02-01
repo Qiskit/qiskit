@@ -16,6 +16,7 @@
 import datetime
 import itertools
 import operator
+import platform
 import unittest
 
 from test import combine
@@ -104,6 +105,8 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
+        if optionals.HAS_AER and platform.system() == "Windows":
+            self.skipTest("Skipping this test to workaround issues with aer on Windows.")
         job = backend.run(
             transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
