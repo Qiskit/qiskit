@@ -29,8 +29,8 @@ class Unroller(TransformationPass):
 
     @deprecate_func(
         since="0.45.0",
-        additional_msg="This has been replaced by the `BasisTranslator` pass "
-        "and is going to be removed in Qiskit 1.0.",
+        additional_msg="This has been replaced by the `BasisTranslator` pass.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(self, basis=None, target=None):
         """Unroller initializer.

@@ -43,6 +43,7 @@ class SingleQubitUnitary(Gate):
     """
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.45.0",
         additional_msg="Instead, you can use qiskit.circuit.library.UnitaryGate.",
     )

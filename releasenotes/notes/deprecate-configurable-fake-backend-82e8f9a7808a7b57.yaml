@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    Deprecated :class:`.ConfigurableFakeBackend`, which has mainly been used
-    for internal testing. Instead, a suitable :class:`.FakeBackend` can be used.

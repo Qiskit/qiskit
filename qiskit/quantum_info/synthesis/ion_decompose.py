@@ -24,7 +24,10 @@ from qiskit.circuit.library.standard_gates.rxx import RXXGate
 from qiskit.utils.deprecation import deprecate_func
 
 
-@deprecate_func(since="0.46.0")
+@deprecate_func(
+    since="0.46.0",
+    removal_timeline="in the Qiskit 1.0 release",
+)
 def cnot_rxx_decompose(plus_ry: bool = True, plus_rxx: bool = True):
     """Decomposition of CNOT gate.
 

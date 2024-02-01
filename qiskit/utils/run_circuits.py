@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -107,6 +108,7 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.24.0",
     package_name="qiskit-terra",
     additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",

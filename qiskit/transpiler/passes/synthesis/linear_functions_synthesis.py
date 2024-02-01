@@ -31,6 +31,7 @@ class LinearFunctionsSynthesis(HighLevelSynthesis):
         additional_msg="Instead, use :class:`~.HighLevelSynthesis`.",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(self):
         # This config synthesizes only linear functions using the "default" method.

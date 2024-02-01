@@ -32,6 +32,7 @@ class QiskitAlgorithmGlobals:
     CPU_COUNT = parallel.local_hardware_info()["cpus"]
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility has been migrated to an independent package: "
             "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -52,6 +53,7 @@ class QiskitAlgorithmGlobals:
 
     @property
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility has been migrated to an independent package: "
             "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -66,6 +68,7 @@ class QiskitAlgorithmGlobals:
 
     @random_seed.setter
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility has been migrated to an independent package: "
             "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -81,6 +84,7 @@ class QiskitAlgorithmGlobals:
 
     @property
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
@@ -93,6 +97,7 @@ class QiskitAlgorithmGlobals:
 
     @num_processes.setter
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
@@ -127,6 +132,7 @@ class QiskitAlgorithmGlobals:
 
     @property
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility has been migrated to an independent package: "
             "https://github.com/qiskit-community/qiskit-algorithms. You can run "
@@ -143,6 +149,7 @@ class QiskitAlgorithmGlobals:
 
     @property
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),
@@ -155,6 +162,7 @@ class QiskitAlgorithmGlobals:
 
     @massive.setter
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "This algorithm utility belongs to a legacy workflow and has no replacement."
         ),

@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :class:`~.SabreLayout` where it would fail to add the register
-    information to the :class:`.Layout` object used for :attr:`.TranspileLayout.initial_layout`.
-    This affected circuit visualization with :meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer`
-    after transpilation which would show a virtual qubit label of the form ``Qubit[QuantumRegister(6, 'q', 0)]``
-    rather than the expected virtual qubit label using the register name (e.g. ``q0``).
-    Fixed `#11038 <https://github.com/Qiskit/qiskit/issues/11038>`__

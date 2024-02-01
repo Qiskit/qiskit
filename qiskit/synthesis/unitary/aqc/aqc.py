@@ -106,6 +106,7 @@ class AQC:
 
     @deprecate_arg(
         "optimizer",
+        removal_timeline="in the Qiskit 1.0 release",
         deprecation_description=(
             "Setting the `optimizer` argument to an instance "
             "of `qiskit.algorithms.optimizers.Optimizer` "

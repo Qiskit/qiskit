@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    The :class:`.BlockCollapser` transpiler pass will now correctly handle circuits that contain
-    more than one condition on the same classical register.

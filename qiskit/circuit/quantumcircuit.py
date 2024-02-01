@@ -347,7 +347,10 @@ class QuantumCircuit:
     @classmethod
     @property
     @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+        since="0.45.0",
+        additional_msg="No alternative will be provided.",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def header(cls) -> str:
         """The OpenQASM 2.0 header statement."""
@@ -356,7 +359,10 @@ class QuantumCircuit:
     @classmethod
     @property
     @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+        since="0.45.0",
+        additional_msg="No alternative will be provided.",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def extension_lib(cls) -> str:
         """The standard OpenQASM 2 import statement."""
@@ -2807,7 +2813,11 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
+    @deprecate_func(
+        additional_msg=("Use assign_parameters() instead"),
+        since="0.45.0",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":
@@ -2935,6 +2945,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Use QuantumCircuit.id as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def i(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.IGate`.
@@ -3536,6 +3547,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def fredkin(
         self,
@@ -3757,7 +3769,11 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def cnot(
         self,
         control_qubit: QubitSpecifier,
@@ -3831,7 +3847,11 @@ class QuantumCircuit:
             [],
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.ccx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def toffoli(
         self,
         control_qubit1: QubitSpecifier,
@@ -3933,7 +3953,11 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.mcx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def mct(
         self,
         control_qubits: Sequence[QubitSpecifier],
@@ -4662,7 +4686,9 @@ class QuantumCircuit:
         return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
     @deprecate_func(
-        since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method."
+        since="0.45.0",
+        additional_msg="Instead, use the QuantumCircuit.unitary method.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def squ(
         self,
@@ -4718,6 +4744,7 @@ class QuantumCircuit:
         additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
         "instructions, see "
         "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
         """Take a statevector snapshot of the internal simulator representation.

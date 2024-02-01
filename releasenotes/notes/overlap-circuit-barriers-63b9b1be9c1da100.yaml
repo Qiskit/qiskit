@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug which caused :class:`~qiskit.circuit.library.UnitaryOverlap` to error upon initialization if given an input circuit containing a barrier.

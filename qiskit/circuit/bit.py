@@ -69,6 +69,7 @@ class Bit:
             "all the containing registers within a circuit and the index of the bit within the "
             "circuit."
         ),
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def register(self):  # pylint: disable=bad-docstring-quotes
         """Get the register of an old-style bit.
@@ -92,6 +93,7 @@ class Bit:
             "all the containing registers within a circuit and the index of the bit within the "
             "circuit."
         ),
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def index(self):  # pylint: disable=bad-docstring-quotes
         """Get the index of an old-style bit in the register that owns it.

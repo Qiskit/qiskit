@@ -919,6 +919,7 @@ class _PulseBuilder:
 
 
 @deprecate_arg(
+    removal_timeline="in the Qiskit 1.0 release",
     name="default_transpiler_settings",
     since="0.46.0",
     additional_msg="setting parameter ``default_transpiler_settings`` in build() was used for gate "
@@ -926,6 +927,7 @@ class _PulseBuilder:
     "as part of a quantum circuit, and not vice versa",
 )
 @deprecate_arg(
+    removal_timeline="in the Qiskit 1.0 release",
     name="default_circuit_scheduler_settings",
     since="0.46.0",
     additional_msg="setting parameter ``default_circuit_scheduler_settings`` in build() was used "
@@ -1188,6 +1190,7 @@ def _qubits_to_channels(*channels_or_qubits: Union[int, chans.Channel]) -> Set[c
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="This function was used for gate operations, which are deprecated. pulse schedules "
     "should only be used for gate calibrations as part of a quantum circuit, "
@@ -1220,6 +1223,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="This function was used for gate operations, which are deprecated. pulse schedules "
     "should only be used for gate calibrations as part of a quantum circuit, "
@@ -1510,6 +1514,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="This function was used for gate operations, which are deprecated. pulse schedules "
     "should only be used for gate calibrations as part of a quantum circuit, "
@@ -1549,6 +1554,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
 
 @contextmanager
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="This function was used for gate operations, which are deprecated. pulse schedules "
     "should only be used for gate calibrations as part of a quantum circuit, "
@@ -2007,6 +2013,7 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
 
 @deprecate_arg(
+    removal_timeline="in the Qiskit 1.0 release",
     name="target",
     since="0.46.0",
     additional_msg="ScheduleBlock should only be used for gate calibrations in a quantum circuit. "
@@ -2533,6 +2540,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
 
 # Gate instructions
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="Gate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",
@@ -2587,6 +2595,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="CXGate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",
@@ -2613,6 +2622,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="U1Gate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",
@@ -2641,6 +2651,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="U2Gate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",
@@ -2669,6 +2680,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="U3Gate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",
@@ -2697,6 +2709,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     additional_msg="XGate should be used with QuantumCircuit instead,"
     " and attach the rest of non-circuit part(s) as pulse gate(s).",

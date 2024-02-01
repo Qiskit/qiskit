@@ -247,6 +247,7 @@ class Target(Mapping):
         new_alias="acquire_alignment",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(
         self,
@@ -1155,6 +1156,7 @@ class Target(Mapping):
         since="0.24.0",
         is_property=True,
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
@@ -1166,6 +1168,7 @@ class Target(Mapping):
         since="0.24.0",
         is_property=True,
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""

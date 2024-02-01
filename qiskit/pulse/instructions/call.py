@@ -32,6 +32,7 @@ class Call(instruction.Instruction):
     prefix = "call"
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.25.0",
         package_name="qiskit-terra",
         additional_msg="Instead, use the pulse builder function "

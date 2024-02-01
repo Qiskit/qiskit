@@ -232,6 +232,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="Instead, index or iterate through the Clifford.tableau attribute.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
@@ -241,6 +242,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="Use Clifford.tableau property instead.",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""

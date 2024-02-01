@@ -176,6 +176,7 @@ if _optionals.HAS_MATPLOTLIB and get_ipython():
 
     @register_line_magic
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.25.0",
         additional_msg="This was originally only for internal documentation and is no longer used.",
     )

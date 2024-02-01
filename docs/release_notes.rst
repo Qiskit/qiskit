@@ -13,4 +13,3 @@ This page contains the release notes for Qiskit, starting from Qiskit 0.45, the 
 
 .. release-notes::
    :earliest-version: 0.45.0
-   :branch: stable/0.45

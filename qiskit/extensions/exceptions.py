@@ -20,7 +20,10 @@ from qiskit.utils.deprecation import deprecate_func
 class ExtensionError(QiskitError):
     """Base class for errors raised by extensions module."""
 
-    @deprecate_func(since="0.45.0", pending=True)
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def __init__(self, *message):
         """Set the error message."""
         super().__init__(*message)

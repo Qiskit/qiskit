@@ -39,9 +39,9 @@ def _log_submission_time(start_time, end_time):
 @deprecate_func(
     additional_msg="This function combines ``transpile`` and ``backend.run``, which is covered "
     "by ``Sampler`` :mod:`~qiskit.primitives`. Alternatively, you can also run :func:`.transpile` "
-    "followed by ``backend.run()``. The ``execute`` function is going to be removed "
-    "in 1.0.",
+    "followed by ``backend.run()``.",
     since="0.46.0",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def execute(
     experiments,

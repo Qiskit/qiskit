@@ -599,6 +599,7 @@ def generate_scheduling(
     additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
     since="0.25.0",
     package_name="qiskit-terra",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def get_vf2_call_limit(
     optimization_level: int,

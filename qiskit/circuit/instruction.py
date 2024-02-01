@@ -524,6 +524,7 @@ class Instruction(Operation):
         ),
         since="0.25.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def qasm(self):
         """Return a default OpenQASM string for the instruction.

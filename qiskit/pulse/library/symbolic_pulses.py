@@ -589,6 +589,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
 
     @deprecate_arg(
         "amp",
+        removal_timeline="in the Qiskit 1.0 release",
         deprecation_description=(
             "Setting ``amp`` to a complex in the ScalableSymbolicPulse constructor"
         ),

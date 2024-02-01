@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in the ``mpl`` circuit drawer where the text would print beyond
-    the end of the box for a :class:`.SwitchCaseOp` if the default case was empty.

@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Conditioned custom gates imported from OpenQASM 2 will now correctly retain their conditions
-    when pickled and deep-copied.  Previously, any conditional custom gate (defined by a ``gate``
-    statement in an OpenQASM 2 file) would lose its condition when copied or pickled.

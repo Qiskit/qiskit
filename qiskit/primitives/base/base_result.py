@@ -57,14 +57,22 @@ class _BasePrimitiveResult(ABC):
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
     @property  # TODO: functools.cached_property when py37 is dropped
-    @deprecate_func(since="0.46.0", is_property=True)
+    @deprecate_func(
+        since="0.46.0",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
         value: Sequence = self._field_values[0]
         return len(value)
 
     @property  # TODO: functools.cached_property when py37 is dropped
-    @deprecate_func(since="0.46.0", is_property=True)
+    @deprecate_func(
+        since="0.46.0",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def experiments(self) -> tuple[ExperimentData, ...]:
         """Experiment data dicts in any inheriting result dataclass."""
         return tuple(self._generate_experiments())
@@ -75,7 +83,10 @@ class _BasePrimitiveResult(ABC):
         for values in zip(*self._field_values):
             yield dict(zip(names, values))
 
-    @deprecate_func(since="0.46.0")
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def decompose(self) -> Iterator[_BasePrimitiveResult]:
         """Generate single experiment result objects from self."""
         for values in zip(*self._field_values):
