@@ -84,7 +84,7 @@ class SXGate(SingletonGate):
             qc._append(operation, qubits, clbits)
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse SX gate (i.e. SXdg)."""
         return SXdgGate()
 
@@ -177,7 +177,7 @@ class SXdgGate(SingletonGate):
             qc._append(operation, qubits, clbits)
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse SXdg gate (i.e. SX)."""
         return SXGate()
 

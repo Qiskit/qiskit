@@ -104,7 +104,7 @@ class RXGate(Gate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RX gate.
 
         :math:`RX(\lambda)^{\dagger} = RX(-\lambda)`
@@ -241,7 +241,7 @@ class CRXGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse CRX gate (i.e. with the negative rotation angle)."""
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
