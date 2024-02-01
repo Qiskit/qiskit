@@ -17,7 +17,6 @@
 from __future__ import annotations
 import copy
 import multiprocessing as mp
-import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -468,17 +467,9 @@ class QuantumCircuit:
         return self._metadata
 
     @metadata.setter
-    def metadata(self, metadata: dict | None):
+    def metadata(self, metadata: dict):
         """Update the circuit metadata"""
-        if metadata is None:
-            metadata = {}
-            warnings.warn(
-                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
-                "removed in a future release. Instead, set metadata to an empty dictionary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        elif not isinstance(metadata, dict):
+        if not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 

@@ -44,7 +44,6 @@ from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit._accelerate import two_qubit_decompose
 
 logger = logging.getLogger(__name__)
@@ -1109,7 +1108,6 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    @deprecate_arg("target", new_alias="unitary", since="0.23.0", package_name="qiskit-terra")
     def __call__(
         self,
         unitary: Operator | np.ndarray,
