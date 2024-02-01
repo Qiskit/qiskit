@@ -93,7 +93,7 @@ class U3Gate(Gate):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
 
         :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi)`)
@@ -277,7 +277,7 @@ class CU3Gate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.
 
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)

@@ -104,7 +104,7 @@ class HamiltonianGate(Gate):
                 "unbound t parameter {}".format(self.params[1])
             ) from ex
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 
