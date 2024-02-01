@@ -14,11 +14,11 @@
 dependency."""
 
 import unittest
+from test import QiskitTestCase
 
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
 from qiskit.converters.circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from test import QiskitTestCase
 
 
 class TestCircuitToDagCanonical(QiskitTestCase):
