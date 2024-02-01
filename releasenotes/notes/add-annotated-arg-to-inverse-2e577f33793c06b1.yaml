@@ -14,8 +14,8 @@ features:
     return a ``SwapGate``, and both
     ``SGate().inverse(annotated=False)`` and ``SGate().inverse(annotated=True)``
     return an ``SdgGate``.
-    The difference manifests for custom gates without an explicitly defined inverse:
-    the value of ``False`` returns a new gate with inverse definition, just as before,
-    while the value of ``True`` returns an object of type
-    :class:`~.AnnotatedOperation` instead, avoiding the eager construction
-    of the inverse gate's definition.
+    The difference manifests for custom instructions without an explicitly defined
+    inverse. The value of ``False`` returns a fresh instruction with the
+    recursively inverted definition, just as before. The value of ``True``
+    returns an :class:`~.AnnotatedOperation` that represents the instruction
+    modified with the "inverse modifier".

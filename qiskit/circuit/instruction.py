@@ -419,21 +419,26 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self, annotated: bool = False):
+    def inverse(self, annotated: bool = False) -> Instruction | AnnotatedOperation:
         """Invert this instruction.
 
-        If the instruction is composite (i.e. has a definition),
-        then its definition will be recursively inverted.
+        If `annotated` is `False`, the inverse instruction is implemented as
+        a fresh instruction with the recursively inverted definition.
+
+        If `annotated` is `True`, the inverse instruction is implemented as
+        :class:`.AnnotatedOperation`, and corresponds to the given instruction
+        annotated with the "inverse modifier".
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+        In particular, they can choose how to handle the argument `annotated`.
 
         Args:
-            annotated: indicates whether the inverse gates can be implemented
-                as annotated gates.
+            annotated: if set to `True` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            The inverse instruction.
 
         Raises:
             CircuitError: if the instruction is not composite
