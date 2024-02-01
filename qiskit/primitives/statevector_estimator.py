@@ -41,7 +41,8 @@ class StatevectorEstimator(BaseEstimatorV2):
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.EstimatorV2.run` method can be given a sequence of pubs to run in one call.
 
-    .. code-block:: python
+    .. plot::
+        :include-source:
 
         from qiskit.circuit import Parameter, QuantumCircuit
         from qiskit.primitives import StatevectorEstimator
@@ -84,15 +85,15 @@ class StatevectorEstimator(BaseEstimatorV2):
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
 
+        # Error-bar information is also available, but the error is always 0 for the
+        # StatevectorEstimator.
+        result.data.stds
+
         # Pull out the array-based expectation value estimate data from the result and
         # plot a trace for each observable.
         for idx, pauli in enumerate(observables):
             plt.plot(result.data.evs[idx], label=pauli)
         plt.legend()
-
-        # Error-bar information is also available, but the error is always 0 for the
-        # StatevectorEstimator.
-        result.data.stds
     """
 
     def __init__(
