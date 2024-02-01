@@ -626,7 +626,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
-            and gate_class_name not in {"Clifford", "AnnotatedOperation"}
+            and gate_class_name != "Clifford"
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
@@ -645,7 +645,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
         custom_operations[gate_class_name] = instruction.operation
         custom_operations_list.append(gate_class_name)
 
-    elif gate_class_name in ["ControlledGate", "AnnotatedOperation"]:
+    elif gate_class_name in {"ControlledGate", "AnnotatedOperation"}:
         # controlled or annotated gates can have the same name but different parameter
         # values, the uuid is appended to avoid storing a single definition
         # in circuits with multiple controlled gates.
