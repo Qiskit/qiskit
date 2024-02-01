@@ -181,6 +181,23 @@ class AnnotatedOperation(Operation):
         )
         return AnnotatedOperation(self.base_op, extended_modifiers)
 
+    def inverse(self, annotated: bool = True):
+        """
+        Return the inverse version of itself.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            annotated: ignored (used for consistency with other inverse methods)
+
+        Returns:
+            Inverse version of the given operation.
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(InverseModifier())
+        return AnnotatedOperation(self.base_op, extended_modifiers)
+
 
 def _canonicalize_modifiers(modifiers):
     """

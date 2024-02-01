@@ -116,6 +116,7 @@ Two-Qubit Synthesis
 
    TwoQubitBasisDecomposer
    XXDecomposer
+   TwoQubitWeylDecomposition
 
 """
 
@@ -162,4 +163,8 @@ from .unitary.qsd import qs_decomposition
 from .unitary import aqc
 from .one_qubit import OneQubitEulerDecomposer
 from .two_qubit.xx_decompose import XXDecomposer
-from .two_qubit.two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
+from .two_qubit.two_qubit_decompose import (
+    TwoQubitBasisDecomposer,
+    two_qubit_cnot_decompose,
+    TwoQubitWeylDecomposition,
+)

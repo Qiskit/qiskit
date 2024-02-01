@@ -44,7 +44,6 @@ from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit._accelerate import two_qubit_decompose
 
 logger = logging.getLogger(__name__)
@@ -93,8 +92,26 @@ _id = np.array([[1, 0], [0, 1]], dtype=complex)
 
 
 class TwoQubitWeylDecomposition:
-    """Decompose two-qubit unitary U = (K1l⊗K1r).Exp(i a xx + i b yy + i c zz).(K2l⊗K2r) , where U ∈
-    U(4), (K1l|K1r|K2l|K2r) ∈ SU(2), and we stay in the "Weyl Chamber" 𝜋/4 ≥ a ≥ b ≥ |c|
+    r"""Two-qubit Weyl decomposition.
+
+    Decompose two-qubit unitary
+
+    .. math::
+
+        U = ({K_1}^l \otimes {K_1}^r) \dot e^{(i a XX + i b YY + i c ZZ)} \dot ({K_2}^l \otimes {K_2}^r)
+
+    where
+
+    .. math::
+
+        U \in U(4),~
+        {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
+
+    and we stay in the "Weyl Chamber"
+
+    .. math::
+
+        \pi /4 \geq a \geq b \geq |c|
 
     This is an abstract factory class that instantiates itself as specialized subclasses based on
     the fidelity, such that the approximation error from specialization has an average gate fidelity
@@ -103,6 +120,11 @@ class TwoQubitWeylDecomposition:
 
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
     forcing the specialization is more approximate than asserted.
+
+    Reference:
+        1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
+           *Validating quantum computers using randomized model circuits*,
+           `arXiv:1811.12926 [quant-ph] <https://arxiv.org/abs/1811.12926>`_
     """
 
     # The parameters of the decomposition:
@@ -1086,7 +1108,6 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    @deprecate_arg("target", new_alias="unitary", since="0.23.0", package_name="qiskit-terra")
     def __call__(
         self,
         unitary: Operator | np.ndarray,

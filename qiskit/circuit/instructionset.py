@@ -86,17 +86,19 @@ class InstructionSet:
         Updates to the instruction set will modify the specified sequence in place."""
         self._instructions.append((data, pos))
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert all instructions."""
         for i, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 self._instructions[i] = instruction.replace(
-                    operation=instruction.operation.inverse()
+                    operation=instruction.operation.inverse(annotated=annotated)
                 )
             else:
                 data, idx = instruction
                 instruction = data[idx]
-                data[idx] = instruction.replace(operation=instruction.operation.inverse())
+                data[idx] = instruction.replace(
+                    operation=instruction.operation.inverse(annotated=annotated)
+                )
         return self
 
     def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
