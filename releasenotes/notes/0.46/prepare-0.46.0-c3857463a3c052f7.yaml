@@ -28,7 +28,7 @@ prelude: |
     will not resolve.
 
     If ``import qiskit`` raises an :exc:`ImportError` for you, your environment is in an invalid
-    state, and versions of Qiskit 0.45/0.46 and 1.0 are both reachable, which will result in subtley
+    state, and versions of Qiskit 0.45/0.46 and 1.0 are both reachable, which will result in subtly
     broken code.  You will need to create a new virtual environment, and ensure that *only* one of
     the two versions are installed.  In particular, if you are intending to install Qiskit 1.0,
     you must have no packages that depend on ``qiskit-terra`` installed; these packages are
@@ -52,8 +52,8 @@ features:
     A new :mod:`qiskit.providers.basic_provider` module has been introduced
     to replace :mod:`qiskit.providers.basicaer`. This module contains provider
     tools that mirror those of the :attr:`.BasicAer` provider and offers a single,
-    non-efficient, statevector based simulator: :class:`.BasicSimulator`.
-    This simulator based on the :class:`.BackendV2` interface and is
+    non-efficient, statevector-based simulator: :class:`.BasicSimulator`.
+    This simulator is based on the :class:`.BackendV2` interface and is
     exclusively intended for testing and simple prototyping, for more
     advanced simulation capabilities, please refer to the ``qiskit-aer``
     package. See the ``BasicAer`` deprecation note for migration guidelines.
@@ -66,7 +66,7 @@ features:
     instructions (with ``qargs=None``) and when given to the transpiler,
     it is expected that the transpiler will not resize the circuit.
     This change in the :class:`.Target` requires future transpiler passes
-    to account for the case where ``target.num_qubits is None``
+    to account for the case where ``target.num_qubits is None``.
   - |
     A new class, :class:`.GenericBackendV2` has been added to the :mod:`qiskit.providers.fake_provider`
     module. This class is configurable, and builds a :class:`~.BackendV2` instance that can
@@ -135,7 +135,7 @@ features:
 
 deprecations:
   - |
-    The ``qiskit-terra`` python package is deprecated and will no longer receive
+    The ``qiskit-terra`` Python package is deprecated and will no longer receive
     updates starting in Qiskit 1.0.0. If you're installing ``qiskit-terra`` by
     itself this will no longer be updated for Qiskit>=1.0.0. If you're running
     qiskit without the ``qiskit`` package a ``FutureWarning`` will be emitted on
@@ -150,7 +150,7 @@ deprecations:
   - |
     Running pulse jobs on backends from :mod:`qiskit.providers.fake_provider` is deprecated, and
     all support will be removed in Qiskit 1.0.  This is due to Qiskit Aer removing its simulation
-    functionality for such jobs.  For low-level Hamiltonain-simulation workloads, consider using
+    functionality for such jobs.  For low-level Hamiltonian-simulation workloads, consider using
     a specialised library such as `Qiskit Dynamics <https://qiskit.org/ecosystem/dynamics>`__.
   - |
     The :mod:`qiskit.transpiler.synthesis` module is deprecated and
@@ -284,7 +284,7 @@ deprecations:
 
   - |
     Injecting circuit gate operations into the pulse builder context is now deprecated. The deprecation
-        affects the following functions:
+    affects the following functions:
 
     * :func:`~qiskit.pulse.builder.call_gate`,
     * :func:`~qiskit.pulse.builder.cx`,
@@ -460,10 +460,10 @@ deprecations:
       job = sampler.run(circuit)
 
   - |
-    Implicit conversion from a dense ``BaseOperator`` to a :class:`~.SparsePauliOp`
+    Implicit conversion from a dense :class:`.BaseOperator`` to a :class:`~.SparsePauliOp`
     in ``Estimator`` observable arguments is deprecated as of Qiskit 0.46 and will
-    be removed in Qiskit 1.0. You should explicitly convert to a SparsePauli op
-    using ``SparsePauliOp.from_operator(op)`` instead.
+    be removed in Qiskit 1.0. You should explicitly convert to a :class:`.SparsePauliOp`
+    using :meth:`.SparsePauliOp.from_operator` instead.
 
   - |
     The discrete pulse library is now deprecated and will be removed in a future release. This includes:
@@ -487,7 +487,7 @@ deprecations:
 
     Note that the phase of both ``Sawtooth`` and ``Square`` is defined such that a phase of :math:`2\\pi`
     shifts by a full cycle, contrary to the discrete counterpart. Also note that complex amplitude support is
-    deprecated in the symbolic pulse library - use ``float`` ``amp`` and  ``angle`` instead.
+    deprecated in the symbolic pulse library - use ``float``, ``amp`` and  ``angle`` instead.
 
   - |
     The :class:`.ConfigurableFakeBackend` class, which has mainly been used for internal
@@ -607,7 +607,7 @@ critical:
     When updating Qiskit from ``0.46.x`` to ``1.0.0`` you will not be able to
     update in place. For example, ``pip install -U qiskit`` or
     ``pip install --upgrade qiskit`` is not supported and likely will **not**
-    work. To upgrade qiskit the recommended path is to create a new virtual
+    work. To upgrade ``qiskit`` the recommended path is to create a new virtual
     environment (:mod:`venv`) to build a new separate environment for
     Qiskit>=1.0.0. For example::
 
@@ -620,6 +620,6 @@ critical:
 
 upgrade:
   - |
-    The minimum version required for symengine was bumped to >=0.11.
+    The minimum version required for ``symengine`` was bumped to >=0.11.
     This enabled removing workarounds from :meth:`.ParameterExpression.is_real`
-    to handle a bug in earlier releases of symengine.
+    to handle a bug in earlier releases of ``symengine``.
