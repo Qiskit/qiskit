@@ -11,7 +11,7 @@ upgrade:
     :func:`.qasm2.dump` or :func:`.qasm2.dumps`.
   - |
     The specialized transpiler pass :class:`.LinearFunctionsSynthesis` has been removed following
-    its deprecation in qiskit-terra 0.23.0, since when it has been a very thing wrapper around
+    its deprecation in qiskit-terra 0.23.0. Since its deprecation it just has been a very thin wrapper around
     :class:`.HighLevelSynthesis`, which you should use instead.
   - |
     You can no longer set :attr:`.QuantumCircuit.metadata` to be ``None``, following deprecation
