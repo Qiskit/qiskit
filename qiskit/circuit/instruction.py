@@ -440,7 +440,7 @@ class Instruction(Operation):
                 as :class:`.AnnotatedOperation`.
 
         Returns:
-            The inverse instruction.
+            The inverse operation.
 
         Raises:
             CircuitError: if the instruction is not composite
