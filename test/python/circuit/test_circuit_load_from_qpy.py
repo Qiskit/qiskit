@@ -1687,12 +1687,6 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
-    def test_qpy_deprecation(self):
-        """Test the old import path's deprecations fire."""
-        with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
-            # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
-            from qiskit.circuit.qpy_serialization import dump, load
-
     @ddt.data(0, "01", [1, 0, 0, 0])
     def test_valid_circuit_with_initialize_instruction(self, param):
         """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
