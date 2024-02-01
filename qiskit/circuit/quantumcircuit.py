@@ -17,7 +17,6 @@
 from __future__ import annotations
 import copy
 import multiprocessing as mp
-import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
