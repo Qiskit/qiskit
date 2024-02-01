@@ -208,7 +208,9 @@ class QFT(BlueprintCircuit):
 
         Args:
             annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+                as an annotated gate. The value of this argument is ignored as the
+                inverse of a QFT is an IQFT which is just another instance of
+                :class:`.QFT`.
 
         Returns:
             The inverted circuit.
