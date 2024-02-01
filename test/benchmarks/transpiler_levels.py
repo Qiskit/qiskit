@@ -18,7 +18,7 @@ import os
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit
 from qiskit.transpiler import InstructionDurations
-from qiskit.providers.fake_provider import FakeMelbourne
+from qiskit.providers.fake_provider import Fake20QV1
 
 from .utils import build_qv_model_circuit
 
@@ -153,7 +153,7 @@ class TranspilerLevelBenchmarks:
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
         large_qasm_path = os.path.join(self.qasm_path, "test_eoh_qasm.qasm")
         self.large_qasm = QuantumCircuit.from_qasm_file(large_qasm_path)
-        self.melbourne = FakeMelbourne()
+        self.melbourne = Fake20QV1()
         self.durations = InstructionDurations(
             [
                 ("u1", None, 0),

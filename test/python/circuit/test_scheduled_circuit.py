@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,8 +18,8 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import transpile, assemble
 from qiskit.circuit import Parameter
+from qiskit.providers.fake_provider import Fake27QPulseV1
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import FakeParis
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -31,9 +31,17 @@ class TestScheduledCircuit(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend_with_dt = FakeParis()
-        self.backend_without_dt = FakeParis()
+        self.backend_with_dt = Fake27QPulseV1()
+        self.backend_without_dt = Fake27QPulseV1()
         delattr(self.backend_without_dt.configuration(), "dt")
+        # Remove timing constraints from the backends (alignment values,
+        # granularity and min_length), so that these values will default
+        # to 1. This allows running tests with arbitrary instruction
+        # durations (not only multiples of 16) as well as parametrized ones.
+        # Additionally, this avoids triggering scheduling passes, which are
+        # run when alignment values different to 1 are found.
+        self.backend_with_dt.configuration().timing_constraints = {}
+        self.backend_without_dt.configuration().timing_constraints = {}
         self.dt = 2.2222222222222221e-10
         self.simulator_backend = BasicSimulator()
 
@@ -45,7 +53,7 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)  # 160[dt]
         qc.h(1)  # 160[dt]
         sc = transpile(qc, self.backend_with_dt, scheduling_method="alap", layout_method="trivial")
-        self.assertEqual(sc.duration, 450610)
+        self.assertEqual(sc.duration, 450546)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450450)
@@ -76,7 +84,7 @@ class TestScheduledCircuit(QiskitTestCase):
             dt=self.dt,
             layout_method="trivial",
         )
-        self.assertEqual(sc.duration, 450610)
+        self.assertEqual(sc.duration, 450546)
         self.assertEqual(sc.unit, "dt")
         self.assertEqual(sc.data[0].operation.name, "delay")
         self.assertEqual(sc.data[0].operation.duration, 450450)
@@ -135,9 +143,9 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.x(0)  # 320 [dt]
         qc.delay(1000, 0, unit="ns")  # 4500 [dt]
-        qc.measure_all()  # 19584 [dt]
+        qc.measure_all()
         scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="alap")
-        self.assertEqual(scheduled.duration, 23060)
+        self.assertEqual(scheduled.duration, 8004)
 
     def test_transpile_delay_circuit_with_backend(self):
         qc = QuantumCircuit(2)
@@ -147,7 +155,7 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled = transpile(
             qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
         )
-        self.assertEqual(scheduled.duration, 2082)
+        self.assertEqual(scheduled.duration, 1826)
 
     def test_transpile_delay_circuit_without_backend(self):
         qc = QuantumCircuit(2)
@@ -239,7 +247,7 @@ class TestScheduledCircuit(QiskitTestCase):
         scheduled = transpile(
             qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
         )
-        self.assertEqual(scheduled.duration, 2132)
+        self.assertEqual(scheduled.duration, 1876)
 
         # update durations
         durations = InstructionDurations.from_backend(self.backend_with_dt)

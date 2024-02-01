@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,7 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import U1Gate, U2Gate
 from qiskit.compiler import transpile, assemble
-from qiskit.providers.fake_provider import FakeRueschlikon, FakeTenerife
+from qiskit.providers.fake_provider import Fake20QV1, Fake5QV1
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.qobj import QasmQobj
 from qiskit.qasm2 import dumps
@@ -188,7 +188,7 @@ class TestCompiler(QiskitTestCase):
 
     def test_parallel_compile(self):
         """Trigger parallel routines in compile."""
-        backend = FakeRueschlikon()
+        backend = Fake20QV1()
         qr = QuantumRegister(16)
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
@@ -498,7 +498,7 @@ class TestCompiler(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/607
         """
-        backend = FakeTenerife()
+        backend = Fake5QV1()
         qr = QuantumRegister(2)
         circ1 = QuantumCircuit(qr)
         circ1.cx(qr[0], qr[1])

@@ -92,7 +92,7 @@ class TestCSPLayout(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[0])  # qr1 -> qr0
         circuit.cx(qr[0], qr[2])  # qr0 -> qr2
-        circuit.cx(qr[1], qr[2])  # qr1 -> qr2
+        circuit.cx(qr[1], qr[2])  # qr1 -> qr2s
 
         dag = circuit_to_dag(circuit)
         pass_ = CSPLayout(target, strict_direction=False, seed=self.seed)
