@@ -17,6 +17,7 @@ from io import BytesIO
 from collections import Counter
 
 from qiskit.visualization import plot_histogram
+from qiskit.result import QuasiDistribution, ProbDistribution
 from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase
 
@@ -33,19 +34,19 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
-            "000000": 0.015624999999999986,
-            "000001": 0.015624999999999986,
-            "000011": 0.031249999999999965,
-            "000111": 0.06249999999999992,
-            "100000": 0.015624999999999986,
-            "100001": 0.015624999999999986,
-            "100011": 0.031249999999999965,
-            "100111": 0.06249999999999992,
-            "110000": 0.031249999999999965,
-            "110001": 0.031249999999999965,
-            "110011": 0.06249999999999992,
-            "110111": 0.12499999999999982,
-            "111111": 0.4999999999999991,
+            "000000": 1,
+            "000001": 1,
+            "000011": 2,
+            "000111": 4,
+            "100000": 1,
+            "100001": 1,
+            "100011": 2,
+            "100111": 4,
+            "110000": 2,
+            "110001": 2,
+            "110011": 4,
+            "110111": 10,
+            "111111": 32,
         }
 
         raw_dist = {
@@ -131,72 +132,72 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
     def test_with_number_to_keep_multiple_executions_correct_image(self):
         """Test plotting using number_to_keep with multiple executions"""
         data_noisy = {
-            "00000": 0.22,
-            "00001": 0.003,
-            "00010": 0.005,
-            "00011": 0.0,
-            "00100": 0.004,
-            "00101": 0.001,
-            "00110": 0.004,
-            "00111": 0.001,
-            "01000": 0.005,
-            "01001": 0.0,
-            "01010": 0.002,
-            "01011": 0.0,
-            "01100": 0.225,
-            "01101": 0.001,
-            "01110": 0.003,
-            "01111": 0.003,
-            "10000": 0.012,
-            "10001": 0.002,
-            "10010": 0.001,
-            "10011": 0.001,
-            "10100": 0.247,
-            "10101": 0.004,
-            "10110": 0.003,
-            "10111": 0.001,
-            "11000": 0.225,
-            "11001": 0.005,
-            "11010": 0.002,
-            "11011": 0.0,
-            "11100": 0.015,
-            "11101": 0.004,
-            "11110": 0.001,
-            "11111": 0.0,
+            "00000": 22,
+            "00001": 3,
+            "00010": 5,
+            "00011": 0,
+            "00100": 4,
+            "00101": 1,
+            "00110": 4,
+            "00111": 1,
+            "01000": 5,
+            "01001": 0,
+            "01010": 2,
+            "01011": 0,
+            "01100": 225,
+            "01101": 1,
+            "01110": 3,
+            "01111": 3,
+            "10000": 12,
+            "10001": 2,
+            "10010": 1,
+            "10011": 1,
+            "10100": 247,
+            "10101": 4,
+            "10110": 3,
+            "10111": 1,
+            "11000": 225,
+            "11001": 5,
+            "11010": 2,
+            "11011": 0,
+            "11100": 15,
+            "11101": 4,
+            "11110": 1,
+            "11111": 0,
         }
         data_ideal = {
-            "00000": 0.25,
+            "00000": 25,
             "00001": 0,
             "00010": 0,
             "00011": 0,
             "00100": 0,
             "00101": 0,
             "00110": 0,
-            "00111": 0.0,
-            "01000": 0.0,
+            "00111": 0,
+            "01000": 0,
             "01001": 0,
-            "01010": 0.0,
-            "01011": 0.0,
-            "01100": 0.25,
+            "01010": 0,
+            "01011": 0,
+            "01100": 25,
             "01101": 0,
             "01110": 0,
             "01111": 0,
             "10000": 0,
             "10001": 0,
-            "10010": 0.0,
-            "10011": 0.0,
-            "10100": 0.25,
+            "10010": 0,
+            "10011": 0,
+            "10100": 25,
             "10101": 0,
             "10110": 0,
             "10111": 0,
-            "11000": 0.25,
+            "11000": 25,
             "11001": 0,
             "11010": 0,
             "11011": 0,
-            "11100": 0.0,
+            "11100": 0,
             "11101": 0,
             "11110": 0,
-            "11111": 0.0,
+            "11111": 0,
         }
         data_ref_noisy = dict(Counter(data_noisy).most_common(5))
         data_ref_noisy["rest"] = sum(data_noisy.values()) - sum(data_ref_noisy.values())
@@ -214,11 +215,10 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         mpl.pyplot.close(figure_ref)
         mpl.pyplot.close(figure_truncated)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_number_of_items_in_legend_with_data_starting_with_zero(self):
         """Test legend if there's a 0 value at the first item of the dataset"""
-        dist_1 = {"0": 0.369, "1": 0.13975}
-        dist_2 = {"0": 0, "1": 0.48784}
+        dist_1 = {"0": 369, "1": 140}
+        dist_2 = {"0": 0, "1": 488}
         legend = ["lengend_1", "lengend_2"]
         plot = plot_histogram([dist_1, dist_2], legend=legend)
         self.assertEqual(
@@ -226,6 +226,15 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
             2,
             "Plot should have the same number of legend items as defined",
         )
+
+    def test_deprecation(self):
+        """Test that passing `QuasiDist`, `ProbDist` or a dict of floats is deprecated."""
+        with self.assertWarns(DeprecationWarning):
+            plot_histogram(QuasiDistribution({"00": 1.0}))
+        with self.assertWarns(DeprecationWarning):
+            plot_histogram(ProbDistribution({"00": 1.0}))
+        with self.assertWarns(DeprecationWarning):
+            plot_histogram({"00": 1.0})
 
 
 if __name__ == "__main__":
