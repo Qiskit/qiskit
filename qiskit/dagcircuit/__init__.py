@@ -30,6 +30,7 @@ Circuits as Directed Acyclic Graphs
    DAGOutNode
    DAGDepNode
    DAGDependency
+   DAGDependencyV2
 
 Exceptions
 ==========
@@ -42,3 +43,4 @@ from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError, DAGDependencyError
 from .dagdependency import DAGDependency
+from .dagdependency_v2 import DAGDependencyV2

@@ -13,6 +13,7 @@
 """Test for the DAGDependencyV2 object"""
 
 import unittest
+from test import QiskitTestCase
 
 from qiskit.dagcircuit import DAGDependencyV2, DAGOpNode
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
@@ -20,8 +21,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.converters import circuit_to_dagdependency_v2
-from test import QiskitTestCase
+from qiskit.converters.circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
 
 try:
     import rustworkx as rx
