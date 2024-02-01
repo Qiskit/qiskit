@@ -118,9 +118,9 @@ class BindingsArray(ShapedMixin):
             self._data = {}
         else:
             self._data = {
-                _format_key((key,))
-                if isinstance(key, (Parameter, str))
-                else _format_key(key): np.asarray(val, dtype=float)
+                (
+                    _format_key((key,)) if isinstance(key, (Parameter, str)) else _format_key(key)
+                ): np.asarray(val, dtype=float)
                 for key, val in data.items()
             }
 
