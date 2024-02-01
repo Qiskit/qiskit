@@ -74,14 +74,15 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from qiskit.transpiler.coupling import CouplingMap
 from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 
 BACKENDS = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
 
 BACKENDS_V2 = []
-# NOTE: Do not go any larger to avoid noise model construction performance issues
-for n in [5, 7]:
-    BACKENDS_V2.append(GenericBackendV2(num_qubits=n))
+for n in [5, 7, 16, 20, 27, 65, 127]:
+    cmap = CouplingMap.from_ring(n)
+    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap))
 
 
 @ddt
