@@ -9,7 +9,7 @@ features:
     of the V2 primitives.
 
     Moreover, the estimator has gained a ``precision`` argument in the :meth:`~.BaseEstimatorV2.run`
-    method that specifies the targeted precision of the expectation value estimates. Analagously,
+    method that specifies the targeted precision of the expectation value estimates. Analogously,
     the sampler has moved ``shots`` out of the options and into the arguments of the
     :meth:`~.BaseSamplerV2.run` method. The sampler has also been changed to return the outputs
     (e.g. bitstrings) from every shot, rather than providing a :class:`~.Counts`\-like return, and

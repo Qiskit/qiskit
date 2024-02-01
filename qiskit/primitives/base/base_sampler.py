@@ -91,7 +91,7 @@ T = TypeVar("T", bound=Job)
 
 
 class BaseSamplerV1(BasePrimitive, Generic[T]):
-    """Sampler base class
+    r"""Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
 

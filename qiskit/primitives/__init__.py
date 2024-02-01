@@ -52,7 +52,7 @@ level, however, here are some notable differences keep in mind when migrating fr
       evs = job.result()[0].data.evs
 
       # V1 equivalent, where the same circuit must be provided four times.
-      job = estimator_v1.run([circuit, circuit, circuit, circuit], [obs1, obs2, obs3, obs4])
+      job = estimator_v1.run([circuit] * 4, [obs1, obs2, obs3, obs4])
       evs = job.result().values
 
    Not shown in the above example, for brevity, is that the circuit can be parametric, with arrays
@@ -66,11 +66,11 @@ level, however, here are some notable differences keep in mind when migrating fr
       samples = job.result()[0].data
 
       # V1 equivalent, where the same circuit must be provided three times.
-      sampler_v1.run([circuit, circuit, circuit], [vals1, vals2, vals3])
+      sampler_v1.run([circuit] * 3, [vals1, vals2, vals3])
       quasi_dists = job.result().quasi_dists
 
 2. The V2 sampler returns samples of classical outcomes, preserving the shot order in which they 
-   were measured. This is in contrast to the V1 sampler that outputs quasi-probability distributies
+   were measured. This is in contrast to the V1 sampler that outputs quasi-probability distributions
    which are instead an *estimate of the distribution* over classical outcomes. Moreover, the V2
    sampler result objects organize data in terms of their input circuits' classical register 
    names, which provides natural compatibility with dynamic circuits.
@@ -97,8 +97,8 @@ level, however, here are some notable differences keep in mind when migrating fr
    via their inherent probabilistic nature, out of the options and into the API itself. For the
    sampler, this means that the ``shots`` argument is now part of the :meth:`~.BaseSamplerV2.run`
    signature, and moreover that each pub is able to specify its own value for ``shots``, which takes
-   precedence over any value given to the method. The sampler has an analagous ``precision``
-   argument that specifies the error bars that the primitive implemention should target for
+   precedence over any value given to the method. The sampler has an analogous ``precision``
+   argument that specifies the error bars that the primitive implementation should target for
    expectation values estimates.
 
    This concept is not present in the API of the V1 primitives, though all implementations of the 
@@ -109,7 +109,7 @@ level, however, here are some notable differences keep in mind when migrating fr
       # Sample two circuits at 128 shots each.
       sampler_v2.run([circuit1, circuit2], shots=128)
 
-      # Sample two cricuits at different amounts of shots. The "None"s are necessary as placeholders
+      # Sample two circuits at different amounts of shots. The "None"s are necessary as placeholders
       # for the lack of parameter values in this example.
       sampler_v2.run([(circuit1, None, 123), (circuit2, None, 456)])
 

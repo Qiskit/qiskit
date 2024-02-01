@@ -55,7 +55,7 @@ class StatevectorSampler(BaseSamplerV2):
 
     This class is implemented via :class:`~.Statevector` which turns provided circuits into
     pure state vectors, and is therefore incompatible with mid-circuit measurements (although
-    other implementions may be).
+    other implementations may be).
 
     As seen in the example below, this sampler supports providing arrays of parameter value sets to
     bind against a single circuit.
