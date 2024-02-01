@@ -388,16 +388,10 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         return Operator(obj)
     if hasattr(obj, "to_operator"):
         return obj.to_operator()
-
-    warnings.warn(
-        "Passing in a list or Numpy array to `{}` `{}` argument is "
-        "deprecated as of 0.17.0 since the matrix representation cannot be inferred "
-        "unambiguously. Use a Gate or BaseOperator subclass (eg. Operator, "
-        "SuperOp, Choi) object instead.".format(func_name, arg_name),
-        DeprecationWarning,
+    raise TypeError(
+        f"invalid type supplied to {arg_name} of {func_name}."
+        f" A {fallback_class.__name__} is best."
     )
-    warnings.warn(f"Treating array input as a {fallback_class.__name__} object")
-    return fallback_class(obj)
 
 
 def _cp_condition(channel):

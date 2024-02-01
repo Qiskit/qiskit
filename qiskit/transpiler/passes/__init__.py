@@ -100,6 +100,8 @@ Calibration
    RZXCalibrationBuilderNoEcho
    RXCalibrationBuilder
 
+.. autofunction:: rzx_templates
+
 Scheduling
 =============
 
@@ -248,7 +250,6 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
 from .synthesis import HLSConfig
@@ -261,6 +262,7 @@ from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
 from .calibration import RXCalibrationBuilder
+from .calibration.rzx_templates import rzx_templates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
