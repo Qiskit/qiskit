@@ -16,20 +16,6 @@ pr:
     include:
       - '*'
 
-# A schedule only runs on branches that match include rules from _both_ `main`
-# and the branch itself.  On `main`, we blanket include all branches that might
-# want to be enabled, then particular branches can override it to exclude
-# themselves by removing themselves from the trigger list.  For example, old
-# stable branches can remove `stable/*` from their copy of this file once they
-# reach their end-of-life.
-schedules:
-  - cron: "20 6 * * *"
-    displayName: "Complete matrix test"
-    branches:
-      include: [ "main", "stable/*" ]
-    always: false  # Only run if the code changed since the last cron sync.
-
-
 # Configuration.  In theory a manual trigger on the Azure website or embedding
 # this pipeline as a template can override these, but we're not interested in
 # that.  We just want to give names to things to make it easier to read.
