@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    The methods :meth:`~qiskit.circuit.QuantumCircuit.inverse`,
+    :meth:`~qiskit.circuit.Instruction.inverse`, as well as the similar methods
+    of subclasses of :class:`~qiskit.circuit.Instruction`
+    (such as :class:`~qiskit.circuit.library.SwapGate` or
+    :class:`~qiskit.circuit.library.SGate`) all have an additional
+    argument ``annotated``.
+    The default value of ``False`` corresponds to the existing behavior.
+    Furthermore, for standard gates with an explicitly defined ``inverse`` method,
+    the argument ``annotated`` has no effect, for example both
+    ``SwapGate().inverse(annotated=False)`` and ``SwapGate().inverse(annotated=True)``
+    return a ``SwapGate``, and both
+    ``SGate().inverse(annotated=False)`` and ``SGate().inverse(annotated=True)``
+    return an ``SdgGate``.
+    The difference manifests for custom gates without an explicitly defined inverse:
+    the value of ``False`` returns a new gate with inverse definition, just as before,
+    while the value of ``True`` returns an object of type
+    :class:`~.AnnotatedOperation` instead, avoiding the eager construction
+    of the inverse gate's definition.
