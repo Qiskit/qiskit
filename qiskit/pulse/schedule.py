@@ -1238,9 +1238,15 @@ class ScheduleBlock:
             "to references by checking the reference schedules directly."
         ),
         since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def scoped_parameters(self) -> Tuple[Parameter]:
         """Return unassigned parameters with scoped names.
+
+        .. warning::
+
+            Scoped parameters do not work correctly with Qiskit's data model for parameter
+            assignment.  This implementation is consequently being removed in Qiskit 1.0.
 
         .. note::
 
@@ -1643,9 +1649,15 @@ class ScheduleBlock:
             "to references by checking the reference schedules directly."
         ),
         since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def search_parameters(self, parameter_regex: str) -> List[Parameter]:
         """Search parameter with regular expression.
+
+        .. warning::
+
+            Scoped parameters do not work correctly with Qiskit's data model for parameter
+            assignment.  This implementation is consequently being removed in Qiskit 1.0.
 
         This method looks for the scope-aware parameters.
         For example,
@@ -1984,10 +1996,6 @@ def _collect_scoped_parameters(
     Returns:
         A dictionary of scoped parameter objects.
     """
-    warnings.warn(
-        "Scoped parameters may not work correctly with parameter assignment.",
-        stacklevel=3,
-    )
     parameters_out = {}
     for param in schedule._parameter_manager.parameters:
         new_name = f"{current_scope}{Reference.scope_delimiter}{param.name}"
