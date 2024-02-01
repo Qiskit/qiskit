@@ -419,7 +419,7 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self, annotated: bool = False) -> qiskit.circuit.Instruction | AnnotatedOperation:
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
         If `annotated` is `False`, the inverse instruction is implemented as
