@@ -2244,7 +2244,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
         See https://github.com/Qiskit/qiskit-terra/issues/11038"""
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP)
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=42)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 1)

@@ -77,7 +77,7 @@ V1 Fake Backends (Legacy interface)
     Fake20QV1
     Fake7QPulseV1
     Fake27QPulseV1
-    Fake127PulseV1
+    Fake127QPulseV1
 
 Fake Backend Base Classes
 =========================
