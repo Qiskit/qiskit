@@ -1277,6 +1277,7 @@ class TestTwoQubitDecompose(CheckDecompositions):
         with self.assertWarns(DeprecationWarning):
             import qiskit.quantum_info.synthesis.qsd
 
+
 @ddt
 class TestPulseOptimalDecompose(CheckDecompositions):
     """Check pulse optimal decomposition."""
