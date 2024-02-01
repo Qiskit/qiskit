@@ -9,4 +9,4 @@ upgrade:
     iterate through :attr:`.ScheduleBlock.references` and compare to the
     :attr:`.Schedule.parameters` attributes of the subreferences when needing to
     distinguish which subroutine a parameter is used in. See `#11654
-    https://github.com/Qiskit/qiskit/issues/11654>`__ for more information.
+    <https://github.com/Qiskit/qiskit/issues/11654>`__ for more information.
