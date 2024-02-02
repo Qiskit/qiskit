@@ -10,11 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Base TestCase for testing Providers."""
+"""TestCase for testing backend properties."""
 
 import copy
 
-from qiskit.providers.fake_provider import FakeProvider, Fake5QV1
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.providers.exceptions import BackendPropertyError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -27,8 +27,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = FakeProvider()
-        self.backend = self.provider.get_backend("fake_ourense")
+        self.backend = Fake5QV1()
         self.properties = self.backend.properties()
         self.ref_gate = next(
             g for g in self.backend.configuration().basis_gates if g not in ["id", "rz"]

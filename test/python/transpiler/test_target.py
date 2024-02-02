@@ -45,11 +45,13 @@ from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import (
     GenericBackendV2,
-    FakeMumbaiFractionalCX,
     Fake5QV1,
     Fake7QPulseV1,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+    FakeMumbaiFractionalCX,
+)
 
 
 class TestTarget(QiskitTestCase):
