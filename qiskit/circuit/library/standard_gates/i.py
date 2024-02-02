@@ -51,7 +51,7 @@ class IGate(SingletonGate):
 
     _singleton_lookup_key = stdlib_singleton_key()
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate."""
         return IGate()  # self-inverse
 

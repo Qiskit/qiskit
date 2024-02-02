@@ -21,7 +21,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import transpile
-from qiskit.providers.fake_provider import Fake5QV1, FakeMumbaiFractionalCX, GenericBackendV2
+from qiskit.providers.fake_provider import Fake5QV1, GenericBackendV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -62,6 +62,9 @@ from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter, Gate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.python.providers.fake_mumbai_v2 import (  # pylint: disable=wrong-import-order
+    FakeMumbaiFractionalCX,
+)
 
 
 class FakeBackend2QV2(GenericBackendV2):

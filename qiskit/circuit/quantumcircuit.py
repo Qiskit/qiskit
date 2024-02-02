@@ -17,7 +17,6 @@
 from __future__ import annotations
 import copy
 import multiprocessing as mp
-import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -468,17 +467,9 @@ class QuantumCircuit:
         return self._metadata
 
     @metadata.setter
-    def metadata(self, metadata: dict | None):
+    def metadata(self, metadata: dict):
         """Update the circuit metadata"""
-        if metadata is None:
-            metadata = {}
-            warnings.warn(
-                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
-                "removed in a future release. Instead, set metadata to an empty dictionary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        elif not isinstance(metadata, dict):
+        if not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 
@@ -671,10 +662,14 @@ class QuantumCircuit:
             circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
-    def inverse(self) -> "QuantumCircuit":
+    def inverse(self, annotated: bool = False) -> "QuantumCircuit":
         """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
 
         Returns:
             QuantumCircuit: the inverted circuit
@@ -714,7 +709,9 @@ class QuantumCircuit:
         )
 
         for instruction in reversed(self._data):
-            inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
+            inverse_circ._append(
+                instruction.replace(operation=instruction.operation.inverse(annotated=annotated))
+            )
         return inverse_circ
 
     def repeat(self, reps: int) -> "QuantumCircuit":

@@ -130,7 +130,7 @@ class XGate(SingletonGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted X gate (itself)."""
         return XGate()  # self-inverse
 
@@ -265,7 +265,7 @@ class CXGate(SingletonControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted CX gate (itself)."""
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -449,7 +449,7 @@ class CCXGate(SingletonControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return an inverted CCX gate (also a CCX)."""
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -780,7 +780,7 @@ class C3XGate(SingletonControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The C4X is its own inverse."""
         return C3XGate(ctrl_state=self.ctrl_state)
 
@@ -1014,7 +1014,7 @@ class C4XGate(SingletonControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The C4X is its own inverse."""
         return C4XGate(ctrl_state=self.ctrl_state)
 
@@ -1086,7 +1086,7 @@ class MCXGate(ControlledGate):
             base_gate=XGate(label=_base_label),
         )
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse."""
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1200,7 +1200,7 @@ class MCXGrayCode(MCXGate):
     ):
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_gray")
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse."""
         return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1252,7 +1252,7 @@ class MCXRecursive(MCXGate):
         """Get the number of required ancilla qubits."""
         return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse."""
         return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1348,7 +1348,7 @@ class MCXVChain(MCXGate):
         )
         self._dirty_ancillas = dirty_ancillas
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse."""
         return MCXVChain(
             num_ctrl_qubits=self.num_ctrl_qubits,

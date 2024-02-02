@@ -79,7 +79,7 @@ class RGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate.
 
         r(θ, φ)^dagger = r(-θ, φ)
