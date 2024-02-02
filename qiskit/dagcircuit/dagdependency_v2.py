@@ -15,7 +15,7 @@
 
 import math
 from collections import OrderedDict, defaultdict, namedtuple
-from typing import Dict, List
+from typing import Dict, List, Generator, Any
 
 import numpy as np
 import rustworkx as rx
@@ -460,18 +460,37 @@ class DAGDependencyV2:
         """
         return iter(self._multi_graph.nodes())
 
-    def topological_nodes(self):
+    def topological_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
         """
         Yield nodes in topological order.
+
+        Args:
+            key (Callable): A callable which will take a DAGNode object and
+                return a string sort key. If not specified the
+                :attr:`~qiskit.dagcircuit.DAGNode.sort_key` attribute will be
+                used as the sort key for each node.
+
+        Returns:
+            generator(DAGOpNode): node in topological order
+        """
+        def _key(x):
+            return x.sort_key
+
+        if key is None:
+            key = _key
+
+        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+
+    def topological_op_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
+        """
+        Yield nodes in topological order. This is a wrapper for topological_nodes since
+        all nodes are op nodes. It's here so that calls to dag.topological_op_nodes can
+        use either DAGCircuit or DAGDependencyV2.
 
         Returns:
             generator(DAGOpNode): nodes in topological order.
         """
-
-        def _key(x):
-            return x.sort_key
-
-        return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
+        return self.topological_nodes(key)
 
     def successors(self, node):
         """Returns iterator of the successors of a node as DAGOpNodes."""
@@ -560,6 +579,36 @@ class DAGDependencyV2:
             )
         )
 
+    def copy_empty_like(self):
+        """Return a copy of self with the same structure but empty.
+
+        That structure includes:
+            * name and other metadata
+            * global phase
+            * duration
+            * all the qubits and clbits, including the registers.
+
+        Returns:
+            DAGCircuit: An empty copy of self.
+        """
+        target_dag = DAGDependencyV2()
+        target_dag.name = self.name
+        target_dag._global_phase = self._global_phase
+        target_dag.duration = self.duration
+        target_dag.unit = self.unit
+        target_dag.metadata = self.metadata
+        target_dag._key_cache = self._key_cache
+
+        target_dag.add_qubits(self.qubits)
+        target_dag.add_clbits(self.clbits)
+
+        for qreg in self.qregs.values():
+            target_dag.add_qreg(qreg)
+        for creg in self.cregs.values():
+            target_dag.add_creg(creg)
+
+        return target_dag
+
     def copy(self):
         """
         Function to copy a DAGDependencyV2 object.
@@ -571,6 +620,9 @@ class DAGDependencyV2:
         dag.metadata = self.metadata
         dag.global_phase = self.global_phase
         dag.calibrations = self.calibrations
+        dag.duration = self.duration
+        dag.unit = self.unit
+        dag._key_cache = self._key_cache
 
         dag.add_qubits(self.qubits)
         dag.add_clbits(self.clbits)

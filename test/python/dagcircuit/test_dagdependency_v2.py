@@ -269,6 +269,37 @@ class TestDagProperties(QiskitTestCase):
         qc.metadata = self.dag.metadata
         self.assertEqual(qc.metadata, {})
 
+class TestCopy(QiskitTestCase):
+    """Test removal of registers and idle wires."""
+
+    def setUp(self):
+        super().setUp()
+        self.dag = DAGDependencyV2()
+        self.dag.name = "Name"
+        self.dag.metadata = "Metadata"
+        qreg = QuantumRegister(3, "qr")
+        creg0 = ClassicalRegister(2, "c0")
+        creg1 = ClassicalRegister(2, "c1")
+        creg2 = ClassicalRegister(name="c2", bits=list(creg1))
+        clbit = Clbit()
+        self.dag.add_qreg(qreg)
+        self.dag.add_creg(creg0)
+        self.dag.add_creg(creg1)
+        self.dag.add_creg(creg2)
+        self.dag.add_clbits([clbit])
+
+    def test_copy_empty_like(self):
+        """Copy dag circuit metadata with copy_empty_like."""
+        result_dag = self.dag.copy_empty_like()
+        self.assertEqual(self.dag.name, result_dag.name)
+        self.assertEqual(self.dag.metadata, result_dag.metadata)
+        self.assertEqual(self.dag.clbits, result_dag.clbits)
+        self.assertEqual(self.dag.qubits, result_dag.qubits)
+        self.assertEqual(self.dag.cregs, result_dag.cregs)
+        self.assertEqual(self.dag.qregs, result_dag.qregs)
+        self.assertEqual(self.dag.duration, result_dag.duration)
+        self.assertEqual(self.dag.unit, result_dag.unit)
+
 
 if __name__ == "__main__":
     unittest.main()
