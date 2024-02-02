@@ -27,11 +27,7 @@ from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
 from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
-from qiskit.providers.fake_provider import (
-    FakeYorktown,
-    FakeManhattan,
-    GenericBackendV2,
-)
+from qiskit.providers.fake_provider import Fake5QV1, Fake127QPulseV1, GenericBackendV2
 from qiskit.circuit import Measure
 from qiskit.circuit.library import GraphState, CXGate, XGate, HGate
 from qiskit.transpiler import PassManager, AnalysisPass
@@ -39,7 +35,7 @@ from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP
+from ..legacy_cmaps import TENERIFE_CMAP, RUESCHLIKON_CMAP, MANHATTAN_CMAP
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -507,11 +503,10 @@ class TestVF2LayoutBackend(LayoutTestCase):
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)
         See https://github.com/Qiskit/qiskit-terra/issues/5694"""
-        manhattan_cm = FakeManhattan().configuration().coupling_map
-        cmap65 = CouplingMap(manhattan_cm)
+        cmap65 = CouplingMap(MANHATTAN_CMAP)
 
-        rows = [x[0] for x in manhattan_cm]
-        cols = [x[1] for x in manhattan_cm]
+        rows = [x[0] for x in MANHATTAN_CMAP]
+        cols = [x[1] for x in MANHATTAN_CMAP]
 
         adj_matrix = numpy.zeros((65, 65))
         adj_matrix[rows, cols] = 1
@@ -614,7 +609,7 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_with_properties(self):
         """Test it finds the least noise perfect layout with no properties."""
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -628,7 +623,7 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_max_trials_exceeded(self):
         """Test it exits when max_trials is reached."""
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -648,7 +643,7 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_time_limit_exceeded(self):
         """Test the pass stops after time_limit is reached."""
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
@@ -672,7 +667,7 @@ class TestMultipleTrials(QiskitTestCase):
 
     def test_reasonable_limits_for_simple_layouts(self):
         """Test that the default trials is set to a reasonable number."""
-        backend = FakeManhattan()
+        backend = Fake127QPulseV1()
         qc = QuantumCircuit(5)
         qc.cx(2, 3)
         qc.cx(0, 1)
@@ -684,14 +679,14 @@ class TestMultipleTrials(QiskitTestCase):
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
         self.assertIn(
-            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
+            "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 299 is >= configured max trials 299",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 33, 0, 34})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {57, 58, 61, 62, 0})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(backend.configuration().coupling_map)

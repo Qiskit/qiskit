@@ -184,7 +184,7 @@ class GenericBackendV2(BackendV2):
             if num_qubits != self._coupling_map.size():
                 raise QiskitError(
                     f"The number of qubits (got {num_qubits}) must match "
-                    f"the size of the provided coupling map (got {coupling_map.size()})."
+                    f"the size of the provided coupling map (got {self._coupling_map.size()})."
                 )
 
         self._basis_gates = (
@@ -434,7 +434,8 @@ class GenericBackendV2(BackendV2):
                     instruction.name, qargs
                 )
                 for qubit in qargs:
-                    self._target[instruction.name][(qubit,)].calibration = calibration_entry
+                    if qubit < self.num_qubits:
+                        self._target[instruction.name][(qubit,)].calibration = calibration_entry
 
     def run(self, run_input, **options):
         """Run on the backend using a simulator.

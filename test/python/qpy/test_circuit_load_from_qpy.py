@@ -18,7 +18,7 @@ import struct
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
-from qiskit.providers.fake_provider import FakeHanoi, GenericBackendV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
@@ -57,7 +57,7 @@ class TestCalibrationPasses(QpyCircuitTestCase):
     def setUp(self):
         super().setUp()
         # This backend provides CX(0,1) with native ECR direction.
-        self.inst_map = FakeHanoi().defaults().instruction_schedule_map
+        self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):

@@ -25,14 +25,15 @@ from qiskit.circuit.library.standard_gates import (
     ECRGate,
 )
 from qiskit.compiler import transpile
-from qiskit.transpiler import InstructionProperties
-from qiskit.providers.fake_provider import FakeMumbaiFractionalCX, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.quantum_info import Operator
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import channels
+from qiskit.quantum_info import Operator
+from qiskit.transpiler import InstructionProperties
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import BOGOTA_CMAP, TENERIFE_CMAP
+from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 
 @ddt

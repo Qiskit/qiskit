@@ -110,12 +110,10 @@ class ObservablesArray(ShapedMixin):
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
-    def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]:
-        ...
+    def __getitem__(self, args: int | tuple[int, ...]) -> Mapping[str, float]: ...
 
     @overload
-    def __getitem__(self, args: slice) -> ObservablesArray:
-        ...
+    def __getitem__(self, args: slice) -> ObservablesArray: ...
 
     def __getitem__(self, args):
         item = self._array[args]

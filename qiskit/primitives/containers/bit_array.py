@@ -16,13 +16,14 @@ BitArray
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Iterable, Literal, Mapping, Tuple
 from collections import defaultdict
 from functools import partial
 from itertools import chain, repeat
+from typing import Callable, Iterable, Literal, Mapping
 
 import numpy as np
 from numpy.typing import NDArray
+
 from qiskit.result import Counts
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
@@ -71,7 +72,7 @@ class BitArray(ShapedMixin):
         # second last dimension is shots, last dimension is packed bits
         self._shape = self._array.shape[:-2]
 
-    def _prepare_broadcastable(self, other: "BitArray") -> Tuple[NDArray[np.uint8], ...]:
+    def _prepare_broadcastable(self, other: "BitArray") -> tuple[NDArray[np.uint8], ...]:
         """Validation and broadcasting of two bit arrays before element-wise binary operation."""
         if self.num_bits != other.num_bits:
             raise ValueError(f"'num_bits' must match in {self} and {other}.")
@@ -140,8 +141,8 @@ class BitArray(ShapedMixin):
         return int.from_bytes(data, "big") & mask
 
     def _get_counts(
-        self, *, loc: int | Tuple[int, ...] | None, converter: Callable[[bytes], str | int]
-    ) -> Dict[str, int] | Dict[int, int]:
+        self, *, loc: int | tuple[int, ...] | None, converter: Callable[[bytes], str | int]
+    ) -> dict[str, int] | dict[int, int]:
         arr = self._array.reshape(-1, self._array.shape[-1]) if loc is None else self._array[loc]
 
         counts = defaultdict(int)
@@ -276,7 +277,7 @@ class BitArray(ShapedMixin):
         array = np.frombuffer(data, dtype=np.uint8, count=len(data))
         return BitArray(array.reshape(-1, num_bytes), num_bits)
 
-    def get_counts(self, loc: int | Tuple[int, ...] | None = None) -> Dict[str, int]:
+    def get_counts(self, loc: int | tuple[int, ...] | None = None) -> dict[str, int]:
         """Return a counts dictionary with bitstring keys.
 
         Args:
@@ -290,7 +291,7 @@ class BitArray(ShapedMixin):
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
         return self._get_counts(loc=loc, converter=converter)
 
-    def get_int_counts(self, loc: int | Tuple[int, ...] | None = None) -> Dict[int, int]:
+    def get_int_counts(self, loc: int | tuple[int, ...] | None = None) -> dict[int, int]:
         r"""Return a counts dictionary, where bitstrings are stored as ``int``\s.
 
         Args:
@@ -303,6 +304,21 @@ class BitArray(ShapedMixin):
         """
         converter = partial(self._bytes_to_int, mask=2**self.num_bits - 1)
         return self._get_counts(loc=loc, converter=converter)
+
+    def get_bitstrings(self, loc: int | tuple[int, ...] | None = None) -> list[str]:
+        """Return a list of bitstrings.
+
+        Args:
+            loc: Which entry of this array to return a dictionary for. If ``None``, counts from
+                all positions in this array are unioned together.
+
+        Returns:
+            A list of bitstrings.
+        """
+        mask = 2**self.num_bits - 1
+        converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
+        arr = self._array.reshape(-1, self._array.shape[-1]) if loc is None else self._array[loc]
+        return [converter(shot_row.tobytes()) for shot_row in arr]
 
     def reshape(self, *shape: ShapeInput) -> "BitArray":
         """Return a new reshaped bit array.

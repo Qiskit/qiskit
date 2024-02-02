@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai, GenericBackendV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
 from qiskit.circuit.classical import expr
@@ -1446,7 +1446,7 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = FakeMumbai()
+        cls.backend = Fake27QPulseV1()
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
         cls.basis_gates.update(["for_loop", "while_loop", "if_else"])

@@ -17,7 +17,6 @@
 from __future__ import annotations
 import copy
 import multiprocessing as mp
-import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -468,17 +467,9 @@ class QuantumCircuit:
         return self._metadata
 
     @metadata.setter
-    def metadata(self, metadata: dict | None):
+    def metadata(self, metadata: dict):
         """Update the circuit metadata"""
-        if metadata is None:
-            metadata = {}
-            warnings.warn(
-                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
-                "removed in a future release. Instead, set metadata to an empty dictionary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        elif not isinstance(metadata, dict):
+        if not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 
@@ -671,10 +662,14 @@ class QuantumCircuit:
             circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
-    def inverse(self) -> "QuantumCircuit":
+    def inverse(self, annotated: bool = False) -> "QuantumCircuit":
         """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
 
         Returns:
             QuantumCircuit: the inverted circuit
@@ -714,7 +709,9 @@ class QuantumCircuit:
         )
 
         for instruction in reversed(self._data):
-            inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
+            inverse_circ._append(
+                instruction.replace(operation=instruction.operation.inverse(annotated=annotated))
+            )
         return inverse_circ
 
     def repeat(self, reps: int) -> "QuantumCircuit":
@@ -1157,12 +1154,10 @@ class QuantumCircuit:
         return len(self._data)
 
     @typing.overload
-    def __getitem__(self, item: int) -> CircuitInstruction:
-        ...
+    def __getitem__(self, item: int) -> CircuitInstruction: ...
 
     @typing.overload
-    def __getitem__(self, item: slice) -> list[CircuitInstruction]:
-        ...
+    def __getitem__(self, item: slice) -> list[CircuitInstruction]: ...
 
     def __getitem__(self, item):
         """Return indexed operation."""
@@ -1293,8 +1288,7 @@ class QuantumCircuit:
     @typing.overload
     def _append(
         self, instruction: CircuitInstruction, _qargs: None = None, _cargs: None = None
-    ) -> CircuitInstruction:
-        ...
+    ) -> CircuitInstruction: ...
 
     # To-be-deprecated old style.
     @typing.overload
@@ -1303,8 +1297,7 @@ class QuantumCircuit:
         operation: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
-    ) -> Operation:
-        ...
+    ) -> Operation: ...
 
     def _append(
         self,
@@ -1377,13 +1370,11 @@ class QuantumCircuit:
                     self._parameters = None
 
     @typing.overload
-    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]:
-        ...
+    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
 
     # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter:
-        ...
+    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -2583,8 +2574,7 @@ class QuantumCircuit:
         *,
         flat_input: bool = ...,
         strict: bool = ...,
-    ) -> "QuantumCircuit":
-        ...
+    ) -> "QuantumCircuit": ...
 
     @overload
     def assign_parameters(
@@ -2594,8 +2584,7 @@ class QuantumCircuit:
         *,
         flat_input: bool = ...,
         strict: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def assign_parameters(  # pylint: disable=missing-raises-doc
         self,
@@ -4337,8 +4326,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> WhileLoopContext:
-        ...
+    ) -> WhileLoopContext: ...
 
     @typing.overload
     def while_loop(
@@ -4349,8 +4337,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def while_loop(self, condition, body=None, qubits=None, clbits=None, *, label=None):
         """Create a ``while`` loop on this circuit.
@@ -4425,8 +4412,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> ForLoopContext:
-        ...
+    ) -> ForLoopContext: ...
 
     @typing.overload
     def for_loop(
@@ -4438,8 +4424,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def for_loop(
         self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
@@ -4515,8 +4500,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> IfContext:
-        ...
+    ) -> IfContext: ...
 
     @typing.overload
     def if_test(
@@ -4527,8 +4511,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None = None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def if_test(
         self,
@@ -4682,8 +4665,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: Optional[str],
-    ) -> SwitchContext:
-        ...
+    ) -> SwitchContext: ...
 
     @typing.overload
     def switch(
@@ -4694,8 +4676,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: Optional[str],
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
         """Create a ``switch``/``case`` structure on this circuit.

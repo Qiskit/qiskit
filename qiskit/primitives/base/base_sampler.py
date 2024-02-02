@@ -133,16 +133,13 @@ Here is an example of how sampler is used.
 
 from __future__ import annotations
 
-import warnings
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
-from qiskit.utils.deprecation import deprecate_func
 
 from ..containers.primitive_result import PrimitiveResult
 from ..containers.pub_result import PubResult
@@ -172,26 +169,6 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
             options: Default options.
         """
         super().__init__(options)
-
-    def __getattr__(self, name: str) -> any:
-        # Work around to enable deprecation of the init attributes in BaseSampler incase
-        # existing subclasses depend on them (which some do)
-        dep_defaults = {
-            "_circuits": [],
-            "_parameters": [],
-        }
-        if name not in dep_defaults:
-            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
-
-        warnings.warn(
-            f"The init attribute `{name}` in BaseSampler is deprecated as of Qiskit 0.46."
-            " To continue to use this attribute in a subclass and avoid this warning the"
-            " subclass should initialize it itself.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        setattr(self, name, dep_defaults[name])
-        return getattr(self, name)
 
     def run(
         self,
@@ -234,34 +211,6 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
         **run_options,
     ) -> T:
         raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
-
-    @classmethod
-    @deprecate_func(since="0.46.0")
-    def _validate_circuits(
-        cls,
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-    ) -> tuple[QuantumCircuit, ...]:
-        return validation._validate_circuits(circuits, requires_measure=True)
-
-    @property
-    @deprecate_func(since="0.46.0", is_property=True)
-    def circuits(self) -> tuple[QuantumCircuit, ...]:
-        """Quantum circuits to be sampled.
-
-        Returns:
-            The quantum circuits to be sampled.
-        """
-        return tuple(self._circuits)
-
-    @property
-    @deprecate_func(since="0.46.0", is_property=True)
-    def parameters(self) -> tuple[ParameterView, ...]:
-        """Parameters of quantum circuits.
-
-        Returns:
-            List of the parameters in each quantum circuit.
-        """
-        return tuple(self._parameters)
 
 
 BaseSampler = BaseSamplerV1

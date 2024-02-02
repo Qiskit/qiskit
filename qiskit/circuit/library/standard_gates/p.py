@@ -126,7 +126,7 @@ class PhaseGate(Gate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted Phase gate (:math:`Phase(\lambda)^{\dagger} = Phase(-\lambda)`)"""
         return PhaseGate(-self.params[0])
 
@@ -266,7 +266,7 @@ class CPhaseGate(ControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda)^{\dagger} = CPhase(-\lambda)`)"""
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
@@ -396,6 +396,6 @@ class MCPhaseGate(ControlledGate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)

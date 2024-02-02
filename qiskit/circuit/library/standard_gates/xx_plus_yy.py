@@ -152,7 +152,7 @@ class XXPlusYYGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
         return XXPlusYYGate(-self.params[0], self.params[1])
 

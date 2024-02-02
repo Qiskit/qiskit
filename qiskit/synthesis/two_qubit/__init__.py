@@ -12,4 +12,8 @@
 
 """Module containing two-qubit unitary synthesis methods."""
 
-from .two_qubit_decompose import TwoQubitBasisDecomposer, two_qubit_cnot_decompose
+from .two_qubit_decompose import (
+    TwoQubitBasisDecomposer,
+    two_qubit_cnot_decompose,
+    TwoQubitWeylDecomposition,
+)

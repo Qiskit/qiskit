@@ -75,14 +75,9 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.providers.fake_provider import (
-    FakeMelbourne,
-    FakeRueschlikon,
-    FakeVigo,
-)
-from qiskit.providers.options import Options
+from qiskit.providers.fake_provider import Fake20QV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
@@ -93,6 +88,8 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
 
 
 class CustomCX(Gate):
@@ -278,26 +275,6 @@ class TestTranspile(QiskitTestCase):
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
 
-        coupling_map = [
-            [1, 0],
-            [1, 2],
-            [2, 3],
-            [4, 3],
-            [4, 10],
-            [5, 4],
-            [5, 6],
-            [5, 9],
-            [6, 8],
-            [7, 8],
-            [9, 8],
-            [9, 10],
-            [11, 3],
-            [11, 10],
-            [11, 12],
-            [12, 2],
-            [13, 1],
-            [13, 12],
-        ]
         basis_gates = ["cx", "id", "rz", "sx", "x"]
 
         qr = QuantumRegister(8)
@@ -307,45 +284,19 @@ class TestTranspile(QiskitTestCase):
                 circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
-        new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=coupling_map)
-
+        new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=MELBOURNE_CMAP)
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
-
         for instruction in new_circuit.data:
             if isinstance(instruction.operation, CXGate):
-                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], MELBOURNE_CMAP)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        cmap = [
-            [1, 0],
-            [1, 2],
-            [2, 3],
-            [3, 4],
-            [3, 14],
-            [5, 4],
-            [6, 5],
-            [6, 7],
-            [6, 11],
-            [7, 10],
-            [8, 7],
-            [9, 8],
-            [9, 10],
-            [11, 10],
-            [12, 5],
-            [12, 11],
-            [12, 13],
-            [13, 4],
-            [13, 14],
-            [15, 0],
-            [15, 2],
-            [15, 14],
-        ]
 
-        backend = GenericBackendV2(num_qubits=16, coupling_map=cmap)
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
         coupling_map = backend.coupling_map
         basis_gates = backend.operation_names
 
@@ -837,8 +788,8 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("theta")
         square = theta * theta
         qc.rz(square, qr[0])
-        backend = GenericBackendV2(num_qubits=4)
 
+        backend = GenericBackendV2(num_qubits=4)
         transpiled_qc = transpile(
             qc,
             backend=backend,
@@ -856,35 +807,11 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         orig_pass = BarrierBeforeFinalMeasurements()
-        coupling_map = [
-            [1, 0],
-            [1, 2],
-            [2, 3],
-            [3, 4],
-            [3, 14],
-            [5, 4],
-            [6, 5],
-            [6, 7],
-            [6, 11],
-            [7, 10],
-            [8, 7],
-            [9, 8],
-            [9, 10],
-            [11, 10],
-            [12, 5],
-            [12, 11],
-            [12, 13],
-            [13, 4],
-            [13, 14],
-            [15, 0],
-            [15, 2],
-            [15, 14],
-        ]
 
         with patch.object(BarrierBeforeFinalMeasurements, "run", wraps=orig_pass.run) as mock_pass:
             transpile(
                 circ,
-                coupling_map=coupling_map,
+                coupling_map=RUESCHLIKON_CMAP,
                 initial_layout=layout,
             )
             self.assertTrue(mock_pass.called)
@@ -1900,7 +1827,7 @@ class TestTranspile(QiskitTestCase):
         qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
         qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
         qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
-        backend = FakeMelbourne()
+        backend = Fake20QV1()
         transpiled = transpile(
             qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
         )
@@ -2138,7 +2065,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeMelbourne(),
+            backend=Fake20QV1(),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2225,7 +2152,13 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 vf2_post_layout_called = True
                 self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
-        backend = FakeVigo()
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
@@ -2233,7 +2166,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([3, 2, 1], _get_index_layout(tqc, qubits))
+        self.assertEqual([0, 2, 1], _get_index_layout(tqc, qubits))
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -2358,12 +2291,12 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_parallel_dispatch(self, opt_level):
         """Test that transpile in parallel works for all optimization levels."""
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16)
-        cr = ClassicalRegister(16)
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], seed=42)
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
-        for k in range(1, 15):
+        for k in range(1, 4):
             qc.cx(qr[0], qr[k])
         qc.measure(qr, cr)
         qlist = [qc for k in range(15)]
@@ -2373,8 +2306,8 @@ class TestTranspileParallel(QiskitTestCase):
         result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
         counts = result.get_counts()
         for count in counts:
-            self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
-            self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["00000"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["01111"], 500, rel_tol=0.1))
 
     def test_parallel_dispatch_lazy_cal_loading(self):
         """Test adding calibration by lazy loading in parallel environment."""

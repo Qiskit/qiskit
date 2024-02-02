@@ -114,7 +114,7 @@ class RZGate(Gate):
             )
         return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
@@ -254,7 +254,7 @@ class CRZGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
