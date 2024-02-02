@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "qiskit"
 description = "An open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives."
 requires-python = ">=3.8"
-license = { file = "LICENSE.txt" }
+license = {text = "Apache 2.0"}
 authors = [
     { name = "Qiskit Development Team", email = "qiskit@us.ibm.com" },
 ]
