@@ -269,6 +269,7 @@ class TestDagProperties(QiskitTestCase):
         qc.metadata = self.dag.metadata
         self.assertEqual(qc.metadata, {})
 
+
 class TestCopy(QiskitTestCase):
     """Test removal of registers and idle wires."""
 

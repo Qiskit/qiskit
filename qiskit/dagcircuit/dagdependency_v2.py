@@ -473,6 +473,7 @@ class DAGDependencyV2:
         Returns:
             generator(DAGOpNode): node in topological order
         """
+
         def _key(x):
             return x.sort_key
 
