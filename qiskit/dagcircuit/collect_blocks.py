@@ -31,11 +31,7 @@ class Block(ABC):
     def append_node(self, node):
         """
         Attempts to append the given node to the block.
-
-        More precisely, this should check if the given node can be appended to the current block.
-        If it can, then this should append the node (the actual details on doing this depend
-        on the application) and return ``True``.
-        If it cannot, then this should return ``False``.
+        Returns ``True`` if succeeds and ``False`` if not.
         """
         raise NotImplementedError
 
@@ -50,7 +46,7 @@ class Block(ABC):
     def reverse(self):
         """
         Returns the block with nodes in the reversed order.
-        Maybe not every block can be reversed; should we also return ``None``?
+        To think: Maybe not every block can be reversed; should we also return ``None``?
         """
         raise NotImplementedError
 
