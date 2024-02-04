@@ -320,7 +320,7 @@ class DAGDependencyV2:
                 f"Could not locate provided bit: {bit}. Has it been added to the DAGDependency?"
             ) from err
 
-    def add_op_node(self, operation, qargs, cargs):
+    def apply_operation_back(self, operation, qargs=(), cargs=()):
         """Add a DAGOpNode to the graph and update the edges.
 
         Args:
@@ -634,7 +634,7 @@ class DAGDependencyV2:
             dag.add_creg(register)
 
         for node in self.op_nodes():
-            dag.add_op_node(node.op.copy(), node.qargs, node.cargs)
+            dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
 
         return dag
 

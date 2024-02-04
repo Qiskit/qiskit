@@ -39,6 +39,6 @@ def dag_to_dagdependency_v2(dag):
         dagdependency.add_creg(register)
 
     for node in dag.topological_op_nodes():
-        dagdependency.add_op_node(node.op.copy(), node.qargs, node.cargs)
+        dagdependency.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
 
     return dagdependency
