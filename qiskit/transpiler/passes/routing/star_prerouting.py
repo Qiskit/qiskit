@@ -18,17 +18,12 @@ from qiskit.dagcircuit.collect_blocks import BlockCollector, DefaultBlock
 
 
 class StarBlock(DefaultBlock):
+    """Defines blocks representing star-shaped pieces of a circuit."""
+
     def __init__(self, nodes=None, center=None, num2q=0):
         self.center = center
         self.num2q = num2q
         super().__init__(nodes)
-
-    def print(self):
-        print(f"==> center: {self.center}")
-        print(f"==> num2q: {self.num2q}")
-
-        for node in self.nodes:
-            print(f"     {node.__repr__()}")
 
     def append_node(self, node):
         """
@@ -45,7 +40,8 @@ class StarBlock(DefaultBlock):
         assert getattr(node.op, "condition", None) is None
 
         if len(node.qargs) == 1:
-            # This may be a bit sloppy since this may also include 1-qubit gates which are not part of the star.
+            # This may be a bit sloppy since this may also include 1-qubit gates
+            # which are not part of the star.
             # Or maybe this is fine (need to think).
             self.nodes.append(node)
             added = True
@@ -120,6 +116,14 @@ class StarPreRouting(TransformationPass):
     2023 IEEE International Conference on Quantum Computing and Engineering (QCE),
     Bellevue, WA, USA, 2023, pp. 1020-1032, doi: 10.1109/QCE57702.2023.00116.
     """
+
+    def __init__(
+        self,
+        add_permutation=True,
+    ):
+        """StarPreRouting"""
+        self.add_permutation = add_permutation
+        super().__init__()
 
     def run(self, dag):
 
@@ -207,8 +211,9 @@ class StarPreRouting(TransformationPass):
                 # the node is not part of a block
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
-        pattern = [qubit_mapping[i] for i in dag.qubits]
-        new_dag.apply_operation_back(PermutationGate(pattern), dag.qubits)
+        if self.add_permutation:
+            pattern = [qubit_mapping[i] for i in dag.qubits]
+            new_dag.apply_operation_back(PermutationGate(pattern), dag.qubits)
 
         return new_dag
 

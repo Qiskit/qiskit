@@ -206,7 +206,7 @@ class TestStarPreRouting(QiskitTestCase):
         pm = generate_preset_pass_manager(
             opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
         )
-        pm.pre_layout = PassManager(StarPreRouting())
+        pm.pre_layout = PassManager(StarPreRouting(add_permutation=False))
         result = pm.run(qc)
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
@@ -263,7 +263,7 @@ class TestStarPreRouting(QiskitTestCase):
         pm = generate_preset_pass_manager(
             opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
         )
-        pm.pre_layout = PassManager(StarPreRouting())
+        pm.pre_layout = PassManager(StarPreRouting(add_permutation=False))
         result = pm.run(qc)
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
