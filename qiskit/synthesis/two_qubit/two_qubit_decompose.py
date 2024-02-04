@@ -164,7 +164,9 @@ class TwoQubitWeylDecomposition:
               `arXiv:0011050 [quant-ph] <https://arxiv.org/abs/quant-ph/0011050>`_
             2. B. Drury, P. J. Love, *Constructive Quantum Shannon Decomposition from Cartan
                Involutions*, `arXiv:0806.4015 [quant-ph] <https://arxiv.org/abs/0806.4015>`_
+
         """
+
         # The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
         # 062309 (2001).
         #
