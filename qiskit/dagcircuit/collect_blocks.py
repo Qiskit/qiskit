@@ -22,7 +22,6 @@ from . import DAGOpNode, DAGCircuit, DAGDependency, DAGDependencyV2
 from .exceptions import DAGCircuitError
 
 
-
 class Block(ABC):
     """
     Abstract block interface.
@@ -79,9 +78,6 @@ class Block(ABC):
         raise NotImplementedError
 
 
-
-
-
 class DefaultBlock(Block):
     """Block class suitable for various simple collection strategies."""
 
@@ -129,9 +125,6 @@ class DefaultBlock(Block):
         return output_blocks
 
 
-
-
-
 class BlockCollector:
     """This class implements various strategies of dividing a DAG (direct acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
@@ -175,7 +168,6 @@ class BlockCollector:
         elif isinstance(dag, DAGDependencyV2):
             self.is_dag_dependency = True
             self.is_v2 = True
-
 
         else:
             raise DAGCircuitError("not a DAG.")
@@ -253,12 +245,7 @@ class BlockCollector:
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(
-        self,
-        filter_fn,
-        block_class=DefaultBlock,
-        output_nodes=True
-    ):
+    def collect_matching_block(self, filter_fn, block_class=DefaultBlock, output_nodes=True):
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -335,13 +322,10 @@ class BlockCollector:
         while self._have_uncollected_nodes():
             self.collect_matching_block(
                 filter_fn=not_filter_fn,
-                block_class=block_class,
-                output_nodes=False,
+                output_nodes=True,
             )
             matching_block = self.collect_matching_block(
-                filter_fn=filter_fn,
-                block_class=block_class,
-                output_nodes=False
+                filter_fn=filter_fn, block_class=block_class, output_nodes=False
             )
             if matching_block.size() >= min_block_size:
                 matching_blocks.append(matching_block)

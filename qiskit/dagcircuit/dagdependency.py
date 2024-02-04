@@ -528,7 +528,6 @@ class DAGDependency:
 
         return target_dag
 
-
     def draw(self, scale=0.7, filename=None, style="color"):
         """
         Draws the DAGDependency graph.
