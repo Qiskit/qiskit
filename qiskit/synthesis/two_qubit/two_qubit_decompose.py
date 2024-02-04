@@ -98,7 +98,7 @@ class TwoQubitWeylDecomposition:
 
     .. math::
 
-        U = ({K_1}^l \otimes {K_1}^r) \dot e^{(i a XX + i b YY + i c ZZ)} \dot ({K_2}^l \otimes {K_2}^r)
+        U = ({K_1}^l \otimes {K_1}^r) e^{(i a XX + i b YY + i c ZZ)} ({K_2}^l \otimes {K_2}^r)
 
     where
 
@@ -159,15 +159,21 @@ class TwoQubitWeylDecomposition:
     def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
-        The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
-        062309 (2001).
-
-        FIXME: There's a cleaner-seeming method based on choosing branch cuts carefully, in Andrew
-        M. Childs, Henry L. Haselgrove, and Michael A. Nielsen, Phys. Rev. A 68, 052311, but I
-        wasn't able to get that to work.
-
-        The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
+        Reference:
+            1. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two--Qubit Gate*,
+              `arXiv:0011050 [quant-ph] <https://arxiv.org/abs/quant-ph/0011050>`_
+            2. B. Drury, P. J. Love, *Constructive Quantum Shannon Decomposition from Cartan
+               Involutions*, `arXiv:0806.4015 [quant-ph] <https://arxiv.org/abs/0806.4015>`_
         """
+        # The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
+        # 062309 (2001).
+        #
+        # FIXME: There's a cleaner-seeming method based on choosing branch cuts carefully, in Andrew
+        # M. Childs, Henry L. Haselgrove, and Michael A. Nielsen, Phys. Rev. A 68, 052311, but I
+        # wasn't able to get that to work.
+        #
+        # The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
+
         if _unpickling:
             return super().__new__(cls)
 
@@ -384,19 +390,19 @@ class TwoQubitWeylDecomposition:
             )
 
     def specialize(self):
-        """Make changes to the decomposition to comply with any specialization.
+        """Make changes to the decomposition to comply with any specialization."""
 
-        Do update a, b, c, k1l, k1r, k2l, k2r, _is_flipped_from_original to round to the
-        specialization. Do not update the global phase, since this gets done in generic
-        __init__()"""
+        # Do update a, b, c, k1l, k1r, k2l, k2r, _is_flipped_from_original to round to the
+        # specialization. Do not update the global phase, since this gets done in generic
+        # __init__()
         raise NotImplementedError
 
     def circuit(
         self, *, euler_basis: str | None = None, simplify=False, atol=DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns Weyl decomposition in circuit form.
+        """Returns Weyl decomposition in circuit form."""
 
-        simplify, atol arguments are passed to OneQubitEulerDecomposer"""
+        # simplify, atol arguments are passed to OneQubitEulerDecomposer
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
@@ -424,7 +430,7 @@ class TwoQubitWeylDecomposition:
             circ.rzz(-self.c * 2, 0, 1)
 
     def actual_fidelity(self, **kwargs) -> float:
-        """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
+        """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
         return trace_to_fid(trace)
@@ -459,7 +465,8 @@ class TwoQubitWeylDecomposition:
     def from_bytes(
         cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
     ) -> "TwoQubitWeylDecomposition":
-        """Decode bytes into TwoQubitWeylDecomposition. Used by __repr__"""
+        """Decode bytes into TwoQubitWeylDecomposition."""
+        # Used by __repr__
         del kwargs  # Unused (just for display)
         b64 = base64.decodebytes(bytes_in)
         with io.BytesIO(b64) as f:
