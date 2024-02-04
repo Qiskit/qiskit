@@ -20,7 +20,12 @@ import ddt
 
 from qiskit.circuit.library import PermutationGate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit, circuit_to_dagdependency_v2, dagdependency_to_circuit
+from qiskit.converters import (
+    circuit_to_dag,
+    dag_to_circuit,
+    circuit_to_dagdependency_v2,
+    dagdependency_to_circuit,
+)
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
 from qiskit.transpiler.coupling import CouplingMap
@@ -177,7 +182,7 @@ class TestStarPreRouting(QiskitTestCase):
         expected.h(qc.qubits[:-1])
         for i in range(num_qubits - 1):
             expected.measure(i, i)
-        pattern = [0] + [num_qubits-1] + list(range(1, num_qubits-1))
+        pattern = [0] + [num_qubits - 1] + list(range(1, num_qubits - 1))
         expected.append(PermutationGate(pattern), range(num_qubits))
         self.assertEqual(result, expected)
 
@@ -235,7 +240,7 @@ class TestStarPreRouting(QiskitTestCase):
         expected.h(num_qubits - 1)
         for i in range(num_qubits - 1):
             expected.measure(i, i)
-        pattern = [0] + [num_qubits-1] + list(range(1, num_qubits-1))
+        pattern = [0] + [num_qubits - 1] + list(range(1, num_qubits - 1))
         expected.append(PermutationGate(pattern), range(num_qubits))
         self.assertEqual(result, expected)
 
