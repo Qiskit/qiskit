@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,8 +21,8 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.target import Target
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestGatesInBasisPass(QiskitTestCase):
@@ -98,7 +98,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_with_target(self):
         """Test circuit with all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]  # not used
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -111,7 +111,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_not_in_basis_with_target(self):
         """Test circuit with not all gates in basis with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -124,7 +124,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_not_on_all_qubits_with_target(self):
         """Test circuit with gate in global basis but not local basis."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["ecr", "cx", "h"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -137,7 +137,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_empty_circuit_with_target(self):
         """Test circuit with no gates with target."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target=target)
@@ -190,7 +190,7 @@ class TestGatesInBasisPass(QiskitTestCase):
 
     def test_all_gates_in_basis_after_translation_with_target(self):
         """Test circuit with gates in basis after conditional translation."""
-        target = FakeBackend5QV2().target
+        target = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target
         basis_gates = ["cx", "u"]
         property_set = {}
         analysis_pass = GatesInBasis(basis_gates, target)

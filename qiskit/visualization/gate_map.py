@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -84,11 +84,10 @@ def plot_gate_map(
         .. plot::
            :include-source:
 
-           from qiskit import QuantumCircuit, execute
-           from qiskit.providers.fake_provider import FakeVigoV2
+           from qiskit.providers.fake_provider import GenericBackendV2
            from qiskit.visualization import plot_gate_map
 
-           backend = FakeVigoV2()
+           backend = GenericBackendV2(num_qubits=5)
 
            plot_gate_map(backend)
     """
@@ -1141,13 +1140,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         .. plot::
            :include-source:
 
-            import numpy as np
             from qiskit import QuantumCircuit, transpile
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
             from qiskit.visualization import plot_circuit_layout
-            from qiskit.tools.monitor import job_monitor
-            from qiskit.providers.fake_provider import FakeVigoV2
-            import matplotlib.pyplot as plt
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)
@@ -1155,7 +1150,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
                 ghz.cx(0,idx)
             ghz.measure(range(3), range(3))
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
@@ -1247,11 +1242,10 @@ def plot_error_map(backend, figsize=(15, 12), show_title=True, qubit_coordinates
         .. plot::
            :include-source:
 
-            from qiskit import QuantumCircuit, execute
             from qiskit.visualization import plot_error_map
-            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.providers.fake_provider import GenericBackendV2
 
-            backend = FakeVigoV2()
+            backend = GenericBackendV2(num_qubits=5)
             plot_error_map(backend)
     """
     import matplotlib

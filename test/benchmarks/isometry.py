@@ -17,6 +17,7 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.compiler import transpile
 from qiskit.quantum_info.random import random_unitary
+from qiskit.circuit.library.generalized_gates import Isometry
 
 
 class IsometryTranspileBench:
@@ -31,7 +32,9 @@ class IsometryTranspileBench:
         iso = random_unitary(2**n, seed=0).data[:, 0 : 2**m]
         if len(iso.shape) == 1:
             iso = iso.reshape((len(iso), 1))
-        qc.iso(iso, q[:m], q[m:])
+        iso_gate = Isometry(iso, 0, 0)
+        qc.append(iso_gate, q)
+
         self.circuit = qc
 
     def track_cnot_counts_after_mapping_to_ibmq_16_melbourne(self, *unused):

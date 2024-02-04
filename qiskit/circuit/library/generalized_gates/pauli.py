@@ -59,7 +59,7 @@ class PauliGate(Gate):
             qc._append(CircuitInstruction(gates[p](), (q[i],), ()))
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted pauli gate (itself)."""
         return PauliGate(self.params[0])  # self-inverse
 

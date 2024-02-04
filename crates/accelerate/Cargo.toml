@@ -24,7 +24,7 @@ ahash = "0.8.6"
 num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
-rustworkx-core = "0.13"
+rustworkx-core = "0.14"
 
 [dependencies.smallvec]
 version = "1.13"
@@ -39,9 +39,16 @@ version = "^0.15.6"
 features = ["rayon"]
 
 [dependencies.hashbrown]
-version = "0.14.0"
+workspace = true
 features = ["rayon"]
 
 [dependencies.indexmap]
-version = "2.1.0"
+workspace = true
 features = ["rayon"]
+
+[dependencies.faer]
+version = "0.16.0"
+features = ["ndarray"]
+
+[dependencies.faer-core]
+version = "0.16.0"

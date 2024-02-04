@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,9 +18,8 @@ import unittest
 from qiskit import QuantumCircuit, pulse
 from qiskit.compiler import sequence, transpile, schedule
 from qiskit.pulse.transforms import pad
-from qiskit.providers.fake_provider import FakeParis
-
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import Fake127QPulseV1
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSequence(QiskitTestCase):
@@ -28,7 +27,8 @@ class TestSequence(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeParis()
+        self.backend = Fake127QPulseV1()
+        self.backend.configuration().timing_constraints = {}
 
     def test_sequence_empty(self):
         self.assertEqual(sequence([], self.backend), [])
