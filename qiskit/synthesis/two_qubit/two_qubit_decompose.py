@@ -125,6 +125,11 @@ class TwoQubitWeylDecomposition:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
            *Validating quantum computers using randomized model circuits*,
            `arXiv:1811.12926 [quant-ph] <https://arxiv.org/abs/1811.12926>`_
+        2. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two-Qubit Gate*,
+           `arXiv:0011050 [quant-ph] <https://arxiv.org/abs/quant-ph/0011050>`_
+        3. B. Drury, P. J. Love, *Constructive Quantum Shannon Decomposition from Cartan
+           Involutions*, `arXiv:0806.4015 [quant-ph] <https://arxiv.org/abs/0806.4015>`_
+
     """
 
     # The parameters of the decomposition:
@@ -157,15 +162,7 @@ class TwoQubitWeylDecomposition:
 
     @staticmethod
     def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
-        """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
-
-        Reference:
-            1. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two--Qubit Gate*,
-              `arXiv:0011050 [quant-ph] <https://arxiv.org/abs/quant-ph/0011050>`_
-            2. B. Drury, P. J. Love, *Constructive Quantum Shannon Decomposition from Cartan
-               Involutions*, `arXiv:0806.4015 [quant-ph] <https://arxiv.org/abs/0806.4015>`_
-
-        """
+        """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass."""
 
         # The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
         # 062309 (2001).
