@@ -731,6 +731,7 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
         in more detail in https://arxiv.org/abs/quant-ph/9601018 or
         https://arxiv.org/abs/quant-ph/0403071.
     """
+
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given QftGate."""
         if not isinstance(high_level_object, QftGate):
@@ -748,7 +749,7 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
         )
         return decomposition
 
-      
+
 class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
     """The permutation synthesis plugin based on the token swapper algorithm.
 

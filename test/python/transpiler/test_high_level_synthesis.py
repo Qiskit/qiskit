@@ -41,10 +41,6 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
-from qiskit.transpiler.passes.synthesis.plugin import (
-    HighLevelSynthesisPlugin,
-    HighLevelSynthesisPluginManager,
-)
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
 from qiskit.converters import dag_to_circuit, circuit_to_dag, circuit_to_instruction
@@ -52,6 +48,7 @@ from qiskit.transpiler import PassManager, TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes.basis import BasisTranslator
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
+    HighLevelSynthesisPluginManager,
     high_level_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
