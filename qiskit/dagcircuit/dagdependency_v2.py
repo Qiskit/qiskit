@@ -355,6 +355,9 @@ class DAGDependencyV2:
             self.qindices_map[new_node] = []
             self.cindices_map[new_node] = []
 
+    def apply_operation_back(self, operation, qargs=(), cargs=()):
+        return self.add_op_node(operation, qargs, cargs)
+
     def _update_edges(self):
         """
         Updates DagDependencyV2 by adding edges to the newly added node (max_node)

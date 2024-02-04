@@ -13,15 +13,17 @@
 """Temporary code for experimental purposes."""
 
 from qiskit.circuit import QuantumCircuit, Gate, Operation
-from qiskit.circuit.library import SwapGate
+from qiskit.circuit.library import SwapGate, PermutationGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.collect_blocks import BlockCollector, DefaultBlock
 from qiskit.converters import (
     circuit_to_dag,
     circuit_to_dagdependency,
+    circuit_to_dagdependency_v2,
     dag_to_circuit,
     dagdependency_to_circuit,
 )
+from qiskit.quantum_info import Operator
 
 
 class StarBlock(DefaultBlock):
@@ -228,6 +230,15 @@ def resynthesize_stars(dag):
             # the node is not part of one of the blocks
             new_dag.apply_operation_back(topo_node.op, topo_node.qargs, topo_node.cargs)
 
+
+
+    print(qubit_mapping)
+    # perm_pattern = {dag.find_bit(i).index: j for i, j in qubit_mapping.items()}
+    # print(perm_pattern)
+    pat2 = [qubit_mapping[i] for i in dag.qubits]
+    print(pat2)
+    new_dag.apply_operation_back(PermutationGate(pat2), dag.qubits)
+
     return new_dag
 
 
@@ -250,6 +261,19 @@ def _apply_mapping(qargs, mapping, qubits):
     #     print(qc)
 
 
+def example0():
+    qc = QuantumCircuit(5)
+    qc.h(0)
+    qc.cx(0, range(1, 5))
+    print(qc)
+    new_dag = resynthesize_stars(circuit_to_dag(qc))
+    new_circ = dag_to_circuit(new_dag)
+    print(new_circ)
+    print(Operator(qc) == Operator(new_circ))
+
+
+
+
 def example1():
     """Example similar to the one in Matthew's PR"""
 
@@ -261,7 +285,12 @@ def example1():
     print(qc)
 
     new_dag = resynthesize_stars(circuit_to_dag(qc))
-    print_dag(new_dag)
+    # print_dag(new_dag)
+    new_circ = dag_to_circuit(new_dag)
+    print(new_circ)
+    print(Operator(qc) == Operator(new_circ))
+
+
 
 
 def print_dag(dag):
@@ -270,6 +299,7 @@ def print_dag(dag):
         print(qc)
 
     else:
+        print("I AM HERE")
         qc = dagdependency_to_circuit(dag)
         print(qc)
 
@@ -301,10 +331,15 @@ def example2():
     # print_dag(new_dag)
 
     print(f"And now using DAGDependency:")
-    new_dag = resynthesize_stars(circuit_to_dagdependency(qc))
-    print_dag(new_dag)
+    new_dag = resynthesize_stars(circuit_to_dagdependency_v2(qc))
+    # print_dag(new_dag)
+    print(type(new_dag))
+    new_circ = dagdependency_to_circuit(new_dag)
+    print(new_circ)
+    print(Operator(qc) == Operator(new_circ))
 
 
 if __name__ == "__main__":
+    # example0()
     # example1()
     example2()

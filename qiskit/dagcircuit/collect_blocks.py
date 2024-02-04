@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from . import DAGOpNode, DAGCircuit, DAGDependency, DAGDependencyV2
 from .exceptions import DAGCircuitError
 
 
@@ -166,9 +166,16 @@ class BlockCollector:
 
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
+            self.is_v2 = False
 
         elif isinstance(dag, DAGDependency):
             self.is_dag_dependency = True
+            self.is_v2 = False
+
+        elif isinstance(dag, DAGDependencyV2):
+            self.is_dag_dependency = True
+            self.is_v2 = True
+
 
         else:
             raise DAGCircuitError("not a DAG.")
@@ -193,7 +200,7 @@ class BlockCollector:
 
     def _op_nodes(self):
         """Returns DAG nodes."""
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             return self.dag.op_nodes()
         else:
             return self.dag.get_nodes()
@@ -203,7 +210,7 @@ class BlockCollector:
         direction of collecting blocks, that is node's predecessors when collecting
         backwards are the direct successors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             if self._collect_from_back:
                 return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
             else:
@@ -225,7 +232,7 @@ class BlockCollector:
         direction of collecting blocks, that is node's successors when collecting
         backwards are the direct predecessors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             if self._collect_from_back:
                 return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
             else:
@@ -448,7 +455,7 @@ class BlockCollapser:
     def __init__(self, dag):
         """
         Args:
-            dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+            dag (Union[DAGCircuit, DAGDependency, DADDependencyV2]): The input DAG.
         """
 
         self.dag = dag
