@@ -331,7 +331,6 @@ Particular Quantum Circuits
    PhaseEstimation
    GroverOperator
    PhaseOracle
-   EvolvedOperatorAnsatz
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
@@ -353,6 +352,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    PauliTwoDesign
    RealAmplitudes
    EfficientSU2
+   EvolvedOperatorAnsatz
    ExcitationPreserving
    QAOAAnsatz
 
@@ -561,6 +561,7 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    EvolvedOperatorAnsatz,
     ExcitationPreserving,
     QAOAAnsatz,
 )
@@ -579,5 +580,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz
 from .overlap import UnitaryOverlap

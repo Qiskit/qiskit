@@ -19,13 +19,13 @@ import warnings
 import numpy as np
 from ddt import ddt, data, unpack
 
-from qiskit.test.base import QiskitTestCase
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import QFT, QftGate
 from qiskit.quantum_info import Operator
 from qiskit.qpy import dump, load
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

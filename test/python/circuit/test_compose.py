@@ -31,10 +31,11 @@ from qiskit.circuit import (
     Instruction,
     CASE_DEFAULT,
     SwitchCaseOp,
+    CircuitError,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.circuit.classical import expr
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitCompose(QiskitTestCase):
@@ -879,6 +880,16 @@ class TestCircuitCompose(QiskitTestCase):
         )
 
         self.assertEqual(dest, expected)
+
+    def test_rejects_duplicate_bits(self):
+        """Test that compose rejects duplicates in either qubits or clbits."""
+        base = QuantumCircuit(5, 5)
+
+        attempt = QuantumCircuit(2, 2)
+        with self.assertRaisesRegex(CircuitError, "Duplicate qubits"):
+            base.compose(attempt, [1, 1], [0, 1])
+        with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
+            base.compose(attempt, [0, 1], [1, 1])
 
 
 if __name__ == "__main__":

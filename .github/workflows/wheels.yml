@@ -20,8 +20,40 @@ jobs:
         with:
           python-version: '3.10'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
+        env:
+          CIBW_BEFORE_BUILD: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata'
+          CIBW_BEFORE_BUILD_WINDOWS: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata && cp /tmp/pgo-data/merged.profdata ~/.'
+          CIBW_ENVIRONMENT: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
+          CIBW_ENVIRONMENT_LINUX: 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=/tmp/pgo-data/merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
+          CIBW_ENVIRONMENT_WINDOWS: 'RUSTUP_TOOLCHAIN="stable" RUSTFLAGS="-Cprofile-use=c:\\Users\\runneradmin\\merged.profdata -Cllvm-args=-pgo-warn-missing-function"'
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
+          name: shared-wheel-builds
+  build_wheels_32bit:
+    name: Build wheels 32bit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.16.5
+        env:
+          CIBW_SKIP: 'pp* cp36-* cp37-* *musllinux* *amd64 *x86_64'
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
@@ -42,7 +74,7 @@ jobs:
           python-version: '3.10'
       - uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
@@ -59,7 +91,7 @@ jobs:
     environment: release
     permissions:
       id-token: write
-    needs: ["build_wheels", "build_wheels_macos_arm"]
+    needs: ["build_wheels", "build_wheels_macos_arm", "build_wheels_32bit"]
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -91,7 +123,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
@@ -124,7 +156,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
@@ -157,7 +189,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_LINUX: aarch64
       - uses: actions/upload-artifact@v3

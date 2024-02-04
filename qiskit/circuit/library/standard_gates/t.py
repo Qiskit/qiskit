@@ -78,13 +78,16 @@ class TGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse T gate (i.e. Tdg)."""
         return TdgGate()
 
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TGate)
 
 
 @with_gate_array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]])
@@ -141,10 +144,13 @@ class TdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse Tdg gate (i.e. T)."""
         return TGate()
 
     def power(self, exponent: float):
         """Raise gate to a power."""
         return PhaseGate(-0.25 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, TdgGate)

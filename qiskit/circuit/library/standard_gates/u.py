@@ -80,7 +80,7 @@ class UGate(Gate):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
         :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
@@ -92,6 +92,7 @@ class UGate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-U gate.
 
@@ -100,11 +101,13 @@ class UGate(Gate):
             label (str or None): An optional label for the gate [Default: None]
             ctrl_state (int or str or None): control state expressed as integer,
                 string (e.g. '110'), or None. If None, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CUGate(
                 self.params[0],
                 self.params[1],
@@ -114,8 +117,14 @@ class UGate(Gate):
                 ctrl_state=ctrl_state,
             )
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
     def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
@@ -129,6 +138,11 @@ class UGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def __eq__(self, other):
+        if isinstance(other, UGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class _CUGateParams(list):
@@ -290,7 +304,7 @@ class CUGate(ControlledGate):
         qc.u(self.params[0] / 2, self.params[1], 0, 1)
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
         :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)

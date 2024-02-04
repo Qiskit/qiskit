@@ -24,9 +24,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.0"
+version = "1.1"
 # The full version, including alpha/beta/rc tags
-release = "1.0.0"
+release = "1.1.0"
 
 language = "en"
 
@@ -42,6 +42,8 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
+    # This is used by qiskit/documentation to generate links to github.com.
+    "sphinx.ext.viewcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
@@ -75,8 +77,8 @@ modindex_common_prefix = ["qiskit."]
 # ----------------------------------------------------------------------------------
 
 intersphinx_mapping = {
-    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
+    "rustworkx": ("https://www.rustworkx.org/", None),
+    "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),

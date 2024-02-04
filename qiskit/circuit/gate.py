@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
+from .annotated_operation import AnnotatedOperation, ControlModifier
 from .instruction import Instruction
 
 
@@ -77,23 +78,7 @@ class Gate(Instruction):
         from qiskit.quantum_info.operators import Operator
         from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 
-        from scipy.linalg import schur
-
-        # Should be diagonalized because it's a unitary.
-        decomposition, unitary = schur(Operator(self).data, output="complex")
-        # Raise the diagonal entries to the specified power
-        decomposition_power = []
-
-        decomposition_diagonal = decomposition.diagonal()
-        # assert off-diagonal are 0
-        if not np.allclose(np.diag(decomposition_diagonal), decomposition):
-            raise CircuitError("The matrix is not diagonal")
-
-        for element in decomposition_diagonal:
-            decomposition_power.append(pow(element, exponent))
-        # Then reconstruct the resulting gate.
-        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
+        return UnitaryGate(Operator(self).power(exponent), label=f"{self.name}^{exponent}")
 
     def __pow__(self, exponent: float) -> "Gate":
         return self.power(exponent)
@@ -106,27 +91,39 @@ class Gate(Instruction):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: int | str | None = None,
+        annotated: bool = False,
     ):
-        """Return controlled version of gate. See :class:`.ControlledGate` for usage.
+        """
+        Return the controlled version of itself.
+
+        Implemented either as a controlled gate (ref. :class:`.ControlledGate`)
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
 
         Args:
             num_ctrl_qubits: number of controls to add to gate (default: ``1``)
-            label: optional gate label
-            ctrl_state: The control state in decimal or as a bitstring
+            label: optional gate label. Ignored if implemented as an annotated
+                operation.
+            ctrl_state: the control state in decimal or as a bitstring
                 (e.g. ``'111'``). If ``None``, use ``2**num_ctrl_qubits-1``.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
-            qiskit.circuit.ControlledGate: Controlled version of gate. This default algorithm
-            uses ``num_ctrl_qubits-1`` ancilla qubits so returns a gate of size
-            ``num_qubits + 2*num_ctrl_qubits - 1``.
+            Controlled version of the given operation.
 
         Raises:
             QiskitError: unrecognized mode or invalid ctrl_state
         """
-        # pylint: disable=cyclic-import
-        from .add_control import add_control
+        if not annotated:
+            # pylint: disable=cyclic-import
+            from .add_control import add_control
 
-        return add_control(self, num_ctrl_qubits, label, ctrl_state)
+            return add_control(self, num_ctrl_qubits, label, ctrl_state)
+
+        else:
+            return AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
 
     @staticmethod
     def _broadcast_single_argument(qarg: list) -> Iterator[tuple[list, list]]:

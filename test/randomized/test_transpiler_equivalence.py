@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -48,52 +48,30 @@ QISKIT_RANDOMIZED_TEST_ALLOW_BARRIERS
 """
 
 import os
+from test.utils.base import dicts_almost_equal
+
 from math import pi
 
 from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
-
 import hypothesis.strategies as st
 
-from qiskit import transpile, Aer, qasm2
+from qiskit import transpile, qasm2
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate, Barrier
 from qiskit.providers.fake_provider import (
-    FakeProvider,
-    FakeOpenPulse2Q,
-    FakeOpenPulse3Q,
-    FakeYorktown,
-    FakeTenerife,
-    FakeOurense,
-    FakeVigo,
-    FakeMelbourne,
-    FakeRueschlikon,
-    FakeTokyo,
-    FakePoughkeepsie,
-    FakeAlmaden,
-    FakeSingapore,
-    FakeJohannesburg,
-    FakeBoeblingen,
-    FakeRochester,
-    FakeBurlington,
-    FakeCambridge,
-    FakeCambridgeAlternativeBasis,
-    FakeEssex,
-    FakeLondon,
-    FakeQasmSimulator,
-    FakeArmonk,
-    FakeRome,
-    FakeSantiago,
-    FakeSydney,
-    FakeToronto,
-    FakeValencia,
+    Fake5QV1,
+    Fake20QV1,
+    Fake7QPulseV1,
+    Fake27QPulseV1,
+    Fake127QPulseV1,
 )
-from qiskit.test.base import dicts_almost_equal
-
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import *
+
+from qiskit_aer import Aer  # pylint: disable=wrong-import-order
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
@@ -168,60 +146,12 @@ def _fully_supports_scheduling(backend):
     """Checks if backend is not in the set of backends known not to have specified gate durations."""
     return not isinstance(
         backend,
-        (
-            # no coupling map
-            FakeArmonk,
-            # no measure durations
-            FakeAlmaden,
-            FakeBurlington,
-            FakeCambridge,
-            FakeCambridgeAlternativeBasis,
-            FakeEssex,
-            FakeJohannesburg,
-            FakeLondon,
-            FakeOpenPulse2Q,
-            FakeOpenPulse3Q,
-            FakePoughkeepsie,
-            FakeQasmSimulator,
-            FakeRochester,
-            FakeRueschlikon,
-            FakeSingapore,
-            FakeTenerife,
-            FakeTokyo,
-            # No reset duration
-            FakeAlmaden,
-            FakeArmonk,
-            FakeBoeblingen,
-            FakeBurlington,
-            FakeCambridge,
-            FakeCambridgeAlternativeBasis,
-            FakeEssex,
-            FakeJohannesburg,
-            FakeLondon,
-            FakeMelbourne,
-            FakeOpenPulse2Q,
-            FakeOpenPulse3Q,
-            FakeOurense,
-            FakePoughkeepsie,
-            FakeQasmSimulator,
-            FakeRochester,
-            FakeRome,
-            FakeRueschlikon,
-            FakeSantiago,
-            FakeSingapore,
-            FakeSydney,
-            FakeTenerife,
-            FakeTokyo,
-            FakeToronto,
-            FakeValencia,
-            FakeVigo,
-            FakeYorktown,
-        ),
+        (Fake20QV1, Fake5QV1),
     )
 
 
-fake_provider = FakeProvider()
-mock_backends = fake_provider.backends()
+mock_backends = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
+
 mock_backends_with_scheduling = [b for b in mock_backends if _fully_supports_scheduling(b)]
 
 

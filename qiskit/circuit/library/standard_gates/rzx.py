@@ -152,7 +152,7 @@ class RZXGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
         return RZXGate(-self.params[0])
 
@@ -172,3 +172,8 @@ class RZXGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZXGate):
+            return self._compare_parameters(other)
+        return False

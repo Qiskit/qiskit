@@ -108,7 +108,7 @@ class RYYGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse RYY gate (i.e. with the negative rotation angle)."""
         return RYYGate(-self.params[0])
 
@@ -126,3 +126,8 @@ class RYYGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RYYGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RYYGate):
+            return self._compare_parameters(other)
+        return False
