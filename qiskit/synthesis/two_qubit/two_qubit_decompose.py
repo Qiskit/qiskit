@@ -860,7 +860,7 @@ def Ud(a, b, c):
 
 
 def trace_to_fid(trace):
-    """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+    r"""Average gate fidelity is :math:`Fbar = (d + |Tr (U_{target} \cdot U^{\dag})|^2) / d(d+1)`
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + abs(trace) ** 2) / 20
 
@@ -1025,7 +1025,7 @@ class TwoQubitBasisDecomposer:
 
     def traces(self, target):
         r"""
-        Give the expected traces :math:`|Tr(U \\cdot U_{target}^{\dag})|` for different number of
+        Give the expected traces :math:`|Tr(U \cdot U_{target}^{\dag})|` for different number of
         basis gates.
         """
         # Future gotcha: extending this to non-supercontrolled basis.
@@ -1052,7 +1052,7 @@ class TwoQubitBasisDecomposer:
     def decomp0(target):
         r"""
         Decompose target :math:`~Ud(x, y, z)` with 0 uses of the basis gate.
-        Result Ur has trace:
+        Result :math:`Ur` has trace:
         :math:`|Tr(Ur.U_{target}^{\dag})| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
         which is optimal for all targets and bases
         """
@@ -1083,15 +1083,16 @@ class TwoQubitBasisDecomposer:
         r"""
         Decompose target :math:`~Ud(x, y, z)` with 2 uses of the basis gate.
 
-        For supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b, result :math:`Ur` has trace
+        For supercontrolled basis :math:`~Ud(\pi/4, b, 0)`, all b, result :math:`Ur` has trace
+
         .. math::
 
             |Tr(Ur.U_{target}^{\dag})| = 4cos(z)
 
-        which is the optimal approximation for basis of CNOT-class :math:`~Ud(pi/4, 0, 0)`
-        or DCNOT-class :math:`~Ud(pi/4, pi/4, 0)` and any target.
+        which is the optimal approximation for basis of CNOT-class :math:`~Ud(\pi/4, 0, 0)`
+        or DCNOT-class :math:`~Ud(\pi/4, \pi/4, 0)` and any target.
         May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-        :math:`B~Ud(pi/4, pi/8, 0)`, but not this decomposition.)
+        :math:`B \tilde Ud(\pi/4, \pi/8, 0)`, but not this decomposition.)
         This is an exact decomposition for supercontrolled basis and target :math:`~Ud(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """
@@ -1108,7 +1109,7 @@ class TwoQubitBasisDecomposer:
     def decomp3_supercontrolled(self, target):
         r"""
         Decompose target with 3 uses of the basis.
-        This is an exact decomposition for supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b,
+        This is an exact decomposition for supercontrolled basis :math:`~Ud(\pi/4, b, 0)`, all b,
         and any target. No guarantees for non-supercontrolled basis.
         """
 
