@@ -36,7 +36,7 @@ class PubResult:
 
     def __repr__(self):
         metadata = f", metadata={self.metadata}" if self.metadata else ""
-        return f"{type(self).__name__}({self._data}{metadata})"
+        return f"{type(self).__name__}(data={self._data}{metadata})"
 
     @property
     def data(self) -> DataBin:
