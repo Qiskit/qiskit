@@ -1592,3 +1592,8 @@ class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
 
 
 two_qubit_cnot_decompose = _LazyTwoQubitCXDecomposer()
+"""
+This is an instance of :class:`.TwoQubitBasisDecomposer` that always uses
+``cx`` as the KAK gate for the basis decomposition. You can use this function
+as a quick access to ``cx``-based 2-qubit decompositions.
+"""
