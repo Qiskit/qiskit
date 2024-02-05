@@ -1053,7 +1053,11 @@ class TwoQubitBasisDecomposer:
         r"""
         Decompose target :math:`~Ud(x, y, z)` with 0 uses of the basis gate.
         Result :math:`Ur` has trace:
-        :math:`|Tr(Ur.U_{target}^{\dag})| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
+
+        .. math::
+
+            |Tr(Ur.U_{target}^{\dag})| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|
+
         which is optimal for all targets and bases
         """
 
