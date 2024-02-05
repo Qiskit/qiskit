@@ -1024,8 +1024,10 @@ class TwoQubitBasisDecomposer:
         self._rqc = None
 
     def traces(self, target):
-        """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
-        basis gates."""
+        r"""
+        Give the expected traces :math:`|Tr(U \\cdot U_{target}^{\dag})|` for different number of
+        basis gates.
+        """
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
@@ -1048,21 +1050,25 @@ class TwoQubitBasisDecomposer:
 
     @staticmethod
     def decomp0(target):
-        """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
+        r"""
+        Decompose target :math:`~Ud(x, y, z)` with 0 uses of the basis gate.
         Result Ur has trace:
-        :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
-        which is optimal for all targets and bases"""
+        :math:`|Tr(Ur.U_{target}^{\dag})| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
+        which is optimal for all targets and bases
+        """
 
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
         return U0r, U0l
 
     def decomp1(self, target):
-        """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
-        Result Ur has trace:
+        r"""
+        Decompose target :math:`~Ud(x, y, z)` with 1 uses of the basis gate :math:`~Ud(a, b, c)`.
+        Result :math:`Ur` has trace:
+
         .. math::
 
-            |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
+            |Tr(Ur.U_{target}^{\dag})| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
 
         which is optimal for all targets and bases with z==0 or c==0"""
         # FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
@@ -1074,18 +1080,19 @@ class TwoQubitBasisDecomposer:
         return U1r, U1l, U0r, U0l
 
     def decomp2_supercontrolled(self, target):
-        """Decompose target ~Ud(x, y, z) with 2 uses of the basis gate.
+        r"""
+        Decompose target :math:`~Ud(x, y, z)` with 2 uses of the basis gate.
 
-        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace
+        For supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b, result :math:`Ur` has trace
         .. math::
 
-            |Tr(Ur.Utarget^dag)| = 4cos(z)
+            |Tr(Ur.U_{target}^{\dag})| = 4cos(z)
 
-        which is the optimal approximation for basis of CNOT-class ``~Ud(pi/4, 0, 0)``
-        or DCNOT-class ``~Ud(pi/4, pi/4, 0)`` and any target.
+        which is the optimal approximation for basis of CNOT-class :math:`~Ud(pi/4, 0, 0)`
+        or DCNOT-class :math:`~Ud(pi/4, pi/4, 0)` and any target.
         May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-        ``B~Ud(pi/4, pi/8, 0)``, but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target ``~Ud(x, y, 0)``.
+        :math:`B~Ud(pi/4, pi/8, 0)`, but not this decomposition.)
+        This is an exact decomposition for supercontrolled basis and target :math:`~Ud(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """
 
@@ -1099,9 +1106,11 @@ class TwoQubitBasisDecomposer:
         return U2r, U2l, U1r, U1l, U0r, U0l
 
     def decomp3_supercontrolled(self, target):
-        """Decompose target with 3 uses of the basis.
-        This is an exact decomposition for supercontrolled basis ~Ud(pi/4, b, 0), all b,
-        and any target. No guarantees for non-supercontrolled basis."""
+        r"""
+        Decompose target with 3 uses of the basis.
+        This is an exact decomposition for supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b,
+        and any target. No guarantees for non-supercontrolled basis.
+        """
 
         U0l = target.K1l.dot(self.u0l)
         U0r = target.K1r.dot(self.u0r)
