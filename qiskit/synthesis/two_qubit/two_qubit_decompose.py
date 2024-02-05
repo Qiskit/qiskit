@@ -121,7 +121,7 @@ class TwoQubitWeylDecomposition:
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
     forcing the specialization is more approximate than asserted.
 
-    Reference:
+    References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
            *Validating quantum computers using randomized model circuits*,
            `arXiv:1811.12926 [quant-ph] <https://arxiv.org/abs/1811.12926>`_
@@ -464,7 +464,7 @@ class TwoQubitWeylDecomposition:
     def from_bytes(
         cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
     ) -> "TwoQubitWeylDecomposition":
-        """Decode bytes into TwoQubitWeylDecomposition."""
+        """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
         del kwargs  # Unused (just for display)
         b64 = base64.decodebytes(bytes_in)
