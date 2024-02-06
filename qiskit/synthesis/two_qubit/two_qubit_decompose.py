@@ -1598,5 +1598,5 @@ This is an instance of :class:`.TwoQubitBasisDecomposer` that always uses
 as a quick access to ``cx``-based 2-qubit decompositions.
 
 Returns:
-    :class:`.TwoQubitBasisDecomposer`: `cx``-based 2-qubit decomposer instance.
+    :class:`.TwoQubitBasisDecomposer`: ``cx``-based 2-qubit decomposer instance.
 """
