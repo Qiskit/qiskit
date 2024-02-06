@@ -16,6 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
+from ddt import ddt, data
 
 from qiskit.circuit import (
     QuantumCircuit,
@@ -38,6 +39,7 @@ from qiskit.circuit.library import (
     U1Gate,
     CU3Gate,
     CU1Gate,
+    QftGate,
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
@@ -1842,6 +1844,7 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         self.assertEqual(pass_(qc), expected)
 
 
+@ddt
 class TestQftSynthesisPlugins(QiskitTestCase):
     """Tests related to plugins for QftGate."""
 
@@ -1849,6 +1852,32 @@ class TestQftSynthesisPlugins(QiskitTestCase):
         """Test that there is a default synthesis plugin for QftGates."""
         supported_plugin_names = high_level_synthesis_plugin_names("qft")
         self.assertIn("default", supported_plugin_names)
+
+    @data("line", "full")
+    def test_qft_plugins_qft(self, qft_plugin_name):
+        """Test QftSynthesisLine plugin for circuits with QftGates."""
+        qc = QuantumCircuit(4)
+        qc.append(QftGate(3), [0, 1, 2])
+        qc.cx(1, 3)
+        qc.append(QftGate(3).inverse(), [0, 1, 2])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        basis_gates = ["cx", "u"]
+        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        self.assertEqual(Operator(qc), Operator(qct))
+        ops = set(qct.count_ops().keys())
+        self.assertEqual(ops, {"u", "cx"})
+
+    @data("line", "full")
+    def test_qft_line_plugin_annotated_qft(self, qft_plugin_name):
+        """Test QftSynthesisLine plugin for circuits with annotated QftGates."""
+        qc = QuantumCircuit(4)
+        qc.append(QftGate(3).inverse(annotated=True).control(annotated=True), [0, 1, 2, 3])
+        hls_config = HLSConfig(qft=[qft_plugin_name])
+        basis_gates = ["cx", "u"]
+        qct = transpile(qc, hls_config=hls_config, basis_gates=basis_gates)
+        self.assertEqual(Operator(qc), Operator(qct))
+        ops = set(qct.count_ops().keys())
+        self.assertEqual(ops, {"u", "cx"})
 
 
 if __name__ == "__main__":
