@@ -1597,6 +1597,11 @@ This is an instance of :class:`.TwoQubitBasisDecomposer` that always uses
 ``cx`` as the KAK gate for the basis decomposition. You can use this function
 as a quick access to ``cx``-based 2-qubit decompositions.
 
+Args:
+    unitary (Operator or np.ndarray): The 4x4 unitary to synthesize.
+    basis_fidelity (float or None): If given the assumed fidelity for applications of :class:`.CXGate`.
+    approximate (bool): If ``True`` approximate if `basis_fidelity` is less than 1.0.
+
 Returns:
     :class:`.TwoQubitBasisDecomposer`: ``cx``-based 2-qubit decomposer instance.
 """
