@@ -232,7 +232,7 @@ class TestBasicSchedule(QiskitTestCase):
             (2, self.inst_map.get("cx", [0, 1])),
             (24, self.inst_map.get("measure", [0, 1])),
             (34, self.inst_map.get("measure", [0, 1]).filter(channels=[MeasureChannel(1)])),
-            (34, Acquire(10, AcquireChannel(1), MemorySlot(1))),
+            (34, Acquire(10, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -356,7 +356,7 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.append(Gate("gauss", 1, []), qargs=[qr[0]])
         custom_gauss = Schedule(
-            Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=pi / 2), DriveChannel(0))
+            Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=pi / 2), channel=DriveChannel(0))
         )
         self.inst_map.add("gauss", [0], custom_gauss)
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
@@ -369,13 +369,17 @@ class TestBasicSchedule(QiskitTestCase):
         qc.append(U2Gate(0, 0), [q[0]])
         qc.barrier(q[0], q[1])
         qc.append(U2Gate(0, 0), [q[1]])
-        qc.add_calibration("u2", [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
-        qc.add_calibration("u2", [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
+        qc.add_calibration(
+            "u2", [0], Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(0))), [0, 0]
+        )
+        qc.add_calibration(
+            "u2", [1], Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(1))), [0, 0]
+        )
 
         sched = schedule(qc, self.backend)
         expected = Schedule(
-            Play(Gaussian(28, 0.2, 4), DriveChannel(0)),
-            (28, Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1)))),
+            Play(Gaussian(28, 0.2, 4), channel=DriveChannel(0)),
+            (28, Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(1)))),
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -387,8 +391,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc.append(U2Gate(0, 0), [q[0]])
         qc.measure(q[0], c[0])
 
-        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
-        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        meas_sched = Play(Gaussian(1200, 0.2, 4), channel=MeasureChannel(0))
+        meas_sched |= Acquire(1200, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         qc.add_calibration("measure", [0], meas_sched)
 
         sched = schedule(qc, self.backend)
@@ -404,8 +408,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc.measure(2, 2)
         meas_scheds = []
         for qubit in [0, 2]:
-            meas = Play(Gaussian(1200, 0.2, 4), MeasureChannel(qubit)) + Acquire(
-                1200, AcquireChannel(qubit), MemorySlot(qubit)
+            meas = Play(Gaussian(1200, 0.2, 4), channel=MeasureChannel(qubit)) + Acquire(
+                1200, channel=AcquireChannel(qubit), mem_slot=MemorySlot(qubit)
             )
             meas_scheds.append(meas)
             qc.add_calibration("measure", [qubit], meas)
@@ -423,8 +427,8 @@ class TestBasicSchedule(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.measure(q[0], c[1])
 
-        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
-        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        meas_sched = Play(Gaussian(1200, 0.2, 4), channel=MeasureChannel(0))
+        meas_sched |= Acquire(1200, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         qc.add_calibration("measure", [0], meas_sched)
 
         sched = schedule(qc, self.backend)
@@ -493,7 +497,7 @@ class TestBasicSchedule(QiskitTestCase):
         sched = schedule(qc, self.backend, inst_map=instmap)
 
         ref_sched = Schedule()
-        ref_sched += Play(Gaussian(100, 0.1, 10), DriveChannel(0))
+        ref_sched += Play(Gaussian(100, 0.1, 10), channel=DriveChannel(0))
 
         self.assertEqual(sched, ref_sched)
 
@@ -548,8 +552,14 @@ class TestBasicScheduleV2(QiskitTestCase):
             (0 + 160, self.inst_map.get("sx", [0])),  # Right shifted because of alap.
             (0 + 160, self.inst_map.get("sx", [1])),
             (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (
+                0 + 160 + 160 + 1760,
+                Acquire(1472, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
+            ),
+            (
+                0 + 160 + 160 + 1760,
+                Acquire(1472, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
+            ),
             (
                 0 + 160 + 160 + 1760,
                 Play(
@@ -561,7 +571,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-0.24730169436555283,
                         name="M_m0",
                     ),
-                    MeasureChannel(0),
+                    channel=MeasureChannel(0),
                     name="M_m0",
                 ),
             ),
@@ -576,7 +586,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-1.9900962136758156,
                         name="M_m1",
                     ),
-                    MeasureChannel(1),
+                    channel=MeasureChannel(1),
                     name="M_m1",
                 ),
             ),
@@ -695,8 +705,14 @@ class TestBasicScheduleV2(QiskitTestCase):
             (0, self.inst_map.get("sx", [0])),  # Left shifted because of asap.
             (0 + 160, self.inst_map.get("sx", [1])),
             (0 + 160 + 160, self.inst_map.get("cx", [0, 1])),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0 + 160 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (
+                0 + 160 + 160 + 1760,
+                Acquire(1472, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
+            ),
+            (
+                0 + 160 + 160 + 1760,
+                Acquire(1472, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
+            ),
             (
                 0 + 160 + 160 + 1760,
                 Play(
@@ -708,7 +724,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-0.24730169436555283,
                         name="M_m0",
                     ),
-                    MeasureChannel(0),
+                    channel=MeasureChannel(0),
                     name="M_m0",
                 ),
             ),
@@ -723,7 +739,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-1.9900962136758156,
                         name="M_m1",
                     ),
-                    MeasureChannel(1),
+                    channel=MeasureChannel(1),
                     name="M_m1",
                 ),
             ),
@@ -808,10 +824,10 @@ class TestBasicScheduleV2(QiskitTestCase):
             # This is the schedule to implement cx gate
             (0 + 160, self.inst_map.get("cx", [0, 1])),
             # Getting ready the to take classical data in MemorySlot(0) for qubit:0
-            (0 + 160 + 1760, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
+            (0 + 160 + 1760, Acquire(1472, channel=AcquireChannel(0), mem_slot=MemorySlot(0))),
             # Since, the method of Scheduling is 'as_soon_as_possilbe' so again for
             # qubit:1 getting ready the to take classical data in MemorySlot(1)
-            (0 + 160 + 1760, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (0 + 160 + 1760, Acquire(1472, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
             # Playing pulse on MeasureChannel(0) to read qubit:0 to MemoryChannel(0)
             (
                 0 + 160 + 1760,
@@ -824,7 +840,7 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-0.24730169436555283,
                         name="M_m0",
                     ),
-                    MeasureChannel(0),
+                    channel=MeasureChannel(0),
                     name="M_m0",
                 ),
             ),
@@ -840,16 +856,19 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-1.9900962136758156,
                         name="M_m1",
                     ),
-                    MeasureChannel(1),
+                    channel=MeasureChannel(1),
                     name="M_m1",
                 ),
             ),
             # Time for MeasureChannel(0) to relax
-            (0 + 160 + 1760 + 1472, Delay(1568, MeasureChannel(0))),
+            (0 + 160 + 1760 + 1472, Delay(1568, channel=MeasureChannel(0))),
             # Time for MeasureChannel(1) to relax
-            (0 + 160 + 1760 + 1472, Delay(1568, MeasureChannel(1))),
+            (0 + 160 + 1760 + 1472, Delay(1568, channel=MeasureChannel(1))),
             # The below schedules would be for the additional measure(1, 1) instruction added.
-            (0 + 160 + 1760 + 1472 + 1568, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
+            (
+                0 + 160 + 1760 + 1472 + 1568,
+                Acquire(1472, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
+            ),
             (
                 0 + 160 + 1760 + 1472 + 1568,
                 Play(
@@ -861,11 +880,11 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-1.9900962136758156,
                         name="M_m1",
                     ),
-                    MeasureChannel(1),
+                    channel=MeasureChannel(1),
                     name="M_m1",
                 ),
             ),
-            (0 + 160 + 1760 + 1472 + 1568 + 1472, Delay(1568, MeasureChannel(1))),
+            (0 + 160 + 1760 + 1472 + 1568 + 1472, Delay(1568, channel=MeasureChannel(1))),
         )
         self.assertEqual(sched.instructions, expected_sched.instructions)
 
@@ -990,7 +1009,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.append(Gate("gauss", 1, []), qargs=[qr[0]])
         custom_gauss = Schedule(
-            Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=pi / 2), DriveChannel(0))
+            Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=pi / 2), channel=DriveChannel(0))
         )
         self.inst_map.add("gauss", [0], custom_gauss)
         sched = schedule(qc, self.backend, inst_map=self.inst_map)
@@ -1003,13 +1022,17 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.append(U2Gate(0, 0), [q[0]])
         qc.barrier(q[0], q[1])
         qc.append(U2Gate(0, 0), [q[1]])
-        qc.add_calibration("u2", [0], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(0))), [0, 0])
-        qc.add_calibration("u2", [1], Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1))), [0, 0])
+        qc.add_calibration(
+            "u2", [0], Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(0))), [0, 0]
+        )
+        qc.add_calibration(
+            "u2", [1], Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(1))), [0, 0]
+        )
 
         sched = schedule(qc, self.backend)
         expected = Schedule(
-            Play(Gaussian(28, 0.2, 4), DriveChannel(0)),
-            (28, Schedule(Play(Gaussian(28, 0.2, 4), DriveChannel(1)))),
+            Play(Gaussian(28, 0.2, 4), channel=DriveChannel(0)),
+            (28, Schedule(Play(Gaussian(28, 0.2, 4), channel=DriveChannel(1)))),
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -1030,9 +1053,9 @@ class TestBasicScheduleV2(QiskitTestCase):
                 angle=-0.247301694,
                 name="my_custom_calibration",
             ),
-            MeasureChannel(0),
+            channel=MeasureChannel(0),
         )
-        meas_sched |= Acquire(1472, AcquireChannel(0), MemorySlot(0))
+        meas_sched |= Acquire(1472, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         qc.add_calibration("measure", [0], meas_sched)
 
         sched = schedule(qc, self.backend)
@@ -1048,8 +1071,8 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc.measure(2, 2)
         meas_scheds = []
         for qubit in [0, 2]:
-            meas = Play(Gaussian(1200, 0.2, 4), MeasureChannel(qubit)) + Acquire(
-                1200, AcquireChannel(qubit), MemorySlot(qubit)
+            meas = Play(Gaussian(1200, 0.2, 4), channel=MeasureChannel(qubit)) + Acquire(
+                1200, channel=AcquireChannel(qubit), mem_slot=MemorySlot(qubit)
             )
             meas_scheds.append(meas)
             qc.add_calibration("measure", [qubit], meas)
@@ -1067,8 +1090,8 @@ class TestBasicScheduleV2(QiskitTestCase):
         qc = QuantumCircuit(q, c)
         qc.measure(q[0], c[1])
 
-        meas_sched = Play(Gaussian(1200, 0.2, 4), MeasureChannel(0))
-        meas_sched |= Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        meas_sched = Play(Gaussian(1200, 0.2, 4), channel=MeasureChannel(0))
+        meas_sched |= Acquire(1200, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         qc.add_calibration("measure", [0], meas_sched)
 
         sched = schedule(qc, self.backend)
@@ -1137,7 +1160,7 @@ class TestBasicScheduleV2(QiskitTestCase):
         sched = schedule(qc, self.backend, inst_map=instmap)
 
         ref_sched = Schedule()
-        ref_sched += Play(Gaussian(100, 0.1, 10), DriveChannel(0))
+        ref_sched += Play(Gaussian(100, 0.1, 10), channel=DriveChannel(0))
 
         self.assertEqual(sched, ref_sched)
 
@@ -1146,13 +1169,13 @@ class TestBasicScheduleV2(QiskitTestCase):
         is actually Schedule for just qubit_0"""
         sched_from_backend = self.backend.instruction_schedule_map.get("measure", [0])
         expected_sched = Schedule(
-            (0, Acquire(1472, AcquireChannel(0), MemorySlot(0))),
-            (0, Acquire(1472, AcquireChannel(1), MemorySlot(1))),
-            (0, Acquire(1472, AcquireChannel(2), MemorySlot(2))),
-            (0, Acquire(1472, AcquireChannel(3), MemorySlot(3))),
-            (0, Acquire(1472, AcquireChannel(4), MemorySlot(4))),
-            (0, Acquire(1472, AcquireChannel(5), MemorySlot(5))),
-            (0, Acquire(1472, AcquireChannel(6), MemorySlot(6))),
+            (0, Acquire(1472, channel=AcquireChannel(0), mem_slot=MemorySlot(0))),
+            (0, Acquire(1472, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
+            (0, Acquire(1472, channel=AcquireChannel(2), mem_slot=MemorySlot(2))),
+            (0, Acquire(1472, channel=AcquireChannel(3), mem_slot=MemorySlot(3))),
+            (0, Acquire(1472, channel=AcquireChannel(4), mem_slot=MemorySlot(4))),
+            (0, Acquire(1472, channel=AcquireChannel(5), mem_slot=MemorySlot(5))),
+            (0, Acquire(1472, channel=AcquireChannel(6), mem_slot=MemorySlot(6))),
             (
                 0,
                 Play(
@@ -1164,11 +1187,11 @@ class TestBasicScheduleV2(QiskitTestCase):
                         angle=-0.24730169436555283,
                         name="M_m0",
                     ),
-                    MeasureChannel(0),
+                    channel=MeasureChannel(0),
                     name="M_m0",
                 ),
             ),
-            (1472, Delay(1568, MeasureChannel(0))),
+            (1472, Delay(1568, channel=MeasureChannel(0))),
             name="measure",
         )
         self.assertEqual(sched_from_backend, expected_sched)

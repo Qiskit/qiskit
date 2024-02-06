@@ -255,17 +255,23 @@ class TestDrawCanvas(QiskitTestCase):
         self.sched = pulse.Schedule()
         self.sched.insert(
             0,
-            pulse.Play(pulse.Waveform([0.0, 0.1, 0.2, 0.3, 0.4, 0.5]), pulse.DriveChannel(0)),
+            pulse.Play(
+                pulse.Waveform([0.0, 0.1, 0.2, 0.3, 0.4, 0.5]), channel=pulse.DriveChannel(0)
+            ),
             inplace=True,
         )
         self.sched.insert(
             10,
-            pulse.Play(pulse.Waveform([0.5, 0.4, 0.3, 0.2, 0.1, 0.0]), pulse.DriveChannel(0)),
+            pulse.Play(
+                pulse.Waveform([0.5, 0.4, 0.3, 0.2, 0.1, 0.0]), channel=pulse.DriveChannel(0)
+            ),
             inplace=True,
         )
         self.sched.insert(
             0,
-            pulse.Play(pulse.Waveform([0.3, 0.3, 0.3, 0.3, 0.3, 0.3]), pulse.DriveChannel(1)),
+            pulse.Play(
+                pulse.Waveform([0.3, 0.3, 0.3, 0.3, 0.3, 0.3]), channel=pulse.DriveChannel(1)
+            ),
             inplace=True,
         )
 

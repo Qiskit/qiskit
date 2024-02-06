@@ -202,8 +202,8 @@ class TestLoadFromQPY(QpyScheduleTestCase):
         Thus referenced Schedule is still QPY compatible.
         """
         refsched = Schedule()
-        refsched.insert(20, Play(Constant(100, 0.1), DriveChannel(0)))
-        refsched.insert(50, Play(Constant(100, 0.1), DriveChannel(1)))
+        refsched.insert(20, Play(Constant(100, 0.1), channel=DriveChannel(0)))
+        refsched.insert(50, Play(Constant(100, 0.1), channel=DriveChannel(1)))
 
         with builder.build() as test_sched:
             builder.call(refsched, name="test_ref")
