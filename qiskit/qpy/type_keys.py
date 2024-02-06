@@ -541,7 +541,7 @@ class SymExprEncoding(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        if obj is True:
+        if obj:
             return cls.SYMENGINE
         else:
             return cls.SYMPY
