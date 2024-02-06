@@ -115,10 +115,6 @@ class DAGDependencyV2:
 
         self.comm_checker = CommutationChecker()
 
-        # Maps of qarg/carg indices
-        self.qindices_map = {}
-        self.cindices_map = {}
-
     @property
     def global_phase(self):
         """Return the global phase of the circuit."""
@@ -227,6 +223,18 @@ class DAGDependencyV2:
         """
         depth = rx.dag_longest_path_length(self._multi_graph)
         return depth if depth >= 0 else 0
+
+    def width(self):
+        """Return the total number of qubits + clbits used by the circuit."""
+        return len(self.qubits) + len(self.clbits)
+
+    def num_qubits(self):
+        """Return the total number of qubits used by the circuit."""
+        return len(self.qubits)
+
+    def num_clbits(self):
+        """Return the total number of classical bits used by the circuit."""
+        return len(self.clbits)
 
     def add_qubits(self, qubits):
         """Add individual qubit wires."""
@@ -338,23 +346,6 @@ class DAGDependencyV2:
         self._update_edges()
         self._increment_op(new_node.op)
 
-        directives = ["measure"]
-        if not getattr(operation, "_directive", False) and operation.name not in directives:
-            self.qindices_map[new_node] = [self.find_bit(q).index for q in qargs]
-            if getattr(operation, "condition", None):
-                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
-                # However:
-                #   (1) cindices_map is specific to template optimization and should not be computed
-                #       in this place.
-                #   (2) Template optimization pass currently does not handle general conditions.
-                cond_bits = condition_resources(operation.condition).clbits
-                self.cindices_map[new_node] = [self.find_bit(c).index for c in cond_bits]
-            else:
-                self.cindices_map[new_node] = []
-        else:
-            self.qindices_map[new_node] = []
-            self.cindices_map[new_node] = []
-
     def _update_edges(self):
         """
         Updates DagDependencyV2 by adding edges to the newly added node (max_node)
@@ -394,13 +385,17 @@ class DAGDependencyV2:
                     # as not reaching max_node.
                     self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
 
-                    predecessor_ids = self.predecessor_indices(prev_node_id)
+                    predecessor_ids = sorted(
+                        [node._node_id for node in self.predecessors(self.get_node(prev_node_id))]
+                    )
                     for predecessor_id in predecessor_ids:
                         reachable[predecessor_id] = False
             else:
                 # If prev_node cannot reach max_node, then none of its predecessors can
                 # reach max_node either.
-                predecessor_ids = self.predecessor_indices(prev_node_id)
+                predecessor_ids = sorted(
+                    [node._node_id for node in self.predecessors(self.get_node(prev_node_id))]
+                )
                 for predecessor_id in predecessor_ids:
                     reachable[predecessor_id] = False
 
@@ -423,7 +418,7 @@ class DAGDependencyV2:
         """Get the set of "op" nodes with the given name."""
         named_nodes = []
         for node in self._multi_graph.nodes():
-            if isinstance(node, DAGOpNode) and node.op.name in names:
+            if node.op.name in names:
                 named_nodes.append(node)
         return named_nodes
 
@@ -501,16 +496,6 @@ class DAGDependencyV2:
         """Returns iterator of the predecessors of a node as DAGOpNodes."""
         return iter(self._multi_graph.predecessors(node._node_id))
 
-    def successor_indices(self, node_id):
-        """Returns list of the indices of the successors of a node."""
-        # TODO: deprecate or remove this when template code no longer is based on node_id's
-        return sorted(self._multi_graph.successor_indices(node_id))
-
-    def predecessor_indices(self, node_id):
-        """Returns list of the indices of the predecessors of a node."""
-        # TODO: deprecate or remove this when template code no longer is based on node_id's
-        return sorted(self._multi_graph.predecessor_indices(node_id))
-
     def is_successor(self, node, node_succ):
         """Checks if a second node is in the successors of node."""
         return self._multi_graph.has_edge(node._node_id, node_succ._node_id)
@@ -544,16 +529,6 @@ class DAGDependencyV2:
     def descendants(self, node):
         """Returns set of the descendants of a node as DAGOpNodes."""
         return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
-
-    def ancestor_indices(self, node_id):
-        """Returns set of the indices of the ancestors of a node."""
-        # TODO: deprecate or remove this when template code no longer is based on node_id's
-        return list(rx.ancestors(self._multi_graph, node_id))
-
-    def descendant_indices(self, node_id):
-        """Returns set of the indices of the descendants of a node."""
-        # TODO: deprecate or remove this when template code no longer is based on node_id's
-        return list(rx.descendants(self._multi_graph, node_id))
 
     def bfs_successors(self, node):
         """
@@ -590,7 +565,7 @@ class DAGDependencyV2:
             * all the qubits and clbits, including the registers.
 
         Returns:
-            DAGCircuit: An empty copy of self.
+            DAGDependencyV2: An empty copy of self.
         """
         target_dag = DAGDependencyV2()
         target_dag.name = self.name
@@ -599,6 +574,7 @@ class DAGDependencyV2:
         target_dag.unit = self.unit
         target_dag.metadata = self.metadata
         target_dag._key_cache = self._key_cache
+        target_dag.comm_checker = CommutationChecker()
 
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
@@ -609,34 +585,6 @@ class DAGDependencyV2:
             target_dag.add_creg(creg)
 
         return target_dag
-
-    def copy(self):
-        """
-        Function to copy a DAGDependencyV2 object.
-        Returns:
-            DAGDependencyV2: a copy of a DAGDependencyV2 object.
-        """
-        dag = DAGDependencyV2()
-        dag.name = self.name
-        dag.metadata = self.metadata
-        dag.global_phase = self.global_phase
-        dag.calibrations = self.calibrations
-        dag.duration = self.duration
-        dag.unit = self.unit
-        dag._key_cache = self._key_cache
-
-        dag.add_qubits(self.qubits)
-        dag.add_clbits(self.clbits)
-
-        for register in self.qregs.values():
-            dag.add_qreg(register)
-        for register in self.cregs.values():
-            dag.add_creg(register)
-
-        for node in self.op_nodes():
-            dag.apply_operation_back(node.op.copy(), node.qargs, node.cargs)
-
-        return dag
 
     def draw(self, scale=0.7, filename=None, style="color"):
         """

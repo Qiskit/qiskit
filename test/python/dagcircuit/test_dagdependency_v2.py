@@ -193,29 +193,41 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.dag = circuit_to_dagdependency_v2(circuit)
 
-        dir_successors_second = sorted(self.dag.successor_indices(1))
-        self.assertEqual(dir_successors_second, [2, 4])
+        test_successors = [2, 4]
+        successors = sorted([node._node_id for node in self.dag.successors(self.dag.get_node(1))])
+        self.assertEqual(successors, test_successors)
 
-        dir_successors_fourth = sorted(self.dag.successor_indices(3))
-        self.assertEqual(dir_successors_fourth, [])
+        test_successors = []
+        successors = sorted([node._node_id for node in self.dag.successors(self.dag.get_node(3))])
+        self.assertEqual(successors, test_successors)
 
-        successors_second = sorted(self.dag.descendant_indices(1))
-        self.assertEqual(successors_second, [2, 4, 5])
+        test_descendants = [2, 4, 5]
+        descendants = sorted([node._node_id for node in self.dag.descendants(self.dag.get_node(1))])
+        self.assertEqual(descendants, test_descendants)
 
-        successors_fourth = sorted(self.dag.descendant_indices(3))
-        self.assertEqual(successors_fourth, [])
+        test_descendants = []
+        descendants = sorted([node._node_id for node in self.dag.descendants(self.dag.get_node(3))])
+        self.assertEqual(descendants, test_descendants)
 
-        dir_predecessors_sixth = sorted(self.dag.predecessor_indices(5))
-        self.assertEqual(dir_predecessors_sixth, [2, 4])
+        test_predecessors = [2, 4]
+        predecessors = sorted(
+            [node._node_id for node in self.dag.predecessors(self.dag.get_node(5))]
+        )
+        self.assertEqual(predecessors, test_predecessors)
 
-        dir_predecessors_fourth = sorted(self.dag.predecessor_indices(3))
-        self.assertEqual(dir_predecessors_fourth, [])
+        test_predecessors = []
+        predecessors = sorted(
+            [node._node_id for node in self.dag.predecessors(self.dag.get_node(3))]
+        )
+        self.assertEqual(predecessors, test_predecessors)
 
-        predecessors_sixth = sorted(self.dag.ancestor_indices(5))
-        self.assertEqual(predecessors_sixth, [0, 1, 2, 4])
+        test_ancestors = [0, 1, 2, 4]
+        ancestors = sorted([node._node_id for node in self.dag.ancestors(self.dag.get_node(5))])
+        self.assertEqual(ancestors, test_ancestors)
 
-        predecessors_fourth = sorted(self.dag.ancestor_indices(3))
-        self.assertEqual(predecessors_fourth, [])
+        test_ancestors = []
+        ancestors = sorted([node._node_id for node in self.dag.ancestors(self.dag.get_node(3))])
+        self.assertEqual(ancestors, test_ancestors)
 
 
 class TestDagProperties(QiskitTestCase):
