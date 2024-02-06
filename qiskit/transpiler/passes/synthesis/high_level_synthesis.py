@@ -696,8 +696,8 @@ class QftSynthesisFull(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.full` only applies to objects of type QftGate."
             )
 
-        do_swaps = options.get("do_swaps")
-        approximation_degree = options.get("approximation_degree")
+        do_swaps = options.get("do_swaps", True)
+        approximation_degree = options.get("approximation_degree", 0)
         insert_barriers = options.get("insert_barriers", False)
         inverse = options.get("inverse", False)
         name = options.get("name", None)
@@ -739,8 +739,8 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
                 "The synthesis plugin 'qft.line` only applies to objects of type QftGate."
             )
 
-        do_swaps = options.get("do_swaps")
-        approximation_degree = options.get("approximation_degree")
+        do_swaps = options.get("do_swaps", True)
+        approximation_degree = options.get("approximation_degree", 0)
 
         decomposition = synth_qft_line(
             num_qubits=high_level_object.num_qubits,
