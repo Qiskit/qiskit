@@ -3084,14 +3084,13 @@ class QuantumCircuit:
             vy: y-component of the rotation axis.
             vz: z-component of the rotation axis.
             qubit: The qubit(s) to apply the gate to.
-            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.generalized_gates.rv import RVGate
 
-        return self.append(RVGate(vx, vy, vz, label=label), [qubit], [])
+        return self.append(RVGate(vx, vy, vz), [qubit], [])
 
     def rccx(
         self,
