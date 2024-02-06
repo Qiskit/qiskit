@@ -3070,7 +3070,6 @@ class QuantumCircuit:
         vy: ParameterValueType,
         vz: ParameterValueType,
         qubit: QubitSpecifier,
-        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RVGate`.
 
