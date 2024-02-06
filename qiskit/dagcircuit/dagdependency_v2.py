@@ -360,7 +360,7 @@ class DAGDependencyV2:
         iterating over all nodes is fine).
         """
         max_node_id = len(self._multi_graph) - 1
-        max_node = self.get_node(max_node_id)
+        max_node = self._get_node(max_node_id)
 
         reachable = [True] * max_node_id
 
@@ -370,7 +370,7 @@ class DAGDependencyV2:
         # for every node when not required.
         for prev_node_id in range(max_node_id - 1, -1, -1):
             if reachable[prev_node_id]:
-                prev_node = self.get_node(prev_node_id)
+                prev_node = self._get_node(prev_node_id)
 
                 if not self.comm_checker.commute(
                     prev_node.op,
@@ -386,7 +386,7 @@ class DAGDependencyV2:
                     self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
 
                     predecessor_ids = sorted(
-                        [node._node_id for node in self.predecessors(self.get_node(prev_node_id))]
+                        [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
                     )
                     for predecessor_id in predecessor_ids:
                         reachable[predecessor_id] = False
@@ -394,12 +394,12 @@ class DAGDependencyV2:
                 # If prev_node cannot reach max_node, then none of its predecessors can
                 # reach max_node either.
                 predecessor_ids = sorted(
-                    [node._node_id for node in self.predecessors(self.get_node(prev_node_id))]
+                    [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
                 )
                 for predecessor_id in predecessor_ids:
                     reachable[predecessor_id] = False
 
-    def get_node(self, node_id):
+    def _get_node(self, node_id):
         """
         Args:
             node_id (int): label of considered node.
@@ -574,7 +574,7 @@ class DAGDependencyV2:
         target_dag.unit = self.unit
         target_dag.metadata = self.metadata
         target_dag._key_cache = self._key_cache
-        target_dag.comm_checker = CommutationChecker()
+        target_dag.comm_checker = self.comm_checker
 
         target_dag.add_qubits(self.qubits)
         target_dag.add_clbits(self.clbits)
