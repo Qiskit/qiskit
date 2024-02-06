@@ -2870,20 +2870,25 @@ class QuantumCircuit:
             qarg = self.qubits
         return self.append(Delay(duration, unit=unit), [qarg], [])
 
-    def h(self, qubit: QubitSpecifier) -> InstructionSet:
+    def h(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.h import HGate
 
-        return self.append(HGate(), [qubit], [])
+        return self.append(HGate(label=label), [qubit], [])
 
     def ch(
         self,
@@ -2913,22 +2918,32 @@ class QuantumCircuit:
             CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    def id(self, qubit: QubitSpecifier) -> InstructionSet:  # pylint: disable=invalid-name
+    def id(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:  # pylint: disable=invalid-name
         """Apply :class:`~qiskit.circuit.library.IGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.i import IGate
 
-        return self.append(IGate(), [qubit], [])
+        return self.append(IGate(label=label), [qubit], [])
 
-    def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
+    def ms(
+        self,
+        theta: ParameterValueType,
+        qubits: Sequence[QubitSpecifier],
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MSGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -2936,6 +2951,7 @@ class QuantumCircuit:
         Args:
             theta: The angle of the rotation.
             qubits: The qubits to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -2943,9 +2959,14 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from .library.generalized_gates.gms import MSGate
 
-        return self.append(MSGate(len(qubits), theta), qubits)
+        return self.append(MSGate(len(qubits), theta, label=label), qubits)
 
-    def p(self, theta: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
+    def p(
+        self,
+        theta: ParameterValueType,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.PhaseGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -2953,13 +2974,14 @@ class QuantumCircuit:
         Args:
             theta: THe angle of the rotation.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.p import PhaseGate
 
-        return self.append(PhaseGate(theta), [qubit], [])
+        return self.append(PhaseGate(theta, label=label), [qubit], [])
 
     def cp(
         self,
@@ -2996,6 +3018,7 @@ class QuantumCircuit:
         lam: ParameterValueType,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCPhaseGate`.
 
@@ -3005,6 +3028,7 @@ class QuantumCircuit:
             lam: The angle of the rotation.
             control_qubits: The qubits used as the controls.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -3013,11 +3037,15 @@ class QuantumCircuit:
 
         num_ctrl_qubits = len(control_qubits)
         return self.append(
-            MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], []
+            MCPhaseGate(lam, num_ctrl_qubits, label=label), control_qubits[:] + [target_qubit], []
         )
 
     def r(
-        self, theta: ParameterValueType, phi: ParameterValueType, qubit: QubitSpecifier
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RGate`.
 
@@ -3027,13 +3055,14 @@ class QuantumCircuit:
             theta: The angle of the rotation.
             phi: The angle of the axis of rotation in the x-y plane.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.r import RGate
 
-        return self.append(RGate(theta, phi), [qubit], [])
+        return self.append(RGate(theta, phi, label=label), [qubit], [])
 
     def rv(
         self,
@@ -3041,6 +3070,7 @@ class QuantumCircuit:
         vy: ParameterValueType,
         vz: ParameterValueType,
         qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RVGate`.
 
@@ -3054,19 +3084,21 @@ class QuantumCircuit:
             vy: y-component of the rotation axis.
             vz: z-component of the rotation axis.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.generalized_gates.rv import RVGate
 
-        return self.append(RVGate(vx, vy, vz), [qubit], [])
+        return self.append(RVGate(vx, vy, vz, label=label), [qubit], [])
 
     def rccx(
         self,
         control_qubit1: QubitSpecifier,
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RCCXGate`.
 
@@ -3076,13 +3108,16 @@ class QuantumCircuit:
             control_qubit1: The qubit(s) used as the first control.
             control_qubit2: The qubit(s) used as the second control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.x import RCCXGate
 
-        return self.append(RCCXGate(), [control_qubit1, control_qubit2, target_qubit], [])
+        return self.append(
+            RCCXGate(label=label), [control_qubit1, control_qubit2, target_qubit], []
+        )
 
     def rcccx(
         self,
@@ -3090,6 +3125,7 @@ class QuantumCircuit:
         control_qubit2: QubitSpecifier,
         control_qubit3: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RC3XGate`.
 
@@ -3100,6 +3136,7 @@ class QuantumCircuit:
             control_qubit2: The qubit(s) used as the second control.
             control_qubit3: The qubit(s) used as the third control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
@@ -3107,11 +3144,16 @@ class QuantumCircuit:
         from .library.standard_gates.x import RC3XGate
 
         return self.append(
-            RC3XGate(), [control_qubit1, control_qubit2, control_qubit3, target_qubit], []
+            RC3XGate(label=label),
+            [control_qubit1, control_qubit2, control_qubit3, target_qubit],
+            [],
         )
 
     def rx(
-        self, theta: ParameterValueType, qubit: QubitSpecifier, label: str | None = None
+        self,
+        theta: ParameterValueType,
+        qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RXGate`.
 
@@ -3160,7 +3202,11 @@ class QuantumCircuit:
         )
 
     def rxx(
-        self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RXXGate`.
 
@@ -3170,16 +3216,20 @@ class QuantumCircuit:
             theta: The angle of the rotation.
             qubit1: The qubit(s) to apply the gate to.
             qubit2: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.rxx import RXXGate
 
-        return self.append(RXXGate(theta), [qubit1, qubit2], [])
+        return self.append(RXXGate(theta, label=label), [qubit1, qubit2], [])
 
     def ry(
-        self, theta: ParameterValueType, qubit: QubitSpecifier, label: str | None = None
+        self,
+        theta: ParameterValueType,
+        qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RYGate`.
 
@@ -3228,7 +3278,11 @@ class QuantumCircuit:
         )
 
     def ryy(
-        self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RYYGate`.
 
@@ -3238,15 +3292,21 @@ class QuantumCircuit:
             theta: The rotation angle of the gate.
             qubit1: The qubit(s) to apply the gate to.
             qubit2: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.ryy import RYYGate
 
-        return self.append(RYYGate(theta), [qubit1, qubit2], [])
+        return self.append(RYYGate(theta, label=label), [qubit1, qubit2], [])
 
-    def rz(self, phi: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
+    def rz(
+        self,
+        phi: ParameterValueType,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -3254,13 +3314,14 @@ class QuantumCircuit:
         Args:
             phi: The rotation angle of the gate.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.rz import RZGate
 
-        return self.append(RZGate(phi), [qubit], [])
+        return self.append(RZGate(phi, label=label), [qubit], [])
 
     def crz(
         self,
@@ -3293,7 +3354,11 @@ class QuantumCircuit:
         )
 
     def rzx(
-        self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RZXGate`.
 
@@ -3303,16 +3368,21 @@ class QuantumCircuit:
             theta: The rotation angle of the gate.
             qubit1: The qubit(s) to apply the gate to.
             qubit2: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.rzx import RZXGate
 
-        return self.append(RZXGate(theta), [qubit1, qubit2], [])
+        return self.append(RZXGate(theta, label=label), [qubit1, qubit2], [])
 
     def rzz(
-        self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
+        self,
+        theta: ParameterValueType,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.RZZGate`.
 
@@ -3322,58 +3392,76 @@ class QuantumCircuit:
             theta: The rotation angle of the gate.
             qubit1: The qubit(s) to apply the gate to.
             qubit2: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.rzz import RZZGate
 
-        return self.append(RZZGate(theta), [qubit1, qubit2], [])
+        return self.append(RZZGate(theta, label=label), [qubit1, qubit2], [])
 
-    def ecr(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
+    def ecr(
+        self,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.ECRGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.ecr import ECRGate
 
-        return self.append(ECRGate(), [qubit1, qubit2], [])
+        return self.append(ECRGate(label=label), [qubit1, qubit2], [])
 
-    def s(self, qubit: QubitSpecifier) -> InstructionSet:
+    def s(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.s import SGate
 
-        return self.append(SGate(), [qubit], [])
+        return self.append(SGate(label=label), [qubit], [])
 
-    def sdg(self, qubit: QubitSpecifier) -> InstructionSet:
+    def sdg(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SdgGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.s import SdgGate
 
-        return self.append(SdgGate(), [qubit], [])
+        return self.append(SdgGate(label=label), [qubit], [])
 
     def cs(
         self,
@@ -3435,35 +3523,49 @@ class QuantumCircuit:
             [],
         )
 
-    def swap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
+    def swap(
+        self,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SwapGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.swap import SwapGate
 
-        return self.append(SwapGate(), [qubit1, qubit2], [])
+        return self.append(SwapGate(label=label), [qubit1, qubit2], [])
 
-    def iswap(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
+    def iswap(
+        self,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.iSwapGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
-            qubit1, qubit2: The qubits to apply the gate to.
+            qubit1: The qubits to apply the gate to.
+            qubit2: The qubits to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.iswap import iSwapGate
 
-        return self.append(iSwapGate(), [qubit1, qubit2], [])
+        return self.append(iSwapGate(label=label), [qubit1, qubit2], [])
 
     def cswap(
         self,
@@ -3497,35 +3599,45 @@ class QuantumCircuit:
             [],
         )
 
-    def sx(self, qubit: QubitSpecifier) -> InstructionSet:
+    def sx(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.sx import SXGate
 
-        return self.append(SXGate(), [qubit], [])
+        return self.append(SXGate(label=label), [qubit], [])
 
-    def sxdg(self, qubit: QubitSpecifier) -> InstructionSet:
+    def sxdg(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.SXdgGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.sx import SXdgGate
 
-        return self.append(SXdgGate(), [qubit], [])
+        return self.append(SXdgGate(label=label), [qubit], [])
 
     def csx(
         self,
@@ -3557,35 +3669,45 @@ class QuantumCircuit:
             [],
         )
 
-    def t(self, qubit: QubitSpecifier) -> InstructionSet:
+    def t(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.t import TGate
 
-        return self.append(TGate(), [qubit], [])
+        return self.append(TGate(label=label), [qubit], [])
 
-    def tdg(self, qubit: QubitSpecifier) -> InstructionSet:
+    def tdg(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TdgGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.t import TdgGate
 
-        return self.append(TdgGate(), [qubit], [])
+        return self.append(TdgGate(label=label), [qubit], [])
 
     def u(
         self,
@@ -3593,6 +3715,7 @@ class QuantumCircuit:
         phi: ParameterValueType,
         lam: ParameterValueType,
         qubit: QubitSpecifier,
+        label: str | None = None,
     ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.UGate`.
 
@@ -3603,13 +3726,14 @@ class QuantumCircuit:
             phi: The :math:`\phi` rotation angle of the gate.
             lam: The :math:`\lambda` rotation angle of the gate.
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.u import UGate
 
-        return self.append(UGate(theta, phi, lam), [qubit], [])
+        return self.append(UGate(theta, phi, lam, label=label), [qubit], [])
 
     def cu(
         self,
@@ -3649,7 +3773,11 @@ class QuantumCircuit:
             [],
         )
 
-    def x(self, qubit: QubitSpecifier, label: str | None = None) -> InstructionSet:
+    def x(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.XGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -3694,7 +3822,12 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    def dcx(self, qubit1: QubitSpecifier, qubit2: QubitSpecifier) -> InstructionSet:
+    def dcx(
+        self,
+        qubit1: QubitSpecifier,
+        qubit2: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.DCXGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
@@ -3702,19 +3835,21 @@ class QuantumCircuit:
         Args:
             qubit1: The qubit(s) to apply the gate to.
             qubit2: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.dcx import DCXGate
 
-        return self.append(DCXGate(), [qubit1, qubit2], [])
+        return self.append(DCXGate(label=label), [qubit1, qubit2], [])
 
     def ccx(
         self,
         control_qubit1: QubitSpecifier,
         control_qubit2: QubitSpecifier,
         target_qubit: QubitSpecifier,
+        label: str | None = None,
         ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.CCXGate`.
@@ -3725,6 +3860,7 @@ class QuantumCircuit:
             control_qubit1: The qubit(s) used as the first control.
             control_qubit2: The qubit(s) used as the second control.
             target_qubit: The qubit(s) targeted by the gate.
+            label: The string label of the gate in the circuit.
             ctrl_state:
                 The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
                 on the '1' state.
@@ -3735,7 +3871,7 @@ class QuantumCircuit:
         from .library.standard_gates.x import CCXGate
 
         return self.append(
-            CCXGate(ctrl_state=ctrl_state),
+            CCXGate(ctrl_state=ctrl_state, label=label),
             [control_qubit1, control_qubit2, target_qubit],
             [],
         )
@@ -3818,20 +3954,25 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
-    def y(self, qubit: QubitSpecifier) -> InstructionSet:
+    def y(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.YGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.y import YGate
 
-        return self.append(YGate(), [qubit], [])
+        return self.append(YGate(label=label), [qubit], [])
 
     def cy(
         self,
@@ -3861,20 +4002,25 @@ class QuantumCircuit:
             CYGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    def z(self, qubit: QubitSpecifier) -> InstructionSet:
+    def z(
+        self,
+        qubit: QubitSpecifier,
+        label: str | None = None,
+    ) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.ZGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
         Args:
             qubit: The qubit(s) to apply the gate to.
+            label: The string label of the gate in the circuit.
 
         Returns:
             A handle to the instructions created.
         """
         from .library.standard_gates.z import ZGate
 
-        return self.append(ZGate(), [qubit], [])
+        return self.append(ZGate(label=label), [qubit], [])
 
     def cz(
         self,
