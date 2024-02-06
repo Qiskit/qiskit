@@ -53,19 +53,14 @@ class Reference(instruction.Instruction):
                 to distinguish the sx schedule for qubit 0 from others.
                 The user can use an arbitrary number of extra string keys to
                 uniquely determine the subroutine.
-        """
-        # Run validation
-        ref_keys = (name,) + tuple(extra_keys)
-        super().__init__(operands=ref_keys, name=name)
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
 
         Raises:
-            PulseError: When a key is not a string.
-            PulseError: When a key in ``ref_keys`` contains the scope delimiter.
+            PulseError: When ``name`` or an ``extra_key`` is not a string.
+            PulseError: When ``name`` or an ``extra_key`` contains the scope delimiter.
         """
-        for key in self.ref_keys:
+        ref_keys = (name,) + tuple(extra_keys)
+
+        for key in ref_keys:
             if not isinstance(key, str):
                 raise PulseError(f"Keys must be strings. '{repr(key)}' is not a valid object.")
             if self.scope_delimiter in key or self.key_delimiter in key:
@@ -73,6 +68,8 @@ class Reference(instruction.Instruction):
                     f"'{self.scope_delimiter}' and '{self.key_delimiter}' are reserved. "
                     f"'{key}' is not a valid key string."
                 )
+
+        super().__init__(operands=ref_keys, name=name)
 
     @property
     def ref_keys(self) -> tuple[str, ...]:

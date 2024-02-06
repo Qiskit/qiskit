@@ -15,26 +15,26 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-from typing import Optional, Union, Tuple
+from typing import Optional, Union
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.instructions.instruction import Instruction
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.instructions.instruction import FrameInstruction
+from qiskit.pulse.model import Frame, MixedFrame, PulseTarget
 
 
-class ShiftPhase(Instruction):
-    r"""The shift phase instruction updates the modulation phase of proceeding pulses played on the
-    same :py:class:`~qiskit.pulse.channels.Channel`. It is a relative increase in phase determined
+class ShiftPhase(FrameInstruction):
+    r"""The shift phase instruction updates the modulation phase of proceeding pulses associated with
+    the frame the instruction is acting upon. It is a relative increase in phase determined
     by the ``phase`` operand.
 
-    In particular, a PulseChannel creates pulses of the form
+    In particular, played pulses take the form:
 
     .. math::
         Re[\exp(i 2\pi f jdt + \phi) d_j].
 
     The ``ShiftPhase`` instruction causes :math:`\phi` to be increased by the instruction's
-    ``phase`` operand. This will affect all pulses following on the same channel.
+    ``phase`` operand. This will affect all pulses following on the same frame.
 
     The qubit phase is tracked in software, enabling instantaneous, nearly error-free Z-rotations
     by using a ShiftPhase to update the frame tracking the qubit state.
@@ -43,56 +43,45 @@ class ShiftPhase(Instruction):
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],
-        channel: PulseChannel,
+        *,
+        frame: Frame = None,
+        target: PulseTarget = None,
+        mixed_frame: MixedFrame = None,
+        channel: PulseChannel = None,
         name: Optional[str] = None,
     ):
-        """Instantiate a shift phase instruction, increasing the output signal phase on ``channel``
-        by ``phase`` [radians].
+        """Instantiate a shift phase instruction, increasing the output signal phase on a given
+        mixed frame (=channel) or frame by ``phase`` [radians]..
+
+        The instruction can be set on a ``MixedFrame`` (=``Channel``) or a ``Frame``. For the latter,
+        provide only the ``frame`` argument, and the instruction will be broadcasted to all
+        ``MixedFrame``s involving the ``Frame``. For the former, provide exactly one of
+        ``mixed_frame``, ``channel`` or the duo ``target`` and ``frame``, and the instruction
+        will apply only to the specified ``MixedFrame``.
 
         Args:
             phase: The rotation angle in radians.
-            channel: The channel this instruction operates on.
+            frame: The frame the instruction will apply to.
+            target: The target which in conjunction with ``frame`` defines the mixed frame that
+                instruction will apply to.
+            mixed_frame: The mixed_frame the instruction will apply to.
+            channel: The channel the instruction will apply to.
             name: Display name for this instruction.
         """
-        super().__init__(operands=(phase, channel), name=name)
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
-
-        Raises:
-            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
-        """
-        if not isinstance(self.channel, PulseChannel):
-            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
+        inst_target = self._validate_and_format_frame(target, frame, mixed_frame, channel)
+        super().__init__(operands=(phase, inst_target), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]
 
-    @property
-    def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
-        scheduled on.
-        """
-        return self.operands[1]
 
-    @property
-    def channels(self) -> Tuple[PulseChannel]:
-        """Returns the channels that this schedule uses."""
-        return (self.channel,)
+class SetPhase(FrameInstruction):
+    r"""The set phase instruction updates the modulation phase of proceeding pulses associated with
+    the frame the instruction is acting upon. It sets the phase to the ``phase`` operand.
 
-    @property
-    def duration(self) -> int:
-        """Duration of this instruction."""
-        return 0
-
-
-class SetPhase(Instruction):
-    r"""The set phase instruction sets the phase of the proceeding pulses on that channel
-    to ``phase`` radians.
-
-    In particular, a PulseChannel creates pulses of the form
+    In particular, played pulses take the form:
 
     .. math::
 
@@ -104,46 +93,35 @@ class SetPhase(Instruction):
     def __init__(
         self,
         phase: Union[complex, ParameterExpression],
-        channel: PulseChannel,
+        *,
+        frame: Frame = None,
+        target: PulseTarget = None,
+        mixed_frame: MixedFrame = None,
+        channel: PulseChannel = None,
         name: Optional[str] = None,
     ):
-        """Instantiate a set phase instruction, setting the output signal phase on ``channel``
-        to ``phase`` [radians].
+        """Instantiate a set phase instruction, setting the output signal phase on a given
+        mixed frame (=channel) or frame to ``phase`` [radians]..
+
+        The instruction can be set on a ``MixedFrame`` (=``Channel``) or a ``Frame``. For the latter,
+        provide only the ``frame`` argument, and the instruction will be broadcasted to all
+        ``MixedFrame``s involving the ``Frame``. For the former, provide exactly one of
+        ``mixed_frame``, ``channel`` or the duo ``target`` and ``frame``, and the instruction
+        will apply only to the specified ``MixedFrame``.
 
         Args:
             phase: The rotation angle in radians.
-            channel: The channel this instruction operates on.
+            frame: The frame the instruction will apply to.
+            target: The target which in conjunction with ``frame`` defines the mixed frame that
+                instruction will apply to.
+            mixed_frame: The mixed_frame the instruction will apply to.
+            channel: The channel the instruction will apply to.
             name: Display name for this instruction.
         """
-        super().__init__(operands=(phase, channel), name=name)
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
-
-        Raises:
-            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
-        """
-        if not isinstance(self.channel, PulseChannel):
-            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
+        inst_target = self._validate_and_format_frame(target, frame, mixed_frame, channel)
+        super().__init__(operands=(phase, inst_target), name=name)
 
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]
-
-    @property
-    def channel(self) -> PulseChannel:
-        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
-        scheduled on.
-        """
-        return self.operands[1]
-
-    @property
-    def channels(self) -> Tuple[PulseChannel]:
-        """Returns the channels that this schedule uses."""
-        return (self.channel,)
-
-    @property
-    def duration(self) -> int:
-        """Duration of this instruction."""
-        return 0

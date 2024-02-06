@@ -777,7 +777,7 @@ class QobjToInstructionConverter:
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
             yield instructions.Acquire(
                 duration,
-                acquire_channel,
+                channel=acquire_channel,
                 mem_slot=mem_slot,
                 reg_slot=reg_slot,
                 kernel=kernel,
@@ -799,7 +799,7 @@ class QobjToInstructionConverter:
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        yield instructions.SetPhase(phase, channel)
+        yield instructions.SetPhase(phase, channel=channel)
 
     def _convert_fc(
         self,
@@ -816,7 +816,7 @@ class QobjToInstructionConverter:
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        yield instructions.ShiftPhase(phase, channel)
+        yield instructions.ShiftPhase(phase, channel=channel)
 
     def _convert_setf(
         self,
@@ -838,7 +838,7 @@ class QobjToInstructionConverter:
         channel = self.get_channel(instruction.ch)
         frequency = self.disassemble_value(instruction.frequency) * 1e9
 
-        yield instructions.SetFrequency(frequency, channel)
+        yield instructions.SetFrequency(frequency, channel=channel)
 
     def _convert_shiftf(
         self,
@@ -860,7 +860,7 @@ class QobjToInstructionConverter:
         channel = self.get_channel(instruction.ch)
         frequency = self.disassemble_value(instruction.frequency) * 1e9
 
-        yield instructions.ShiftFrequency(frequency, channel)
+        yield instructions.ShiftFrequency(frequency, channel=channel)
 
     def _convert_delay(
         self,
@@ -877,7 +877,7 @@ class QobjToInstructionConverter:
         channel = self.get_channel(instruction.ch)
         duration = instruction.duration
 
-        yield instructions.Delay(duration, channel)
+        yield instructions.Delay(duration, channel=channel)
 
     def _convert_parametric_pulse(
         self,
@@ -919,7 +919,7 @@ class QobjToInstructionConverter:
             params["amp"] = np.abs(params["amp"])
         pulse = ParametricPulseShapes.to_type(instruction.pulse_shape)(**params, name=pulse_name)
 
-        yield instructions.Play(pulse, channel)
+        yield instructions.Play(pulse, channel=channel)
 
     def _convert_snapshot(
         self,
@@ -957,7 +957,7 @@ class QobjToInstructionConverter:
             )
             channel = self.get_channel(instruction.ch)
 
-            yield instructions.Play(waveform, channel)
+            yield instructions.Play(waveform, channel=channel)
         else:
             if qubits := getattr(instruction, "qubits", None):
                 msg = f"qubits {qubits}"

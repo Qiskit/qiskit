@@ -42,7 +42,7 @@ class TestMeasure(QiskitTestCase):
         sched = macros.measure(qubits=[0], backend=self.backend)
         expected = Schedule(
             self.inst_map.get("measure", [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(0)),
+            Acquire(10, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -51,7 +51,7 @@ class TestMeasure(QiskitTestCase):
         sched = macros.measure(qubits=[0], backend=self.backend, qubit_mem_slots={0: 1})
         expected = Schedule(
             self.inst_map.get("measure", [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(1)),
+            Acquire(10, channel=AcquireChannel(0), mem_slot=MemorySlot(1)),
         )
         self.assertEqual(sched.instructions, expected.instructions)
 
@@ -65,15 +65,15 @@ class TestMeasure(QiskitTestCase):
         )
         expected = Schedule(
             self.inst_map.get("measure", [0, 1]).filter(channels=[MeasureChannel(0)]),
-            Acquire(10, AcquireChannel(0), MemorySlot(0)),
+            Acquire(10, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
         )
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
     def test_measure_with_custom_inst_map(self):
         """Test measure with custom inst_map, meas_map with measure_name."""
-        q0_sched = Play(GaussianSquare(1200, 1, 0.4, 1150), MeasureChannel(0))
-        q0_sched += Acquire(1200, AcquireChannel(0), MemorySlot(0))
+        q0_sched = Play(GaussianSquare(1200, 1, 0.4, 1150), channel=MeasureChannel(0))
+        q0_sched += Acquire(1200, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         inst_map = InstructionScheduleMap()
         inst_map.add("my_sched", 0, q0_sched)
         sched = macros.measure(
@@ -108,7 +108,7 @@ class TestMeasure(QiskitTestCase):
             ]
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
-        expected += Acquire(measure_duration, AcquireChannel(0), MemorySlot(2))
+        expected += Acquire(measure_duration, channel=AcquireChannel(0), mem_slot=MemorySlot(2))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_v2_sched_with_meas_map(self):
@@ -125,7 +125,7 @@ class TestMeasure(QiskitTestCase):
             ]
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
-        expected += Acquire(measure_duration, AcquireChannel(0), MemorySlot(0))
+        expected += Acquire(measure_duration, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
@@ -143,8 +143,8 @@ class TestMeasure(QiskitTestCase):
             ]
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
-        expected += Acquire(measure_duration, AcquireChannel(0), MemorySlot(0))
-        expected += Acquire(measure_duration, AcquireChannel(1), MemorySlot(1))
+        expected += Acquire(measure_duration, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
+        expected += Acquire(measure_duration, channel=AcquireChannel(1), mem_slot=MemorySlot(1))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_output_with_measure_v1_and_measure_v2(self):

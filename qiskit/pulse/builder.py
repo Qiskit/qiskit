@@ -1498,7 +1498,7 @@ def delay(duration: int, channel: chans.Channel, name: str | None = None):
         channel: Channel to delay on.
         name: Name of the instruction.
     """
-    append_instruction(instructions.Delay(duration, channel, name=name))
+    append_instruction(instructions.Delay(duration, channel=channel, name=name))
 
 
 def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: str | None = None):
@@ -1523,7 +1523,7 @@ def play(pulse: library.Pulse | np.ndarray, channel: chans.PulseChannel, name: s
     if not isinstance(pulse, library.Pulse):
         pulse = library.Waveform(pulse)
 
-    append_instruction(instructions.Play(pulse, channel, name=name))
+    append_instruction(instructions.Play(pulse, channel=channel, name=name))
 
 
 class _MetaDataType(TypedDict, total=False):
@@ -1577,11 +1577,11 @@ def acquire(
 
     if isinstance(register, chans.MemorySlot):
         append_instruction(
-            instructions.Acquire(duration, qubit_or_channel, mem_slot=register, **metadata)
+            instructions.Acquire(duration, channel=qubit_or_channel, mem_slot=register, **metadata)
         )
     elif isinstance(register, chans.RegisterSlot):
         append_instruction(
-            instructions.Acquire(duration, qubit_or_channel, reg_slot=register, **metadata)
+            instructions.Acquire(duration, channel=qubit_or_channel, reg_slot=register, **metadata)
         )
     else:
         raise exceptions.PulseError(f'Register of type: "{type(register)}" is not supported')
@@ -1606,7 +1606,7 @@ def set_frequency(frequency: float, channel: chans.PulseChannel, name: str | Non
         channel: Channel to set frequency of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.SetFrequency(frequency, channel, name=name))
+    append_instruction(instructions.SetFrequency(frequency, channel=channel, name=name))
 
 
 def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | None = None):
@@ -1629,7 +1629,7 @@ def shift_frequency(frequency: float, channel: chans.PulseChannel, name: str | N
         channel: Channel to shift frequency of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftFrequency(frequency, channel, name=name))
+    append_instruction(instructions.ShiftFrequency(frequency, channel=channel, name=name))
 
 
 def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
@@ -1654,7 +1654,7 @@ def set_phase(phase: float, channel: chans.PulseChannel, name: str | None = None
         channel: Channel to set phase of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.SetPhase(phase, channel, name=name))
+    append_instruction(instructions.SetPhase(phase, channel=channel, name=name))
 
 
 def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = None):
@@ -1678,7 +1678,7 @@ def shift_phase(phase: float, channel: chans.PulseChannel, name: str | None = No
         channel: Channel to shift phase of.
         name: Name of the instruction.
     """
-    append_instruction(instructions.ShiftPhase(phase, channel, name))
+    append_instruction(instructions.ShiftPhase(phase, channel=channel, name=name))
 
 
 def snapshot(label: str, snapshot_type: str = "statevector"):

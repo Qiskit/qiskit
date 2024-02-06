@@ -236,7 +236,9 @@ def _assemble_instructions(
 
                 if not is_backend_supported:
                     instruction = instructions.Play(
-                        instruction.pulse.get_waveform(), instruction.channel, name=instruction.name
+                        instruction.pulse.get_waveform(),
+                        channel=instruction.channel,
+                        name=instruction.name,
                     )
 
             if isinstance(instruction.pulse, library.Waveform):

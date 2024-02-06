@@ -43,7 +43,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_add(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
 
         inst_map.add("u1", 1, sched)
@@ -61,7 +61,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_add_block(self):
         """Test add block, and that errors are raised when expected."""
         sched = ScheduleBlock()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
 
         inst_map.add("u1", 1, sched)
@@ -141,7 +141,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_get(self):
         """Test `get`."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
         inst_map.add("x", 0, sched)
 
@@ -150,7 +150,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_get_block(self):
         """Test `get` block."""
         sched = ScheduleBlock()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)), inplace=True)
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)), inplace=True)
         inst_map = InstructionScheduleMap()
         inst_map.add("x", 0, sched)
 
@@ -185,7 +185,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_add_gate(self):
         """Test add, and that errors are raised when expected."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)))
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)))
         inst_map = InstructionScheduleMap()
 
         inst_map.add(U1Gate(0), 1, sched)
@@ -270,7 +270,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
     def test_get_gate(self):
         """Test `get`."""
         sched = Schedule()
-        sched.append(Play(Waveform(np.ones(5)), DriveChannel(0)))
+        sched.append(Play(Waveform(np.ones(5)), channel=DriveChannel(0)))
         inst_map = InstructionScheduleMap()
         inst_map.add(XGate(), 0, sched)
 
@@ -350,12 +350,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
         def test_func(dur: int):
             sched = Schedule()
             waveform = Constant(int(dur), amp).get_waveform()
-            sched += Play(waveform, DriveChannel(0))
+            sched += Play(waveform, channel=DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
         cons_waveform = Constant(dur_val, amp).get_waveform()
-        expected_sched += Play(cons_waveform, DriveChannel(0))
+        expected_sched += Play(cons_waveform, channel=DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)
@@ -373,12 +373,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
             dur_bound = dur.bind({t_param: t_val})
             sched = Schedule()
             waveform = Constant(int(float(dur_bound)), amp).get_waveform()
-            sched += Play(waveform, DriveChannel(0))
+            sched += Play(waveform, channel=DriveChannel(0))
             return sched
 
         expected_sched = Schedule()
         cons_waveform = Constant(10, amp).get_waveform()
-        expected_sched += Play(cons_waveform, DriveChannel(0))
+        expected_sched += Play(cons_waveform, channel=DriveChannel(0))
 
         inst_map = InstructionScheduleMap()
         inst_map.add("f", (0,), test_func)
@@ -399,17 +399,17 @@ class TestInstructionScheduleMap(QiskitTestCase):
         lamb = Parameter("lam")
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
-        target_sched.insert(10, ShiftPhase(phi, DriveChannel(0)), inplace=True)
-        target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)), inplace=True)
+        target_sched.insert(0, ShiftPhase(theta, channel=DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(phi, channel=DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(lamb, channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("target_sched", (0,), target_sched, arguments=["theta", "phi", "lam"])
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)), inplace=True)
-        ref_sched.insert(10, ShiftPhase(1, DriveChannel(0)), inplace=True)
-        ref_sched.insert(20, ShiftPhase(2, DriveChannel(0)), inplace=True)
+        ref_sched.insert(0, ShiftPhase(0, channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1, channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(2, channel=DriveChannel(0)), inplace=True)
 
         # if parameter is alphanumerical ordering this maps to
         # theta -> 2
@@ -430,7 +430,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param = Parameter("param")
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
+        target_sched.insert(0, ShiftPhase(param, channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("target_sched", (0,), target_sched)
@@ -443,7 +443,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param = Parameter("param")
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param, DriveChannel(0)), inplace=True)
+        target_sched.insert(0, ShiftPhase(param, channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("target_sched", (0,), target_sched)
@@ -458,17 +458,17 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param3 = Parameter("param")
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
-        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
-        target_sched.insert(20, ShiftPhase(param3, DriveChannel(0)), inplace=True)
+        target_sched.insert(0, ShiftPhase(param1, channel=DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, channel=DriveChannel(0)), inplace=True)
+        target_sched.insert(20, ShiftPhase(param3, channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("target_sched", (0,), target_sched)
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
-        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
-        ref_sched.insert(20, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(0, ShiftPhase(1.23, channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, ShiftPhase(1.23, channel=DriveChannel(0)), inplace=True)
 
         test_sched = inst_map.get("target_sched", (0,), param=1.23)
 
@@ -482,15 +482,15 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param2 = Parameter("param2")
 
         target_sched = Schedule()
-        target_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
-        target_sched.insert(10, ShiftPhase(param2, DriveChannel(0)), inplace=True)
+        target_sched.insert(0, ShiftPhase(param1, channel=DriveChannel(0)), inplace=True)
+        target_sched.insert(10, ShiftPhase(param2, channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
         inst_map.add("target_sched", (0,), target_sched)
 
         ref_sched = Schedule()
-        ref_sched.insert(0, ShiftPhase(param1, DriveChannel(0)), inplace=True)
-        ref_sched.insert(10, ShiftPhase(1.23, DriveChannel(0)), inplace=True)
+        ref_sched.insert(0, ShiftPhase(param1, channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, ShiftPhase(1.23, channel=DriveChannel(0)), inplace=True)
 
         test_sched = inst_map.get("target_sched", (0,), param2=1.23)
 
@@ -504,13 +504,13 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         def callable_schedule(par_b, par_a):
             sched = Schedule()
-            sched.insert(10, Play(Constant(10, par_b), DriveChannel(0)), inplace=True)
-            sched.insert(20, Play(Constant(10, par_a), DriveChannel(0)), inplace=True)
+            sched.insert(10, Play(Constant(10, par_b), channel=DriveChannel(0)), inplace=True)
+            sched.insert(20, Play(Constant(10, par_a), channel=DriveChannel(0)), inplace=True)
             return sched
 
         ref_sched = Schedule()
-        ref_sched.insert(10, Play(Constant(10, 0.1), DriveChannel(0)), inplace=True)
-        ref_sched.insert(20, Play(Constant(10, 0.2), DriveChannel(0)), inplace=True)
+        ref_sched.insert(10, Play(Constant(10, 0.1), channel=DriveChannel(0)), inplace=True)
+        ref_sched.insert(20, Play(Constant(10, 0.2), channel=DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
 
@@ -566,8 +566,8 @@ class TestInstructionScheduleMap(QiskitTestCase):
         param1 = Parameter("P1")
         param2 = Parameter("P2")
         sched = Schedule()
-        sched.insert(0, Play(Constant(100, param1), DriveChannel(0)), inplace=True)
-        sched.insert(0, Play(Constant(100, param2), DriveChannel(1)), inplace=True)
+        sched.insert(0, Play(Constant(100, param1), channel=DriveChannel(0)), inplace=True)
+        sched.insert(0, Play(Constant(100, param2), channel=DriveChannel(1)), inplace=True)
         to_assign = {"P1": 0.1, "P2": 0.2}
 
         # Note that dict keys is not picklable
@@ -591,7 +591,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         instmap = FakeOpenPulse2Q().defaults().instruction_schedule_map
 
         test_u1 = Schedule()
-        test_u1 += ShiftPhase(Parameter("P0"), DriveChannel(0))
+        test_u1 += ShiftPhase(Parameter("P0"), channel=DriveChannel(0))
 
         instmap.add("u1", (0,), test_u1, arguments=["P0"])
         publisher = instmap.get("u1", (0,), P0=0).metadata["publisher"]

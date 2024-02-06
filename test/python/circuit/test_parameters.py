@@ -575,7 +575,7 @@ class TestParameters(QiskitTestCase):
         rxt_q0 = pulse.Schedule(
             pulse.Play(
                 pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+                channel=pulse.DriveChannel(0),
             )
         )
 
@@ -603,7 +603,7 @@ class TestParameters(QiskitTestCase):
         rxt_q0 = pulse.Schedule(
             pulse.Play(
                 pulse.library.Gaussian(duration=128, sigma=16, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+                channel=pulse.DriveChannel(0),
             )
         )
 
@@ -625,7 +625,7 @@ class TestParameters(QiskitTestCase):
         rxt_q0 = pulse.Schedule(
             pulse.Play(
                 pulse.library.Gaussian(duration=128, sigma=4 * sigma, amp=0.2 * theta / 3.14),
-                pulse.DriveChannel(0),
+                channel=pulse.DriveChannel(0),
             )
         )
 
@@ -648,7 +648,7 @@ class TestParameters(QiskitTestCase):
         """Test Parameter substitution (vs bind)."""
         alpha = Parameter("⍺")
         beta = Parameter("beta")
-        schedule = pulse.Schedule(pulse.ShiftPhase(alpha, pulse.DriveChannel(0)))
+        schedule = pulse.Schedule(pulse.ShiftPhase(alpha, channel=pulse.DriveChannel(0)))
 
         circ = QuantumCircuit(3, 3)
         circ.append(Gate("my_rz", 1, [alpha]), [0])

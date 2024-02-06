@@ -397,7 +397,7 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
         qc.measure(qr[1], cr[1])
-        sched = Schedule(Play(Gaussian(160, 0.1, 40), DriveChannel(0)))
+        sched = Schedule(Play(Gaussian(160, 0.1, 40), channel=DriveChannel(0)))
         qc.add_calibration("h", [0, 1], sched)
         copied = qc.copy_empty_like()
         qc.clear()

@@ -18,6 +18,7 @@ from abc import ABC
 from qiskit.pulse import channels as chans
 from qiskit.pulse.instructions import instruction
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import Channel
 
 
 class Directive(instruction.Instruction, ABC):
@@ -45,7 +46,15 @@ class RelativeBarrier(Directive):
         Args:
             channels: The channel that the barrier applies to.
             name: Name of the directive for display purposes.
+
+        Raises:
+            PulseError: If any of channels is not a Channel.
         """
+
+        for channel in channels:
+            if not isinstance(channel, Channel):
+                raise PulseError(f"Expected a channel, got {channel} instead.")
+
         super().__init__(operands=tuple(channels), name=name)
 
     @property
@@ -114,19 +123,18 @@ class TimeBlockade(Directive):
             duration: Length of time of the occupation in terms of dt.
             channel: The channel that will be the occupied.
             name: Name of the time blockade for display purposes.
-        """
-        super().__init__(operands=(duration, channel), name=name)
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
 
         Raises:
-            PulseError: If the input ``duration`` is not integer value.
+            PulseError: If ``duration`` is not a positive integer value.
         """
-        if not isinstance(self.duration, int):
+
+        if not isinstance(duration, int) or duration < 0:
             raise PulseError(
-                "TimeBlockade duration cannot be parameterized. Specify an integer duration value."
+                "TimeBlockade duration cannot be parameterized. Specify a positive integer"
+                "duration value."
             )
+
+        super().__init__(operands=(duration, channel), name=name)
 
     @property
     def channel(self) -> chans.Channel:

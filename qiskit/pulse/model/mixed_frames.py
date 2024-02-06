@@ -71,7 +71,11 @@ class MixedFrame:
         Returns:
             True iff equal.
         """
-        return self._pulse_target == other._pulse_target and self._frame == other._frame
+        return (
+            isinstance(other, type(self))
+            and self._pulse_target == other._pulse_target
+            and self._frame == other._frame
+        )
 
     def __hash__(self) -> int:
         return hash((self._pulse_target, self._frame, type(self)))

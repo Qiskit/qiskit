@@ -43,7 +43,7 @@ class TestSchedule(QiskitTestCase):
         program = Schedule()
         program.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -62,7 +62,7 @@ class TestSchedule(QiskitTestCase):
         """Basic test pulse Schedule format."""
         program = ScheduleBlock()
         program.append(
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -84,7 +84,7 @@ class TestSchedule(QiskitTestCase):
 
         program = ScheduleBlock()
         program.append(
-            Play(Constant(duration=param1, amp=param2, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=param1, amp=param2, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -110,15 +110,15 @@ class TestSchedule(QiskitTestCase):
 
         program = ScheduleBlock()
         program.append(
-            Play(Constant(duration=10, amp=phi, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=phi, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         program.append(
-            Play(Constant(duration=10, amp=theta, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=theta, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         program.append(
-            Play(Constant(duration=10, amp=lam, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=lam, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -143,7 +143,7 @@ class TestSchedule(QiskitTestCase):
 
         program = ScheduleBlock()
         program.append(
-            Play(Constant(duration=10, amp=param1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=param1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -157,14 +157,14 @@ class TestSchedule(QiskitTestCase):
         program1 = Schedule()
         program1.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
         program2 = Schedule()
         program2.insert(
             0,
-            Play(Constant(duration=10, amp=0.2, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.2, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -189,7 +189,7 @@ class TestCallable(QiskitTestCase):
         program = Schedule()
         program.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
 
@@ -215,13 +215,16 @@ class TestCallable(QiskitTestCase):
             if var1 > 0:
                 program.insert(
                     0,
-                    Play(Constant(duration=var2, amp=var1, angle=0.0), DriveChannel(0)),
+                    Play(Constant(duration=var2, amp=var1, angle=0.0), channel=DriveChannel(0)),
                     inplace=True,
                 )
             else:
                 program.insert(
                     0,
-                    Play(Constant(duration=var2, amp=np.abs(var1), angle=np.pi), DriveChannel(0)),
+                    Play(
+                        Constant(duration=var2, amp=np.abs(var1), angle=np.pi),
+                        channel=DriveChannel(0),
+                    ),
                     inplace=True,
                 )
             return program
@@ -237,7 +240,7 @@ class TestCallable(QiskitTestCase):
         schedule_ref = Schedule()
         schedule_ref.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         self.assertEqual(schedule_to_test, schedule_ref)
@@ -246,7 +249,7 @@ class TestCallable(QiskitTestCase):
         schedule_ref = Schedule()
         schedule_ref.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=np.pi), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=np.pi), channel=DriveChannel(0)),
             inplace=True,
         )
         self.assertEqual(schedule_to_test, schedule_ref)
@@ -316,12 +319,12 @@ class TestPulseQobj(QiskitTestCase):
         schedule_ref = Schedule()
         schedule_ref.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         schedule_ref.insert(
             20,
-            Play(Waveform([0.3, 0.1, 0.2, 0.2, 0.3]), DriveChannel(0)),
+            Play(Waveform([0.3, 0.1, 0.2, 0.2, 0.3]), channel=DriveChannel(0)),
             inplace=True,
         )
         self.assertEqual(schedule_to_test, schedule_ref)
@@ -383,12 +386,12 @@ class TestPulseQobj(QiskitTestCase):
         schedule_ref = Schedule()
         schedule_ref.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         schedule_ref.insert(
             0,
-            ShiftPhase(1.57, DriveChannel(0)),
+            ShiftPhase(1.57, channel=DriveChannel(0)),
             inplace=True,
         )
         self.assertEqual(schedule_to_test, schedule_ref)
@@ -451,7 +454,7 @@ class TestPulseQobj(QiskitTestCase):
         program = Schedule()
         program.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=10, amp=0.1, angle=0.0), channel=DriveChannel(0)),
             inplace=True,
         )
         entry2 = ScheduleDef()

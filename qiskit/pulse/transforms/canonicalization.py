@@ -104,7 +104,7 @@ def compress_pulses(schedules: list[Schedule]) -> list[Schedule]:
                     identical_pulse = existing_pulses[idx]
                     new_schedule.insert(
                         time,
-                        instructions.Play(identical_pulse, inst.channel, inst.name),
+                        instructions.Play(identical_pulse, channel=inst.channel, name=inst.name),
                         inplace=True,
                     )
                 else:
@@ -416,7 +416,7 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: list[list[int]]
             for i in all_qubits:
                 explicit_inst = instructions.Acquire(
                     inst.duration,
-                    chans.AcquireChannel(i),
+                    channel=chans.AcquireChannel(i),
                     mem_slot=chans.MemorySlot(i),
                     kernel=inst.kernel,
                     discriminator=inst.discriminator,
@@ -477,7 +477,9 @@ def pad(
             continue
 
         if channel not in schedule.channels:
-            schedule = schedule.insert(0, instructions.Delay(until, channel), inplace=inplace)
+            schedule = schedule.insert(
+                0, instructions.Delay(until, channel=channel), inplace=inplace
+            )
             continue
 
         prev_time = 0
@@ -493,6 +495,6 @@ def pad(
                 to_pad.append((prev_time, min(t0, until) - prev_time))
             prev_time = t1
         for t0, duration in to_pad:
-            schedule = schedule.insert(t0, pad_cls(duration, channel), inplace=inplace)
+            schedule = schedule.insert(t0, pad_cls(duration, channel=channel), inplace=inplace)
 
     return schedule
