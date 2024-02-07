@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Qiskit (and `qiskit-terra`) supports one minor version release at a time, both for bug and
+Qiskit supports one minor version release at a time, both for bug and
 security fixes. For example, if the most recent release is 0.12.1, then the 0.12.x
 release series is currently supported.
 
@@ -11,7 +11,7 @@ release series is currently supported.
 To report vulnerabilities, you can privately report a potential security issue
 via the Github security vulnerabilities feature. This can be done here:
 
-https://github.com/Qiskit/qiskit-terra/security/advisories
+https://github.com/Qiskit/qiskit/security/advisories
 
 Please do **not** open a public issue about a potential security vulnerability.
 
