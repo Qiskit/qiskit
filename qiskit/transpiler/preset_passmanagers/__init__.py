@@ -179,7 +179,7 @@ def generate_preset_pass_manager(
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`

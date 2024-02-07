@@ -25,16 +25,21 @@ from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile
+from qiskit.utils import optionals
+from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, circuit, version=None):
+    def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(circuit, qpy_file, version=version)
+        if use_symengine is None:
+            dump(circuit, qpy_file, version=version)
+        else:
+            dump(circuit, qpy_file, version=version, use_symengine=use_symengine)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
 
@@ -296,3 +301,29 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
+
+
+class TestUseSymengineFlag(QpyCircuitTestCase):
+    """Test that the symengine flag works correctly."""
+
+    def test_use_symengine_with_bool_like(self):
+        """Test that the use_symengine flag is set correctly with a bool-like input."""
+        theta = Parameter("theta")
+        two_theta = 2 * theta
+        qc = QuantumCircuit(1)
+        qc.rx(two_theta, 0)
+        qc.measure_all()
+        # Assert Roundtrip works
+        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=10)
+        # Also check the qpy symbolic expression encoding is correct in the
+        # payload
+        with io.BytesIO() as file_obj:
+            dump(qc, file_obj, use_symengine=optionals.HAS_SYMENGINE)
+            file_obj.seek(0)
+            header_data = FILE_HEADER_V10._make(
+                struct.unpack(
+                    FILE_HEADER_V10_PACK,
+                    file_obj.read(FILE_HEADER_V10_SIZE),
+                )
+            )
+            self.assertEqual(header_data.symbolic_encoding, b"e")
