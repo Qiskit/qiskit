@@ -13,3 +13,15 @@ updates:
       - "Rust"
       - "dependencies"
       - "Changelog: None"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    groups:
+      GitHub_Actions:
+        patterns:
+          - "*"  # Group all Actions updates into a single larger pull request
+    schedule:
+      interval: weekly
+    labels:
+      - "type: qa"
+      - "dependencies"
+      - "Changelog: None"
