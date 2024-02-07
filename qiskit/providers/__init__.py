@@ -144,7 +144,7 @@ can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
-APIs, such as :func:`~qiskit.execute_function.execute` to get results from
+APIs to get results from
 executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:

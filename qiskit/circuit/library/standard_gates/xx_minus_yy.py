@@ -153,7 +153,7 @@ class XXMinusYYGate(Gate):
 
         self.definition = circuit
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Inverse gate."""
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)
@@ -177,3 +177,8 @@ class XXMinusYYGate(Gate):
         """Raise gate to a power."""
         theta, beta = self.params
         return XXMinusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXMinusYYGate):
+            return self._compare_parameters(other)
+        return False

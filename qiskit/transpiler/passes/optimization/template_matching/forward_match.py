@@ -85,9 +85,9 @@ class ForwardMatch:
         """
         for i in range(0, self.circuit_dag_dep.size()):
             if i == self.node_id_c:
-                self.circuit_dag_dep.get_node(
-                    i
-                ).successorstovisit = self.circuit_dag_dep.direct_successors(i)
+                self.circuit_dag_dep.get_node(i).successorstovisit = (
+                    self.circuit_dag_dep.direct_successors(i)
+                )
 
     def _init_matched_with_circuit(self):
         """

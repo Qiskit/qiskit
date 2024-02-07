@@ -9,6 +9,10 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+    labels:
+      - "Rust"
+      - "dependencies"
+      - "Changelog: None"
   - package-ecosystem: "github-actions"
     directory: "/"
     groups:

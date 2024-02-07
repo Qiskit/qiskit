@@ -119,12 +119,10 @@ class LazyDependencyManager(abc.ABC):
         return self._bool
 
     @typing.overload
-    def require_in_call(self, feature_or_callable: Callable) -> Callable:
-        ...
+    def require_in_call(self, feature_or_callable: Callable) -> Callable: ...
 
     @typing.overload
-    def require_in_call(self, feature_or_callable: str) -> Callable[[Callable], Callable]:
-        ...
+    def require_in_call(self, feature_or_callable: str) -> Callable[[Callable], Callable]: ...
 
     def require_in_call(self, feature_or_callable):
         """Create a decorator for callables that requires that the dependency is available when the
@@ -169,12 +167,10 @@ class LazyDependencyManager(abc.ABC):
         return out
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: Type) -> Type:
-        ...
+    def require_in_instance(self, feature_or_class: Type) -> Type: ...
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]:
-        ...
+    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]: ...
 
     def require_in_instance(self, feature_or_class):
         """A class decorator that requires the dependency is available when the class is

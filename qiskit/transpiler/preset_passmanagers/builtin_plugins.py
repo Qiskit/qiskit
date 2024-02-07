@@ -176,23 +176,6 @@ class BasisTranslatorPassManager(PassManagerStagePlugin):
         )
 
 
-class UnrollerPassManager(PassManagerStagePlugin):
-    """Plugin class for translation stage with :class:`~.BasisTranslator`"""
-
-    def pass_manager(self, pass_manager_config, optimization_level=None) -> PassManager:
-        return common.generate_translation_passmanager(
-            pass_manager_config.target,
-            basis_gates=pass_manager_config.basis_gates,
-            method="unroller",
-            approximation_degree=pass_manager_config.approximation_degree,
-            coupling_map=pass_manager_config.coupling_map,
-            backend_props=pass_manager_config.backend_properties,
-            unitary_synthesis_method=pass_manager_config.unitary_synthesis_method,
-            unitary_synthesis_plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
-            hls_config=pass_manager_config.hls_config,
-        )
-
-
 class UnitarySynthesisPassManager(PassManagerStagePlugin):
     """Plugin class for translation stage with :class:`~.BasisTranslator`"""
 
@@ -599,6 +582,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 raise TranspilerError(f"Invalid optimization_level: {optimization_level}")
 
             unroll = translation.to_flow_controller()
+
             # Build nested Flow controllers
             def _unroll_condition(property_set):
                 return not property_set["all_gates_in_basis"]

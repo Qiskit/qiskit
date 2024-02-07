@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,16 +13,15 @@
 """Test pulse builder context utilities."""
 
 from math import pi
-
 import numpy as np
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeWashington
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilder(QiskitTestCase):
@@ -666,7 +665,7 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         num_qubits = backend.configuration().num_qubits
         with pulse.build(backend) as schedule:
             regs = pulse.measure_all()
