@@ -16,12 +16,12 @@ some metadata for the acquisition process, for example, where to store classifie
 from __future__ import annotations
 from typing import Optional, Union
 from qiskit.circuit import ParameterExpression
-from qiskit import pulse
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
 from qiskit.pulse.model import Qubit
+from qiskit.pulse import model
 
 
 class Acquire(Instruction):
@@ -43,7 +43,7 @@ class Acquire(Instruction):
         self,
         duration: Union[int, ParameterExpression],
         *,
-        qubit: Optional[pulse.Qubit] = None,
+        qubit: Optional[model.Qubit] = None,
         channel: Optional[AcquireChannel] = None,
         mem_slot: Optional[MemorySlot] = None,
         reg_slot: Optional[RegisterSlot] = None,
@@ -109,7 +109,7 @@ class Acquire(Instruction):
         return None
 
     @property
-    def qubit(self) -> Union[AcquireChannel, pulse.Qubit]:
+    def qubit(self) -> Union[AcquireChannel, model.Qubit]:
         """Return the element acquired by this instruction."""
         return self.operands[1]
 
@@ -134,7 +134,7 @@ class Acquire(Instruction):
         return self._operands[5]
 
     @property
-    def acquire(self) -> Union[AcquireChannel, pulse.Qubit]:
+    def acquire(self) -> Union[AcquireChannel, model.Qubit]:
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
