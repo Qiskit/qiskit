@@ -574,7 +574,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
     return block
 
 
-def write_schedule_block(file_obj, block, metadata_serializer=None, use_symengine=False):
+def write_schedule_block(
+    file_obj, block, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+):  # pylint: disable=unused-argument
     """Write a single ScheduleBlock object in the file like object.
 
     Args:
@@ -588,6 +590,7 @@ def write_schedule_block(file_obj, block, metadata_serializer=None, use_symengin
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        version (int): The QPY format version to use for serializing this circuit block
     Raises:
         TypeError: If any of the instructions is invalid data format.
     """

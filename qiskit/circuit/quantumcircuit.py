@@ -16,9 +16,7 @@
 
 from __future__ import annotations
 import copy
-import itertools
 import multiprocessing as mp
-import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -44,10 +42,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_func
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .controlflow import ControlFlowOp
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
 from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
@@ -55,7 +51,7 @@ from .controlflow.for_loop import ForLoopOp, ForLoopContext
 from .controlflow.if_else import IfElseOp, IfContext
 from .controlflow.switch_case import SwitchCaseOp, SwitchContext
 from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
-from .classical import expr, types
+from .classical import expr
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -67,7 +63,6 @@ from .register import Register
 from .bit import Bit
 from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
-from .store import Store
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -146,27 +141,9 @@ class QuantumCircuit:
             circuit. This gets stored as free-form data in a dict in the
             :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
             not be directly used in the circuit.
-        inputs: any variables to declare as ``input`` runtime variables for this circuit.  These
-            should already be existing :class:`.expr.Var` nodes that you build from somewhere else;
-            if you need to create the inputs as well, use :meth:`QuantumCircuit.add_input`.  The
-            variables given in this argument will be passed directly to :meth:`add_input`.  A
-            circuit cannot have both ``inputs`` and ``captures``.
-        captures: any variables that that this circuit scope should capture from a containing scope.
-            The variables given here will be passed directly to :meth:`add_capture`.  A circuit
-            cannot have both ``inputs`` and ``captures``.
-        declarations: any variables that this circuit should declare and initialize immediately.
-            You can order this input so that later declarations depend on earlier ones (including
-            inputs or captures). If you need to depend on values that will be computed later at
-            runtime, use :meth:`add_var` at an appropriate point in the circuit execution.
-
-            This argument is intended for convenient circuit initialization when you already have a
-            set of created variables.  The variables used here will be directly passed to
-            :meth:`add_var`, which you can use directly if this is the first time you are creating
-            the variable.
 
     Raises:
         CircuitError: if the circuit name, if given, is not valid.
-        CircuitError: if both ``inputs`` and ``captures`` are given.
 
     Examples:
 
@@ -226,9 +203,6 @@ class QuantumCircuit:
         name: str | None = None,
         global_phase: ParameterValueType = 0,
         metadata: dict | None = None,
-        inputs: Iterable[expr.Var] = (),
-        captures: Iterable[expr.Var] = (),
-        declarations: Mapping[expr.Var, expr.Expr] | Iterable[Tuple[expr.Var, expr.Expr]] = (),
     ):
         if any(not isinstance(reg, (list, QuantumRegister, ClassicalRegister)) for reg in regs):
             # check if inputs are integers, but also allow e.g. 2.0
@@ -301,20 +275,6 @@ class QuantumCircuit:
         self._layout = None
         self._global_phase: ParameterValueType = 0
         self.global_phase = global_phase
-
-        # Add classical variables.  Resolve inputs and captures first because they can't depend on
-        # anything, but declarations might depend on them.
-        self._vars_input: dict[str, expr.Var] = {}
-        self._vars_capture: dict[str, expr.Var] = {}
-        self._vars_local: dict[str, expr.Var] = {}
-        for input_ in inputs:
-            self.add_input(input_)
-        for capture in captures:
-            self.add_capture(capture)
-        if isinstance(declarations, Mapping):
-            declarations = declarations.items()
-        for var, initial in declarations:
-            self.add_var(var, initial)
 
         self.duration = None
         self.unit = "dt"
@@ -389,24 +349,6 @@ class QuantumCircuit:
         inserted during routing.
         """
         return self._layout
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def header(cls) -> str:
-        """The OpenQASM 2.0 header statement."""
-        return "OPENQASM 2.0;"
-
-    @classmethod
-    @property
-    @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
-    )
-    def extension_lib(cls) -> str:
-        """The standard OpenQASM 2 import statement."""
-        return 'include "qelib1.inc";'
 
     @property
     def data(self) -> QuantumCircuitData:
@@ -525,17 +467,9 @@ class QuantumCircuit:
         return self._metadata
 
     @metadata.setter
-    def metadata(self, metadata: dict | None):
+    def metadata(self, metadata: dict):
         """Update the circuit metadata"""
-        if metadata is None:
-            metadata = {}
-            warnings.warn(
-                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
-                "removed in a future release. Instead, set metadata to an empty dictionary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        elif not isinstance(metadata, dict):
+        if not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 
@@ -562,8 +496,10 @@ class QuantumCircuit:
         #   copy.deepcopy(memo).
         cls = self.__class__
         result = cls.__new__(cls)
-        for k in self.__dict__.keys() - {"_data"}:
+        for k in self.__dict__.keys() - {"_data", "_builder_api"}:
             setattr(result, k, copy.deepcopy(self.__dict__[k], memo))
+
+        result._builder_api = _OuterCircuitScopeInterface(result)
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
@@ -726,10 +662,14 @@ class QuantumCircuit:
             circ._append(instruction.replace(qubits=qubits, clbits=clbits))
         return circ
 
-    def inverse(self) -> "QuantumCircuit":
+    def inverse(self, annotated: bool = False) -> "QuantumCircuit":
         """Invert (take adjoint of) this circuit.
 
         This is done by recursively inverting all gates.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
 
         Returns:
             QuantumCircuit: the inverted circuit
@@ -769,7 +709,9 @@ class QuantumCircuit:
         )
 
         for instruction in reversed(self._data):
-            inverse_circ._append(instruction.replace(operation=instruction.operation.inverse()))
+            inverse_circ._append(
+                instruction.replace(operation=instruction.operation.inverse(annotated=annotated))
+            )
         return inverse_circ
 
     def repeat(self, reps: int) -> "QuantumCircuit":
@@ -845,6 +787,7 @@ class QuantumCircuit:
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ) -> "QuantumCircuit":
         """Control this circuit on ``num_ctrl_qubits`` qubits.
 
@@ -853,6 +796,8 @@ class QuantumCircuit:
             label (str): An optional label to give the controlled operation for visualization.
             ctrl_state (str or int): The control state in decimal or as a bitstring
                 (e.g. '111'). If None, use ``2**num_ctrl_qubits - 1``.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             QuantumCircuit: The controlled version of this circuit.
@@ -869,7 +814,7 @@ class QuantumCircuit:
                 "be in the circuit for this operation."
             ) from ex
 
-        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state)
+        controlled_gate = gate.control(num_ctrl_qubits, label, ctrl_state, annotated)
         control_qreg = QuantumRegister(num_ctrl_qubits)
         controlled_circ = QuantumCircuit(
             control_qreg, self.qubits, *self.qregs, name=f"c_{self.name}"
@@ -1186,74 +1131,6 @@ class QuantumCircuit:
         """
         return self._ancillas
 
-    @property
-    def num_vars(self) -> int:
-        """The number of runtime classical variables in the circuit.
-
-        This is the length of the :meth:`iter_vars` iterable."""
-        return self.num_input_vars + self.num_captured_vars + self.num_declared_vars
-
-    @property
-    def num_input_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as circuit inputs.
-
-        This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
-        :attr:`num_captured_vars` must be zero."""
-        return len(self._vars_input)
-
-    @property
-    def num_captured_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as captured from an
-        enclosing scope.
-
-        This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
-        :attr:`num_input_vars` must be zero."""
-        return len(self._vars_capture)
-
-    @property
-    def num_declared_vars(self) -> int:
-        """The number of runtime classical variables in the circuit that are declared by this
-        circuit scope, excluding inputs or captures.
-
-        This is the length of the :meth:`iter_declared_vars` iterable."""
-        return len(self._vars_local)
-
-    def iter_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables in scope within this circuit.
-
-        This method will iterate over all variables in scope.  For more fine-grained iterators, see
-        :meth:`iter_declared_vars`, :meth:`iter_input_vars` and :meth:`iter_captured_vars`."""
-        if self._control_flow_scopes:
-            builder = self._control_flow_scopes[-1]
-            return itertools.chain(builder.iter_captured_vars(), builder.iter_local_vars())
-        return itertools.chain(
-            self._vars_input.values(), self._vars_capture.values(), self._vars_local.values()
-        )
-
-    def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared with automatic
-        storage duration in this scope.  This excludes input variables (see :meth:`iter_input_vars`)
-        and captured variables (see :meth:`iter_captured_vars`)."""
-        if self._control_flow_scopes:
-            return self._control_flow_scopes[-1].iter_local_vars()
-        return self._vars_local.values()
-
-    def iter_input_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared as inputs to this
-        circuit scope.  This excludes locally declared variables (see :meth:`iter_declared_vars`)
-        and captured variables (see :meth:`iter_captured_vars`)."""
-        if self._control_flow_scopes:
-            return ()
-        return self._vars_input.values()
-
-    def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are captured by this circuit
-        scope from a containing scope.  This excludes input variables (see :meth:`iter_input_vars`)
-        and locally declared variables (see :meth:`iter_declared_vars`)."""
-        if self._control_flow_scopes:
-            return self._control_flow_scopes[-1].iter_captured_vars()
-        return self._vars_capture.values()
-
     def __and__(self, rhs: "QuantumCircuit") -> "QuantumCircuit":
         """Overload & to implement self.compose."""
         return self.compose(rhs)
@@ -1277,12 +1154,10 @@ class QuantumCircuit:
         return len(self._data)
 
     @typing.overload
-    def __getitem__(self, item: int) -> CircuitInstruction:
-        ...
+    def __getitem__(self, item: int) -> CircuitInstruction: ...
 
     @typing.overload
-    def __getitem__(self, item: slice) -> list[CircuitInstruction]:
-        ...
+    def __getitem__(self, item: slice) -> list[CircuitInstruction]: ...
 
     def __getitem__(self, item):
         """Return indexed operation."""
@@ -1391,20 +1266,6 @@ class QuantumCircuit:
                     param = _validate_expr(circuit_scope, param)
             if is_parameter:
                 operation = copy.deepcopy(operation)
-        if isinstance(operation, ControlFlowOp):
-            # Verify that any variable bindings are valid.  Control-flow ops are already enforced
-            # by the class not to contain 'input' variables.
-            if bad_captures := {
-                var
-                for var in itertools.chain.from_iterable(
-                    block.iter_captured_vars() for block in operation.blocks
-                )
-                if not self.has_var(var)
-            }:
-                raise CircuitError(
-                    f"Control-flow op attempts to capture '{bad_captures}'"
-                    " which are not in this circuit"
-                )
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
@@ -1427,8 +1288,7 @@ class QuantumCircuit:
     @typing.overload
     def _append(
         self, instruction: CircuitInstruction, _qargs: None = None, _cargs: None = None
-    ) -> CircuitInstruction:
-        ...
+    ) -> CircuitInstruction: ...
 
     # To-be-deprecated old style.
     @typing.overload
@@ -1437,8 +1297,7 @@ class QuantumCircuit:
         operation: Operation,
         qargs: Sequence[Qubit],
         cargs: Sequence[Clbit],
-    ) -> Operation:
-        ...
+    ) -> Operation: ...
 
     def _append(
         self,
@@ -1511,13 +1370,11 @@ class QuantumCircuit:
                     self._parameters = None
 
     @typing.overload
-    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]:
-        ...
+    def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
 
     # The builtin `types` module has `EllipsisType`, but only from 3.10+!
     @typing.overload
-    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter:
-        ...
+    def get_parameter(self, name: str, default: type(...) = ...) -> Parameter: ...
 
     # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
     def get_parameter(self, name: str, default: typing.Any = ...) -> Parameter:
@@ -1555,11 +1412,6 @@ class QuantumCircuit:
 
                 assert qc.get_parameter("my_param", None) is my_param
                 assert qc.get_parameter("unknown_param", None) is None
-
-        See also:
-            :meth:`get_var`
-                A similar method, but for :class:`.expr.Var` run-time variables instead of
-                :class:`.Parameter` compile-time parameters.
         """
         if (parameter := self._parameter_table.parameter_from_name(name, None)) is None:
             if default is Ellipsis:
@@ -1581,306 +1433,10 @@ class QuantumCircuit:
         See also:
             :meth:`QuantumCircuit.get_parameter`
                 Retrieve the :class:`.Parameter` instance from this circuit by name.
-            :meth:`QuantumCircuit.has_var`
-                A similar method to this, but for run-time :class:`.expr.Var` variables instead of
-                compile-time :class:`.Parameter`\\ s.
         """
         if isinstance(name_or_param, str):
             return self.get_parameter(name_or_param, None) is not None
         return self.get_parameter(name_or_param.name) == name_or_param
-
-    @typing.overload
-    def get_var(self, name: str, default: T) -> Union[expr.Var, T]:
-        ...
-
-    # The builtin `types` module has `EllipsisType`, but only from 3.10+!
-    @typing.overload
-    def get_var(self, name: str, default: type(...) = ...) -> expr.Var:
-        ...
-
-    # We use a _literal_ `Ellipsis` as the marker value to leave `None` available as a default.
-    def get_var(self, name: str, default: typing.Any = ...):
-        """Retrieve a variable that is accessible in this circuit scope by name.
-
-        Args:
-            name: the name of the variable to retrieve.
-            default: if given, this value will be returned if the variable is not present.  If it
-                is not given, a :exc:`KeyError` is raised instead.
-
-        Returns:
-            The corresponding variable.
-
-        Raises:
-            KeyError: if no default is given, but the variable does not exist.
-
-        Examples:
-            Retrieve a variable by name from a circuit::
-
-                from qiskit.circuit import QuantumCircuit
-
-                # Create a circuit and create a variable in it.
-                qc = QuantumCircuit()
-                my_var = qc.add_var("my_var", False)
-
-                # We can use 'my_var' as a variable, but let's say we've lost the Python object and
-                # need to retrieve it.
-                my_var_again = qc.get_var("my_var")
-
-                assert my_var is my_var_again
-
-            Get a variable from a circuit by name, returning some default if it is not present::
-
-                assert qc.get_var("my_var", None) is my_var
-                assert qc.get_var("unknown_variable", None) is None
-
-        See also:
-            :meth:`get_parameter`
-                A similar method, but for :class:`.Parameter` compile-time parameters instead of
-                :class:`.expr.Var` run-time variables.
-        """
-        if (out := self._current_scope().get_var(name)) is not None:
-            return out
-        if default is Ellipsis:
-            raise KeyError(f"no variable named '{name}' is present")
-        return default
-
-    def has_var(self, name_or_var: str | expr.Var, /) -> bool:
-        """Check whether a variable is accessible in this scope.
-
-        Args:
-            name_or_var: the variable, or name of a variable to check.  If this is a
-                :class:`.expr.Var` node, the variable must be exactly the given one for this
-                function to return ``True``.
-
-        Returns:
-            whether a matching variable is accessible.
-
-        See also:
-            :meth:`QuantumCircuit.get_var`
-                Retrieve the :class:`.expr.Var` instance from this circuit by name.
-            :meth:`QuantumCircuit.has_parameter`
-                A similar method to this, but for compile-time :class:`.Parameter`\\ s instead of
-                run-time :class:`.expr.Var` variables.
-        """
-        if isinstance(name_or_var, str):
-            return self.get_var(name_or_var, None) is not None
-        return self.get_var(name_or_var.name, None) == name_or_var
-
-    def _prepare_new_var(
-        self, name_or_var: str | expr.Var, type_: types.Type | None, /
-    ) -> expr.Var:
-        """The common logic for preparing and validating a new :class:`~.expr.Var` for the circuit.
-
-        The given ``type_`` can be ``None`` if the variable specifier is already a :class:`.Var`,
-        and must be a :class:`~.types.Type` if it is a string.  The argument is ignored if the given
-        first argument is a :class:`.Var` already.
-
-        Returns the validated variable, which is guaranteed to be safe to add to the circuit."""
-        if isinstance(name_or_var, str):
-            if type_ is None:
-                raise CircuitError("the type must be known when creating a 'Var' from a string")
-            var = expr.Var.new(name_or_var, type_)
-        else:
-            var = name_or_var
-            if not var.standalone:
-                raise CircuitError(
-                    "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances."
-                    " Use `add_bits` or `add_register` as appropriate."
-                )
-
-        # The `var` is guaranteed to have a name because we already excluded the cases where it's
-        # wrapping a bit/register.
-        if (previous := self.get_var(var.name, default=None)) is not None:
-            if previous == var:
-                raise CircuitError(f"'{var}' is already present in the circuit")
-            raise CircuitError(f"cannot add '{var}' as its name shadows the existing '{previous}'")
-        return var
-
-    def add_var(self, name_or_var: str | expr.Var, /, initial: typing.Any) -> expr.Var:
-        """Add a classical variable with automatic storage and scope to this circuit.
-
-        The variable is considered to have been "declared" at the beginning of the circuit, but it
-        only becomes initialized at the point of the circuit that you call this method, so it can
-        depend on variables defined before it.
-
-        Args:
-            name_or_var: either a string of the variable name, or an existing instance of
-                :class:`~.expr.Var` to re-use.  Variables cannot shadow names that are already in
-                use within the circuit.
-            initial: the value to initialize this variable with.  If the first argument was given
-                as a string name, the type of the resulting variable is inferred from the initial
-                expression; to control this more manually, either use :meth:`.Var.new` to manually
-                construct a new variable with the desired type, or use :func:`.expr.cast` to cast
-                the initializer to the desired type.
-
-                This must be either a :class:`~.expr.Expr` node, or a value that can be lifted to
-                one using :class:`.expr.lift`.
-
-        Returns:
-            The created variable.  If a :class:`~.expr.Var` instance was given, the exact same
-            object will be returned.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-
-        Examples:
-            Define a new variable given just a name and an initializer expression::
-
-                from qiskit.circuit import QuantumCircuit
-
-                qc = QuantumCircuit(2)
-                my_var = qc.add_var("my_var", False)
-
-            Reuse a variable that may have been taken from a related circuit, or otherwise
-            constructed manually, and initialize it to some more complicated expression::
-
-                from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-                from qiskit.circuit.classical import expr, types
-
-                my_var = expr.Var.new("my_var", types.Uint(8))
-
-                cr1 = ClassicalRegister(8, "cr1")
-                cr2 = ClassicalRegister(8, "cr2")
-                qc = QuantumCircuit(QuantumRegister(8), cr1, cr2)
-
-                # Get some measurement results into each register.
-                qc.h(0)
-                for i in range(1, 8):
-                    qc.cx(0, i)
-                qc.measure(range(8), cr1)
-
-                qc.reset(range(8))
-                qc.h(0)
-                for i in range(1, 8):
-                    qc.cx(0, i)
-                qc.measure(range(8), cr2)
-
-                # Now when we add the variable, it is initialized using the runtime state of the two
-                # classical registers we measured into above.
-                qc.add_var(my_var, expr.bit_and(cr1, cr2))
-        """
-        # Validate the initialiser first to catch cases where the variable to be declared is being
-        # used in the initialiser.
-        circuit_scope = self._current_scope()
-        initial = _validate_expr(circuit_scope, expr.lift(initial))
-        if isinstance(name_or_var, str):
-            var = expr.Var.new(name_or_var, initial.type)
-        elif not name_or_var.standalone:
-            raise CircuitError(
-                "cannot add variables that wrap `Clbit` or `ClassicalRegister` instances."
-            )
-        else:
-            var = name_or_var
-        circuit_scope.add_uninitialized_var(var)
-        try:
-            # Store is responsible for ensuring the type safety of the initialisation.
-            store = Store(var, initial)
-        except CircuitError:
-            circuit_scope.remove_var(var)
-            raise
-        circuit_scope.append(CircuitInstruction(store, (), ()))
-        return var
-
-    def add_uninitialized_var(self, var: expr.Var, /):
-        """Add a variable with no initializer.
-
-        In most cases, you should use :meth:`add_var` to initialize the variable.  To use this
-        function, you must already hold a :class:`~.expr.Var` instance, as the use of the function
-        typically only makes sense in copying contexts.
-
-        .. warning::
-
-            Qiskit makes no assertions about what an uninitialized variable will evaluate to at
-            runtime, and some hardware may reject this as an error.
-
-            You should treat this function with caution, and as a low-level primitive that is useful
-            only in special cases of programmatically rebuilding two like circuits.
-
-        Args:
-            var: the variable to add.
-        """
-        # This function is deliberately meant to be a bit harder to find, to have a long descriptive
-        # name, and to be a bit less ergonomic than `add_var` (i.e. not allowing the (name, type)
-        # overload) to discourage people from using it when they should use `add_var`.
-        #
-        # This function exists so that there is a method to emulate `copy_empty_like`'s behaviour of
-        # adding uninitialised variables, which there's no obvious way around.  We need to be sure
-        # that _some_ sort of handling of uninitialised variables is taken into account in our
-        # structures, so that doesn't become a huge edge case, even though we make no assertions
-        # about the _meaning_ if such an expression was run on hardware.
-        if self._control_flow_scopes:
-            raise CircuitError("cannot add an uninitialized variable in a control-flow scope")
-        if not var.standalone:
-            raise CircuitError("cannot add a variable wrapping a bit or register to a circuit")
-        self._builder_api.add_uninitialized_var(var)
-
-    def add_capture(self, var: expr.Var):
-        """Add a variable to the circuit that it should capture from a scope it will be contained
-        within.
-
-        This method requires a :class:`~.expr.Var` node to enforce that you've got a handle to one,
-        because you will need to declare the same variable using the same object into the outer
-        circuit.
-
-        This is a low-level method, which is only really useful if you are manually constructing
-        control-flow operations. You typically will not need to call this method, assuming you
-        are using the builder interface for control-flow scopes (``with`` context-manager statements
-        for :meth:`if_test` and the other scoping constructs).  The builder interface will
-        automatically make the inner scopes closures on your behalf by capturing any variables that
-        are used within them.
-
-        Args:
-            var: the variable to capture from an enclosing scope.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-        """
-        if self._control_flow_scopes:
-            # Allow manual capturing.  Not sure why it'd be useful, but there's a clear expected
-            # behaviour here.
-            self._control_flow_scopes[-1].use_var(var)
-            return
-        if self._vars_input:
-            raise CircuitError(
-                "circuits with input variables cannot be enclosed, so cannot be closures"
-            )
-        self._vars_capture[var.name] = self._prepare_new_var(var, None)
-
-    @typing.overload
-    def add_input(self, name_or_var: str, type_: types.Type, /) -> expr.Var:
-        ...
-
-    @typing.overload
-    def add_input(self, name_or_var: expr.Var, type_: None = None, /) -> expr.Var:
-        ...
-
-    def add_input(  # pylint: disable=missing-raises-doc
-        self, name_or_var: str | expr.Var, type_: types.Type | None = None, /
-    ) -> expr.Var:
-        """Register a variable as an input to the circuit.
-
-        Args:
-            name_or_var: either a string name, or an existing :class:`~.expr.Var` node to use as the
-                input variable.
-            type_: if the name is given as a string, then this must be a :class:`~.types.Type` to
-                use for the variable.  If the variable is given as an existing :class:`~.expr.Var`,
-                then this must not be given, and will instead be read from the object itself.
-
-        Returns:
-            the variable created, or the same variable as was passed in.
-
-        Raises:
-            CircuitError: if the variable cannot be created due to shadowing an existing variable.
-        """
-        if self._control_flow_scopes:
-            raise CircuitError("cannot add an input variable in a control-flow scope")
-        if self._vars_capture:
-            raise CircuitError("circuits to be enclosed with captures cannot have input variables")
-        if isinstance(name_or_var, expr.Var) and type_ is not None:
-            raise ValueError("cannot give an explicit type with an existing Var")
-        var = self._prepare_new_var(name_or_var, type_)
-        self._vars_input[var.name] = var
-        return var
 
     def add_register(self, *regs: Register | int | Sequence[Bit]) -> None:
         """Add registers."""
@@ -2552,14 +2108,6 @@ class QuantumCircuit:
             * global phase
             * all the qubits and clbits, including the registers
 
-        .. warning::
-
-            If the circuit contains any local variable declarations (those added by the
-            ``declarations`` argument to the circuit constructor, or using :meth:`add_var`), they
-            will be **uninitialized** in the output circuit.  You will need to manually add store
-            instructions for them (see :class:`.Store` and :meth:`.QuantumCircuit.store`) to
-            initialize them.
-
         Args:
             name (str): Name for the copied circuit. If None, then the name stays the same.
 
@@ -2578,13 +2126,6 @@ class QuantumCircuit:
         cpy._ancillas = self._ancillas.copy()
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
-
-        # Note that this causes the local variables to be uninitialised, because the stores are not
-        # copied.  This can leave the circuit in a potentially dangerous state for users if they
-        # don't re-add initialiser stores.
-        cpy._vars_local = self._vars_local.copy()
-        cpy._vars_input = self._vars_input.copy()
-        cpy._vars_capture = self._vars_capture.copy()
 
         cpy._parameter_table = ParameterTable()
         for parameter in getattr(cpy.global_phase, "parameters", ()):
@@ -2644,31 +2185,6 @@ class QuantumCircuit:
         from .reset import Reset
 
         return self.append(Reset(), [qubit], [])
-
-    def store(self, lvalue: typing.Any, rvalue: typing.Any, /) -> InstructionSet:
-        """Store the result of the given runtime classical expression ``rvalue`` in the memory
-        location defined by ``lvalue``.
-
-        Typically ``lvalue`` will be a :class:`~.expr.Var` node and ``rvalue`` will be some
-        :class:`~.expr.Expr` to write into it, but anything that :func:`.expr.lift` can raise to an
-        :class:`~.expr.Expr` is permissible in both places, and it will be called on them.
-
-        Args:
-            lvalue: a valid specifier for a memory location in the circuit.  This will typically be
-                a :class:`~.expr.Var` node, but you can also write to :class:`.Clbit` or
-                :class:`.ClassicalRegister` memory locations if your hardware supports it.  The
-                memory location must already be present in the circuit.
-            rvalue: a runtime classical expression whose result should be written into the given
-                memory location.
-
-        .. seealso::
-            :class:`~.circuit.Store`
-                The backing :class:`~.circuit.Instruction` class that represents this operation.
-
-            :meth:`add_var`
-                Create a new variable in the circuit that can be written to with this method.
-        """
-        return self.append(Store(expr.lift(lvalue), expr.lift(rvalue)), (), ())
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
@@ -2864,6 +2380,8 @@ class QuantumCircuit:
         # Clear instruction info
         circ._data = CircuitData(qubits=circ._data.qubits, reserve=len(circ._data))
         circ._parameter_table.clear()
+        # Repopulate the parameter table with any global-phase entries.
+        circ.global_phase = circ.global_phase
 
         # We must add the clbits first to preserve the original circuit
         # order. This way, add_register never adds clbits and just
@@ -2949,6 +2467,7 @@ class QuantumCircuit:
         # called by some subclasses before the inner `_global_phase` is initialised.
         global_phase_reference = (ParameterTable.GLOBAL_PHASE, None)
         if isinstance(previous := getattr(self, "_global_phase", None), ParameterExpression):
+            self._parameters = None
             self._parameter_table.discard_references(previous, global_phase_reference)
 
         if isinstance(angle, ParameterExpression) and angle.parameters:
@@ -3055,8 +2574,7 @@ class QuantumCircuit:
         *,
         flat_input: bool = ...,
         strict: bool = ...,
-    ) -> "QuantumCircuit":
-        ...
+    ) -> "QuantumCircuit": ...
 
     @overload
     def assign_parameters(
@@ -3066,8 +2584,7 @@ class QuantumCircuit:
         *,
         flat_input: bool = ...,
         strict: bool = ...,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     def assign_parameters(  # pylint: disable=missing-raises-doc
         self,
@@ -4558,7 +4075,7 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`~qiskit.circuit.librar.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
         :class:`~qiskit.circuit.library.Initialize` instruction.
@@ -4809,8 +4326,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> WhileLoopContext:
-        ...
+    ) -> WhileLoopContext: ...
 
     @typing.overload
     def while_loop(
@@ -4821,8 +4337,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def while_loop(self, condition, body=None, qubits=None, clbits=None, *, label=None):
         """Create a ``while`` loop on this circuit.
@@ -4897,8 +4412,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> ForLoopContext:
-        ...
+    ) -> ForLoopContext: ...
 
     @typing.overload
     def for_loop(
@@ -4910,8 +4424,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def for_loop(
         self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
@@ -4987,8 +4500,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: str | None,
-    ) -> IfContext:
-        ...
+    ) -> IfContext: ...
 
     @typing.overload
     def if_test(
@@ -4999,8 +4511,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: str | None = None,
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def if_test(
         self,
@@ -5154,8 +4665,7 @@ class QuantumCircuit:
         clbits: None,
         *,
         label: Optional[str],
-    ) -> SwitchContext:
-        ...
+    ) -> SwitchContext: ...
 
     @typing.overload
     def switch(
@@ -5166,8 +4676,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         *,
         label: Optional[str],
-    ) -> InstructionSet:
-        ...
+    ) -> InstructionSet: ...
 
     def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
         """Create a ``switch``/``case`` structure on this circuit.
@@ -5486,24 +4995,6 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
             except IndexError:
                 raise CircuitError(f"Classical bit index {specifier} is out-of-range.") from None
         raise CircuitError(f"Unknown classical resource specifier: '{specifier}'.")
-
-    def add_uninitialized_var(self, var):
-        var = self.circuit._prepare_new_var(var, None)
-        self.circuit._vars_local[var.name] = var
-
-    def remove_var(self, var):
-        self.circuit._vars_local.pop(var.name)
-
-    def get_var(self, name):
-        if (out := self.circuit._vars_local.get(name)) is not None:
-            return out
-        if (out := self.circuit._vars_capture.get(name)) is not None:
-            return out
-        return self.circuit._vars_input.get(name)
-
-    def use_var(self, var):
-        if self.get_var(var.name) != var:
-            raise CircuitError(f"'{var}' is not present in this circuit")
 
 
 def _validate_expr(circuit_scope: CircuitScopeInterface, node: expr.Expr) -> expr.Expr:

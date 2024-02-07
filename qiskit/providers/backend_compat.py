@@ -240,6 +240,7 @@ def convert_to_target(
                 if (
                     name not in all_instructions
                     or name not in prop_name_map
+                    or prop_name_map[name] is None
                     or qubits not in prop_name_map[name]
                 ):
                     logger.info(

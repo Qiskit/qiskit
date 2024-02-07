@@ -17,8 +17,9 @@ Estimator Pub class
 
 from __future__ import annotations
 
-from typing import Tuple, Union
 from numbers import Real
+from collections.abc import Mapping
+from typing import Tuple, Union
 
 import numpy as np
 
@@ -27,6 +28,9 @@ from qiskit import QuantumCircuit
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin
+
+# Public API classes
+__all__ = ["EstimatorPubLike"]
 
 
 class EstimatorPub(ShapedMixin):
@@ -134,9 +138,18 @@ class EstimatorPub(ShapedMixin):
             )
         circuit = pub[0]
         observables = ObservablesArray.coerce(pub[1])
-        parameter_values = BindingsArray.coerce(pub[2]) if len(pub) > 2 else None
+
+        if len(pub) > 2 and pub[2] is not None:
+            values = pub[2]
+            if not isinstance(values, Mapping):
+                values = {tuple(circuit.parameters): values}
+            parameter_values = BindingsArray.coerce(values)
+        else:
+            parameter_values = None
+
         if len(pub) > 3 and pub[3] is not None:
             precision = pub[3]
+
         return cls(
             circuit=circuit,
             observables=observables,
@@ -183,3 +196,20 @@ EstimatorPubLike = Union[
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike],
     Tuple[QuantumCircuit, ObservablesArrayLike, BindingsArrayLike, Real],
 ]
+"""A Pub (Primitive Unified Bloc) for an Estimator primitive.
+
+A fully specified estimator pub is a tuple ``(circuit, observables, parameter_values, precision)``.
+
+If precision is provided this should be used for the target precision of an
+estimator, if ``precision=None`` the estimator will determine the target precision.
+
+.. note::
+
+    An Estimator Pub can also be initialized in the following formats which
+    will be converted to the full Pub tuple:
+
+    * ``circuit
+    * ``(circuit,)``
+    * ``(circuit, observables)``
+    * ``(circuit, observalbes, parameter_values)``
+"""
