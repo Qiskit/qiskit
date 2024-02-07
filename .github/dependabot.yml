@@ -21,3 +21,7 @@ updates:
           - "*"  # Group all Actions updates into a single larger pull request
     schedule:
       interval: weekly
+    labels:
+      - "type: qa"
+      - "dependencies"
+      - "Changelog: None"
