@@ -13,9 +13,12 @@
 
 """Add a barrier before final measurements."""
 
+import rustworkx as rx
+
 from qiskit.circuit.barrier import Barrier
+from qiskit.circuit import Qubit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
@@ -34,24 +37,29 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
     def run(self, dag):
         """Run the BarrierBeforeFinalMeasurements pass on `dag`."""
         # Collect DAG nodes which are followed only by barriers or other measures.
-        final_op_types = ["measure", "barrier"]
-        final_ops = []
-        for candidate_node in dag.named_nodes(*final_op_types):
-            is_final_op = True
+        final_op_types = {"measure", "barrier"}
+        final_ops_set = set()
+        for output_node in dag.output_map.values():
+            qubit = output_node.wire
+            if not isinstance(qubit, Qubit):
+                continue
+            pred = next(dag.predecessors(output_node))
 
-            for _, child_successors in dag.bfs_successors(candidate_node):
+            if (
+                isinstance(pred, DAGOpNode)
+                and pred.name in final_op_types
+                and all(isinstance(x, DAGOutNode) for x in dag.successors(pred))
+            ):
+                final_ops_set.add(pred)
+                for new_pred, parent_preds in rx.bfs_predecessors(dag._multi_graph, pred._node_id):
+                    if any(
+                        isinstance(p, DAGOpNode) and p.name not in final_op_types
+                        for p in parent_preds
+                    ):
+                        break
+                    final_ops_set.add(new_pred)
 
-                if any(
-                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
-                    for suc in child_successors
-                ):
-                    is_final_op = False
-                    break
-
-            if is_final_op:
-                final_ops.append(candidate_node)
-
-        if not final_ops:
+        if not final_ops_set:
             return dag
 
         # Create a layer with the barrier and add both bits and registers from the original dag.
@@ -72,9 +80,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         )
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_final_nodes = [
-            node for node in dag.topological_op_nodes() if node in set(final_ops)
-        ]
+        ordered_final_nodes = [node for node in dag.topological_op_nodes() if node in final_ops_set]
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
@@ -82,7 +88,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                 final_node.op, final_node.qargs, final_node.cargs, check=False
             )
 
-        for final_op in final_ops:
+        for final_op in ordered_final_nodes:
             dag.remove_op_node(final_op)
 
         dag.compose(barrier_layer)

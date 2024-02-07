@@ -187,7 +187,6 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
-
         self.assertEqual(result, circuit_to_dag(expected))
 
 
