@@ -106,10 +106,9 @@ class EvolvedOperatorAnsatz(NLocal):
         if self.operators is None:
             return 0
 
-        if isinstance(self.operators, list) and len(self.operators) == 0:
-            return 0
-
-        if isinstance(self.operators, list) and len(self.operators) > 0:
+        if isinstance(self.operators, list):
+            if len(self.operators) == 0:
+                return 0
             return self.operators[0].num_qubits
 
         return self.operators.num_qubits
