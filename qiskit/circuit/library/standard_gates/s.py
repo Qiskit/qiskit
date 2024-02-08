@@ -81,7 +81,12 @@ class SGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of S (SdgGate)."""
+        """Return inverse of S (SdgGate).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return SdgGate()
 
     def power(self, exponent: float):
@@ -149,7 +154,12 @@ class SdgGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of Sdg (SGate)."""
+        """Return inverse of Sdg (SGate).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return SGate()
 
     def power(self, exponent: float):
@@ -226,7 +236,12 @@ class CSGate(SingletonControlledGate):
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of CSGate (CSdgGate)."""
+        """Return inverse of CSGate (CSdgGate).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
     def power(self, exponent: float):
@@ -302,7 +317,12 @@ class CSdgGate(SingletonControlledGate):
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of CSdgGate (CSGate)."""
+        """Return inverse of CSdgGate (CSGate).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return CSGate(ctrl_state=self.ctrl_state)
 
     def power(self, exponent: float):

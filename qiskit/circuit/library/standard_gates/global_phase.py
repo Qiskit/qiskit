@@ -53,9 +53,13 @@ class GlobalPhaseGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted GlobalPhaseGate gate.
+        r"""Return inverse GlobalPhaseGate gate.
 
         :math:`\text{GlobalPhaseGate}(\lambda)^{\dagger} = \text{GlobalPhaseGate}(-\lambda)`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
         """
         return GlobalPhaseGate(-self.params[0])
 

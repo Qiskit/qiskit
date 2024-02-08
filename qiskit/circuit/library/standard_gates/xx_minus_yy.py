@@ -154,7 +154,12 @@ class XXMinusYYGate(Gate):
         self.definition = circuit
 
     def inverse(self, annotated: bool = False):
-        """Inverse gate."""
+        """Inverse gate.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)
 

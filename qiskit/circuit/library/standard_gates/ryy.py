@@ -109,7 +109,12 @@ class RYYGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse RYY gate (i.e. with the negative rotation angle)."""
+        """Return inverse RYY gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return RYYGate(-self.params[0])
 
     def __array__(self, dtype=None):

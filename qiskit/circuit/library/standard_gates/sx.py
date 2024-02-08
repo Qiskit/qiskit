@@ -85,7 +85,12 @@ class SXGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse SX gate (i.e. SXdg)."""
+        """Return inverse SX gate (i.e. SXdg).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return SXdgGate()
 
     def control(
@@ -100,10 +105,10 @@ class SXGate(SingletonGate):
         One control returns a CSX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -153,6 +158,9 @@ class SXdgGate(SingletonGate):
                       \end{pmatrix}
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
 
+    Args:
+        annotated: indicates whether the inverse gate can be implemented
+            as an annotated gate.
     """
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
@@ -178,7 +186,12 @@ class SXdgGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse SXdg gate (i.e. SX)."""
+        """Return inverse SXdg gate (i.e. SX).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return SXGate()
 
     def __eq__(self, other):

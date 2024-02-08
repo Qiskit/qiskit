@@ -110,7 +110,12 @@ class ECRGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse ECR gate (itself)."""
+        """Return inverse ECR gate (itself).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return ECRGate()  # self-inverse
 
     def __eq__(self, other):

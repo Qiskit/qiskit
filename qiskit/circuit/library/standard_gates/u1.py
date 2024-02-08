@@ -121,10 +121,10 @@ class U1Gate(Gate):
         """Return a (multi-)controlled-U1 gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -147,7 +147,12 @@ class U1Gate(Gate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda)`)"""
+        r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return U1Gate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -257,10 +262,10 @@ class CU1Gate(ControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -280,7 +285,12 @@ class CU1Gate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
+        r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
@@ -376,10 +386,10 @@ class MCU1Gate(ControlledGate):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -406,5 +416,10 @@ class MCU1Gate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
+        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)

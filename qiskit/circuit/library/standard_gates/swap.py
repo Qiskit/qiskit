@@ -96,10 +96,10 @@ class SwapGate(SingletonGate):
         One control returns a CSWAP (Fredkin) gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -118,7 +118,12 @@ class SwapGate(SingletonGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Return inverse Swap gate (itself)."""
+        """Return inverse Swap gate (itself).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return SwapGate()  # self-inverse
 
     def __eq__(self, other):
@@ -254,7 +259,12 @@ class CSwapGate(SingletonControlledGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse CSwap gate (itself)."""
+        """Return inverse CSwap gate (itself).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 
     def __eq__(self, other):

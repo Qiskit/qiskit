@@ -83,7 +83,11 @@ class UGate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
-        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
+        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -97,10 +101,10 @@ class UGate(Gate):
         """Return a (multi-)controlled-U gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -307,7 +311,11 @@ class CUGate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
-        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)
+        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
         """
         return CUGate(
             -self.params[0],

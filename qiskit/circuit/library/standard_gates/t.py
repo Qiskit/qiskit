@@ -79,7 +79,12 @@ class TGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse T gate (i.e. Tdg)."""
+        """Return inverse T gate (i.e. Tdg).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return TdgGate()
 
     def power(self, exponent: float):
@@ -145,7 +150,12 @@ class TdgGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse Tdg gate (i.e. T)."""
+        """Return inverse Tdg gate (i.e. T).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return TGate()
 
     def power(self, exponent: float):

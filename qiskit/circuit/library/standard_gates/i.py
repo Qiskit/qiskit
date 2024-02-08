@@ -52,7 +52,12 @@ class IGate(SingletonGate):
     _singleton_lookup_key = stdlib_singleton_key()
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate."""
+        """Returne the inverse gate (itself).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        ."""
         return IGate()  # self-inverse
 
     def power(self, exponent: float):

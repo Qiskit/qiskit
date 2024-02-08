@@ -153,7 +153,12 @@ class XXPlusYYGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
+        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
+        """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
     def __array__(self, dtype=complex):

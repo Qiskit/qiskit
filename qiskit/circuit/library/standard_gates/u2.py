@@ -114,7 +114,11 @@ class U2Gate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U2 gate.
 
-        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
+        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi))`
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate.
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
