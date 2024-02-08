@@ -22,8 +22,8 @@ def synth_permutation_depth_lnn_kms(pattern):
 
     This is the permutation synthesis algorithm from [1], Chapter 6.
     It synthesizes any permutation of n qubits over linear nearest-neighbor
-    architecture using SWAP gates with depth at most ``n`` and size at most
-    ``n(n-1)/2`` (where both depth and size are measured with respect to SWAPs).
+    architecture using SWAP gates with depth at most :math:`n` and size at most
+    :math:`n(n-1)/2` (where both depth and size are measured with respect to SWAPs).
 
     Args:
         pattern (Union[list[int], np.ndarray]): permutation pattern, describing

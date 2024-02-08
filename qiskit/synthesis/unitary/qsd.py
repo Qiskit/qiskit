@@ -52,7 +52,7 @@ def qs_decomposition(
         /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
           └───┘          └───┘     └───┘     └───┘     └───┘
 
-    The number of :class:`.CXGate`s generated with the decomposition without optimizations is,
+    The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is,
 
     .. math::
 

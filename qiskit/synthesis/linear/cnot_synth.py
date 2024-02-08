@@ -29,7 +29,7 @@ def synth_cnot_count_full_pmh(state, section_size=2):
 
     This function is an implementation of the Patel, Markov and Hayes algorithm from [1]
     for optimal synthesis of linear reversible circuits for all-to-all architecture,
-    as specified by an *n x n* matrix.
+    as specified by an :math:`n \\times n` matrix.
 
     Args:
         state (list[list] or ndarray): *n x n* boolean invertible matrix, describing the state

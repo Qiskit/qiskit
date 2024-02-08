@@ -255,7 +255,7 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles for input array.
 
         Args:
-            unitary: 2x2 unitary matrix.
+            unitary: :math:`2\\times2` unitary matrix.
 
         Returns:
             tuple: (theta, phi, lambda).

@@ -19,17 +19,17 @@ from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_g
 
 
 def synth_clifford_full(clifford, method=None):
-    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit.
+    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
 
-    For ``N <= 3`` qubits this is based on optimal CX cost decomposition
-    from reference [1]. For ``N > 3`` qubits this is done using the general
+    For :math:`N <= 3` qubits this is based on optimal CX-cost decomposition
+    from reference [1]. For :math:`N > 3` qubits this is done using the general
     non-optimal greedy compilation routine from reference [3],
     which typically yields better CX cost compared to the AG method in [2].
 
     Args:
         clifford (Clifford): a Clifford operator.
         method (str):  Optional, a synthesis method (``'AG'`` or ``'greedy'``).
-             If set this overrides optimal decomposition for ``N <=3`` qubits.
+             If set this overrides optimal decomposition for :math:`N <= 3` qubits.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.

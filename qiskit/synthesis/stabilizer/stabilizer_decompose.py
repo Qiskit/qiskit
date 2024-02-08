@@ -164,7 +164,7 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
 
 def synth_stabilizer_depth_lnn(stab):
     """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
-    in 2-qubit depth ``2*n+2`` and two distinct CX layers, using :class:`.CXGate`s and phase gates
+    in 2-qubit depth :math:`2n+2` and two distinct CX layers, using :class:`.CXGate`\\ s and phase gates
     (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
     Args:

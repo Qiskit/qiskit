@@ -1042,11 +1042,11 @@ class TwoQubitBasisDecomposer:
 
     @staticmethod
     def decomp0(target):
-        """Decompose target :math:`~Ud(x, y, z)` with 0 uses of the basis gate.
-        Result  :math:`Ur` has trace:
+        r"""Decompose target :math:`\tilde U_d(x, y, z)` with 0 uses of the basis gate.
+        Result  :math:`U_r` has trace:
 
         .. math::
-            |Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|
+            \Bigl\lvert \Tr\bigl(U_r U_{\text{target}}^\dagger\bigr)\Bigr\rvert = 4\Bigl\lvert\bigl(\cos(x)\cos(y)\cos(z)+ i \sin(x)\sin(y)\sin(z)\bigr)\Bigr\rvert
 
         which is optimal for all targets and bases"""
         U0l = target.K1l.dot(target.K2l)
