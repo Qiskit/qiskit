@@ -343,10 +343,10 @@ class DAGDependencyV2:
             dag=self,
         )
         new_node._node_id = self._multi_graph.add_node(new_node)
-        self._update_edges()
+        self._update_edges(new_node)
         self._increment_op(new_node.op)
 
-    def _update_edges(self):
+    def _update_edges(self, new_node):
         """
         Updates DagDependencyV2 by adding edges to the newly added node (max_node)
         from the previously added nodes.
@@ -359,45 +359,49 @@ class DAGDependencyV2:
         representation of a circuit, and hence there are no removed nodes (this is why
         iterating over all nodes is fine).
         """
-        max_node_id = len(self._multi_graph) - 1
-        max_node = self._get_node(max_node_id)
+        # max_node_id = len(self._multi_graph) - 1
+        # max_node = self._get_node(max_node_id)
 
-        reachable = [True] * max_node_id
+        reachable = {}#[True] * max_node_id
 
         # Analyze nodes in the reverse topological order.
         # An improvement to the original algorithm is to consider only direct predecessors
         # and to avoid constructing the lists of forward and backward reachable predecessors
         # for every node when not required.
-        for prev_node_id in range(max_node_id - 1, -1, -1):
-            if reachable[prev_node_id]:
-                prev_node = self._get_node(prev_node_id)
+        x = self._multi_graph.copy()
+        x.reverse()
+        for prev_node in x.nodes():#range(max_node_id - 1, -1, -1):
+            if reachable.get(prev_node, None) is None:
+                #prev_node = self._get_node(prev_node_id)
+                if prev_node == new_node:
+                    continue
 
                 if not self.comm_checker.commute(
                     prev_node.op,
                     prev_node.qargs,
                     prev_node.cargs,
-                    max_node.op,
-                    max_node.qargs,
-                    max_node.cargs,
+                    new_node.op,
+                    new_node.qargs,
+                    new_node.cargs,
                 ):
                     # If prev_node and max_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node
                     # as not reaching max_node.
-                    self._multi_graph.add_edge(prev_node_id, max_node_id, {"commute": False})
+                    self._multi_graph.add_edge(prev_node._node_id, new_node._node_id, {"commute": False})
 
-                    predecessor_ids = sorted(
-                        [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
-                    )
-                    for predecessor_id in predecessor_ids:
-                        reachable[predecessor_id] = False
+                    #predecessor_ids = [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
+                    for predecessor in self.predecessors(prev_node):
+                        reachable[predecessor] = False
             else:
                 # If prev_node cannot reach max_node, then none of its predecessors can
                 # reach max_node either.
-                predecessor_ids = sorted(
-                    [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
-                )
-                for predecessor_id in predecessor_ids:
-                    reachable[predecessor_id] = False
+                # predecessor_ids = sorted(
+                #     [node._node_id for node in self.predecessors(self._get_node(prev_node_id))]
+                # )
+                for predecessor in self.predecessors(prev_node):
+                    reachable[predecessor] = False
+                # for predecessor_id in predecessor_ids:
+                #     reachable[predecessor_id] = False
 
     def _get_node(self, node_id):
         """
