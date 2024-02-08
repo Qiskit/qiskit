@@ -38,7 +38,7 @@ def synth_stabilizer_layers(
 ):
     """Synthesis of a stabilizer state into layers.
 
-    It provides a similar decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov,
+    It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
     without the initial Hadamard-free sub-circuit which do not affect the stabilizer state.
 
     For example, a 5-qubit stabilizer state is decomposed into the following layers:
@@ -59,18 +59,19 @@ def synth_stabilizer_layers(
     Args:
         stab (StabilizerState): a stabilizer state.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
-            It gets as input a boolean symmetric matrix, and outputs a QuantumCircuit.
+            It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
         validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
+        cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
+            :func:`.synth_cz_depth_line_mr`,
             since this function returns a circuit that reverts the order of qubits.
 
     Return:
         QuantumCircuit: a circuit implementation of the stabilizer state.
 
     Raises:
-        QiskitError: if the input is not a StabilizerState.
+        QiskitError: if the input is not a :class:`.StabilizerState`.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
@@ -163,7 +164,8 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
 
 def synth_stabilizer_depth_lnn(stab):
     """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
-    in 2-qubit depth 2*n+2 and two distinct CX layers, using CX and phase gates (S, Sdg or Z).
+    in 2-qubit depth ``2*n+2`` and two distinct CX layers, using :class:`.CXGate`s and phase gates
+    (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
     Args:
         stab (StabilizerState): a stabilizer state.
@@ -171,7 +173,7 @@ def synth_stabilizer_depth_lnn(stab):
     Return:
         QuantumCircuit: a circuit implementation of the stabilizer state.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_

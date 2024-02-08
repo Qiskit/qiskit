@@ -37,7 +37,7 @@ def synth_qft_line(
     Return:
         A circuit implementation of the QFT circuit.
 
-    Reference:
+    References:
         1. A. G. Fowler, S. J. Devitt, and L. C. L. Hollenberg,
            *Implementation of Shor's algorithm on a linear nearest neighbour qubit array*,
            Quantum Info. Comput. 4, 4 (July 2004), 237–251.

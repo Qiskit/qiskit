@@ -60,9 +60,7 @@ def synth_permutation_acg(pattern):
 
     This produces a quantum circuit of depth 2 (measured in the number of SWAPs).
 
-    This implementation is based on the Theorem 2 in the paper
-    "Routing Permutations on Graphs Via Matchings" (1993),
-    available at https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf.
+    This implementation is based on the Theorem 2 in reference [1].
 
     Args:
         pattern (Union[list[int], np.ndarray]): permutation pattern, describing
@@ -74,6 +72,13 @@ def synth_permutation_acg(pattern):
 
     Returns:
         QuantumCircuit: the synthesized quantum circuit.
+
+    References:
+        1. N. Alon, F. R. K. Chung, and R. L. Graham.
+           *Routing Permutations on Graphs Via Matchings.*,
+           Proceedings of the Twenty-Fifth Annual ACM Symposium on Theory of Computing(1993).
+           Pages 583–591.
+           `10.1145/167088.167239 <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
     """
 
     num_qubits = len(pattern)

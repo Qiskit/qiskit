@@ -121,7 +121,7 @@ def _process_node(node: Node, basis: list[str], sequences: list[GateSequence]):
 def generate_basic_approximations(
     basis_gates: list[str | Gate], depth: int, filename: str | None = None
 ) -> list[GateSequence]:
-    """Generates a list of ``GateSequence``s with the gates in ``basic_gates``.
+    """Generates a list of :class:`GateSequence`s with the gates in ``basis_gates``.
 
     Args:
         basis_gates: The gates from which to create the sequences of gates.
@@ -129,7 +129,7 @@ def generate_basic_approximations(
         filename: If provided, the basic approximations are stored in this file.
 
     Returns:
-        List of ``GateSequences`` using the gates in ``basic_gates``.
+        List of :class:`GateSequence`s using the gates in ``basis_gates``.
 
     Raises:
         ValueError: If ``basis_gates`` contains an invalid gate identifier.

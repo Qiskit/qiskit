@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -243,17 +243,17 @@ def synth_cnot_depth_line_kms(mat):
     Kutin, Moulton, Smithline method.
 
     Synthesis algorithm for linear reversible circuits from [1], Chapter 7.
-    Synthesizes any linear reversible circuit of n qubits over linear nearest-neighbor
-    architecture using CX gates with depth at most 5*n.
+    This algorithm synthesizes any linear reversible circuit of ``n`` qubits over
+    a linear nearest-neighbor architecture using CX gates with depth at most ``5*n``.
 
     Args:
-        mat(np.ndarray]): A boolean invertible matrix.
+        mat(np.ndarray]): a boolean invertible matrix.
 
     Returns:
         QuantumCircuit: the synthesized quantum circuit.
 
     Raises:
-        QiskitError: if mat is not invertible.
+        QiskitError: if ``mat`` is not invertible.
 
     References:
         1. Kutin, S., Moulton, D. P., Smithline, L.,

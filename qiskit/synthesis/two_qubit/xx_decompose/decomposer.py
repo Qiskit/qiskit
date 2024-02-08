@@ -54,21 +54,21 @@ def _average_infidelity(p, q):
 
 class XXDecomposer:
     """
-    A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of XX type
-    (i.e., each locally equivalent to CAN(alpha, 0, 0) for a possibly varying alpha).
+    A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
+    (i.e., each locally equivalent to :math:`CAN(alpha, 0, 0)` for a possibly varying :math:`alpha`).
 
     Args:
         basis_fidelity: available strengths and fidelity of each.
-            Can be either (1) a dictionary mapping XX angle values to fidelity at that angle; or
-            (2) a single float f, interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
-        euler_basis: Basis string provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Defaults to "U".
+            Can be either (1) a dictionary mapping ``XX`` angle values to fidelity at that angle; or
+            (2) a single float ``f``, interpreted as ``{pi: f, pi/2: f/2, pi/3: f/3}``.
+        euler_basis: Basis string provided to :class:`.OneQubitEulerDecomposer` for 1Q synthesis.
+            Defaults to ``"U"``.
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
-            embody the gate CAN(alpha, 0, 0). Strengths are taken so that pi/2 represents the class
-            of a full CX.
-        backup_optimizer: If supplied, defers synthesis to this callable when XXDecomposer
+            embody the gate :math:`CAN(alpha, 0, 0)`. Strengths are taken so that ``pi/2`` represents
+            the class of a full :class:`.CXGate`.
+        backup_optimizer: If supplied, defers synthesis to this callable when :class:`.XXDecomposer`
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
-            applications of XX(pi/2), in which case standard synthesis methods provide lower
+            applications of ``XX(pi/2)``, in which case standard synthesis methods provide lower
             1Q gate count.
 
     .. note::
@@ -184,7 +184,8 @@ class XXDecomposer:
         """
         Counts the number of gates that would be emitted during re-synthesis.
 
-        NOTE: Used by ConsolidateBlocks.
+        .. note::
+            This method is used by :class:`.ConsolidateBlocks`.
         """
         strengths = self._strength_to_infidelity(1.0)
 

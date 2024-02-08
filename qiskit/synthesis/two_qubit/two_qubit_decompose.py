@@ -121,7 +121,7 @@ class TwoQubitWeylDecomposition:
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
     forcing the specialization is more approximate than asserted.
 
-    Reference:
+    References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
            *Validating quantum computers using randomized model circuits*,
            `arXiv:1811.12926 [quant-ph] <https://arxiv.org/abs/1811.12926>`_
@@ -874,14 +874,14 @@ class TwoQubitBasisDecomposer:
     basis gate.
 
     Args:
-        gate (Gate): Two-qubit gate to be used in the KAK decomposition.
-        basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
-        euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
-        pulse_optimize (None or bool): If True, try to do decomposition which minimizes
+        gate: Two-qubit gate to be used in the KAK decomposition.
+        basis_fidelity: Fidelity to be assumed for applications of KAK Gate. Default 1.0.
+        euler_basis: Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
+            Valid options are ``['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR']``.
+        pulse_optimize: If ``True``, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
-            optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
-            If False, don't attempt optimization. If None, attempt optimization but don't raise
+            optimal decomposition is not implemented. Currently, only ``[{CX, SX, RZ}]`` is known.
+            If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
     """
 
@@ -1042,23 +1042,26 @@ class TwoQubitBasisDecomposer:
 
     @staticmethod
     def decomp0(target):
-        """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
-        Result Ur has trace:
-        :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
-        which is optimal for all targets and bases"""
+        """Decompose target :math:`~Ud(x, y, z)` with 0 uses of the basis gate.
+        Result  :math:`Ur` has trace:
 
+        .. math::
+            |Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|
+
+        which is optimal for all targets and bases"""
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
         return U0r, U0l
 
     def decomp1(self, target):
-        """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
-        Result Ur has trace:
+        """Decompose target :math:`~Ud(x, y, z)` with 1 use of the basis gate :math:`~Ud(a, b, c)`.
+        Result :math:`Ur` has trace:
+
         .. math::
 
             |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
 
-        which is optimal for all targets and bases with z==0 or c==0"""
+        which is optimal for all targets and bases with ``z==0`` or ``c==0``"""
         # FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
         U0l = target.K1l.dot(self.basis.K1l.T.conj())
         U0r = target.K1r.dot(self.basis.K1r.T.conj())
@@ -1068,18 +1071,19 @@ class TwoQubitBasisDecomposer:
         return U1r, U1l, U0r, U0l
 
     def decomp2_supercontrolled(self, target):
-        """Decompose target ~Ud(x, y, z) with 2 uses of the basis gate.
+        """Decompose target :math:`~Ud(x, y, z)` with 2 uses of the basis gate.
 
-        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace
+        For supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b, result :math:`Ur` has trace
+
         .. math::
 
             |Tr(Ur.Utarget^dag)| = 4cos(z)
 
-        which is the optimal approximation for basis of CNOT-class ``~Ud(pi/4, 0, 0)``
-        or DCNOT-class ``~Ud(pi/4, pi/4, 0)`` and any target.
-        May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-        ``B~Ud(pi/4, pi/8, 0)``, but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target ``~Ud(x, y, 0)``.
+        which is the optimal approximation for basis of CNOT-class :math:`~Ud(pi/4, 0, 0)`
+        or DCNOT-class :math:`~Ud(pi/4, pi/4, 0)` and any target.
+        May be sub-optimal for ``b!=0`` (e.g. there exists exact decomposition for any target using B
+        :math:`B~Ud(pi/4, pi/8, 0)`, but not this decomposition.)
+        This is an exact decomposition for supercontrolled basis and target :math:`~Ud(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """
 
@@ -1094,7 +1098,7 @@ class TwoQubitBasisDecomposer:
 
     def decomp3_supercontrolled(self, target):
         """Decompose target with 3 uses of the basis.
-        This is an exact decomposition for supercontrolled basis ~Ud(pi/4, b, 0), all b,
+        This is an exact decomposition for supercontrolled basis :math:`~Ud(pi/4, b, 0)`, all b,
         and any target. No guarantees for non-supercontrolled basis."""
 
         U0l = target.K1l.dot(self.u0l)

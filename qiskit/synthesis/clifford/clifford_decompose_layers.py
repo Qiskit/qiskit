@@ -69,8 +69,8 @@ def synth_clifford_layers(
     cz_func_reverse_qubits=False,
     validate=False,
 ):
-    """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
-    described in Lemma 8 of Bravyi and Maslov.
+    """Synthesis of a :class:`.Clifford` into layers, it provides a similar
+    decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov [1].
 
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
 
@@ -87,15 +87,15 @@ def synth_clifford_layers(
         q_4: ┤4    ├┤4    ├┤4       ├┤4    ├┤4    ├┤4    ├┤4    ├┤4       ├
              └─────┘└─────┘└────────┘└─────┘└─────┘└─────┘└─────┘└────────┘
 
-    This decomposition is for the default cz_synth_func and cx_synth_func functions,
+    This decomposition is for the default ``cz_synth_func`` and ``cx_synth_func`` functions,
     with other functions one may see slightly different decomposition.
 
     Args:
-        cliff (Clifford): a clifford operator.
+        cliff (Clifford): a Clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
-            It gets as input a boolean invertible matrix, and outputs a QuantumCircuit.
+            It gets as input a boolean invertible matrix, and outputs a :class:`.QuantumCircuit`.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
-            It gets as input a boolean symmetric matrix, and outputs a QuantumCircuit.
+            It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
         cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
@@ -104,7 +104,7 @@ def synth_clifford_layers(
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
@@ -185,7 +185,7 @@ def _create_graph_state(cliff, validate=False):
     The algorithm is based on Lemma 6 in [2].
 
     Args:
-        cliff (Clifford): a clifford operator.
+        cliff (Clifford): a Clifford operator.
         validate (Boolean): if True, validates the synthesis process.
 
     Return:
@@ -195,7 +195,7 @@ def _create_graph_state(cliff, validate=False):
     Raises:
         QiskitError: if there are errors in the Gauss elimination process.
 
-    Reference:
+    References:
         2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
@@ -251,7 +251,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     H2_circ is a circuit that can contain H gates on all qubits.
 
     Args:
-        cliff (Clifford): a clifford operator corresponding to a graph state, cliff.stab_x has full rank.
+        cliff (Clifford): a Clifford operator corresponding to a graph state, cliff.stab_x has full rank.
         validate (Boolean): if True, validates the synthesis process.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
 
@@ -411,18 +411,18 @@ def _calc_pauli_diff(cliff, cliff_target):
 
 
 def synth_clifford_depth_lnn(cliff):
-    """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
+    """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbour connectivity.
 
-    The depth of the synthesized n-qubit circuit is bounded by 7*n+2, which is not optimal.
-    It should be replaced by a better algorithm that provides depth bounded by 7*n-4 [3].
+    The depth of the synthesized n-qubit circuit is bounded by ``7*n+2``, which is not optimal.
+    It should be replaced by a better algorithm that provides depth bounded by ``7*n-4`` [3].
 
     Args:
-        cliff (Clifford): a clifford operator.
+        cliff (Clifford): a Clifford operator.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
 
-    Reference:
+    References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
