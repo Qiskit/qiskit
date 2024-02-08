@@ -1,0 +1,9 @@
+fixes:
+  - |
+    Fixed an issue where the :class:`.ConstrainedReschedule` transpiler pass would previously error
+    if the circuit contained a :class:`~.circuit.Reset` instruction. This has been corrected so that the
+    pass no longer errors, however as the durations reported by IBM backends are not always
+    trustworthy for mid-circuit measurements and resets a ``RuntimeWarning`` is now raised if
+    the :class:`.ConstrainedReschedule` is run on a circuit containing either.
+    Fixed `#10354 <https://github.com/Qiskit/qiskit/issues/10354>`__
+
