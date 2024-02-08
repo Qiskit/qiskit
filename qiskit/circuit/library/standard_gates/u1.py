@@ -152,6 +152,9 @@ class U1Gate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            U1Gate: inverse gate.
         """
         return U1Gate(-self.params[0])
 
@@ -290,6 +293,9 @@ class CU1Gate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CU1Gate: inverse gate.
         """
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
@@ -421,5 +427,8 @@ class MCU1Gate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            MCU1Gate: inverse gate.
         """
         return MCU1Gate(-self.params[0], self.num_ctrl_qubits)

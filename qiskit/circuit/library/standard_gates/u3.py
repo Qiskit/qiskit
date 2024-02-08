@@ -101,6 +101,9 @@ class U3Gate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            U3Gate: inverse gate.
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -289,6 +292,9 @@ class CU3Gate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CU3Gate: inverse gate.
         """
         return CU3Gate(
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state

@@ -132,6 +132,9 @@ class PhaseGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            PGate: inverse gate.
         """
         return PhaseGate(-self.params[0])
 

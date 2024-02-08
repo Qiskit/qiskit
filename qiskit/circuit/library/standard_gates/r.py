@@ -85,6 +85,9 @@ class RGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RGate: inverse gate.
         """
         return RGate(-self.params[0], self.params[1])
 

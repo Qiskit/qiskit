@@ -132,6 +132,9 @@ class ZGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            ZGate: inverse gate (self-inverse).
         """
         return ZGate()  # self-inverse
 
@@ -225,6 +228,9 @@ class CZGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CZGate: inverse gate (self-inverse).
         """
         return CZGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -320,6 +326,9 @@ class CCZGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CCZGate: inverse gate (self-inverse).
         """
         return CCZGate(ctrl_state=self.ctrl_state)  # self-inverse
 

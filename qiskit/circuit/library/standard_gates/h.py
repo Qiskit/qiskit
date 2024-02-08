@@ -112,6 +112,9 @@ class HGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            HGate: inverse gate (self-inverse).
         """
         return HGate()  # self-inverse
 

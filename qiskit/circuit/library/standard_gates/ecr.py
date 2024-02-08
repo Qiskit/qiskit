@@ -115,6 +115,9 @@ class ECRGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            ECRGate: inverse gate (self-inverse).
         """
         return ECRGate()  # self-inverse
 

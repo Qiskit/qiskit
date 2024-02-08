@@ -112,6 +112,9 @@ class RXGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RXGate: inverse gate.
         """
         return RXGate(-self.params[0])
 
@@ -251,6 +254,9 @@ class CRXGate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CRXGate: inverse gate.
         """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 

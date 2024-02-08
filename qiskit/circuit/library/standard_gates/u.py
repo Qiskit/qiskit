@@ -88,6 +88,9 @@ class UGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            UGate: inverse gate.
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -316,6 +319,9 @@ class CUGate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CUGate: inverse gate.
         """
         return CUGate(
             -self.params[0],

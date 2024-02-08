@@ -90,6 +90,9 @@ class SXGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            SXdgGate: inverse of :class:`.SXGate`.
         """
         return SXdgGate()
 
@@ -157,10 +160,6 @@ class SXdgGate(SingletonGate):
                         i & 1
                       \end{pmatrix}
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
-
-    Args:
-        annotated: indicates whether the inverse gate can be implemented
-            as an annotated gate.
     """
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
@@ -191,6 +190,9 @@ class SXdgGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            SXGate: inverse of :class:`.SXdgGate`
         """
         return SXGate()
 

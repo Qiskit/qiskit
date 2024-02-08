@@ -122,6 +122,9 @@ class RZZGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RZZGate: inverse gate.
         """
         return RZZGate(-self.params[0])
 

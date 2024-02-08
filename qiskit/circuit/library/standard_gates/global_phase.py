@@ -60,6 +60,9 @@ class GlobalPhaseGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            GlobalPhaseGate: inverse gate.
         """
         return GlobalPhaseGate(-self.params[0])
 

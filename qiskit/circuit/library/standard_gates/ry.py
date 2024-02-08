@@ -111,6 +111,9 @@ class RYGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RYGate: inverse gate.
         """
         return RYGate(-self.params[0])
 
@@ -246,6 +249,9 @@ class CRYGate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CRYGate: inverse gate.
         ."""
         return CRYGate(-self.params[0], ctrl_state=self.ctrl_state)
 

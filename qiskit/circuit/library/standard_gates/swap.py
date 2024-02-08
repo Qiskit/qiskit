@@ -123,6 +123,9 @@ class SwapGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            SwapGate: inverse gate (self-inverse).
         """
         return SwapGate()  # self-inverse
 
@@ -264,6 +267,9 @@ class CSwapGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CSwapGate: inverse gate (self-inverse).
         """
         return CSwapGate(ctrl_state=self.ctrl_state)  # self-inverse
 

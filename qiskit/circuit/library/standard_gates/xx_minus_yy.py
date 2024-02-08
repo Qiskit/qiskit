@@ -159,6 +159,9 @@ class XXMinusYYGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            XXMinusYYGate: inverse gate.
         """
         theta, beta = self.params
         return XXMinusYYGate(-theta, beta)

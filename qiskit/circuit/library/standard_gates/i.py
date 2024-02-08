@@ -57,6 +57,9 @@ class IGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            IGate: inverse gate (self-inverse).
         ."""
         return IGate()  # self-inverse
 

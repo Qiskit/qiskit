@@ -114,6 +114,9 @@ class RYYGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RYYGate: inverse gate.
         """
         return RYYGate(-self.params[0])
 

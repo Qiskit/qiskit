@@ -114,6 +114,9 @@ class RXXGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RXXGate: inverse gate.
         """
         return RXXGate(-self.params[0])
 

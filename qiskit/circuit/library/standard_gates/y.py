@@ -128,6 +128,9 @@ class YGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            YGate: inverse gate (self-inverse).
         """
         return YGate()  # self-inverse
 
@@ -239,6 +242,9 @@ class CYGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CYGate: inverse gate (self-inverse).
         """
         return CYGate(ctrl_state=self.ctrl_state)  # self-inverse
 

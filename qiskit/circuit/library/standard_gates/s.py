@@ -86,6 +86,9 @@ class SGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            SdgGate: inverse of :class:`.SGate`
         """
         return SdgGate()
 
@@ -159,6 +162,9 @@ class SdgGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            SGate: inverse of :class:`.SdgGate`
         """
         return SGate()
 
@@ -241,6 +247,9 @@ class CSGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CSdgGate: inverse of :class:`.CSGate`
         """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
@@ -322,6 +331,9 @@ class CSdgGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CSGate: inverse of :class:`.CSdgGate`
         """
         return CSGate(ctrl_state=self.ctrl_state)
 

@@ -84,6 +84,9 @@ class TGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            TdgGate: inverse of :class:`.TGate`
         """
         return TdgGate()
 
@@ -155,6 +158,9 @@ class TdgGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            TGate: inverse of :class:`.TdgGate`
         """
         return TGate()
 

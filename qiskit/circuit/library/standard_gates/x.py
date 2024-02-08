@@ -136,6 +136,9 @@ class XGate(SingletonGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            XGate: inverse gate (self-inverse).
         """
         return XGate()  # self-inverse
 
@@ -276,6 +279,9 @@ class CXGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CXGate: inverse gate (self-inverse).
         """
         return CXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -465,6 +471,9 @@ class CCXGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            CCXGate: inverse gate (self-inverse).
         """
         return CCXGate(ctrl_state=self.ctrl_state)  # self-inverse
 
@@ -796,11 +805,14 @@ class C3XGate(SingletonControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate. The C4X is its own inverse.
+        """Invert this gate. The C3X is its own inverse.
 
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            C3XGate: inverse gate (self-inverse).
         """
         return C3XGate(ctrl_state=self.ctrl_state)
 
@@ -1040,6 +1052,9 @@ class C4XGate(SingletonControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            C4XGate: inverse gate (self-inverse).
         """
         return C4XGate(ctrl_state=self.ctrl_state)
 
@@ -1117,6 +1132,9 @@ class MCXGate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            MCXGate: inverse gate (self-inverse).
         """
         return MCXGate(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1236,6 +1254,9 @@ class MCXGrayCode(MCXGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            MCXGrayCode: inverse gate (self-inverse).
         """
         return MCXGrayCode(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1293,6 +1314,9 @@ class MCXRecursive(MCXGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            MCXRecursive: inverse gate (self-inverse).
         """
         return MCXRecursive(num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state)
 
@@ -1394,6 +1418,9 @@ class MCXVChain(MCXGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            MCXVChain: inverse gate (self-inverse).
         """
         return MCXVChain(
             num_ctrl_qubits=self.num_ctrl_qubits,

@@ -122,6 +122,9 @@ class RZGate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            RZGate: inverse gate.
         """
         return RZGate(-self.params[0])
 
@@ -264,6 +267,9 @@ class CRZGate(ControlledGate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+         Returns:
+            CRZGate: inverse gate.
         """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 

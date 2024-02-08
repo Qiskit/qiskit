@@ -119,6 +119,9 @@ class U2Gate(Gate):
         Args:
             annotated: indicates whether the inverse gate can be implemented
                 as an annotated gate.
+
+        Returns:
+            U2Gate: inverse gate.
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
