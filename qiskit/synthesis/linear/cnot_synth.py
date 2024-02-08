@@ -32,8 +32,8 @@ def synth_cnot_count_full_pmh(state, section_size=2):
     as specified by an :math:`n \\times n` matrix.
 
     Args:
-        state (list[list] or ndarray): *n x n* boolean invertible matrix, describing the state
-            of the input circuit
+        state (list[list] or ndarray): :math:`n \\times n` boolean invertible matrix, describing
+            the state of the input circuit
         section_size (int): the size of each section, used in the
             Patel–Markov–Hayes algorithm [1]. ``section_size`` must be a factor of the number
             of qubits.

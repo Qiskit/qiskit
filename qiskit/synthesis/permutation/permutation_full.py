@@ -78,7 +78,7 @@ def synth_permutation_acg(pattern):
            *Routing Permutations on Graphs Via Matchings.*,
            Proceedings of the Twenty-Fifth Annual ACM Symposium on Theory of Computing(1993).
            Pages 583–591.
-           `10.1145/167088.167239 <https://www.cs.tau.ac.il/~nogaa/PDFS/r.pdf>`_
+           `10.1145/167088.167239 <https://doi.org/10.1145/167088.167239>`_
     """
 
     num_qubits = len(pattern)

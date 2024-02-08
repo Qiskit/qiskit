@@ -76,8 +76,8 @@ class OneQubitEulerDecomposer:
     parameters :math:`(\theta, \phi, \lambda)`, and a phase parameter
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
-    shown in the following table. Note that for the non-Euler bases :math:`(U3, U1X,
-    RR)`, the :math:`ZYZ` Euler parameters are used.
+    shown in the following table. Note that for the non-Euler bases (:math:`U3`,
+    :math:`U1X`, :math:`RR`), the :math:`ZYZ` Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -133,8 +133,8 @@ class OneQubitEulerDecomposer:
     def __init__(self, basis: str = "U3", use_dag: bool = False):
         """Initialize decomposer
 
-        Supported bases are: ``'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
-        'XYX', 'XZX'``.
+        Supported bases are: ``'U'``, ``'PSX'``, ``'ZSXX'``, ``'ZSX'``, ``'U321'``, ``'U3'``,
+        ``'U1X'``, ``'RR'``, ``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``.
 
         Args:
             basis: the decomposition basis [Default: ``'U3'``]
@@ -268,7 +268,7 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles and phase for input array.
 
         Args:
-            unitary: ``2x2`` unitary matrix.
+            unitary: :math:`2\\times2`
 
         Returns:
             tuple: ``(theta, phi, lambda, phase)``.
