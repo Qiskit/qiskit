@@ -126,8 +126,9 @@ class YGate(SingletonGate):
         r"""Return inverted Y gate (:math:`Y^{\dagger} = Y`)
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             YGate: inverse gate (self-inverse).
@@ -240,8 +241,9 @@ class CYGate(SingletonControlledGate):
         """Return inverted CY gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             CYGate: inverse gate (self-inverse).

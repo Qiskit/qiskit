@@ -55,8 +55,9 @@ class IGate(SingletonGate):
         """Returne the inverse gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             IGate: inverse gate (self-inverse).

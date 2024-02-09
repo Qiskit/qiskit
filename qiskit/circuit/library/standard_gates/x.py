@@ -134,8 +134,9 @@ class XGate(SingletonGate):
         r"""Return inverted X gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             XGate: inverse gate (self-inverse).
@@ -277,8 +278,9 @@ class CXGate(SingletonControlledGate):
         """Return inverted CX gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             CXGate: inverse gate (self-inverse).
@@ -469,8 +471,9 @@ class CCXGate(SingletonControlledGate):
         """Return an inverted CCX gate (also a CCX).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             CCXGate: inverse gate (self-inverse).
@@ -808,8 +811,9 @@ class C3XGate(SingletonControlledGate):
         """Invert this gate. The C3X is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             C3XGate: inverse gate (self-inverse).
@@ -1050,8 +1054,9 @@ class C4XGate(SingletonControlledGate):
         """Invert this gate. The C4X is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             C4XGate: inverse gate (self-inverse).
@@ -1130,8 +1135,9 @@ class MCXGate(ControlledGate):
         """Invert this gate. The MCX is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             MCXGate: inverse gate (self-inverse).
@@ -1252,8 +1258,9 @@ class MCXGrayCode(MCXGate):
         """Invert this gate. The MCX is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             MCXGrayCode: inverse gate (self-inverse).
@@ -1312,8 +1319,9 @@ class MCXRecursive(MCXGate):
         """Invert this gate. The MCX is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             MCXRecursive: inverse gate (self-inverse).
@@ -1416,8 +1424,9 @@ class MCXVChain(MCXGate):
         """Invert this gate. The MCX is its own inverse.
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             MCXVChain: inverse gate (self-inverse).

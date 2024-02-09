@@ -110,8 +110,9 @@ class HGate(SingletonGate):
         r"""Return inverted H gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             HGate: inverse gate (self-inverse).

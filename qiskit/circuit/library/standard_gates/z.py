@@ -130,8 +130,9 @@ class ZGate(SingletonGate):
         """Return inverted Z gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             ZGate: inverse gate (self-inverse).
@@ -226,8 +227,9 @@ class CZGate(SingletonControlledGate):
         """Return inverted CZ gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             CZGate: inverse gate (self-inverse).
@@ -324,8 +326,9 @@ class CCZGate(SingletonControlledGate):
         """Return inverted CCZ gate (itself).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this gate is self inverse.
 
         Returns:
             CCZGate: inverse gate (self-inverse).

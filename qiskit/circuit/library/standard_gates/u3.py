@@ -99,8 +99,10 @@ class U3Gate(Gate):
         :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi))`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.U3Gate` with inverse
+                parameter values.
 
         Returns:
             U3Gate: inverse gate.
@@ -290,8 +292,10 @@ class CU3Gate(ControlledGate):
         :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda))`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.CU3Gate` with inverse
+                parameter values.
 
         Returns:
             CU3Gate: inverse gate.

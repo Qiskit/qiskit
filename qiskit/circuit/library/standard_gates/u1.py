@@ -150,8 +150,10 @@ class U1Gate(Gate):
         r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda))`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.U1Gate` with inverse parameter
+                values.
 
         Returns:
             U1Gate: inverse gate.
@@ -291,8 +293,10 @@ class CU1Gate(ControlledGate):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda))`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.CU1Gate` with inverse parameter
+                values.
 
         Returns:
             CU1Gate: inverse gate.
@@ -425,8 +429,10 @@ class MCU1Gate(ControlledGate):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda))`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.MCU1Gate` with inverse
+                parameter values.
 
         Returns:
             MCU1Gate: inverse gate.

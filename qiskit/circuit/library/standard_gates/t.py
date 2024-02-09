@@ -82,8 +82,9 @@ class TGate(SingletonGate):
         """Return inverse T gate (i.e. Tdg).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.TdgGate`.
 
         Returns:
             TdgGate: inverse of :class:`.TGate`
@@ -156,8 +157,9 @@ class TdgGate(SingletonGate):
         """Return inverse Tdg gate (i.e. T).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
+                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
+                argument is ignored as this inverse of this gate is always a :class:`.TGate`.
 
         Returns:
             TGate: inverse of :class:`.TdgGate`
