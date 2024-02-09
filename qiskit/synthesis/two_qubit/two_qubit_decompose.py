@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
-    """Decompose :math:`U = U_l \otimes U_r` where :math:`U` is in :math:`SU(4)`,
+    r"""Decompose :math:`U = U_l \otimes U_r` where :math:`U` is in :math:`SU(4)`,
     and :math:`U_l`, :math:`U_r` are in :math:`SU(2)`.
 
     Args:
@@ -110,8 +110,7 @@ class TwoQubitWeylDecomposition:
 
     .. math::
 
-        U \in U(4),~
-        {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
+        U \in U(4),\sim {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
 
     and we stay in the "Weyl Chamber"
 
@@ -479,7 +478,7 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(0,0,0) ~ Id`
+    r""":math:`U \sim U_d(0,0,0) \sim Id`
 
     This gate binds 0 parameters, we make it canonical by setting
     :math:`K2l = Id` , :math:`K2r = Id`.
@@ -494,7 +493,7 @@ class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(𝜋/4, 𝜋/4, 𝜋/4) ~ U(𝜋/4, 𝜋/4, -𝜋/4) ~ SWAP`
+    """:math:`U \sim U_d(𝜋/4, 𝜋/4, 𝜋/4) \sim U(𝜋/4, 𝜋/4, -𝜋/4) \sim SWAP`
 
     This gate binds 0 parameters, we make it canonical by setting
     :math:`K2l = Id` , :math:`K2r = Id`.
@@ -520,7 +519,7 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
 
 
 def _closest_partial_swap(a, b, c) -> float:
-    """A good approximation to the best value x to get the minimum
+    r"""A good approximation to the best value x to get the minimum
     trace distance for :math:`U_d(x, x, x)` from :math:`U_d(a, b, c)`.
     """
     m = (a + b + c) / 3
@@ -531,7 +530,7 @@ def _closest_partial_swap(a, b, c) -> float:
 
 
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α𝜋/4, α𝜋/4, α𝜋/4) ~ SWAP^α`
+    r""":math:`U \sim U_d(α𝜋/4, α𝜋/4, α𝜋/4) \sim SWAP^α`
 
     This gate binds 3 parameters, we make it canonical by setting:
     :math:`K2l = Id`.
@@ -546,7 +545,7 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α𝜋/4, α𝜋/4, -α𝜋/4) ~ SWAP^α`
+    r""":math:`U \sim U_d(α𝜋/4, α𝜋/4, -α𝜋/4) \sim SWAP^α`
 
     (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
     similar to how ``x = (±sqrt(x))**2``)
@@ -569,7 +568,7 @@ _oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 
 
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α, 0, 0) ~ Ctrl-U`
+    r""":math:`U \sim U_d(α, 0, 0) \sim Ctrl-U`
 
     This gate binds 4 parameters, we make it canonical by setting:
         :math:`K2l = Ry(θl).Rx(λl)` ,
@@ -590,15 +589,15 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitControlledUDecomposer:
-    """Decompose two-qubit unitary in terms of a desired :math:`U ~ U_d(α, 0, 0) ~ Ctrl-U` gate
+    r"""Decompose two-qubit unitary in terms of a desired :math:`U \sim U_d(α, 0, 0) \sim Ctrl-U` gate
     that is locally equivalent to an :class:`.RXXGate`."""
 
     def __init__(self, rxx_equivalent_gate: Type[Gate]):
-        """Initialize the KAK decomposition.
+        r"""Initialize the KAK decomposition.
 
         Args:
             rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
-            :math:`U ~ U_d(α, 0, 0) ~ Ctrl-U gate`.
+            :math:`U \sim U_d(α, 0, 0) \sim Ctrl-U gate`.
         Raises:
             QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
@@ -753,7 +752,7 @@ class TwoQubitControlledUDecomposer:
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(𝜋/4, 𝜋/4, α) ~ SWAP . Ctrl-U`
+    r""":math:`U \sim U_d(𝜋/4, 𝜋/4, α) \sim SWAP . Ctrl-U`
 
     This gate binds 4 parameters, we make it canonical by setting:
     :math:`K2l = Ry(θl).Rz(λl)` , :math:`K2r = Ry(θr).Rz(λr)`.
@@ -777,7 +776,7 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
 
 # These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
 class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α, α, β), α ≥ |β|`
+    r""":math:`U \sim U_d(α, α, β), α ≥ |β|`
 
     This gate binds 5 parameters, we make it canonical by setting:
      :math:`K2l = Ry(θl).Rz(λl)`.
@@ -794,7 +793,7 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α, β, β), α ≥ β`
+    r""":math:`U \sim U_d(α, β, β), α ≥ β`
 
     This gate binds 5 parameters, we make it canonical by setting:
     :math:`K2l = Ry(θl).Rx(λl)`.
@@ -813,7 +812,7 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
-    """:math:`U ~ U_d(α, β, -β), α ≥ β ≥ 0`
+    r""":math:`U \sim U_d(α, β, -β), α ≥ β ≥ 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
     :math:`K2l = Ry(θl).Rx(λl)`.
@@ -857,7 +856,7 @@ def Ud(a, b, c):
 
 
 def trace_to_fid(trace):
-    """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+    r"""Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + abs(trace) ** 2) / 20
 
@@ -1022,7 +1021,7 @@ class TwoQubitBasisDecomposer:
         self._rqc = None
 
     def traces(self, target):
-        """Give the expected traces :math:`\Big\vert Tr(U \cdot U_{target}^\dag)\Big\vert`
+        r"""Give the expected traces :math:`\Big\vert Tr(U \cdot U_{target}^\dag)\Big\vert`
         for different number of basis gates."""
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
@@ -1059,7 +1058,7 @@ class TwoQubitBasisDecomposer:
         return U0r, U0l
 
     def decomp1(self, target):
-        """Decompose target :math:`~U_d(x, y, z)` with 1 use of the basis gate :math:`~U_d(a, b, c)`.
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with 1 use of the basis gate :math:`\sim  U_d(a, b, c)`.
         Result :math:`U_r` has trace:
 
         .. math::
@@ -1077,19 +1076,19 @@ class TwoQubitBasisDecomposer:
         return U1r, U1l, U0r, U0l
 
     def decomp2_supercontrolled(self, target):
-        """Decompose target :math:`~U_d(x, y, z)` with 2 uses of the basis gate.
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with 2 uses of the basis gate.
 
-        For supercontrolled basis :math:`~U_d(pi/4, b, 0)`, all b, result :math:`U_r` has trace
+        For supercontrolled basis :math:`\sim U_d(pi/4, b, 0)`, all b, result :math:`U_r` has trace
 
         .. math::
 
             \Big\vert Tr(U_r \dot U_{target}^\dag)| = 4cos(z)
 
-        which is the optimal approximation for basis of CNOT-class :math:`~U_d(pi/4, 0, 0)`
-        or DCNOT-class :math:`~U_d(pi/4, pi/4, 0)` and any target.
+        which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(pi/4, 0, 0)`
+        or DCNOT-class :math:`\sim U_d(pi/4, pi/4, 0)` and any target.
         May be sub-optimal for ``b!=0`` (e.g. there exists exact decomposition for any target using B
-        :math:`B~U_d(pi/4, pi/8, 0)`, but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target :math:`~U_d(x, y, 0)`.
+        :math:`B\sim U_d(pi/4, pi/8, 0)`, but not this decomposition.)
+        This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """
 
@@ -1103,8 +1102,8 @@ class TwoQubitBasisDecomposer:
         return U2r, U2l, U1r, U1l, U0r, U0l
 
     def decomp3_supercontrolled(self, target):
-        """Decompose target with 3 uses of the basis.
-        This is an exact decomposition for supercontrolled basis :math:`~U_d(pi/4, b, 0)`, all b,
+        r"""Decompose target with 3 uses of the basis.
+        This is an exact decomposition for supercontrolled basis :math:`\sim U_d(pi/4, b, 0)`, all b,
         and any target. No guarantees for non-supercontrolled basis."""
 
         U0l = target.K1l.dot(self.u0l)
