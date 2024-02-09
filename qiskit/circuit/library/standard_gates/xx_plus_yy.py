@@ -156,9 +156,10 @@ class XXPlusYYGate(Gate):
         """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this inverse of this gate is always a :class:`.XXPlusYYGate` with inverse
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.XXPlusYYGate` with inverse
                 parameter values.
 
         Returns:

@@ -86,10 +86,10 @@ class UGate(Gate):
         :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi))`
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this inverse of this gate is always a :class:`.UGate` with inverse parameter
-                values.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the
+                inverse of this gate is always a :class:`.UGate` with inverse parameter values.
 
         Returns:
             UGate: inverse gate.
@@ -319,9 +319,9 @@ class CUGate(ControlledGate):
         :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma))`
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this inverse of this gate is always a :class:`.CUGate` with inverse parameter
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.CUGate` with inverse parameter
                 values.
 
         Returns:

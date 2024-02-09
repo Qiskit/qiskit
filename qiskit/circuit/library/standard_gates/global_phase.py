@@ -58,9 +58,9 @@ class GlobalPhaseGate(Gate):
         :math:`\text{GlobalPhaseGate}(\lambda)^{\dagger} = \text{GlobalPhaseGate}(-\lambda)`
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as the inverse is always another :class:`.GlobalPhaseGate` with an inverted
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse is always another :class:`.GlobalPhaseGate` with an inverted
                 parameter value.
 
         Returns:

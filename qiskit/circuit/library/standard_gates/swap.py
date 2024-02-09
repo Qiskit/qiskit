@@ -121,9 +121,10 @@ class SwapGate(SingletonGate):
         """Return inverse Swap gate (itself).
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this gate is self inverse.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
 
         Returns:
             SwapGate: inverse gate (self-inverse).
@@ -266,9 +267,10 @@ class CSwapGate(SingletonControlledGate):
         """Return inverse CSwap gate (itself).
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this gate is self inverse.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
 
         Returns:
             CSwapGate: inverse gate (self-inverse).

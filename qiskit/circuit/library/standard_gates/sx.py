@@ -88,9 +88,10 @@ class SXGate(SingletonGate):
         """Return inverse SX gate (i.e. SXdg).
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this inverse of this gate is always a :class:`.SXdgGate`.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SXdgGate`.
 
         Returns:
             SXdgGate: inverse of :class:`.SXGate`.
@@ -189,9 +190,9 @@ class SXdgGate(SingletonGate):
         """Return inverse SXdg gate (i.e. SX).
 
         Args:
-            annotated: Typically when set to ``True`` this is used to return an :class:`.AnnotatedOperation` 
-                with an inverse modifier set instead of a concrete :class:`.Gate`. However, for this class this
-                argument is ignored as this inverse of this gate is always a :class:`.SXGate`.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.SXGate`.
 
         Returns:
             SXGate: inverse of :class:`.SXdgGate`
