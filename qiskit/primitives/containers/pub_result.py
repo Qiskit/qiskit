@@ -16,6 +16,8 @@ Base Pub class
 
 from __future__ import annotations
 
+from typing import Any
+
 from .data_bin import DataBin
 
 
@@ -24,12 +26,12 @@ class PubResult:
 
     __slots__ = ("_data", "_metadata")
 
-    def __init__(self, data: DataBin, metadata: dict | None = None):
+    def __init__(self, data: DataBin, metadata: dict[str, Any] | None = None):
         """Initialize a pub result.
 
         Args:
-            data: result data bin.
-            metadata: metadata dictionary.
+            data: Result data.
+            metadata: Metadata specific to this pub. Keys are expected to be strings.
         """
         self._data = data
         self._metadata = metadata or {}

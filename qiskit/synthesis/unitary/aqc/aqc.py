@@ -12,17 +12,20 @@
 """A generic implementation of Approximate Quantum Compiler."""
 from __future__ import annotations
 
+import typing
 from functools import partial
 
 from collections.abc import Callable
 from typing import Protocol
 
 import numpy as np
-from scipy.optimize import OptimizeResult, minimize
 
 from qiskit.quantum_info import Operator
 
 from .approximate import ApproximateCircuit, ApproximatingObjective
+
+if typing.TYPE_CHECKING:
+    import scipy.optimize
 
 
 class Minimizer(Protocol):
@@ -52,7 +55,7 @@ class Minimizer(Protocol):
         x0: np.ndarray,  # pylint: disable=invalid-name
         jac: Callable[[np.ndarray], np.ndarray] | None = None,
         bounds: list[tuple[float, float]] | None = None,
-    ) -> OptimizeResult:
+    ) -> scipy.optimize.OptimizeResult:
         """Minimize the objective function.
 
         This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
@@ -112,9 +115,11 @@ class AQC:
                 ``L-BFGS-B`` method is used with max iterations set to 1000.
             seed: a seed value to be used by a random number generator.
         """
+        import scipy.optimize
+
         super().__init__()
         self._optimizer = optimizer or partial(
-            minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
+            scipy.optimize.minimize, args=(), method="L-BFGS-B", options={"maxiter": 1000}
         )
 
         self._seed = seed

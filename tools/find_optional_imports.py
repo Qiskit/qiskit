@@ -27,6 +27,8 @@ def _main():
         "pydot",
         "pygments",
         "ipywidgets",
+        "scipy.linalg",
+        "scipy.optimize",
         "scipy.stats",
         "matplotlib",
         "qiskit_aer",

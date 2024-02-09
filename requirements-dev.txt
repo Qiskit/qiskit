@@ -39,5 +39,5 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 # consume it properly.
 Sphinx>=6.0,<7.2
 # TODO: switch to stable release when 4.1 is released
-reno @ git+https://github.com/openstack/reno.git@81587f616f17904336cdc431e25c42b46cd75b8f
+reno @ git+https://github.com/openstack/reno.git@85b9a9bb52c8f9ce4a5e66fa8d9eba7fde90bf6d
 sphinxcontrib-katex==0.9.9

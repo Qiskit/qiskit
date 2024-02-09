@@ -29,7 +29,8 @@ class PrimitiveResult(Generic[T]):
         """
         Args:
             pub_results: Pub results.
-            metadata: Any metadata that doesn't make sense to put inside of pub results.
+            metadata: Metadata that is common to all pub results; metadata specific to particular
+                pubs should be placed in their metadata fields. Keys are expected to be strings.
         """
         self._pub_results = list(pub_results)
         self._metadata = metadata or {}
