@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -247,6 +247,7 @@ class Target(Mapping):
         new_alias="acquire_alignment",
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(
         self,
@@ -702,6 +703,9 @@ class Target(Mapping):
         Raises:
             KeyError: If ``qargs`` is not in target
         """
+        # if num_qubits == 0, we will return globally defined operations
+        if self.num_qubits == 0 or self.num_qubits is None:
+            qargs = None
         if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
             raise KeyError(f"{qargs} not in target.")
         res = self._qarg_gate_map.get(qargs, set())
@@ -784,6 +788,9 @@ class Target(Mapping):
                     return False
             return True
 
+        # Handle case where num_qubits is None by always checking globally supported operations
+        if self.num_qubits is None:
+            qargs = None
         # Case a list if passed in by mistake
         if qargs is not None:
             qargs = tuple(qargs)
@@ -1149,6 +1156,7 @@ class Target(Mapping):
         since="0.24.0",
         is_property=True,
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def aquire_alignment(self):
         """Alias of deprecated name. This will be removed."""
@@ -1160,6 +1168,7 @@ class Target(Mapping):
         since="0.24.0",
         is_property=True,
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def aquire_alignment(self, new_value: int):
         """Alias of deprecated name. This will be removed."""
@@ -1502,7 +1511,9 @@ def target_to_backend_properties(target: Target):
                         }
                     )
         else:
-            qubit_props: dict[int, Any] = {x: None for x in range(target.num_qubits)}
+            qubit_props: dict[int, Any] = {}
+            if target.num_qubits is not None:
+                qubit_props = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:
                     continue

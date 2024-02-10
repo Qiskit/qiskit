@@ -26,6 +26,7 @@ from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,13 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
+@deprecate_func(
+    additional_msg="This function combines ``transpile`` and ``backend.run``, which is covered "
+    "by ``Sampler`` :mod:`~qiskit.primitives`. Alternatively, you can also run :func:`.transpile` "
+    "followed by ``backend.run()``.",
+    since="0.46.0",
+    removal_timeline="in the Qiskit 1.0 release",
+)
 def execute(
     experiments,
     backend,

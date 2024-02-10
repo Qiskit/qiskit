@@ -27,6 +27,7 @@ from qiskit.providers.models import (
 )
 from qiskit.providers.models.backendproperties import Nduv, Gate
 from qiskit.qobj import PulseQobjInstruction
+from qiskit.utils.deprecation import deprecate_func
 
 from ..fake_backend import FakeBackend
 
@@ -34,6 +35,11 @@ from ..fake_backend import FakeBackend
 class ConfigurableFakeBackend(FakeBackend):
     """Configurable backend."""
 
+    @deprecate_func(
+        since="0.46.0",
+        additional_msg="Use a suitable FakeBackend instead.",
+        removal_timeline="in qiskit 1.0",
+    )
     def __init__(
         self,
         name: str,
@@ -155,7 +161,7 @@ class ConfigurableFakeBackend(FakeBackend):
         qubits = []
         gates = []
 
-        for (qubit_t1, qubit_t2, freq, read_err) in zip(
+        for qubit_t1, qubit_t2, freq, read_err in zip(
             self.qubit_t1, self.qubit_t2, self.qubit_frequency, self.qubit_readout_error
         ):
             qubits.append(
@@ -184,7 +190,7 @@ class ConfigurableFakeBackend(FakeBackend):
                         )
                     )
             elif gate == "cx":
-                for (qubit1, qubit2) in list(itertools.combinations(range(self.n_qubits), 2)):
+                for qubit1, qubit2 in list(itertools.combinations(range(self.n_qubits), 2)):
                     gates.append(
                         Gate(
                             gate=gate,
@@ -212,7 +218,7 @@ class ConfigurableFakeBackend(FakeBackend):
             ",".join([f"_SUM[i,0,{self.n_qubits}", "omegad{i}*X{i}||D{i}]"]),
         ]
         variables = []
-        for (qubit1, qubit2) in self.coupling_map:
+        for qubit1, qubit2 in self.coupling_map:
             h_str += [
                 "jq{q1}q{q2}*Sp{q1}*Sm{q2}".format(q1=qubit1, q2=qubit2),
                 "jq{q1}q{q2}*Sm{q1}*Sp{q2}".format(q1=qubit1, q2=qubit2),

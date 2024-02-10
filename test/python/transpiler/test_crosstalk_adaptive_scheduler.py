@@ -160,7 +160,8 @@ class TestCrosstalk(QiskitTestCase):
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
         new_circ = transpile(circuit, initial_layout=layout, basis_gates=["u1", "u2", "u3", "cx"])
         dag = circuit_to_dag(new_circ)
-        pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
         self.assertEqual(scheduled_dag.depth(), 3)
 
@@ -181,7 +182,8 @@ class TestCrosstalk(QiskitTestCase):
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
         new_circ = transpile(circuit, initial_layout=layout, basis_gates=["u1", "u2", "u3", "cx"])
         dag = circuit_to_dag(new_circ)
-        pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag = pass_.run(dag)
         self.assertEqual(scheduled_dag.depth(), 1)
 
@@ -202,7 +204,8 @@ class TestCrosstalk(QiskitTestCase):
         layout = Layout({qr[i]: mapping[i] for i in range(6)})
         new_circ = transpile(circuit, initial_layout=layout, basis_gates=["u1", "u2", "u3", "cx"])
         dag = circuit_to_dag(new_circ)
-        pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
+        with self.assertWarns(DeprecationWarning):
+            pass_ = CrosstalkAdaptiveSchedule(bprop, crosstalk_prop)
         scheduled_dag1 = pass_.run(dag)
         scheduled_dag2 = pass_.run(dag)
         self.assertEqual(scheduled_dag1.depth(), 3)

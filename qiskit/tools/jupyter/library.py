@@ -41,6 +41,7 @@ def _generate_circuit_library_visualization(circuit: QuantumCircuit):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
     package_name="qiskit-terra",
@@ -111,6 +112,7 @@ property_label = wid.HTML(
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
     package_name="qiskit-terra",
@@ -133,6 +135,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
 
 @_optionals.HAS_PYGMENTS.require_in_call
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
     package_name="qiskit-terra",
@@ -193,6 +196,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
     package_name="qiskit-terra",
@@ -220,6 +224,7 @@ def circuit_diagram_widget() -> wid.Box:
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
     package_name="qiskit-terra",

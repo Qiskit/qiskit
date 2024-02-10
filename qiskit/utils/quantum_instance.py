@@ -145,6 +145,7 @@ class QuantumInstance:
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
@@ -502,7 +503,7 @@ class QuantumInstance:
 
         if self.is_statevector and "aer_simulator_statevector" in self.backend_name:
             try:
-                from qiskit.providers.aer.library import SaveStatevector
+                from qiskit_aer.library import SaveStatevector
 
                 def _find_save_state(data):
                     for instruction in reversed(data):

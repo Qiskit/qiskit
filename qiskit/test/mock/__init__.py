@@ -32,7 +32,7 @@ def __getattr__(name):
 
     warnings.warn(
         f"The module '{__name__}' is deprecated since "
-        "Qiskit Terra 0.21.0, and will be removed 3 months or more later. "
+        "Qiskit Terra 0.21.0, and will be removed in Qiskit 1.0. "
         "Instead, you should import the desired object directly 'qiskit.providers.fake_provider'.",
         category=DeprecationWarning,
         stacklevel=2,

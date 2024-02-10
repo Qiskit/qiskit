@@ -17,7 +17,13 @@ from typing import Dict, List, Optional, Set, Union, cast
 
 import numpy as np
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
+from qiskit import (  # pylint: disable=no-name-in-module
+    BasicAer,
+    ClassicalRegister,
+    QuantumCircuit,
+    transpile,
+)
+
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import IGate, StatePreparation
@@ -45,6 +51,7 @@ class CircuitStateFn(StateFn):
 
     # TODO allow normalization somehow?
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",

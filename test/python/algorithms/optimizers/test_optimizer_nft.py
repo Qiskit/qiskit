@@ -16,7 +16,7 @@ import unittest
 import warnings
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import BasicAer
+from qiskit import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.opflow import PauliSumOp

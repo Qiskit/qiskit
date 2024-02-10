@@ -1,6 +1,0 @@
----
-prelude: >
-  Qiskit Terra 0.45.1 is a small patch release, fixing several bugs found in
-  the 0.45 release series. It is also the first release to have official support
-  for Python 3.12. The 0.45.1 release supports Python 3.8, 3.9, 3.10, 3.11, and
-  3.12.

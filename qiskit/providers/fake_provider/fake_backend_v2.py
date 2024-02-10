@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,12 +31,20 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.providers.backend import BackendV2, QubitProperties
 from qiskit.providers.options import Options
 from qiskit.transpiler import Target, InstructionProperties
-from qiskit.providers.basicaer.qasm_simulator import QasmSimulatorPy
+from qiskit.providers.basic_provider.basic_simulator import BasicSimulator
+from qiskit.utils.deprecation import deprecate_func
 
 
 class FakeBackendV2(BackendV2):
     """A mock backend that doesn't implement run() to test compatibility with Terra internals."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.basic_provider.GenericBackendV2` "
+        "class instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         super().__init__(
             None,
@@ -111,6 +119,13 @@ class FakeBackendV2LegacyQubitProps(FakeBackendV2):
 class FakeBackend5QV2(BackendV2):
     """A mock backend that doesn't implement run() to test compatibility with Terra internals."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.basic_provider.GenericBackendV2` "
+        "class instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self, bidirectional=True):
         super().__init__(
             None,
@@ -181,8 +196,15 @@ class FakeBackend5QV2(BackendV2):
 
 
 class FakeBackendSimple(BackendV2):
-    """A fake simple backend that wraps BasicAer to implement run()."""
+    """A fake simple backend that wraps BasicSimulator to implement run()."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.providers.basic_provider.GenericBackendV2` "
+        "class instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         super().__init__(
             None,
@@ -198,7 +220,7 @@ class FakeBackendSimple(BackendV2):
         self._target.add_instruction(RZGate(self._lam))
         self._target.add_instruction(CXGate())
         self._target.add_instruction(Measure())
-        self._runner = QasmSimulatorPy()
+        self._runner = BasicSimulator()
 
     @property
     def target(self):
@@ -210,7 +232,7 @@ class FakeBackendSimple(BackendV2):
 
     @classmethod
     def _default_options(cls):
-        return QasmSimulatorPy._default_options()
+        return BasicSimulator._default_options()
 
     def run(self, run_input, **options):
         self._runner._options = self._options

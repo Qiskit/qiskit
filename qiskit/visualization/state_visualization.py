@@ -1284,6 +1284,7 @@ def state_to_latex(
     additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
     since="0.23.0",
     package_name="qiskit-terra",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -> Optional[str]:
     """Convert a complex number to latex code suitable for a ket expression
@@ -1304,6 +1305,7 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -
     additional_msg="For similar functionality, see sympy's ``nsimplify`` and ``latex`` functions.",
     since="0.23.0",
     package_name="qiskit-terra",
+    removal_timeline="in the Qiskit 1.0 release",
 )
 def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms

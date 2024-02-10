@@ -18,6 +18,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "
@@ -75,6 +76,7 @@ def get_entangler_map(map_type, num_qubits, offset=0):
 
 
 @deprecate_func(
+    removal_timeline="in the Qiskit 1.0 release",
     since="0.46.0",
     package_name="qiskit",
     additional_msg="This function was only used in the context of qiskit.opflow/qiskit.algorithms, "

@@ -48,13 +48,17 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         # Create a pass manager with a variety of passes and flow control structures
         self.pass_manager = PassManager()
         self.pass_manager.append(SetLayout(layout))
-        self.pass_manager.append(TrivialLayout(coupling_map), condition=lambda x: True)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.pass_manager.append(TrivialLayout(coupling_map), condition=lambda x: True)
         self.pass_manager.append(FullAncillaAllocation(coupling_map))
         self.pass_manager.append(EnlargeWithAncilla())
         with self.assertWarns(DeprecationWarning):
             self.pass_manager.append(Unroller(basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
-        self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
+        with self.assertWarns(DeprecationWarning):
+            # Deprecated append with controller kwargs
+            self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
         self.pass_manager.append(GateDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 

@@ -207,7 +207,7 @@ def generate_preset_pass_manager(
     if translation_method == "unroller":
         warnings.warn(
             "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
-            "will be removed in a future release. Instead you should use the default "
+            "will be removed in Qiskit 1.0. Instead you should use the default "
             "'translator' method or another plugin.",
             DeprecationWarning,
             stacklevel=2,

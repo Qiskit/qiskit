@@ -16,8 +16,9 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Iterable
 from functools import wraps
-from typing import Callable
+from typing import Callable, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -43,22 +44,32 @@ logger = logging.getLogger(__name__)
 
 
 class RunningPassManager(FlowControllerLinear):
-    """A RunningPassManager is a running pass manager.
+    """A RunningPassManager is a running pass manager."""
 
-    .. warning::
-
-        :class:`.RunningPassManager` will be deprecated in the future release.
-        As of Qiskit Terra 0.25 this class becomes a subclass of the flow controller
-        with extra methods for backward compatibility.
-        Relying on a subclass of the running pass manager might break your code stack.
-    """
+    @deprecate_func(
+        since="0.46",
+        additional_msg=(
+            "RunningPassManager is largely identical to the base class "
+            "qiskit.passmanager.flow_controllers.FlowControllerLinear. "
+            "Directly use the base class instead."
+        ),
+        removal_timeline="in the 1.0 release",
+    )
+    def __init__(
+        self,
+        passes: Task | Iterable[Task] = (),
+        *,
+        options: dict[str, Any] | None = None,
+    ):
+        super().__init__(tasks=passes, options=options)
 
     @deprecate_func(
         since="0.45.0",
         additional_msg=(
-            "Building the pipline of the tasks is responsibility of PassManager. "
+            "Building the pipeline of the tasks is responsibility of PassManager. "
             "RunningPassManager should not modify prepared pipeline at running time."
         ),
+        removal_timeline="in the 1.0 release",
     )
     def append(
         self,
@@ -92,9 +103,9 @@ class RunningPassManager(FlowControllerLinear):
 
     # pylint: disable=arguments-differ
     @deprecate_func(
-        since="0.45.0",
+        since="0.46.0",
         additional_msg="Now RunningPassManager is a subclass of flow controller.",
-        pending=True,
+        removal_timeline="in the 1.0 release",
     )
     def run(
         self,

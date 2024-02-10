@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,6 +18,7 @@ Fake provider class that provides access to fake backends.
 
 from qiskit.providers.provider import ProviderV1
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.utils.deprecation import deprecate_func
 
 from .backends import *
 from .fake_qasm_simulator import FakeQasmSimulator
@@ -28,6 +29,15 @@ from .fake_openpulse_3q import FakeOpenPulse3Q
 class FakeProviderFactory:
     """Fake provider factory class."""
 
+    @deprecate_func(
+        additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
+        "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
+        "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         self.fake_provider = FakeProvider()
 
@@ -86,6 +96,15 @@ class FakeProviderForBackendV2(ProviderV1):
     def backends(self, name=None, **kwargs):
         return self._backends
 
+    @deprecate_func(
+        additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
+        "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
+        "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         self._backends = [
             FakeAlmadenV2(),
@@ -160,6 +179,15 @@ class FakeProvider(ProviderV1):
     def backends(self, name=None, **kwargs):
         return self._backends
 
+    @deprecate_func(
+        additional_msg="This class has been migrated to the `qiskit_ibm_runtime` package. "
+        "To migrate your code, run `pip install qiskit-ibm-runtime` and "
+        "use `from qiskit_ibm_runtime.fake_provider import FakeProviderExample` "
+        "instead of `from qiskit.providers.fake_provider import FakeProviderExample`.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         self._backends = [
             FakeAlmaden(),

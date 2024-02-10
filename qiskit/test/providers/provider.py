@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Base TestCase for testing Providers."""
-
+import warnings
 from unittest import SkipTest
 
 from ..base import QiskitTestCase
@@ -36,7 +36,9 @@ class ProviderTestCase(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = self._get_provider()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*BasicAer.*")
+            self.provider = self._get_provider()
 
     @classmethod
     def setUpClass(cls):

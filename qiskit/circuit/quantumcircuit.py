@@ -347,7 +347,10 @@ class QuantumCircuit:
     @classmethod
     @property
     @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+        since="0.45.0",
+        additional_msg="No alternative will be provided.",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def header(cls) -> str:
         """The OpenQASM 2.0 header statement."""
@@ -356,7 +359,10 @@ class QuantumCircuit:
     @classmethod
     @property
     @deprecate_func(
-        since="0.45.0", additional_msg="No alternative will be provided.", is_property=True
+        since="0.45.0",
+        additional_msg="No alternative will be provided.",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def extension_lib(cls) -> str:
         """The standard OpenQASM 2 import statement."""
@@ -1727,7 +1733,7 @@ class QuantumCircuit:
                 The search path for style json files can be specified in the user
                 config, for example,
                 ``circuit_mpl_style_path = /home/user/styles:/home/user``.
-                See: :class:`~qiskit.visualization.qcstyle.DefaultStyle` for more
+                See: :class:`~qiskit.visualization.circuit.qcstyle.DefaultStyle` for more
                 information on the contents.
             interactive (bool): when set to true, show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
@@ -2807,7 +2813,11 @@ class QuantumCircuit:
                 out[parameter] = value
         return out
 
-    @deprecate_func(additional_msg=("Use assign_parameters() instead"), since="0.45.0")
+    @deprecate_func(
+        additional_msg=("Use assign_parameters() instead"),
+        since="0.45.0",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def bind_parameters(
         self, values: Union[Mapping[Parameter, float], Sequence[float]]
     ) -> "QuantumCircuit":
@@ -2885,30 +2895,9 @@ class QuantumCircuit:
         Raises:
             CircuitError: if arguments have bad format.
         """
-        qubits: list[QubitSpecifier] = []
-        if qarg is None:  # -> apply delays to all qubits
-            for q in self.qubits:
-                qubits.append(q)
-        else:
-            if isinstance(qarg, QuantumRegister):
-                qubits.extend([qarg[j] for j in range(qarg.size)])
-            elif isinstance(qarg, list):
-                qubits.extend(qarg)
-            elif isinstance(qarg, (range, tuple)):
-                qubits.extend(list(qarg))
-            elif isinstance(qarg, slice):
-                qubits.extend(self.qubits[qarg])
-            else:
-                qubits.append(qarg)
-
-        instructions = InstructionSet(resource_requester=self._resolve_classical_resource)
-        for q in qubits:
-            inst: tuple[
-                Instruction, Sequence[QubitSpecifier] | None, Sequence[ClbitSpecifier] | None
-            ] = (Delay(duration, unit), [q], [])
-            self.append(*inst)
-            instructions.add(*inst)
-        return instructions
+        if qarg is None:
+            qarg = self.qubits
+        return self.append(Delay(duration, unit=unit), [qarg], [])
 
     def h(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.HGate`.
@@ -2956,6 +2945,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Use QuantumCircuit.id as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def i(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.IGate`.
@@ -3557,6 +3547,7 @@ class QuantumCircuit:
     @deprecate_func(
         since="0.45.0",
         additional_msg="Use QuantumCircuit.cswap as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def fredkin(
         self,
@@ -3778,7 +3769,11 @@ class QuantumCircuit:
             CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.cx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.cx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def cnot(
         self,
         control_qubit: QubitSpecifier,
@@ -3852,7 +3847,11 @@ class QuantumCircuit:
             [],
         )
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.ccx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.ccx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def toffoli(
         self,
         control_qubit1: QubitSpecifier,
@@ -3954,7 +3953,11 @@ class QuantumCircuit:
 
         return self.append(gate, control_qubits[:] + [target_qubit] + ancilla_qubits[:], [])
 
-    @deprecate_func(since="0.45.0", additional_msg="Use QuantumCircuit.mcx as direct replacement.")
+    @deprecate_func(
+        since="0.45.0",
+        additional_msg="Use QuantumCircuit.mcx as direct replacement.",
+        removal_timeline="in the Qiskit 1.0.0 release",
+    )
     def mct(
         self,
         control_qubits: Sequence[QubitSpecifier],
@@ -4137,10 +4140,10 @@ class QuantumCircuit:
         r"""Initialize qubits in a specific state.
 
         Qubit initialization is done by first resetting the qubits to :math:`|0\rangle`
-        followed by calling :class:`qiskit.extensions.StatePreparation`
+        followed by calling :class:`~qiskit.circuit.library.StatePreparation`
         class to prepare the qubits in a specified state.
         Both these steps are included in the
-        :class:`qiskit.extensions.Initialize` instruction.
+        :class:`~qiskit.circuit.library.Initialize` instruction.
 
         Args:
             params: The state to initialize to, can be either of the following.
@@ -4683,7 +4686,9 @@ class QuantumCircuit:
         return self.append(UCRZGate(angle_list), [q_target] + q_controls, [])
 
     @deprecate_func(
-        since="0.45.0", additional_msg="Instead, use the QuantumCircuit.unitary method."
+        since="0.45.0",
+        additional_msg="Instead, use the QuantumCircuit.unitary method.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def squ(
         self,
@@ -4739,6 +4744,7 @@ class QuantumCircuit:
         additional_msg="The Snapshot instruction has been superseded by Qiskit Aer's save "
         "instructions, see "
         "https://qiskit.org/ecosystem/aer/apidocs/aer_library.html#saving-simulator-data.",
+        removal_timeline="in the Qiskit 1.0.0 release",
     )
     def snapshot(self, label, snapshot_type="statevector", qubits=None, params=None):
         """Take a statevector snapshot of the internal simulator representation.

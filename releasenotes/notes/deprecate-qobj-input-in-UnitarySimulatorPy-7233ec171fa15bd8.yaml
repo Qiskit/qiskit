@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    :class:`~qiskit.qobj.QasmQobj` input to :meth:`~qiskit.providers.basicaer.UnitarySimulatorPy.run` 
-    is now deprecated and will be removed in the next major release.

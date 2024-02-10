@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -84,7 +84,10 @@ def resolve_backend_name(name, backends, deprecated, aliased):
         LookupError: if name cannot be resolved through regular available
             names, nor deprecated, nor alias names.
     """
-    available = [backend.name() for backend in backends]
+    # account for BackendV2
+    available = []
+    for backend in backends:
+        available.append(backend.name() if backend.version == 1 else backend.name)
 
     resolved_name = deprecated.get(name, aliased.get(name, name))
     if isinstance(resolved_name, list):

@@ -57,13 +57,13 @@ csp_requirements = ["python-constraint>=1.4"]
 
 setup(
     name="qiskit-terra",
-    version="0.45.1",
+    version="0.46.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
-    url="https://github.com/Qiskit/qiskit",
+    url="https://www.ibm.com/quantum/qiskit",
     author="Qiskit Development Team",
-    author_email="hello@qiskit.org",
+    author_email="qiskit@us.ibm.com",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -94,9 +94,11 @@ setup(
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
-        "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
-        "Documentation": "https://qiskit.org/documentation/",
-        "Source Code": "https://github.com/Qiskit/qiskit-terra",
+        "Documentation": "https://docs.quantum.ibm.com",
+        "API Reference": "https://docs.quantum.ibm.com/api/qiskit",
+        "Repository": "https://github.com/Qiskit/qiskit",
+        "Issues": "https://github.com/Qiskit/qiskit/issues",
+        "Changelog": "https://docs.quantum.ibm.com/api/qiskit/release-notes",
     },
     rust_extensions=[
         RustExtension(
@@ -117,7 +119,7 @@ setup(
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
-            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+            "aqc = qiskit.transpiler.passes.synthesis.aqc_plugin:AQCSynthesisPlugin",
             "sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis",
         ],
         "qiskit.synthesis": [

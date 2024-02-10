@@ -17,6 +17,7 @@ import datetime
 import itertools
 import operator
 import unittest
+import warnings
 
 from test import combine
 from ddt import ddt, data
@@ -25,7 +26,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.execute_function import execute
 from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeProviderForBackendV2,
@@ -77,8 +77,10 @@ from qiskit.circuit.controlflow import (
     SwitchCaseOp,
 )
 
-FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
-FAKE_PROVIDER = FakeProvider()
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
+    FAKE_PROVIDER = FakeProvider()
 
 
 @ddt
@@ -102,12 +104,10 @@ class TestFakeBackends(QiskitTestCase):
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
             self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
-        job = execute(
-            self.circuit,
-            backend,
+        job = backend.run(
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()
@@ -126,12 +126,10 @@ class TestFakeBackends(QiskitTestCase):
                 "Unable to run fake_backend %s without qiskit-aer"
                 % backend.configuration().backend_name
             )
-        job = execute(
-            self.circuit,
-            backend,
+        job = backend.run(
+            transpile(self.circuit, backend, seed_transpiler=42),
             optimization_level=optimization_level,
             seed_simulator=42,
-            seed_transpiler=42,
         )
         result = job.result()
         counts = result.get_counts()

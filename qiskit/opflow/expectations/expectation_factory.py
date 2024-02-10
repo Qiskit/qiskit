@@ -15,7 +15,7 @@
 import logging
 from typing import Optional, Union
 
-from qiskit import BasicAer
+from qiskit.providers.basicaer import BasicAer  # pylint: disable=no-name-in-module
 from qiskit.opflow.expectations.aer_pauli_expectation import AerPauliExpectation
 from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.opflow.expectations.matrix_expectation import MatrixExpectation
@@ -37,6 +37,7 @@ class ExpectationFactory:
 
     @staticmethod
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",

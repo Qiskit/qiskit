@@ -325,7 +325,7 @@ __all__ = [
 
 warnings.warn(
     "The ``qiskit.opflow`` module is deprecated as of qiskit-terra 0.24.0. "
-    "It will be removed no earlier than 3 months after the release date. "
+    "It will be removed in Qiskit 1.0. "
     "For code migration guidelines, visit https://qisk.it/opflow_migration.",
     category=DeprecationWarning,
     stacklevel=2,

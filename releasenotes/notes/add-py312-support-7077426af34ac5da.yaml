@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Added support for using Qiskit with Python 3.12. As of this release Qiskit
-    supports running with Python versions 3.8, 3.9, 3.10, 3.11, and 3.12.

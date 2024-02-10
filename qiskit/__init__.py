@@ -14,12 +14,39 @@
 
 """Main Qiskit public functionality."""
 
+import os
 import pkgutil
 import sys
 import warnings
+import importlib.metadata
+
+try:
+    _qiskit_version = importlib.metadata.version("qiskit")
+except importlib.metadata.PackageNotFoundError:
+    warnings.warn(
+        "The `qiskit` package is not installed, only `qiskit-terra` is installed."
+        " Starting in Qiskit 1.0.0 only the `qiskit` package will be published."
+        " Migrate any requirements files still using `qiskit-terra` to use `qiskit` instead."
+        " See https://qisk.it/1-0-packaging-migration for more detail.",
+        FutureWarning,
+        stacklevel=2,
+    )
+else:
+    _major, _ = _qiskit_version.split(".", 1)
+    _suppress_error = os.environ.get("QISKIT_SUPPRESS_1_0_IMPORT_ERROR", False) == "1"
+    if int(_major) > 0 and not _suppress_error:
+        raise ImportError(
+            "Qiskit is installed in an invalid environment that has both Qiskit >=1.0"
+            " and an earlier version."
+            " You should create a new virtual environment, and ensure that you do not mix"
+            " dependencies between Qiskit <1.0 and >=1.0."
+            " Any packages that depend on 'qiskit-terra' are not compatible with Qiskit 1.0 and"
+            " will need to be updated."
+            " Qiskit unfortunately cannot enforce this requirement during environment resolution."
+            " See https://qisk.it/packaging-1-0 for more detail."
+        )
 
 import qiskit._accelerate
-
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
@@ -77,9 +104,6 @@ import qiskit.circuit.reset
 # Remove this after 0.46.0 release
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-# Please note these are global instances, not modules.
-from qiskit.providers.basicaer import BasicAer
-
 _config = _user_config.get_config()
 
 # Moved to after IBMQ and Aer imports due to import issues
@@ -102,34 +126,32 @@ class AerWrapper:
 
     def __bool__(self):
         if self.aer is None:
+            warnings.warn(
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError:
                 return False
         return True
 
     def __getattr__(self, attr):
         if not self.aer:
+            warnings.warn(
+                "The 'qiskit.Aer' entry point is deprecated and will be removed in Qiskit 1.0."
+                " You should use 'qiskit_aer.Aer' directly instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
-                from qiskit.providers import aer
+                import qiskit_aer
 
-                self.aer = aer.Aer
-                warnings.warn(
-                    "The qiskit.Aer entry point will be deprecated in a future release and "
-                    "subsequently removed. Instead you should use this "
-                    "directly from the root of the qiskit-aer package.",
-                    PendingDeprecationWarning,
-                    stacklevel=2,
-                )
+                self.aer = qiskit_aer.Aer
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-aer", "Aer provider", "pip install qiskit-aer"
@@ -145,40 +167,39 @@ class IBMQWrapper:
 
     def __bool__(self):
         if self.ibmq is None:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
             except ImportError:
                 return False
         return True
 
     def __getattr__(self, attr):
         if not self.ibmq:
+            warnings.warn(
+                "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                "in a future release. Instead you should use the qiskit-ibm-provider package "
+                "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                "'qiskit_ibm_provider.IBMProvider'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             try:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
-                warnings.warn(
-                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-                    "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
-                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
-                    "'qiskit_ibm_provider.IBMProvider'",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
@@ -192,7 +213,6 @@ IBMQ = IBMQWrapper()
 __all__ = [
     "Aer",
     "AncillaRegister",
-    "BasicAer",
     "ClassicalRegister",
     "IBMQ",
     "MissingOptionalLibraryError",
@@ -205,3 +225,24 @@ __all__ = [
     "sequence",
     "transpile",
 ]
+
+# lazily deprecate BasicAer import (global instance)
+_DEPRECATED_NAMES = {
+    "BasicAer": "qiskit.providers.basicaer",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"{name} is deprecated since Qiskit 0.46 and will be removed in Qiskit 1.0. "
+            f"The BasicAer (qiskit.providers.basicaer) module has been superseded by  "
+            f"qiskit.providers.basic_provider, and all its classes have been renamed "
+            f"to follow a new naming convention. More information and migration guidelines "
+            f"can be found in the 0.46 API docs for BasicAer.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

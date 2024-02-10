@@ -133,7 +133,10 @@ class TestPresetPassManager(QiskitTestCase):
         qc.cx(1, 11)
         backend = FakeMelbourne()
 
-        result = transpile(qc, backend, layout_method="noise_adaptive", optimization_level=level)
+        with self.assertWarns(DeprecationWarning):
+            result = transpile(
+                qc, backend, layout_method="noise_adaptive", optimization_level=level
+            )
 
         self.assertIsInstance(result, QuantumCircuit)
         self.assertEqual(result.num_qubits, 14)
@@ -372,13 +375,14 @@ class TestPassesInspection(QiskitTestCase):
         qc.cx(qr[2], qr[4])
         backend = FakeMelbourne()
 
-        _ = transpile(
-            qc,
-            backend,
-            layout_method="noise_adaptive",
-            optimization_level=level,
-            callback=self.callback,
-        )
+        with self.assertWarns(DeprecationWarning):
+            _ = transpile(
+                qc,
+                backend,
+                layout_method="noise_adaptive",
+                optimization_level=level,
+                callback=self.callback,
+            )
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
@@ -1333,14 +1337,16 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        with self.assertWarns(DeprecationWarning):
+            pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        with self.assertWarns(DeprecationWarning):
+            post_translation_pass_list = [
+                y.__class__.__name__
+                for x in pm.translation.passes()  # pylint: disable=no-member
+                for y in x["passes"]
+            ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     @unittest.mock.patch.object(
@@ -1367,14 +1373,16 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        with self.assertWarns(DeprecationWarning):
+            pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        with self.assertWarns(DeprecationWarning):
+            post_translation_pass_list = [
+                y.__class__.__name__
+                for x in pm.translation.passes()  # pylint: disable=no-member
+                for y in x["passes"]
+            ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     @unittest.mock.patch.object(
@@ -1401,14 +1409,16 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        with self.assertWarns(DeprecationWarning):
+            pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        with self.assertWarns(DeprecationWarning):
+            post_translation_pass_list = [
+                y.__class__.__name__
+                for x in pm.translation.passes()  # pylint: disable=no-member
+                for y in x["passes"]
+            ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
     @unittest.mock.patch.object(
@@ -1435,14 +1445,16 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
-        pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
+        with self.assertWarns(DeprecationWarning):
+            pass_list = [y.__class__.__name__ for x in pm.passes() for y in x["passes"]]
         self.assertIn("PadDynamicalDecoupling", pass_list)
         self.assertIn("ALAPScheduleAnalysis", pass_list)
-        post_translation_pass_list = [
-            y.__class__.__name__
-            for x in pm.translation.passes()  # pylint: disable=no-member
-            for y in x["passes"]
-        ]
+        with self.assertWarns(DeprecationWarning):
+            post_translation_pass_list = [
+                y.__class__.__name__
+                for x in pm.translation.passes()  # pylint: disable=no-member
+                for y in x["passes"]
+            ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
 
 

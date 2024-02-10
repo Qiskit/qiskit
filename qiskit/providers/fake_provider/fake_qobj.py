@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,6 +23,7 @@ from qiskit.qobj import (
     QasmQobjExperiment,
     QasmQobjConfig,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 from .fake_qasm_simulator import FakeQasmSimulator
 
@@ -30,6 +31,12 @@ from .fake_qasm_simulator import FakeQasmSimulator
 class FakeQobj(QasmQobj):
     """A fake `Qobj` instance."""
 
+    @deprecate_func(
+        additional_msg="Use the `qiskit.qobj.QasmQobj` class directly instead.",
+        since="0.46.0",
+        removal_timeline="in qiskit 1.0",
+        package_name="qiskit",
+    )
     def __init__(self):
         qobj_id = "test_id"
         config = QasmQobjConfig(shots=1024, memory_slots=1)

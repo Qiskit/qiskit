@@ -21,16 +21,15 @@ from dataclasses import fields
 from typing import Any, Dict
 
 from numpy import ndarray
+from qiskit.utils.deprecation import deprecate_func
 
 
 ExperimentData = Dict[str, Any]
 
 
-class BasePrimitiveResult(ABC):
-    """Primitive result abstract base class.
-
-    Base class for Primitive results meant to provide common functionality to all inheriting
-    result dataclasses.
+class _BasePrimitiveResult(ABC):
+    """
+    Base class for deprecated Primitive result methods.
     """
 
     def __post_init__(self) -> None:
@@ -45,22 +44,35 @@ class BasePrimitiveResult(ABC):
             TypeError: If one of the data fields is not a Sequence or ``numpy.ndarray``.
             ValueError: Inconsistent number of experiments across data fields.
         """
+        num_experiments = None
         for value in self._field_values:  # type: Sequence
+            if num_experiments is None:
+                num_experiments = len(value)
             # TODO: enforce all data fields to be tuples instead of sequences
             if not isinstance(value, (Sequence, ndarray)) or isinstance(value, (str, bytes)):
                 raise TypeError(
                     f"Expected sequence or `numpy.ndarray`, provided {type(value)} instead."
                 )
-            if len(value) != self.num_experiments:
+            if len(value) != num_experiments:
                 raise ValueError("Inconsistent number of experiments across data fields.")
 
-    @property  # TODO: functools.cached_property when py37 is droppped
+    @property  # TODO: functools.cached_property when py37 is dropped
+    @deprecate_func(
+        since="0.46.0",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def num_experiments(self) -> int:
         """Number of experiments in any inheriting result dataclass."""
         value: Sequence = self._field_values[0]
         return len(value)
 
-    @property  # TODO: functools.cached_property when py37 is droppped
+    @property  # TODO: functools.cached_property when py37 is dropped
+    @deprecate_func(
+        since="0.46.0",
+        is_property=True,
+        removal_timeline="in the Qiskit 1.0 release",
+    )
     def experiments(self) -> tuple[ExperimentData, ...]:
         """Experiment data dicts in any inheriting result dataclass."""
         return tuple(self._generate_experiments())
@@ -71,17 +83,39 @@ class BasePrimitiveResult(ABC):
         for values in zip(*self._field_values):
             yield dict(zip(names, values))
 
-    def decompose(self) -> Iterator[BasePrimitiveResult]:
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in the Qiskit 1.0 release",
+    )
+    def decompose(self) -> Iterator[_BasePrimitiveResult]:
         """Generate single experiment result objects from self."""
         for values in zip(*self._field_values):
             yield self.__class__(*[(v,) for v in values])
 
-    @property  # TODO: functools.cached_property when py37 is droppped
+    @property  # TODO: functools.cached_property when py37 is dropped
     def _field_names(self) -> tuple[str, ...]:
         """Tuple of field names in any inheriting result dataclass."""
         return tuple(field.name for field in fields(self))
 
-    @property  # TODO: functools.cached_property when py37 is droppped
+    @property  # TODO: functools.cached_property when py37 is dropped
     def _field_values(self) -> tuple:
         """Tuple of field values in any inheriting result dataclass."""
         return tuple(getattr(self, name) for name in self._field_names)
+
+
+# Deprecation warning for importing BasePrimitiveResult directly
+
+
+def __getattr__(name):
+    if name == "BasePrimitiveResult":
+        import warnings
+
+        warnings.warn(
+            "The BasePrimitiveResult class is deprecated since Qiskit 0.46"
+            " and will be removed in Qiskit 1.0. Use EstimatorResult or SamplerResult"
+            " directly instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return _BasePrimitiveResult
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

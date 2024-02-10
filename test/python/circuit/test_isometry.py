@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,10 +18,8 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.quantum_info.random import random_unitary
-from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
 from qiskit.quantum_info import Operator
@@ -65,9 +63,7 @@ class TestIsometry(QiskitTestCase):
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
 
         # Simulate the decomposed gate
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
 
@@ -107,9 +103,7 @@ class TestIsometry(QiskitTestCase):
         qc = transpile(qc, basis_gates=["u1", "u3", "u2", "cx", "id"])
 
         # Simulate the decomposed gate
-        simulator = BasicAer.get_backend("unitary_simulator")
-        result = execute(qc, simulator).result()
-        unitary = result.get_unitary(qc)
+        unitary = Operator(qc).data
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
 
         self.assertTrue(np.allclose(iso_from_circuit, iso))

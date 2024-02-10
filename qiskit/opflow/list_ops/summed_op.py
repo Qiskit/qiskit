@@ -32,6 +32,7 @@ class SummedOp(ListOp):
     evaluation or conversion to matrices, they can be reduced by addition."""
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         since="0.24.0",
         package_name="qiskit-terra",
         additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,6 +14,8 @@
 Fake backend abstract class for mock backends supporting OpenPulse.
 """
 
+import warnings
+
 from qiskit.exceptions import QiskitError
 from qiskit.providers.models import PulseBackendConfiguration, PulseDefaults
 
@@ -25,6 +27,22 @@ class FakePulseBackend(FakeQasmBackend):
     """A fake pulse backend."""
 
     defs_filename = None
+
+    def __init__(self):
+        super().__init__()
+        # This is a deprecation warning for the subclasses.
+        # FakePulseBackend is not deprecated.
+        warnings.warn(
+            message="All fake backend instances based on real device snapshots (`FakeVigo`,"
+            "`FakeSherbrooke`,...) have been migrated to the `qiskit_ibm_runtime` package. "
+            "These classes are deprecated as of qiskit 0.46.0 and will be removed in qiskit 1.0.0. "
+            "To migrate your code, run `pip install qiskit-ibm-runtime` and use "
+            "`from qiskit_ibm_runtime.fake_provider import FakeExample` "
+            "instead of `from qiskit.providers.fake_provider import FakeExample`. "
+            "If you are using a custom fake backend implementation, you don't need to take any action.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
 
     def defaults(self):
         """Returns a snapshot of device defaults"""

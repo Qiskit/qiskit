@@ -80,11 +80,13 @@ from collections.abc import Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
-from qiskit.circuit import ControlFlowOp, Measure, QuantumCircuit
+from qiskit.utils.deprecation import deprecate_func
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 
 from .base_primitive import BasePrimitive
+from . import validation
 
 T = TypeVar("T", bound=Job)
 
@@ -130,15 +132,8 @@ class BaseSampler(BasePrimitive, Generic[T]):
         Raises:
             ValueError: Invalid arguments are given.
         """
-        # Singular validation
-        circuits = self._validate_circuits(circuits)
-        parameter_values = self._validate_parameter_values(
-            parameter_values,
-            default=[()] * len(circuits),
-        )
-
-        # Cross-validation
-        self._cross_validate_circuits_parameter_values(circuits, parameter_values)
+        # Validation
+        circuits, parameter_values = validation._validate_sampler_args(circuits, parameter_values)
 
         # Options
         run_opts = copy(self.options)
@@ -157,27 +152,15 @@ class BaseSampler(BasePrimitive, Generic[T]):
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> T:
-        raise NotImplementedError("The subclass of BaseSampler must implment `_run` method.")
+        raise NotImplementedError("The subclass of BaseSampler must implement `_run` method.")
 
     @classmethod
+    @deprecate_func(since="0.46.0")
     def _validate_circuits(
         cls,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
     ) -> tuple[QuantumCircuit, ...]:
-        circuits = super()._validate_circuits(circuits)
-        for i, circuit in enumerate(circuits):
-            if circuit.num_clbits == 0:
-                raise ValueError(
-                    f"The {i}-th circuit does not have any classical bit. "
-                    "Sampler requires classical bits, plus measurements "
-                    "on the desired qubits."
-                )
-            if not _has_measure(circuit):
-                raise ValueError(
-                    f"The {i}-th circuit does not have Measure instruction. "
-                    "Without measurements, the circuit cannot be sampled from."
-                )
-        return circuits
+        return validation._validate_circuits(circuits, requires_measure=True)
 
     @property
     def circuits(self) -> tuple[QuantumCircuit, ...]:
@@ -196,14 +179,3 @@ class BaseSampler(BasePrimitive, Generic[T]):
             List of the parameters in each quantum circuit.
         """
         return tuple(self._parameters)
-
-
-def _has_measure(circuit: QuantumCircuit) -> bool:
-    for instruction in reversed(circuit):
-        if isinstance(instruction.operation, Measure):
-            return True
-        elif isinstance(instruction.operation, ControlFlowOp):
-            for block in instruction.operation.blocks:
-                if _has_measure(block):
-                    return True
-    return False

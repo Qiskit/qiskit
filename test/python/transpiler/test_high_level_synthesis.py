@@ -16,6 +16,8 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 
 
 import unittest.mock
+import warnings
+
 import numpy as np
 from qiskit.circuit import (
     QuantumCircuit,
@@ -463,13 +465,16 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         qc.append(OpA(), [0])
 
         mock_plugin_manager = MockPluginManager
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         with unittest.mock.patch(
             "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
             wraps=mock_plugin_manager,
         ):
             hls_config = HLSConfig(op_a=["needs_coupling_map"])
             pm_good = PassManager(
-                [HighLevelSynthesis(hls_config=hls_config, target=FakeBackend5QV2().target)]
+                [HighLevelSynthesis(hls_config=hls_config, target=backend.target)]
             )
 
             # HighLevelSynthesis is initialized with target.
@@ -855,7 +860,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -868,7 +875,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -883,7 +892,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -896,7 +907,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -911,7 +924,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -924,7 +939,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        with warnings.catch_warnings():
+            warnings.filterwarnings(action="ignore", category=DeprecationWarning)
+            backend = FakeBackend5QV2()
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:

@@ -223,6 +223,7 @@ class Instruction(ABC):
         return any(self.parameters)
 
     @deprecate_func(
+        removal_timeline="in the Qiskit 1.0 release",
         additional_msg=(
             "No direct alternative is being provided to drawing individual pulses. But, "
             "instructions can be visualized as part of a complete schedule using "

@@ -38,6 +38,7 @@ class SchedStyle:
         ),
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(
         self,
@@ -184,6 +185,7 @@ class PulseStyle:
         ),
         since="0.23.0",
         package_name="qiskit-terra",
+        removal_timeline="in the Qiskit 1.0 release",
     )
     def __init__(
         self,

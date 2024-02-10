@@ -56,14 +56,16 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_z1:
             builder.append_schedule(sched_y1)
 
-        sched_param = next(iter(sched_z1.scoped_parameters()))
+        with self.assertWarns(DeprecationWarning):
+            sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::name")
 
         # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::name")[0],
-            param,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sched_z1.search_parameters("root::name")[0],
+                param,
+            )
 
     def test_refer_schedule(self):
         """Test refer to schedule by name.
@@ -108,20 +110,23 @@ class TestReference(QiskitTestCase):
         sched_y1.assign_references({("x1", "d0"): sched_x1})
         sched_z1.assign_references({("y1", "d0"): sched_y1})
 
-        sched_param = next(iter(sched_z1.scoped_parameters()))
+        with self.assertWarns(DeprecationWarning):
+            sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::y1,d0::x1,d0::name")
 
         # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::y1,d0::x1,d0::name")[0],
-            param,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sched_z1.search_parameters("root::y1,d0::x1,d0::name")[0],
+                param,
+            )
 
         # regex
-        self.assertEqual(
-            sched_z1.search_parameters(r"\S::x1,d0::name")[0],
-            param,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sched_z1.search_parameters(r"\S::x1,d0::name")[0],
+                param,
+            )
 
     def test_call_schedule(self):
         """Test call schedule.
@@ -160,20 +165,23 @@ class TestReference(QiskitTestCase):
         with pulse.build() as sched_z1:
             builder.call(sched_y1, name="y1")
 
-        sched_param = next(iter(sched_z1.scoped_parameters()))
+        with self.assertWarns(DeprecationWarning):
+            sched_param = next(iter(sched_z1.scoped_parameters()))
         self.assertEqual(sched_param.name, "root::y1::x1::name")
 
         # object equality
-        self.assertEqual(
-            sched_z1.search_parameters("root::y1::x1::name")[0],
-            param,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sched_z1.search_parameters("root::y1::x1::name")[0],
+                param,
+            )
 
         # regex
-        self.assertEqual(
-            sched_z1.search_parameters(r"\S::x1::name")[0],
-            param,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(
+                sched_z1.search_parameters(r"\S::x1::name")[0],
+                param,
+            )
 
     def test_append_and_call_schedule(self):
         """Test call and append schedule.
@@ -368,7 +376,8 @@ class TestReference(QiskitTestCase):
             pulse.reference("sub", "q0")
         sched_y1.assign_references({("sub", "q0"): sched_x1})
 
-        ret_param = sched_y1.search_parameters(r"\Ssub,q0::my.parameter_object")[0]
+        with self.assertWarns(DeprecationWarning):
+            ret_param = sched_y1.search_parameters(r"\Ssub,q0::my.parameter_object")[0]
 
         self.assertEqual(param, ret_param)
 
@@ -392,10 +401,13 @@ class TestReference(QiskitTestCase):
             pulse.call(sched_y1, name="y1")
 
         self.assertEqual(len(sched_z1.parameters), 1)
-        self.assertEqual(len(sched_z1.scoped_parameters()), 2)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(len(sched_z1.scoped_parameters()), 2)
 
-        self.assertEqual(sched_z1.search_parameters("root::x1::name")[0], param)
-        self.assertEqual(sched_z1.search_parameters("root::y1::name")[0], param)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(sched_z1.search_parameters("root::x1::name")[0], param)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(sched_z1.search_parameters("root::y1::name")[0], param)
 
     def test_parallel_alignment_equality(self):
         """Testcase for potential edge case.
@@ -558,7 +570,8 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertSetEqual(params, {"cr"})
 
         # Parameter names are scoepd
-        scoped_params = {p.name for p in sched.scoped_parameters()}
+        with self.assertWarns(DeprecationWarning):
+            scoped_params = {p.name for p in sched.scoped_parameters()}
         self.assertSetEqual(scoped_params, {"root::cr"})
 
         # Assign CR and XP schedule to the empty reference
@@ -571,7 +584,8 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(assigned_refs[("xp", "q0")], self.xp_sched)
 
         # Parameter added from subroutines
-        scoped_params = {p.name for p in sched.scoped_parameters()}
+        with self.assertWarns(DeprecationWarning):
+            scoped_params = {p.name for p in sched.scoped_parameters()}
         ref_params = {
             # This is the cr parameter that belongs to phase_offset instruction in the root scope
             "root::cr",
@@ -594,7 +608,8 @@ class TestSubroutineWithCXGate(QiskitTestCase):
         self.assertEqual(len(params), 2)
 
         # Get parameter with scope, only xp amp
-        params = sched.search_parameters(parameter_regex="root::xp,q0::amp")
+        with self.assertWarns(DeprecationWarning):
+            params = sched.search_parameters(parameter_regex="root::xp,q0::amp")
         self.assertEqual(len(params), 1)
 
     def test_cnot(self):
@@ -614,11 +629,13 @@ class TestSubroutineWithCXGate(QiskitTestCase):
             pulse.call(ecr_sched, name="ecr")
 
         # get parameter with scope, full scope is not needed
-        xp_amp = cx_sched.search_parameters(r"\S:xp::amp")[0]
+        with self.assertWarns(DeprecationWarning):
+            xp_amp = cx_sched.search_parameters(r"\S:xp::amp")[0]
         self.assertEqual(self.xp_amp, xp_amp)
 
         # get parameter with scope, of course full scope can be specified
-        xp_amp_full_scoped = cx_sched.search_parameters("root::ecr::xp::amp")[0]
+        with self.assertWarns(DeprecationWarning):
+            xp_amp_full_scoped = cx_sched.search_parameters("root::ecr::xp::amp")[0]
         self.assertEqual(xp_amp_full_scoped, xp_amp)
 
         # assign parameters

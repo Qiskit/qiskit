@@ -31,7 +31,9 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._provider = FakeProvider()
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            self._provider = FakeProvider()
         self._qasm = self._provider.get_backend("fake_qasm_simulator")
         self.seed = 50
 
@@ -100,7 +102,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
     def test_measurement_error_mitigation_with_vqe(self):
         """measurement error mitigation test with vqe"""
         try:
-            from qiskit.providers.aer import noise
+            from qiskit_aer import noise
         except ImportError as ex:
             self.skipTest(f"Package doesn't appear to be installed. Error: '{str(ex)}'")
             return

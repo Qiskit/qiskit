@@ -41,6 +41,7 @@ from qiskit.result import Result
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.options import Options
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
+from qiskit.utils.deprecation import deprecate_func
 from .exceptions import BasicAerError
 from .basicaertools import single_gate_matrix
 from .basicaertools import SINGLE_QUBIT_GATES
@@ -119,6 +120,13 @@ class QasmSimulatorPy(BackendV1):
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
+    @deprecate_func(
+        since="0.46.0",
+        removal_timeline="in Qiskit 1.0.0",
+        additional_msg="The qiskit.providers.basicaer module has been superseded "
+        "by qiskit.providers.basic_provider. "
+        "Use the new qiskit.providers.basic_provider.BasicSimulator class instead.",
+    )
     def __init__(self, configuration=None, provider=None, **fields):
         super().__init__(
             configuration=(

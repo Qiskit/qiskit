@@ -185,9 +185,15 @@ class QiskitTestCase(BaseQiskitTestCase):
         super().tearDown()
         # Reset the default providers, as in practice they acts as a singleton
         # due to importing the instances from the top-level qiskit namespace.
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*basicaer.*")
         from qiskit.providers.basicaer import BasicAer
 
         BasicAer._backends = BasicAer._verify_backends()
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*basicaer.*")
+
+        from qiskit.providers.basic_provider import BasicProvider
+
+        BasicProvider()._backends = BasicProvider()._verify_backends()
 
     @classmethod
     def setUpClass(cls):
@@ -239,23 +245,26 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
-
         allow_aer_DeprecationWarning_message = [
             # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
             "Setting metadata to None.*",
             # and this one once Qiskit/qiskit-aer#1945 is merged and released.
             r"The method ``qiskit\.circuit\.quantumcircuit\.QuantumCircuit\.i\(\)`` is "
-            r"deprecated as of qiskit 0\.45\.0\. It will be removed no earlier than 3 "
-            r"months after the release date\. Use QuantumCircuit\.id as direct replacement\.",
+            r"deprecated as of qiskit 0\.45\.0\. It will be removed"
+            r" in the Qiskit 1\.0\.0 release\. Use QuantumCircuit\.id as direct replacement\.",
             # This warning will be fixed once Qiskit/qiskit-aer#2023 is released.
             "The qiskit.extensions module is deprecated since Qiskit 0.46.0. It will be removed "
             "in the Qiskit 1.0 release.",
         ]
-
         for msg in allow_aer_DeprecationWarning_message:
             warnings.filterwarnings(
                 "default", category=DeprecationWarning, module="qiskit_aer.*", message=msg
             )
+        # Ignore fake backend deprecation warnings to avoid over-crowding the test log
+        ignore_fake_backend_message = r".*have been migrated to the `qiskit_ibm_runtime` package.*"
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, message=ignore_fake_backend_message
+        )
 
 
 class FullQiskitTestCase(QiskitTestCase):

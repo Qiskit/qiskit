@@ -19,12 +19,17 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
 
 
-# Redirect getattrs to modules new location
-# TODO: Deprecate in 0.24.0 and remove in 0.26.0
 from qiskit.synthesis.linear.cnot_synth import *
 from qiskit.synthesis.linear_phase.cnot_phase_synth import *
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="Instead, use the function ``synth_cnot_count_full_pmh`` from the module"
+    + "``qiskit.synthesis.linear``.",
+    removal_timeline="in the Qiskit 1.0 release",
+)
 def cnot_synth(state, section_size=2):
     """
     Synthesize linear reversible circuits for all-to-all architecture
@@ -55,6 +60,12 @@ def cnot_synth(state, section_size=2):
     return synth_cnot_count_full_pmh(state, section_size=section_size)
 
 
+@deprecate_func(
+    since="0.46.0",
+    additional_msg="Instead, use the function ``synth_cnot_phase_aam`` from the module"
+    + "``qiskit.synthesis.linear_phase``.",
+    removal_timeline="in the Qiskit 1.0 release",
+)
 def graysynth(cnots, angles, section_size=2):
     """This function is an implementation of the GraySynth algorithm of
     Amy, Azimadeh and Mosca.

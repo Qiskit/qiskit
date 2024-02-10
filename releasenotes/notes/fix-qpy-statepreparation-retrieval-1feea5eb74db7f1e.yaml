@@ -1,5 +1,0 @@
-fixes:
-  - |
-    Fixed QPY deserialization of the :class:`.StatePreparation` and :class:`.Initialize` circuit
-    instructions with string and integer parameters (as opposed to an explicit statevector, which
-    was already working).  Fixed `#11158 <https://github.com/Qiskit/qiskit/issues/11158>`__.
