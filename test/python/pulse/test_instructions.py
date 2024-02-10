@@ -13,6 +13,7 @@
 """Unit tests for pulse instructions."""
 
 import numpy as np
+from ddt import ddt, named_data, unpack
 
 from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
@@ -121,6 +122,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(hash_1, hash_2)
 
 
+@ddt
 class TestDelay(QiskitTestCase):
     """Delay tests."""
 
@@ -147,75 +149,69 @@ class TestDelay(QiskitTestCase):
         self.assertEqual(delay.duration, 10)
         self.assertIsInstance(delay.duration, np.integer)
 
-    def test_delay_new_model_target(self):
+    @named_data(
+        ["target", Qubit(0), None, None],
+        ["target_frame", Qubit(0), QubitFrame(0), None],
+        ["mixed_frame", None, None, MixedFrame(Qubit(0), QubitFrame(0))],
+    )
+    @unpack
+    def test_delay_new_model(self, target, frame, mixed_frame):
         """Test delay new model."""
-        delay = instructions.Delay(10, target=Qubit(1), name="test_name")
+        delay = instructions.Delay(
+            10, target=target, frame=frame, mixed_frame=mixed_frame, name="test_name"
+        )
 
         self.assertIsInstance(delay.id, int)
         self.assertEqual(delay.name, "test_name")
         self.assertEqual(delay.duration, 10)
         self.assertIsInstance(delay.duration, int)
         self.assertEqual(delay.channel, None)
-        self.assertEqual(delay.inst_target, Qubit(1))
-        self.assertEqual(delay.operands, (10, Qubit(1)))
 
-    def test_delay_new_model_target_frame(self):
-        """Test delay new model."""
-        delay = instructions.Delay(10, target=Qubit(1), frame=QubitFrame(2), name="test_name")
+        if frame is not None:
+            ref = MixedFrame(target, frame)
+        else:
+            ref = target or mixed_frame
 
-        self.assertIsInstance(delay.id, int)
-        self.assertEqual(delay.name, "test_name")
-        self.assertEqual(delay.duration, 10)
-        self.assertIsInstance(delay.duration, int)
-        self.assertEqual(delay.channel, None)
-        self.assertEqual(delay.inst_target, MixedFrame(Qubit(1), QubitFrame(2)))
-        self.assertEqual(delay.operands, (10, MixedFrame(Qubit(1), QubitFrame(2))))
+        self.assertEqual(delay.inst_target, ref)
+        self.assertEqual(delay.operands, (10, ref))
 
-    def test_delay_new_model_mixed_frame(self):
-        """Test delay new model."""
-        mf = MixedFrame(Qubit(1), QubitFrame(2))
-        delay = instructions.Delay(10, mixed_frame=mf, name="test_name")
+    @named_data(
+        ["none", False, False, False, False],
+        ["channel_target", True, True, False, False],
+        ["channel_frame", True, False, True, False],
+        ["channel_mixed_frame", True, False, False, True],
+        ["channel_target_frame", True, True, True, False],
+        ["channel_target_mixed_frame", True, True, False, True],
+        ["channel_frame_mixed_frame", True, False, True, True],
+        ["all", True, True, True, True],
+        ["target_mixed_frame", False, True, False, True],
+        ["target_frame_mixed_frame", False, True, True, True],
+        ["only_frame", False, False, True, False],
+        ["frame_mixed_frame", False, False, True, True],
+    )
+    @unpack
+    def test_delay_new_model_input_combination_validation(
+        self, channel, target, frame, mixed_frame
+    ):
+        """Test delay instruction input combination validation.
 
-        self.assertIsInstance(delay.id, int)
-        self.assertEqual(delay.name, "test_name")
-        self.assertEqual(delay.duration, 10)
-        self.assertIsInstance(delay.duration, int)
-        self.assertEqual(delay.channel, None)
-        self.assertEqual(delay.inst_target, mf)
-        self.assertEqual(delay.operands, (10, mf))
+        The combination is set according to the truth value of the arguments passed to the function.
+        Only combinations which should raise an error should ba passed.
+        """
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
 
-    def test_delay_new_model_input_validation(self):
-        """Test delay instruction input validation"""
-        channel = channels.DriveChannel(0)
-        target = Qubit(0)
-        frame = QubitFrame(0)
-        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0))
-
-        # Invalid Combinations
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, channel=channel, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, channel=channel, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, channel=channel, target=target, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, channel=channel, mixed_frame=mixed_frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, channel=channel, mixed_frame=mixed_frame, target=target)
         with self.assertRaises(exceptions.PulseError):
             instructions.Delay(
-                10, channel=channel, mixed_frame=mixed_frame, target=target, frame=frame
+                10, channel=channel, target=target, frame=frame, mixed_frame=mixed_frame
             )
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, mixed_frame=mixed_frame, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, mixed_frame=mixed_frame, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Delay(10, mixed_frame=mixed_frame, target=target, frame=frame)
 
-        # Invalid Inputs
+    def test_delay_new_model_input_type_validation(self):
+        """Test delay instruction input type validation"""
+        target = Qubit(0)
+        frame = QubitFrame(0)
         with self.assertRaises(exceptions.PulseError):
             instructions.Delay(10, target=frame)
         with self.assertRaises(exceptions.PulseError):
@@ -238,48 +234,29 @@ class TestDelay(QiskitTestCase):
         self.assertEqual(op_delay, op_identity)
 
 
-class TestFrameInstruction(QiskitTestCase):
-    """FrameInstruction common tests"""
+_invalid_frame_input_combinations = [
+    ["none", False, False, False, False],
+    ["channel_target", True, True, False, False],
+    ["channel_frame", True, False, True, False],
+    ["channel_mixed_frame", True, False, False, True],
+    ["channel_target_frame", True, True, True, False],
+    ["channel_target_mixed_frame", True, True, False, True],
+    ["channel_frame_mixed_frame", True, False, True, True],
+    ["target", False, True, False, False],
+    ["all", True, True, True, True],
+    ["target_mixed_frame", False, True, False, True],
+    ["target_frame_mixed_frame", False, True, True, True],
+    ["frame_mixed_frame", False, False, True, True],
+]
 
-    def test_frame_instruction_input_validation(self):
-        """FrameInstructions share the input validation code.
-        Therefore, these tests use SetPhase as a representative example"""
-        channel = channels.DriveChannel(0)
-        target = Qubit(0)
-        frame = QubitFrame(0)
-        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0))
-
-        # Invalid Combinations
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, channel=channel, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, channel=channel, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, channel=channel, target=target, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, channel=channel, mixed_frame=mixed_frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, channel=channel, mixed_frame=mixed_frame, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(
-                0.5, channel=channel, mixed_frame=mixed_frame, target=target, frame=frame
-            )
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, mixed_frame=mixed_frame, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, mixed_frame=mixed_frame, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, mixed_frame=mixed_frame, target=target, frame=frame)
-
-        # Invalid Inputs
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, frame=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.SetPhase(0.5, target=target, frame=target)
+_valid_frame_input_combinations = [
+    ["frame", QubitFrame(1), None, None],
+    ["frame_target", QubitFrame(1), Qubit(1), None],
+    ["mixed_frame", None, None, MixedFrame(Qubit(1), QubitFrame(2))],
+]
 
 
+@ddt
 class TestSetFrequency(QiskitTestCase):
     """Set frequency tests."""
 
@@ -303,41 +280,56 @@ class TestSetFrequency(QiskitTestCase):
         )
         self.assertEqual(repr(set_freq), "SetFrequency(4500000000.0, DriveChannel(1), name='test')")
 
-    def test_freq_new_model_frame(self):
-        """Test set frequency basic functionality with frame input."""
-        set_freq = instructions.SetFrequency(4.5e9, frame=QubitFrame(1), name="test")
-
-        self.assertIsInstance(set_freq.id, int)
-        self.assertEqual(set_freq.duration, 0)
-        self.assertEqual(set_freq.frequency, 4.5e9)
-        self.assertEqual(set_freq.channel, None)
-        self.assertEqual(set_freq.inst_target, QubitFrame(1))
-        self.assertEqual(set_freq.operands, (4.5e9, QubitFrame(1)))
-
-    def test_freq_new_model_target_frame(self):
-        """Test set frequency basic functionality with frame+target input."""
+    @named_data(*_valid_frame_input_combinations)
+    @unpack
+    def test_set_freq_new_model(self, frame, target, mixed_frame):
+        """Test set frequency basic functionality with valid inputs."""
         set_freq = instructions.SetFrequency(
-            4.5e9, target=Qubit(1), frame=QubitFrame(1), name="test"
+            4.5e9, frame=frame, target=target, mixed_frame=mixed_frame, name="test"
         )
 
         self.assertIsInstance(set_freq.id, int)
         self.assertEqual(set_freq.duration, 0)
         self.assertEqual(set_freq.frequency, 4.5e9)
         self.assertEqual(set_freq.channel, None)
-        self.assertEqual(set_freq.inst_target, MixedFrame(Qubit(1), QubitFrame(1)))
-        self.assertEqual(set_freq.operands, (4.5e9, MixedFrame(Qubit(1), QubitFrame(1))))
+        if target is not None:
+            ref = MixedFrame(target, frame)
+        else:
+            ref = frame or mixed_frame
+        self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.operands, (4.5e9, ref))
 
-    def test_freq_new_model_mixed_frame(self):
-        """Test set frequency basic functionality with mixed frame input."""
-        mf = MixedFrame(Qubit(1), QubitFrame(1))
-        set_freq = instructions.SetFrequency(4.5e9, mixed_frame=mf, name="test")
+    @named_data(*_invalid_frame_input_combinations)
+    @unpack
+    def test_set_freq_new_model_input_combination_validation(
+        self, channel, target, frame, mixed_frame
+    ):
+        """Test set freq instruction input combination validation.
 
-        self.assertIsInstance(set_freq.id, int)
-        self.assertEqual(set_freq.duration, 0)
-        self.assertEqual(set_freq.frequency, 4.5e9)
-        self.assertEqual(set_freq.channel, None)
-        self.assertEqual(set_freq.inst_target, mf)
-        self.assertEqual(set_freq.operands, (4.5e9, mf))
+        The combination is set according to the truth value of the arguments passed to the function.
+        Only combinations which should raise an error should ba passed.
+        """
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetFrequency(
+                10, channel=channel, target=target, frame=frame, mixed_frame=mixed_frame
+            )
+
+    def test_set_freq_new_model_input_type_validation(self):
+        """Test set freq instruction input type validation."""
+        target = Qubit(0)
+        frame = QubitFrame(0)
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetFrequency(10, frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetFrequency(10, mixed_frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetFrequency(10, target=frame, frame=frame)
 
     def test_freq_non_pulse_channel(self):
         """Test set frequency constructor with illegal channel"""
@@ -354,6 +346,7 @@ class TestSetFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@ddt
 class TestShiftFrequency(QiskitTestCase):
     """Shift frequency tests."""
 
@@ -381,41 +374,56 @@ class TestShiftFrequency(QiskitTestCase):
             repr(shift_freq), "ShiftFrequency(4500000000.0, DriveChannel(1), name='test')"
         )
 
-    def test_shift_freq_new_model_frame(self):
-        """Test shift frequency basic functionality with frame input"""
-        shift_freq = instructions.ShiftFrequency(4.5e9, frame=QubitFrame(1), name="test")
-
-        self.assertIsInstance(shift_freq.id, int)
-        self.assertEqual(shift_freq.duration, 0)
-        self.assertEqual(shift_freq.frequency, 4.5e9)
-        self.assertEqual(shift_freq.channel, None)
-        self.assertEqual(shift_freq.inst_target, QubitFrame(1))
-        self.assertEqual(shift_freq.operands, (4.5e9, QubitFrame(1)))
-
-    def test_shift_freq_new_model_target_frame(self):
-        """Test shift frequency basic functionality with frame+target input"""
-        shift_freq = instructions.ShiftFrequency(
-            4.5e9, frame=QubitFrame(1), target=Qubit(1), name="test"
+    @named_data(*_valid_frame_input_combinations)
+    @unpack
+    def test_shift_freq_new_model(self, frame, target, mixed_frame):
+        """Test shift frequency basic functionality with valid inputs."""
+        set_freq = instructions.ShiftFrequency(
+            4.5e9, frame=frame, target=target, mixed_frame=mixed_frame, name="test"
         )
 
-        self.assertIsInstance(shift_freq.id, int)
-        self.assertEqual(shift_freq.duration, 0)
-        self.assertEqual(shift_freq.frequency, 4.5e9)
-        self.assertEqual(shift_freq.channel, None)
-        self.assertEqual(shift_freq.inst_target, MixedFrame(Qubit(1), QubitFrame(1)))
-        self.assertEqual(shift_freq.operands, (4.5e9, MixedFrame(Qubit(1), QubitFrame(1))))
+        self.assertIsInstance(set_freq.id, int)
+        self.assertEqual(set_freq.duration, 0)
+        self.assertEqual(set_freq.frequency, 4.5e9)
+        self.assertEqual(set_freq.channel, None)
+        if target is not None:
+            ref = MixedFrame(target, frame)
+        else:
+            ref = frame or mixed_frame
+        self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.operands, (4.5e9, ref))
 
-    def test_shift_freq_new_model_mixed_frame(self):
-        """Test shift frequency basic functionality with mixedframe input"""
-        mf = MixedFrame(Qubit(1), QubitFrame(1))
-        shift_freq = instructions.ShiftFrequency(4.5e9, mixed_frame=mf, name="test")
+    @named_data(*_invalid_frame_input_combinations)
+    @unpack
+    def test_shift_freq_new_model_input_combination_validation(
+        self, channel, target, frame, mixed_frame
+    ):
+        """Test shift freq instruction input combination validation.
 
-        self.assertIsInstance(shift_freq.id, int)
-        self.assertEqual(shift_freq.duration, 0)
-        self.assertEqual(shift_freq.frequency, 4.5e9)
-        self.assertEqual(shift_freq.channel, None)
-        self.assertEqual(shift_freq.inst_target, mf)
-        self.assertEqual(shift_freq.operands, (4.5e9, mf))
+        The combination is set according to the truth value of the arguments passed to the function.
+        Only combinations which should raise an error should ba passed.
+        """
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftFrequency(
+                10, channel=channel, target=target, frame=frame, mixed_frame=mixed_frame
+            )
+
+    def test_shift_freq_new_model_input_type_validation(self):
+        """Test shift freq instruction input type validation."""
+        target = Qubit(0)
+        frame = QubitFrame(0)
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftFrequency(10, frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftFrequency(10, mixed_frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftFrequency(10, target=frame, frame=frame)
 
     def test_freq_non_pulse_channel(self):
         """Test shift frequency constructor with illegal channel"""
@@ -432,6 +440,7 @@ class TestShiftFrequency(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@ddt
 class TestSetPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -454,42 +463,56 @@ class TestSetPhase(QiskitTestCase):
         )
         self.assertEqual(repr(set_phase), "SetPhase(1.57, DriveChannel(0))")
 
-    def test_set_phase_new_model_frame(self):
-        """Test basic SetPhase with frame input"""
-        set_phase = instructions.SetPhase(1.57, frame=QubitFrame(2))
+    @named_data(*_valid_frame_input_combinations)
+    @unpack
+    def test_set_phase_new_model(self, frame, target, mixed_frame):
+        """Test set phase basic functionality with valid inputs."""
+        set_freq = instructions.SetPhase(
+            1.5, frame=frame, target=target, mixed_frame=mixed_frame, name="test"
+        )
 
-        self.assertIsInstance(set_phase.id, int)
-        self.assertEqual(set_phase.name, None)
-        self.assertEqual(set_phase.duration, 0)
-        self.assertEqual(set_phase.phase, 1.57)
-        self.assertEqual(set_phase.channel, None)
-        self.assertEqual(set_phase.inst_target, QubitFrame(2))
-        self.assertEqual(set_phase.operands, (1.57, QubitFrame(2)))
+        self.assertIsInstance(set_freq.id, int)
+        self.assertEqual(set_freq.duration, 0)
+        self.assertEqual(set_freq.phase, 1.5)
+        self.assertEqual(set_freq.channel, None)
+        if target is not None:
+            ref = MixedFrame(target, frame)
+        else:
+            ref = frame or mixed_frame
+        self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.operands, (1.5, ref))
 
-    def test_set_phase_new_model_frame_target(self):
-        """Test basic SetPhase with frame+target input"""
-        set_phase = instructions.SetPhase(1.57, frame=QubitFrame(2), target=Qubit(1))
+    @named_data(*_invalid_frame_input_combinations)
+    @unpack
+    def test_set_phase_new_model_input_combination_validation(
+        self, channel, target, frame, mixed_frame
+    ):
+        """Test set phase instruction input combination validation.
 
-        self.assertIsInstance(set_phase.id, int)
-        self.assertEqual(set_phase.name, None)
-        self.assertEqual(set_phase.duration, 0)
-        self.assertEqual(set_phase.phase, 1.57)
-        self.assertEqual(set_phase.channel, None)
-        self.assertEqual(set_phase.inst_target, MixedFrame(Qubit(1), QubitFrame(2)))
-        self.assertEqual(set_phase.operands, (1.57, MixedFrame(Qubit(1), QubitFrame(2))))
+        The combination is set according to the truth value of the arguments passed to the function.
+        Only combinations which should raise an error should ba passed.
+        """
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
 
-    def test_set_phase_new_model_mixed_frame(self):
-        """Test basic SetPhase with mixedframe input"""
-        mf = MixedFrame(Qubit(1), QubitFrame(2))
-        set_phase = instructions.SetPhase(1.57, mixed_frame=mf)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetPhase(
+                10, channel=channel, target=target, frame=frame, mixed_frame=mixed_frame
+            )
 
-        self.assertIsInstance(set_phase.id, int)
-        self.assertEqual(set_phase.name, None)
-        self.assertEqual(set_phase.duration, 0)
-        self.assertEqual(set_phase.phase, 1.57)
-        self.assertEqual(set_phase.channel, None)
-        self.assertEqual(set_phase.inst_target, mf)
-        self.assertEqual(set_phase.operands, (1.57, mf))
+    def test_set_phase_new_model_input_type_validation(self):
+        """Test set phase instruction input type validation."""
+        target = Qubit(0)
+        frame = QubitFrame(0)
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetPhase(10, frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetPhase(10, mixed_frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.SetPhase(10, target=frame, frame=frame)
 
     def test_set_phase_non_pulse_channel(self):
         """Test shift phase constructor with illegal channel"""
@@ -506,6 +529,7 @@ class TestSetPhase(QiskitTestCase):
         self.assertSetEqual(instr.parameters, {p1, p2})
 
 
+@ddt
 class TestShiftPhase(QiskitTestCase):
     """Test the instruction construction."""
 
@@ -530,42 +554,56 @@ class TestShiftPhase(QiskitTestCase):
         )
         self.assertEqual(repr(shift_phase), "ShiftPhase(1.57, DriveChannel(0))")
 
-    def test_shift_phase_new_model_frame(self):
-        """Test basic SetPhase with frame input"""
-        shift_phase = instructions.ShiftPhase(1.57, frame=QubitFrame(2))
+    @named_data(*_valid_frame_input_combinations)
+    @unpack
+    def test_shift_phase_new_model(self, frame, target, mixed_frame):
+        """Test shift phase basic functionality with valid inputs."""
+        set_freq = instructions.ShiftPhase(
+            1.5, frame=frame, target=target, mixed_frame=mixed_frame, name="test"
+        )
 
-        self.assertIsInstance(shift_phase.id, int)
-        self.assertEqual(shift_phase.name, None)
-        self.assertEqual(shift_phase.duration, 0)
-        self.assertEqual(shift_phase.phase, 1.57)
-        self.assertEqual(shift_phase.inst_target, QubitFrame(2))
-        self.assertEqual(shift_phase.channel, None)
-        self.assertEqual(shift_phase.operands, (1.57, QubitFrame(2)))
+        self.assertIsInstance(set_freq.id, int)
+        self.assertEqual(set_freq.duration, 0)
+        self.assertEqual(set_freq.phase, 1.5)
+        self.assertEqual(set_freq.channel, None)
+        if target is not None:
+            ref = MixedFrame(target, frame)
+        else:
+            ref = frame or mixed_frame
+        self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.operands, (1.5, ref))
 
-    def test_shift_phase_new_model_frame_target(self):
-        """Test basic SetPhase with frame+target input"""
-        shift_phase = instructions.ShiftPhase(1.57, frame=QubitFrame(2), target=Qubit(1))
+    @named_data(*_invalid_frame_input_combinations)
+    @unpack
+    def test_shift_phase_new_model_input_combination_validation(
+        self, channel, target, frame, mixed_frame
+    ):
+        """Test shift phase instruction input combination validation.
 
-        self.assertIsInstance(shift_phase.id, int)
-        self.assertEqual(shift_phase.name, None)
-        self.assertEqual(shift_phase.duration, 0)
-        self.assertEqual(shift_phase.phase, 1.57)
-        self.assertEqual(shift_phase.inst_target, MixedFrame(Qubit(1), QubitFrame(2)))
-        self.assertEqual(shift_phase.channel, None)
-        self.assertEqual(shift_phase.operands, (1.57, MixedFrame(Qubit(1), QubitFrame(2))))
+        The combination is set according to the truth value of the arguments passed to the function.
+        Only combinations which should raise an error should ba passed.
+        """
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
 
-    def test_shift_phase_new_model_mixed_frame(self):
-        """Test basic SetPhase with mixedframe input"""
-        mf = MixedFrame(Qubit(1), QubitFrame(2))
-        shift_phase = instructions.ShiftPhase(1.57, mixed_frame=mf)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftPhase(
+                10, channel=channel, target=target, frame=frame, mixed_frame=mixed_frame
+            )
 
-        self.assertIsInstance(shift_phase.id, int)
-        self.assertEqual(shift_phase.name, None)
-        self.assertEqual(shift_phase.duration, 0)
-        self.assertEqual(shift_phase.phase, 1.57)
-        self.assertEqual(shift_phase.inst_target, mf)
-        self.assertEqual(shift_phase.channel, None)
-        self.assertEqual(shift_phase.operands, (1.57, mf))
+    def test_shift_phase_new_model_input_type_validation(self):
+        """Test shift phase instruction input type validation."""
+        target = Qubit(0)
+        frame = QubitFrame(0)
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftPhase(10, frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftPhase(10, mixed_frame=target)
+        with self.assertRaises(exceptions.PulseError):
+            instructions.ShiftPhase(10, target=frame, frame=frame)
 
     def test_shift_phase_non_pulse_channel(self):
         """Test shift phase constructor with illegal channel"""
@@ -597,6 +635,7 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(repr(snapshot), "Snapshot(test_name, state, name='test_name')")
 
 
+@ddt
 class TestPlay(QiskitTestCase):
     """Play tests."""
 
@@ -621,25 +660,20 @@ class TestPlay(QiskitTestCase):
             " DriveChannel(1), name='test')",
         )
 
-    def test_play_new_model_target_frame(self):
+    @named_data(
+        ["target_frame", Qubit(0), QubitFrame(1), None],
+        ["mixed_frame", None, None, MixedFrame(Qubit(0), QubitFrame(1))],
+    )
+    @unpack
+    def test_play_new_model_target_frame(self, target, frame, mixed_frame):
         """Test basic play instruction."""
-        play = instructions.Play(self.pulse_op, target=Qubit(0), frame=QubitFrame(0))
+        play = instructions.Play(self.pulse_op, target=target, frame=frame, mixed_frame=mixed_frame)
 
         self.assertIsInstance(play.id, int)
         self.assertEqual(play.name, self.pulse_op.name)
         self.assertEqual(play.duration, self.duration)
-        self.assertEqual(play.inst_target, MixedFrame(Qubit(0), QubitFrame(0)))
-        self.assertEqual(play.channel, None)
-
-    def test_play_new_model_mixed_frame(self):
-        """Test basic play instruction."""
-        mf = MixedFrame(Qubit(0), QubitFrame(0))
-        play = instructions.Play(self.pulse_op, mixed_frame=mf)
-
-        self.assertIsInstance(play.id, int)
-        self.assertEqual(play.name, self.pulse_op.name)
-        self.assertEqual(play.duration, self.duration)
-        self.assertEqual(play.inst_target, mf)
+        self.assertEqual(play.pulse, self.pulse_op)
+        self.assertEqual(play.inst_target, MixedFrame(Qubit(0), QubitFrame(1)))
         self.assertEqual(play.channel, None)
 
     def test_play_non_pulse_ch_raises(self):
@@ -647,43 +681,40 @@ class TestPlay(QiskitTestCase):
         with self.assertRaises(exceptions.PulseError):
             instructions.Play(self.pulse_op, channel=channels.AcquireChannel(0))
 
-    def test_play_arguments_validation(self):
+    @named_data(
+        ["none", False, False, False, False],
+        ["channel_target", True, True, False, False],
+        ["channel_frame", True, False, True, False],
+        ["channel_mixed_frame", True, False, False, True],
+        ["channel_target_frame", True, True, True, False],
+        ["channel_target_mixed_frame", True, True, False, True],
+        ["channel_frame_mixed_frame", True, False, True, True],
+        ["all", True, True, True, True],
+        ["target_mixed_frame", False, True, False, True],
+        ["target_frame_mixed_frame", False, True, True, True],
+        ["only_frame", False, False, True, False],
+        ["only_target", False, False, True, False],
+        ["frame_mixed_frame", False, False, True, True],
+    )
+    @unpack
+    def test_play_arguments_combination_validation(self, channel, target, frame, mixed_frame):
         """Test that play instruction raises an error if the arguments don't specify a unique mixed
         frame"""
-        channel = channels.DriveChannel(0)
+        channel = channels.DriveChannel(0) if channel else None
+        target = Qubit(0) if target else None
+        frame = QubitFrame(0) if frame else None
+        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0)) if mixed_frame else None
+
+        with self.assertRaises(exceptions.PulseError):
+            instructions.Play(
+                self.pulse_op, frame=frame, target=target, mixed_frame=mixed_frame, channel=channel
+            )
+
+    def test_play_arguments_type_validation(self):
+        """Test that play instruction raises an error if arguments of wrong type"""
         target = Qubit(0)
         frame = QubitFrame(0)
-        mixed_frame = MixedFrame(Qubit(0), QubitFrame(0))
 
-        # Invalid Combinations
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, channel=channel, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, channel=channel, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, channel=channel, target=target, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, channel=channel, mixed_frame=mixed_frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(
-                self.pulse_op, channel=channel, mixed_frame=mixed_frame, target=target
-            )
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(
-                self.pulse_op, channel=channel, mixed_frame=mixed_frame, target=target, frame=frame
-            )
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, target=target)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, frame=frame)
-        with self.assertRaises(exceptions.PulseError):
-            instructions.Play(self.pulse_op, mixed_frame=mixed_frame, target=target, frame=frame)
-
-        # Invalid Inputs
         with self.assertRaises(exceptions.PulseError):
             instructions.Play(self.pulse_op, target=frame, frame=frame)
         with self.assertRaises(exceptions.PulseError):

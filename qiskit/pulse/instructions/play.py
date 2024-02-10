@@ -14,7 +14,7 @@
 transmitted pulses, such as ``DriveChannel``).
 """
 from __future__ import annotations
-from typing import Optional, Union, Tuple
+from typing import Tuple
 
 from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -38,11 +38,11 @@ class Play(Instruction):
         self,
         pulse: Pulse,
         *,
-        target: Optional[PulseTarget] = None,
-        frame: Optional[Frame] = None,
-        mixed_frame: Optional[MixedFrame] = None,
-        channel: Optional[PulseChannel] = None,
-        name: Optional[str] = None,
+        target: PulseTarget | None = None,
+        frame: Frame | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: PulseChannel | None = None,
+        name: str | None = None,
     ):
         """Create a new pulse play instruction.
 
@@ -76,10 +76,6 @@ class Play(Instruction):
             )
 
         if target is not None:
-            if not isinstance(target, PulseTarget):
-                raise PulseError(f"Expected a PulseTarget, got {target} instead.")
-            if not isinstance(frame, Frame):
-                raise PulseError(f"Expected a Frame, got {frame} instead.")
             mixed_frame = MixedFrame(target, frame)
         else:
             mixed_frame = mixed_frame or channel
@@ -97,7 +93,7 @@ class Play(Instruction):
         return self.operands[0]
 
     @property
-    def channel(self) -> Union[PulseChannel, None]:
+    def channel(self) -> PulseChannel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
@@ -106,12 +102,12 @@ class Play(Instruction):
         return None
 
     @property
-    def inst_target(self) -> Union[PulseChannel, MixedFrame]:
+    def inst_target(self) -> PulseChannel | MixedFrame:
         """Return the mixed frame targeted by this pulse play instruction."""
         return self.operands[1]
 
     @property
-    def channels(self) -> Tuple[Union[PulseChannel, None]]:
+    def channels(self) -> Tuple[PulseChannel | None]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
 

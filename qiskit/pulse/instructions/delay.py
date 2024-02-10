@@ -12,7 +12,6 @@
 
 """An instruction for blocking time on a channel; useful for scheduling alignment."""
 from __future__ import annotations
-from typing import Union, Optional
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import Channel
@@ -39,13 +38,13 @@ class Delay(Instruction):
 
     def __init__(
         self,
-        duration: Union[int, ParameterExpression],
+        duration: int | ParameterExpression,
         *,
-        target: Optional[PulseTarget] = None,
-        frame: Optional[Frame] = None,
-        mixed_frame: Optional[MixedFrame] = None,
-        channel: Optional[Channel] = None,
-        name: Optional[str] = None,
+        target: PulseTarget | None = None,
+        frame: Frame | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: Channel | None = None,
+        name: str | None = None,
     ):
         """Create a new delay instruction.
 
@@ -71,16 +70,12 @@ class Delay(Instruction):
             PulseError: If the inputs to ``target``, ``frame``, ``mixed_frame`` and ``channel``
                 are not of the appropriate type.
         """
-        if (target is None) and (frame is not None):
-            raise PulseError("frame can not be provided without target")
         if (channel is not None) + (mixed_frame is not None) + (target is not None) != 1:
             raise PulseError("Exactly one of mixed_frame, channel or target must be provided")
 
         if frame is not None:
-            if not isinstance(target, PulseTarget):
-                raise PulseError(f"Expected a PulseTarget, got {target} instead.")
-            if not isinstance(frame, Frame):
-                raise PulseError(f"Expected a Frame, got {frame} instead.")
+            if target is None:
+                raise PulseError("frame must be provided with target")
             inst_target = MixedFrame(target, frame)
         else:
             inst_target = mixed_frame or channel or target
@@ -93,12 +88,12 @@ class Delay(Instruction):
         super().__init__(operands=(duration, inst_target), name=name)
 
     @property
-    def inst_target(self) -> Union[MixedFrame, PulseTarget, Channel]:
+    def inst_target(self) -> MixedFrame | PulseTarget | Channel:
         """Return the object targeted by this delay instruction."""
         return self.operands[1]
 
     @property
-    def channel(self) -> Union[Channel, None]:
+    def channel(self) -> Channel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """

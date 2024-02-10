@@ -15,9 +15,9 @@ This includes ``SetPhase`` instructions which lock the modulation to a particula
 at that moment, and ``ShiftPhase`` instructions which increase the existing phase by a
 relative amount.
 """
-from typing import Optional, Union
+from __future__ import annotations
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import FrameInstruction
 from qiskit.pulse.model import Frame, MixedFrame, PulseTarget
@@ -42,16 +42,16 @@ class ShiftPhase(FrameInstruction):
 
     def __init__(
         self,
-        phase: Union[complex, ParameterExpression],
+        phase: ParameterValueType,
         *,
-        frame: Frame = None,
-        target: PulseTarget = None,
-        mixed_frame: MixedFrame = None,
-        channel: PulseChannel = None,
-        name: Optional[str] = None,
+        frame: Frame | None = None,
+        target: PulseTarget | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: PulseChannel | None = None,
+        name: str | None = None,
     ):
         """Instantiate a shift phase instruction, increasing the output signal phase on a given
-        mixed frame (=channel) or frame by ``phase`` [radians]..
+        mixed frame (=channel) or frame by ``phase`` [radians].
 
         The instruction can be set on a ``MixedFrame`` (=``Channel``) or a ``Frame``. For the latter,
         provide only the ``frame`` argument, and the instruction will be broadcasted to all
@@ -72,7 +72,7 @@ class ShiftPhase(FrameInstruction):
         super().__init__(operands=(phase, inst_target), name=name)
 
     @property
-    def phase(self) -> Union[complex, ParameterExpression]:
+    def phase(self) -> ParameterValueType:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]
 
@@ -92,13 +92,13 @@ class SetPhase(FrameInstruction):
 
     def __init__(
         self,
-        phase: Union[complex, ParameterExpression],
+        phase: ParameterValueType,
         *,
-        frame: Frame = None,
-        target: PulseTarget = None,
-        mixed_frame: MixedFrame = None,
-        channel: PulseChannel = None,
-        name: Optional[str] = None,
+        frame: Frame | None = None,
+        target: PulseTarget | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: PulseChannel | None = None,
+        name: str = None,
     ):
         """Instantiate a set phase instruction, setting the output signal phase on a given
         mixed frame (=channel) or frame to ``phase`` [radians]..
@@ -122,6 +122,6 @@ class SetPhase(FrameInstruction):
         super().__init__(operands=(phase, inst_target), name=name)
 
     @property
-    def phase(self) -> Union[complex, ParameterExpression]:
+    def phase(self) -> ParameterValueType:
         """Return the rotation angle enacted by this instruction in radians."""
         return self.operands[0]

@@ -23,7 +23,7 @@ For example::
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Tuple
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse.channels import Channel, PulseChannel
@@ -273,7 +273,7 @@ class FrameInstruction(Instruction, ABC):
 
     def _validate_and_format_frame(
         self, target: PulseTarget, frame: Frame, mixed_frame: MixedFrame, channel: Channel
-    ) -> Union[Frame, MixedFrame, PulseChannel]:
+    ) -> Frame | MixedFrame | PulseChannel:
         """Called after initialization to validate instruction data.
 
         Arguments:
@@ -291,16 +291,12 @@ class FrameInstruction(Instruction, ABC):
                 ``channel`` doesn't specify a unique ``MixedFrame`` or ``Frame``.
         """
 
-        if (frame is None) and (target is not None):
-            raise PulseError("target can not be provided without frame")
         if (channel is not None) + (mixed_frame is not None) + (frame is not None) != 1:
             raise PulseError("Exactly one of mixed_frame, channel or frame must be provided")
 
         if target is not None:
-            if not isinstance(target, PulseTarget):
-                raise PulseError(f"Expected a PulseTarget, got {target} instead.")
-            if not isinstance(frame, Frame):
-                raise PulseError(f"Expected a Frame, got {frame} instead.")
+            if frame is None:
+                raise PulseError("target can not be provided without frame")
             inst_target = MixedFrame(target, frame)
         else:
             inst_target = mixed_frame or channel or frame
@@ -311,7 +307,7 @@ class FrameInstruction(Instruction, ABC):
         return inst_target
 
     @property
-    def channel(self) -> Union[PulseChannel, None]:
+    def channel(self) -> PulseChannel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
@@ -320,7 +316,7 @@ class FrameInstruction(Instruction, ABC):
         return None
 
     @property
-    def inst_target(self) -> Union[MixedFrame, Frame, PulseChannel]:
+    def inst_target(self) -> MixedFrame | Frame | PulseChannel:
         """Return the frame or mixed frame targeted by this instruction."""
         return self.operands[1]
 

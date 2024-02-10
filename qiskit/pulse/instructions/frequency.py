@@ -13,9 +13,9 @@
 """Frequency instructions module. These instructions allow the user to manipulate
 the frequency of a channel.
 """
-from typing import Optional, Union
+from __future__ import annotations
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import FrameInstruction
 from qiskit.pulse.model import Frame, MixedFrame, PulseTarget
@@ -38,13 +38,13 @@ class SetFrequency(FrameInstruction):
 
     def __init__(
         self,
-        frequency: Union[float, ParameterExpression],
+        frequency: ParameterValueType,
         *,
-        frame: Frame = None,
-        target: PulseTarget = None,
-        mixed_frame: MixedFrame = None,
-        channel: PulseChannel = None,
-        name: Optional[str] = None,
+        frame: Frame | None = None,
+        target: PulseTarget | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: PulseChannel | None = None,
+        name: str | None = None,
     ):
         """Creates a new set frequency instruction.
 
@@ -67,7 +67,7 @@ class SetFrequency(FrameInstruction):
         super().__init__(operands=(frequency, inst_target), name=name)
 
     @property
-    def frequency(self) -> Union[float, ParameterExpression]:
+    def frequency(self) -> ParameterValueType:
         """New frequency."""
         return self.operands[0]
 
@@ -89,13 +89,13 @@ class ShiftFrequency(FrameInstruction):
 
     def __init__(
         self,
-        frequency: Union[float, ParameterExpression],
+        frequency: ParameterValueType,
         *,
-        frame: Frame = None,
-        target: PulseTarget = None,
-        mixed_frame: MixedFrame = None,
-        channel: PulseChannel = None,
-        name: Optional[str] = None,
+        frame: Frame | None = None,
+        target: PulseTarget | None = None,
+        mixed_frame: MixedFrame | None = None,
+        channel: PulseChannel | None = None,
+        name: str | None = None,
     ):
         """Creates a new shift frequency instruction.
 
@@ -118,6 +118,6 @@ class ShiftFrequency(FrameInstruction):
         super().__init__(operands=(frequency, inst_target), name=name)
 
     @property
-    def frequency(self) -> Union[float, ParameterExpression]:
+    def frequency(self) -> ParameterValueType:
         """Frequency shift from the set frequency."""
         return self.operands[0]

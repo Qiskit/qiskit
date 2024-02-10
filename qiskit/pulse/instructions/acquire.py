@@ -14,7 +14,6 @@
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
 from __future__ import annotations
-from typing import Optional, Union
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -41,13 +40,13 @@ class Acquire(Instruction):
 
     def __init__(
         self,
-        duration: Union[int, ParameterExpression],
+        duration: int | ParameterExpression,
         *,
-        qubit: Optional[model.Qubit] = None,
-        channel: Optional[AcquireChannel] = None,
-        mem_slot: Optional[MemorySlot] = None,
-        reg_slot: Optional[RegisterSlot] = None,
-        kernel: Optional[Kernel] = None,
+        qubit: model.Qubit | None = None,
+        channel: AcquireChannel | None = None,
+        mem_slot: MemorySlot | None = None,
+        reg_slot: RegisterSlot | None = None,
+        kernel: Kernel | None = None,
         discriminator: Discriminator | None = None,
         name: str | None = None,
     ):
@@ -83,7 +82,7 @@ class Acquire(Instruction):
             raise PulseError(f"Expected an acquire channel, got {channel} instead.")
 
         if (qubit is not None) + (channel is not None) != 1:
-            raise PulseError("Expected exactly one of acq_element and channel.")
+            raise PulseError("Expected exactly one of qubit and channel.")
 
         if mem_slot and not isinstance(mem_slot, MemorySlot):
             raise PulseError(f"Expected a memory slot, got {mem_slot} instead.")
@@ -100,7 +99,7 @@ class Acquire(Instruction):
         )
 
     @property
-    def channel(self) -> Union[AcquireChannel, None]:
+    def channel(self) -> AcquireChannel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
@@ -109,7 +108,7 @@ class Acquire(Instruction):
         return None
 
     @property
-    def qubit(self) -> Union[AcquireChannel, model.Qubit]:
+    def qubit(self) -> AcquireChannel | model.Qubit:
         """Return the element acquired by this instruction."""
         return self.operands[1]
 
@@ -134,7 +133,7 @@ class Acquire(Instruction):
         return self._operands[5]
 
     @property
-    def acquire(self) -> Union[AcquireChannel, model.Qubit]:
+    def acquire(self) -> AcquireChannel | model.Qubit:
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
