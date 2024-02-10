@@ -259,16 +259,16 @@ class Instruction(ABC):
         )
 
 
-class FrameInstruction(Instruction, ABC):
-    """Instructions acting on a ``Frame`` (or ``MixedFrame``).
+class FrameUpdate(Instruction, ABC):
+    """Instructions updating a ``Frame`` (or ``MixedFrame``).
 
 
-    ``FrameInstruction``s can be defined on either a ``MixedFrame`` (=``Channel``) or a ``Frame``.
+    ``FrameUpdate``s can be defined on either a ``MixedFrame`` (=``Channel``) or a ``Frame``.
     For a ``MixedFrame`` the instruction applies only to the specific ``MixedFrame``. However, for
     a ``Frame`` the instruction will be broadcasted to all ``MixedFrame``s associated with that
     ``Frame``.
 
-    ``FrameInstruction`` should be considered abstract, and should not be instantiated as is.
+    ``FrameUpdate`` should be considered abstract, and should not be instantiated as is.
     """
 
     def _validate_and_format_frame(

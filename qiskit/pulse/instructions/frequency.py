@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.instructions.instruction import FrameInstruction
+from qiskit.pulse.instructions.instruction import FrameUpdate
 from qiskit.pulse.model import Frame, MixedFrame, PulseTarget
 
 
-class SetFrequency(FrameInstruction):
+class SetFrequency(FrameUpdate):
     r"""The set frequency instruction sets the modulation frequency of proceeding pulses
     associated with the frame the instruction is acting upon.
 
@@ -72,7 +72,7 @@ class SetFrequency(FrameInstruction):
         return self.operands[0]
 
 
-class ShiftFrequency(FrameInstruction):
+class ShiftFrequency(FrameUpdate):
     r"""The shift frequency instruction updates the modulation frequency of proceeding pulses
     associated with the frame the instruction is acting upon.
 

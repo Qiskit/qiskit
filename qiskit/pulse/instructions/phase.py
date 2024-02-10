@@ -19,11 +19,11 @@ from __future__ import annotations
 
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.instructions.instruction import FrameInstruction
+from qiskit.pulse.instructions.instruction import FrameUpdate
 from qiskit.pulse.model import Frame, MixedFrame, PulseTarget
 
 
-class ShiftPhase(FrameInstruction):
+class ShiftPhase(FrameUpdate):
     r"""The shift phase instruction updates the modulation phase of proceeding pulses associated with
     the frame the instruction is acting upon. It is a relative increase in phase determined
     by the ``phase`` operand.
@@ -77,7 +77,7 @@ class ShiftPhase(FrameInstruction):
         return self.operands[0]
 
 
-class SetPhase(FrameInstruction):
+class SetPhase(FrameUpdate):
     r"""The set phase instruction updates the modulation phase of proceeding pulses associated with
     the frame the instruction is acting upon. It sets the phase to the ``phase`` operand.
 
