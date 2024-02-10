@@ -1,42 +1,42 @@
 ---
 prelude: |
-  We are very please to release the Qiskit 1.0.0 release. This release is the
+  We are very pleased to release Qiskit 1.0.0. This release is the
   culmination of 7 years of development to mature Qiskit into a stable high
   performance SDK to perform quantum computation, and is the start of new
-  era for the Qiskit project and community. The largest change with the release
-  is the changes to the stability policy, release cycles, and versioning.
-  Qiskit is now formally using `semantic versioning <https://semver.org/>`__
-  and this means for the entire lifecycle of the 1.x release series the project
+  era for the Qiskit project and community. The most significant changes with the 1.0.0 
+ release relate to the stability policy, release cycles, and versioning.
+  Qiskit is now formally using `semantic versioning <https://semver.org/>`__ ,
+  and this means that, for the entire lifecycle of the 1.x release series, the project
   is commited to maintaining backwards compatibility. We're also now starting
-  to have bugfix support for major versions, so that you continue to have a
+  to offer bugfix support for major versions, so that you continue to have a
   supported branch for 6 months after the release of the next major version.
-  This starts with the 1.x and 0.x major series now, the 0.46.x release will
-  continue to be supported with bugfixes and periodic patch release for 6
-  months after the release of 1.0 until 2024-08. You can see the full details
-  of the new policy here:
+  This starts now with the 1.x and 0.x major series: the 0.46.x release will
+  continue to be supported, with bugfixes and periodic patch releases, for 6
+  months after the release of 1.0. That is, 0.46.x will be supported until 2024-08. 
+  You can see the full details of the new policy here:
 
   https://docs.quantum.ibm.com/start/install#qiskit-versioning
 
-  Of key importance in this release as well is the change in packaging. Since the
-  Qiskit 0.7 release in 2018-12 Qiskit was previously composed of
+  Also of key importance in this release is the change in packaging. Since the
+  Qiskit 0.7 release in 2018-12, when Qiskit introduced its
   `elements <https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492>`__
-  and the ``qiskit`` package you would install was actually a meta-package (or package of
-  packages) that would install the combined elements to provide Qiskit. As been announced
-  in previous releases <link to 0.44, 0.45, and blog post> with the 1.0 release we're
-  completing a transition to have a single ``qiskit`` package which is the
-  core SDK (what was previously ``qiskit-terra``) and we've stopped using the ``qiskit-terra``
-  with 1.0.0 and will only be publishing ``qiskit`` for releases >= 1.0.0.
+  model,  the ``qiskit`` package you would install has been a meta-package (or package of
+  packages) that installs the combined elements comprising Qiskit. As announced
+  in previous releases <link to 0.44, 0.45, and blog post>,  with the 1.0 release we're
+  completing a transition to have a single ``qiskit`` package exposing only the
+  core SDK (what was previously ``qiskit-terra``). This means that for releases >= 1.0.0,
+  we have stopped using the ``qiskit-terra`` package and will only be publishing ``qiskit``.
   Unfortunately, this change in packaging structure is not something that
   can be fully communicated to ``pip``, the Python package installer. This
-  means it is not possible to just use ``pip install -U qiskit`` to upgrade
+  means that it is not possible to just use ``pip install -U qiskit`` to upgrade
   from qiskit 0.46.0 to 1.0.0. It is strongly recommended that to upgrade to
-  Qiskit 1.0.0 you create a seperate virtual environment to isolate. There is a
+  Qiskit 1.0.0 you create a seperate virtual environment to isolate the installation. There is a
   detailed migration guide that explains the packaging changes and how to install
   Qiskit 1.0.0 in different scenarios which can be found here:
 
   https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0
 
-  As with all our major releases Qiskit 1.0.0 also has a plethora of new
+  As with all of our major releases, Qiskit 1.0.0 also has a plethora of new
   features, the highlights for this release are:
 
     * The :class:`.QuantumCircuit` class's internal :attr:`~.QuantumCircuit.data`
@@ -53,17 +53,18 @@ prelude: |
     * A new experimental native OpenQASM 3 parser :func:`qiskit.qasm3.loads_experimental`
       and :func:`qiskit.qasm3.load_experimental`. This new parser is still under development
       and still has several limitations and is still experimental. However,
-      for where it is usable the new parser is significantly faster and has
-      better diagnostic error message to debug where an OpenQASM 3 parser is
-      invalid. This is new parser is written in Rust and based on a newly developed
+      for where it is usable, the new parser is significantly faster and has
+      better diagnostic error message that allows to debug where an OpenQASM 3 program
+      is invalid. This new parser is written in Rust and based on a newly developed
       Rust library for parsing OpenQASM3 which can be found here:
       https://github.com/Qiskit/openqasm3_parser
 
   Finally, the Qiskit 1.0.0 release was an opportunity to clean up some technical debt
-  over the past 7 years of development. You'll notice that both when using Qiskit 1.0.0
-  release that is virtually free of ``DeprecationWarning``\s being emitted but also that
-  the upgrade section of this release's release notes are longer than usual. To help with
-  migrating from 0.46.x to 1.0.0 besides those release notes we have also published a
-  dedicated migration guide which can be found here: **INSERT LINK** that is meant to
+  accumulated over the past 7 years of development. You'll notice that the Qiskit 1.0.0
+  release is virtually free of ``DeprecationWarning``\s being emitted, and, at the same time,
+  the upgrade section of the 1.0.0 release notes is longer than usual. These are direct
+  consequences of the technical debt cleanup. To help with the migration
+  from 0.46.x to 1.0.0, besides the release notes, we have also published a
+  dedicated migration guide which can be found here: **INSERT LINK** . This guide is meant to
   complement the release notes and have a targeted advice for how to migrate the API changes
-  as we removed the deprecated functionality from the 0.46.0 release.
+  after the removal of the deprecated functionality from the 0.46.0 release.
