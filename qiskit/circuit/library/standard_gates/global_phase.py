@@ -60,7 +60,8 @@ class GlobalPhaseGate(Gate):
         Args:
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse is always another :class:`.GlobalPhaseGate` with an inverted
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                is always another :class:`.GlobalPhaseGate` with an inverted
                 parameter value.
 
         Returns:

@@ -321,7 +321,8 @@ class CUGate(ControlledGate):
         Args:
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.CUGate` with inverse parameter
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CUGate` with inverse parameter
                 values.
 
         Returns:

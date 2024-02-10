@@ -86,7 +86,8 @@ class SGate(SingletonGate):
         Args:
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.SdgGate`.
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SdgGate`.
 
         Returns:
             SdgGate: inverse of :class:`.SGate`
@@ -163,7 +164,8 @@ class SdgGate(SingletonGate):
         Args:
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.SGate`.
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SGate`.
 
         Returns:
             SGate: inverse of :class:`.SdgGate`
@@ -249,7 +251,8 @@ class CSGate(SingletonControlledGate):
         Args:
             annotated: when set to ``True``, this is typically used to return an
                 :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse of this gate is always a :class:`.CSdgGate`.
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSdgGate`.
 
         Returns:
             CSdgGate: inverse of :class:`.CSGate`
