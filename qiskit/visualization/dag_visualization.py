@@ -94,6 +94,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
             if style == "color":
                 n = {}
                 args = []
+                id_str = str(node._node_id) if isinstance(node, DAGOpNode) else str(node.node_id)
                 for count, arg in enumerate(node.qargs + node.cargs):
                     if count > 4:
                         args.append("...")
@@ -109,7 +110,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    str(node.node_id)
+                    id_str
                     + ": "
                     + str(node.name)
                     + " ("
