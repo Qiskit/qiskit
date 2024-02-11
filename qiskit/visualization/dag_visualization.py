@@ -113,12 +113,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
 
                 n["color"] = "black"
                 n["label"] = (
-                    nid_str
-                    + ": "
-                    + str(node.name)
-                    + " ("
-                    + str(args)[1:-1].replace("'", "")
-                    + ")"
+                    nid_str + ": " + str(node.name) + " (" + str(args)[1:-1].replace("'", "") + ")"
                 )
                 if node.name == "barrier":
                     n["style"] = "filled"
