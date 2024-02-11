@@ -18,7 +18,7 @@ from qiskit.pulse import (
     QubitFrame,
     MeasurementFrame,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestFrames(QiskitTestCase):

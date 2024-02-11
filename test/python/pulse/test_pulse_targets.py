@@ -18,7 +18,7 @@ from qiskit.pulse import (
     Coupler,
     Port,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLogicalElements(QiskitTestCase):

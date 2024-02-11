@@ -18,7 +18,7 @@ from qiskit.pulse import (
     GenericFrame,
     MixedFrame,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMixedFrames(QiskitTestCase):
