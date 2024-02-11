@@ -393,16 +393,6 @@ class DAGDependencyV2:
                 for predecessor in self.predecessors(prev_node):
                     reachable[predecessor] = False
 
-    def _get_node(self, node_id):
-        """
-        Args:
-            node_id (int): label of considered node.
-
-        Returns:
-            node: corresponding to the label.
-        """
-        return self._multi_graph.get_node_data(node_id)
-
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):

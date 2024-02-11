@@ -142,19 +142,23 @@ class TestDagNodeEdge(QiskitTestCase):
 
     def test_node(self):
         """Test the methods apply_operation_back(), _get_node() and op_nodes()"""
+
+        def get_node(index):
+            return self.dag._multi_graph.get_node_data(index)
+
         circuit = QuantumCircuit(self.qreg, self.creg)
 
         circuit.h(self.qreg[0])
         self.dag.apply_operation_back(
             circuit.data[0].operation, circuit.data[0].qubits, circuit.data[0].clbits
         )
-        self.assertIsInstance(self.dag._get_node(0).op, HGate)
+        self.assertIsInstance(get_node(0).op, HGate)
 
         circuit.measure(self.qreg[0], self.creg[0])
         self.dag.apply_operation_back(
             circuit.data[1].operation, circuit.data[1].qubits, circuit.data[1].clbits
         )
-        self.assertIsInstance(self.dag._get_node(1).op, Measure)
+        self.assertIsInstance(get_node(1).op, Measure)
 
         nodes = list(self.dag.op_nodes())
         self.assertEqual(len(list(nodes)), 2)
@@ -183,6 +187,9 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_successors_predecessors(self):
         """Test the method get_successors."""
 
+        def get_node(index):
+            return self.dag._multi_graph.get_node_data(index)
+
         circuit = QuantumCircuit(self.qreg, self.creg)
         circuit.h(self.qreg[0])
         circuit.x(self.qreg[0])
@@ -194,43 +201,35 @@ class TestDagNodeSelection(QiskitTestCase):
         self.dag = circuit_to_dagdependency_v2(circuit)
 
         test_successors = [2, 4]
-        successors = sorted([node._node_id for node in self.dag.successors(self.dag._get_node(1))])
+        successors = sorted([node._node_id for node in self.dag.successors(get_node(1))])
         self.assertEqual(successors, test_successors)
 
         test_successors = []
-        successors = sorted([node._node_id for node in self.dag.successors(self.dag._get_node(3))])
+        successors = sorted([node._node_id for node in self.dag.successors(get_node(3))])
         self.assertEqual(successors, test_successors)
 
         test_descendants = [2, 4, 5]
-        descendants = sorted(
-            [node._node_id for node in self.dag.descendants(self.dag._get_node(1))]
-        )
+        descendants = sorted([node._node_id for node in self.dag.descendants(get_node(1))])
         self.assertEqual(descendants, test_descendants)
 
         test_descendants = []
-        descendants = sorted(
-            [node._node_id for node in self.dag.descendants(self.dag._get_node(3))]
-        )
+        descendants = sorted([node._node_id for node in self.dag.descendants(get_node(3))])
         self.assertEqual(descendants, test_descendants)
 
         test_predecessors = [2, 4]
-        predecessors = sorted(
-            [node._node_id for node in self.dag.predecessors(self.dag._get_node(5))]
-        )
+        predecessors = sorted([node._node_id for node in self.dag.predecessors(get_node(5))])
         self.assertEqual(predecessors, test_predecessors)
 
         test_predecessors = []
-        predecessors = sorted(
-            [node._node_id for node in self.dag.predecessors(self.dag._get_node(3))]
-        )
+        predecessors = sorted([node._node_id for node in self.dag.predecessors(get_node(3))])
         self.assertEqual(predecessors, test_predecessors)
 
         test_ancestors = [0, 1, 2, 4]
-        ancestors = sorted([node._node_id for node in self.dag.ancestors(self.dag._get_node(5))])
+        ancestors = sorted([node._node_id for node in self.dag.ancestors(get_node(5))])
         self.assertEqual(ancestors, test_ancestors)
 
         test_ancestors = []
-        ancestors = sorted([node._node_id for node in self.dag.ancestors(self.dag._get_node(3))])
+        ancestors = sorted([node._node_id for node in self.dag.ancestors(get_node(3))])
         self.assertEqual(ancestors, test_ancestors)
 
 
