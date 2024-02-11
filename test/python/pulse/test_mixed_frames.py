@@ -18,8 +18,8 @@ from qiskit.pulse import (
     GenericFrame,
     MixedFrame,
 )
-from qiskit.test import QiskitTestCase
 from qiskit.pulse.exceptions import PulseError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestMixedFrames(QiskitTestCase):
