@@ -318,3 +318,4 @@ HAS_PDFTOCAIRO = _LazySubprocessTester(
     ("pdftocairo", "-v"),
     msg="This is part of the 'poppler' set of PDF utilities",
 )
+HAS_REQUESTS = _LazyImportTester("requests", name="requests", install="pip install requests")
