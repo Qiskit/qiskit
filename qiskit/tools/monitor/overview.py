@@ -14,7 +14,10 @@
 """
 
 import math
+import warnings
+
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.providers.fake_provider import FakeBackend
 
 
 def get_unique_backends():
@@ -68,7 +71,9 @@ def backend_monitor(backend):
        backend_monitor(provider.get_backend('ibm_sherbrooke'))
     """
     try:
-        from qiskit_ibm_provider.ibm_backend import IBMBackend
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            from qiskit_ibm_provider.ibm_backend import IBMBackend
     except ImportError as ex:
         raise MissingOptionalLibraryError(
             libname="qiskit-ibm-provider",
@@ -76,14 +81,15 @@ def backend_monitor(backend):
             pip_install="pip install qiskit-ibm-provider",
         ) from ex
 
-    if not isinstance(backend, IBMBackend):
+    if not isinstance(backend, (IBMBackend, FakeBackend)):
         raise QiskitError("Input variable is not of type IBMBackend.")
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
 
-    print(backend.name)
-    print("=" * len(backend.name))
+    name = backend.name() if callable(backend.name) else backend.name
+    print(name)
+    print("=" * len(name))
     print("Configuration")
     print("-" * 13)
     offset = "    "

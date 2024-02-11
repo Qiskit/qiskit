@@ -24,7 +24,10 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit import extensions
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
