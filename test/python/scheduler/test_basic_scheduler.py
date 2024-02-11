@@ -578,8 +578,8 @@ class TestBasicScheduleV2(QiskitTestCase):
                     name="pulse_2",
                 ),
             ),
-            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
-            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
+            (0 + 16 + 16 + 64, Acquire(1792, channel=AcquireChannel(0), mem_slot=MemorySlot(0))),
+            (0 + 16 + 16 + 64, Acquire(1792, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -711,8 +711,8 @@ class TestBasicScheduleV2(QiskitTestCase):
                     name="pulse_2",
                 ),
             ),
-            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
-            (0 + 16 + 16 + 64, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
+            (0 + 16 + 16 + 64, Acquire(1792, channel=AcquireChannel(0), mem_slot=MemorySlot(0))),
+            (0 + 16 + 16 + 64, Acquire(1792, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
         )
         for actual, expected in zip(sched.instructions, expected.instructions):
             self.assertEqual(actual[0], expected[0])
@@ -1118,9 +1118,9 @@ class TestBasicScheduleV2(QiskitTestCase):
                     name="pulse_2",
                 ),
             ),
-            (0, Acquire(1792, AcquireChannel(0), MemorySlot(0))),
-            (0, Acquire(1792, AcquireChannel(1), MemorySlot(1))),
-            (0, Acquire(1792, AcquireChannel(2), MemorySlot(2))),
+            (0, Acquire(1792, channel=AcquireChannel(0), mem_slot=MemorySlot(0))),
+            (0, Acquire(1792, channel=AcquireChannel(1), mem_slot=MemorySlot(1))),
+            (0, Acquire(1792, channel=AcquireChannel(2), mem_slot=MemorySlot(2))),
             name="measure",
         )
         self.assertEqual(sched_from_backend, expected_sched)

@@ -570,7 +570,7 @@ class TestRXCalibrationBuilder(QiskitTestCase):
                     angle=0.04477749999041481,
                     name="drag_2276",
                 ),
-                DriveChannel(0),
+                channel=DriveChannel(0),
             ),
             inplace=True,
         )
