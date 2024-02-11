@@ -16,10 +16,10 @@ import unittest
 from ddt import ddt, data
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, ParameterVector
 from qiskit.circuit.library import QuadraticForm
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

@@ -158,6 +158,11 @@ class BasisTranslator(TransformationPass):
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
+        # If the source basis is a subset of the target basis and we have no circuit
+        # instructions on qargs that have non-global operations there is nothing to
+        # translate and we can exit early.
+        if source_basis.issubset(target_basis) and not qargs_local_source_basis:
+            return dag
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target basis %s.",

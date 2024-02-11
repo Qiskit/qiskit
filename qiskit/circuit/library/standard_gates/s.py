@@ -80,7 +80,7 @@ class SGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of S (SdgGate)."""
         return SdgGate()
 
@@ -89,6 +89,9 @@ class SGate(SingletonGate):
         from .p import PhaseGate
 
         return PhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SGate)
 
 
 @with_gate_array(_SDG_ARRAY)
@@ -145,7 +148,7 @@ class SdgGate(SingletonGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of Sdg (SGate)."""
         return SGate()
 
@@ -154,6 +157,9 @@ class SdgGate(SingletonGate):
         from .p import PhaseGate
 
         return PhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, SdgGate)
 
 
 @with_controlled_gate_array(_S_ARRAY, num_ctrl_qubits=1)
@@ -219,7 +225,7 @@ class CSGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=pi / 2).definition
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of CSGate (CSdgGate)."""
         return CSdgGate(ctrl_state=self.ctrl_state)
 
@@ -228,6 +234,9 @@ class CSGate(SingletonControlledGate):
         from .p import CPhaseGate
 
         return CPhaseGate(0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSGate) and self.ctrl_state == other.ctrl_state
 
 
 @with_controlled_gate_array(_SDG_ARRAY, num_ctrl_qubits=1)
@@ -292,7 +301,7 @@ class CSdgGate(SingletonControlledGate):
 
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverse of CSdgGate (CSGate)."""
         return CSGate(ctrl_state=self.ctrl_state)
 
@@ -301,3 +310,6 @@ class CSdgGate(SingletonControlledGate):
         from .p import CPhaseGate
 
         return CPhaseGate(-0.5 * numpy.pi * exponent)
+
+    def __eq__(self, other):
+        return isinstance(other, CSdgGate) and self.ctrl_state == other.ctrl_state

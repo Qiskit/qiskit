@@ -17,8 +17,8 @@ from ddt import ddt, named_data, unpack
 
 from qiskit import circuit
 from qiskit.pulse import channels, configuration, instructions, library, exceptions
-from qiskit.test import QiskitTestCase
 from qiskit.pulse.model import Qubit, QubitFrame, MixedFrame
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAcquire(QiskitTestCase):

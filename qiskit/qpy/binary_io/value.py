@@ -34,8 +34,8 @@ from qiskit.qpy import common, formats, exceptions, type_keys
 
 
 def _write_parameter(file_obj, obj):
-    name_bytes = obj._name.encode(common.ENCODE)
-    file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj._uuid.bytes))
+    name_bytes = obj.name.encode(common.ENCODE)
+    file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
     file_obj.write(name_bytes)
 
 
@@ -46,7 +46,7 @@ def _write_parameter_vec(file_obj, obj):
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
             obj._vector._size,
-            obj._uuid.bytes,
+            obj.uuid.bytes,
             obj._index,
         )
     )
@@ -215,7 +215,7 @@ def _read_parameter_vec(file_obj, vectors):
     if name not in vectors:
         vectors[name] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[name][0]
-    if vector[data.index]._uuid != param_uuid:
+    if vector[data.index].uuid != param_uuid:
         vectors[name][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
     return vector[data.index]

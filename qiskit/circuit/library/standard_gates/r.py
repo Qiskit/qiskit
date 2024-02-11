@@ -79,7 +79,7 @@ class RGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate.
 
         r(θ, φ)^dagger = r(-θ, φ)
@@ -99,3 +99,8 @@ class RGate(Gate):
         """Raise gate to a power."""
         theta, phi = self.params
         return RGate(exponent * theta, phi)
+
+    def __eq__(self, other):
+        if isinstance(other, RGate):
+            return self._compare_parameters(other)
+        return False
