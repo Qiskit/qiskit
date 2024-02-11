@@ -1684,6 +1684,8 @@ class QuantumCircuit:
 
         **latex_source**: raw uncompiled latex output.
 
+        **classiq**: opens the Classiq analyzer with the circuit.
+
         .. warning::
 
             Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target`
@@ -1693,7 +1695,7 @@ class QuantumCircuit:
 
         Args:
             output: Select the output method to use for drawing the circuit.
-                Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
+                Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``, ``classiq``.
                 By default the `text` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output

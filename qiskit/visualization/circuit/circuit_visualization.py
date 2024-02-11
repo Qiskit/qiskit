@@ -41,6 +41,7 @@ from . import latex as _latex
 from . import text as _text
 from . import matplotlib as _matplotlib
 from . import _utils
+from .classiq.classiq_drawer import ClassiqCircuitDrawer
 from ..utils import _trim as trim_image
 from ..exceptions import VisualizationError
 
@@ -84,6 +85,8 @@ def circuit_drawer(
 
     **latex_source**: raw uncompiled latex output.
 
+    **classiq**: opens the Classiq analyzer with the circuit.
+
     .. warning::
 
         Support for :class:`~.expr.Expr` nodes in conditions and :attr:`.SwitchCaseOp.target`
@@ -114,7 +117,7 @@ def circuit_drawer(
                 specified in ``~/.qiskit/settings.conf``.
 
         output: Select the output method to use for drawing the circuit.
-            Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
+            Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``, ``classiq``.
             By default the `text` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
@@ -337,10 +340,12 @@ def circuit_drawer(
             wire_order=complete_wire_order,
             expr_len=expr_len,
         )
+    elif output == "classiq":
+        return _classiq_circuit_drawer(circuit)
     else:
         raise VisualizationError(
             "Invalid output type %s selected. The only valid choices "
-            "are text, latex, latex_source, and mpl" % output
+            "are text, latex, latex_source, mpl and classiq" % output
         )
     if image and interactive:
         image.show()
@@ -717,3 +722,18 @@ def _matplotlib_circuit_drawer(
         expr_len=expr_len,
     )
     return qcd.draw(filename)
+
+
+# -----------------------------------------------------------------------------
+# classiq circuit drawer
+# -----------------------------------------------------------------------------
+
+
+def _classiq_circuit_drawer(
+    circuit,
+):
+    """Draw a quantum circuit with Classiq IDE
+    Args:
+        circuit (QuantumCircuit): a quantum circuit
+    """
+    ClassiqCircuitDrawer(circuit).draw()

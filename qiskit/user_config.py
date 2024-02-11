@@ -60,10 +60,17 @@ class UserConfig:
             # Parse circuit_drawer
             circuit_drawer = self.config_parser.get("default", "circuit_drawer", fallback=None)
             if circuit_drawer:
-                if circuit_drawer not in ["text", "mpl", "latex", "latex_source", "auto"]:
+                if circuit_drawer not in [
+                    "text",
+                    "mpl",
+                    "latex",
+                    "latex_source",
+                    "classiq",
+                    "auto",
+                ]:
                     raise exceptions.QiskitUserConfigError(
                         "%s is not a valid circuit drawer backend. Must be "
-                        "either 'text', 'mpl', 'latex', 'latex_source', or "
+                        "either 'text', 'mpl', 'latex', 'latex_source', 'classiq' or "
                         "'auto'." % circuit_drawer
                     )
                 self.settings["circuit_drawer"] = circuit_drawer
