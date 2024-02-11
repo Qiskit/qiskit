@@ -356,34 +356,6 @@ Unitary Synthesis Plugins
    ~qiskit.transpiler.passes.synthesis.unitary_synthesis.DefaultUnitarySynthesis
    ~qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis.SolovayKitaevSynthesis
 
-
-High Level Synthesis
---------------------
-
-Clifford Synthesis
-''''''''''''''''''
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.AGSynthesisClifford
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.BMSynthesisClifford
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.GreedySynthesisClifford
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.LayerSynthesisClifford
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.LayerLnnSynthesisClifford
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.DefaultSynthesisClifford
-
-
-Linear Function Synthesis
-'''''''''''''''''''''''''
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.KMSSynthesisLinearFunction
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.PMHSynthesisLinearFunction
-   ~qiskit.transpiler.passes.synthesis.high_level_synthesis.DefaultSynthesisLinearFunction
-
 """
 
 import abc
