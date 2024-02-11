@@ -21,7 +21,6 @@ import re
 from numbers import Number
 from typing import TYPE_CHECKING
 
-import scipy.linalg
 import numpy as np
 
 from qiskit.circuit.instruction import Instruction
@@ -528,6 +527,8 @@ class Operator(LinearOp):
         if isinstance(n, int):
             ret._data = np.linalg.matrix_power(self.data, n)
         else:
+            import scipy.linalg
+
             # Experimentally, for fractional powers this seems to be 3x faster than
             # calling scipy.linalg.fractional_matrix_power(self.data, n)
             decomposition, unitary = scipy.linalg.schur(self.data, output="complex")
