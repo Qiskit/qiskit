@@ -382,7 +382,9 @@ class DAGDependencyV2:
                     # If prev_node and new_node do not commute, then we add an edge
                     # between the two, and mark all direct predecessors of prev_node
                     # as not reaching new_node.
-                    self._multi_graph.add_edge(prev_node._node_id, new_node._node_id, {"commute": False})
+                    self._multi_graph.add_edge(
+                        prev_node._node_id, new_node._node_id, {"commute": False}
+                    )
                     for predecessor in self.predecessors(prev_node):
                         reachable[predecessor] = False
             else:
