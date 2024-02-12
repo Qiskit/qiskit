@@ -81,7 +81,17 @@ class SGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of S (SdgGate)."""
+        """Return inverse of S (SdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SdgGate`.
+
+        Returns:
+            SdgGate: inverse of :class:`.SGate`
+        """
         return SdgGate()
 
     def power(self, exponent: float):
@@ -149,7 +159,17 @@ class SdgGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of Sdg (SGate)."""
+        """Return inverse of Sdg (SGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SGate`.
+
+        Returns:
+            SGate: inverse of :class:`.SdgGate`
+        """
         return SGate()
 
     def power(self, exponent: float):
@@ -226,7 +246,17 @@ class CSGate(SingletonControlledGate):
         self.definition = CPhaseGate(theta=pi / 2).definition
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of CSGate (CSdgGate)."""
+        """Return inverse of CSGate (CSdgGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSdgGate`.
+
+        Returns:
+            CSdgGate: inverse of :class:`.CSGate`
+        """
         return CSdgGate(ctrl_state=self.ctrl_state)
 
     def power(self, exponent: float):
@@ -302,7 +332,17 @@ class CSdgGate(SingletonControlledGate):
         self.definition = CPhaseGate(theta=-pi / 2).definition
 
     def inverse(self, annotated: bool = False):
-        """Return inverse of CSdgGate (CSGate)."""
+        """Return inverse of CSdgGate (CSGate).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CSGate`.
+
+        Returns:
+            CSGate: inverse of :class:`.CSdgGate`
+        """
         return CSGate(ctrl_state=self.ctrl_state)
 
     def power(self, exponent: float):
