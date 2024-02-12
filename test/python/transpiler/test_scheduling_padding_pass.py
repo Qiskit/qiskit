@@ -794,7 +794,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(1)
         qc.cx(0, 1)
 
-        xsched = Schedule(Play(Constant(300, 0.1), DriveChannel(0)))
+        xsched = Schedule(Play(Constant(300, 0.1), channel=DriveChannel(0)))
         qc.add_calibration("x", (0,), xsched)
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 600)])

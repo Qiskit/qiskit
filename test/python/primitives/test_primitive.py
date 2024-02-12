@@ -137,7 +137,9 @@ class TestCircuitKey(QiskitTestCase):
             def test_with_scheduling(n):
                 custom_gate = pulse.Schedule(name="custom_x_gate")
                 custom_gate.insert(
-                    0, pulse.Play(pulse.Constant(160 * n, 0.1), pulse.DriveChannel(0)), inplace=True
+                    0,
+                    pulse.Play(pulse.Constant(160 * n, 0.1), channel=pulse.DriveChannel(0)),
+                    inplace=True,
                 )
                 qc = QuantumCircuit(1)
                 qc.x(0)

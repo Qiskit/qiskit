@@ -123,10 +123,10 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(8, instructions.Delay(7, d0), inplace=True)
+        reference.insert(0, instructions.Delay(3, channel=d0), inplace=True)
+        reference.insert(8, instructions.Delay(7, channel=d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), inplace=True)
+        reference.insert(3, instructions.Delay(5, channel=d1), inplace=True)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -146,12 +146,12 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(3, instructions.Delay(7, d0), inplace=True)
+        reference.insert(0, instructions.Delay(3, channel=d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, channel=d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), inplace=True)
+        reference.insert(3, instructions.Delay(5, channel=d1), inplace=True)
         # d2
-        reference.insert(0, instructions.Delay(11, d2), inplace=True)
+        reference.insert(0, instructions.Delay(11, channel=d2), inplace=True)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -171,12 +171,12 @@ class TestContexts(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(8, instructions.Delay(3, d0), inplace=True)
-        reference.insert(11, instructions.Delay(13, d0), inplace=True)
+        reference.insert(8, instructions.Delay(3, channel=d0), inplace=True)
+        reference.insert(11, instructions.Delay(13, channel=d0), inplace=True)
         # d1
-        reference.insert(19, instructions.Delay(5, d1), inplace=True)
+        reference.insert(19, instructions.Delay(5, channel=d1), inplace=True)
         # d2
-        reference.insert(0, instructions.Delay(11, d2), inplace=True)
+        reference.insert(0, instructions.Delay(11, channel=d2), inplace=True)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -189,9 +189,9 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftPhase(3.14, d0)
-        reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftPhase(-3.14, d0)
+        reference += instructions.ShiftPhase(3.14, channel=d0)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.ShiftPhase(-3.14, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -204,9 +204,9 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
-        reference += instructions.Delay(10, d0)
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(1e9, channel=d0)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.ShiftFrequency(-1e9, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -220,12 +220,12 @@ class TestContexts(TestBuilder):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
-        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftFrequency(1e9, channel=d0)
+        reference += instructions.Delay(10, channel=d0)
         reference += instructions.ShiftPhase(
-            -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), d0
+            -2 * np.pi * ((1e9 * 10 * self.configuration.dt) % 1), channel=d0
         )
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -265,7 +265,7 @@ class TestInstructions(TestBuilder):
             pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(10, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -278,7 +278,7 @@ class TestInstructions(TestBuilder):
             pulse.play(test_pulse, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -291,7 +291,7 @@ class TestInstructions(TestBuilder):
             pulse.play(test_pulse, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -305,7 +305,7 @@ class TestInstructions(TestBuilder):
 
         reference = pulse.Schedule()
         test_pulse = pulse.Waveform(test_array)
-        reference += instructions.Play(test_pulse, d0)
+        reference += instructions.Play(test_pulse, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -328,7 +328,7 @@ class TestInstructions(TestBuilder):
             pulse.acquire(10, acquire0, mem0)
 
         reference = pulse.Schedule()
-        reference += pulse.Acquire(10, acquire0, mem_slot=mem0)
+        reference += pulse.Acquire(10, channel=acquire0, mem_slot=mem0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -341,7 +341,7 @@ class TestInstructions(TestBuilder):
             pulse.acquire(10, acquire0, reg0)
 
         reference = pulse.Schedule()
-        reference += pulse.Acquire(10, acquire0, reg_slot=reg0)
+        reference += pulse.Acquire(10, channel=acquire0, reg_slot=reg0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -354,7 +354,7 @@ class TestInstructions(TestBuilder):
             pulse.acquire(10, 0, mem0)
 
         reference = pulse.Schedule()
-        reference += pulse.Acquire(10, acquire0, mem_slot=mem0)
+        reference += pulse.Acquire(10, channel=acquire0, mem_slot=mem0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -381,7 +381,7 @@ class TestInstructions(TestBuilder):
             pulse.set_frequency(1e9, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.SetFrequency(1e9, d0)
+        reference += instructions.SetFrequency(1e9, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -393,7 +393,7 @@ class TestInstructions(TestBuilder):
             pulse.shift_frequency(0.1e9, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(0.1e9, d0)
+        reference += instructions.ShiftFrequency(0.1e9, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -405,7 +405,7 @@ class TestInstructions(TestBuilder):
             pulse.set_phase(3.14, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.SetPhase(3.14, d0)
+        reference += instructions.SetPhase(3.14, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -417,7 +417,7 @@ class TestInstructions(TestBuilder):
             pulse.shift_phase(3.14, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftPhase(3.14, d0)
+        reference += instructions.ShiftPhase(3.14, channel=d0)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -452,12 +452,12 @@ class TestDirectives(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(7, instructions.Delay(7, d0), inplace=True)
+        reference.insert(0, instructions.Delay(3, channel=d0), inplace=True)
+        reference.insert(7, instructions.Delay(7, channel=d0), inplace=True)
         # d1
-        reference.insert(9, instructions.Delay(5, d1), inplace=True)
+        reference.insert(9, instructions.Delay(5, channel=d1), inplace=True)
         # d2
-        reference.insert(3, instructions.Delay(11, d2), inplace=True)
+        reference.insert(3, instructions.Delay(11, channel=d2), inplace=True)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -478,12 +478,12 @@ class TestDirectives(TestBuilder):
 
         reference = pulse.Schedule()
         # d0
-        reference.insert(0, instructions.Delay(3, d0), inplace=True)
-        reference.insert(3, instructions.Delay(7, d0), inplace=True)
+        reference.insert(0, instructions.Delay(3, channel=d0), inplace=True)
+        reference.insert(3, instructions.Delay(7, channel=d0), inplace=True)
         # d1
-        reference.insert(3, instructions.Delay(5, d1), inplace=True)
+        reference.insert(3, instructions.Delay(5, channel=d1), inplace=True)
         # d2
-        reference.insert(3, instructions.Delay(11, d2), inplace=True)
+        reference.insert(3, instructions.Delay(11, channel=d2), inplace=True)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -525,7 +525,7 @@ class TestUtilities(TestBuilder):
         """Test appending a schedule to the active builder."""
         d0 = pulse.DriveChannel(0)
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
+        reference += instructions.Delay(10, channel=d0)
 
         with pulse.build() as schedule:
             builder.call(reference)
@@ -535,7 +535,7 @@ class TestUtilities(TestBuilder):
     def test_append_instruction(self):
         """Test appending an instruction to the active builder."""
         d0 = pulse.DriveChannel(0)
-        instruction = instructions.Delay(10, d0)
+        instruction = instructions.Delay(10, channel=d0)
 
         with pulse.build() as schedule:
             builder.append_instruction(instruction)
@@ -624,8 +624,8 @@ class TestMacros(TestBuilder):
             self.assertEqual(output, 0.5 * 2)
 
         reference = pulse.Schedule()
-        reference += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
-        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Constant(100, 1.0), channel=pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), channel=pulse.DriveChannel(0))
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -688,11 +688,11 @@ class TestMacros(TestBuilder):
         u1 = pulse.ControlChannel(1)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
-        reference += instructions.Delay(10, m0)
-        reference += instructions.Delay(10, a0)
-        reference += instructions.Delay(10, u0)
-        reference += instructions.Delay(10, u1)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.Delay(10, channel=m0)
+        reference += instructions.Delay(10, channel=a0)
+        reference += instructions.Delay(10, channel=u0)
+        reference += instructions.Delay(10, channel=u1)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -711,14 +711,14 @@ class TestMacros(TestBuilder):
         u1 = pulse.ControlChannel(1)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
-        reference += instructions.Delay(10, d1)
-        reference += instructions.Delay(10, m0)
-        reference += instructions.Delay(10, m1)
-        reference += instructions.Delay(10, a0)
-        reference += instructions.Delay(10, a1)
-        reference += instructions.Delay(10, u0)
-        reference += instructions.Delay(10, u1)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.Delay(10, channel=d1)
+        reference += instructions.Delay(10, channel=m0)
+        reference += instructions.Delay(10, channel=m1)
+        reference += instructions.Delay(10, channel=a0)
+        reference += instructions.Delay(10, channel=a1)
+        reference += instructions.Delay(10, channel=u0)
+        reference += instructions.Delay(10, channel=u1)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -765,18 +765,18 @@ class TestBuilderComposition(TestBuilder):
 
         # sequential context
         sequential_reference = pulse.Schedule()
-        sequential_reference += instructions.Delay(delay_dur, d0)
+        sequential_reference += instructions.Delay(delay_dur, channel=d0)
         sequential_reference.insert(delay_dur, single_u2_sched, inplace=True)
 
         # align right
         align_right_reference = pulse.Schedule()
-        align_right_reference += pulse.Play(library.Constant(long_dur, 0.1), d2)
+        align_right_reference += pulse.Play(library.Constant(long_dur, 0.1), channel=d2)
         align_right_reference.insert(
             long_dur - single_u2_sched.duration, single_u2_sched, inplace=True
         )
         align_right_reference.insert(
             long_dur - single_u2_sched.duration - short_dur,
-            pulse.Play(library.Constant(short_dur, 0.1), d1),
+            pulse.Play(library.Constant(short_dur, 0.1), channel=d1),
             inplace=True,
         )
 
@@ -813,8 +813,8 @@ class TestSubroutineCall(TestBuilder):
         d1 = pulse.DriveChannel(1)
 
         reference = pulse.Schedule()
-        reference = reference.insert(10, instructions.Delay(10, d0))
-        reference += instructions.Delay(20, d1)
+        reference = reference.insert(10, instructions.Delay(10, channel=d0))
+        reference += instructions.Delay(20, channel=d1)
 
         ref_sched = pulse.Schedule()
         ref_sched += reference
@@ -837,8 +837,8 @@ class TestSubroutineCall(TestBuilder):
         d1 = pulse.DriveChannel(1)
 
         subprogram = pulse.Schedule()
-        subprogram.insert(0, pulse.Delay(30, d0), inplace=True)
-        subprogram.insert(10, pulse.Delay(10, d1), inplace=True)
+        subprogram.insert(0, pulse.Delay(30, channel=d0), inplace=True)
+        subprogram.insert(10, pulse.Delay(10, channel=d1), inplace=True)
 
         with pulse.build() as target:
             with pulse.align_right():
@@ -846,9 +846,9 @@ class TestSubroutineCall(TestBuilder):
                 pulse.call(subprogram)
 
         reference = pulse.Schedule()
-        reference.insert(0, pulse.Delay(10, d1), inplace=True)
-        reference.insert(10, pulse.Delay(30, d0), inplace=True)
-        reference.insert(20, pulse.Delay(10, d1), inplace=True)
+        reference.insert(0, pulse.Delay(10, channel=d1), inplace=True)
+        reference.insert(10, pulse.Delay(30, channel=d0), inplace=True)
+        reference.insert(20, pulse.Delay(10, channel=d1), inplace=True)
 
         self.assertScheduleEqual(target, reference)
 

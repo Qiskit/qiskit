@@ -19,13 +19,13 @@ from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.model import Qubit
+from qiskit.pulse import model
 
 
 class Acquire(Instruction):
-    """The Acquire instruction is used to trigger the ADC associated with a particular qubit;
-    e.g. instantiated with AcquireChannel(0), the Acquire command will trigger data collection
-    for the channel associated with qubit 0 readout. This instruction also provides acquisition
-    metadata:
+    """The Acquire instruction is used to trigger the ADC associated with a particular qubit.
+    This instruction also provides acquisition metadata:
 
      * the number of cycles during which to acquire (in terms of dt),
 
@@ -41,7 +41,9 @@ class Acquire(Instruction):
     def __init__(
         self,
         duration: int | ParameterExpression,
-        channel: AcquireChannel,
+        *,
+        qubit: model.Qubit | None = None,
+        channel: AcquireChannel | None = None,
         mem_slot: MemorySlot | None = None,
         reg_slot: RegisterSlot | None = None,
         kernel: Kernel | None = None,
@@ -50,8 +52,12 @@ class Acquire(Instruction):
     ):
         """Create a new Acquire instruction.
 
+        The instruction can be instantiated either with respect to :class:`~.qiskit.pulse.Qubit`
+        logical element, or :class:`AcquireChannel`.
+
         Args:
             duration: Length of time to acquire data in terms of dt.
+            qubit: The qubit that will be acquired.
             channel: The channel that will acquire data.
             mem_slot: The classical memory slot in which to store the classified readout result.
             reg_slot: The fast-access register slot in which to store the classified readout
@@ -60,38 +66,50 @@ class Acquire(Instruction):
             discriminator: A ``Discriminator`` for discriminating kerneled IQ data into 0/1
                            results.
             name: Name of the instruction for display purposes.
-        """
-        super().__init__(
-            operands=(duration, channel, mem_slot, reg_slot, kernel, discriminator),
-            name=name,
-        )
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
 
         Raises:
+            PulseError: If the input ``qubit`` is not type :class:`~.qiskit.pulse.Qubit`.
             PulseError: If the input ``channel`` is not type :class:`AcquireChannel`.
             PulseError: If the input ``mem_slot`` is not type :class:`MemorySlot`.
             PulseError: If the input ``reg_slot`` is not type :class:`RegisterSlot`.
             PulseError: When memory slot and register slot are both empty.
+            PulseError: When both or none of ``qubit`` and ``channel`` are provided.
         """
-        if not isinstance(self.channel, AcquireChannel):
-            raise PulseError(f"Expected an acquire channel, got {self.channel} instead.")
+        if qubit is not None and not isinstance(qubit, Qubit):
+            raise PulseError(f"Expected a qubit, got {qubit} instead.")
 
-        if self.mem_slot and not isinstance(self.mem_slot, MemorySlot):
-            raise PulseError(f"Expected a memory slot, got {self.mem_slot} instead.")
+        if channel is not None and not isinstance(channel, AcquireChannel):
+            raise PulseError(f"Expected an acquire channel, got {channel} instead.")
 
-        if self.reg_slot and not isinstance(self.reg_slot, RegisterSlot):
-            raise PulseError(f"Expected a register slot, got {self.reg_slot} instead.")
+        if (qubit is not None) + (channel is not None) != 1:
+            raise PulseError("Expected exactly one of qubit and channel.")
 
-        if self.mem_slot is None and self.reg_slot is None:
+        if mem_slot and not isinstance(mem_slot, MemorySlot):
+            raise PulseError(f"Expected a memory slot, got {mem_slot} instead.")
+
+        if reg_slot and not isinstance(reg_slot, RegisterSlot):
+            raise PulseError(f"Expected a register slot, got {reg_slot} instead.")
+
+        if mem_slot is None and reg_slot is None:
             raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
+        super().__init__(
+            operands=(duration, channel or qubit, mem_slot, reg_slot, kernel, discriminator),
+            name=name,
+        )
+
     @property
-    def channel(self) -> AcquireChannel:
+    def channel(self) -> AcquireChannel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.
         """
+        if isinstance(self.operands[1], AcquireChannel):
+            return self.operands[1]
+        return None
+
+    @property
+    def qubit(self) -> AcquireChannel | model.Qubit:
+        """Return the element acquired by this instruction."""
         return self.operands[1]
 
     @property
@@ -115,11 +133,11 @@ class Acquire(Instruction):
         return self._operands[5]
 
     @property
-    def acquire(self) -> AcquireChannel:
+    def acquire(self) -> AcquireChannel | model.Qubit:
         """Acquire channel to acquire data. The ``AcquireChannel`` index maps trivially to
         qubit index.
         """
-        return self.channel
+        return self.operands[1]
 
     @property
     def mem_slot(self) -> MemorySlot:
@@ -141,7 +159,7 @@ class Acquire(Instruction):
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ", " + str(self.channel),
+            ", " + str(self.qubit),
             ", " + str(self.mem_slot) if self.mem_slot else "",
             ", " + str(self.reg_slot) if self.reg_slot else "",
             ", " + str(self.kernel) if self.kernel else "",

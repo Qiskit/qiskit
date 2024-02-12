@@ -234,7 +234,7 @@ class TestFigureTitle(QiskitTestCase):
         self.device = device_info.OpenPulseBackendInfo(name="test_backend", dt=1e-9)
         self.prog = pulse.Schedule(name="test_sched")
         self.prog.insert(
-            0, pulse.Play(pulse.Constant(100, 0.1), pulse.DriveChannel(0)), inplace=True
+            0, pulse.Play(pulse.Constant(100, 0.1), channel=pulse.DriveChannel(0)), inplace=True
         )
 
     def detail_title(self):

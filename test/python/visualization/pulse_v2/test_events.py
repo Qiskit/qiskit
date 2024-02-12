@@ -25,10 +25,10 @@ class TestChannelEvents(QiskitTestCase):
         test_pulse = pulse.Gaussian(10, 0.1, 3)
 
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.Play(test_pulse, pulse.DriveChannel(0)))
-        sched = sched.insert(10, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
-        sched = sched.insert(10, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.SetPhase(3.14, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.Play(test_pulse, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(10, pulse.ShiftPhase(-1.57, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(10, pulse.Play(test_pulse, channel=pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
 
@@ -38,13 +38,13 @@ class TestChannelEvents(QiskitTestCase):
         self.assertEqual(inst_data0.t0, 0)
         self.assertEqual(inst_data0.frame.phase, 3.14)
         self.assertEqual(inst_data0.frame.freq, 0)
-        self.assertEqual(inst_data0.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        self.assertEqual(inst_data0.inst, pulse.Play(test_pulse, channel=pulse.DriveChannel(0)))
 
         inst_data1 = waveforms[1]
         self.assertEqual(inst_data1.t0, 10)
         self.assertEqual(inst_data1.frame.phase, 1.57)
         self.assertEqual(inst_data1.frame.freq, 0)
-        self.assertEqual(inst_data1.inst, pulse.Play(test_pulse, pulse.DriveChannel(0)))
+        self.assertEqual(inst_data1.inst, pulse.Play(test_pulse, channel=pulse.DriveChannel(0)))
 
         # check frame data
         frames = list(ch_events.get_frame_changes())
@@ -52,20 +52,22 @@ class TestChannelEvents(QiskitTestCase):
         self.assertEqual(inst_data0.t0, 0)
         self.assertEqual(inst_data0.frame.phase, 3.14)
         self.assertEqual(inst_data0.frame.freq, 0)
-        self.assertListEqual(inst_data0.inst, [pulse.SetPhase(3.14, pulse.DriveChannel(0))])
+        self.assertListEqual(inst_data0.inst, [pulse.SetPhase(3.14, channel=pulse.DriveChannel(0))])
 
         inst_data1 = frames[1]
         self.assertEqual(inst_data1.t0, 10)
         self.assertEqual(inst_data1.frame.phase, -1.57)
         self.assertEqual(inst_data1.frame.freq, 0)
-        self.assertListEqual(inst_data1.inst, [pulse.ShiftPhase(-1.57, pulse.DriveChannel(0))])
+        self.assertListEqual(
+            inst_data1.inst, [pulse.ShiftPhase(-1.57, channel=pulse.DriveChannel(0))]
+        )
 
     def test_multiple_frames_at_the_same_time(self):
         """Test multiple frame instruction at the same time."""
         # shift phase followed by set phase
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.ShiftPhase(-1.57, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.SetPhase(3.14, channel=pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
@@ -74,8 +76,8 @@ class TestChannelEvents(QiskitTestCase):
 
         # set phase followed by shift phase
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.SetPhase(3.14, pulse.DriveChannel(0)))
-        sched = sched.insert(0, pulse.ShiftPhase(-1.57, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.SetPhase(3.14, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.ShiftPhase(-1.57, channel=pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         frames = list(ch_events.get_frame_changes())
@@ -85,8 +87,8 @@ class TestChannelEvents(QiskitTestCase):
     def test_frequency(self):
         """Test parse frequency."""
         sched = pulse.Schedule()
-        sched = sched.insert(0, pulse.ShiftFrequency(1.0, pulse.DriveChannel(0)))
-        sched = sched.insert(5, pulse.SetFrequency(5.0, pulse.DriveChannel(0)))
+        sched = sched.insert(0, pulse.ShiftFrequency(1.0, channel=pulse.DriveChannel(0)))
+        sched = sched.insert(5, pulse.SetFrequency(5.0, channel=pulse.DriveChannel(0)))
 
         ch_events = events.ChannelEvents.load_program(sched, pulse.DriveChannel(0))
         ch_events.set_config(dt=0.1, init_frequency=3.0, init_phase=0)
@@ -102,7 +104,7 @@ class TestChannelEvents(QiskitTestCase):
         """Test generating waveforms that are parameterized."""
         param = circuit.Parameter("amp")
 
-        test_waveform = pulse.Play(pulse.Constant(10, param), pulse.DriveChannel(0))
+        test_waveform = pulse.Play(pulse.Constant(10, param), channel=pulse.DriveChannel(0))
 
         ch_events = events.ChannelEvents(
             waveforms={0: test_waveform}, frames={}, channel=pulse.DriveChannel(0)
@@ -122,9 +124,9 @@ class TestChannelEvents(QiskitTestCase):
         """
         param = circuit.Parameter("phase")
 
-        test_fc1 = pulse.ShiftPhase(param, pulse.DriveChannel(0))
-        test_fc2 = pulse.ShiftPhase(1.57, pulse.DriveChannel(0))
-        test_waveform = pulse.Play(pulse.Constant(10, 0.1), pulse.DriveChannel(0))
+        test_fc1 = pulse.ShiftPhase(param, channel=pulse.DriveChannel(0))
+        test_fc2 = pulse.ShiftPhase(1.57, channel=pulse.DriveChannel(0))
+        test_waveform = pulse.Play(pulse.Constant(10, 0.1), channel=pulse.DriveChannel(0))
 
         ch_events = events.ChannelEvents(
             waveforms={0: test_waveform},
@@ -152,11 +154,11 @@ class TestChannelEvents(QiskitTestCase):
         ch = pulse.DriveChannel(0)
 
         test_sched = pulse.Schedule()
-        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
-        test_sched += pulse.Delay(0, ch)
-        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
-        test_sched += pulse.Delay(1, ch)
-        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), channel=ch)
+        test_sched += pulse.Delay(0, channel=ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), channel=ch)
+        test_sched += pulse.Delay(1, channel=ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), channel=ch)
 
         ch_events = events.ChannelEvents.load_program(test_sched, ch)
 

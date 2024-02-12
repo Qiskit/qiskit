@@ -75,22 +75,22 @@ class ParameterTestBase(QiskitTestCase):
 
         # schedule under test
         subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
-        subroutine += pulse.ShiftPhase(self.phi1, self.d1)
-        subroutine += pulse.Play(self.parametric_waveform1, self.d1)
+        subroutine += pulse.ShiftPhase(self.phi1, channel=self.d1)
+        subroutine += pulse.Play(self.parametric_waveform1, channel=self.d1)
 
         long_schedule = pulse.ScheduleBlock(
             alignment_context=AlignEquispaced(self.context_dur), name="long_schedule"
         )
 
         long_schedule += subroutine
-        long_schedule += pulse.ShiftPhase(self.phi2, self.d2)
-        long_schedule += pulse.Play(self.parametric_waveform2, self.d2)
-        long_schedule += pulse.ShiftPhase(self.phi3, self.d3)
-        long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
+        long_schedule += pulse.ShiftPhase(self.phi2, channel=self.d2)
+        long_schedule += pulse.Play(self.parametric_waveform2, channel=self.d2)
+        long_schedule += pulse.ShiftPhase(self.phi3, channel=self.d3)
+        long_schedule += pulse.Play(self.parametric_waveform3, channel=self.d3)
 
         long_schedule += pulse.Acquire(
             self.meas_dur,
-            pulse.AcquireChannel(self.ch1),
+            channel=pulse.AcquireChannel(self.ch1),
             mem_slot=pulse.MemorySlot(self.mem1),
             reg_slot=pulse.RegisterSlot(self.reg1),
         )
@@ -125,7 +125,9 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_get_parameter_from_acquire(self):
         """Test get parameters from acquire instruction."""
-        test_obj = pulse.Acquire(16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1))
+        test_obj = pulse.Acquire(
+            16000, channel=pulse.AcquireChannel(self.ch1), mem_slot=pulse.MemorySlot(self.ch1)
+        )
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -136,7 +138,7 @@ class TestParameterGetter(ParameterTestBase):
 
     def test_get_parameter_from_inst(self):
         """Test get parameters from instruction."""
-        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0))
+        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, channel=pulse.DriveChannel(0))
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -151,7 +153,7 @@ class TestParameterGetter(ParameterTestBase):
         def get_shift(variable):
             return variable - 1
 
-        test_obj = pulse.ShiftPhase(get_shift(self.phi1), self.d1)
+        test_obj = pulse.ShiftPhase(get_shift(self.phi1), channel=self.d1)
 
         visitor = ParameterGetter()
         visitor.visit(test_obj)
@@ -212,27 +214,31 @@ class TestParameterSetter(ParameterTestBase):
 
     def test_set_parameter_to_acquire(self):
         """Test set parameters to acquire instruction."""
-        test_obj = pulse.Acquire(16000, pulse.AcquireChannel(self.ch1), pulse.MemorySlot(self.ch1))
+        test_obj = pulse.Acquire(
+            16000, channel=pulse.AcquireChannel(self.ch1), mem_slot=pulse.MemorySlot(self.ch1)
+        )
 
         value_dict = {self.ch1: 2}
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.Acquire(16000, pulse.AcquireChannel(2), pulse.MemorySlot(2))
+        ref_obj = pulse.Acquire(
+            16000, channel=pulse.AcquireChannel(2), mem_slot=pulse.MemorySlot(2)
+        )
 
         self.assertEqual(assigned, ref_obj)
 
     def test_set_parameter_to_inst(self):
         """Test get parameters from instruction."""
-        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, pulse.DriveChannel(0))
+        test_obj = pulse.ShiftPhase(self.phi1 + self.phi2, channel=pulse.DriveChannel(0))
 
         value_dict = {self.phi1: 0.123, self.phi2: 0.456}
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.ShiftPhase(0.579, pulse.DriveChannel(0))
+        ref_obj = pulse.ShiftPhase(0.579, channel=pulse.DriveChannel(0))
 
         self.assertEqual(assigned, ref_obj)
 
@@ -242,14 +248,14 @@ class TestParameterSetter(ParameterTestBase):
         def get_shift(variable):
             return variable - 1
 
-        test_obj = pulse.ShiftPhase(get_shift(self.phi1), self.d1)
+        test_obj = pulse.ShiftPhase(get_shift(self.phi1), channel=self.d1)
 
         value_dict = {self.phi1: 2.0, self.ch1: 2}
 
         visitor = ParameterSetter(param_map=value_dict)
         assigned = visitor.visit(test_obj)
 
-        ref_obj = pulse.ShiftPhase(1.0, pulse.DriveChannel(2))
+        ref_obj = pulse.ShiftPhase(1.0, channel=pulse.DriveChannel(2))
 
         self.assertEqual(assigned, ref_obj)
 
@@ -271,7 +277,7 @@ class TestParameterSetter(ParameterTestBase):
         Inline the schedule and partially bind parameters."""
         context = AlignEquispaced(duration=self.context_dur)
         subroutine = pulse.ScheduleBlock(alignment_context=context)
-        subroutine += pulse.Play(self.parametric_waveform1, self.d1)
+        subroutine += pulse.Play(self.parametric_waveform1, channel=self.d1)
 
         nested_block = pulse.ScheduleBlock()
 
@@ -290,7 +296,7 @@ class TestParameterSetter(ParameterTestBase):
         ref_context = AlignEquispaced(duration=1000)
         ref_subroutine = pulse.ScheduleBlock(alignment_context=ref_context)
         ref_subroutine += pulse.Play(
-            pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 50), pulse.DriveChannel(1)
+            pulse.Gaussian(200, self.amp1_1 + self.amp1_2, 50), channel=pulse.DriveChannel(1)
         )
 
         ref_nested_block = pulse.ScheduleBlock()
@@ -366,7 +372,7 @@ class TestParameterSetter(ParameterTestBase):
         test_sched.append(
             pulse.Play(
                 pulse.Constant(160, amp=2 * amp),
-                pulse.DriveChannel(0),
+                channel=pulse.DriveChannel(0),
             ),
             inplace=True,
         )
@@ -382,7 +388,8 @@ class TestParameterSetter(ParameterTestBase):
         test_sched = pulse.ScheduleBlock()
         test_sched.append(
             pulse.Play(
-                pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0), pulse.DriveChannel(0)
+                pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0),
+                channel=pulse.DriveChannel(0),
             ),
             inplace=True,
         )
@@ -395,7 +402,7 @@ class TestParameterSetter(ParameterTestBase):
             test_sched.append(
                 pulse.Play(
                     pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0),
-                    pulse.DriveChannel(0),
+                    channel=pulse.DriveChannel(0),
                 ),
                 inplace=True,
             )
@@ -431,19 +438,22 @@ class TestParameterSetter(ParameterTestBase):
 
         # create ref schedule
         subroutine = pulse.ScheduleBlock(alignment_context=AlignLeft())
-        subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0))
-        subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), pulse.DriveChannel(0))
+        subroutine += pulse.ShiftPhase(1.0, channel=pulse.DriveChannel(0))
+        subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), channel=pulse.DriveChannel(0))
 
         ref_obj = pulse.ScheduleBlock(alignment_context=AlignEquispaced(1000), name="long_schedule")
 
         ref_obj += subroutine
-        ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
-        ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
-        ref_obj += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
-        ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))
+        ref_obj += pulse.ShiftPhase(2.0, channel=pulse.DriveChannel(2))
+        ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), channel=pulse.DriveChannel(2))
+        ref_obj += pulse.ShiftPhase(3.0, channel=pulse.DriveChannel(4))
+        ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), channel=pulse.DriveChannel(4))
 
         ref_obj += pulse.Acquire(
-            300, pulse.AcquireChannel(0), pulse.MemorySlot(3), pulse.RegisterSlot(0)
+            300,
+            channel=pulse.AcquireChannel(0),
+            mem_slot=pulse.MemorySlot(3),
+            reg_slot=pulse.RegisterSlot(0),
         )
 
         self.assertEqual(assigned, ref_obj)
@@ -460,7 +470,7 @@ class TestAssignFromProgram(QiskitTestCase):
         waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
 
         block = pulse.ScheduleBlock()
-        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform, channel=pulse.DriveChannel(10))
 
         ref_set = {amp, sigma}
 
@@ -475,7 +485,7 @@ class TestAssignFromProgram(QiskitTestCase):
         waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
 
         block = pulse.ScheduleBlock()
-        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform, channel=pulse.DriveChannel(10))
         block.assign_parameters({amp: 0.2, sigma: 4}, inplace=True)
 
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
@@ -494,10 +504,10 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx))
         with self.assertRaises(PulseError):
             schedule |= pulse.Play(
-                pulse.Waveform([0.5, 0.5, 0.5, 0.5]), pulse.DriveChannel(param_idx)
+                pulse.Waveform([0.5, 0.5, 0.5, 0.5]), channel=pulse.DriveChannel(param_idx)
             )
 
     def test_overlapping_on_assignment(self):
@@ -505,8 +515,8 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(1))
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(1))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx))
         with self.assertRaises(PulseError):
             schedule.assign_parameters({param_idx: 1})
 
@@ -515,8 +525,10 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(2 * param_idx))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx))
+        schedule |= pulse.Play(
+            pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(2 * param_idx)
+        )
         with self.assertRaises(PulseError):
             schedule.assign_parameters({param_idx: 0})
 
@@ -525,9 +537,9 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx = Parameter("q")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(1))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(1))
         schedule = schedule.insert(
-            4, pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx))
+            4, pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx))
         )
         schedule.assign_parameters({param_idx: 1})
 
@@ -540,8 +552,8 @@ class TestScheduleTimeslots(QiskitTestCase):
         param_idx2 = Parameter("q2")
 
         schedule = pulse.Schedule()
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx1))
-        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), pulse.DriveChannel(param_idx2))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx1))
+        schedule |= pulse.Play(pulse.Waveform([1, 1, 1, 1]), channel=pulse.DriveChannel(param_idx2))
         schedule.assign_parameters({param_idx1: 2})
 
         with self.assertRaises(PulseError):
@@ -552,7 +564,7 @@ class TestScheduleTimeslots(QiskitTestCase):
         dur = Parameter("dur")
         ch = pulse.DriveChannel(0)
 
-        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur / 4), ch)
+        test_play = pulse.Play(pulse.Gaussian(dur, 0.1, dur / 4), channel=ch)
 
         sched = pulse.Schedule()
         with self.assertRaises(UnassignedDurationError):

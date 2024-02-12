@@ -13,6 +13,7 @@
 """
 Mixed Frames
 """
+from qiskit.pulse.exceptions import PulseError
 
 from .frames import Frame
 from .pulse_target import PulseTarget
@@ -44,7 +45,14 @@ class MixedFrame:
         Args:
             pulse_target: The ``PulseTarget`` associated with the mixed frame.
             frame: The frame associated with the mixed frame.
+
+        Raises:
+            PulseError: If ``pulse_target`` or ``frame`` are not of the appropriate type.
         """
+        if (not isinstance(pulse_target, PulseTarget)) or (not isinstance(frame, Frame)):
+            raise PulseError(
+                f"Expected PulseTarget and Frame got {pulse_target} and {frame} instead."
+            )
         self._pulse_target = pulse_target
         self._frame = frame
 
@@ -71,7 +79,11 @@ class MixedFrame:
         Returns:
             True iff equal.
         """
-        return self._pulse_target == other._pulse_target and self._frame == other._frame
+        return (
+            isinstance(other, type(self))
+            and self._pulse_target == other._pulse_target
+            and self._frame == other._frame
+        )
 
     def __hash__(self) -> int:
         return hash((self._pulse_target, self._frame, type(self)))

@@ -242,7 +242,7 @@ class DrawerCanvas:
         chart = Chart(parent=self)
 
         # add waveform data
-        fake_inst = pulse.Play(program, types.WaveformChannel())
+        fake_inst = pulse.Play(program, channel=types.WaveformChannel())
         inst_data = types.PulseInstruction(
             t0=0,
             dt=self.device.dt,

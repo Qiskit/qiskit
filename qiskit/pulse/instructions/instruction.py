@@ -23,11 +23,12 @@ For example::
 """
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from typing import Iterable, Tuple
 
 from qiskit.circuit import Parameter, ParameterExpression
-from qiskit.pulse.channels import Channel
+from qiskit.pulse.channels import Channel, PulseChannel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.model import PulseTarget, Frame, MixedFrame
 
 
 # pylint: disable=bad-docstring-quotes
@@ -51,17 +52,6 @@ class Instruction(ABC):
         """
         self._operands = operands
         self._name = name
-        self._validate()
-
-    def _validate(self):
-        """Called after initialization to validate instruction data.
-
-        Raises:
-            PulseError: If the input ``channels`` are not all of type :class:`Channel`.
-        """
-        for channel in self.channels:
-            if not isinstance(channel, Channel):
-                raise PulseError(f"Expected a channel, got {channel} instead.")
 
     @property
     def name(self) -> str:
@@ -267,3 +257,75 @@ class Instruction(ABC):
         return "{}({}{})".format(
             self.__class__.__name__, operands, f", name='{self.name}'" if self.name else ""
         )
+
+
+class FrameUpdate(Instruction, ABC):
+    """Instructions updating a ``Frame`` (or ``MixedFrame``).
+
+
+    ``FrameUpdate``s can be defined on either a ``MixedFrame`` (=``Channel``) or a ``Frame``.
+    For a ``MixedFrame`` the instruction applies only to the specific ``MixedFrame``. However, for
+    a ``Frame`` the instruction will be broadcasted to all ``MixedFrame``s associated with that
+    ``Frame``.
+
+    ``FrameUpdate`` should be considered abstract, and should not be instantiated as is.
+    """
+
+    def _validate_and_format_frame(
+        self, target: PulseTarget, frame: Frame, mixed_frame: MixedFrame, channel: Channel
+    ) -> Frame | MixedFrame | PulseChannel:
+        """Called after initialization to validate instruction data.
+
+        Arguments:
+            target: The pulse target used in conjunction with ``frame`` to define the mixed frame
+                the instruction applies to.
+            frame: The frame the instruction applies to.
+            mixed_frame: The mixed_frame the instruction applies to.
+            channel: The channel the instruction applies to.
+
+        Returns:
+            Union[Frame, MixedFrame, PulseChannel]: The frame or mixed frame the instruction applies to.
+
+        Raises:
+            PulseError: If the combination of ``target``, ``frame``, ``mixed_frame`` and
+                ``channel`` doesn't specify a unique ``MixedFrame`` or ``Frame``.
+        """
+
+        if (channel is not None) + (mixed_frame is not None) + (frame is not None) != 1:
+            raise PulseError("Exactly one of mixed_frame, channel or frame must be provided")
+
+        if target is not None:
+            if frame is None:
+                raise PulseError("target can not be provided without frame")
+            inst_target = MixedFrame(target, frame)
+        else:
+            inst_target = mixed_frame or channel or frame
+
+        if not isinstance(inst_target, (PulseChannel, MixedFrame, Frame)):
+            raise PulseError(f"Expected a MixedFrame, Channel or Frame, got {inst_target} instead.")
+
+        return inst_target
+
+    @property
+    def channel(self) -> PulseChannel | None:
+        """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
+        scheduled on.
+        """
+        if isinstance(self.operands[1], PulseChannel):
+            return self.operands[1]
+        return None
+
+    @property
+    def inst_target(self) -> MixedFrame | Frame | PulseChannel:
+        """Return the frame or mixed frame targeted by this instruction."""
+        return self.operands[1]
+
+    @property
+    def channels(self) -> Tuple[Channel]:
+        """Returns the channels that this frame instruction uses."""
+        return (self.channel,)
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction."""
+        return 0

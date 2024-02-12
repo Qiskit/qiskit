@@ -36,7 +36,7 @@ def _parametric_to_waveforms(schedule):
     for i, time_instruction_tuple in enumerate(schedule.instructions):
         time, instruction = time_instruction_tuple
         if not isinstance(instruction.pulse, pulse.library.Waveform):
-            new_inst = pulse.Play(instruction.pulse.get_waveform(), instruction.channel)
+            new_inst = pulse.Play(instruction.pulse.get_waveform(), channel=instruction.channel)
             instructions[i] = (time, new_inst)
     return tuple(instructions)
 
@@ -407,8 +407,8 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         """Test that disassembler parses delay instruction back to delay gate."""
         qc = QuantumCircuit(2)
         qc.append(Gate("test", 1, []), [0])
-        test_sched = pulse.Delay(64, pulse.DriveChannel(0)) + pulse.Delay(
-            160, pulse.DriveChannel(0)
+        test_sched = pulse.Delay(64, channel=pulse.DriveChannel(0)) + pulse.Delay(
+            160, channel=pulse.DriveChannel(0)
         )
 
         qc.add_calibration("test", [0], test_sched)
