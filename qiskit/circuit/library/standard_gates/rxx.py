@@ -112,8 +112,10 @@ class RXXGate(Gate):
         """Return inverse RXX gate (i.e. with the negative rotation angle).
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RXXGate` with an inverted parameter value.
 
         Returns:
             RXXGate: inverse gate.

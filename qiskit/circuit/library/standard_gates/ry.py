@@ -109,8 +109,10 @@ class RYGate(Gate):
         :math:`RY(\lambda)^{\dagger} = RY(-\lambda)`
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RYGate` with an inverted parameter value.
 
         Returns:
             RYGate: inverse gate.
@@ -247,8 +249,10 @@ class CRYGate(ControlledGate):
         """Return inverse CRY gate (i.e. with the negative rotation angle)
 
         Args:
-            annotated: indicates whether the inverse gate can be implemented
-                as an annotated gate.
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRYGate` with an inverted parameter value.
 
         Returns:
             CRYGate: inverse gate.
