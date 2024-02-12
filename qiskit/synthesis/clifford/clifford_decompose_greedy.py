@@ -38,6 +38,12 @@ def synth_clifford_greedy(clifford):
 
     This method typically yields better CX cost compared to the Aaronson-Gottesman method.
 
+    .. important::
+
+        This function only implements the greedy Clifford compiler from Appendix A of [1],
+        and not the templates and symbolic Pauli gates optimizations
+        that are mentioned in the same paper.
+
     Args:
         clifford (Clifford): a Clifford operator.
 

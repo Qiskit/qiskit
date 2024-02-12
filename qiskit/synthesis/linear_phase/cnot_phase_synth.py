@@ -24,19 +24,19 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
 def synth_cnot_phase_aam(cnots, angles, section_size=2):
-    """This function is an implementation of the GraySynth algorithm of
+    r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.
 
     GraySynth is a heuristic algorithm from [1] for synthesizing small parity networks.
     It is inspired by Gray codes. Given a set of binary strings :math:`S`
     (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
     repeatedly choosing an index :math:`i` to expand and then effectively recursing on
-    the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y` in :math:`S`,
+    the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
     with :math:`y_i = 0` or 1 respectively. As a subset :math:`S` is recursively expanded,
     ``cx`` gates are applied so that a designated target bit contains the
-    (partial) parity :math:`ksi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
-    :math:`y'` in :math:`S`. If :math:`S` is a singleton :math:`\\{y'\\}`, then :math:`y = y'`, hence the
-    target bit contains the value :math:`ksi_{y'}(x)` as desired.
+    (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
+    :math:`y' \in `S`. If :math:`S` is a singleton :math:`\\{y'\\}`, then :math:`y = y'`, hence the
+    target bit contains the value :math:`\chi_{y'}(x)` as desired.
 
     Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
     is finished being synthesized, the algorithm maintains the invariant
