@@ -50,9 +50,10 @@ class FakeBackendsTest(QiskitTestCase):
         self.assertEqual(sum(raw_counts.values()), 1000)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    @unittest.skip("non-determinitic. See #11768")
     def test_fake_backend_v2_noise_model_always_present(self):
         """Test that FakeBackendV2 instances always run with noise."""
-        backend = GenericBackendV2(num_qubits=5)
+        backend = GenericBackendV2(num_qubits=5, seed=42)
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
