@@ -85,7 +85,7 @@ class TestWaveformGenerators(QiskitTestCase):
         """Test helper function that parse waveform with Waveform instance."""
         test_pulse = pulse.library.Gaussian(10, 0.1, 3).get_waveform()
 
-        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst = pulse.Play(test_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
         x, y, _ = waveform._parse_waveform(inst_data)
@@ -100,7 +100,7 @@ class TestWaveformGenerators(QiskitTestCase):
         """Test helper function that parse waveform with ParametricPulse instance."""
         test_pulse = pulse.library.Gaussian(10, 0.1, 3)
 
-        inst = pulse.Play(test_pulse, pulse.DriveChannel(0))
+        inst = pulse.Play(test_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(inst, 0, 0, 10, 0.1)
 
         x, y, _ = waveform._parse_waveform(inst_data)
@@ -114,7 +114,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_filled_waveform_stepwise_play(self):
         """Test gen_filled_waveform_stepwise with play instruction."""
         my_pulse = pulse.Waveform(samples=[0, 0.5 + 0.5j, 0.5 + 0.5j, 0], name="my_pulse")
-        play = pulse.Play(my_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(my_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, np.pi / 2, 5e9, 5, 0.1)
 
         objs = waveform.gen_filled_waveform_stepwise(
@@ -218,7 +218,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_iqx_latex_waveform_name_x90(self):
         """Test gen_iqx_latex_waveform_name with x90 waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name="X90p_d0_1234567")
-        play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(iqx_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = waveform.gen_ibmq_latex_waveform_name(
@@ -246,7 +246,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_iqx_latex_waveform_name_x180(self):
         """Test gen_iqx_latex_waveform_name with x180 waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name="Xp_d0_1234567")
-        play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(iqx_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = waveform.gen_ibmq_latex_waveform_name(
@@ -264,7 +264,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_iqx_latex_waveform_name_cr(self):
         """Test gen_iqx_latex_waveform_name with CR waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name="CR90p_u0_1234567")
-        play = pulse.Play(iqx_pulse, pulse.ControlChannel(0))
+        play = pulse.Play(iqx_pulse, channel=pulse.ControlChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = waveform.gen_ibmq_latex_waveform_name(
@@ -282,7 +282,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_iqx_latex_waveform_name_compensation_tone(self):
         """Test gen_iqx_latex_waveform_name with CR compensation waveform."""
         iqx_pulse = pulse.Waveform(samples=[0, 0, 0, 0], name="CR90p_d0_u0_1234567")
-        play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(iqx_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         obj = waveform.gen_ibmq_latex_waveform_name(
@@ -300,7 +300,7 @@ class TestWaveformGenerators(QiskitTestCase):
     def test_gen_waveform_max_value(self):
         """Test gen_waveform_max_value."""
         iqx_pulse = pulse.Waveform(samples=[0, 0.1, 0.3, -0.2j], name="test")
-        play = pulse.Play(iqx_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(iqx_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, 0, 0, 0, 0.1)
 
         objs = waveform.gen_waveform_max_value(
@@ -343,7 +343,7 @@ class TestWaveformGenerators(QiskitTestCase):
         """Test generating waveform with unbound parameter."""
         amp = circuit.Parameter("amp")
         my_pulse = pulse.Gaussian(10, amp, 3, name="my_pulse")
-        play = pulse.Play(my_pulse, pulse.DriveChannel(0))
+        play = pulse.Play(my_pulse, channel=pulse.DriveChannel(0))
         inst_data = create_instruction(play, np.pi / 2, 5e9, 5, 0.1, True)
 
         objs = waveform.gen_filled_waveform_stepwise(
@@ -589,8 +589,8 @@ class TestFrameGenerators(QiskitTestCase):
     def test_gen_formatted_phase(self):
         """Test gen_formatted_phase."""
         fcs = [
-            pulse.ShiftPhase(np.pi / 2, pulse.DriveChannel(0)),
-            pulse.ShiftFrequency(1e6, pulse.DriveChannel(0)),
+            pulse.ShiftPhase(np.pi / 2, channel=pulse.DriveChannel(0)),
+            pulse.ShiftFrequency(1e6, channel=pulse.DriveChannel(0)),
         ]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
@@ -617,8 +617,8 @@ class TestFrameGenerators(QiskitTestCase):
     def test_gen_formatted_freq_mhz(self):
         """Test gen_formatted_freq_mhz."""
         fcs = [
-            pulse.ShiftPhase(np.pi / 2, pulse.DriveChannel(0)),
-            pulse.ShiftFrequency(1e6, pulse.DriveChannel(0)),
+            pulse.ShiftPhase(np.pi / 2, channel=pulse.DriveChannel(0)),
+            pulse.ShiftFrequency(1e6, channel=pulse.DriveChannel(0)),
         ]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
@@ -647,8 +647,8 @@ class TestFrameGenerators(QiskitTestCase):
     def test_gen_formatted_frame_values(self):
         """Test gen_formatted_frame_values."""
         fcs = [
-            pulse.ShiftPhase(np.pi / 2, pulse.DriveChannel(0)),
-            pulse.ShiftFrequency(1e6, pulse.DriveChannel(0)),
+            pulse.ShiftPhase(np.pi / 2, channel=pulse.DriveChannel(0)),
+            pulse.ShiftFrequency(1e6, channel=pulse.DriveChannel(0)),
         ]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
@@ -663,8 +663,8 @@ class TestFrameGenerators(QiskitTestCase):
     def test_gen_raw_operand_values_compact(self):
         """Test gen_raw_operand_values_compact."""
         fcs = [
-            pulse.ShiftPhase(np.pi / 2, pulse.DriveChannel(0)),
-            pulse.ShiftFrequency(1e6, pulse.DriveChannel(0)),
+            pulse.ShiftPhase(np.pi / 2, channel=pulse.DriveChannel(0)),
+            pulse.ShiftFrequency(1e6, channel=pulse.DriveChannel(0)),
         ]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
@@ -682,8 +682,8 @@ class TestFrameGenerators(QiskitTestCase):
     def gen_frame_symbol(self):
         """Test gen_frame_symbol."""
         fcs = [
-            pulse.ShiftPhase(np.pi / 2, pulse.DriveChannel(0)),
-            pulse.ShiftFrequency(1e6, pulse.DriveChannel(0)),
+            pulse.ShiftPhase(np.pi / 2, channel=pulse.DriveChannel(0)),
+            pulse.ShiftFrequency(1e6, channel=pulse.DriveChannel(0)),
         ]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
@@ -720,7 +720,7 @@ class TestFrameGenerators(QiskitTestCase):
     def gen_frame_symbol_with_parameters(self):
         """Test gen_frame_symbol with parameterized frame."""
         theta = -1.0 * circuit.Parameter("P0")
-        fcs = [pulse.ShiftPhase(theta, pulse.DriveChannel(0))]
+        fcs = [pulse.ShiftPhase(theta, channel=pulse.DriveChannel(0))]
         inst_data = create_instruction(fcs, np.pi / 2, 1e6, 5, 0.1)
 
         obj = frame.gen_frame_symbol(inst_data, formatter=self.formatter, device=self.device)[0]

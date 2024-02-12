@@ -143,7 +143,7 @@ def _measure_v1(
                     mem_slot = channels.MemorySlot(qubit_mem_slots[inst.channel.index])
                 else:
                     mem_slot = channels.MemorySlot(unused_mem_slots.pop())
-                inst = instructions.Acquire(inst.duration, inst.channel, mem_slot=mem_slot)
+                inst = instructions.Acquire(inst.duration, channel=inst.channel, mem_slot=mem_slot)
             # Measurement pulses should only be added if its qubit was measured by the user
             schedule = schedule.insert(time, inst)
 
@@ -247,7 +247,7 @@ def _schedule_remapping_memory_slot(
                 t0,
                 instructions.Acquire(
                     inst.duration,
-                    channels.AcquireChannel(qubit_index),
+                    channel=channels.AcquireChannel(qubit_index),
                     mem_slot=channels.MemorySlot(reg_index),
                 ),
                 inplace=True,

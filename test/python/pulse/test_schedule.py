@@ -72,7 +72,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))
+        sched = sched.append(Play(lp0, channel=self.config.drive(0)))
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
@@ -81,8 +81,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))
-        sched = sched.append(Play(lp0, self.config.drive(1)))
+        sched = sched.append(Play(lp0, channel=self.config.drive(0)))
+        sched = sched.append(Play(lp0, channel=self.config.drive(1)))
         self.assertEqual(0, sched.start_time)
         # appending to separate channel so should be at same time.
         self.assertEqual(3, sched.stop_time)
@@ -92,7 +92,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, Play(lp0, self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(0)))
         self.assertEqual(10, sched.start_time)
         self.assertEqual(13, sched.stop_time)
 
@@ -101,8 +101,8 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(5, Play(lp0, self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(5, Play(lp0, channel=self.config.drive(0)))
         self.assertEqual(5, sched.start_time)
         self.assertEqual(13, sched.stop_time)
 
@@ -111,9 +111,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
-        sched = sched.insert(10, Play(lp0, self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(0)))
         with self.assertRaises(PulseError):
-            sched.insert(11, Play(lp0, self.config.drive(0)))
+            sched.insert(11, Play(lp0, channel=self.config.drive(0)))
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error."""
@@ -121,14 +121,17 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp1 = library.Gaussian(duration=20, amp=0.7, sigma=3)
 
         sched = Schedule()
-        sched = sched.append(Play(gp0, self.config.drive(0)))
-        sched = sched.insert(60, ShiftPhase(-1.57, self.config.drive(0)))
-        sched = sched.insert(30, Play(gp1, self.config.drive(0)))
-        sched = sched.insert(60, Play(gp0, self.config.control([0, 1])[0]))
+        sched = sched.append(Play(gp0, channel=self.config.drive(0)))
+        sched = sched.insert(60, ShiftPhase(-1.57, channel=self.config.drive(0)))
+        sched = sched.insert(30, Play(gp1, channel=self.config.drive(0)))
+        sched = sched.insert(60, Play(gp0, channel=self.config.control([0, 1])[0]))
         sched = sched.insert(80, Snapshot("label", "snap_type"))
-        sched = sched.insert(90, ShiftPhase(1.57, self.config.drive(0)))
+        sched = sched.insert(90, ShiftPhase(1.57, channel=self.config.drive(0)))
         sched = sched.insert(
-            90, Acquire(10, self.config.acquire(0), MemorySlot(0), RegisterSlot(0))
+            90,
+            Acquire(
+                10, channel=self.config.acquire(0), mem_slot=MemorySlot(0), reg_slot=RegisterSlot(0)
+            ),
         )
         self.assertEqual(0, sched.start_time)
         self.assertEqual(100, sched.stop_time)
@@ -151,13 +154,13 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
-        sched += Play(gp0, self.config.drive(0))
-        sched |= ShiftPhase(-1.57, self.config.drive(0)) << 60
-        sched |= Play(gp1, self.config.drive(0)) << 30
-        sched |= Play(gp0, self.config.control(qubits=[0, 1])[0]) << 60
+        sched += Play(gp0, channel=self.config.drive(0))
+        sched |= ShiftPhase(-1.57, channel=self.config.drive(0)) << 60
+        sched |= Play(gp1, channel=self.config.drive(0)) << 30
+        sched |= Play(gp0, channel=self.config.control(qubits=[0, 1])[0]) << 60
         sched |= Snapshot("label", "snap_type") << 60
-        sched |= ShiftPhase(1.57, self.config.drive(0)) << 90
-        sched |= Acquire(10, self.config.acquire(0), MemorySlot(0)) << 90
+        sched |= ShiftPhase(1.57, channel=self.config.drive(0)) << 90
+        sched |= Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0)) << 90
         sched += sched
 
     def test_immutability(self):
@@ -165,11 +168,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp0 = library.Gaussian(duration=100, amp=0.7, sigma=3)
         gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
-        sched = Play(gp1, self.config.drive(0)) << 100
+        sched = Play(gp1, channel=self.config.drive(0)) << 100
         # if schedule was mutable the next two sequences would overlap and an error
         # would be raised.
-        sched.insert(0, Play(gp0, self.config.drive(0)))
-        sched.insert(0, Play(gp0, self.config.drive(0)))
+        sched.insert(0, Play(gp0, channel=self.config.drive(0)))
+        sched.insert(0, Play(gp0, channel=self.config.drive(0)))
 
     def test_inplace(self):
         """Test that in place operations on schedule are still immutable."""
@@ -177,9 +180,9 @@ class TestScheduleBuilding(BaseTestSchedule):
         gp1 = library.Gaussian(duration=20, amp=0.5, sigma=3)
 
         sched = Schedule()
-        sched = sched + Play(gp1, self.config.drive(0))
+        sched = sched + Play(gp1, channel=self.config.drive(0))
         sched2 = sched
-        sched += Play(gp0, self.config.drive(0))
+        sched += Play(gp0, channel=self.config.drive(0))
         self.assertNotEqual(sched, sched2)
 
     def test_empty_schedule(self):
@@ -198,8 +201,10 @@ class TestScheduleBuilding(BaseTestSchedule):
         """Test overlapping schedules."""
 
         def my_test_make_schedule(acquire: int, memoryslot: int, shift: int):
-            sched1 = Acquire(acquire, AcquireChannel(0), MemorySlot(memoryslot))
-            sched2 = Acquire(acquire, AcquireChannel(1), MemorySlot(memoryslot)).shift(shift)
+            sched1 = Acquire(acquire, channel=AcquireChannel(0), mem_slot=MemorySlot(memoryslot))
+            sched2 = Acquire(
+                acquire, channel=AcquireChannel(1), mem_slot=MemorySlot(memoryslot)
+            ).shift(shift)
 
             return Schedule(sched1, sched2)
 
@@ -222,11 +227,11 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         # normal schedule
         subsched = Schedule()
-        subsched = subsched.insert(20, Play(lp0, self.config.drive(0)))  # grand child 1
-        subsched = subsched.append(Play(lp0, self.config.drive(0)))  # grand child 2
+        subsched = subsched.insert(20, Play(lp0, channel=self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(Play(lp0, channel=self.config.drive(0)))  # grand child 2
 
         sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))  # child
+        sched = sched.append(Play(lp0, channel=self.config.drive(0)))  # child
         sched = sched.append(subsched)
         for _, instr in sched.instructions:
             self.assertIsInstance(instr, Instruction)
@@ -236,11 +241,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
-        subsched = subsched.insert(20, Play(lp0, self.config.drive(0)))  # grand child 1
-        subsched = subsched.append(Play(lp0, self.config.drive(0)))  # grand child 2
+        subsched = subsched.insert(20, Play(lp0, channel=self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(Play(lp0, channel=self.config.drive(0)))  # grand child 2
 
         sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))  # child
+        sched = sched.append(Play(lp0, channel=self.config.drive(0)))  # child
         sched = sched.append(subsched)
 
         start_times = sorted(shft + instr.start_time for shft, instr in sched.instructions)
@@ -251,11 +256,11 @@ class TestScheduleBuilding(BaseTestSchedule):
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
-        subsched = subsched.insert(20, Play(lp0, self.config.drive(0)))  # grand child 1
-        subsched = subsched.append(Play(lp0, self.config.drive(0)))  # grand child 2
+        subsched = subsched.insert(20, Play(lp0, channel=self.config.drive(0)))  # grand child 1
+        subsched = subsched.append(Play(lp0, channel=self.config.drive(0)))  # grand child 2
 
         sched = Schedule()
-        sched = sched.append(Play(lp0, self.config.drive(0)))  # child
+        sched = sched.append(Play(lp0, channel=self.config.drive(0)))  # child
         sched = sched.append(subsched)
 
         shift = sched.shift(100)
@@ -266,17 +271,21 @@ class TestScheduleBuilding(BaseTestSchedule):
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
         """Test if a schedule keeps its children after attached to another schedule."""
-        children = Acquire(10, self.config.acquire(0), MemorySlot(0)).shift(20) + Acquire(
-            10, self.config.acquire(0), MemorySlot(0)
-        )
+        children = Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0)).shift(
+            20
+        ) + Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0))
         self.assertEqual(2, len(list(children.instructions)))
 
-        sched = Acquire(10, self.config.acquire(0), MemorySlot(0)).append(children)
+        sched = Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0)).append(children)
         self.assertEqual(3, len(list(sched.instructions)))
 
         # add 2 instructions to children (2 instructions -> 4 instructions)
-        children = children.append(Acquire(10, self.config.acquire(0), MemorySlot(0)))
-        children = children.insert(100, Acquire(10, self.config.acquire(0), MemorySlot(0)))
+        children = children.append(
+            Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0))
+        )
+        children = children.insert(
+            100, Acquire(10, channel=self.config.acquire(0), mem_slot=MemorySlot(0))
+        )
         self.assertEqual(4, len(list(children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
@@ -308,13 +317,16 @@ class TestScheduleBuilding(BaseTestSchedule):
         sched3 = sched1 | sched2
         self.assertEqual(sched3.name, "test_name")
 
-        sched_acq = Acquire(10, self.config.acquire(1), MemorySlot(1), name="acq_name") | sched1
+        sched_acq = (
+            Acquire(10, channel=self.config.acquire(1), mem_slot=MemorySlot(1), name="acq_name")
+            | sched1
+        )
         self.assertEqual(sched_acq.name, "acq_name")
 
-        sched_pulse = Play(gp0, self.config.drive(0)) | sched1
+        sched_pulse = Play(gp0, channel=self.config.drive(0)) | sched1
         self.assertEqual(sched_pulse.name, "pulse_name")
 
-        sched_fc = ShiftPhase(0.1, self.config.drive(0), name="fc_name") | sched1
+        sched_fc = ShiftPhase(0.1, channel=self.config.drive(0), name="fc_name") | sched1
         self.assertEqual(sched_fc.name, "fc_name")
 
         sched_snapshot = snapshot | sched1
@@ -327,7 +339,10 @@ class TestScheduleBuilding(BaseTestSchedule):
             sched_single = sched_single.insert(
                 10,
                 Acquire(
-                    10, self.config.acquire(i), mem_slot=MemorySlot(i), reg_slot=RegisterSlot(i)
+                    10,
+                    channel=self.config.acquire(i),
+                    mem_slot=MemorySlot(i),
+                    reg_slot=RegisterSlot(i),
                 ),
             )
 
@@ -337,12 +352,19 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_parametric_commands_in_sched(self):
         """Test that schedules can be built with parametric commands."""
         sched = Schedule(name="test_parametric")
-        sched += Play(Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), DriveChannel(0))
-        sched += Play(Drag(duration=25, amp=0.4, angle=0.5, sigma=7.8, beta=4), DriveChannel(1))
-        sched += Play(Constant(duration=25, amp=1), DriveChannel(2))
+        sched += Play(
+            Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2), channel=DriveChannel(0)
+        )
+        sched += Play(
+            Drag(duration=25, amp=0.4, angle=0.5, sigma=7.8, beta=4), channel=DriveChannel(1)
+        )
+        sched += Play(Constant(duration=25, amp=1), channel=DriveChannel(2))
         sched_duration = sched.duration
         sched += (
-            Play(GaussianSquare(duration=1500, amp=0.2, sigma=8, width=140), MeasureChannel(0))
+            Play(
+                GaussianSquare(duration=1500, amp=0.2, sigma=8, width=140),
+                channel=MeasureChannel(0),
+            )
             << sched_duration
         )
         self.assertEqual(sched.duration, 1525)
@@ -351,46 +373,46 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_numpy_integer_input(self):
         """Test that mixed integer duration types can build a schedule (#5754)."""
         sched = Schedule()
-        sched += Delay(np.int32(25), DriveChannel(0))
-        sched += Play(Constant(duration=30, amp=0.1), DriveChannel(0))
+        sched += Delay(np.int32(25), channel=DriveChannel(0))
+        sched += Play(Constant(duration=30, amp=0.1), channel=DriveChannel(0))
         self.assertEqual(sched.duration, 55)
 
     def test_negative_time_raises(self):
         """Test that a negative time will raise an error."""
         sched = Schedule()
-        sched += Delay(1, DriveChannel(0))
+        sched += Delay(1, channel=DriveChannel(0))
         with self.assertRaises(PulseError):
             sched.shift(-10)
 
     def test_shift_float_time_raises(self):
         """Test that a floating time will raise an error with shift."""
         sched = Schedule()
-        sched += Delay(1, DriveChannel(0))
+        sched += Delay(1, channel=DriveChannel(0))
         with self.assertRaises(PulseError):
             sched.shift(0.1)
 
     def test_insert_float_time_raises(self):
         """Test that a floating time will raise an error with insert."""
         sched = Schedule()
-        sched += Delay(1, DriveChannel(0))
+        sched += Delay(1, channel=DriveChannel(0))
         with self.assertRaises(PulseError):
             sched.insert(10.1, sched)
 
     def test_shift_unshift(self):
         """Test shift and then unshifting of schedule"""
         reference_sched = Schedule()
-        reference_sched += Delay(10, DriveChannel(0))
+        reference_sched += Delay(10, channel=DriveChannel(0))
         shifted_sched = reference_sched.shift(10).shift(-10)
         self.assertEqual(shifted_sched, reference_sched)
 
     def test_duration(self):
         """Test schedule.duration."""
         reference_sched = Schedule()
-        reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
-        reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(10, channel=DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(50, channel=DriveChannel(1)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, channel=DriveChannel(0)))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, channel=DriveChannel(1)))
 
         self.assertEqual(reference_sched.duration, 100)
         self.assertEqual(reference_sched.duration, 100)
@@ -398,11 +420,11 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_ch_duration(self):
         """Test schedule.ch_duration."""
         reference_sched = Schedule()
-        reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
-        reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(10, channel=DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(50, channel=DriveChannel(1)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, channel=DriveChannel(0)))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, channel=DriveChannel(1)))
 
         self.assertEqual(reference_sched.ch_duration(DriveChannel(0)), 20)
         self.assertEqual(reference_sched.ch_duration(DriveChannel(1)), 100)
@@ -413,11 +435,11 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_ch_start_time(self):
         """Test schedule.ch_start_time."""
         reference_sched = Schedule()
-        reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
-        reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(10, channel=DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(50, channel=DriveChannel(1)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, channel=DriveChannel(0)))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, channel=DriveChannel(1)))
 
         self.assertEqual(reference_sched.ch_start_time(DriveChannel(0)), 10)
         self.assertEqual(reference_sched.ch_start_time(DriveChannel(1)), 10)
@@ -425,11 +447,11 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_ch_stop_time(self):
         """Test schedule.ch_stop_time."""
         reference_sched = Schedule()
-        reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
-        reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(10, channel=DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(50, channel=DriveChannel(1)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, channel=DriveChannel(0)))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, channel=DriveChannel(1)))
 
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(0)), 20)
         self.assertEqual(reference_sched.ch_stop_time(DriveChannel(1)), 100)
@@ -437,11 +459,11 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_timeslots(self):
         """Test schedule.timeslots."""
         reference_sched = Schedule()
-        reference_sched = reference_sched.insert(10, Delay(10, DriveChannel(0)))
-        reference_sched = reference_sched.insert(10, Delay(50, DriveChannel(1)))
-        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(10, channel=DriveChannel(0)))
+        reference_sched = reference_sched.insert(10, Delay(50, channel=DriveChannel(1)))
+        reference_sched = reference_sched.insert(10, ShiftPhase(0.1, channel=DriveChannel(0)))
 
-        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, DriveChannel(1)))
+        reference_sched = reference_sched.insert(100, ShiftPhase(0.1, channel=DriveChannel(1)))
 
         self.assertEqual(reference_sched.timeslots[DriveChannel(0)], [(10, 10), (10, 20)])
         self.assertEqual(reference_sched.timeslots[DriveChannel(1)], [(10, 60), (100, 100)])
@@ -453,7 +475,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         for j in range(1, 10):
-            sched = sched.append(Play(lp0, self.config.drive(0)))
+            sched = sched.append(Play(lp0, channel=self.config.drive(0)))
             self.assertEqual(len(sched), j)
 
     def test_inherit_from(self):
@@ -473,8 +495,8 @@ class TestReplace(BaseTestSchedule):
 
     def test_replace_instruction(self):
         """Test replacement of simple instruction"""
-        old = Play(Constant(100, 1.0), DriveChannel(0))
-        new = Play(Constant(100, 0.1), DriveChannel(0))
+        old = Play(Constant(100, 1.0), channel=DriveChannel(0))
+        new = Play(Constant(100, 0.1), channel=DriveChannel(0))
 
         sched = Schedule(old)
         new_sched = sched.replace(old, new)
@@ -489,14 +511,14 @@ class TestReplace(BaseTestSchedule):
         """Test replacement of schedule."""
 
         old = Schedule(
-            Delay(10, DriveChannel(0)),
-            Delay(100, DriveChannel(1)),
+            Delay(10, channel=DriveChannel(0)),
+            Delay(100, channel=DriveChannel(1)),
         )
         new = Schedule(
-            Play(Constant(10, 1.0), DriveChannel(0)),
-            Play(Constant(100, 0.1), DriveChannel(1)),
+            Play(Constant(10, 1.0), channel=DriveChannel(0)),
+            Play(Constant(100, 0.1), channel=DriveChannel(1)),
         )
-        const = Play(Constant(100, 1.0), DriveChannel(0))
+        const = Play(Constant(100, 1.0), channel=DriveChannel(0))
 
         sched = Schedule()
         sched += const
@@ -515,12 +537,12 @@ class TestReplace(BaseTestSchedule):
 
     def test_replace_fails_on_overlap(self):
         """Test that replacement fails on overlap."""
-        old = Play(Constant(20, 1.0), DriveChannel(0))
-        new = Play(Constant(100, 0.1), DriveChannel(0))
+        old = Play(Constant(20, 1.0), channel=DriveChannel(0))
+        new = Play(Constant(100, 0.1), channel=DriveChannel(0))
 
         sched = Schedule()
         sched += old
-        sched += Delay(100, DriveChannel(0))
+        sched += Delay(100, channel=DriveChannel(0))
 
         with self.assertRaises(PulseError):
             sched.replace(old, new)
@@ -538,7 +560,7 @@ class TestDelay(BaseTestSchedule):
         drive_ch = self.config.drive(0)
         pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
-        sched = Delay(self.delay_time, drive_ch) + Play(pulse, drive_ch)
+        sched = Delay(self.delay_time, channel=drive_ch) + Play(pulse, channel=drive_ch)
         self.assertIsInstance(sched, Schedule)
         pulse_instr = sched.instructions[-1]
         # assert last instruction is pulse
@@ -547,7 +569,7 @@ class TestDelay(BaseTestSchedule):
         self.assertEqual(pulse_instr[0], 10)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            sched = Delay(self.delay_time, drive_ch) | Play(pulse, drive_ch)
+            sched = Delay(self.delay_time, channel=drive_ch) | Play(pulse, channel=drive_ch)
 
     def test_delay_measure_channel(self):
         """Test Delay on MeasureChannel"""
@@ -555,11 +577,11 @@ class TestDelay(BaseTestSchedule):
         measure_ch = self.config.measure(0)
         pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
-        sched = Delay(self.delay_time, measure_ch) + Play(pulse, measure_ch)
+        sched = Delay(self.delay_time, channel=measure_ch) + Play(pulse, channel=measure_ch)
         self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            sched = Delay(self.delay_time, measure_ch) | Play(pulse, measure_ch)
+            sched = Delay(self.delay_time, channel=measure_ch) | Play(pulse, channel=measure_ch)
 
     def test_delay_control_channel(self):
         """Test Delay on ControlChannel"""
@@ -567,11 +589,11 @@ class TestDelay(BaseTestSchedule):
         control_ch = self.config.control([0, 1])[0]
         pulse = Waveform(np.full(10, 0.1))
         # should pass as is an append
-        sched = Delay(self.delay_time, control_ch) + Play(pulse, control_ch)
+        sched = Delay(self.delay_time, channel=control_ch) + Play(pulse, channel=control_ch)
         self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            sched = Delay(self.delay_time, control_ch) | Play(pulse, control_ch)
+            sched = Delay(self.delay_time, channel=control_ch) | Play(pulse, channel=control_ch)
             self.assertIsInstance(sched, Schedule)
 
     def test_delay_acquire_channel(self):
@@ -579,11 +601,15 @@ class TestDelay(BaseTestSchedule):
 
         acquire_ch = self.config.acquire(0)
         # should pass as is an append
-        sched = Delay(self.delay_time, acquire_ch) + Acquire(10, acquire_ch, MemorySlot(0))
+        sched = Delay(self.delay_time, channel=acquire_ch) + Acquire(
+            10, channel=acquire_ch, mem_slot=MemorySlot(0)
+        )
         self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            sched = Delay(self.delay_time, acquire_ch) | Acquire(10, acquire_ch, MemorySlot(0))
+            sched = Delay(self.delay_time, channel=acquire_ch) | Acquire(
+                10, channel=acquire_ch, mem_slot=MemorySlot(0)
+            )
             self.assertIsInstance(sched, Schedule)
 
     def test_delay_snapshot_channel(self):
@@ -592,11 +618,11 @@ class TestDelay(BaseTestSchedule):
         snapshot_ch = SnapshotChannel()
         snapshot = Snapshot(label="test")
         # should pass as is an append
-        sched = Delay(self.delay_time, snapshot_ch) + snapshot
+        sched = Delay(self.delay_time, channel=snapshot_ch) + snapshot
         self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            sched = Delay(self.delay_time, snapshot_ch) | snapshot << 5
+            sched = Delay(self.delay_time, channel=snapshot_ch) | snapshot << 5
             self.assertIsInstance(sched, Schedule)
 
 
@@ -607,12 +633,12 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test filtering over channels."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
-        sched = sched.insert(60, Acquire(5, AcquireChannel(0), MemorySlot(0)))
-        sched = sched.insert(60, Acquire(5, AcquireChannel(1), MemorySlot(1)))
-        sched = sched.insert(90, Play(lp0, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
+        sched = sched.insert(60, Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)))
+        sched = sched.insert(60, Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)))
+        sched = sched.insert(90, Play(lp0, channel=self.config.drive(0)))
 
         # split instructions for those on AcquireChannel(1) and those not
         filtered, excluded = self._filter_and_test_consistency(sched, channels=[AcquireChannel(1)])
@@ -631,8 +657,8 @@ class TestScheduleFilter(BaseTestSchedule):
     def test_filter_exclude_name(self):
         """Test the name of the schedules after applying filter and exclude functions."""
         sched = Schedule(name="test-schedule")
-        sched = sched.insert(10, Acquire(5, AcquireChannel(0), MemorySlot(0)))
-        sched = sched.insert(10, Acquire(5, AcquireChannel(1), MemorySlot(1)))
+        sched = sched.insert(10, Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)))
+        sched = sched.insert(10, Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)))
         excluded = sched.exclude(channels=[AcquireChannel(0)])
         filtered = sched.filter(channels=[AcquireChannel(1)])
 
@@ -644,15 +670,17 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test filtering on instruction types."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
-        sched = sched.insert(40, SetFrequency(8.0, self.config.drive(0)))
-        sched = sched.insert(50, ShiftFrequency(4.0e6, self.config.drive(0)))
-        sched = sched.insert(55, SetPhase(3.14, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
+        sched = sched.insert(40, SetFrequency(8.0, channel=self.config.drive(0)))
+        sched = sched.insert(50, ShiftFrequency(4.0e6, channel=self.config.drive(0)))
+        sched = sched.insert(55, SetPhase(3.14, channel=self.config.drive(0)))
         for i in range(2):
-            sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
-        sched = sched.insert(90, Play(lp0, self.config.drive(0)))
+            sched = sched.insert(
+                60, Acquire(5, channel=self.config.acquire(i), mem_slot=MemorySlot(i))
+            )
+        sched = sched.insert(90, Play(lp0, channel=self.config.drive(0)))
 
         # test on Acquire
         only_acquire, no_acquire = self._filter_and_test_consistency(
@@ -706,12 +734,14 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test filtering on intervals."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
         for i in range(2):
-            sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
-        sched = sched.insert(90, Play(lp0, self.config.drive(0)))
+            sched = sched.insert(
+                60, Acquire(5, channel=self.config.acquire(i), mem_slot=MemorySlot(i))
+            )
+        sched = sched.insert(90, Play(lp0, channel=self.config.drive(0)))
 
         # split schedule into instructions occurring in (0,13), and those outside
         filtered, excluded = self._filter_and_test_consistency(sched, time_ranges=((0, 13),))
@@ -758,13 +788,15 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test filter composition."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
         for i in range(2):
-            sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
+            sched = sched.insert(
+                60, Acquire(5, channel=self.config.acquire(i), mem_slot=MemorySlot(i))
+            )
 
-        sched = sched.insert(90, Play(lp0, self.config.drive(0)))
+        sched = sched.insert(90, Play(lp0, channel=self.config.drive(0)))
 
         # split instructions with filters on channel 0, of type Play
         # occurring in the time interval (25, 100)
@@ -806,9 +838,9 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test custom filters."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
 
         filtered, excluded = self._filter_and_test_consistency(sched, lambda x: True)
         for i in filtered.instructions:
@@ -835,12 +867,14 @@ class TestScheduleFilter(BaseTestSchedule):
         """Test behavior on empty filters."""
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
         sched = Schedule(name="fake_experiment")
-        sched = sched.insert(0, Play(lp0, self.config.drive(0)))
-        sched = sched.insert(10, Play(lp0, self.config.drive(1)))
-        sched = sched.insert(30, ShiftPhase(-1.57, self.config.drive(0)))
+        sched = sched.insert(0, Play(lp0, channel=self.config.drive(0)))
+        sched = sched.insert(10, Play(lp0, channel=self.config.drive(1)))
+        sched = sched.insert(30, ShiftPhase(-1.57, channel=self.config.drive(0)))
         for i in range(2):
-            sched = sched.insert(60, Acquire(5, self.config.acquire(i), MemorySlot(i)))
-        sched = sched.insert(90, Play(lp0, self.config.drive(0)))
+            sched = sched.insert(
+                60, Acquire(5, channel=self.config.acquire(i), mem_slot=MemorySlot(i))
+            )
+        sched = sched.insert(90, Play(lp0, channel=self.config.drive(0)))
 
         # empty channels
         filtered, excluded = self._filter_and_test_consistency(sched, channels=[])
@@ -887,30 +921,31 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_different_channels(self):
         """Test equality is False if different channels."""
         self.assertNotEqual(
-            Schedule(ShiftPhase(0, DriveChannel(0))), Schedule(ShiftPhase(0, DriveChannel(1)))
+            Schedule(ShiftPhase(0, channel=DriveChannel(0))),
+            Schedule(ShiftPhase(0, channel=DriveChannel(1))),
         )
 
     def test_same_time_equal(self):
         """Test equal if instruction at same time."""
 
         self.assertEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
+            Schedule((0, ShiftPhase(0, channel=DriveChannel(1)))),
+            Schedule((0, ShiftPhase(0, channel=DriveChannel(1)))),
         )
 
     def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
         self.assertNotEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1)))),
-            Schedule((1, ShiftPhase(0, DriveChannel(1)))),
+            Schedule((0, ShiftPhase(0, channel=DriveChannel(1)))),
+            Schedule((1, ShiftPhase(0, channel=DriveChannel(1)))),
         )
 
     def test_single_channel_out_of_order(self):
         """Test that schedule with single channel equal when out of order."""
         instructions = [
-            (0, ShiftPhase(0, DriveChannel(0))),
-            (15, Play(Waveform(np.ones(10)), DriveChannel(0))),
-            (5, Play(Waveform(np.ones(10)), DriveChannel(0))),
+            (0, ShiftPhase(0, channel=DriveChannel(0))),
+            (15, Play(Waveform(np.ones(10)), channel=DriveChannel(0))),
+            (5, Play(Waveform(np.ones(10)), channel=DriveChannel(0))),
         ]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
@@ -918,8 +953,8 @@ class TestScheduleEquality(BaseTestSchedule):
     def test_multiple_channels_out_of_order(self):
         """Test that schedule with multiple channels equal when out of order."""
         instructions = [
-            (0, ShiftPhase(0, DriveChannel(1))),
-            (1, Acquire(10, AcquireChannel(0), MemorySlot(1))),
+            (0, ShiftPhase(0, channel=DriveChannel(1))),
+            (1, Acquire(10, channel=AcquireChannel(0), mem_slot=MemorySlot(1))),
         ]
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
@@ -928,19 +963,19 @@ class TestScheduleEquality(BaseTestSchedule):
         """Test that schedule with same commands on two channels at the same time equal
         when out of order."""
         sched1 = Schedule()
-        sched1 = sched1.append(Delay(100, DriveChannel(1)))
-        sched1 = sched1.append(Delay(100, ControlChannel(1)))
+        sched1 = sched1.append(Delay(100, channel=DriveChannel(1)))
+        sched1 = sched1.append(Delay(100, channel=ControlChannel(1)))
         sched2 = Schedule()
-        sched2 = sched2.append(Delay(100, ControlChannel(1)))
-        sched2 = sched2.append(Delay(100, DriveChannel(1)))
+        sched2 = sched2.append(Delay(100, channel=ControlChannel(1)))
+        sched2 = sched2.append(Delay(100, channel=DriveChannel(1)))
         self.assertEqual(sched1, sched2)
 
     def test_different_name_equal(self):
         """Test that names are ignored when checking equality."""
 
         self.assertEqual(
-            Schedule((0, ShiftPhase(0, DriveChannel(1), name="fc1")), name="s1"),
-            Schedule((0, ShiftPhase(0, DriveChannel(1), name="fc2")), name="s2"),
+            Schedule((0, ShiftPhase(0, channel=DriveChannel(1), name="fc1")), name="s1"),
+            Schedule((0, ShiftPhase(0, channel=DriveChannel(1), name="fc2")), name="s2"),
         )
 
 

@@ -18,6 +18,8 @@ from qiskit.pulse import (
     GenericFrame,
     MixedFrame,
 )
+
+from qiskit.pulse.exceptions import PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -35,6 +37,15 @@ class TestMixedFrames(QiskitTestCase):
         port = Port("d0")
         mixed_frame = MixedFrame(port, frame)
         self.assertEqual(mixed_frame.pulse_target, port)
+
+    def test_mixed_frames_bad_input_types(self):
+        """Test that bad input types raise error"""
+        with self.assertRaises(PulseError):
+            MixedFrame(1, GenericFrame("a"))
+        with self.assertRaises(PulseError):
+            MixedFrame(Qubit(0), Qubit(1))
+        with self.assertRaises(PulseError):
+            MixedFrame(GenericFrame("a"), Qubit(1))
 
     def test_mixed_frames_comparison(self):
         """Test the comparison of various mixed frames"""

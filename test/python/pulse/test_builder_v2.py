@@ -57,12 +57,12 @@ class TestContextsV2(TestBuilderV2):
                 pulse.delay(10, d0)
 
         reference = pulse.Schedule()
-        reference += instructions.ShiftFrequency(1e9, d0)
-        reference += instructions.Delay(10, d0)
+        reference += instructions.ShiftFrequency(1e9, channel=d0)
+        reference += instructions.Delay(10, channel=d0)
         reference += instructions.ShiftPhase(
-            -2 * np.pi * ((1e9 * 10 * self.backend.target.dt) % 1), d0
+            -2 * np.pi * ((1e9 * 10 * self.backend.target.dt) % 1), channel=d0
         )
-        reference += instructions.ShiftFrequency(-1e9, d0)
+        reference += instructions.ShiftFrequency(-1e9, channel=d0)
         self.assertScheduleEqual(schedule, reference)
 
 
@@ -211,8 +211,8 @@ class TestMacrosV2(TestBuilderV2):
             self.assertEqual(output, 0.5 * 2)
 
         reference = pulse.Schedule()
-        reference += pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
-        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Constant(100, 1.0), channel=pulse.DriveChannel(0))
+        reference += pulse.Play(pulse.Gaussian(100, 0.5, 20), channel=pulse.DriveChannel(0))
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -262,11 +262,11 @@ class TestMacrosV2(TestBuilderV2):
         u1 = pulse.ControlChannel(1)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
-        reference += instructions.Delay(10, m0)
-        reference += instructions.Delay(10, a0)
-        reference += instructions.Delay(10, u0)
-        reference += instructions.Delay(10, u1)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.Delay(10, channel=m0)
+        reference += instructions.Delay(10, channel=a0)
+        reference += instructions.Delay(10, channel=u0)
+        reference += instructions.Delay(10, channel=u1)
 
         self.assertScheduleEqual(schedule, reference)
 
@@ -289,17 +289,17 @@ class TestMacrosV2(TestBuilderV2):
         u8 = pulse.ControlChannel(8)
 
         reference = pulse.Schedule()
-        reference += instructions.Delay(10, d0)
-        reference += instructions.Delay(10, d1)
-        reference += instructions.Delay(10, m0)
-        reference += instructions.Delay(10, m1)
-        reference += instructions.Delay(10, a0)
-        reference += instructions.Delay(10, a1)
-        reference += instructions.Delay(10, u0)
-        reference += instructions.Delay(10, u1)
-        reference += instructions.Delay(10, u2)
-        reference += instructions.Delay(10, u3)
-        reference += instructions.Delay(10, u4)
-        reference += instructions.Delay(10, u8)
+        reference += instructions.Delay(10, channel=d0)
+        reference += instructions.Delay(10, channel=d1)
+        reference += instructions.Delay(10, channel=m0)
+        reference += instructions.Delay(10, channel=m1)
+        reference += instructions.Delay(10, channel=a0)
+        reference += instructions.Delay(10, channel=a1)
+        reference += instructions.Delay(10, channel=u0)
+        reference += instructions.Delay(10, channel=u1)
+        reference += instructions.Delay(10, channel=u2)
+        reference += instructions.Delay(10, channel=u3)
+        reference += instructions.Delay(10, channel=u4)
+        reference += instructions.Delay(10, channel=u8)
 
         self.assertScheduleEqual(schedule, reference)

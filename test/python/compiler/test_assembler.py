@@ -603,7 +603,9 @@ class TestCircuitAssembler(QiskitTestCase):
         """Test that a single delay gate is translated to an instruction."""
         circ = QuantumCircuit(2)
         circ.append(Gate("test", 1, []), [0])
-        test_sched = pulse.Delay(64, DriveChannel(0)) + pulse.Delay(160, DriveChannel(0))
+        test_sched = pulse.Delay(64, channel=DriveChannel(0)) + pulse.Delay(
+            160, channel=DriveChannel(0)
+        )
         circ.add_calibration("test", [0], test_sched)
         qobj = assemble(circ, FakeOpenPulse2Q())
         self.assertEqual(len(qobj.config.calibrations.gates[0].instructions), 2)
@@ -908,10 +910,12 @@ class TestPulseAssembler(QiskitTestCase):
         )
 
         self.schedule = pulse.Schedule(name="fake_experiment")
-        self.schedule = self.schedule.insert(0, Play(test_pulse, self.backend_config.drive(0)))
+        self.schedule = self.schedule.insert(
+            0, Play(test_pulse, channel=self.backend_config.drive(0))
+        )
         for i in range(self.backend_config.n_qubits):
             self.schedule = self.schedule.insert(
-                5, Acquire(5, self.backend_config.acquire(i), MemorySlot(i))
+                5, Acquire(5, channel=self.backend_config.acquire(i), mem_slot=MemorySlot(i))
             )
 
         self.user_lo_config_dict = {self.backend_config.drive(0): 4.91e9}
@@ -943,13 +947,13 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that the pulse lib and qobj instruction can be paired up."""
         schedule = pulse.Schedule()
         schedule += pulse.Play(
-            pulse.Waveform([0.1] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
+            pulse.Waveform([0.1] * 16, name="test0"), channel=pulse.DriveChannel(0), name="test1"
         )
         schedule += pulse.Play(
-            pulse.Waveform([0.1] * 16, name="test1"), pulse.DriveChannel(0), name="test2"
+            pulse.Waveform([0.1] * 16, name="test1"), channel=pulse.DriveChannel(0), name="test2"
         )
         schedule += pulse.Play(
-            pulse.Waveform([0.5] * 16, name="test0"), pulse.DriveChannel(0), name="test1"
+            pulse.Waveform([0.5] * 16, name="test0"), channel=pulse.DriveChannel(0), name="test1"
         )
         qobj = assemble(
             schedule,
@@ -1086,8 +1090,8 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
         schedule = Schedule(name="fake_experiment")
-        schedule = schedule.insert(5, Acquire(5, AcquireChannel(0), MemorySlot(0)))
-        schedule = schedule.insert(5, Acquire(5, AcquireChannel(1), MemorySlot(1)))
+        schedule = schedule.insert(5, Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)))
+        schedule = schedule.insert(5, Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)))
 
         qobj = assemble(
             schedule,
@@ -1111,7 +1115,7 @@ class TestPulseAssembler(QiskitTestCase):
 
         # single acquisition
         schedule = Acquire(
-            5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
+            5, channel=self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
         )
 
         qobj = assemble(
@@ -1127,12 +1131,14 @@ class TestPulseAssembler(QiskitTestCase):
 
         # multiple acquisition
         schedule = Acquire(
-            5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
+            5, channel=self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
         )
         schedule = schedule.insert(
             10,
             Acquire(
-                5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslots - 1)
+                5,
+                channel=self.backend_config.acquire(0),
+                mem_slot=pulse.MemorySlot(n_memoryslots - 1),
             ),
         )
 
@@ -1154,7 +1160,9 @@ class TestPulseAssembler(QiskitTestCase):
         schedules = []
         for n_memoryslot in n_memoryslots:
             schedule = Acquire(
-                5, self.backend_config.acquire(0), mem_slot=pulse.MemorySlot(n_memoryslot - 1)
+                5,
+                channel=self.backend_config.acquire(0),
+                mem_slot=pulse.MemorySlot(n_memoryslot - 1),
             )
             schedules.append(schedule)
 
@@ -1177,7 +1185,7 @@ class TestPulseAssembler(QiskitTestCase):
         )
 
         self.schedule = self.schedule.insert(
-            1, Play(name_conflict_pulse, self.backend_config.drive(1))
+            1, Play(name_conflict_pulse, channel=self.backend_config.drive(1))
         )
 
         qobj = assemble(
@@ -1200,7 +1208,9 @@ class TestPulseAssembler(QiskitTestCase):
         ch_d0 = pulse.DriveChannel(0)
         for amp in (0.1, 0.2):
             sched = Schedule()
-            sched += Play(pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), ch_d0)
+            sched += Play(
+                pulse.Gaussian(duration=100, amp=amp, sigma=30, name="my_pulse"), channel=ch_d0
+            )
             sched += measure(qubits=[0], backend=backend) << 100
             schedules.append(sched)
 
@@ -1213,7 +1223,7 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_with_delay(self):
         """Test that delay instruction is not ignored in assembly."""
-        delay_schedule = pulse.Delay(10, self.backend_config.drive(0))
+        delay_schedule = pulse.Delay(10, channel=self.backend_config.drive(0))
         delay_schedule += self.schedule
         delay_qobj = assemble(delay_schedule, self.backend)
 
@@ -1225,8 +1235,8 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that delay instructions on acquire channels are skipped on assembly with times
         shifted properly.
         """
-        delay0 = pulse.Delay(5, self.backend_config.acquire(0))
-        delay1 = pulse.Delay(7, self.backend_config.acquire(1))
+        delay0 = pulse.Delay(5, channel=self.backend_config.acquire(0))
+        delay1 = pulse.Delay(7, channel=self.backend_config.acquire(1))
 
         sched0 = delay0
         sched0 += self.schedule  # includes ``Acquire`` instr
@@ -1281,16 +1291,20 @@ class TestPulseAssembler(QiskitTestCase):
         angle = [np.pi / 2, 0.6, 0, 0]
         sched = pulse.Schedule(name="test_parametric")
         sched += Play(
-            pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]), DriveChannel(0)
+            pulse.Gaussian(duration=25, sigma=4, amp=amp[0], angle=angle[0]),
+            channel=DriveChannel(0),
         )
         sched += Play(
-            pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4), DriveChannel(1)
+            pulse.Drag(duration=25, amp=amp[1], angle=angle[1], sigma=7.8, beta=4),
+            channel=DriveChannel(1),
         )
-        sched += Play(pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), DriveChannel(2))
+        sched += Play(
+            pulse.Constant(duration=25, amp=amp[2], angle=angle[2]), channel=DriveChannel(2)
+        )
         sched += (
             Play(
                 pulse.GaussianSquare(duration=150, amp=amp[3], angle=angle[3], sigma=8, width=140),
-                MeasureChannel(0),
+                channel=MeasureChannel(0),
             )
             << sched.duration
         )
@@ -1336,9 +1350,9 @@ class TestPulseAssembler(QiskitTestCase):
         """
         sched = pulse.Schedule(name="test_parametric_to_sample_pulse")
         sched += Play(
-            pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), DriveChannel(1)
+            pulse.Drag(duration=25, amp=0.5, angle=-0.3, sigma=7.8, beta=4), channel=DriveChannel(1)
         )
-        sched += Play(pulse.Constant(duration=25, amp=1), DriveChannel(2))
+        sched += Play(pulse.Constant(duration=25, amp=1), channel=DriveChannel(2))
 
         backend = FakeOpenPulse3Q()
         backend.configuration().parametric_pulses = ["something_extra"]
@@ -1470,10 +1484,10 @@ class TestPulseAssembler(QiskitTestCase):
 
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), discriminator=disc_one),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two),
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1), discriminator=disc_two),
         )
 
         qobj = assemble(
@@ -1496,10 +1510,10 @@ class TestPulseAssembler(QiskitTestCase):
 
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), discriminator=disc_one),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
         )
 
         qobj = assemble(
@@ -1521,9 +1535,13 @@ class TestPulseAssembler(QiskitTestCase):
         disc_two = Discriminator("disc_two", test_params=False)
 
         schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), discriminator=disc_one)
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), discriminator=disc_two)
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
+        schedule += Acquire(
+            5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), discriminator=disc_one
+        )
+        schedule += Acquire(
+            5, channel=AcquireChannel(1), mem_slot=MemorySlot(1), discriminator=disc_two
+        )
+        schedule += Acquire(5, channel=AcquireChannel(2), mem_slot=MemorySlot(2))
 
         with self.assertRaises(QiskitError):
             assemble(
@@ -1540,10 +1558,10 @@ class TestPulseAssembler(QiskitTestCase):
 
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), kernel=disc_one),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two),
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1), kernel=disc_two),
         )
 
         qobj = assemble(
@@ -1566,10 +1584,10 @@ class TestPulseAssembler(QiskitTestCase):
 
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), kernel=disc_one),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
         )
 
         qobj = assemble(
@@ -1591,9 +1609,9 @@ class TestPulseAssembler(QiskitTestCase):
         disc_two = Kernel("disc_two", test_params=False)
 
         schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0), kernel=disc_one)
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1), kernel=disc_two)
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2))
+        schedule += Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0), kernel=disc_one)
+        schedule += Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1), kernel=disc_two)
+        schedule += Acquire(5, channel=AcquireChannel(2), mem_slot=MemorySlot(2))
 
         with self.assertRaises(QiskitError):
             assemble(
@@ -1605,17 +1623,17 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_instruction(self):
         """Test assembling schedules, no lo config."""
-        inst = pulse.Play(pulse.Constant(100, 1.0), pulse.DriveChannel(0))
+        inst = pulse.Play(pulse.Constant(100, 1.0), channel=pulse.DriveChannel(0))
         self.assertIsInstance(assemble(inst, self.backend), PulseQobj)
 
     def test_assemble_overlapping_time(self):
         """Test that assembly errors when qubits are measured in overlapping time."""
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)) << 1,
         )
         with self.assertRaises(QiskitError):
             assemble(
@@ -1629,10 +1647,10 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that assembly errors when the qubits are measured in overlapping time
         and qubits are not in the first meas_map list."""
         schedule = Schedule()
-        schedule += Acquire(5, AcquireChannel(0), MemorySlot(0))
-        schedule += Acquire(5, AcquireChannel(1), MemorySlot(1))
-        schedule += Acquire(5, AcquireChannel(2), MemorySlot(2)) << 2
-        schedule += Acquire(5, AcquireChannel(3), MemorySlot(3)) << 2
+        schedule += Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0))
+        schedule += Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1))
+        schedule += Acquire(5, channel=AcquireChannel(2), mem_slot=MemorySlot(2)) << 2
+        schedule += Acquire(5, channel=AcquireChannel(3), mem_slot=MemorySlot(3)) << 2
 
         with self.assertRaises(QiskitError):
             assemble(
@@ -1647,10 +1665,10 @@ class TestPulseAssembler(QiskitTestCase):
         time within the same measurement map list."""
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 5,
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)) << 5,
         )
         qobj = assemble(
             schedule,
@@ -1664,10 +1682,10 @@ class TestPulseAssembler(QiskitTestCase):
         """Test that assembly works when qubits are in disjoint meas map sets."""
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(0), MemorySlot(0)),
+            Acquire(5, channel=AcquireChannel(0), mem_slot=MemorySlot(0)),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)) << 1,
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)) << 1,
         )
         qobj = assemble(
             schedule,
@@ -1682,13 +1700,13 @@ class TestPulseAssembler(QiskitTestCase):
         is measured."""
         schedule = Schedule()
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(1), MemorySlot(1)),
+            Acquire(5, channel=AcquireChannel(1), mem_slot=MemorySlot(1)),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(2), MemorySlot(2)),
+            Acquire(5, channel=AcquireChannel(2), mem_slot=MemorySlot(2)),
         )
         schedule = schedule.append(
-            Acquire(5, AcquireChannel(3), MemorySlot(3)),
+            Acquire(5, channel=AcquireChannel(3), mem_slot=MemorySlot(3)),
         )
         qobj = assemble(
             schedule,
@@ -1865,11 +1883,15 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         new_style_schedule = Schedule()
         acq_dur = 1200
         for i in range(2):
-            new_style_schedule += Acquire(acq_dur, AcquireChannel(i), MemorySlot(i))
+            new_style_schedule += Acquire(
+                acq_dur, channel=AcquireChannel(i), mem_slot=MemorySlot(i)
+            )
 
         deprecated_style_schedule = Schedule()
         for i in range(2):
-            deprecated_style_schedule += Acquire(1200, AcquireChannel(i), MemorySlot(i))
+            deprecated_style_schedule += Acquire(
+                1200, channel=AcquireChannel(i), mem_slot=MemorySlot(i)
+            )
 
         # The Qobj IDs will be different
         n_qobj = assemble(new_style_schedule, backend)
