@@ -645,13 +645,14 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg 1.1.0",
  "hashbrown 0.12.3",
+ "rayon",
 ]
 
 [[package]]
 name = "indexmap"
-version = "2.2.1"
+version = "2.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "433de089bd45971eecf4668ee0ee8f4cec17db4f8bd8f7bc3197a6ce37aa7d9b"
+checksum = "233cf39063f058ea2caae4091bf4a3ef70a653afbc026f5c4a4135d114e3c177"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.3",
@@ -911,7 +912,7 @@ checksum = "c7da2ef9a591d77eee43e972e79fc95c218545e5e79b93738d20479d8d7627ec"
 dependencies = [
  "cov-mark",
  "either",
- "indexmap 2.2.1",
+ "indexmap 2.2.3",
  "itertools 0.10.5",
  "once_cell",
  "oq3_lexer",
@@ -973,7 +974,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d3afd2628e69da2be385eb6f2fd57c8ac7977ceeff6dc166ff1657b0e386a9"
 dependencies = [
  "fixedbitset",
- "indexmap 2.2.1",
+ "indexmap 2.2.3",
 ]
 
 [[package]]
@@ -1045,7 +1046,7 @@ checksum = "9a89dc7a5850d0e983be1ec2a463a171d20990487c3cfcd68b5363f1ee3d6fe0"
 dependencies = [
  "cfg-if",
  "hashbrown 0.14.3",
- "indexmap 2.2.1",
+ "indexmap 1.9.3",
  "indoc",
  "libc",
  "memoffset",
@@ -1115,7 +1116,7 @@ name = "qiskit-qasm3"
 version = "1.1.0"
 dependencies = [
  "hashbrown 0.14.3",
- "indexmap 2.2.1",
+ "indexmap 2.2.3",
  "oq3_semantics",
  "pyo3",
 ]
@@ -1128,7 +1129,7 @@ dependencies = [
  "faer",
  "faer-core",
  "hashbrown 0.14.3",
- "indexmap 2.2.1",
+ "indexmap 2.2.3",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -1447,7 +1448,7 @@ dependencies = [
  "ahash",
  "fixedbitset",
  "hashbrown 0.14.3",
- "indexmap 2.2.1",
+ "indexmap 1.9.3",
  "num-traits",
  "petgraph",
  "priority-queue",
