@@ -58,10 +58,6 @@ For example, while it is possible to import `Measure` from `qiskit.circuit.measu
 
 As a rule of thumb, if you are using Qiskit, you should import objects from the highest-level package that exports that object.
 
-From within the Qiskit package itself, objects should be imported from the highest-level package that does not cause cyclic-import concerns.
-In general, imports should not reach into the internals of *other* subpackages; `qiskit.circuit` should import all its objects from `qiskit.quantum_info` and not from submodules of that, though in practice, our package hierarchy is sufficiently confused that this is not always possible).
-Using package-level imports helps indicate when new code is producing confused inter-package dependencies.
-
 Some components of the documented public interface may be marked as "experimental", and not subject to the stability guarantees of semantic versioning.
 These will be clearly denoted in the documentation, and will raise an `ExperimentalWarning` when used.
 We will only use these "experimental" features sparingly, when we feel there is a real benefit to making the experimental version public in an unstable form, such as a backwards-incompatible new version of core functionality that shows significant improvements over the existing form for limited inputs, but is not yet fully feature complete.
