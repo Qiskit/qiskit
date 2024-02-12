@@ -152,7 +152,7 @@ class IrInstruction(IrElement):
 
     def __repr__(self) -> str:
         """IrInstruction representation"""
-        return f"IrInstruction({self.instruction}, {self.initial_time})"
+        return f"IrInstruction({self.instruction}, t0={self.initial_time})"
 
 
 class IrBlock(IrElement):
