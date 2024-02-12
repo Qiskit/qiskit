@@ -4,7 +4,7 @@ prelude: |
   culmination of 7 years of development to mature Qiskit into a stable high
   performance SDK to perform quantum computation, and is the start of new
   era for the Qiskit project and community. The most significant changes with the 1.0.0 
- release relate to the stability policy, release cycles, and versioning.
+  release relate to the stability policy, release cycles, and versioning.
   Qiskit is now formally using `semantic versioning <https://semver.org/>`__ ,
   and this means that, for the entire lifecycle of the 1.x release series, the project
   is commited to maintaining backwards compatibility. We're also now starting
