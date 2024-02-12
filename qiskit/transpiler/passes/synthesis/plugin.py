@@ -353,8 +353,8 @@ Unitary Synthesis Plugins
 .. autosummary::
    :toctree: ../stubs/
 
-   ~qiskit.transpiler.passes.synthesis.unitary_synthesis.DefaultUnitarySynthesis
-   ~qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis.SolovayKitaevSynthesis
+   /qiskit/transpiler/passes/synthesis/unitary_synthesis/DefaultUnitarySynthesis
+   /qiskit/transpiler/passes/synthesis/solovay_kitaev_synthesis/SolovayKitaevSynthesis
 
 """
 
