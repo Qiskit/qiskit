@@ -63,7 +63,7 @@ In general, imports should not reach into the internals of *other* subpackages; 
 Using package-level imports helps indicate when new code is producing confused inter-package dependencies.
 
 Some components of the documented public interface may be marked as "experimental", and not subject to the stability guarantees of semantic versioning.
-These will be clearly denoted in the documentation.
+These will be clearly denoted in the documentation, and will raise an `ExperimentalWarning` when used.
 We will only use these "experimental" features sparingly, when we feel there is a real benefit to making the experimental version public in an unstable form, such as a backwards-incompatible new version of core functionality that shows significant improvements over the existing form for limited inputs, but is not yet fully feature complete.
 Typically, a feature will only become part of the public API when we are ready to commit to its stability properly.
 
