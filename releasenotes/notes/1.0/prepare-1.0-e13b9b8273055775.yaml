@@ -1,9 +1,10 @@
 ---
 prelude: |
   We are very pleased to release Qiskit 1.0.0. This release is the
-  culmination of 7 years of development to mature Qiskit into a stable high
-  performance SDK to perform quantum computation, and is the start of new
-  era for the Qiskit project and community. The most significant changes with the 1.0.0 
+  culmination of 7 years of development to mature Qiskit into a stable, high-
+  performance SDK for quantum computing, and is the start of a new
+  era for the Qiskit project and community. Besides general performance and
+  stability improvements, the most significant changes with the 1.0.0 
   release relate to the stability policy, release cycles, and versioning.
   Qiskit is now formally using `semantic versioning <https://semver.org/>`__ ,
   and this means that, for the entire lifecycle of the 1.x release series, the project
@@ -11,7 +12,7 @@ prelude: |
   to offer bugfix support for major versions, so that you continue to have a
   supported branch for 6 months after the release of the next major version.
   This starts now with the 1.x and 0.x major series: the 0.46.x release will
-  continue to be supported, with bugfixes and periodic patch releases, for 6
+  continue to be supported, with periodic patch releases that contain bug fixes, for 6
   months after the release of 1.0. That is, 0.46.x will be supported until 2024-08. 
   You can see the full details of the new policy here:
 
