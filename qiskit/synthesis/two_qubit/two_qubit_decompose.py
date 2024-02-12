@@ -52,10 +52,8 @@ logger = logging.getLogger(__name__)
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
     r"""Decompose :math:`U = U_l \otimes U_r` where :math:`U` is in :math:`SU(4)`,
     and :math:`U_l`, :math:`U_r` are in :math:`SU(2)`.
-
     Args:
         special_unitary_matrix: special unitary matrix to decompose
-
     Raises:
         QiskitError: if decomposition isn't possible.
     """
@@ -110,7 +108,8 @@ class TwoQubitWeylDecomposition:
 
     .. math::
 
-        U \in U(4),~ {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
+        U \in U(4),~
+        {K_1}^l, {K_1}^r, {K_2}^l, {K_2}^r \in SU(2)
 
     and we stay in the "Weyl Chamber"
 
@@ -537,7 +536,6 @@ def _closest_partial_swap(a, b, c) -> float:
 
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, \alpha\pi/4) \sim \text{SWAP}^\alpha`
-
     This gate binds 3 parameters, we make it canonical by setting:
     :math:`K2l = Id`.
     """
@@ -552,10 +550,8 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
 
 class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, -\alpha\pi/4) \sim \text{SWAP}^\alpha`
-
     (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
     similar to how ``x = (±sqrt(x))**2``)
-
     This gate binds 3 parameters, we make it canonical by setting:
     :math:`K2l = Id`.
     """
@@ -575,7 +571,6 @@ _oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
-
     This gate binds 4 parameters, we make it canonical by setting:
         :math:`K2_l = Ry(\theta_l).Rx(\lambda_l)` ,
         :math:`K2_r = Ry(\theta_r).Rx(\lambda_r)` .
@@ -786,7 +781,7 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha, \alpha, \beta), \alpha \geq |\beta|`
 
     This gate binds 5 parameters, we make it canonical by setting:
-     :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
+    :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
     """
 
     def specialize(self):
@@ -800,7 +795,7 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
-    r""":math:`U \sim U_d(\alpha, \beta, \beta), ~\alpha\geq\beta`
+    r""":math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
     :math:`K2_l = Ry(\theta_l).Rx(\lambda_l)`.
@@ -814,7 +809,7 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
         self.global_phase += k2lphase
         self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
         self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.Kl = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
+        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RXGate(-k2lphi)) @ self.K2r
 
 
@@ -874,7 +869,7 @@ def trace_to_fid(trace):
 
 
 def rz_array(theta):
-    r"""Return numpy array for Rz(theta).
+    """Return numpy array for Rz(theta).
 
     Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
     """
@@ -1021,7 +1016,7 @@ class TwoQubitBasisDecomposer:
         if not self.is_supercontrolled:
             warnings.warn(
                 "Only know how to decompose properly for supercontrolled basis gate. "
-                "This gate is ~U_d({}, {}, {})".format(basis.a, basis.b, basis.c),
+                "This gate is ~Ud({}, {}, {})".format(basis.a, basis.b, basis.c),
                 stacklevel=2,
             )
         self.decomposition_fns = [
@@ -1070,6 +1065,7 @@ class TwoQubitBasisDecomposer:
 
         which is optimal for all targets and bases
         """
+
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
         return U0r, U0l
@@ -1095,7 +1091,8 @@ class TwoQubitBasisDecomposer:
         return U1r, U1l, U0r, U0l
 
     def decomp2_supercontrolled(self, target):
-        r"""Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
+        r"""
+        Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
 
         For supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b, result :math:`U_r` has trace
 
