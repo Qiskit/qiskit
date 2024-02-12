@@ -356,6 +356,55 @@ Unitary Synthesis Plugins
    /qiskit/transpiler/passes/synthesis/unitary_synthesis/DefaultUnitarySynthesis
    /qiskit/transpiler/passes/synthesis/solovay_kitaev_synthesis/SolovayKitaevSynthesis
 
+
+High Level Synthesis
+--------------------
+
+Clifford Synthesis
+''''''''''''''''''
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/AGSynthesisClifford
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/BMSynthesisClifford
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/GreedySynthesisClifford
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/LayerSynthesisClifford
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/LayerLnnSynthesisClifford
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisClifford
+
+
+Linear Function Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: "linear" (:class:`.LinearFunction`) plugins
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - "kms"
+      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction
+      - linear
+      -
+    * - "pmh"
+      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction
+      - all-to-all
+      -
+    * - "default"
+      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction
+      - all-to-all
+      -
+
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/KMSSynthesisLinearFunction
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/PMHSynthesisLinearFunction
+   /qiskit/transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisLinearFunction
+
 """
 
 import abc
