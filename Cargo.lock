@@ -645,7 +645,6 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg 1.1.0",
  "hashbrown 0.12.3",
- "rayon",
 ]
 
 [[package]]
@@ -1046,7 +1045,7 @@ checksum = "9a89dc7a5850d0e983be1ec2a463a171d20990487c3cfcd68b5363f1ee3d6fe0"
 dependencies = [
  "cfg-if",
  "hashbrown 0.14.3",
- "indexmap 1.9.3",
+ "indexmap 2.2.3",
  "indoc",
  "libc",
  "memoffset",
@@ -1448,7 +1447,7 @@ dependencies = [
  "ahash",
  "fixedbitset",
  "hashbrown 0.14.3",
- "indexmap 1.9.3",
+ "indexmap 2.2.3",
  "num-traits",
  "petgraph",
  "priority-queue",
