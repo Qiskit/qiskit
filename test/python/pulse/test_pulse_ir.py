@@ -99,13 +99,13 @@ class TestIrInstruction(QiskitTestCase):
         ir_inst = IrInstruction(self._play_inst)
         self.assertEqual(
             str(ir_inst),
-            "IrInstruction(Play(Constant(duration=100, amp=0.5, angle=0.0), DriveChannel(1)), None)",
+            "IrInstruction(Play(Constant(duration=100, amp=0.5, angle=0.0), DriveChannel(1)), t0=None)",
         )
 
         ir_inst = IrInstruction(self._play_inst, 100)
         self.assertEqual(
             str(ir_inst),
-            "IrInstruction(Play(Constant(duration=100, amp=0.5, angle=0.0), DriveChannel(1)), 100)",
+            "IrInstruction(Play(Constant(duration=100, amp=0.5, angle=0.0), DriveChannel(1)), t0=100)",
         )
 
 
@@ -119,17 +119,14 @@ class TestIrBlock(QiskitTestCase):
 
     def ir_creation(self):
         """Test ir creation"""
-        ir_example = IrBlock()
-        self.assertEqual(ir_example.alignment, AlignSequential)
-
-        ir_example = IrBlock(alignment=AlignLeft)
-        self.assertEqual(ir_example.alignment, AlignLeft)
+        ir_example = IrBlock(AlignSequential())
+        self.assertEqual(ir_example.alignment, AlignSequential())
         self.assertEqual(len(ir_example), 0)
 
     def test_add_instruction(self):
         """Test adding single instruction"""
 
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         ir_inst = IrInstruction(self._play_inst)
         pulse_ir.add_element(ir_inst)
         self.assertEqual(pulse_ir.elements[0], ir_inst)
@@ -141,7 +138,7 @@ class TestIrBlock(QiskitTestCase):
     def test_add_instruction_list(self):
         """Test adding instruction list"""
 
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         inst_list = [
             IrInstruction(self._play_inst),
             IrInstruction(self._delay_inst),
@@ -156,10 +153,10 @@ class TestIrBlock(QiskitTestCase):
     def test_add_sub_block(self):
         """Test adding sub block"""
 
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(IrInstruction(self._play_inst))
 
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         block.add_element(IrInstruction(self._delay_inst))
         pulse_ir.add_element(block)
 
@@ -169,7 +166,7 @@ class TestIrBlock(QiskitTestCase):
     def test_get_initial_time(self):
         """Test initial_time is returned correctly"""
 
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         # Empty IR defaults to None
         self.assertEqual(pulse_ir.initial_time, None)
 
@@ -178,7 +175,7 @@ class TestIrBlock(QiskitTestCase):
         self.assertEqual(pulse_ir.initial_time, 50)
 
         # Test recursion initial_time
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         block.add_element(IrInstruction(self._shift_phase_inst, initial_time=20))
         pulse_ir.add_element(block)
         self.assertEqual(pulse_ir.initial_time, 20)
@@ -189,7 +186,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_shift_initial_time(self):
         """Test shift initial_time"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(IrInstruction(self._play_inst))
 
         # Can't shift initial_time of IR with unscheduled instructions.
@@ -208,7 +205,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_shift_initial_time_with_sub_blocks(self):
         """Test shift initial_time with sub blocks"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(IrInstruction(self._play_inst, 100))
         pulse_ir.add_element(IrInstruction(self._play_inst, 200))
         block = copy.deepcopy(pulse_ir)
@@ -223,7 +220,7 @@ class TestIrBlock(QiskitTestCase):
     def test_get_final_time(self):
         """Test final time is returned correctly"""
 
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         # Empty IR defaults to None
         self.assertEqual(pulse_ir.final_time, None)
 
@@ -232,7 +229,7 @@ class TestIrBlock(QiskitTestCase):
         self.assertEqual(pulse_ir.final_time, 1000 + self._play_inst.duration)
 
         # Recursion final time
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         block.add_element(IrInstruction(self._shift_phase_inst, initial_time=2000))
         pulse_ir.add_element(block)
         self.assertEqual(pulse_ir.final_time, 2000)
@@ -243,7 +240,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_get_duration(self):
         """Test that duration is calculated and returned correctly"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._delay_inst, initial_time=10),
@@ -254,21 +251,21 @@ class TestIrBlock(QiskitTestCase):
 
     def test_get_duration_with_sub_blocks(self):
         """Test that duration is calculated and returned correctly with sub blocks"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._delay_inst, initial_time=10),
                 IrInstruction(self._play_inst, initial_time=100),
             ]
         )
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         block.add_element(IrInstruction(self._play_inst, 200))
         pulse_ir.add_element(block)
         self.assertEqual(pulse_ir.duration, 290)
 
     def test_get_duration_unscheduled(self):
         """Test that duration is returned as None if something is not scheduled"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._delay_inst, initial_time=10),
@@ -279,59 +276,19 @@ class TestIrBlock(QiskitTestCase):
 
     def test_has_child(self):
         """Test that has_child_IR method works correctly"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         self.assertFalse(pulse_ir.has_child_ir())
 
         pulse_ir.add_element(IrInstruction(self._shift_phase_inst, initial_time=2000))
         self.assertFalse(pulse_ir.has_child_ir())
 
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         pulse_ir.add_element(block)
         self.assertTrue(pulse_ir.has_child_ir())
 
-    def test_flatten_unscheduled_inst(self):
-        """Test that the flatten method raises an error if any instruction is not scheduled."""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(IrInstruction(self._delay_inst))
-        with self.assertRaises(PulseError):
-            pulse_ir.flatten()
-
-        pulse_ir.add_element(IrInstruction(self._delay_inst, initial_time=10))
-        with self.assertRaises(PulseError):
-            pulse_ir.flatten()
-
-    def test_flatten_no_sub_blocks(self):
-        """Test that flatten doesn't do anything with no sub blocks"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(
-            [
-                IrInstruction(self._delay_inst, initial_time=10),
-                IrInstruction(self._play_inst, initial_time=100),
-            ]
-        )
-        ref = copy.deepcopy(pulse_ir)
-        pulse_ir.flatten()
-        self.assertEqual(pulse_ir, ref)
-
-    def test_flatten_with_sub_blocks(self):
-        """Test that the flatten method works correctly with sub blocks"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(
-            [
-                IrInstruction(self._delay_inst, initial_time=10),
-                IrInstruction(self._play_inst, initial_time=100),
-            ]
-        )
-        block = IrBlock()
-        block.add_element(IrInstruction(self._acquire_inst, initial_time=400))
-        pulse_ir.add_element(block)
-        pulse_ir.flatten()
-        self.assertFalse(pulse_ir.has_child_ir())
-        self.assertEqual(pulse_ir.elements[-1], block.elements[0])
-
     def test_ir_comparison_no_sub_blocks(self):
         """Test that ir is compared correctly with no sub blocks"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._delay_inst, initial_time=10),
@@ -357,14 +314,14 @@ class TestIrBlock(QiskitTestCase):
 
     def test_ir_comparison_with_sub_blocks(self):
         """Test that ir is compared correctly with sub blocks"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._delay_inst, initial_time=10),
                 IrInstruction(self._play_inst, initial_time=100),
             ]
         )
-        block = IrBlock()
+        block = IrBlock(AlignLeft())
         pulse_ir.add_element(block)
 
         # empty sub block
@@ -379,111 +336,9 @@ class TestIrBlock(QiskitTestCase):
         pulse_ir.elements[2].add_element(IrInstruction(self._shift_phase_inst, initial_time=500))
         self.assertEqual(pulse_ir, ref)
 
-    def test_instruction_removal_from_ir(self):
-        """Test that instructions are removed correctly from IR"""
-        inst1 = IrInstruction(self._play_inst, initial_time=100)
-        inst2 = IrInstruction(self._shift_phase_inst, initial_time=500)
-
-        pulse_ir = IrBlock()
-        pulse_ir.add_element([inst1, inst2])
-        pulse_ir.remove_instruction(inst1)
-
-        self.assertEqual(pulse_ir.elements[0], inst2)
-        pulse_ir.remove_instruction(inst2)
-        self.assertEqual(pulse_ir.elements, [])
-
-        # Verify that removing a non-existent instruction doesn't raise an error
-        pulse_ir.add_element([inst2])
-        pulse_ir.remove_instruction(inst1)
-
-    def test_instruction_removal_from_ir_unscheduled(self):
-        """Test that instructions can't be removed from unsechduled IrBlock"""
-        inst1 = IrInstruction(self._play_inst)
-        inst2 = IrInstruction(self._shift_phase_inst)
-
-        pulse_ir = IrBlock()
-        pulse_ir.add_element([inst1, inst2])
-        with self.assertRaises(PulseError):
-            pulse_ir.remove_instruction(inst1)
-
-    def test_instruction_filtering(self):
-        """Test that instructions are filtered and removed correctly"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(
-            [
-                IrInstruction(self._delay_inst, initial_time=0),
-                IrInstruction(self._play_inst, initial_time=100),
-                IrInstruction(self._delay_inst, initial_time=200),
-                IrInstruction(self._play_inst, initial_time=300),
-            ]
-        )
-
-        def fun(x: IrInstruction):
-            return x.initial_time > 150
-
-        pulse_ir.filter_and_remove_instructions(fun)
-        self.assertEqual(len(pulse_ir), 2)
-        self.assertEqual(pulse_ir.elements[0], IrInstruction(self._delay_inst, initial_time=200))
-        self.assertEqual(pulse_ir.elements[1], IrInstruction(self._play_inst, initial_time=300))
-
-    def test_instruction_filtering_no_recursion(self):
-        """Test that instructions are filtered and removed correctly"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(
-            [
-                IrInstruction(self._play_inst, initial_time=0),
-                IrInstruction(self._play_inst, initial_time=100),
-                IrInstruction(self._play_inst, initial_time=200),
-            ]
-        )
-        pulse_ir.add_element(copy.deepcopy(pulse_ir))
-        ref = copy.deepcopy(pulse_ir.elements[3])
-
-        def fun(x: IrInstruction):
-            return x.initial_time > 150
-
-        pulse_ir.filter_and_remove_instructions(fun)
-        self.assertEqual(len(pulse_ir), 2)
-        self.assertEqual(pulse_ir.elements[1], IrInstruction(self._play_inst, initial_time=200))
-        self.assertEqual(pulse_ir.elements[0], ref)
-
-    def test_instruction_filtering_with_recursion(self):
-        """Test that instructions are filtered and removed correctly"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(
-            [
-                IrInstruction(self._play_inst, initial_time=0),
-                IrInstruction(self._play_inst, initial_time=100),
-                IrInstruction(self._play_inst, initial_time=200),
-            ]
-        )
-        pulse_ir.add_element(copy.deepcopy(pulse_ir))
-
-        def fun(x: IrInstruction):
-            return x.initial_time > 150
-
-        pulse_ir.filter_and_remove_instructions(fun, recursive=True)
-        self.assertEqual(len(pulse_ir), 2)
-        self.assertEqual(pulse_ir.elements[1], IrInstruction(self._play_inst, initial_time=200))
-        self.assertEqual(len(pulse_ir.elements[0]), 1)
-        self.assertEqual(
-            pulse_ir.elements[0].elements[0], IrInstruction(self._play_inst, initial_time=200)
-        )
-
-    def test_instruction_filtering_unscheduled(self):
-        """Test that instructions can't be filtered from unscheduled block"""
-        pulse_ir = IrBlock()
-        pulse_ir.add_element(IrInstruction(self._play_inst))
-
-        def fun():
-            return True
-
-        with self.assertRaises(PulseError):
-            pulse_ir.filter_and_remove_instructions(fun)
-
     def test_repr(self):
         """Test repr"""
-        pulse_ir = IrBlock()
+        pulse_ir = IrBlock(AlignLeft())
         pulse_ir.add_element(
             [
                 IrInstruction(self._play_inst),
@@ -491,15 +346,15 @@ class TestIrBlock(QiskitTestCase):
                 IrInstruction(self._play_inst),
             ]
         )
-        self.assertEqual(str(pulse_ir), "IrBlock(AlignSequential, 3 IrInstructions)")
-        block = IrBlock()
+        self.assertEqual(str(pulse_ir), "IrBlock(AlignLeft(), 3 IrInstructions)")
+        block = IrBlock(AlignLeft())
         block.add_element(IrInstruction(self._delay_inst, 100))
         pulse_ir.add_element(block)
-        self.assertEqual(str(pulse_ir), "IrBlock(AlignSequential, 3 IrInstructions, 1 IrBlocks)")
+        self.assertEqual(str(pulse_ir), "IrBlock(AlignLeft(), 3 IrInstructions, 1 IrBlocks)")
         pulse_ir.elements[0].initial_time = 10
         pulse_ir.elements[1].initial_time = 20
         pulse_ir.elements[2].initial_time = 30
         self.assertEqual(
             str(pulse_ir),
-            "IrBlock(AlignSequential, 3 IrInstructions, 1 IrBlocks, initial_time=10, duration=140)",
+            "IrBlock(AlignLeft(), 3 IrInstructions, 1 IrBlocks, initial_time=10, duration=140)",
         )

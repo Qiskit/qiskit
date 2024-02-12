@@ -20,14 +20,14 @@ Pulse IR
 """
 
 from __future__ import annotations
-from typing import List, Callable
+from typing import List
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 
-from qiskit.pulse.transforms import AlignmentKind, AlignSequential
+from qiskit.pulse.transforms import AlignmentKind
 from qiskit.pulse.instructions import Instruction
 
 
@@ -79,17 +79,12 @@ class IrInstruction(IrElement):
         Args:
             instruction: the Pulse `Instruction` represented by this IR instruction.
             initial_time (Optional): Starting time of the instruction. Defaults to ``None``
-
-        Raises:
-            PulseError: if ``initial_time`` is not ``None`` and not non-negative integer.
         """
-        if initial_time is not None and (
-            not isinstance(initial_time, (int, np.integer)) or initial_time < 0
-        ):
-            raise PulseError("initial_time must be a non-negative integer.")
-
         self._instruction = instruction
-        self._initial_time = initial_time
+        if initial_time is None:
+            self._initial_time = None
+        else:
+            self.initial_time = initial_time
 
     @property
     def instruction(self) -> Instruction:
@@ -98,10 +93,16 @@ class IrInstruction(IrElement):
 
     @property
     def initial_time(self) -> int | None:
+        """A clock time (in terms of system ``dt``) when this instruction is issued.
+
+        .. note::
+            initial_time value defaults to ``None`` and can only be set to non-negative integer.
+        """
         return self._initial_time
 
     @property
     def duration(self) -> int:
+        """The duration of the instruction (in terms of system ``dt``)."""
         return self._instruction.duration
 
     @initial_time.setter
@@ -118,7 +119,7 @@ class IrInstruction(IrElement):
             raise PulseError("initial_time must be a non-negative integer")
         self._initial_time = value
 
-    def shift_initial_time(self, value: int):
+    def shift_initial_time(self, value: int) -> None:
         """Shift ``initial_time``
 
         Shifts ``initial_time`` to ``initial_time+value``.
@@ -156,20 +157,18 @@ class IrInstruction(IrElement):
 
 
 class IrBlock(IrElement):
-    """
-    ``IrBlock`` is the backbone of the  intermediate representation used in the Qiskit Pulse compiler.
+    """IR representation of instruction sequences
+
+    ``IrBlock`` is the backbone of the intermediate representation used in the Qiskit Pulse compiler.
     A pulse program is represented as a single ``IrBlock`` object, with elements
-    which include IR instructions and other
-    nested ``IrBlock`` objects. This structure mimics that of :class:`.qiskit.pulse.ScheduleBlock`
-    which is the main pulse program format used in Qiskit.
+    which include ``IrInstruction`` objects and other nested ``IrBlock`` objects.
     """
 
-    def __init__(self, alignment: AlignmentKind = AlignSequential):
+    def __init__(self, alignment: AlignmentKind):
         """Create ``IrBlock`` object
 
         Args:
-            alignment(Optional): The ``AlignmentKind`` to be used for scheduling. Defaults
-                to ``AlignSequential``.
+            alignment: The ``AlignmentKind`` to be used for scheduling.
         """
         self._elements = []
         self._alignment = alignment
@@ -254,82 +253,6 @@ class IrBlock(IrElement):
         for element in self.elements:
             element.shift_initial_time(value)
 
-    def flatten(self) -> None:
-        """Flatten the ``IrBlock`` into a single block (in place)
-
-        Recursively flattens all child ``IrBlock`` until only instructions remain.
-
-        Raises:
-            PulseError: If the block is not scheduled.
-        """
-        if self.initial_time is None:
-            raise PulseError("Can not flatten an unscheduled IrBlock")
-
-        new_elements = self._get_flatten_elements()
-        self._elements = new_elements
-
-    def _get_flatten_elements(self) -> List[IrInstruction]:
-        """Return a list of flatten instructions
-
-        Recursively lists all instructions in the ``IrBlock``.
-        """
-        flatten_elements = []
-        for element in self._elements:
-            if isinstance(element, IrBlock):
-                flatten_elements.extend(element._get_flatten_elements())
-            else:
-                flatten_elements.append(element)
-        return flatten_elements
-
-    def remove_instruction(self, instruction: IrInstruction) -> None:
-        """Remove instruction from ``IrBlock`` (in place)
-
-        If the instruction does not exist in the object, no change is made and no error is raised.
-        Because the order of elements in the block is instrumental to scheduling, instructions can't
-        be removed if the block is not scheduled.
-
-        Args:
-            instruction: The instruction to be removed.
-
-        Raises:
-            PulseError: If the ``IrBlock`` is not scheduled.
-        """
-        if self.initial_time is None:
-            raise PulseError("Can not remove instruction from unscheduled IrBlock")
-        if instruction in self._elements:
-            self._elements.remove(instruction)
-
-    def filter_and_remove_instructions(
-        self, filter_function: Callable, recursive: bool = False
-    ) -> None:
-        """Filter and remove instructions from ``IrBlock`` (in place)
-
-        Instructions for which ``filter_function`` return ``False`` are removed from the block.
-        After the application, the order of elements will be changed, such that nested blocks
-        will be first, and instructions last.
-
-        Because the order of elements in the block is instrumental to scheduling, instructions can't
-        be removed if the block is not scheduled.
-
-        Args:
-            filter_function: A Callable which takes as argument an ``IrInstruction`` and returns
-                ``False`` to remove the instruction, and ``True`` to keep it.
-            recursive: If ``True``, applies the filter to nested ``IrBlock``s. Default value - ``False``.
-
-        Raises:
-            PulseError: If the ``IrBlock`` is not scheduled.
-        """
-        if self.initial_time is None:
-            raise PulseError("Can not remove instructions from unscheduled IrBlock")
-
-        blocks = [element for element in self.elements if isinstance(element, IrBlock)]
-        if recursive:
-            for block in blocks:
-                block.filter_and_remove_instructions(filter_function, True)
-        instructions = [element for element in self.elements if isinstance(element, IrInstruction)]
-        instructions = list(filter(filter_function, instructions))
-        self._elements = blocks + instructions
-
     def __eq__(self, other: "IrBlock") -> bool:
         """Return True iff self and other are equal
         Specifically, iff all of their properties are identical.
@@ -362,7 +285,7 @@ class IrBlock(IrElement):
             [element for element in self.elements if isinstance(element, IrInstruction)]
         )
         block_count = len(self) - inst_count
-        reprstr = f"IrBlock({self.alignment.__name__}"
+        reprstr = f"IrBlock({self.alignment}"
         if inst_count > 0:
             reprstr += f", {inst_count} IrInstructions"
         if block_count > 0:
