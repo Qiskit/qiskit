@@ -385,15 +385,15 @@ Linear Function Synthesis
       - Targeted connectivity
       - Description
     * - "kms"
-      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction
+      - :class:`~.KMSSynthesisLinearFunction`
       - linear
       -
     * - "pmh"
-      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction
+      - :class:`~.PMHSynthesisLinearFunction`
       - all-to-all
       -
     * - "default"
-      - ~qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction
+      - :class:`~.DefaultSynthesisLinearFunction`
       - all-to-all
       -
 
@@ -401,9 +401,9 @@ Linear Function Synthesis
 .. autosummary::
    :toctree: ../stubs/
 
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/KMSSynthesisLinearFunction
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/PMHSynthesisLinearFunction
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisLinearFunction
+   /transpiler/passes/synthesis/high_level_synthesis/KMSSynthesisLinearFunction
+   /transpiler/passes/synthesis/high_level_synthesis/PMHSynthesisLinearFunction
+   /transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisLinearFunction
 
 """
 
