@@ -348,17 +348,18 @@ class DAGDependencyV2:
 
     def _update_edges(self, new_node):
         """
-        Updates DagDependencyV2 by adding edges to the newly added node (new_node)
-        from the previously added nodes.
+        Updates DagDependencyV2 by adding edges to the newly added node (new_node) from
+        the previously added nodes. This update assumes new_node was added to the end of
+        the graph, 
         For each previously added node (prev_node), an edge from prev_node to new_node
-        is added if new_node is "reachable" from prev_node (this means that the two
+        is added if new_node is not "unreachable" from prev_node (this means that the two
         nodes can be made adjacent by commuting them with other nodes), but the two nodes
         themselves do not commute.
         """
 
-        reachable = {}
+        unreachable = set()
 
-        # Analyze nodes in the reverse topological order.An improvement to the original
+        # Analyze nodes in the reverse topological order. An improvement to the original
         # algorithm is to consider only direct predecessors and to avoid constructing the
         # lists of forward and backward reachable predecessors for every node when not required.
         def _key(x):
@@ -367,7 +368,7 @@ class DAGDependencyV2:
         toposort_list = rx.lexicographical_topological_sort(self._multi_graph, key=_key)
 
         for prev_node in reversed(toposort_list):
-            if reachable.get(prev_node, None) is None:
+            if prev_node not in unreachable:
                 if prev_node._node_id == new_node._node_id:
                     continue
 
@@ -386,12 +387,12 @@ class DAGDependencyV2:
                         prev_node._node_id, new_node._node_id, {"commute": False}
                     )
                     for predecessor in self.predecessors(prev_node):
-                        reachable[predecessor] = False
+                        unreachable.add(predecessor)
             else:
                 # If prev_node cannot reach new_node, then none of its predecessors can
                 # reach new_node either.
                 for predecessor in self.predecessors(prev_node):
-                    reachable[predecessor] = False
+                    unreachable.add(predecessor)
 
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
