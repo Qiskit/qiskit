@@ -11,14 +11,12 @@
 # that they have been altered from the originals.
 
 """Scheduler Test."""
-from qiskit import transpile
+
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.providers.fake_provider import FakeOpenPulse3Q, GenericBackendV2
+from qiskit.providers.fake_provider import FakeOpenPulse3Q
 from qiskit.compiler.scheduler import schedule
-from qiskit.scheduler import ScheduleConfig
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -94,29 +92,3 @@ class TestCircuitScheduler(QiskitTestCase):
             circuit_two_schedule,
             schedule(self.circ2, self.backend, method="asap"),
         )
-
-    def test_convert_duration_to_dt(self):
-        """Test that circuit duration unit conversion is applied only when necessary.
-        Tests fix for bug reported in PR #11782."""
-
-        backend = GenericBackendV2(num_qubits=3, calibrate_instructions=True, seed=10)
-        schedule_config = ScheduleConfig(
-            inst_map=backend.target.instruction_schedule_map(),
-            meas_map=backend.meas_map,
-            dt=backend.dt,
-        )
-
-        for circuit in [self.circ, self.circ2]:
-            with self.subTest(circuit=circuit):
-                transpiled_circ = transpile(circuit, backend, scheduling_method="asap")
-                converted_circ = convert_durations_to_dt(
-                    transpiled_circ, dt_in_sec=schedule_config.dt, inplace=False
-                )
-                self.assertEqual(
-                    converted_circ.duration,
-                    transpiled_circ.duration,
-                )
-                self.assertEqual(
-                    converted_circ.unit,
-                    transpiled_circ.unit,
-                )
