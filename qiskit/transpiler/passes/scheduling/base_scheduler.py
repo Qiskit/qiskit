@@ -277,7 +277,9 @@ class BaseSchedulerTransform(TransformationPass):
                 )
                 if is_mid_circuit:
                     raise RuntimeWarning(
-                        "Mid-circuit measurement durations reported from IBM backends are currently untrustworthy. Do not rely on on scheduling output."
+                        "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
+                        "Actual backend may apply custom scheduling. "
+                    "Your backend may provide a plugin scheduler pass."                                      
                     )
             duration = dag.calibrations[node.op.name][cal_key].duration
         else:
