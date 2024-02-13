@@ -267,7 +267,9 @@ class BaseSchedulerTransform(TransformationPass):
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             if isinstance(node.op, Reset):
                 raise RuntimeWarning(
-                    "Reset durations reported from IBM backends are currently untrustworthy. Do not rely on on scheduling output."
+                    "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
+                    "Actual behavior depends on the control system of your quantum backend. "
+                    "Your backend may provide a plugin scheduler pass."
                 )
             elif isinstance(node.op, Measure):
                 is_mid_circuit = not any(
