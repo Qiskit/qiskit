@@ -265,25 +265,26 @@ class BaseSchedulerTransform(TransformationPass):
         if dag.has_calibration_for(node):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
-            if isinstance(node.op, Reset):
-                raise RuntimeWarning(
-                    "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
-                    "Actual behavior depends on the control system of your quantum backend. "
-                    "Your backend may provide a plugin scheduler pass."
-                )
-            elif isinstance(node.op, Measure):
-                is_mid_circuit = not any(
-                    isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
-                )
-                if is_mid_circuit:
-                    raise RuntimeWarning(
-                        "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
-                        "Actual backend may apply custom scheduling. "
-                    "Your backend may provide a plugin scheduler pass."                                      
-                    )
             duration = dag.calibrations[node.op.name][cal_key].duration
         else:
             duration = node.op.duration
+
+        if isinstance(node.op, Reset):
+            raise RuntimeWarning(
+                "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
+                "Actual behavior depends on the control system of your quantum backend. "
+                "Your backend may provide a plugin scheduler pass."
+            )
+        elif isinstance(node.op, Measure):
+            is_mid_circuit = not any(
+                isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
+            )
+            if is_mid_circuit:
+                raise RuntimeWarning(
+                    "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
+                    "Actual backend may apply custom scheduling. "
+                    "Your backend may provide a plugin scheduler pass."
+                )
 
         if isinstance(duration, ParameterExpression):
             raise TranspilerError(
