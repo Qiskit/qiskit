@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    A bug has been fixed in the scheduling transpiler pass where :func:`.convert_durations_to_dt`
+    would always "convert" circuit durations to ``dt`` without checking if the durations were originally
+    in ``s`` (seconds) or ``dt``. This could lead to wrong orders of magnitude in the reported circuit durations.
