@@ -38,6 +38,7 @@ EstimatorV2
 .. autosummary::
    :toctree: ../stubs/
 
+   BaseEstimatorV2
    StatevectorEstimator
 
 Sampler
@@ -49,6 +50,13 @@ Sampler
    BaseSampler
    Sampler
    BackendSampler
+
+SamplerV2
+=========
+
+.. autosummary::
+   :toctree: ../stubs/
+
    BaseSamplerV2
    StatevectorSampler
 
@@ -66,7 +74,7 @@ Results
 
 from .backend_estimator import BackendEstimator
 from .backend_sampler import BackendSampler
-from .base import BaseEstimator, BaseSampler, BaseSamplerV2
+from .base import BaseEstimator, BaseEstimatorV2, BaseSampler, BaseSamplerV2
 from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
