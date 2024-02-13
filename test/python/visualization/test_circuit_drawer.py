@@ -50,6 +50,21 @@ class TestCircuitDrawer(QiskitTestCase):
             self.assertIsInstance(out, text.TextDrawing)
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
+    def test_mpl_config_with_path(self):
+        with patch(
+            "qiskit.user_config.get_config",
+            return_value={
+                "circuit_drawer": "mpl",
+                "circuit_mpl_style": "quantum-light",
+                "circuit_mpl_style_path": ["~/.qiskit"],
+            },
+        ):
+            circuit = QuantumCircuit(1)
+            circuit.h(0)
+            out = visualization.circuit_drawer(circuit)
+            self.assertIsInstance(out, figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_user_config_default_output(self):
         with patch("qiskit.user_config.get_config", return_value={"circuit_drawer": "mpl"}):
             circuit = QuantumCircuit()
