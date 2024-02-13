@@ -145,7 +145,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
             ``mat[i][j]=1 for i<j`` represents a ``cz(i,j)`` gate
 
     Return:
-        QuantumCircuit: a circuit implementation of the CZ circuit of depth ``2*n+2`` for LNN
+        QuantumCircuit: a circuit implementation of the CZ circuit of depth :math:`2n+2` for LNN
             connectivity.
 
     References:

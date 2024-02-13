@@ -50,8 +50,9 @@ logger = logging.getLogger(__name__)
 
 
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
-    r"""Decompose :math:`U = U_l \otimes U_r` where :math:`U` is in :math:`SU(4)`,
-    and :math:`U_l`, :math:`U_r` are in :math:`SU(2)`.
+    r"""Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
+    and :math:`U_l,~U_r \in SU(2)`.
+
     Args:
         special_unitary_matrix: special unitary matrix to decompose
     Raises:
@@ -551,7 +552,7 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
 class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, -\alpha\pi/4) \sim \text{SWAP}^\alpha`
     (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
-    similar to how ``x = (±sqrt(x))**2``)
+    similar to how :math:`x = (\pm \sqrt(x))^2`)
     This gate binds 3 parameters, we make it canonical by setting:
     :math:`K2l = Id`.
     """
@@ -572,8 +573,8 @@ _oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     This gate binds 4 parameters, we make it canonical by setting:
-        :math:`K2_l = Ry(\theta_l).Rx(\lambda_l)` ,
-        :math:`K2_r = Ry(\theta_r).Rx(\lambda_r)` .
+        :math:`K2_l = Ry(\theta_l) Rx(\lambda_l)` ,
+        :math:`K2_r = Ry(\theta_r) Rx(\lambda_r)` .
     """
 
     _default_1q_basis = "XYX"
@@ -862,7 +863,7 @@ def trace_to_fid(trace):
 
     .. math::
 
-        \bar{F} = \frac{d + |Tr (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
+        \bar{F} = \frac{d + |\mathrm{Tr} (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
 
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + abs(trace) ** 2) / 20
@@ -1078,7 +1079,7 @@ class TwoQubitBasisDecomposer:
         .. math::
 
             \Big\vert\text{Tr}(U_r \cdot U_\text{target}^{\dag})\Big\vert =
-            4\Big\vert cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)\Big\vert
+            4\Big\vert \cos(x-a)\cos(y-b)\cos(z-c) + j \sin(x-a)\sin(y-b)\sin(z-c)\Big\vert
 
         which is optimal for all targets and bases with ``z==0`` or ``c==0``.
         """
@@ -1102,7 +1103,7 @@ class TwoQubitBasisDecomposer:
 
         which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(\pi/4, 0, 0)`
         or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target.
-        May be sub-optimal for ``b!=0`` (e.g. there exists exact decomposition for any target using B
+        May be sub-optimal for :math:`b \neq 0` (e.g. there exists exact decomposition for any target using B
         :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but not this decomposition.)
         This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
