@@ -217,10 +217,10 @@ def backend_overview():
             props = _backends[count].properties().to_dict()
             num_qubits = config["n_qubits"]
             str_list[0] += " " * (max_len - len(str_list[0])) + offset
-            str_list[0] += _backends[count].name
-
+            backend = _backends[count]
+            str_list[0] += backend.name() if callable(backend.name) else backend.name
             str_list[1] += " " * (max_len - len(str_list[1])) + offset
-            str_list[1] += "-" * len(_backends[count].name)
+            str_list[1] += "-" * len(str_list[0])
 
             str_list[2] += " " * (max_len - len(str_list[2])) + offset
             str_list[2] += "Num. Qubits:  %s" % config["n_qubits"]

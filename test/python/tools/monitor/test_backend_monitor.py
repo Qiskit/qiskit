@@ -23,6 +23,7 @@ from qiskit import providers
 from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeProviderFactory, FakeBackend, FakeVigo
+from qiskit.utils import optionals
 
 
 class TestBackendOverview(QiskitTestCase):
@@ -80,6 +81,7 @@ class TestBackendOverview(QiskitTestCase):
         self.assertIn("Avg. T1:", stdout)
         self.assertIn("Num. Qubits:", stdout)
 
+    @unittest.skipUnless(optionals.HAS_IBMQ, "qiskit-ibm-provider is required to run this test")
     @patch("qiskit.tools.monitor.overview.get_unique_backends", return_value=[FakeVigo()])
     def test_backend_monitor(self, _):
         """Test backend_monitor"""
