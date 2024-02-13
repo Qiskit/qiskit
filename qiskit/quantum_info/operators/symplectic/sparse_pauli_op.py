@@ -1000,6 +1000,23 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
+    def noncommutation_graph(self, qubit_wise: bool) -> rx.PyGraph:
+        """Create the non-commutation graph of this SparsePauliOp.
+
+        This transforms the measurement operator grouping problem into graph coloring problem. The
+        constructed graph contains one node for each Pauli. The nodes will be connecting for any two
+        Pauli terms that do _not_ commute.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
+                indicating a non-commutation relation.
+        """
+        return self.paulis.noncommutation_graph(qubit_wise)
+
     def group_commuting(self, qubit_wise: bool = False) -> list[SparsePauliOp]:
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
 

@@ -1155,17 +1155,21 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         # results from one triangle to avoid symmetric duplications.
         return list(zip(*np.where(np.triu(adjacency_mat, k=1))))
 
-    def _create_graph(self, qubit_wise):
-        """Transform measurement operator grouping problem into graph coloring problem
+    def noncommutation_graph(self, qubit_wise: bool) -> rx.PyGraph:
+        """Create the non-commutation graph of this PauliList.
+
+        This transforms the measurement operator grouping problem into graph coloring problem. The
+        constructed graph contains one node for each Pauli. The nodes will be connecting for any two
+        Pauli terms that do _not_ commute.
 
         Args:
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.
 
         Returns:
-            rustworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
+                indicating a non-commutation relation.
         """
-
         edges = self._noncommutation_graph(qubit_wise)
         graph = rx.PyGraph()
         graph.add_nodes_from(range(self.size))
@@ -1186,7 +1190,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             dict[int, list[int]]: Dictionary of color indices mapping to a list of Pauli indices.
         """
-        graph = self._create_graph(qubit_wise)
+        graph = self.noncommutation_graph(qubit_wise)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
         groups = defaultdict(list)
