@@ -86,7 +86,12 @@ class FakeBackendsTest(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def test_fake_backend_v2_noise_model_always_present(self):
         """Test that FakeBackendV2 instances always run with noise."""
+<<<<<<< HEAD
         backend = FakePerth()
+=======
+        backend = GenericBackendV2(num_qubits=5, seed=42)
+        backend.set_options(seed_simulator=42)
+>>>>>>> 61181ce06 (deterministic `test_fake_backend_v2_noise_model_always_present` (#11769))
         qc = QuantumCircuit(1)
         qc.x(0)
         qc.measure_all()
