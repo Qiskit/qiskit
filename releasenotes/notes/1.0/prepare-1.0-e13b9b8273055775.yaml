@@ -6,9 +6,9 @@ prelude: |
   era for the Qiskit project and community. Besides general performance and
   stability improvements, the most significant changes with the 1.0.0 
   release relate to the stability policy, release cycles, and versioning.
-  Qiskit is now formally using `semantic versioning <https://semver.org/>`__ ,
+  Qiskit is now formally using `semantic versioning <https://semver.org/>`__,
   and this means that, for the entire lifecycle of the 1.x release series, the project
-  is commited to maintaining backwards compatibility. We're also now starting
+  is committed to maintaining backwards compatibility. We're also now starting
   to offer bugfix support for major versions, so that you continue to have a
   supported branch for 6 months after the release of the next major version.
   This starts now with the 1.x and 0.x major series: the 0.46.x release will
