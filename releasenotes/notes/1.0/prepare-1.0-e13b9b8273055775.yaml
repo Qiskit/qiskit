@@ -31,11 +31,11 @@ prelude: |
   can be fully communicated to ``pip``, the Python package installer. This
   means that it is not possible to just use ``pip install -U qiskit`` to upgrade
   from qiskit 0.46.0 to 1.0.0. It is strongly recommended that to upgrade to
-  Qiskit 1.0.0 you create a seperate virtual environment to isolate the installation. There is a
+  Qiskit 1.0.0 you create a separate virtual environment to isolate the installation. There is a
   detailed migration guide that explains the packaging changes and how to install
   Qiskit 1.0.0 in different scenarios which can be found here:
 
-  https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0
+  https://qisk.it/1-0-packaging-migration
 
   As with all of our major releases, Qiskit 1.0.0 also has a plethora of new
   features, the highlights for this release are:
