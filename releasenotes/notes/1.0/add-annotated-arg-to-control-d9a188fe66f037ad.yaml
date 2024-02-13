@@ -1,16 +1,20 @@
 ---
 features:
   - |
-    The methods :meth:`~qiskit.circuit.QuantumCircuit.control`,
-    :meth:`~qiskit.circuit.Gate.control`, as well as the similar methods
-    of subclasses of :class:`~qiskit.circuit.Gate`
-    (such as :class:`~qiskit.circuit.library.UnitaryGate` or
-    :class:`~qiskit.circuit.library.SwapGate`) all have an additional
-    argument ``annotated``. The default value of ``False`` corresponds to
-    the existing behavior, for example
-    ``SwapGate().control(1, annotated=False)`` returns a ``CSwapGate``,
-    while
-    ``SwapGate().control(2, annotated=False)`` returns a ``ControlledGate``.
-    The value of ``True`` returns an object of type
-    :class:`~.AnnotatedOperation` instead, avoiding the eager construction
+    Added a new argument, ``annotated``, to the methods: :meth:`.QuantumCircuit.control`,
+    :meth:`Gate.control`, as well as the similar methods
+    of subclasses of :class:`.Gate`
+    (such as :class:`.UnitaryGate` or :class:`.SwapGate`) to optionally return
+    an :class:`.AnnotatedOperation`. The default value of
+    ``annotated`` is ``False`` and corresponds to the existing behavior, for
+    example::
+
+        SwapGate().control(1, annotated=False)
+
+    returns a :class:`.CSwapGate` while::
+
+        SwapGate().control(2, annotated=False)
+
+    returns a ``ControlledGate``. The value of ``True`` returns an object of
+    type :class:`~.AnnotatedOperation` instead, avoiding the eager construction
     of the controlled gate's definition.

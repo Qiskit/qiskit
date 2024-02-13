@@ -1,21 +1,19 @@
 ---
 features:
   - |
-    The methods :meth:`~qiskit.circuit.QuantumCircuit.inverse`,
-    :meth:`~qiskit.circuit.Instruction.inverse`, as well as the similar methods
+    Added a new argument, ``annotated``, to the methods :meth:`.QuantumCircuit.inverse`,
+    :meth:`.circuit.Instruction.inverse`, as well as the similar methods
     of subclasses of :class:`~qiskit.circuit.Instruction`
-    (such as :class:`~qiskit.circuit.library.SwapGate` or
-    :class:`~qiskit.circuit.library.SGate`) all have an additional
-    argument ``annotated``.
-    The default value of ``False`` corresponds to the existing behavior.
-    Furthermore, for standard gates with an explicitly defined ``inverse`` method,
+    (such as :class:`.SwapGate` or :class:`.SGate`) to optionally return
+    an :class:`.AnnotatedOperation`. The default value of ``annotated`` is
+    ``False`` and corresponds to the existing behavior. Furthermore, for
+    standard gates with an explicitly defined ``inverse`` method,
     the argument ``annotated`` has no effect, for example both
     ``SwapGate().inverse(annotated=False)`` and ``SwapGate().inverse(annotated=True)``
-    return a ``SwapGate``, and both
-    ``SGate().inverse(annotated=False)`` and ``SGate().inverse(annotated=True)``
-    return an ``SdgGate``.
+    return a :class:`.SwapGate`, and both ``SGate().inverse(annotated=False)`` and
+    ``SGate().inverse(annotated=True)`` return an :class:`.SdgGate`.
     The difference manifests for custom instructions without an explicitly defined
-    inverse. The value of ``False`` returns a fresh instruction with the
-    recursively inverted definition, just as before. The value of ``True``
+    inverse. With ``annotated=False`` returns a fresh instruction with the
+    recursively inverted definition, just as before. While ``annotated=True``
     returns an :class:`~.AnnotatedOperation` that represents the instruction
-    modified with the "inverse modifier".
+    modified with the :class:`.InverseModifier`.

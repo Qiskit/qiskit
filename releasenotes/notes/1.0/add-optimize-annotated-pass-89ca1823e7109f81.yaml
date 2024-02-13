@@ -48,8 +48,8 @@ features:
       assert qc_optimized == qc_expected
 
     In the case of ``gate1``, the modifiers of the annotated swap gate are brought
-    into the canonical form: the two ``InverseModifier`` s cancel out, and the two
-    ``ControlModifier`` s are combined. In the case of ``gate2``, all the modifiers
+    into the canonical form: the two :class:`.InverseModifier`\s cancel out, and the two
+    :class:`.ControlModifier`\s are combined. In the case of ``gate2``, all the modifiers
     get removed and the annotated operation is replaced by its base operation.
     In the case of ``gate3``, multiple layers of annotations are combined into one.
 

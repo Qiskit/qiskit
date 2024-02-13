@@ -7,10 +7,12 @@ features:
     (``FakeVigo``, ``FakeTokyo``, etc). The list of new fake backends includes:
 
       * Backends without pulse capabilities:
+
         * :class:`.Fake5QV1`
         * :class:`.Fake20QV1`
 
       * Backends with pulse capabilities:
+
         * :class:`.Fake7QPulseV1`
         * :class:`.Fake27QPulseV1`
         * :class:`.Fake127QPulseV1`

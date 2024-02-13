@@ -282,6 +282,18 @@ Gates and Instructions
    Operation
    EquivalenceLibrary
 
+Annotated Operations
+''''''''''''''''''''
+
+.. autosummary::
+   :toctree: ../stubs/
+
+
+   AnnotatedOperation
+   InverseModifier
+   ControlModifier
+   PowerModifier
+
 Control Flow Operations
 -----------------------
 
@@ -343,6 +355,15 @@ Parametric Quantum Circuits
    Parameter
    ParameterVector
    ParameterExpression
+
+Gate Commutation
+----------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
+
 
 Random Circuits
 ---------------
