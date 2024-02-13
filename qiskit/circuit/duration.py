@@ -79,8 +79,9 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
         operation.unit = "dt"
 
     if circ.duration is not None:
-        circ.duration = duration_in_dt(circ.duration, dt_in_sec)
-        circ.unit = "dt"
+        if circ.unit != "dt":
+            circ.duration = duration_in_dt(circ.duration, dt_in_sec)
+            circ.unit = "dt"
 
     if not inplace:
         return circ
