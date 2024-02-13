@@ -57,7 +57,7 @@ SamplerV2
 .. autosummary::
    :toctree: ../stubs/
 
-   BaserSamplerV2
+   BaseSamplerV2
    StatevectorSampler
 
 Results
