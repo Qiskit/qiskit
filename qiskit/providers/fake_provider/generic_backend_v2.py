@@ -420,7 +420,7 @@ class GenericBackendV2(BackendV2):
             if duration is not None:
                 # Ensure exact conversion of duration from seconds to dt
                 dt = _QUBIT_PROPERTIES["dt"]
-                duration = round(duration / dt)* dt
+                duration = round(duration / dt) * dt
             props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
         self._target.add_instruction(instruction, props)
 
