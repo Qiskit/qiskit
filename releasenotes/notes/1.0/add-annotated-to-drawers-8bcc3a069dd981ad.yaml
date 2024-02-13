@@ -11,5 +11,5 @@ features:
     information for operations of :class:`.AnnotatedOperation`. If the
     :attr:`.AnnotatedOperation.modifiers` contains a :class:`.ControlModifier`
     the operation will be displayed the same way as controlled gates. If
-    the :class:'.InverseModifier` or :class:`.PowerModifier` is used,
+    the :class:`.InverseModifier` or :class:`.PowerModifier` is used,
     these will be indicated with the base operation name.
