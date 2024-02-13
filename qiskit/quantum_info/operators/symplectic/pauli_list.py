@@ -1172,6 +1172,28 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         graph.add_edges_from_no_data(edges)
         return graph
 
+    def _commuting_groups(self, qubit_wise: bool) -> dict[int, list[int]]:
+        """Partition a PauliList into sets of commuting Pauli strings.
+
+        This is the internal logic of the public ``PauliList.group_commuting`` method which returns
+        a mapping of colors to Pauli indices. The same logic is re-used by
+        ``SparsePauliOp.group_commuting``.
+
+        Args:
+            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
+                or on a per-qubit basis.
+
+        Returns:
+            dict[int, list[int]]: Dictionary of color indices mapping to a list of Pauli indices.
+        """
+        graph = self._create_graph(qubit_wise)
+        # Keys in coloring_dict are nodes, values are colors
+        coloring_dict = rx.graph_greedy_color(graph)
+        groups = defaultdict(list)
+        for idx, color in coloring_dict.items():
+            groups[color].append(idx)
+        return groups
+
     def group_qubit_wise_commuting(self) -> list[PauliList]:
         """Partition a PauliList into sets of mutually qubit-wise commuting Pauli strings.
 
@@ -1199,11 +1221,5 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Returns:
             list[PauliList]: List of PauliLists where each PauliList contains commuting Pauli operators.
         """
-
-        graph = self._create_graph(qubit_wise)
-        # Keys in coloring_dict are nodes, values are colors
-        coloring_dict = rx.graph_greedy_color(graph)
-        groups = defaultdict(list)
-        for idx, color in coloring_dict.items():
-            groups[color].append(idx)
+        groups = self._commuting_groups(qubit_wise)
         return [self[group] for group in groups.values()]
