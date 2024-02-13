@@ -1000,23 +1000,6 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
-    def _create_graph(self, qubit_wise):
-        """Transform measurement operator grouping problem into graph coloring problem
-
-        Args:
-            qubit_wise (bool): whether the commutation rule is applied to the whole operator,
-                or on a per-qubit basis.
-
-        Returns:
-            rustworkx.PyGraph: A class of undirected graphs
-        """
-
-        edges = self.paulis._noncommutation_graph(qubit_wise)
-        graph = rx.PyGraph()
-        graph.add_nodes_from(range(self.size))
-        graph.add_edges_from_no_data(edges)
-        return graph
-
     def group_commuting(self, qubit_wise: bool = False) -> list[SparsePauliOp]:
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
 
@@ -1040,7 +1023,7 @@ class SparsePauliOp(LinearOp):
                 commuting Pauli operators.
         """
 
-        graph = self._create_graph(qubit_wise)
+        graph = self.paulis._create_graph(qubit_wise)
         # Keys in coloring_dict are nodes, values are colors
         coloring_dict = rx.graph_greedy_color(graph)
         groups = defaultdict(list)
