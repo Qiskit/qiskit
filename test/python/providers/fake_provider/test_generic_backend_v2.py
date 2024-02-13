@@ -14,10 +14,14 @@
 
 import math
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import transpile
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.circuit.library import XGate
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler.passes import (
+    ALAPScheduleAnalysis,
+    PadDynamicalDecoupling,
+)
 from qiskit.exceptions import QiskitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -112,3 +116,44 @@ class TestGenericBackendV2(QiskitTestCase):
 
         self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))
         self.assertTrue(math.isclose(counts["01111"], 500, rel_tol=0.1))
+
+    def test_dd_sequence(self):
+        """Test reasonable dynamical decoupling output (defined by generated instruction durations)."""
+
+        simple = QuantumCircuit(3)
+        simple.sx([0, 1, 2])
+        simple.cx(0, 1)
+        simple.cx(1, 2)
+        simple.cx(0, 1)
+
+        backend = GenericBackendV2(num_qubits=3, seed=9)
+        durations = backend.instruction_durations
+
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(target=backend.target),
+                PadDynamicalDecoupling(durations, [XGate(), XGate()]),
+            ]
+        )
+
+        tqc = pm.run(simple)
+        expected = QuantumCircuit(3)
+        expected.sx(0)
+        expected.delay(duration=21, unit="dt", qarg=1)
+        expected.delay(duration=1796, unit="dt", qarg=2)
+        expected.sx([1, 2])
+        expected.cx(0, 1)
+        expected.delay(duration=632, unit="dt", qarg=0)
+        expected.cx(1, 2)
+        expected.x(0)
+        expected.delay(duration=360, unit="dt", qarg=2)
+        expected.x(2)
+        expected.delay(duration=1267, unit="dt", qarg=0)
+        expected.x(0)
+        expected.delay(duration=720, unit="dt", qarg=2)
+        expected.x(2)
+        expected.delay(duration=632, unit="dt", qarg=0)
+        expected.cx(0, 1)
+        expected.delay(duration=360, unit="dt", qarg=2)
+
+        self.assertEqual(tqc, expected)

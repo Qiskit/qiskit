@@ -53,15 +53,15 @@ _NOISE_DEFAULTS = {
     "cz": (1e-8, 9e-7, 1e-5, 5e-3),
     "id": (3e-8, 4e-8, 9e-5, 1e-4),
     "rz": (0.0, 0.0),
-    "sx": (1e-8, 9e-7, 1e-5, 5e-3),
-    "x": (1e-8, 9e-7, 1e-5, 5e-3),
+    "sx": (3e-8, 4e-8, 9e-5, 1e-4),
+    "x": (3e-8, 4e-8, 9e-5, 1e-4),
     "measure": (1e-8, 9e-7, 1e-5, 5e-3),
     "delay": (None, None),
     "reset": (None, None),
 }
 
 # Fallback values for gates with unknown noise default ranges.
-_NOISE_DEFAULTS_FALLBACK = (1e-8, 9e-7, 1e-5, 5e-3)
+_NOISE_DEFAULTS_FALLBACK = (3e-8, 4e-8, 9e-5, 1e-4)
 
 # Ranges to sample qubit properties from.
 _QUBIT_PROPERTIES = {
