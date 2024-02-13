@@ -13,12 +13,12 @@ upgrade:
     for more details.
   - |
     Removed the deprecated module ``qiskit.tools.jupyter`` which previously
-    included jupyter magics and widgets for interactively visualizing some data
+    included Jupyter Magics and widgets for interactively visualizing some data
     from Qiskit. This module was deprecated in Qiskit 0.46.0. Most of this
     functionality was directly tied to the legacy ``qiskit-ibmq-provider``
     package and was no longer valid so the module was removed. Similar
     functionality is available from the ``qiskit_ibm_provider.jupyter`` module
-    in the `qiskit-ibm-provider <https://github.com/Qiskit/qiskit-ibm-provider>__` package.
+    in the ` ``qiskit-ibm-provider`` <https://github.com/Qiskit/qiskit-ibm-provider>_` package.
   - |
     Removed the deprecated module ``qiskit.tools.monitor`` which previously
     included tools for tracking :class:`.JobV1` job instances, primarily from

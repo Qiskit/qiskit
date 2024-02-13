@@ -2,7 +2,7 @@
 features:
   - |
     :meth:`.SparsePauliOp.from_operator` now uses an implementation of the
-    "tensorized Pauli decomposition algorithm" presented in 
-    Hatznko, Binkowski and Gupta (2023) <https://arxiv.org/abs/2310.13421>`__.  The method is now
+    "tensorized Pauli decomposition algorithm" presented in
+    `Hatznko, Binkowski and Gupta (2023) <https://arxiv.org/abs/2310.13421>`__.  The method is now
     several orders of magnitude faster; for example, it is possible to decompose a random
     10-qubit operator in around 250ms on a consumer Macbook Pro (Intel i7, 2020).

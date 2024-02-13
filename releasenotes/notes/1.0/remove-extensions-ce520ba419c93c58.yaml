@@ -20,10 +20,10 @@ upgrade:
     The following objects have been removed:
 
     * ``SingleQubitUnitary`` (instead use :class:`.library.UnitaryGate`),
-    * ``Snapshot`` (superseded by Qiskit Aer's save instructions),
+    * ``Snapshot`` (superseded by Aer's save instructions),
     * ``ExtensionError``,
 
-    along with the following circuit methods::
+    along with the following circuit methods:
 
     * ``QuantumCircuit.snapshot``,
     * ``QuantumCircuit.squ``,
@@ -36,7 +36,7 @@ upgrade:
     * ``QuantumCircuit.ucrz``.
 
     These operations can still be performed by appending the appropriate
-    instruction to a quantum circuit. 
+    instruction to a quantum circuit.
   - |
     Removed deprecated, duplicated :class:`.QuantumCircuit` methods. These include
 

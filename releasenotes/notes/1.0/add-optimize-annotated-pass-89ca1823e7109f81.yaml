@@ -56,7 +56,7 @@ features:
     The constructor of :class:`.OptimizeAnnotated` pass accepts optional
     arguments ``target``, ``equivalence_library``,  ``basis_gates`` and ``recurse``.
     When ``recurse`` is ``True`` (the default value) and when either ``target``
-    or ``basis_gates`` are specified, the pass recursively descends into the gates
+    or ``basis_gates`` are specified, the pass recursively descends into the gate's
     ``definition`` circuits, with the exception of gates that are already supported
     by the target or that belong to the equivalence library. On the other hand, when
     neither ``target`` nor ``basis_gates`` are specified,

@@ -6,7 +6,7 @@ upgrade:
     Now this conversion function adds delay instruction and removes faulty instructions by default.
 fixes:
   - |
-    Fixes return of improper measurement schedule that may occur in the following program
+    Fixes return of improper measurement schedule that may occur in the following program:
 
     .. code-block:: python
 

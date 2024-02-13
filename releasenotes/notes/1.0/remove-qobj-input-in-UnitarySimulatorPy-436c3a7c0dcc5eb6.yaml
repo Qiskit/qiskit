@@ -3,10 +3,12 @@
 upgrade:
   - |
     It is no longer allowed to pass a :class:`~qiskit.qobj.QasmQobj` as the first input to
-    The :meth:`~qiskit.providers.basicaer.UnitarySimulatorPy.run`. This functionality was 
+    The :meth:`~qiskit.providers.basicaer.UnitarySimulatorPy.run`. This functionality was
     deprecated in Qiskit 0.46 and has now been removed.
 
     Example usage:
+
+    .. code-block:: python
 
       from qiskit import transpile, QuantumCircuit
       from qiskit.providers.basicaer import BasicAer

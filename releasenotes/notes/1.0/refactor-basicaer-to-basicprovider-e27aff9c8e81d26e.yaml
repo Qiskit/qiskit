@@ -5,20 +5,29 @@ upgrade:
     has been removed following it deprecation on the 0.46 release. Its
     functionality has been replaced by the :mod:`qiskit.quantum_info`
     module and the new :mod:`qiskit.providers.basic_provider` module.
-    
+
     The migration from using ``qiskit.providers.basicaer`` (``qiskit.BasicAer``)
     to :mod:`qiskit.providers.basic_provider` can be performed as follows::
 
-        Migrate from                  |   Replace with
-        ------------------------------------------------------------------------------
-        ``qiskit.BasicAer``           |  # The new provider doesn't have a global instance,
-                                      |  # imports should be from qiskit.providers.basic_provider
-        ``qiskit.providers.basicaer`` |  :mod:`.basic_provider`
-        ``BasicAerProvider``          |  :class:`.BasicProvider`
-        ``BasicAerJob``               |  :class:`.BasicProviderJob`
-        ``QasmSimulatorPy``           |  :class:`.BasicSimulator`
-        ``UnitarySimulatorPy``        |  use :class:`~.quantum_info.Operator`
-        ``StatevectorSimulatorPy``    |  use :class:`~.quantum_info.Statevector`
+    .. list-table:: BasicAer equivalences
+       :header-rows: 1
+
+       * - Migrate from
+         - Replace with
+       * - ``qiskit.BasicAer``
+         - The new provider doesn't have a global instance, imports should be from ``qiskit.providers.basic_provider``
+       * - ``qiskit.providers.basicaer``
+         - :mod:`.basic_provider`
+       * - ``BasicAerProvider``
+         - :class:`.BasicProvider`
+       * - ``BasicAerJob``
+         - :class:`.BasicProviderJob`
+       * - ``QasmSimulatorPy``
+         - :class:`.BasicSimulator`
+       * - ``UnitarySimulatorPy``
+         - use :class:`~.quantum_info.Operator`
+       * - ``StatevectorSimulatorPy``
+         - use :class:`~.quantum_info.Statevector`
 
     A notable difference is that the new provider is no longer exposed through a global instance
     (like ``BasicAer``), so it will not be valid to do ``from qiskit import BasicProvider``.

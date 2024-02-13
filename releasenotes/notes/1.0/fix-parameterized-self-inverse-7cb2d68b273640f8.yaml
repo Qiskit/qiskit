@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixed an issue with the :class:`~.InverseCancellation` pass where it would
-    incorrectly cancel gates passed in as self inverses with a parameter
+    incorrectly cancel gates passed in as self-inverses with a parameter
     value, if a run of gates had a different parameter value. For example::
 
         from math import pi

@@ -8,6 +8,6 @@ upgrade:
     0.46.  You should instead import from ``qiskit_aer``, which is a drop-in replacement.
   - |
     Pulse jobs are no longer supported in fake backends, following the deprecation and removal
-    of the underlying simulation functionality in Qiskit Aer.  For pulse-level simulation, outside
+    of the underlying simulation functionality in Aer.  For pulse-level simulation, outside
     the context of circuit objects, consider using a special-purpose library such as
     `Qiskit Dynamics <https://qiskit.org/ecosystem/dynamics/>`__.

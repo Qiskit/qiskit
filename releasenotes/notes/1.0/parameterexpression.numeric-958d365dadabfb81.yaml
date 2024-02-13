@@ -2,7 +2,7 @@
 features:
   - |
     A new method :meth:`.ParameterExpression.numeric` is added, which converts a fully bound
-    parameter expression into the most restrictive builtin Python numeric type that accurately
+    parameter expression into the most restrictive built-in Python numeric type that accurately
     describes the result of the symbolic evaluation.  For example, a symbolic integer will become an
     :class:`int`, while a symbolic real number will become a :class:`float` and a complex number
     will become a :class:`complex`.  This method includes several workarounds for peculiarities of

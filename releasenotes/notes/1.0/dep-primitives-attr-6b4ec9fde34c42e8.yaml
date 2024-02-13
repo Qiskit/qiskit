@@ -8,6 +8,6 @@ deprecations:
   - |
     Deprecates the :class:`~.BaseEstimator` ``_circuits``, ``_observables``
     and ``_parameters``, and :class:`~.BaseSampler` ``_circuits`` and
-    ``_parameters`` attributes set during `__init__`. Any subclasses
+    ``_parameters`` attributes set during ``__init__``. Any subclasses
     relying on these methods should now manually initialize them to avoid
     deprecation warnings.

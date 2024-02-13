@@ -9,13 +9,13 @@ upgrade:
     to debug an issue. Requiring ``symengine`` for all systems greatly decreases
     the complexity and optimizes Qiskit for higher performance. However,
     users on i686 Linux, 32 bit Windows, and s390x Linux (the platforms without
-    precompiled packages on PyPI) will need to build symengine from source.
+    precompiled packages on PyPI) will need to build Symengine from source.
   - |
     Support for 32 bit platforms, i686 Linux and 32 bit Windows, on
     Python < 3.10 has been downgraded from Tier 2 to Tier 3, as documented in
     the `platform support page <https://docs.quantum.ibm.com/start/install#operating-system-support>`_. This is a consequence of making
-    ``symengine`` required for all users, as there is a lack of pre-compiled packages 
-    available for these platforms, so users will need to build symengine from
+    ``symengine`` required for all users, as there is a lack of pre-compiled packages
+    available for these platforms, so users will need to build Symengine from
     source.
   - |
     For macOS users, the minimum version of macOS is now 10.12. Previously, the

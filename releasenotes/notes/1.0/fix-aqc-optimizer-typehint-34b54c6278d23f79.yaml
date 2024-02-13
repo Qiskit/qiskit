@@ -4,7 +4,7 @@ fixes:
     The use of the (deprecated) ``Optimizer`` class on :class:`~.AQC` did not have a
     non-deprecated alternative path, which should have been introduced in
     the original ``qiskit-algorithms`` deprecation PR
-    [#10406](https://github.com/Qiskit/qiskit/pull/10406).
+    `#10406 <https://github.com/Qiskit/qiskit/pull/10406>`_.
     It now accepts a callable that implements the :class:`~.Minimizer` protocol,
     as explicitly stated in the deprecation warning. The callable can look like the
     following example:
