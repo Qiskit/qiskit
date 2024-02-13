@@ -799,7 +799,7 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
-    :math:`K2_l = Ry(\theta_l).Rx(\lambda_l)`.
+    :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`.
     """
 
     _default_1q_basis = "XYX"
@@ -818,7 +818,7 @@ class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
-    :math:`K2_l = Ry(\theta_l).Rx(\lambda_l)`.
+    :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`.
     """
 
     _default_1q_basis = "XYX"
@@ -1062,7 +1062,7 @@ class TwoQubitBasisDecomposer:
         .. math::
 
             \Big\vert\text{Tr}(U_r\cdot U_\text{target}^{\dag})\Big\vert =
-            4\Big\vert (cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)\Big\vert
+            4\Big\vert (\cos(x)\cos(y)\cos(z)+ j \sin(x)\sin(y)\sin(z)\Big\vert
 
         which is optimal for all targets and bases
         """
@@ -1099,12 +1099,12 @@ class TwoQubitBasisDecomposer:
 
         .. math::
 
-            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^\dag) \Big\vert = 4cos(z)
+            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^\dag) \Big\vert = 4\cos(z)
 
         which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(\pi/4, 0, 0)`
-        or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target.
-        May be sub-optimal for :math:`b \neq 0` (e.g. there exists exact decomposition for any target using B
-        :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but not this decomposition.)
+        or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target. It may
+        be sub-optimal for :math:`b \neq 0` (i. there exists an exact decomposition for any target
+        using :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but it may not be this decomposition).
         This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """

@@ -19,7 +19,7 @@ from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_g
 
 
 def synth_clifford_full(clifford, method=None):
-    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
+    r"""Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
 
     For :math:`N \leq 3` qubits this is based on optimal CX-cost decomposition
     from reference [1]. For :math:`N > 3` qubits this is done using the general

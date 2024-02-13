@@ -20,7 +20,7 @@ from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_general import synth_c
 
 
 def synth_cnotdihedral_full(elem):
-    """Decompose a :class:`.CNOTDihedral` element into a :class:`.QuantumCircuit`.
+    r"""Decompose a :class:`.CNOTDihedral` element into a :class:`.QuantumCircuit`.
     For :math:`N \leq 2` qubits this is based on optimal CX-cost decomposition from reference [1].
     For :math:`N > 2` qubits this is done using the general non-optimal compilation
     routine from reference [2].
