@@ -7,7 +7,7 @@ upgrade:
     module and the new :mod:`qiskit.providers.basic_provider` module.
 
     The migration from using ``qiskit.providers.basicaer`` (``qiskit.BasicAer``)
-    to :mod:`qiskit.providers.basic_provider` can be performed as follows::
+    to :mod:`qiskit.providers.basic_provider` can be performed as follows:
 
     .. list-table:: BasicAer equivalences
        :header-rows: 1
@@ -34,6 +34,7 @@ upgrade:
     Instead, the provider class must be imported from its submodule and instantiated manually::
 
         from qiskit.providers.basic_provider import BasicProvider
+
         provider = BasicProvider()
         backend = provider.get_backend("sim_name")
 

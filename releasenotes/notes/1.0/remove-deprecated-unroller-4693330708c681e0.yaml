@@ -11,8 +11,6 @@ upgrade:
     Where previously ``Unroller(basis_gates)`` could be used,
     you can now use::
 
-    .. code-block:: python
-
       from qiskit.circuit.library.standard_gates.equivalence_library import (
           StandardEquivalenceLibrary as std_eqlib,
       )
