@@ -35,8 +35,8 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
     with :math:`y_i = 0` or 1 respectively. As a subset :math:`S` is recursively expanded,
     ``cx`` gates are applied so that a designated target bit contains the
     (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
-    :math:`y' \in `S`. If :math:`S` is a singleton :math:`\\{y'\\}`, then :math:`y = y'`, hence the
-    target bit contains the value :math:`\chi_{y'}(x)` as desired.
+    :math:`y' \in `S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
+    and the target bit contains the value :math:`\chi_{y'}(x)` as desired.
 
     Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
     is finished being synthesized, the algorithm maintains the invariant
@@ -64,8 +64,8 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
             interpreted as the angle of p(angle), otherwise the elements
             have to be ``'t'``, ``'tdg'``, ``'s'``, ``'sdg'`` or ``'z'``.
 
-        section_size (int): the size of every section, used in ``_lwr_cnot_synth()``, in the
-            Patel–Markov–Hayes algorithm. ``section_size`` must be a factor of the number of qubits.
+        section_size (int): the size of every section in the Patel–Markov–Hayes algorithm.
+            ``section_size`` must be a factor of the number of qubits.
 
     Returns:
         QuantumCircuit: the decomposed quantum circuit.

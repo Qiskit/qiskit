@@ -487,7 +487,7 @@ class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(0,0,0) \sim Id`
 
     This gate binds 0 parameters, we make it canonical by setting
-    :math:`K2l = Id` , :math:`K2_r = Id`.
+    :math:`K2_l = Id` , :math:`K2_r = Id`.
     """
 
     def specialize(self):
@@ -502,7 +502,7 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\pi/4, \pi/4, \pi/4) \sim U(\pi/4, \pi/4, -\pi/4) \sim \text{SWAP}`
 
     This gate binds 0 parameters, we make it canonical by setting
-    :math:`K2l = Id` , :math:`K2_r = Id`.
+    :math:`K2_l = Id` , :math:`K2_r = Id`.
     """
 
     def specialize(self):
@@ -538,7 +538,7 @@ def _closest_partial_swap(a, b, c) -> float:
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
     r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, \alpha\pi/4) \sim \text{SWAP}^\alpha`
     This gate binds 3 parameters, we make it canonical by setting:
-    :math:`K2l = Id`.
+    :math:`K2_l = Id`.
     """
 
     def specialize(self):
@@ -554,7 +554,7 @@ class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
     (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
     similar to how :math:`x = (\pm \sqrt(x))^2`)
     This gate binds 3 parameters, we make it canonical by setting:
-    :math:`K2l = Id`.
+    :math:`K2_l = Id`.
     """
 
     def specialize(self):
