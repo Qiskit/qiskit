@@ -117,6 +117,28 @@ class TestGenericBackendV2(QiskitTestCase):
         self.assertTrue(math.isclose(counts["00000"], 500, rel_tol=0.1))
         self.assertTrue(math.isclose(counts["01111"], 500, rel_tol=0.1))
 
+    def test_duration_defaults(self):
+        """Test that the basis gates are assigned duration defaults within expected ranges."""
+
+        basis_gates = ["cx", "id", "rz", "sx", "x", "sdg", "rxx"]
+        expected_durations = {
+            "cx": (8e-8, 9e-7),
+            "id": (3e-8, 6e-8),
+            "rz": (0.0, 0.0),
+            "sx": (3e-8, 6e-8),
+            "x": (3e-8, 6e-8),
+            "measure": (7e-7, 1.5e-6),
+            "sdg": (3e-8, 6e-8),
+            "rxx": (8e-8, 9e-7),
+        }
+        target = GenericBackendV2(num_qubits=2, basis_gates=basis_gates).target
+        for inst in target:
+            for qargs in target.qargs_for_operation_name(inst):
+                duration = target[inst][qargs].duration
+                if inst not in ["delay", "reset"]:
+                    self.assertGreaterEqual(duration, expected_durations[inst][0])
+                    self.assertLessEqual(duration, expected_durations[inst][1])
+
     def test_dd_sequence(self):
         """Test reasonable dynamical decoupling output (defined by generated instruction durations)."""
 
@@ -139,21 +161,21 @@ class TestGenericBackendV2(QiskitTestCase):
         tqc = pm.run(simple)
         expected = QuantumCircuit(3)
         expected.sx(0)
-        expected.delay(duration=21, unit="dt", qarg=1)
-        expected.delay(duration=1796, unit="dt", qarg=2)
+        expected.delay(duration=63, unit="dt", qarg=1)
+        expected.delay(duration=1968, unit="dt", qarg=2)
         expected.sx([1, 2])
         expected.cx(0, 1)
-        expected.delay(duration=632, unit="dt", qarg=0)
+        expected.delay(duration=620, unit="dt", qarg=0)
         expected.cx(1, 2)
         expected.x(0)
-        expected.delay(duration=360, unit="dt", qarg=2)
+        expected.delay(duration=361, unit="dt", qarg=2)
         expected.x(2)
-        expected.delay(duration=1267, unit="dt", qarg=0)
+        expected.delay(duration=1242, unit="dt", qarg=0)
         expected.x(0)
-        expected.delay(duration=720, unit="dt", qarg=2)
+        expected.delay(duration=723, unit="dt", qarg=2)
         expected.x(2)
-        expected.delay(duration=632, unit="dt", qarg=0)
+        expected.delay(duration=620, unit="dt", qarg=0)
         expected.cx(0, 1)
-        expected.delay(duration=360, unit="dt", qarg=2)
+        expected.delay(duration=361, unit="dt", qarg=2)
 
         self.assertEqual(tqc, expected)
