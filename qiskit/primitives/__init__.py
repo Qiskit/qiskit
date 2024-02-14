@@ -50,9 +50,9 @@ define a computation unit of work for the estimator to complete:
 
 * a collection parameter value sets to bind the circuit against, :math:`\theta_k`.
 
-Running an estimator returns a :class:`~qiskit.providers.JobV1` object, where calling
-the method :meth:`qiskit.providers.JobV1.result` results in expectation value estimates and metadata
-for each pub:
+Running an estimator returns a :class:`~qiskit.primitives.BasePrimitiveJob` object, where calling
+the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in expectation value estimates 
+and metadata for each pub:
 
 .. math::
 
@@ -115,8 +115,8 @@ define a computational unit of work for the sampler to complete:
 
 * Optionally, the number of shots to sample, determined in the run method if not set.
 
-Running a sampler returns a :class:`~qiskit.provider.JobV1` object, where calling
-the method :meth:`~qiskit.provider.JobV1.result` results in output samples and metadata
+Running an estimator returns a :class:`~qiskit.primitives.BasePrimitiveJob` object, where calling
+the method :meth:`~qiskit.primitives.BasePrimitiveJob.result` results in output samples and metadata
 for each pub.
 
 Here is an example of how a sampler is used.
@@ -403,6 +403,8 @@ Results V2
    DataBin
    PrimitiveResult
    PubResult
+   BasePrimitiveJob
+   PrimitiveJob
 
 Estimator V1
 ------------
@@ -455,6 +457,7 @@ from .containers import (
     ObservablesArrayLike,
 )
 from .estimator import Estimator
+from .primitive_job import BasePrimitiveJob, PrimitiveJob
 from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
