@@ -114,11 +114,18 @@ class StatevectorSampler(BaseSamplerV2):
         assert result.data.alpha.num_bits == 2
         assert result.data.alpha.num_shots == 256
 
-        # We can turn the data from the 22nd sweep index into a counts dict.
-        result.data.alpha.get_counts(22)
+        # We can work directly with the binary data in performant applications.
+        raw = result.data.alpha.array
 
-        # Or, for low-level applications, we can work directly with the binary data.
-        result.data.alpha.array
+        # For small registers where it is anticipated to have many counts associated with the same
+        # bitstrings, we can turn the data from, for example, the 22nd sweep index into a dictionary
+        # of counts.
+        counts = result.data.alpha.get_counts(22)
+
+        # We can also convert into a list of bitstrings that preserve shot order.
+        bitstrings = result.data.alpha.get_bitstrings(22)
+        print(bitstrings)
+
     """
 
     def __init__(self, *, default_shots: int = 1024, seed: np.random.Generator | int | None = None):

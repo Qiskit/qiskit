@@ -75,6 +75,12 @@ level, however, here are some notable differences keep in mind when migrating fr
    sampler result objects organize data in terms of their input circuits' classical register 
    names, which provides natural compatibility with dynamic circuits.
 
+   The closest analog of quasi-probability distributions in the V2 interface is the 
+   :meth:`~.BitArray.get_counts` method, shown in the example below. However, we emphasize that 
+   for utility scale experiments (100+ qubits), the chances of measuring the same bitstring twice
+   are small, so that binning like counts in a dictionary format will not typically be an efficient
+   data processing strategy.
+
    .. code-block:: python
 
       circuit = QuantumCircuit(QuantumRegister(2, "qreg"), ClassicalRegister(2, "alpha"))
