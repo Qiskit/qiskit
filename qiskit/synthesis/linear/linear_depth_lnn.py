@@ -21,6 +21,7 @@ References:
          `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_.
 """
 
+from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit

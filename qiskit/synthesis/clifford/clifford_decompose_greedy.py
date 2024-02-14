@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,15 +21,14 @@ Circuit synthesis for the Clifford class.
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Clifford, Pauli
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
     _append_h,
     _append_s,
     _append_swap,
 )
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
 def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:

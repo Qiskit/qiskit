@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,6 +15,7 @@ Circuit synthesis for the CNOTDihedral class for all-to-all connectivity.
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.quantum_info import CNOTDihedral
+
 from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_two_qubits import (
     synth_cnotdihedral_two_qubits,
 )

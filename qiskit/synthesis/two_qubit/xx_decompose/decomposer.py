@@ -53,7 +53,7 @@ def _average_infidelity(p, q):
 
 
 class XXDecomposer:
-    """
+    r"""
     A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
     (i.e., each locally equivalent to :math:`CAN(\alpha, 0, 0)` for a possibly varying :math:`alpha`).
 

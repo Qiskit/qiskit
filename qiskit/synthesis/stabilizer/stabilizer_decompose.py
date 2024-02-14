@@ -14,6 +14,8 @@ Circuit synthesis for a stabilizer state preparation circuit.
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
+
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit

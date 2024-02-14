@@ -116,7 +116,7 @@ def _set_qubit_x_true(clifford, circuit, qubit):
 
 
 def _set_row_x_zero(clifford, circuit, qubit):
-    """Set destabilizer.X[qubit, i] to False for all i > qubit.
+    r"""Set destabilizer.X[qubit, i] to False for all i > qubit.
 
     This is done by applying CNOTs assuming :math:`k \leq N` and A[k][k]=1
     """
