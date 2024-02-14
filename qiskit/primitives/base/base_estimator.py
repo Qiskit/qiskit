@@ -112,7 +112,7 @@ T = TypeVar("T", bound=Job)
 
 
 class BaseEstimatorV1(BasePrimitive, Generic[T]):
-    """Estimator base class.
+    r"""Estimator V1 base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
 
@@ -264,7 +264,7 @@ BaseEstimator = BaseEstimatorV1
 
 
 class BaseEstimatorV2(ABC):
-    """Estimator base class version 2.
+    r"""Estimator V2 base class.
 
     An estimator estimates expectation values for provided quantum circuit and
     observable combinations.

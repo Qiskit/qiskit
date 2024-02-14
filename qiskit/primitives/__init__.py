@@ -139,8 +139,8 @@ Sampler V2
    BaseSamplerV2
    StatevectorSampler
 
-Containers V2
--------------
+Results V2
+----------
 
 .. autosummary::
    :toctree: ../stubs/
