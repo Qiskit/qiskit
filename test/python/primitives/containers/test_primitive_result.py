@@ -36,9 +36,10 @@ class PrimitiveResultCase(QiskitTestCase):
             PubResult(data_bin_cls(alpha, beta)),
             PubResult(data_bin_cls(alpha, beta)),
         ]
-        result = PrimitiveResult(pub_results, {1: 2})
+        result = PrimitiveResult(pub_results, {"x": 2})
 
         self.assertTrue(result[0] is pub_results[0])
         self.assertTrue(result[1] is pub_results[1])
         self.assertTrue(list(result)[0] is pub_results[0])
         self.assertEqual(len(result), 2)
+        self.assertEqual(result.metadata, {"x": 2})
