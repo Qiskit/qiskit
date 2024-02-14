@@ -70,6 +70,10 @@ prelude: |
   the upgrade section of the 1.0.0 release notes is longer than usual. These are direct
   consequences of the technical debt cleanup. To help with the migration
   from 0.46.x to 1.0.0, besides the release notes, we have also published a
-  dedicated migration guide which can be found here: **INSERT LINK** . This guide is meant to
-  complement the release notes and have a targeted advice for how to migrate the API changes
-  after the removal of the deprecated functionality from the 0.46.0 release.
+  dedicated migration guide which can be found here:
+
+  https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-features
+
+  This guide is meant to complement the release notes and have a targeted advice for how to
+  migrate the API changes after the removal of the deprecated functionality from the 0.46.0
+  release.
