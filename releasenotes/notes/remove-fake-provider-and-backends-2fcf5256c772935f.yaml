@@ -10,8 +10,7 @@ deprecations:
       * ``qiskit.providers.fake_provider.FakeProviderForBackendV2``
       * ``qiskit.providers.fake_provider.FakeProviderFactory``
       * ``qiskit.providers.fake_provider.fake_backends.FakeBackendV2``
-      * any fake backend contained in ``qiskit.providers.fake_provider.backends``
-        (accessible through the provider)
+      * any fake backend contained in ``qiskit.providers.fake_provider.backends`` (accessible through the provider)
       * ``qiskit.providers.fake_provider.FakeQasmSimulator``
       * ``qiskit.providers.fake_provider.FakeJob``
       * ``qiskit.providers.fake_provider.FakeQobj``
