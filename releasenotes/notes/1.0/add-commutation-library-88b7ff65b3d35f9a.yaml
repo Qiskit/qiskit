@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Added a commutation library to the :class:`.CommutationChecker` which stores all the
+    Added a commutation library to the :class:`.CommutationChecker`. This library stores all the
     commutation relations of unparameterizable standard gates into a dictionary that allows
     for efficient lookup at runtime. This speeds up the execution of the :class:`.CommutationChecker`
-    class and by extensions the :class:`.CommutationAnalysis` transpiler pass as instead of
+    class and, by extension, the :class:`.CommutationAnalysis` transpiler pass, as instead of
     computing whether two unparameterizable standard gates commute it just has to look it up
     from the library.
 

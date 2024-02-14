@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Added a new flag, ``version``, to the :func:`.qpy.dump` function which
-    optionally takes an integer value for the :ref:`qpy_format` version to
-    emit from the dump function. This is useful if you need to generate a QPY
+    Added a new flag, ``version``, to the :func:`.qpy.dump` function. This allows
+    :func:`.qpy.dump` to optionally take an integer value for the :ref:`qpy_format` 
+    version to emit. This is useful if you need to generate a QPY
     file that will be loaded by an older version of Qiskit. However, the
     supported versions to emit are limited, only versions between the latest
     QPY version (which is the default), and the compatibility QPY version

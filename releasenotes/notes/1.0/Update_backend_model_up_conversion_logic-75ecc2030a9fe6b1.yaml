@@ -1,12 +1,12 @@
 ---
 upgrade:
   - |
-    Changed default value of two arguments :code:`add_delay` and :code:`filter_faulty` in
-    the :func:`.qiskit.providers.backend_compat.convert_to_target`.
-    Now this conversion function adds delay instruction and removes faulty instructions by default.
+    Changed default value of two arguments (:code:`add_delay` and :code:`filter_faulty`) in
+    the :func:`.qiskit.providers.backend_compat.convert_to_target` function.
+    This conversion function now adds delay instructions and removes faulty instructions by default.
 fixes:
   - |
-    Fixes return of improper measurement schedule that may occur in the following program:
+    Fixed the return of improper measurement schedules in examples like the following:
 
     .. code-block:: python
 
@@ -15,6 +15,5 @@ fixes:
       backend = FakePerth()
       sched = backend.instruction_schedule_map.get('measure', [0])
 
-    This unexpectedly returned a measure schedule including all device qubits,
-    which was fixed in this release.
-    Now this returns a schedule for qubit 0 as intended.
+    This unexpectedly returned a measure schedule including all device qubits, when only one was requested.
+    Now this code returns a schedule for qubit 0 as intended.

@@ -1,13 +1,13 @@
 ---
 features:
   - |
-    Added two new arguments ``matrix_based`` and ``max_qubits`` to the
-    constructor of :class:`.CommutativeInverseCancellation` transpiler pass.
-    When ``matrix_based`` is ``True`` the pass uses matrix representations to
-    check whether two operations are inverse of each other. This makes the
-    checks more powerful, and in addition allows canceling pairs of operations
+    Added two new arguments, ``matrix_based`` and ``max_qubits``, to the
+    constructor of the :class:`.CommutativeInverseCancellation` transpiler pass.
+    When ``matrix_based`` is ``True``, the pass uses matrix representations to
+    check whether two operations are the inverse of each other. This makes the
+    checks more powerful, and in addition allows for cancelling pairs of operations
     that are inverse up to a phase, while updating the global phase of the circuit
-    accordingly. Generally this leads to more reductions at the expense of increased
+    accordingly. This generally leads to more reductions at the expense of increased
     runtime. The argument ``max_qubits`` limits the number of qubits in matrix-based
     commutativity and inverse checks. For example::
 

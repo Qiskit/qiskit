@@ -10,7 +10,7 @@ features:
 
     This synthesis plugin is able to run before or after the layout is set.
     When synthesis succeeds, the plugin outputs a quantum circuit consisting only of
-    swap gates. When synthesis does not succeed, the plugin outputs `None`.
+    swap gates. When synthesis does not succeed, the plugin outputs ``None``.
 
     The following code illustrates how the new plugin can be run::
 
@@ -33,7 +33,7 @@ features:
         synthesis_config = HLSConfig(permutation=[("token_swapper", {"trials": 10})])
 
         # This creates the pass manager that runs high-level-synthesis on our circuit.
-        # The option use_qubit_indices=True indicates that synthesis run after the layout is set,
+        # The option use_qubit_indices=True indicates that synthesis is run after the layout is set,
         # and hence should preserve the specified coupling map.
         pm = PassManager(
             HighLevelSynthesis(

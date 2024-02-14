@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Added a new keyword argument ``num_processes`` to :func:`.transpile` and
-    the :meth:`PassManager.run` method. This allows for overriding the
-    ``QISKIT_NUM_PROCS`` and a user configuration file ``num_processes`` field
-    on a per transpile basis. For example::
+    Added a new keyword argument, ``num_processes``, to :func:`.transpile` and
+    the :meth:`PassManager.run` method. This allows for overriding both
+    ``QISKIT_NUM_PROCS`` and the ``num_processes`` field in user configuration files
+    on a per-transpile basis. For example::
 
         from qiskit import transpile, QuantumCircuit
 

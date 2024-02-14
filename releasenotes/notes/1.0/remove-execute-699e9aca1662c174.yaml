@@ -23,7 +23,7 @@ upgrade:
     Alternatively, the ``Sampler`` primitive is semantically equivalent to the
     deprecated :func:`~.execute_function.execute` function. The class
     :class:`.BackendSampler` is a generic wrapper for backends that do not support
-    primitives:
+    primitives::
 
       from qiskit.primitives import BackendSampler
       sampler = BackendSampler(backend)

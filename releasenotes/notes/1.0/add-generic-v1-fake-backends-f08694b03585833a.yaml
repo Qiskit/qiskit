@@ -17,5 +17,5 @@ features:
         * :class:`.Fake27QPulseV1`
         * :class:`.Fake127QPulseV1`
 
-    The can be imported following the pattern: ``from qiskit.providers.fake_provider import Fake5QV1``.
+    They can be imported following the pattern: ``from qiskit.providers.fake_provider import Fake5QV1``.
     More details on the backend properties can be found on each backend's API documentation.
