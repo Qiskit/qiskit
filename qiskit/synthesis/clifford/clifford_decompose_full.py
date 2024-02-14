@@ -13,12 +13,15 @@
 Circuit synthesis for the Clifford class for all-to-all architecture.
 """
 
+from __future__ import annotations
+from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 from qiskit.synthesis.clifford.clifford_decompose_ag import synth_clifford_ag
 from qiskit.synthesis.clifford.clifford_decompose_bm import synth_clifford_bm
 from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_greedy
 
 
-def synth_clifford_full(clifford, method=None):
+def synth_clifford_full(clifford: Clifford, method: str | None = None) -> QuantumCircuit:
     r"""Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
 
     For :math:`N \leq 3` qubits this is based on optimal CX-cost decomposition
@@ -27,12 +30,12 @@ def synth_clifford_full(clifford, method=None):
     which typically yields better CX cost compared to the AG method in [2].
 
     Args:
-        clifford (Clifford): a Clifford operator.
-        method (str):  Optional, a synthesis method (``'AG'`` or ``'greedy'``).
+        clifford: A Clifford operator.
+        method: Optional, a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
 
     Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        A circuit implementation of the Clifford.
 
     References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the

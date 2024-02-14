@@ -12,6 +12,9 @@
 
 """Synthesis algorithm for Permutation gates for full-connectivity."""
 
+from __future__ import annotations
+
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .permutation_utils import (
     _get_ordered_swap,
@@ -21,7 +24,7 @@ from .permutation_utils import (
 )
 
 
-def synth_permutation_basic(pattern):
+def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using sorting.
 
@@ -31,7 +34,7 @@ def synth_permutation_basic(pattern):
     is essentially treated independently.
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -39,7 +42,7 @@ def synth_permutation_basic(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
     """
     # This is the very original Qiskit algorithm for synthesizing permutations.
 
@@ -54,7 +57,7 @@ def synth_permutation_basic(pattern):
     return qc
 
 
-def synth_permutation_acg(pattern):
+def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using the Alon, Chung, Graham method.
 
@@ -64,7 +67,7 @@ def synth_permutation_acg(pattern):
     the detailed proof given in Theorem 2 in reference [2]
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -72,7 +75,7 @@ def synth_permutation_acg(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
 
     References:
         1. N. Alon, F. R. K. Chung, and R. L. Graham.

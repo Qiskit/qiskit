@@ -16,9 +16,10 @@ Circuit synthesis for the CNOTDihedral class.
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import CNOTDihedral
 
 
-def synth_cnotdihedral_general(elem):
+def synth_cnotdihedral_general(elem: CNOTDihedral) -> QuantumCircuit:
     """Decompose a :class:`.CNOTDihedral` element into a :class:`.QuantumCircuit`.
 
     Decompose a general :class:`.CNOTDihedral` elements.
@@ -27,10 +28,10 @@ def synth_cnotdihedral_general(elem):
     :func:`.synth_cnotdihedral_two_qubits`.
 
     Args:
-        elem (CNOTDihedral): a :class:`.CNOTDihedral` element.
+        elem: A :class:`.CNOTDihedral` element.
 
     Return:
-        QuantumCircuit: a circuit implementation of the :class:`.CNOTDihedral` element.
+        A circuit implementation of the :class:`.CNOTDihedral` element.
 
     Raises:
         QiskitError: if the element could not be decomposed into a circuit.
