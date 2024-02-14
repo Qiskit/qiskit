@@ -32,7 +32,7 @@ from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.bit import Bit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.circuit.commutation_checker import CommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
@@ -113,7 +113,7 @@ class DAGDependencyV2:
         self.duration = None
         self.unit = "dt"
 
-        self.comm_checker = CommutationChecker()
+        self.comm_checker = scc
 
     @property
     def global_phase(self):
@@ -350,7 +350,7 @@ class DAGDependencyV2:
         """
         Updates DagDependencyV2 by adding edges to the newly added node (new_node) from
         the previously added nodes. This update assumes new_node was added to the end of
-        the graph, 
+        the graph,
         For each previously added node (prev_node), an edge from prev_node to new_node
         is added if new_node is not "unreachable" from prev_node (this means that the two
         nodes can be made adjacent by commuting them with other nodes), but the two nodes
