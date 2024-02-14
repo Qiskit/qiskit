@@ -21,6 +21,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.transpiler.passes import OptimizeAnnotated
+from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -101,7 +102,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc.h(0)
         qc.append(gate, [0, 1, 3])
 
-        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"], do_conjugate_reduction=False)(qc)
         self.assertEqual(qc_optimized[1].operation.definition, expected_qc_def_optimized)
 
     def test_do_not_optimize_definitions_without_basis_gates(self):
@@ -193,3 +194,48 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         )
 
         self.assertEqual(qc_optimized, expected_qc)
+
+    def test_conjugate_reduction(self):
+        """Test conjugate reduction optimization."""
+
+        # Create a control-annotated operation;
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.z(0)  # P
+        qc_def.s(0)  # P
+        qc_def.cx(0, 4)  # P
+        qc_def.cx(4, 3)  # P
+        qc_def.y(3)  # Q
+        qc_def.cx(3, 0)  # Q
+        qc_def.cx(4, 3)  # R
+        qc_def.cx(0, 4)  # R
+        qc_def.sdg(0)  # R
+        qc_def.z(0)  # R
+        qc_def.cx(0, 1)  # R
+        qc_def.z(5)  # P
+        qc_def.z(5)  # R
+        qc_def.x(2)  # Q
+        custom = qc_def.to_gate().control(annotated=True)
+
+        print("")
+        print(qc_def)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.cx(0, 2)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+        qc.h(0)
+        qc.z(4)
+
+        qc_keys = qc.count_ops().keys()
+        self.assertIn("annotated", qc_keys)
+
+        # Run optimization pass.
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # THe pass should simplify the gate
+        qc_optimized_keys = qc_optimized.count_ops().keys()
+        self.assertIn("optimized", qc_optimized_keys)
+        self.assertNotIn("annotated", qc_optimized_keys)
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
