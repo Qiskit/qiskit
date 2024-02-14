@@ -346,7 +346,16 @@ class TwoQubitWeylDecomposition:
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix, fidelity=None):
+    def __init__(
+        self,
+        unitary_matrix: list[list[complex]] | np.ndarray[complex],
+        fidelity: float | None = None,
+    ):
+        """
+        Args:
+            unitary_matrix: The unitary to decompose.
+            fidelity: The target fidelity of the decomposed operation.
+        """
         del unitary_matrix  # unused in __init__ (used in new)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
@@ -402,7 +411,7 @@ class TwoQubitWeylDecomposition:
         raise NotImplementedError
 
     def circuit(
-        self, *, euler_basis: str | None = None, simplify=False, atol=DEFAULT_ATOL
+        self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
 

@@ -14,9 +14,12 @@ Circuit synthesis for the Clifford class into layers.
 """
 # pylint: disable=invalid-name
 
+from __future__ import annotations
+from collections.abc import Callable
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford  # pylint: disable=cyclic-import
 from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
@@ -62,13 +65,13 @@ def _default_cz_synth_func(symmetric_mat):
 
 
 def synth_clifford_layers(
-    cliff,
-    cx_synth_func=_default_cx_synth_func,
-    cz_synth_func=_default_cz_synth_func,
-    cx_cz_synth_func=None,
-    cz_func_reverse_qubits=False,
-    validate=False,
-):
+    cliff: Clifford,
+    cx_synth_func: Callable[[np.ndarray], QuantumCircuit] = _default_cx_synth_func,
+    cz_synth_func: Callable[[np.ndarray], QuantumCircuit] = _default_cz_synth_func,
+    cx_cz_synth_func: Callable[[np.ndarray], QuantumCircuit] | None = None,
+    cz_func_reverse_qubits: bool = False,
+    validate: bool = False,
+) -> QuantumCircuit:
     """Synthesis of a :class:`.Clifford` into layers, it provides a similar
     decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov [1].
 
@@ -91,18 +94,18 @@ def synth_clifford_layers(
     with other functions one may see slightly different decomposition.
 
     Args:
-        cliff (Clifford): a Clifford operator.
-        cx_synth_func (Callable): a function to decompose the CX sub-circuit.
+        cliff: A Clifford operator.
+        cx_synth_func: A function to decompose the CX sub-circuit.
             It gets as input a boolean invertible matrix, and outputs a :class:`.QuantumCircuit`.
-        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+        cz_synth_func: A function to decompose the CZ sub-circuit.
             It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
-        cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
-        validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
+        cx_cz_synth_func: A function to decompose both sub-circuits CZ and CX.
+        cz_func_reverse_qubits: ``True`` only if ``cz_synth_func`` is ``synth_cz_depth_line_mr``,
             since this function returns a circuit that reverts the order of qubits.
+        validate: If ``True``, validates the synthesis process.
 
     Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        A circuit implementation of the Clifford.
 
     References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
@@ -156,8 +159,6 @@ def synth_clifford_layers(
     layeredCircuit.append(H1_circ, qubit_list)
 
     # Add Pauli layer to fix the Clifford phase signs
-    # pylint: disable=cyclic-import
-    from qiskit.quantum_info.operators.symplectic import Clifford
 
     clifford_target = Clifford(layeredCircuit)
     pauli_circ = _calc_pauli_diff(cliff, clifford_target)

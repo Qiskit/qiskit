@@ -12,11 +12,13 @@
 
 """Depth-efficient synthesis algorithm for Permutation gates."""
 
+from __future__ import annotations
+import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .permutation_utils import _inverse_pattern
 
 
-def synth_permutation_depth_lnn_kms(pattern):
+def synth_permutation_depth_lnn_kms(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
     """Synthesize a permutation circuit for a linear nearest-neighbor
     architecture using the Kutin, Moulton, Smithline method.
 
@@ -26,7 +28,7 @@ def synth_permutation_depth_lnn_kms(pattern):
     :math:`n(n-1)/2` (where both depth and size are measured with respect to SWAPs).
 
     Args:
-        pattern (Union[list[int], np.ndarray]): permutation pattern, describing
+        pattern: Permutation pattern, describing
             which qubits occupy the positions 0, 1, 2, etc. after applying the
             permutation. That is, ``pattern[k] = m`` when the permutation maps
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
@@ -34,7 +36,7 @@ def synth_permutation_depth_lnn_kms(pattern):
             position ``1``, etc.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
 
     References:
         1. Samuel A. Kutin, David Petrie Moulton and Lawren M. Smithline.

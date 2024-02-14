@@ -23,7 +23,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
-def synth_cnot_phase_aam(cnots, angles, section_size=2):
+def synth_cnot_phase_aam(
+    cnots: list[list[int]], angles: list[str], section_size: int = 2
+) -> QuantumCircuit:
     r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.
 
@@ -47,7 +49,7 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
     The algorithm is described in detail in section 4 of [1].
 
     Args:
-        cnots (list[list]): a matrix whose columns are the parities to be synthesized
+        cnots: A matrix whose columns are the parities to be synthesized
             e.g.::
 
                 [[0, 1, 1, 1, 1, 1],
@@ -59,16 +61,16 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
 
                  x1^x2 + x0 + x0^x3 + x0^x1^x2 + x0^x1^x3 + x0^x1
 
-        angles (list): a list containing all the phase-shift gates which are
+        angles: A list containing all the phase-shift gates which are
             to be applied, in the same order as in ``cnots``. A number is
             interpreted as the angle of p(angle), otherwise the elements
             have to be ``'t'``, ``'tdg'``, ``'s'``, ``'sdg'`` or ``'z'``.
 
-        section_size (int): the size of every section in the Patel–Markov–Hayes algorithm.
+        section_size: The size of every section in the Patel–Markov–Hayes algorithm.
             ``section_size`` must be a factor of the number of qubits.
 
     Returns:
-        QuantumCircuit: the decomposed quantum circuit.
+        The decomposed quantum circuit.
 
     Raises:
         QiskitError: when dimensions of ``cnots`` and ``angles`` don't align.

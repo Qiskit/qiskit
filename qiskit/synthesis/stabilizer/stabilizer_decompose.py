@@ -14,6 +14,7 @@ Circuit synthesis for a stabilizer state preparation circuit.
 """
 # pylint: disable=invalid-name
 
+from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -31,11 +32,11 @@ from qiskit.synthesis.clifford.clifford_decompose_layers import (
 
 
 def synth_stabilizer_layers(
-    stab,
-    cz_synth_func=_default_cz_synth_func,
-    cz_func_reverse_qubits=False,
-    validate=False,
-):
+    stab: StabilizerState,
+    cz_synth_func: Callable[[np.ndarray], QuantumCircuit] = _default_cz_synth_func,
+    cz_func_reverse_qubits: bool = False,
+    validate: bool = False,
+) -> QuantumCircuit:
     """Synthesis of a stabilizer state into layers.
 
     It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
@@ -57,16 +58,16 @@ def synth_stabilizer_layers(
              └─────┘└─────┘└─────┘└─────┘└────────┘
 
     Args:
-        stab (StabilizerState): a stabilizer state.
-        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+        stab: A stabilizer state.
+        cz_synth_func: A function to decompose the CZ sub-circuit.
             It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
-        validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
+        cz_func_reverse_qubits: ``True`` only if ``cz_synth_func`` is
             :func:`.synth_cz_depth_line_mr`,
             since this function returns a circuit that reverts the order of qubits.
+        validate: If ``True``, validates the synthesis process.
 
     Return:
-        QuantumCircuit: a circuit implementation of the stabilizer state.
+        A circuit implementation of the stabilizer state.
 
     Raises:
         QiskitError: if the input is not a :class:`.StabilizerState`.
@@ -162,16 +163,16 @@ def _calc_pauli_diff_stabilizer(cliff, cliff_target):
     return pauli_circ
 
 
-def synth_stabilizer_depth_lnn(stab):
+def synth_stabilizer_depth_lnn(stab: StabilizerState) -> QuantumCircuit:
     """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
     in 2-qubit depth :math:`2n+2` and two distinct CX layers, using :class:`.CXGate`\\ s and phase gates
     (:class:`.SGate`, :class:`.SdgGate` or :class:`.ZGate`).
 
     Args:
-        stab (StabilizerState): a stabilizer state.
+        stab: A stabilizer state.
 
     Return:
-        QuantumCircuit: a circuit implementation of the stabilizer state.
+        A circuit implementation of the stabilizer state.
 
     References:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the

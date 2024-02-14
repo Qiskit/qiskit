@@ -237,7 +237,7 @@ def _optimize_cx_circ_depth_5n_line(mat):
     return cx_instructions_rows_m2nw, cx_instructions_rows_nw2id
 
 
-def synth_cnot_depth_line_kms(mat):
+def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
     """
     Synthesize linear reversible circuit for linear nearest-neighbor architectures using
     Kutin, Moulton, Smithline method.
@@ -247,10 +247,10 @@ def synth_cnot_depth_line_kms(mat):
     a linear nearest-neighbor architecture using CX gates with depth at most :math:`5n`.
 
     Args:
-        mat(np.ndarray]): a boolean invertible matrix.
+        mat: A boolean invertible matrix.
 
     Returns:
-        QuantumCircuit: the synthesized quantum circuit.
+        The synthesized quantum circuit.
 
     Raises:
         QiskitError: if ``mat`` is not invertible.
