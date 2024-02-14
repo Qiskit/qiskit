@@ -953,7 +953,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
                 qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
                 return np.all(qubit_wise_comparison == 0)
 
-        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "YX", "ZX", "ZY", "XZ", "YZ"]
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "iYX", "ZX", "-iZY", "XZ", "YZ"]
         np.random.shuffle(input_labels)
         if parameterized:
             coeffs = np.array(ParameterVector("a", len(input_labels)))

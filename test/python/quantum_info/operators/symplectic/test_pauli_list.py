@@ -2088,7 +2088,7 @@ class TestPauliListMethods(QiskitTestCase):
                 qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
                 return np.all(qubit_wise_comparison == 0)
 
-        input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
+        input_labels = ["IY", "ZX", "XZ", "-YI", "YX", "YY", "-iYZ", "ZI", "ZX", "ZY", "iZZ", "II"]
         np.random.shuffle(input_labels)
         pauli_list = PauliList(input_labels)
         graph = pauli_list.noncommutation_graph(qubit_wise=qubit_wise)
