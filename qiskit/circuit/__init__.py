@@ -283,7 +283,7 @@ Gates and Instructions
    EquivalenceLibrary
 
 Annotated Operations
-''''''''''''''''''''
+--------------------
 
 .. autosummary::
    :toctree: ../stubs/
