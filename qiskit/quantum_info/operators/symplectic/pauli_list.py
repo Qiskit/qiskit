@@ -1168,7 +1168,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Returns:
             rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
-                indicating a non-commutation relation.
+                indicating a non-commutation relation. Each node will hold the index of the Pauli
+                term it corresponds to in its data. The edges of the graph hold no data.
         """
         edges = self._noncommutation_graph(qubit_wise)
         graph = rx.PyGraph()
