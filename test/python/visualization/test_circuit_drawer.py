@@ -14,6 +14,8 @@
 
 import unittest
 import os
+import tempfile
+import json
 
 from unittest.mock import patch
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
@@ -21,6 +23,7 @@ from qiskit.utils import optionals
 from qiskit import visualization
 from qiskit.visualization.circuit import text
 from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization.circuit.qcstyle import load_style
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
@@ -51,12 +54,18 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_mpl_config_with_path(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_file:
+            tmp_style = os.path.basename(tmp_file.name).split(".")[0]
+            default_style = load_style("default")[0]
+            default_style["name"] = tmp_style
+            json.dump(load_style("default")[0], tmp_file)
+
         with patch(
             "qiskit.user_config.get_config",
             return_value={
                 "circuit_drawer": "mpl",
-                "circuit_mpl_style": "quantum-light",
-                "circuit_mpl_style_path": ["~/.qiskit"],
+                "circuit_mpl_style": tmp_style,
+                "circuit_mpl_style_path": [os.path.dirname(tmp_file.name)],
             },
         ):
             circuit = QuantumCircuit(1)
