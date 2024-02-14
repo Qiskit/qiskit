@@ -7,7 +7,7 @@ upgrade:
 
     * The ``qiskit.transpiler.synthesis.aqc`` module has been moved to
       :mod:`qiskit.synthesis.unitary.aqc`, with the exception of :class:`.AQCSynthesisPlugin`
-    * ``qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin` has been moved to
+    * ``qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin`` has been moved to
       :class:`qiskit.transpiler.passes.AQCSynthesisPlugin`.
     * ``qiskit.transpiler.synthesis.graysynth()`` has been moved and renamed to
       :func:`qiskit.synthesis.synth_cnot_phase_aam`.
