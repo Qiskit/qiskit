@@ -30,10 +30,6 @@ release = "1.1.0"
 
 language = "en"
 
-# This tells 'qiskit_sphinx_theme' that we're based at 'https://qiskit.org/<docs_url_prefix>'.
-# Should not include the subdirectory for the stable version.
-docs_url_prefix = "documentation"
-
 rst_prolog = f".. |version| replace:: {version}"
 
 extensions = [
@@ -79,7 +75,7 @@ modindex_common_prefix = ["qiskit."]
 intersphinx_mapping = {
     "rustworkx": ("https://www.rustworkx.org/", None),
     "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "python": ("https://docs.python.org/3/", None),
