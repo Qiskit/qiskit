@@ -17,7 +17,7 @@ Primitives (:mod:`qiskit.primitives`)
 
 .. currentmodule:: qiskit.primitives
 
-The primitives are computational building blocks to be used in larger applications whose input 
+The primitives are computational building blocks to be used in larger applications whose input
 units, called primitive unified blocs (PUBs), require quantum resources to efficiently produce
 outputs for.
 
@@ -27,7 +27,7 @@ accepting quantum circuits (or sweeps of values over parameterized circuits) and
 classical output registers. Estimators accept combinations of circuits and observables (or sweeps
 thereof) to estimate expectation values of the observables.
 
-Qiskit implements a reference implementation for each of these abstractions, 
+Qiskit implements a reference implementation for each of these abstractions,
 :class:`~.StatevectorSampler` and :class:`~.StatevectorEstimator`.
 
 .. automodule:: qiskit.primitives.base.base_estimator
@@ -38,13 +38,13 @@ Qiskit implements a reference implementation for each of these abstractions,
 Migration from Primitives V1 to V2
 ==================================
 
-The formal distinction between the Primitives V1 and V2 APIs are the base classes from which 
-primitives implementations inherit, which are all listed at the bottom of the page. At a conceptual 
+The formal distinction between the Primitives V1 and V2 APIs are the base classes from which
+primitives implementations inherit, which are all listed at the bottom of the page. At a conceptual
 level, however, here are some notable differences keep in mind when migrating from V1 to V2:
 
-1. The V2 primitives favour vectorized inputs, where single circuits can be grouped with 
-   vector-valued (or more generally, array-valued) specifications. Each group is called a 
-   primitive unified bloc (pub), and each pub gets its own result. For example, in the estimator, 
+1. The V2 primitives favour vectorized inputs, where single circuits can be grouped with
+   vector-valued (or more generally, array-valued) specifications. Each group is called a
+   primitive unified bloc (pub), and each pub gets its own result. For example, in the estimator,
    you can compare the following differences:
 
    .. code-block:: python
@@ -71,14 +71,14 @@ level, however, here are some notable differences keep in mind when migrating fr
       sampler_v1.run([circuit] * 3, [vals1, vals2, vals3])
       quasi_dists = job.result().quasi_dists
 
-2. The V2 sampler returns samples of classical outcomes, preserving the shot order in which they 
+2. The V2 sampler returns samples of classical outcomes, preserving the shot order in which they
    were measured. This is in contrast to the V1 sampler that outputs quasi-probability distributions
    which are instead an *estimate of the distribution* over classical outcomes. Moreover, the V2
-   sampler result objects organize data in terms of their input circuits' classical register 
+   sampler result objects organize data in terms of their input circuits' classical register
    names, which provides natural compatibility with dynamic circuits.
 
-   The closest analog of quasi-probability distributions in the V2 interface is the 
-   :meth:`~.BitArray.get_counts` method, shown in the example below. However, we emphasize that 
+   The closest analog of quasi-probability distributions in the V2 interface is the
+   :meth:`~.BitArray.get_counts` method, shown in the example below. However, we emphasize that
    for utility scale experiments (100+ qubits), the chances of measuring the same bitstring twice
    are small, so that binning like counts in a dictionary format will not typically be an efficient
    data processing strategy.
@@ -99,9 +99,9 @@ level, however, here are some notable differences keep in mind when migrating fr
       # these are all the bitstrings from the alpha register
       bitstrings = result[0].data.alpha
       # we can use it to generate a Counts mapping, which is the most similar thing to a quasi dist
-      counts = bitstrings.get_counts()           
+      counts = bitstrings.get_counts()
 
-3. The V2 primitives have brought the concept of sampling overhead, inherent to all quantum systems 
+3. The V2 primitives have brought the concept of sampling overhead, inherent to all quantum systems
    via their inherent probabilistic nature, out of the options and into the API itself. For the
    sampler, this means that the ``shots`` argument is now part of the :meth:`~.BaseSamplerV2.run`
    signature, and moreover that each pub is able to specify its own value for ``shots``, which takes
@@ -109,7 +109,7 @@ level, however, here are some notable differences keep in mind when migrating fr
    argument that specifies the error bars that the primitive implementation should target for
    expectation values estimates.
 
-   This concept is not present in the API of the V1 primitives, though all implementations of the 
+   This concept is not present in the API of the V1 primitives, though all implementations of the
    V1 primitives have related settings somewhere in their options.
 
    .. code-block:: python

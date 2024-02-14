@@ -141,7 +141,7 @@ Here is an example of how the estimator is used.
     #             <psi1(theta3)|H3|psi1(theta3)> ]
     job2 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
     job_result = job2.result()
-    print(f"The primitive-job finished with result {job_result}")    
+    print(f"The primitive-job finished with result {job_result}")
 
 """
 
