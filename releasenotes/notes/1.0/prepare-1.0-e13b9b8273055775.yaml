@@ -8,9 +8,9 @@ prelude: |
   release relate to the stability policy, release cycles, and versioning.
   Qiskit is now formally using `semantic versioning <https://semver.org/>`__,
   and this means that, for the entire lifecycle of the 1.x release series, the project
-  is committed to maintaining backwards compatibility. We're also now starting
-  to offer bugfix support for major versions, so that you continue to have a
-  supported branch for 6 months after the release of the next major version.
+  is committed to maintaining backwards compatibility in its public documented
+  APIs. We're also now starting to offer bugfix support for major versions, so that you
+  continue to have a supported branch for 6 months after the release of the next major version.
   This starts now with the 1.x and 0.x major series: the 0.46.x release will
   continue to be supported, with periodic patch releases that contain bug fixes, for 6
   months after the release of 1.0. That is, 0.46.x will be supported until 2024-08.
