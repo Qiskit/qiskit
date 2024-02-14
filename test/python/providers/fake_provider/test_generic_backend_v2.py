@@ -15,13 +15,8 @@
 import math
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
-from qiskit.circuit.library import XGate
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.transpiler import CouplingMap, PassManager
-from qiskit.transpiler.passes import (
-    ALAPScheduleAnalysis,
-    PadDynamicalDecoupling,
-)
+from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
