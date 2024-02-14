@@ -11,7 +11,127 @@
 # that they have been altered from the originals.
 
 
-"""Synthesize higher-level objects and unroll custom definitions."""
+"""
+
+High Level Synthesis Plugins
+-----------------------------
+
+Clifford Synthesis
+''''''''''''''''''
+
+.. list-table:: Plugins for :class:`qiskit.quantum_info.Clifford` (key = ``"clifford"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"ag"``
+      - :class:`~.AGSynthesisClifford`
+      - all-to-all
+      -
+    * - ``"bm"``
+      - :class:`~.BMSynthesisClifford`
+      - all-to-all
+      -
+    * - ``"greedy"``
+      - :class:`~.GreedySynthesisClifford`
+      - all-to-all
+      -
+    * - ``"layers"``
+      - :class:`~.LayerSynthesisClifford`
+      - all-to-all
+      -
+    * - ``"lnn"``
+      - :class:`~.LayerLnnSynthesisClifford`
+      - linear
+      -
+    * - ``"default"``
+      - :class:`~.DefaultSynthesisClifford`
+      - all-to-all
+      -
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AGSynthesisClifford
+   BMSynthesisClifford
+   GreedySynthesisClifford
+   LayerSynthesisClifford
+   LayerLnnSynthesisClifford
+   DefaultSynthesisClifford
+
+
+Linear Function Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.LinearFunction` (key = ``"linear"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"kms"``
+      - :class:`~.KMSSynthesisLinearFunction`
+      - linear
+      -
+    * - ``"pmh"``
+      - :class:`~.PMHSynthesisLinearFunction`
+      - all-to-all
+      -
+    * - ``"default"``
+      - :class:`~.DefaultSynthesisLinearFunction`
+      - all-to-all
+      -
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   KMSSynthesisLinearFunction
+   PMHSynthesisLinearFunction
+   DefaultSynthesisLinearFunction
+
+
+Permutation Synthesis
+'''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PermutationGate` (key = ``"permutation"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"basic"``
+      - :class:`~.BasicSynthesisPermutation`
+      - all-to-all
+      - optimal swap count
+    * - ``"acg"``
+      - :class:`~.ACGSynthesisPermutation`
+      - all-to-all
+      - swap depth of at most `2`
+    * - ``"kms"``
+      - :class:`~.KMSSynthesisPermutation`
+      - linear
+      - swap depth of at most `n`
+    * - ``"token_swapper"``
+      - :class:`~.TokenSwapperSynthesisPermutation`
+      - any
+      -
+    * - ``"default"``
+      - :class:`~.BasicSynthesisPermutation`
+      - all-to-all
+      - same as ``"basic"``
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicSynthesisPermutation
+   ACGSynthesisPermutation
+   KMSSynthesisPermutation
+   TokenSwapperSynthesisPermutation
+"""
 
 from typing import Optional, Union, List, Tuple
 

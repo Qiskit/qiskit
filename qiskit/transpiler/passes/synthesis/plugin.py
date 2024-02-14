@@ -30,6 +30,28 @@ plugin.
 See :mod:`qiskit.transpiler.preset_passmanagers.plugin` for details on how
 to write plugins for transpiler stages.
 
+Synthesis Plugin API
+====================
+
+Unitary Synthesis Plugin API
+----------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   UnitarySynthesisPlugin
+   UnitarySynthesisPluginManager
+   unitary_synthesis_plugin_names
+
+High-Level Synthesis Plugin API
+-------------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HighLevelSynthesisPlugin
+   HighLevelSynthesisPluginManager
+   high_level_synthesis_plugin_names
 
 Writing Plugins
 ===============
@@ -285,7 +307,7 @@ argument::
 will return a list of all the installed Clifford synthesis plugins.
 
 Available Plugins
------------------
+=================
 
 High-level synthesis plugins that are directly available in Qiskit include plugins
 for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
@@ -314,32 +336,6 @@ the topology of the device. A good example of this is the permutation synthesis 
 with respect to arbitrary coupling maps.
 For more detail, please refer to description of each individual plugin.
 
-Plugin API
-==========
-
-Unitary Synthesis Plugins
--------------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   UnitarySynthesisPlugin
-   UnitarySynthesisPluginManager
-   unitary_synthesis_plugin_names
-
-High-Level Synthesis Plugins
-----------------------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   HighLevelSynthesisPlugin
-   HighLevelSynthesisPluginManager
-   high_level_synthesis_plugin_names
-
-Available Plugins
-=================
-
 Below are the synthesis plugin classes available in Qiskit. These classes should not be
 used directly, but instead should be used through the plugin interface documented
 above. The classes are listed here to ease finding the documentation for each of the
@@ -350,11 +346,20 @@ a given object.
 Unitary Synthesis Plugins
 -------------------------
 
-.. autosummary::
-   :toctree: ../stubs/
+.. automodule:: qiskit.transpiler.passes.synthesis.aqc_plugin
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
-   /qiskit/transpiler/passes/synthesis/unitary_synthesis/DefaultUnitarySynthesis
-   /qiskit/transpiler/passes/synthesis/solovay_kitaev_synthesis/SolovayKitaevSynthesis
+.. automodule:: qiskit.transpiler.passes.synthesis.unitary_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
+
+.. automodule:: qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 
 
 High Level Synthesis
@@ -373,124 +378,10 @@ for synthesizing :class:`.PermutationGate` objects -- i.e. those with
 is :class:`~.KMSSynthesisPermutation`. This particular synthesis algorithm created
 a circuit adhering to the linear nearest-neighbor connectivity.
 
-
-Clifford Synthesis
-''''''''''''''''''
-
-.. list-table:: Plugins for :class:`qiskit.quantum_info.Clifford` (key = "clifford")
-    :header-rows: 1
-
-    * - Plugin name
-      - Plugin class
-      - Targeted connectivity
-      - Description
-    * - "ag"
-      - :class:`~.AGSynthesisClifford`
-      - all-to-all
-      -
-    * - "bm"
-      - :class:`~.BMSynthesisClifford`
-      - all-to-all
-      -
-    * - "greedy"
-      - :class:`~.GreedySynthesisClifford`
-      - all-to-all
-      -
-    * - "layers"
-      - :class:`~.LayerSynthesisClifford`
-      - all-to-all
-      -
-    * - "lnn"
-      - :class:`~.LayerLnnSynthesisClifford`
-      - linear
-      -
-    * - "default"
-      - :class:`~.DefaultSynthesisClifford`
-      - all-to-all
-      -
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/AGSynthesisClifford
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/BMSynthesisClifford
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/GreedySynthesisClifford
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/LayerSynthesisClifford
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/LayerLnnSynthesisClifford
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisClifford
-
-
-Linear Function Synthesis
-'''''''''''''''''''''''''
-
-.. list-table:: Plugins for :class:`.LinearFunction` (key = "linear")
-    :header-rows: 1
-
-    * - Plugin name
-      - Plugin class
-      - Targeted connectivity
-      - Description
-    * - "kms"
-      - :class:`~.KMSSynthesisLinearFunction`
-      - linear
-      -
-    * - "pmh"
-      - :class:`~.PMHSynthesisLinearFunction`
-      - all-to-all
-      -
-    * - "default"
-      - :class:`~.DefaultSynthesisLinearFunction`
-      - all-to-all
-      -
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/KMSSynthesisLinearFunction
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/PMHSynthesisLinearFunction
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/DefaultSynthesisLinearFunction
-
-
-Permutation Synthesis
-'''''''''''''''''''''
-
-.. list-table:: Plugins for :class:`.PermutationGate` (key = "permutation")
-    :header-rows: 1
-
-    * - Plugin name
-      - Plugin class
-      - Targeted connectivity
-      - Description
-    * - "basic"
-      - :class:`~.BasicSynthesisPermutation`
-      - all-to-all
-      - optimal swap count
-    * - "acg"
-      - :class:`~.ACGSynthesisPermutation`
-      - all-to-all
-      - swap depth of at most `2`
-    * - "kms"
-      - :class:`~.KMSSynthesisPermutation`
-      - linear
-      - swap depth of at most `n`
-    * - "token_swapper"
-      - :class:`~.TokenSwapperSynthesisPermutation`
-      - any
-      -
-    * - "default"
-      - :class:`~.BasicSynthesisPermutation`
-      - all-to-all
-      - same as "basic"
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/BasicSynthesisPermutation
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/ACGSynthesisPermutation
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/KMSSynthesisPermutation
-   /qiskit/transpiler/passes/synthesis/high_level_synthesis/TokenSwapperSynthesisPermutation
-
-
+.. automodule:: qiskit.transpiler.passes.synthesis.high_level_synthesis
+   :no-members:
+   :no-inherited-members:
+   :no-special-members:
 """
 
 import abc
