@@ -16,18 +16,19 @@ Circuit synthesis for the CNOTDihedral class.
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import CNOTDihedral
 
 
-def synth_cnotdihedral_two_qubits(elem):
+def synth_cnotdihedral_two_qubits(elem: CNOTDihedral) -> QuantumCircuit:
     """Decompose a :class:`.CNOTDihedral` element on a single qubit and two
     qubits into a :class:`.QuantumCircuit`.
     This decomposition has an optimal number of :class:`.CXGate`\\ s.
 
     Args:
-        elem (CNOTDihedral): a :class:`.CNOTDihedral` element.
+        elem: A :class:`.CNOTDihedral` element.
 
     Returns:
-        QuantumCircuit: a circuit implementation of the :class:`.CNOTDihedral` element.
+        A circuit implementation of the :class:`.CNOTDihedral` element.
 
     Raises:
         QiskitError: if the element in not 1-qubit or 2-qubit :class:`.CNOTDihedral`.

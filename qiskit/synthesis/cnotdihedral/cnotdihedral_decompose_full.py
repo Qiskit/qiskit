@@ -13,22 +13,26 @@
 Circuit synthesis for the CNOTDihedral class for all-to-all connectivity.
 """
 
+from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import CNOTDihedral
 from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_two_qubits import (
     synth_cnotdihedral_two_qubits,
 )
 from qiskit.synthesis.cnotdihedral.cnotdihedral_decompose_general import synth_cnotdihedral_general
 
 
-def synth_cnotdihedral_full(elem):
+def synth_cnotdihedral_full(elem: CNOTDihedral) -> QuantumCircuit:
     r"""Decompose a :class:`.CNOTDihedral` element into a :class:`.QuantumCircuit`.
+
     For :math:`N \leq 2` qubits this is based on optimal CX-cost decomposition from reference [1].
     For :math:`N > 2` qubits this is done using the general non-optimal compilation
     routine from reference [2].
 
     Args:
-        elem (CNOTDihedral): a :class:`.CNOTDihedral` element.
+        elem: A :class:`.CNOTDihedral` element.
+
     Returns:
-        QuantumCircuit: a circuit implementation of the :class:`.CNOTDihedral` element.
+        A circuit implementation of the :class:`.CNOTDihedral` element.
 
     References:
         1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits

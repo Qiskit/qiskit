@@ -21,6 +21,7 @@ Circuit synthesis for the Clifford class.
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
@@ -31,7 +32,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
-def synth_clifford_greedy(clifford):
+def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
     on the greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin [1].
@@ -43,10 +44,10 @@ def synth_clifford_greedy(clifford):
     that are mentioned in the same paper.
 
     Args:
-        clifford (Clifford): a Clifford operator.
+        clifford: A Clifford operator.
 
     Returns:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        A circuit implementation of the Clifford.
 
     Raises:
         QiskitError: if symplectic Gaussian elimination fails.

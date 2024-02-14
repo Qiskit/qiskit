@@ -38,15 +38,15 @@ def synth_circuit_from_stabilizers(
     Based on stim implementation.
 
     Args:
-        stabilizers (Collection[str]): list of stabilizer strings
-        allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+        stabilizers: List of stabilizer strings
+        allow_redundant: Allow redundant stabilizers (i.e., some stabilizers
             can be products of the others)
-        allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+        allow_underconstrained: Allow underconstrained set of stabilizers (i.e.,
             the stabilizers do not specify a unique state)
-        invert (bool): return inverse circuit
+        invert: Return inverse circuit
 
     Returns:
-        QuantumCircuit: a circuit that generates a state stabilized by ``stabilizers``.
+        A circuit that generates a state stabilized by ``stabilizers``.
 
     Raises:
         QiskitError: if the stabilizers are invalid, do not commute, or contradict each other,

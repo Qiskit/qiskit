@@ -23,6 +23,7 @@ from itertools import product
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
@@ -31,15 +32,15 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_bm(clifford):
+def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
     """Optimal CX-cost decomposition of a :class:`.Clifford` operator on 2 qubits
     or 3 qubits into a :class:`.QuantumCircuit` based on the Bravyi-Maslov method [1].
 
     Args:
-        clifford (Clifford): a Clifford operator.
+        clifford: A Clifford operator.
 
     Returns:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        A circuit implementation of the Clifford.
 
     Raises:
         QiskitError: if Clifford is on more than 3 qubits.
