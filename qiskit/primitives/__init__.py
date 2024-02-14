@@ -21,7 +21,7 @@ The primitives are computational building blocks to be used in larger applicatio
 units, called primitive unified blocs (PUBs), require quantum resources to efficiently produce
 outputs for.
 
-Currently there are two types of primitives, whose abstractions, in their latest versions, are
+Currently there are two types of primitives whose abstractions, in their latest versions, are
 defined by :class:`~.BaseSamplerV2` and :class:`~.BaseEstimatorV2`. Samplers are responsible for
 accepting quantum circuits (or sweeps of values over parameterized circuits) and sampling from their
 classical output registers. Estimators accept combinations of circuits and observables (or sweeps
