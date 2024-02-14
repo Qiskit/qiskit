@@ -29,7 +29,7 @@ def synth_cnotdihedral_general(elem):
     Args:
         elem (CNOTDihedral): a :class:`.CNOTDihedral` element.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the :class:`.CNOTDihedral` element.
 
     Raises:

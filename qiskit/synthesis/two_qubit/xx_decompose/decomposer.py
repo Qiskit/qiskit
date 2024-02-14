@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -55,7 +55,7 @@ def _average_infidelity(p, q):
 class XXDecomposer:
     """
     A class for optimal decomposition of 2-qubit unitaries into 2-qubit basis gates of ``XX`` type
-    (i.e., each locally equivalent to :math:`CAN(alpha, 0, 0)` for a possibly varying :math:`alpha`).
+    (i.e., each locally equivalent to :math:`CAN(\alpha, 0, 0)` for a possibly varying :math:`alpha`).
 
     Args:
         basis_fidelity: available strengths and fidelity of each.
@@ -64,11 +64,11 @@ class XXDecomposer:
         euler_basis: Basis string provided to :class:`.OneQubitEulerDecomposer` for 1Q synthesis.
             Defaults to ``"U"``.
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
-            embody the gate :math:`CAN(alpha, 0, 0)`. Strengths are taken so that ``pi/2`` represents
-            the class of a full :class:`.CXGate`.
+            embody the gate :math:`CAN(\alpha, 0, 0)`. Strengths are taken so that :math:`pi/2`
+            represents the class of a full :class:`.CXGate`.
         backup_optimizer: If supplied, defers synthesis to this callable when :class:`.XXDecomposer`
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
-            applications of ``XX(pi/2)``, in which case standard synthesis methods provide lower
+            applications of :math:`XX(\pi/2)`, in which case standard synthesis methods provide lower
             1Q gate count.
 
     .. note::

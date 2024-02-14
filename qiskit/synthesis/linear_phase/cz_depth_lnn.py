@@ -144,9 +144,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
         mat: an upper-diagonal matrix representing the CZ circuit.
             ``mat[i][j]=1 for i<j`` represents a ``cz(i,j)`` gate
 
-    Return:
-        QuantumCircuit: a circuit implementation of the CZ circuit of depth :math:`2n+2` for LNN
-            connectivity.
+    Returns:
+        A circuit implementation of the CZ circuit of depth :math:`2n+2` for LNN connectivity.
 
     References:
         1. Dmitri Maslov, Martin Roetteler,

@@ -32,10 +32,10 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
     (called ``cnots`` bellow), the algorithm synthesizes a parity network for :math:`S` by
     repeatedly choosing an index :math:`i` to expand and then effectively recursing on
     the co-factors :math:`S_0` and :math:`S_1`, consisting of the strings :math:`y \in S`,
-    with :math:`y_i = 0` or 1 respectively. As a subset :math:`S` is recursively expanded,
+    with :math:`y_i = 0` or :math:`1` respectively. As a subset :math:`S` is recursively expanded,
     ``cx`` gates are applied so that a designated target bit contains the
     (partial) parity :math:`\chi_y(x)` where :math:`y_i = 1` if and only if :math:`y'_i = 1` for all
-    :math:`y' \in `S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
+    :math:`y' \in S`. If :math:`S` contains a single element :math:`\{y'\}`, then :math:`y = y'`,
     and the target bit contains the value :math:`\chi_{y'}(x)` as desired.
 
     Notably, rather than uncomputing this sequence of ``cx`` (CNOT) gates when a subset :math:`S`
@@ -61,7 +61,7 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
 
         angles (list): a list containing all the phase-shift gates which are
             to be applied, in the same order as in ``cnots``. A number is
-            interpreted as the angle of p(angle), otherwise the elements
+            interpreted as the angle of :math:`p(angle)`, otherwise the elements
             have to be ``'t'``, ``'tdg'``, ``'s'``, ``'sdg'`` or ``'z'``.
 
         section_size (int): the size of every section in the Patel–Markov–Hayes algorithm.

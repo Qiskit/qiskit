@@ -98,10 +98,11 @@ def synth_clifford_layers(
             It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
-            since this function returns a circuit that reverts the order of qubits.
+        cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
+            :func:`.synth_cz_depth_line_mr`, since this function returns a circuit that reverts
+            the order of qubits.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
 
     References:
@@ -188,7 +189,7 @@ def _create_graph_state(cliff, validate=False):
         cliff (Clifford): a Clifford operator.
         validate (Boolean): if True, validates the synthesis process.
 
-    Return:
+    Returns:
         H1_circ: a circuit containing a layer of Hadamard gates.
         cliffh: cliffh.stab_x has full rank.
 
@@ -255,7 +256,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
         validate (Boolean): if True, validates the synthesis process.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
 
-    Return:
+    Returns:
         S1_circ: a circuit that can contain only S gates.
         CZ1_circ: a circuit that can contain only CZ gates.
         H2_circ: a circuit containing a layer of Hadamard gates.
@@ -322,7 +323,7 @@ def _decompose_hadamard_free(
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr.
 
-    Return:
+    Returns:
         S2_circ: a circuit that can contain only S gates.
         CZ2_circ: a circuit that can contain only CZ gates.
         CX_circ: a circuit that can contain only CX gates.
@@ -419,7 +420,7 @@ def synth_clifford_depth_lnn(cliff):
     Args:
         cliff (Clifford): a Clifford operator.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
 
     References:

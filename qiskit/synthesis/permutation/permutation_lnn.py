@@ -20,7 +20,7 @@ def synth_permutation_depth_lnn_kms(pattern):
     """Synthesize a permutation circuit for a linear nearest-neighbor
     architecture using the Kutin, Moulton, Smithline method.
 
-    This is the permutation synthesis algorithm from [1], Chapter 6.
+    This is the permutation synthesis algorithm from [1], section 6.
     It synthesizes any permutation of n qubits over linear nearest-neighbor
     architecture using SWAP gates with depth at most :math:`n` and size at most
     :math:`n(n-1)/2` (where both depth and size are measured with respect to SWAPs).

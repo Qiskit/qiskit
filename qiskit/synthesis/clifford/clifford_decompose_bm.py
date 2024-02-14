@@ -38,7 +38,7 @@ def synth_clifford_bm(clifford):
     Args:
         clifford (Clifford): a Clifford operator.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
 
     Raises:

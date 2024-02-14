@@ -242,7 +242,7 @@ def synth_cnot_depth_line_kms(mat):
     Synthesize linear reversible circuit for linear nearest-neighbor architectures using
     Kutin, Moulton, Smithline method.
 
-    Synthesis algorithm for linear reversible circuits from [1], Chapter 7.
+    Synthesis algorithm for linear reversible circuits from [1], section 7.
     This algorithm synthesizes any linear reversible circuit of :math:`n` qubits over
     a linear nearest-neighbor architecture using CX gates with depth at most :math:`5n`.
 

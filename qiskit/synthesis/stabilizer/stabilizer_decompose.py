@@ -65,7 +65,7 @@ def synth_stabilizer_layers(
             :func:`.synth_cz_depth_line_mr`,
             since this function returns a circuit that reverts the order of qubits.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the stabilizer state.
 
     Raises:
@@ -170,7 +170,7 @@ def synth_stabilizer_depth_lnn(stab):
     Args:
         stab (StabilizerState): a stabilizer state.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the stabilizer state.
 
     References:

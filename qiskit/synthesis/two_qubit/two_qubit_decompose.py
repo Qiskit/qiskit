@@ -1103,7 +1103,7 @@ class TwoQubitBasisDecomposer:
 
         which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(\pi/4, 0, 0)`
         or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target. It may
-        be sub-optimal for :math:`b \neq 0` (i. there exists an exact decomposition for any target
+        be sub-optimal for :math:`b \neq 0` (i.e. there exists an exact decomposition for any target
         using :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but it may not be this decomposition).
         This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
         No guarantees for non-supercontrolled basis.

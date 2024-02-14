@@ -34,7 +34,7 @@ def synth_qft_line(
         approximation_degree: The degree of approximation (0 for no approximation).
         do_swaps: Whether to include the final swaps in the QFT.
 
-    Return:
+    Returns:
         A circuit implementation of the QFT circuit.
 
     References:

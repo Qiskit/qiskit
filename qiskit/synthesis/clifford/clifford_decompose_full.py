@@ -31,7 +31,7 @@ def synth_clifford_full(clifford, method=None):
         method (str):  Optional, a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
 
     References:

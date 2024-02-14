@@ -45,7 +45,7 @@ def synth_circuit_from_stabilizers(
             the stabilizers do not specify a unique state)
         invert (bool): return inverse circuit
 
-    Return:
+    Returns:
         QuantumCircuit: a circuit that generates a state stabilized by ``stabilizers``.
 
     Raises:

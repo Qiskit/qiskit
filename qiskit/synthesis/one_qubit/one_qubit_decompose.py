@@ -255,10 +255,10 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles for input array.
 
         Args:
-            unitary: :math:`2\\times2` unitary matrix.
+            unitary: :math:`2\times2` unitary matrix.
 
         Returns:
-            tuple: (theta, phi, lambda).
+            tuple: ``(theta, phi, lambda)``.
         """
         unitary = np.asarray(unitary, dtype=complex)
         theta, phi, lam, _ = self._params(unitary)
