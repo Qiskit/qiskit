@@ -33,6 +33,8 @@ Qiskit implements a reference implementation for each of these abstractions,
 .. automodule:: qiskit.primitives.base.base_estimator
 .. automodule:: qiskit.primitives.base.base_sampler
 
+.. currentmodule:: qiskit.primitives
+
 Migration from Primitives V1 to V2
 ==================================
 
