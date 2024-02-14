@@ -9,7 +9,7 @@ upgrade:
     maintaining this alias is no longer relevant. If you
     were relying on the ``qiskit.IBMQ`` alias you should migrate your usage to
     the ``qiskit-ibm-provider`` package, see the
-    `migration guide <https://qiskit.org/ecosystem/ibm-provider/tutorials/Migration_Guide_from_qiskit-ibmq-provider.html>`__
+    `migration guide <https://github.com/Qiskit/qiskit-ibm-provider/blob/stable/0.6/docs/tutorials/Migration_Guide_from_qiskit-ibmq-provider.ipynb>`__
     for more details.
   - |
     Removed the deprecated module ``qiskit.tools.jupyter`` which previously
