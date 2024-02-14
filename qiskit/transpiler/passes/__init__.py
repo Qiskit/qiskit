@@ -139,6 +139,9 @@ Circuit Analysis
 Synthesis
 =========
 
+The synthesis transpiler plugin documentation can be found in the
+:mod:`qiskit.transpiler.passes.synthesis.plugin` page.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -147,10 +150,6 @@ Synthesis
    HighLevelSynthesis
    HLSConfig
    SolovayKitaev
-   SolovayKitaevSynthesis
-
-The synthesis plugin documentation can be found in the
-:mod:`qiskit.transpiler.passes.synthesis.plugin` page.
 
 Post Layout (Post transpile qubit selection)
 ============================================
