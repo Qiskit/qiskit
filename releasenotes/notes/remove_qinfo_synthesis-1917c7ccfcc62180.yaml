@@ -1,4 +1,9 @@
 ---
+features:
+  - |
+    A new class, :class:`~.TwoQubitWeylDecomposition`, has been added to :mod:`qiskit.synthesis`.
+    This class allows to apply the Weyl decomposition of two-qubit unitaries.
+
 upgrade:
   - |
     Removed the ``qiskit.quantum_info.synthesis`` module, which has been deprecated since the 0.46 release.
@@ -11,3 +16,7 @@ upgrade:
 
     This function was removed, since it has already been deprecated in the 0.46 release:
     * ``cnot_rxx_decompose``
+
+    These functions were removed, since they have already been deprecated in a previous release:
+    * ``decompose_clifford`` (use :func:`.qiskit.synthesis.synth_clifford_full` instead)
+    * ``decompose_cnotdihedral`` (use :func:`.qiskit.synthesis.synth_cnotdihedral_full` instead)
