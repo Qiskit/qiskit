@@ -102,7 +102,9 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc.h(0)
         qc.append(gate, [0, 1, 3])
 
-        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"], do_conjugate_reduction=False)(qc)
+        # Add "swap" to the basis gates to prevent conjugate reduction from replacing
+        # control-[SWAP] by CX(0,1) -- CCX(1, 0) -- CX(0, 1)
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u", "swap"])(qc)
         self.assertEqual(qc_optimized[1].operation.definition, expected_qc_def_optimized)
 
     def test_do_not_optimize_definitions_without_basis_gates(self):

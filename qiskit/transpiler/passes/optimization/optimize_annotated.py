@@ -367,13 +367,33 @@ class OptimizeAnnotated(TransformationPass):
         """
         did_something = False
         for node in dag.op_nodes(op=AnnotatedOperation):
-            base_dag = circuit_to_dag(node.op.base_op.definition, copy_operations=False)
-            base_decomposition = self._conjugate_decomposition(base_dag)
-            if base_decomposition is not None:
-                new_op = self._conjugate_reduce_op(node.op, base_decomposition)
-                dag.substitute_node(node, new_op)
-                did_something = True
+            base_op = node.op.base_op
+            if not self._skip_definition(base_op):
+                base_dag = circuit_to_dag(base_op.definition, copy_operations=False)
+                base_decomposition = self._conjugate_decomposition(base_dag)
+                if base_decomposition is not None:
+                    new_op = self._conjugate_reduce_op(node.op, base_decomposition)
+                    dag.substitute_node(node, new_op)
+                    did_something = True
         return dag, did_something
+
+    def _skip_definition(self, op: Operation) -> bool:
+        """
+        Returns True if we should not recurse into a gate's definition.
+        """
+        # Similar to HighLevelSynthesis transpiler pass, we do not recurse into a gate's
+        # `definition` for a gate that is supported by the target or in equivalence library.
+
+        controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
+        if not controlled_gate_open_ctrl:
+            inst_supported = (
+                self._target.instruction_supported(operation_name=op.name)
+                if self._target is not None
+                else op.name in self._device_insts
+            )
+            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
+                return True
+        return False
 
     def _recursively_process_definitions(self, op: Operation) -> bool:
         """
@@ -386,18 +406,8 @@ class OptimizeAnnotated(TransformationPass):
         if isinstance(op, AnnotatedOperation):
             return self._recursively_process_definitions(op.base_op)
 
-        # Similar to HighLevelSynthesis transpiler pass, we do not recurse into a gate's
-        # `definition` for a gate that is supported by the target or in equivalence library.
-
-        controlled_gate_open_ctrl = isinstance(op, ControlledGate) and op._open_ctrl
-        if not controlled_gate_open_ctrl:
-            inst_supported = (
-                self._target.instruction_supported(operation_name=op.name)
-                if self._target is not None
-                else op.name in self._device_insts
-            )
-            if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
-                return False
+        if self._skip_definition(op):
+            return False
 
         try:
             # extract definition
