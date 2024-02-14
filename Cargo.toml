@@ -14,7 +14,7 @@ license = "Apache-2.0"
 #
 # Each crate can add on specific features freely as it inherits.
 [workspace.dependencies]
-indexmap.version = "2.2.1"
+indexmap.version = "2.2.3"
 hashbrown.version = "0.14.0"
 # This doesn't set `extension-module` as a shared feature because we need to be able to disable it
 # during Rust-only testing (see # https://github.com/PyO3/pyo3/issues/340).

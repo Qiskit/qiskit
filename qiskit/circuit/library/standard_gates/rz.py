@@ -92,10 +92,10 @@ class RZGate(Gate):
         """Return a (multi-)controlled-RZ gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -118,6 +118,15 @@ class RZGate(Gate):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZGate` with an inverted parameter value.
+
+        Returns:
+            RZGate: inverse gate.
         """
         return RZGate(-self.params[0])
 
@@ -255,7 +264,17 @@ class CRZGate(ControlledGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+        """Return inverse CRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRZGate` with an inverted parameter value.
+
+         Returns:
+            CRZGate: inverse gate.
+        """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):

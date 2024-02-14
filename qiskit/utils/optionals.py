@@ -29,7 +29,7 @@ Qiskit Components
     :widths: 25 75
 
     * - .. py:data:: HAS_AER
-      - `Qiskit Aer <https://qiskit.org/ecosystem/aer/>` provides high-performance simulators for
+      - `Qiskit Aer <https://qiskit.github.io/qiskit-aer/>` provides high-performance simulators for
         the quantum circuits constructed within Qiskit.
 
     * - .. py:data:: HAS_IBMQ
@@ -103,7 +103,7 @@ External Python Libraries
         <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
         change-over period, it was sometimes convenient to convert things into the Python-only
         `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
-        `Qiskit Nature <https://qiskit.org/ecosystem/nature/>`__ still use NetworkX.
+        `Qiskit Nature <https://qiskit-community.github.io/qiskit-nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
       - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,

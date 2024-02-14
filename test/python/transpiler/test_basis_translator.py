@@ -1112,7 +1112,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         output = bt_pass(qc)
         # We need a second run of BasisTranslator to correct gates outside of
         # the target basis. This is a known isssue, see:
-        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
         output = bt_pass(output)
         expected = QuantumCircuit(2)
         expected.rz(pi, 1)

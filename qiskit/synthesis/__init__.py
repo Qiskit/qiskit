@@ -118,6 +118,8 @@ Two-Qubit Synthesis
    XXDecomposer
    TwoQubitWeylDecomposition
 
+.. autofunction:: two_qubit_cnot_decompose
+
 """
 
 from .evolution import (

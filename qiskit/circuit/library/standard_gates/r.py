@@ -80,9 +80,16 @@ class RGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Invert this gate.
+        """Invert this gate as: :math:`r(θ, φ)^dagger = r(-θ, φ)`
 
-        r(θ, φ)^dagger = r(-θ, φ)
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RGate` with an inverted parameter value.
+
+        Returns:
+            RGate: inverse gate.
         """
         return RGate(-self.params[0], self.params[1])
 

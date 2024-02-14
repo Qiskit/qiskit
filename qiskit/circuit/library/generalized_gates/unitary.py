@@ -74,7 +74,7 @@ class UnitaryGate(Gate):
 
         Args:
             data: Unitary operator.
-            label: Unitary name for backend [Default: None].
+            label: Unitary name for backend [Default: ``None``].
             check_input: If set to ``False`` this asserts the input
                 is known to be unitary and the checking to validate this will
                 be skipped. This should only ever be used if you know the

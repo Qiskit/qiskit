@@ -110,7 +110,17 @@ class ECRGate(SingletonGate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse ECR gate (itself)."""
+        """Return inverse ECR gate (itself).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as this gate
+                is self-inverse.
+
+        Returns:
+            ECRGate: inverse gate (self-inverse).
+        """
         return ECRGate()  # self-inverse
 
     def __eq__(self, other):
