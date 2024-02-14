@@ -10,12 +10,13 @@ community in this goal.
 * [Choose an issue to work on](#Choose-an-issue-to-work-on)
 * [Set up Python virtual development environment](#set-up-python-virtual-development-environment)
 * [Installing Qiskit from source](#installing-qiskit-from-source)
-* [Pull requests](#pull-requests)
+* [Issues and pull requests](#issues-and-pull-requests)
 * [Contributor Licensing Agreement](#contributor-licensing-agreement)
 * [Changelog generation](#changelog-generation)
 * [Release notes](#release-notes)
 * [Testing](#testing)
 * [Style and Lint](#style-and-lint)
+* [Building API docs locally](#building-api-docs-locally)
 * [Development Cycle](#development-cycle)
   * [Branches](#branches)
   * [Release Cycle](#release-cycle)
@@ -135,7 +136,7 @@ dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
 
-## Pull requests
+## Issues and pull requests
 
 We use [GitHub pull requests](https://help.github.com/articles/about-pull-requests) to accept
 contributions.
@@ -147,6 +148,9 @@ a place to talk about the idea and how we can work together to implement it in
 the code. It also lets the community know what you're working on, and if you
 need help, you can reference the issue when discussing it with other community
 and team members.
+
+* For documentation issues relating to pages in the Start, Build, Transpile, Verify, Run, and Migration guides sections of [docs.quantum.ibm.com](https://docs.quantum.ibm.com/), please open an issue in the [Qiskit/documentation repo](https://github.com/Qiskit/documentation/issues/new/choose) rather than the Qiskit/qiskit repo. In other words, any page that DOES NOT have `/api/` in the url should be addressed in the Qiskit/documentation repo. (Exception: the [Migration guide](https://docs.quantum.ibm.com/api/migration-guides) urls contain `/api/` but are managed in the Qiskit/documentation repo.)
+* For issues relating to API reference pages (any page that contains `/api/` in the url), please open an issue in the repo specific to that API reference, for example [Qiskit/qiskit](https://github.com/Qiskit/qiskit/issues/new/choose), [Qiskit/qiskit-aer](https://github.com/Qiskit/qiskit-aer/issues/new/choose), or [Qiskit/qiskit-ibm-runtime](https://github.com/Qiskit/qiskit-ibm-runtime/issues/new/choose).
 
 If you've written some code but need help finishing it, want to get initial
 feedback on it prior to finishing it, or want to share it and discuss prior
@@ -385,7 +389,6 @@ like for the current state of the repo you can run: `tox -edocs` which will
 build all the documentation into `docs/_build/html` and the release notes in
 particular will be located at `docs/_build/html/release_notes.html`
 
-
 ## Testing
 
 Once you've made a code change, it is important to verify that your change
@@ -577,6 +580,22 @@ rather than via `tox`. If you have installed the development packages in your py
 `pip install -r requirements-dev.txt`, then `ruff` and `black` will be available and can be run from
 the command line. See [`tox.ini`](tox.ini) for how `tox` invokes them.
 
+## Building API docs locally
+
+If you have made changes to the API documentation, you can run the command below
+to build documentation locally to review the html output. 
+The easiest and recommended way to build the documentation is to use [**tox**](https://tox.readthedocs.io/en/latest/#):
+
+```
+tox -edocs
+```
+
+Once you run this command, the output will be located at `docs/_build/html`.
+Then, open up the file `index.html` in your browser.
+
+Sometimes Sphinx can get in a bad cache state. Run `tox -e docs-clean`
+to reset Sphinx's cache.
+
 ## Development cycle
 
 The development cycle for qiskit is all handled in the open using
@@ -627,7 +646,7 @@ is a need additional release candidates can be published from `stable/*` and whe
 release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
-The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
+The qiskit code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](./DEPRECATION.md) fully applies here. Additionally, qiskit does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.
 
 For example, if `Obj.method1` is being deprecated in favour of `Obj.method2`, the existing test (or tests) for `method1` might look like this:
 
@@ -680,7 +699,7 @@ You should also add a new "tester" to [`qiskit.utils.optionals`](qiskit/utils/op
 
 You cannot `import` an optional dependency at the top of a file, because if it is not installed, it will raise an error and qiskit will be unusable.
 We also largely want to avoid importing packages until they are actually used; if we import a lot of packages during `import qiskit`, it becomes sluggish for the user if they have a large environment.
-Instead, you should use [one of the "lazy testers" for optional dependencies](https://qiskit.org/documentation/apidoc/utils.html#module-qiskit.utils.optionals), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
+Instead, you should use [one of the "lazy testers" for optional dependencies](https://docs.quantum.ibm.com/api/qiskit/utils#optional-dependency-checkers), and import your optional dependency inside the function or class that uses it, as in the examples within that link.
 Very lightweight _requirements_ can be imported at the tops of files, but even this should be limited; it's always ok to `import numpy`, but Scipy modules are relatively heavy, so only import them within functions that use them.
 
 

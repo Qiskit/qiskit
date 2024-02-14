@@ -30,6 +30,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library import (
     XGate,
+    CXGate,
     RYGate,
     QFT,
     QAOAAnsatz,
@@ -44,17 +45,24 @@ from qiskit.circuit.library import (
     UCRYGate,
     UCRZGate,
     UnitaryGate,
+    DiagonalGate,
+)
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
 )
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -1456,15 +1464,16 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_diagonal_gate(self):
         """Test that a `DiagonalGate` successfully roundtrips."""
+        diag = DiagonalGate([1, -1, -1, 1])
+
         qc = QuantumCircuit(2)
-        with self.assertWarns(PendingDeprecationWarning):
-            qc.diagonal([1, -1, -1, 1], [0, 1])
+        qc.append(diag, [0, 1])
 
         with io.BytesIO() as fptr:
             dump(qc, fptr)
             fptr.seek(0)
             new_circuit = load(fptr)[0]
-        # DiagonalGate (and a bunch of the qiskit.extensions gates) have non-deterministic
+        # DiagonalGate (and some of the qiskit.circuit.library gates) have non-deterministic
         # definitions with regard to internal instruction names, so cannot be directly compared for
         # equality.
         self.assertIs(type(qc.data[0].operation), type(new_circuit.data[0].operation))
@@ -1678,12 +1687,6 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
-    def test_qpy_deprecation(self):
-        """Test the old import path's deprecations fire."""
-        with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
-            # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
-            from qiskit.circuit.qpy_serialization import dump, load
-
     @ddt.data(0, "01", [1, 0, 0, 0])
     def test_valid_circuit_with_initialize_instruction(self, param):
         """Tests that circuit that has initialize instruction can be saved and correctly retrieved"""
@@ -1695,6 +1698,67 @@ class TestLoadFromQPY(QiskitTestCase):
             new_circuit = load(fptr)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_clifford(self):
+        """Test that circuits with Clifford operations can be saved and retrieved correctly."""
+        cliff1 = Clifford.from_dict(
+            {
+                "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+                "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+            }
+        )
+        cliff2 = Clifford.from_dict(
+            {
+                "stabilizer": ["+YX", "+ZZ"],
+                "destabilizer": ["+IZ", "+YI"],
+            }
+        )
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(cliff1, [2, 4, 5])
+        circuit.h(4)
+        circuit.append(cliff2, [3, 0])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
+    def test_annotated_operations(self):
+        """Test that circuits with annotated operations can be saved and retrieved correctly."""
+        op1 = AnnotatedOperation(
+            CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
+        )
+        op2 = AnnotatedOperation(XGate(), InverseModifier())
+
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(op1, [0, 1, 2])
+        circuit.h(4)
+        circuit.append(op2, [1])
+
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
+
+    def test_annotated_operations_iterative(self):
+        """Test that circuits with iterative annotated operations can be saved and
+        retrieved correctly.
+        """
+        op = AnnotatedOperation(AnnotatedOperation(XGate(), InverseModifier()), ControlModifier(1))
+        circuit = QuantumCircuit(4)
+        circuit.h(0)
+        circuit.append(op, [0, 2])
+        circuit.cx(2, 3)
+        with io.BytesIO() as fptr:
+            dump(circuit, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(circuit, new_circuit)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

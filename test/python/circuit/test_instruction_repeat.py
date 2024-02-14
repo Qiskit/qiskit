@@ -14,15 +14,12 @@
 """Test Qiskit's repeat instruction operation."""
 
 import unittest
-from numpy import pi
 
-from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import SGate, U3Gate, CXGate, UnitaryGate
+from qiskit.circuit.library import SGate, CXGate, UnitaryGate
 from qiskit.circuit import Instruction, Measure, Gate
-from qiskit.transpiler.passes import Unroller
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRepeatInt1Q(QiskitTestCase):
@@ -120,39 +117,6 @@ class TestRepeatIntMeasure(QiskitTestCase):
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Instruction)
         self.assertNotIsInstance(result, Gate)
-
-
-class TestRepeatUnroller(QiskitTestCase):
-    """Test unrolling Gate.repeat"""
-
-    def test_unroller_two(self):
-        """Test unrolling gate.repeat(2)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(2), [qr[0]])
-        with self.assertWarns(DeprecationWarning):
-            result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_one(self):
-        """Test unrolling gate.repeat(1)."""
-        qr = QuantumRegister(1, "qr")
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().repeat(1), [qr[0]])
-        with self.assertWarns(DeprecationWarning):
-            result = PassManager(Unroller("u3")).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
 
 
 class TestRepeatErrors(QiskitTestCase):

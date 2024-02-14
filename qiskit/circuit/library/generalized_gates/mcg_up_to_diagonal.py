@@ -73,19 +73,24 @@ class MCGupDiag(Gate):
         mcg_up_diag_circuit.append(gate, q[:])
         self.definition = mcg_up_diag_circuit
 
-    def inverse(self) -> Gate:
+    def inverse(self, annotated: bool = False) -> Gate:
         """Return the inverse.
 
         Note that the resulting Gate object has an empty ``params`` property.
         """
-        inverse_gate = Gate(
-            name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
-        )  # removing the params because arrays are deprecated
+        if not annotated:
+            inverse_gate = Gate(
+                name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
+            )  # removing the params because arrays are deprecated
 
-        definition = QuantumCircuit(*self.definition.qregs)
-        for inst in reversed(self._definition):
-            definition._append(inst.replace(operation=inst.operation.inverse()))
-        inverse_gate.definition = definition
+            definition = QuantumCircuit(*self.definition.qregs)
+            for inst in reversed(self._definition):
+                definition._append(
+                    inst.replace(operation=inst.operation.inverse(annotated=annotated))
+                )
+            inverse_gate.definition = definition
+        else:
+            inverse_gate = super().inverse(annotated=annotated)
         return inverse_gate
 
     # Returns the diagonal up to which the gate is implemented.

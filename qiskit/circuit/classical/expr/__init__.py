@@ -86,7 +86,8 @@ suitable :class:`Cast` nodes.
 The functions and methods described in this section are a more user-friendly way to build the
 expression tree, while staying close to the internal representation.  All these functions will
 automatically lift valid Python scalar values into corresponding :class:`Var` or :class:`Value`
-objects, and will resolve any required implicit casts on your behalf.
+objects, and will resolve any required implicit casts on your behalf.  If you want to directly use
+some scalar value as an :class:`Expr` node, you can manually :func:`lift` it yourself.
 
 .. autofunction:: lift
 

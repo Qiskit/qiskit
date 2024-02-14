@@ -12,16 +12,14 @@ API Reference
    circuit_classical
    circuit_singleton
    compiler
-   execute
    visualization
    classicalfunction
    converters
    assembler
    dagcircuit
-   extensions
    passmanager
-   providers_basicaer
    providers
+   providers_basic_provider
    providers_fake_provider
    providers_models
    pulse
@@ -30,13 +28,10 @@ API Reference
    primitives
    qasm2
    qasm3
-   qasm
    qobj
    qpy
    quantum_info
    result
-   tools
-   tools_jupyter
    transpiler
    transpiler_passes
    transpiler_preset

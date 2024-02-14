@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,7 +30,7 @@ from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
-from qiskit.providers import basicaer
+from qiskit.providers import basic_provider
 from qiskit.transpiler import Target
 from qiskit.providers.backend_compat import convert_to_target
 
@@ -118,9 +118,9 @@ class FakeBackendV2(BackendV2):
 
     def _setup_sim(self):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            from qiskit_aer import AerSimulator
 
-            self.sim = aer.AerSimulator()
+            self.sim = AerSimulator()
             if self.target and self._props_dict:
                 noise_model = self._get_noise_model_from_backend_v2()
                 self.sim.set_options(noise_model=noise_model)
@@ -129,7 +129,7 @@ class FakeBackendV2(BackendV2):
                 self.set_options(noise_model=noise_model)
 
         else:
-            self.sim = basicaer.QasmSimulatorPy()
+            self.sim = basic_provider.BasicSimulator()
 
     def _get_conf_dict_from_json(self):
         if not self.conf_filename:
@@ -177,9 +177,8 @@ class FakeBackendV2(BackendV2):
                 defaults = PulseDefaults.from_dict(self._defs_dict)
 
             self._target = convert_to_target(
-                conf, props, defaults, add_delay=True, filter_faulty=True
+                configuration=conf, properties=props, defaults=defaults
             )
-
         return self._target
 
     @property
@@ -200,11 +199,11 @@ class FakeBackendV2(BackendV2):
                 default values set
         """
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            from qiskit_aer import AerSimulator
 
-            return aer.AerSimulator._default_options()
+            return AerSimulator._default_options()
         else:
-            return basicaer.QasmSimulatorPy._default_options()
+            return basic_provider.BasicSimulator._default_options()
 
     @property
     def dtm(self) -> float:
@@ -303,12 +302,12 @@ class FakeBackendV2(BackendV2):
 
         This method runs circuit jobs (an individual or a list of QuantumCircuit
         ) and pulse jobs (an individual or a list of Schedule or ScheduleBlock)
-        using BasicAer or Aer simulator and returns a
+        using a :class:`.BasicSimulator` or Aer simulator and returns a
         :class:`~qiskit.providers.Job` object.
 
         If qiskit-aer is installed, jobs will be run using AerSimulator with
         noise model of the fake backend. Otherwise, jobs will be run using
-        BasicAer simulator without noise.
+        :class:`.BasicSimulator` without noise.
 
         Currently noisy simulation of a pulse job is not supported yet in
         FakeBackendV2.
@@ -349,10 +348,10 @@ class FakeBackendV2(BackendV2):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:  # pulse job
-            raise QiskitError("Pulse simulation is currently not supported for V2 fake backends.")
+            raise QiskitError("Pulse simulation is currently not supported for fake backends.")
         # circuit job
         if not _optionals.HAS_AER:
-            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+            warnings.warn("Aer not found using BasicProvider and no noise", RuntimeWarning)
         if self.sim is None:
             self._setup_sim()
         self.sim._options = self._options
@@ -376,13 +375,13 @@ class FakeBackendV2(BackendV2):
 
         from qiskit.circuit import Delay
         from qiskit.providers.exceptions import BackendPropertyError
-        from qiskit.providers.aer.noise import NoiseModel
-        from qiskit.providers.aer.noise.device.models import (
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_aer.noise.device.models import (
             _excited_population,
             basic_device_gate_errors,
             basic_device_readout_errors,
         )
-        from qiskit.providers.aer.noise.passes import RelaxationNoisePass
+        from qiskit_aer.noise.passes import RelaxationNoisePass
 
         if self._props_dict is None:
             self._set_props_dict_from_json()
@@ -403,7 +402,7 @@ class FakeBackendV2(BackendV2):
         with warnings.catch_warnings():
             warnings.filterwarnings(
                 "ignore",
-                module="qiskit.providers.aer.noise.device.models",
+                module="qiskit_aer.noise.device.models",
             )
             gate_errors = basic_device_gate_errors(
                 properties,
@@ -459,10 +458,10 @@ class FakeBackend(BackendV1):
 
     def _setup_sim(self):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
-            from qiskit.providers.aer.noise import NoiseModel
+            from qiskit_aer import AerSimulator
+            from qiskit_aer.noise import NoiseModel
 
-            self.sim = aer.AerSimulator()
+            self.sim = AerSimulator()
             if self.properties():
                 noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
@@ -470,7 +469,7 @@ class FakeBackend(BackendV1):
                 # it when run() is called
                 self.set_options(noise_model=noise_model)
         else:
-            self.sim = basicaer.QasmSimulatorPy()
+            self.sim = basic_provider.BasicSimulator()
 
     def properties(self):
         """Return backend properties"""
@@ -527,11 +526,11 @@ class FakeBackend(BackendV1):
     @classmethod
     def _default_options(cls):
         if _optionals.HAS_AER:
-            from qiskit.providers import aer
+            from qiskit_aer import QasmSimulator
 
-            return aer.QasmSimulator._default_options()
+            return QasmSimulator._default_options()
         else:
-            return basicaer.QasmSimulatorPy._default_options()
+            return basic_provider.BasicSimulator._default_options()
 
     def run(self, run_input, **kwargs):
         """Main job in simulator"""
@@ -553,20 +552,12 @@ class FakeBackend(BackendV1):
                 "QuantumCircuit, Schedule, or a list of either" % circuits
             )
         if pulse_job:
-            if _optionals.HAS_AER:
-                from qiskit.providers import aer
-                from qiskit.providers.aer.pulse import PulseSystemModel
-
-                system_model = PulseSystemModel.from_backend(self)
-                sim = aer.Aer.get_backend("pulse_simulator")
-                job = sim.run(circuits, system_model=system_model, **kwargs)
-            else:
-                raise QiskitError("Unable to run pulse schedules without qiskit-aer installed")
-        else:
-            if self.sim is None:
-                self._setup_sim()
-            if not _optionals.HAS_AER:
-                warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
-            self.sim._options = self._options
-            job = self.sim.run(circuits, **kwargs)
+            raise QiskitError("Pulse simulation is currently not supported for fake backends.")
+        # circuit job
+        if not _optionals.HAS_AER:
+            warnings.warn("Aer not found using BasicAer and no noise", RuntimeWarning)
+        if self.sim is None:
+            self._setup_sim()
+        self.sim._options = self._options
+        job = self.sim.run(circuits, **kwargs)
         return job

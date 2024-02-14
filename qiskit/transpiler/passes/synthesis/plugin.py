@@ -130,18 +130,15 @@ plugins.
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.UnitarySynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by simply adding
-an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
-for the plugin package with the necessary entry points under the
-``qiskit.unitary_synthesis`` namespace. For example::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the ``qiskit.unitary_synthesis`` namespace. For example:
 
-    entry_points = {
-        'qiskit.unitary_synthesis': [
-            'special = qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis',
-        ]
-    },
+.. code-block:: toml
 
-(note that the entry point ``name = path`` is a single string not a Python
-expression). There isn't a limit to the number of plugins a single package can
+    [project.entry-points."qiskit.unitary_synthesis"]
+    "special" = "qiskit_plugin_pkg.module.plugin:SpecialUnitarySynthesis"
+
+There isn't a limit to the number of plugins a single package can
 include as long as each plugin has a unique name. So a single package can
 expose multiple plugins if necessary. The name ``default`` is used by Qiskit
 itself and can't be used in a plugin.
@@ -152,7 +149,7 @@ Unitary Synthesis Plugin Configuration
 For some unitary synthesis plugins that expose multiple options and tunables
 the plugin interface has an option for users to provide a free form
 configuration dictionary. This will be passed through to the ``run()`` method
-as the ``config`` kwarg. If your plugin has these configuration options you
+as the ``options`` kwarg. If your plugin has these configuration options you
 should clearly document how a user should specify these configuration options
 and how they're used as it's a free form field.
 
@@ -218,19 +215,15 @@ at most 3 qubits, using the method ``synth_clifford_bm``.
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
 a setuptools entry point in the package metadata. This is done by adding
-an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
-for the plugin package with the necessary entry points under the
-``qiskit.synthesis`` namespace. For example::
+an ``entry-points`` table in ``pyproject.toml`` for the plugin package with the necessary entry
+points under the ``qiskit.synthesis`` namespace. For example:
 
-    entry_points = {
-        'qiskit.synthesis': [
-            'clifford.special = qiskit_plugin_pkg.module.plugin:SpecialSynthesisClifford',
-        ]
-    },
+.. code-block:: toml
 
-(note that the entry point ``name = path`` is a single string not a Python
-expression). The ``name`` consists of two parts separated by dot ".": the
-name of the
+    [project.entry-points."qiskit.synthesis"]
+    "clifford.special" = "qiskit_plugin_pkg.module.plugin:SpecialSynthesisClifford"
+
+The ``name`` consists of two parts separated by dot ".": the name of the
 type of :class:`~qiskit.circuit.Operation` to which the synthesis plugin applies
 (``clifford``), and the name of the plugin (``special``).
 There isn't a limit to the number of plugins a single package can
@@ -238,6 +231,9 @@ include as long as each plugin has a unique name.
 
 Using Plugins
 =============
+
+Unitary Synthesis Plugins
+-------------------------
 
 To use a plugin all you need to do is install the package that includes a
 synthesis plugin. Then Qiskit will automatically discover the installed
@@ -249,6 +245,74 @@ Python logging.
 To get the installed list of installed unitary synthesis plugins you can use the
 :func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
 function.
+
+.. _using-high-level-synthesis-plugins:
+
+High-level Synthesis Plugins
+----------------------------
+
+To use a high-level synthesis plugin, you first instantiate an :class:`.HLSConfig` to
+store the names of the plugins to use for various high-level objects.
+For example::
+
+    HLSConfig(permutation=["acg"], clifford=["layers"], linear_function=["pmh"])
+
+creates a high-level synthesis configuration that uses the ``acg`` plugin
+for synthesizing :class:`.PermutationGate` objects, the ``layers`` plugin
+for synthesizing :class:`.Clifford` objects, and the ``pmh`` plugin for synthesizing
+:class:`.LinearFunction` objects.  The keyword arguments are the :attr:`.Operation.name` fields of
+the relevant objects.  For example, all :class:`.Clifford` operations have the
+:attr:`~.Operation.name` ``clifford``, so this is used as the keyword argument.  You can specify
+any keyword argument here that you have installed plugins to handle, including custom user objects
+if you have plugins installed for them.  See :class:`.HLSConfig` for more detail on alternate
+formats for configuring the plugins within each argument.
+
+For each high-level object, the list of given plugins are tried in sequence until one of them
+succeeds (in the example above, each list only contains a single plugin). In addition to specifying
+a plugin by its name, you can instead pass a ``(name, options)`` tuple, where the second element of
+the tuple is a dictionary containing options for the plugin.
+
+Once created you then pass this :class:`.HLSConfig` object into the
+``hls_config`` argument for :func:`.transpile` or :func:`.generate_preset_pass_manager`
+which will use the specified plugins as part of the larger compilation workflow.
+
+To get a list of installed high level synthesis plugins for any given :attr:`.Operation.name`, you
+can use the :func:`.high_level_synthesis_plugin_names` function, passing the desired ``name`` as the
+argument::
+
+    high_level_synthesis_plugin_names("clifford")
+
+will return a list of all the installed Clifford synthesis plugins.
+
+Available Plugins
+-----------------
+
+High-level synthesis plugins that are directly available in Qiskit include plugins
+for synthesizing :class:`.Clifford` objects, :class:`.LinearFunction` objects, and
+:class:`.PermutationGate` objects.
+Some of these plugins implicitly target all-to-all connectivity. This is not a
+practical limitation since
+:class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
+typically runs before layout and routing, which will ensure that the final circuit
+adheres to the device connectivity by inserting additional SWAP gates. A good example
+is the permutation synthesis plugin ``ACGSynthesisPermutation`` which can synthesize
+any permutation with at most 2 layers of SWAP gates.
+On the other hand, some plugins implicitly target linear connectivity.
+Typically, the synthesizing circuits have larger depth and the number of gates,
+however no additional SWAP gates would be inserted if the following layout pass chose a
+consecutive line of qubits inside the topology of the device. A good example of this is
+the permutation synthesis plugin ``KMSSynthesisPermutation`` which can synthesize any
+permutation of ``n`` qubits in depth ``n``. Typically, it is difficult to know in advance
+which of the two approaches: synthesizing circuits for all-to-all connectivity and
+inserting SWAP gates vs. synthesizing circuits for linear connectivity and inserting less
+or no SWAP gates lead a better final circuit, so it likely makes sense to try both and
+see which gives better results.
+Finally, some plugins can target a given connectivity, and hence should be run after the
+layout is set. In this case the synthesized circuit automatically adheres to
+the topology of the device. A good example of this is the permutation synthesis plugin
+``TokenSwapperSynthesisPermutation`` which is able to synthesize arbitrary permutations
+with respect to arbitrary coupling maps.
+For more detail, please refer to description of each individual plugin.
 
 Plugin API
 ==========
@@ -271,10 +335,11 @@ High-Level Synthesis Plugins
 
    HighLevelSynthesisPlugin
    HighLevelSynthesisPluginManager
-
+   high_level_synthesis_plugin_names
 """
 
 import abc
+from typing import List
 
 import stevedore
 
@@ -602,3 +667,22 @@ class HighLevelSynthesisPluginManager:
         """Returns the plugin for ``op_name`` and ``method_name``."""
         plugin_name = op_name + "." + method_name
         return self.plugins[plugin_name].obj
+
+
+def high_level_synthesis_plugin_names(op_name: str) -> List[str]:
+    """Return a list of plugin names installed for a given high level object name
+
+    Args:
+        op_name: The operation name to find the installed plugins for. For example,
+            if you provide ``"clifford"`` as the input it will find all the installed
+            clifford synthesis plugins that can synthesize :class:`.Clifford` objects.
+            The name refers to the :attr:`.Operation.name` attribute of the relevant objects.
+
+    Returns:
+        A list of installed plugin names for the specified high level operation
+
+    """
+    # NOTE: This is not a shared global instance to avoid an import cycle
+    # at load time for the default plugins.
+    plugin_manager = HighLevelSynthesisPluginManager()
+    return plugin_manager.method_names(op_name)

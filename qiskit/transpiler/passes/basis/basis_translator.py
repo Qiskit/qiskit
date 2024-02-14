@@ -158,6 +158,11 @@ class BasisTranslator(TransformationPass):
             source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
+        # If the source basis is a subset of the target basis and we have no circuit
+        # instructions on qargs that have non-global operations there is nothing to
+        # translate and we can exit early.
+        if source_basis.issubset(target_basis) and not qargs_local_source_basis:
+            return dag
 
         logger.info(
             "Begin BasisTranslator from source basis %s to target basis %s.",
@@ -319,16 +324,8 @@ class BasisTranslator(TransformationPass):
                                     new_value = new_value.assign(*x)
                             else:
                                 new_value = param.bind(bind_dict)
-                            # cast from ParameterExpression to number, if no parameters left
                             if not new_value.parameters:
-                                if new_value.is_real():
-                                    new_value = (
-                                        int(new_value)
-                                        if new_value._symbol_expr.is_integer
-                                        else float(new_value)
-                                    )
-                                else:
-                                    new_value = complex(new_value)
+                                new_value = new_value.numeric()
                             new_params.append(new_value)
                     new_op.params = new_params
                 else:
@@ -345,26 +342,9 @@ class BasisTranslator(TransformationPass):
                 else:
                     new_phase = old_phase.bind(bind_dict)
                 if not new_phase.parameters:
-                    if new_phase.is_real():
-                        new_phase = (
-                            int(new_phase)
-                            if new_phase._symbol_expr.is_integer
-                            else float(new_phase)
-                        )
-                    else:
-                        # If is_real() evals false try casting to a float
-                        # anyway in case there is a rounding error adding
-                        # a near 0 complex term
-                        try:
-                            new_phase = float(new_phase)
-                        except TypeError as exc:
-                            raise TranspilerError(
-                                f"Global phase: {new_phase} is complex which is invalid"
-                            ) from exc
-                try:
-                    new_phase = float(new_phase)
-                except TypeError:
-                    pass
+                    new_phase = new_phase.numeric()
+                    if isinstance(new_phase, complex):
+                        raise TranspilerError(f"Global phase must be real, but got '{new_phase}'")
                 bound_target_dag.global_phase = new_phase
         else:
             bound_target_dag = target_dag

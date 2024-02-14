@@ -16,7 +16,6 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
-
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
@@ -28,9 +27,6 @@ from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import Decompose
-
-from qiskit.test import QiskitTestCase
-
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,
 )
@@ -39,6 +35,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
     FindCommutingPauliEvolutions,
     Commuting2qGateRouter,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

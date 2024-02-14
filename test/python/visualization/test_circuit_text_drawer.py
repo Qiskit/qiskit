@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,14 +23,20 @@ import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction, IfElseOp
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
+from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
-from qiskit.providers.fake_provider import FakeBelemV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import (
     HGate,
@@ -38,8 +44,11 @@ from qiskit.circuit.library import (
     U3Gate,
     XGate,
     CZGate,
+    CXGate,
     ZGate,
     YGate,
+    SGate,
+    SXGate,
     U1Gate,
     SwapGate,
     RZZGate,
@@ -52,7 +61,10 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+from ..legacy_cmaps import YORKTOWN_CMAP
 
 if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction import classical_function
@@ -6121,7 +6133,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             with qc.if_test((creg[1], 1)):
                 qc.x(0)
 
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42)
         backend.target.add_instruction(IfElseOp, name="if_else")
 
         circuit = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
@@ -6301,6 +6313,63 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
 
         self.assertEqual(
             str(circuit_drawer(circuit, output="text", fold=80, initial_state=False)),
+            expected,
+        )
+
+
+class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
+    """Test AnnotatedOperations and other non-Instructions."""
+
+    def test_annotated_operation(self):
+        """Test AnnotatedOperation and other non-Instructions."""
+        expected = "\n".join(
+            [
+                "     ┌───────────┐┌───┐                                     ",
+                "q_0: ┤0          ├┤ X ├──■────■────────────■────────────────",
+                "     │  Clifford │├───┤┌─┴─┐  │            │          ┌────┐",
+                "q_1: ┤1          ├┤ H ├┤ S ├──■────────────o──────────┤ √X ├",
+                "     └───────────┘└───┘└─┬─┘┌─┴─┐┌─────────┴─────────┐└────┘",
+                "q_2: ────────────────────o──┤ X ├┤ S - Inv, Pow(3.3) ├──────",
+                "                            └───┘└───────────────────┘      ",
+            ]
+        )
+        circuit = QuantumCircuit(3)
+        cliff = random_clifford(2)
+        circuit.append(cliff, [0, 1])
+        circuit.x(0)
+        circuit.h(1)
+        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.ccx(0, 1, 2)
+        op1 = AnnotatedOperation(
+            SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
+        )
+        circuit.append(op1, [0, 1, 2])
+        circuit.append(SXGate(), [1])
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
+            expected,
+        )
+
+    def test_annotated_multi_qubit(self):
+        """Test AnnotatedOperation and other non-Instructions."""
+        expected = "\n".join(
+            [
+                "                  ",
+                "q_0: ──────o──────",
+                "     ┌─────┴─────┐",
+                "q_1: ┤0          ├",
+                "     │  Cx - Inv │",
+                "q_2: ┤1          ├",
+                "     └─────┬─────┘",
+                "q_3: ──────■──────",
+                "                  ",
+            ]
+        )
+        gate = AnnotatedOperation(CXGate(), [ControlModifier(2, 2), InverseModifier()])
+        circuit = QuantumCircuit(gate.num_qubits)
+        circuit.append(gate, [0, 3, 1, 2])
+        self.assertEqual(
+            str(circuit_drawer(circuit, output="text", initial_state=False)),
             expected,
         )
 
