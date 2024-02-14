@@ -1,7 +1,7 @@
 ---
-deprecations:
+upgrade:
   - |
-    The :mod:`qiskit.providers.fake_provider` module has been migrated to
+    The deprecated :mod:`qiskit.providers.fake_provider` module has been migrated to
     the ``qiskit-ibm-runtime`` Python package. For this reason, the following elements in
     the :mod:`qiskit.providers.fake_provider` have been removed following their deprecation
     in Qiskit 0.46:

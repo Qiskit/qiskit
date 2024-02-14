@@ -4,7 +4,7 @@ prelude: |
   culmination of 7 years of development to mature Qiskit into a stable, high-
   performance SDK for quantum computing, and is the start of a new
   era for the Qiskit project and community. Besides general performance and
-  stability improvements, the most significant changes with the 1.0.0 
+  stability improvements, the most significant changes with the 1.0.0
   release relate to the stability policy, release cycles, and versioning.
   Qiskit is now formally using `semantic versioning <https://semver.org/>`__,
   and this means that, for the entire lifecycle of the 1.x release series, the project
@@ -13,7 +13,7 @@ prelude: |
   supported branch for 6 months after the release of the next major version.
   This starts now with the 1.x and 0.x major series: the 0.46.x release will
   continue to be supported, with periodic patch releases that contain bug fixes, for 6
-  months after the release of 1.0. That is, 0.46.x will be supported until 2024-08. 
+  months after the release of 1.0. That is, 0.46.x will be supported until 2024-08.
   You can see the full details of the new policy here:
 
   https://docs.quantum.ibm.com/start/install#qiskit-versioning
@@ -23,9 +23,13 @@ prelude: |
   `elements <https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492>`__
   model,  the ``qiskit`` package you would install has been a meta-package (or package of
   packages) that installs the combined elements comprising Qiskit. As announced
-  in previous releases <link to 0.44, 0.45, and blog post>,  with the 1.0 release we're
-  completing a transition to have a single ``qiskit`` package exposing only the
-  core SDK (what was previously ``qiskit-terra``). This means that for releases >= 1.0.0,
+  in previous releases (for more details see the
+  `0.44.0 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.44#0440>`__,
+  `0.45.3 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.45#prelude>`__,
+  and `0.46.0 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.46#prelude>`__ release
+  notes, along with this `blog post <https://research.ibm.com/blog/qiskit-application-modules>`__)
+  with the 1.0 release we're completing a transition to have a single ``qiskit`` package exposing
+  only the core SDK (what was previously ``qiskit-terra``). This means that for releases >= 1.0.0,
   we have stopped using the ``qiskit-terra`` package and will only be publishing ``qiskit``.
   Unfortunately, this change in packaging structure is not something that
   can be fully communicated to ``pip``, the Python package installer. This

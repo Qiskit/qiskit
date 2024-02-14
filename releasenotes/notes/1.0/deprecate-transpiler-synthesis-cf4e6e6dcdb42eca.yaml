@@ -1,14 +1,15 @@
 ---
-deprecations:
+upgrade:
   - |
-    The :mod:`qiskit.transpiler.synthesis` module is deprecated and
-    will be removed in a future release. The following objects have been moved:
+    The deprecated :mod:`qiskit.transpiler.synthesis` module has been removed. It was marked
+    as deprecated in the 0.46.0 release. The following objects which previously existed in
+    ``qiskit.transpiler.synthesis`` have been moved:
 
-    * :mod:`qiskit.transpiler.synthesis.aqc` has been moved to :mod:`qiskit.synthesis.unitary.aqc`
-      (except of :class:`qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin`).
-    * :class:`qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin` has been moved to
-      :class:`qiskit.transpiler.passes.synthesis.AQCSynthesisPlugin`.
-    * :func:`qiskit.transpiler.synthesis.graysynth` has been moved to
+    * The ``qiskit.transpiler.synthesis.aqc`` module has been moved to
+      :mod:`qiskit.synthesis.unitary.aqc`, with the exception of :class:`.AQCSynthesisPlugin`
+    * ``qiskit.synthesis.unitary.aqc.AQCSynthesisPlugin` has been moved to
+      :class:`qiskit.transpiler.passes.AQCSynthesisPlugin`.
+    * ``qiskit.transpiler.synthesis.graysynth()`` has been moved and renamed to
       :func:`qiskit.synthesis.synth_cnot_phase_aam`.
-    * :func:`qiskit.transpiler.synthesis.cnot_synth` has been moved to
+    * ``qiskit.transpiler.synthesis.cnot_synth()`` has been moved and renamed to
       :func:`qiskit.synthesis.synth_cnot_count_full_pmh`.
