@@ -31,9 +31,9 @@ prelude: |
   with the 1.0 release we're completing a transition to have a single ``qiskit`` package exposing
   only the core SDK (what was previously ``qiskit-terra``). This means that for releases >= 1.0.0,
   we have stopped using the ``qiskit-terra`` package and will only be publishing ``qiskit``.
-  Unfortunately, this change in packaging structure is not something that
-  can be fully communicated to ``pip``, the Python package installer. This
-  means that it is not possible to just use ``pip install -U qiskit`` to upgrade
+  As this change in packaging structure is not fully supported by the 
+  Python package installer ``pip``, it is not possible to just use 
+  ``pip install -U qiskit`` to upgrade
   from qiskit 0.46.0 to 1.0.0. It is strongly recommended that to upgrade to
   Qiskit 1.0.0 you create a separate virtual environment to isolate the installation. There is a
   detailed migration guide that explains the packaging changes and how to install
