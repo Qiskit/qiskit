@@ -2072,46 +2072,33 @@ class TestPauliListMethods(QiskitTestCase):
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
 
-    def test_qubit_wise_noncommutation_graph(self):
-        """Test qubit-wise noncommutation graph"""
-
-        def qubitwise_commutes(left: Pauli, right: Pauli) -> bool:
-            return len(left) == len(right) and all(a.commutes(b) for a, b in zip(left, right))
-
-        input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
-        np.random.shuffle(input_labels)
-        pauli_list = PauliList(input_labels)
-        graph = pauli_list.noncommutation_graph(qubit_wise=True)
-
-        expected = rx.PyGraph()
-        expected.add_nodes_from(range(len(input_labels)))
-        edges = [
-            (ia, ib)
-            for (ia, a), (ib, b) in itertools.combinations(enumerate(input_labels), 2)
-            if not qubitwise_commutes(Pauli(a), Pauli(b))
-        ]
-        expected.add_edges_from_no_data(edges)
-
-        self.assertTrue(rx.is_isomorphic(graph, expected))
-
-    def test_noncommutation_graph(self):
+    @combine(qubit_wise=[True, False])
+    def test_noncommutation_graph(self, qubit_wise):
         """Test noncommutation graph"""
 
-        def commutes(left: Pauli, right: Pauli) -> bool:
-            return len(left) == len(right) and left.commutes(right)
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
 
         input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
         np.random.shuffle(input_labels)
         pauli_list = PauliList(input_labels)
-        #  if qubit_wise=True, equivalent to test_qubit_wise_noncommutation_graph
-        graph = pauli_list.noncommutation_graph(qubit_wise=False)
+        graph = pauli_list.noncommutation_graph(qubit_wise=qubit_wise)
 
         expected = rx.PyGraph()
         expected.add_nodes_from(range(len(input_labels)))
         edges = [
             (ia, ib)
             for (ia, a), (ib, b) in itertools.combinations(enumerate(input_labels), 2)
-            if not commutes(Pauli(a), Pauli(b))
+            if not commutes(Pauli(a), Pauli(b), qubit_wise)
         ]
         expected.add_edges_from_no_data(edges)
 
