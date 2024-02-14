@@ -18,8 +18,8 @@ from typing import List, Any
 from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class BaseTestBlock(QiskitTestCase):
@@ -656,26 +656,6 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         block = block.assign_parameters({self.dur0: 300})
 
         self.assertEqual(block.duration, 400)
-
-    def test_nested_parametrized_instructions(self):
-        """Test parameters of nested schedule can be assigned."""
-        test_waveform = pulse.Constant(100, self.amp0)
-
-        param_sched = pulse.Schedule(pulse.Play(test_waveform, self.d0))
-        with self.assertWarns(DeprecationWarning):
-            call_inst = pulse.instructions.Call(param_sched)
-
-        sub_block = pulse.ScheduleBlock()
-        sub_block += call_inst
-
-        block = pulse.ScheduleBlock()
-        block += sub_block
-
-        self.assertTrue(block.is_parameterized())
-
-        # assign durations
-        block = block.assign_parameters({self.amp0: 0.1})
-        self.assertFalse(block.is_parameterized())
 
     def test_equality_of_parametrized_channels(self):
         """Test check equality of blocks involving parametrized channels."""

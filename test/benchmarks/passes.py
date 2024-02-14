@@ -66,25 +66,6 @@ class CommutativeAnalysisPassBenchmarks:
         _pass.run(self.dag)
 
 
-class UnrolledPassBenchmarks:
-    params = ([5, 14, 20], [1024])
-
-    param_names = ["n_qubits", "depth"]
-    timeout = 300
-
-    def setup(self, n_qubits, depth):
-        seed = 42
-        self.circuit = random_circuit(
-            n_qubits, depth, measure=True, conditional=True, reset=True, seed=seed
-        )
-        self.dag = circuit_to_dag(self.circuit)
-        self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
-        self.unrolled_dag = Unroller(self.basis_gates).run(self.dag)
-
-    def time_optimize_1q(self, _, __):
-        Optimize1qGates().run(self.unrolled_dag)
-
-
 class MultipleBasisPassBenchmarks:
     params = (
         [5, 14, 20],
@@ -124,9 +105,6 @@ class PassBenchmarks:
         )
         self.dag = circuit_to_dag(self.circuit)
         self.basis_gates = ["u1", "u2", "u3", "cx", "id"]
-
-    def time_unroller(self, _, __):
-        Unroller(self.basis_gates).run(self.dag)
 
     def time_depth_pass(self, _, __):
         Depth().run(self.dag)

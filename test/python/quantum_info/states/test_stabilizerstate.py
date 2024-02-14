@@ -14,19 +14,19 @@
 """Tests for Stabilizerstate quantum state class."""
 
 import unittest
-from test import combine
 import logging
 from ddt import ddt, data, unpack
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState, Statevector
 from qiskit.circuit.library import IGate, XGate, HGate
 from qiskit.quantum_info.operators import Clifford, Pauli, Operator
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 logger = logging.getLogger(__name__)
@@ -979,6 +979,12 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
 
         self.assertFalse(cliff1.equiv(cliff3))
         self.assertFalse(cliff2.equiv(cliff4))
+
+    def test_visualize_does_not_throw_error(self):
+        """Test to verify that drawing StabilizerState does not throw an error"""
+        clifford = random_clifford(3, seed=0)
+        stab = StabilizerState(clifford)
+        _ = repr(stab)
 
 
 if __name__ == "__main__":

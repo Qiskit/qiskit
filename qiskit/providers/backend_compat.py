@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 import logging
-from typing import List, Iterable, Any, Dict, Optional, Tuple
+import warnings
+from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
@@ -38,20 +39,17 @@ def convert_to_target(
 ):
     """Decode transpiler target from backend data set.
 
-    This function generates ``Target`` instance from intermediate
-    legacy objects such as ``BackendProperties`` and ``PulseDefaults``.
-
-    .. note::
-        Passing in legacy objects like BackendProperties as properties and PulseDefaults
-        as defaults will be deprecated in the future.
+    This function generates :class:`.Target`` instance from intermediate
+    legacy objects such as :class:`.BackendProperties` and :class:`.PulseDefaults`.
+    These objects are usually components of the legacy :class:`.BackendV1` model.
 
     Args:
         configuration: Backend configuration as ``BackendConfiguration``
         properties: Backend property dictionary or ``BackendProperties``
         defaults: Backend pulse defaults dictionary or ``PulseDefaults``
         custom_name_mapping: A name mapping must be supplied for the operation
-        not included in Qiskit Standard Gate name mapping, otherwise the operation
-        will be dropped in the resulting ``Target`` object.
+            not included in Qiskit Standard Gate name mapping, otherwise the operation
+            will be dropped in the resulting ``Target`` object.
         add_delay: If True, adds delay to the instruction set.
         filter_faulty: If True, this filters the non-operational qubits.
 
@@ -95,12 +93,11 @@ def convert_to_target(
     # Create instruction property placeholder from backend configuration
     basis_gates = set(getattr(configuration, "basis_gates", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
-    inst_name_map = {}  # type: Dict[str, Instruction]
-    prop_name_map = {}  # type: Dict[str, Dict[Tuple[int, ...], InstructionProperties]]
     all_instructions = set.union(basis_gates, set(required))
+    inst_name_map = {}  # type: Dict[str, Instruction]
 
     faulty_ops = set()
-    faulty_qubits = []
+    faulty_qubits = set()
     unsupported_instructions = []
 
     # Create name to Qiskit instruction object repr mapping
@@ -110,6 +107,10 @@ def convert_to_target(
         if name in qiskit_inst_mapping:
             inst_name_map[name] = qiskit_inst_mapping[name]
         elif name in gate_configs:
+            # GateConfig model is a translator of QASM opcode.
+            # This doesn't have quantum definition, so Qiskit transpiler doesn't perform
+            # any optimization in quantum domain.
+            # Usually GateConfig counterpart should exist in Qiskit namespace so this is rarely called.
             this_config = gate_configs[name]
             params = list(map(Parameter, getattr(this_config, "parameters", [])))
             coupling_map = getattr(this_config, "coupling_map", [])
@@ -119,29 +120,44 @@ def convert_to_target(
                 params=params,
             )
         else:
-            logger.warning(
-                "Definition of instruction %s is not found in the Qiskit namespace and "
-                "GateConfig is not provided by the BackendConfiguration payload. "
-                "Qiskit Gate model cannot be instantiated for this instruction and "
-                "this instruction is silently excluded from the Target. "
-                "Please add new gate class to Qiskit or provide GateConfig for this name.",
-                name,
+            warnings.warn(
+                f"No gate definition for {name} can be found and is being excluded "
+                "from the generated target. You can use `custom_name_mapping` to provide "
+                "a definition for this operation.",
+                RuntimeWarning,
             )
             unsupported_instructions.append(name)
 
     for name in unsupported_instructions:
         all_instructions.remove(name)
 
-    # Create empty inst properties from gate configs
-    for name, spec in gate_configs.items():
-        if hasattr(spec, "coupling_map"):
-            coupling_map = spec.coupling_map
-            prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
-        else:
-            prop_name_map[name] = None
+    # Create inst properties placeholder
+    # Without any assignment, properties value is None,
+    # which defines a global instruction that can be applied to any qubit(s).
+    # The None value behaves differently from an empty dictionary.
+    # See API doc of Target.add_instruction for details.
+    prop_name_map = dict.fromkeys(all_instructions)
+    for name in all_instructions:
+        if name in gate_configs:
+            if coupling_map := getattr(gate_configs[name], "coupling_map", None):
+                # Respect operational qubits that gate configuration defines
+                # This ties instruction to particular qubits even without properties information.
+                # Note that each instruction is considered to be ideal unless
+                # its spec (e.g. error, duration) is bound by the properties object.
+                prop_name_map[name] = dict.fromkeys(map(tuple, coupling_map))
 
     # Populate instruction properties
     if properties:
+
+        def _get_value(prop_dict, prop_name):
+            if ndval := prop_dict.get(prop_name, None):
+                return ndval[0]
+            return None
+
+        # is_qubit_operational is a bit of expensive operation so precache the value
+        faulty_qubits = {
+            q for q in range(configuration.num_qubits) if not properties.is_qubit_operational(q)
+        }
         qubit_properties = [
             QubitProperties(
                 t1=properties.qubit_property(qubit_idx)["T1"][0],
@@ -153,52 +169,64 @@ def convert_to_target(
 
         in_data["qubit_properties"] = qubit_properties
 
-        if filter_faulty:
-            faulty_qubits = properties.faulty_qubits()
-
-        for name in prop_name_map.keys():
-            for qubits, params in properties.gate_property(name).items():
-                in_param = {
-                    "error": params["gate_error"][0] if "gate_error" in params else None,
-                    "duration": params["gate_length"][0] if "gate_length" in params else None,
-                }
-                inst_prop = InstructionProperties(**in_param)
-
-                if filter_faulty and (
-                    (not properties.is_gate_operational(name, qubits))
-                    or any(not properties.is_qubit_operational(qubit) for qubit in qubits)
+        for name in all_instructions:
+            try:
+                for qubits, params in properties.gate_property(name).items():
+                    if filter_faulty and (
+                        set.intersection(faulty_qubits, qubits)
+                        or not properties.is_gate_operational(name, qubits)
+                    ):
+                        try:
+                            # Qubits might be pre-defined by the gate config
+                            # However properties objects says the qubits is non-operational
+                            del prop_name_map[name][qubits]
+                        except KeyError:
+                            pass
+                        faulty_ops.add((name, qubits))
+                        continue
+                    if prop_name_map[name] is None:
+                        # This instruction is tied to particular qubits
+                        # i.e. gate config is not provided, and instruction has been globally defined.
+                        prop_name_map[name] = {}
+                    prop_name_map[name][qubits] = InstructionProperties(
+                        error=_get_value(params, "gate_error"),
+                        duration=_get_value(params, "gate_length"),
+                    )
+                if isinstance(prop_name_map[name], dict) and any(
+                    v is None for v in prop_name_map[name].values()
                 ):
-                    faulty_ops.add((name, qubits))
-                    try:
-                        del prop_name_map[name][qubits]
-                    except KeyError:
-                        pass
-                    continue
-
-                if prop_name_map[name] is None:
-                    prop_name_map[name] = {}
-
-                prop_name_map[name][qubits] = inst_prop
+                    # Properties provides gate properties only for subset of qubits
+                    # Associated qubit set might be defined by the gate config here
+                    logger.info(
+                        "Gate properties of instruction %s are not provided for every qubits. "
+                        "This gate is ideal for some qubits and the rest is with finite error. "
+                        "Created backend target may confuse error-aware circuit optimization.",
+                        name,
+                    )
+            except BackendPropertyError:
+                # This gate doesn't report any property
+                continue
 
         # Measure instruction property is stored in qubit property
         prop_name_map["measure"] = {}
 
         for qubit_idx in range(configuration.num_qubits):
-            if qubit_idx in faulty_qubits:
+            if filter_faulty and (qubit_idx in faulty_qubits):
                 continue
             qubit_prop = properties.qubit_property(qubit_idx)
-            in_prop = {
-                "duration": qubit_prop["readout_length"][0]
-                if "readout_length" in qubit_prop
-                else None,
-                "error": qubit_prop["readout_error"][0] if "readout_error" in qubit_prop else None,
-            }
-            prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(**in_prop)
+            prop_name_map["measure"][(qubit_idx,)] = InstructionProperties(
+                error=_get_value(qubit_prop, "readout_error"),
+                duration=_get_value(qubit_prop, "readout_length"),
+            )
 
-    if add_delay and "delay" not in prop_name_map:
-        prop_name_map["delay"] = {
-            (q,): None for q in range(configuration.num_qubits) if q not in faulty_qubits
-        }
+    for op in required:
+        # Map required ops to each operational qubit
+        if prop_name_map[op] is None:
+            prop_name_map[op] = {
+                (q,): None
+                for q in range(configuration.num_qubits)
+                if not filter_faulty or (q not in faulty_qubits)
+            }
 
     if defaults:
         inst_sched_map = defaults.instruction_schedule_map
@@ -212,6 +240,7 @@ def convert_to_target(
                 if (
                     name not in all_instructions
                     or name not in prop_name_map
+                    or prop_name_map[name] is None
                     or qubits not in prop_name_map[name]
                 ):
                     logger.info(
@@ -238,29 +267,22 @@ def convert_to_target(
                         qubits,
                     )
 
-    # Remove 'delay' if add_delay is set to False.
-    if not add_delay:
-        if "delay" in all_instructions:
-            all_instructions.remove("delay")
-
     # Add parsed properties to target
     target = Target(**in_data)
     for inst_name in all_instructions:
+        if inst_name == "delay" and not add_delay:
+            continue
         if inst_name in qiskit_control_flow_mapping:
             # Control flow operator doesn't have gate property.
             target.add_instruction(
                 instruction=qiskit_control_flow_mapping[inst_name],
                 name=inst_name,
             )
-        elif properties is None:
-            target.add_instruction(
-                instruction=inst_name_map[inst_name],
-                name=inst_name,
-            )
         else:
             target.add_instruction(
                 instruction=inst_name_map[inst_name],
                 properties=prop_name_map.get(inst_name, None),
+                name=inst_name,
             )
 
     return target

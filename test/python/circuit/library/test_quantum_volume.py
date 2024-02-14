@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.test.base import QiskitTestCase
+from test.utils.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import QuantumVolume
 from qiskit.quantum_info import Operator
