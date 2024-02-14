@@ -161,11 +161,11 @@ class BaseSamplerV1(BasePrimitive, Generic[T]):
     method. This method is called with the following parameters
 
     * quantum circuits (:math:`\psi_i(\theta)`): list of (parameterized) quantum circuits.
-    (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
+      (a list of :class:`~qiskit.circuit.QuantumCircuit` objects)
 
     * parameter values (:math:`\theta_k`): list of sets of parameter values
-    to be bound to the parameters of the quantum circuits.
-    (list of list of float)
+      to be bound to the parameters of the quantum circuits.
+      (list of list of float)
 
     The method returns a :class:`~qiskit.providers.JobV1` object, calling
     :meth:`qiskit.providers.JobV1.result()` yields a :class:`~qiskit.primitives.SamplerResult`
@@ -278,7 +278,7 @@ class BaseSamplerV2(ABC):
     A Sampler returns samples of quantum circuit outputs.
 
     All sampler implementations must implement default value for the ``shots`` in the
-     :meth:`.run` method if ``None`` is given both as a ``kwarg`` and in all of the pubs.
+    :meth:`.run` method if ``None`` is given both as a ``kwarg`` and in all of the pubs.
     """
 
     @abstractmethod
