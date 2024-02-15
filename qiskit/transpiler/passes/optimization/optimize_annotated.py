@@ -311,7 +311,7 @@ class OptimizeAnnotated(TransformationPass):
         return front_circuit, middle_circuit, back_circuit
 
     def _conjugate_reduce_op(
-        self, op: AnnotatedOperation, base_decomposition: tuple[DAGCircuit, DAGCircuit, DAGCircuit]
+        self, op: AnnotatedOperation, base_decomposition: Tuple[DAGCircuit, DAGCircuit, DAGCircuit]
     ) -> Operation:
         """
         We are given an annotated-operation ``op = M [ B ]`` (where ``B`` is the base operation and
