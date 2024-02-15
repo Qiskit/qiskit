@@ -1,0 +1,79 @@
+---
+prelude: |
+  We are very pleased to release Qiskit 1.0.0. This release is the
+  culmination of 7 years of development to mature Qiskit into a stable, high-
+  performance SDK for quantum computing, and is the start of a new
+  era for the Qiskit project and community. Besides general performance and
+  stability improvements, the most significant changes with the 1.0.0
+  release relate to the stability policy, release cycles, and versioning.
+  Qiskit is now formally using `semantic versioning <https://semver.org/>`__,
+  and this means that, for the entire lifecycle of the 1.x release series, the project
+  is committed to maintaining backwards compatibility in its public documented
+  APIs. We're also now starting to offer bugfix support for major versions, so that you
+  continue to have a supported branch for 6 months after the release of the next major version.
+  This starts now with the 1.x and 0.x major series: the 0.46.x release will
+  continue to be supported, with periodic patch releases that contain bug fixes, for 6
+  months after the release of 1.0. That is, 0.46.x will be supported until 2024-08.
+  You can see the full details of the new policy here:
+
+  https://docs.quantum.ibm.com/start/install#qiskit-versioning
+
+  Also of key importance in this release is the change in packaging. Since the
+  Qiskit 0.7 release in 2018-12, when Qiskit introduced its
+  `elements <https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492>`__
+  model,  the ``qiskit`` package you would install has been a meta-package (or package of
+  packages) that installs the combined elements comprising Qiskit. As announced
+  in previous releases (for more details see the
+  `0.44.0 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.44#0440>`__,
+  `0.45.3 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.45#prelude>`__,
+  and `0.46.0 <https://docs.quantum.ibm.com/api/qiskit/release-notes/0.46#prelude>`__ release
+  notes, along with this `blog post <https://research.ibm.com/blog/qiskit-application-modules>`__)
+  with the 1.0 release we're completing a transition to have a single ``qiskit`` package exposing
+  only the core SDK (what was previously ``qiskit-terra``). This means that for releases >= 1.0.0,
+  we have stopped using the ``qiskit-terra`` package and will only be publishing ``qiskit``.
+  As this change in packaging structure is not fully supported by the 
+  Python package installer ``pip``, it is not possible to just use 
+  ``pip install -U qiskit`` to upgrade
+  from qiskit 0.46.0 to 1.0.0. It is strongly recommended that to upgrade to
+  Qiskit 1.0.0 you create a separate virtual environment to isolate the installation. There is a
+  detailed migration guide that explains the packaging changes and how to install
+  Qiskit 1.0.0 in different scenarios which can be found here:
+
+  https://qisk.it/1-0-packaging-migration
+
+  As with all of our major releases, Qiskit 1.0.0 also has a plethora of new
+  features, the highlights for this release are:
+
+    * The :class:`.QuantumCircuit` class's internal :attr:`~.QuantumCircuit.data`
+      structure has been rewritten in Rust to greatly improve the memory efficiency
+      of the :class:`.QuantumCircuit` objects by caching the arguments of the
+      instructions.
+
+    * A new version of the primitives interface definition in :mod:`qiskit.primitives`
+      with the :class:`.BaseSamplerV2` and :class:`.BaseEstimatorV2` abstract
+      classes. This new version of the interface adds support for
+      performing vectorized calls to the primitive so that sweeps over
+      parameter value sets and observables can be efficiently specified.
+
+    * A new experimental native OpenQASM 3 parser :func:`qiskit.qasm3.loads_experimental`
+      and :func:`qiskit.qasm3.load_experimental`. This new parser is still under development
+      and still has several limitations and is still experimental. However,
+      for where it is usable, the new parser is significantly faster and has
+      better diagnostic error message that allows to debug where an OpenQASM 3 program
+      is invalid. This new parser is written in Rust and based on a newly developed
+      Rust library for parsing OpenQASM3 which can be found here:
+      https://github.com/Qiskit/openqasm3_parser
+
+  Finally, the Qiskit 1.0.0 release was an opportunity to clean up some technical debt
+  accumulated over the past 7 years of development. You'll notice that the Qiskit 1.0.0
+  release is virtually free of ``DeprecationWarning``\s being emitted, and, at the same time,
+  the upgrade section of the 1.0.0 release notes is longer than usual. These are direct
+  consequences of the technical debt cleanup. To help with the migration
+  from 0.46.x to 1.0.0, besides the release notes, we have also published a
+  dedicated migration guide which can be found here:
+
+  https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-features
+
+  This guide is meant to complement the release notes and have a targeted advice for how to
+  migrate the API changes after the removal of the deprecated functionality from the 0.46.0
+  release.
