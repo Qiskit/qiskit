@@ -1,5 +1,5 @@
 ---
-features:
+features_misc:
   - |
     Added a new warning base class, :exc:`.QiskitWarning`.  While Qiskit will continue to use
     built-in Python warnings (such as :exc:`DeprecationWarning`) when those are most appropriate,

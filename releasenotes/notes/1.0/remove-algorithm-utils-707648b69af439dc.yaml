@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_algorithms:
   - |
     The following tools in :mod:`qiskit.utils` have been removed from the codebase:
 

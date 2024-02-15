@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_pulse:
   - |
     The discrete pulse library (previously located at ``qiskit.pulse.library.discrete``)
     was removed, following its deprecation in Qiskit 0.46.

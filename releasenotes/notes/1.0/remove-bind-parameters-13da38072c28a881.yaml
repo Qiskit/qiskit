@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_circuits:
   - |
     The method ``QuantumCircuit.bind_parameters`` has been removed, following its deprecation in
     Qiskit 0.45.  You can use :meth:`.QuantumCircuit.assign_parameters` as a drop-in replacement

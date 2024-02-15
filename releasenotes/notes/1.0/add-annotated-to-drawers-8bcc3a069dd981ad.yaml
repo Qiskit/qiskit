@@ -6,7 +6,7 @@ fixes:
     would cause the drawer to fail. Examples were :class:`.Clifford` and
     :class:`.AnnotatedOperation`.
 
-features:
+features_visualization:
   - |
     The ``text`` and ``mpl`` outputs for the :meth:`.QuantumCircuit.draw` and
     :func:`.circuit_drawer` circuit drawer functions will now display detailed

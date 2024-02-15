@@ -1,5 +1,5 @@
 ---
-features:
+features_providers:
   - |
     The :mod:`qiskit.providers.fake_provider` module now includes a series of generic fake backends
     following the :class:`.BackendV1` interface. They have been introduced as an alternative to the

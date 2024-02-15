@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_circuits:
   - |
     Removed :class:`.QuantumCircuit` features deprecated in the 0.45 release:
 

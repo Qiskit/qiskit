@@ -1,5 +1,5 @@
 ---
-features:
+features_qasm:
   - |
     The :mod:`qiskit.qasm3` package now contains a built-in, Rust-based parser for reading OpenQASM
     3 programs into :class:`.QuantumCircuit`\ s, found at :func:`qiskit.qasm3.load_experimental` and

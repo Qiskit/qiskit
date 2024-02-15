@@ -1,4 +1,4 @@
-upgrade:
+upgrade_visualization:
   - |
     The deprecated support for passing a :class:`.QuasiDistribution`,
     :class:`.ProbDistribution`, or a distribution dictionary to the ``data``

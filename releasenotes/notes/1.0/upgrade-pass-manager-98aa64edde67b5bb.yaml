@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     A pattern for the pass piepline construction was upgraded.
     The syntactic sugar shown below for instantiation of flow controller was removed.

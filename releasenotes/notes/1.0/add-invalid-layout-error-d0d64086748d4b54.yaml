@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new exception class: :class:`.InvalidLayoutError`. This is a :class:`.TranspilerError`
     subclass which is raised when a user provided layout is invalid (mismatched size, duplicate

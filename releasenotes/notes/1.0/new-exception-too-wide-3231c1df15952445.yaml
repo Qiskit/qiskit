@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new exception class :exc:`.CircuitToWideForTarget` which
     subclasses :exc:`.TranspilerError`. It's used in places where a

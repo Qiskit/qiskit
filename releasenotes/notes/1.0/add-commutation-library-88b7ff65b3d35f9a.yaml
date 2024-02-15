@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a commutation library to the :class:`.CommutationChecker`. This library stores all the
     commutation relations of unparameterizable standard gates into a dictionary that allows

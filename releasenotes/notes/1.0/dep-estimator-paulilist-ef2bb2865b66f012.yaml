@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_quantum_info:
   - |
     Using a :class:`~.PauliList` as an observable
     when calling

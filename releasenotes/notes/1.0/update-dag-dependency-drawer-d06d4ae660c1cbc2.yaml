@@ -1,5 +1,5 @@
 ---
-features:
+features_visualization:
   - |
     The :func:`.dag_drawer` has been updated for the :class:`.DAGDependency`. These
     drawings have a new color scheme, and the nodes now indicate the ``Qubits`` and

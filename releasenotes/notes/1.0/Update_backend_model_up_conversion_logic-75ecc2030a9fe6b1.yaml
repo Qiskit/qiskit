@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_providers:
   - |
     Changed default value of two arguments (:code:`add_delay` and :code:`filter_faulty`) in
     the :func:`.qiskit.providers.backend_compat.convert_to_target` function.

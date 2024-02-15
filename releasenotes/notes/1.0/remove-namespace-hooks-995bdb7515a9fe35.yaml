@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     Support for extensions of the ``qiskit`` and ``qiskit.providers`` namespaces
     by external packages has been removed. Support for doing this was deprecated

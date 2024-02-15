@@ -6,7 +6,7 @@ fixes:
     for a gate that didn't have a definition in the backend properties.
     Such gate is now broadcasted to all qubits as an ideal error-free instruction,
     even when calibrations for a finite set of qubits are reported.
-upgrade:
+upgrade_providers:
   - |
-    Updated information of :class:`.FakeOpenPulse2Q` backend, including properties, defaults and 
+    Updated information of :class:`.FakeOpenPulse2Q` backend, including properties, defaults and
     previously missing instructions.

@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     Removed the ``qiskit.transpiler.synthesis`` module, which has been deprecated since the 0.46 release.
     The following objects have been moved:

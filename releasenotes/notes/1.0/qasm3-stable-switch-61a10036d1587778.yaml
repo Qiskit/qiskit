@@ -1,5 +1,5 @@
 ---
-features:
+features_qasm:
   - |
     The OpenQASM 3 exporter (see :func:`~.qasm3.dump` and :func:`~.qasm3.dumps` functions in
     :mod:`qiskit.qasm3`) now supports the stabilised syntax of the ``switch`` statement in OpenQASM 3

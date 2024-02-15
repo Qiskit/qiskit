@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_visualization:
   - |
     The classes and methods in :mod:`qiskit.visualization.pulse`:
 

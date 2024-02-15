@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     It is no longer allowable to pass ``None`` as the ``qargs`` or ``cargs`` parameters in
     :meth:`.DAGCircuit.apply_operation_back` and :meth:`~.DAGCircuit.apply_operation_front`.  If you

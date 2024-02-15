@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_synthesis:
   - |
     The following deprecated functions previously in :mod:`qiskit.quantum_info`
     have been removed. These functions were marked as deprecated in the

@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     :class:`~.expr.Var` nodes now have a :attr:`.Var.standalone` property to quickly query whether
     they own their own memory, or if they wrap old-style classical memory in the form of a

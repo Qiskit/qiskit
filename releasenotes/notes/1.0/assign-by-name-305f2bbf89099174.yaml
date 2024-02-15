@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     :meth:`.QuantumCircuit.assign_parameters` now accepts string keys in the mapping form of input.
     These names are used to look up the corresponding :class:`.Parameter` instance using

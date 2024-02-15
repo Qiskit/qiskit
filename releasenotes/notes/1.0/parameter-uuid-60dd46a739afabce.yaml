@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     A :attr:`~qiskit.circuit.Parameter.uuid` property was added to the
     :class:`qiskit.circuit.Parameter` class. In advanced use cases,

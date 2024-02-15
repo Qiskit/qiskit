@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     :class:`~qiskit.circuit.ParameterExpression` (and thus also
     :class:`~qiskit.circuit.Parameter`) now support powering: :code:`x**y`

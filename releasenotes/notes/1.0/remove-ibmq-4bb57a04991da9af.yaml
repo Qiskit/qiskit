@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     The deprecated ``qiskit.IBMQ`` object hase been removed. This alias object
     was marked as deprecated in the 0.23.0 release. This alias object lazily

@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The implicit use of ``approximation_degree!=1.0`` by default in the
     :func:`~.generate_preset_pass_manager` function has been

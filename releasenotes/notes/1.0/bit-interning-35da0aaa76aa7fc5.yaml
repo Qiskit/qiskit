@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_circuits:
   - |
     To support a more compact in-memory representation, the
     :class:`.QuantumCircuit` class is now limited to supporting
@@ -9,9 +9,9 @@ upgrade:
     :attr:`.CircuitInstruction.qubits` and
     :attr:`.CircuitInstruction.clbits` is also limited to ``2^32``
     for instructions added to a single circuit.
-other:
+features_circuits:
   - |
-    The :class:`.QuantumCircuit` class now performs interning for the
-    ``qubits`` and ``clbits`` of the :class:`.CircuitInstruction`
+    The :class:`.QuantumCircuit` class now internally performs interning for
+    the ``qubits`` and ``clbits`` of the :class:`.CircuitInstruction`
     instances that it stores, resulting in a potentially significant
     reduction in memory footprint, especially for large circuits.

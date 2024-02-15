@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_providers:
   - |
     The ``qiskit.providers.basicaer`` module, exposed as ``qiskit.BasicAer``,
     has been removed following it deprecation on the 0.46 release. Its

@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_algorithms:
   - |
     The ``qiskit.opflow`` module has been removed, following its deprecation in
     Qiskit 0.44. For more context on the deprecation and

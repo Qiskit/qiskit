@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a new method, :meth:`.ParameterExpression.numeric`, which converts a fully bound
     parameter expression into the most restrictive built-in Python numeric type that accurately

@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_qpy:
   - |
     The latest format version of QPY is now :ref:`qpy_version_11` and this
     is what is emitted by default when running :func:`.qpy.dump`.

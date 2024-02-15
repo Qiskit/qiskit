@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     Qiskit's :func:`~.execute_function.execute` function is removed.
     This function served as a high-level wrapper around transpiling

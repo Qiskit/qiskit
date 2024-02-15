@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_pulse:
   - |
     The module ``ParametricPulse`` is removed.
     All classes in it were deprecated since Qiskit 0.39 (with qiskit-terra 0.22), released in 2022-10.

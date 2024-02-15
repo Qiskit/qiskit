@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Classical types (subclasses of :class:`~classical.types.Type`) and variables (:class:`~.expr.Var`)
     are now hashable.

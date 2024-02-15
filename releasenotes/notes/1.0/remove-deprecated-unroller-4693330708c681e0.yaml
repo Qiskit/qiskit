@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     Removes the deprecated ``Unroller`` class in :mod:`qiskit.transpiler.passes.basis`.
     This class was deprecated in Qiskit Terra 0.45 and has been replaced by

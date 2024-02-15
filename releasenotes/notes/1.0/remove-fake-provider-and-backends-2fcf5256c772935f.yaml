@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_providers:
   - |
     The deprecated :mod:`qiskit.providers.fake_provider` module has been migrated to
     the ``qiskit-ibm-runtime`` Python package. For this reason, the following elements in

@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     :meth:`.SparsePauliOp.from_operator` now uses an implementation of the
     "tensorized Pauli decomposition algorithm" presented in

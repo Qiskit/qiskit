@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     :class:`.VF2PostLayout` now distinguishes between 'no solution' and 'no better solution' when
     determining a :class:`.Layout` for a given quantum circuit. 'no better solution' is set when the

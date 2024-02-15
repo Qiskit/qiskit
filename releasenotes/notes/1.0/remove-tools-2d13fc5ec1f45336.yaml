@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     The deprecated ``qiskit.tools.visualization`` module has removed. This module
     was deprecated in the Qiskit 0.46.0 release. This module was a legacy redirect

@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     :class:`.QuantumCircuit` has two new methods, :meth:`~.QuantumCircuit.get_parameter` and
     :meth:`~.QuantumCircuit.has_parameter`, which respectively retrieve a :class:`.Parameter`
