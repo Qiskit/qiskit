@@ -52,19 +52,19 @@ def qs_decomposition(
         /─┤   ├─       /─┤   ├──□──┤   ├──□──┤   ├──□──┤   ├
           └───┘          └───┘     └───┘     └───┘     └───┘
 
-    The number of CX gates generated with the decomposition without optimizations is,
+    The number of :class:`.CXGate`\ s generated with the decomposition without optimizations is:
 
     .. math::
 
         \frac{9}{16} 4^n - \frac{3}{2} 2^n
 
-    If opt_a1 = True, the default, the CX count is reduced by,
+    If ``opt_a1 = True``, the default, the CX count is reduced by:
 
     .. math::
 
         \frac{1}{3} 4^{n - 2} - 1.
 
-    If opt_a2 = True, the default, the CX count is reduced by,
+    If ``opt_a2 = True``, the default, the CX count is reduced by:
 
     .. math::
 
@@ -73,11 +73,12 @@ def qs_decomposition(
     Args:
         mat: unitary matrix to decompose
         opt_a1: whether to try optimization A.1 from Shende et al. [1].
-            This should eliminate 1 cx per call.
-            If True CZ gates are left in the output. If desired these can be further decomposed to CX.
+            This should eliminate 1 ``cx`` per call.
+            If ``True``, :class:`.CZGate`\s are left in the output.
+            If desired these can be further decomposed to :class:`.CXGate`\s.
         opt_a2: whether to try optimization A.2 from Shende et al. [1].
-            This decomposes two qubit unitaries into a diagonal gate and a two cx unitary and
-            reduces overall cx count by :math:`4^{n-2} - 1`.
+            This decomposes two qubit unitaries into a diagonal gate and
+            a two cx unitary and reduces overall cx count by :math:`4^{n-2} - 1`.
         decomposer_1q: optional 1Q decomposer. If None, uses
             :class:`~qiskit.synthesis.OneQubitEulerDecomposer`.
         decomposer_2q: optional 2Q decomposer. If None, uses
@@ -86,7 +87,7 @@ def qs_decomposition(
     Returns:
         QuantumCircuit: Decomposed quantum circuit.
 
-    Reference:
+    References:
         1. Shende, Bullock, Markov, *Synthesis of Quantum Logic Circuits*,
            `arXiv:0406176 [quant-ph] <https://arxiv.org/abs/quant-ph/0406176>`_
     """
