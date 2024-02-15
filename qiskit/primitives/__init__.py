@@ -94,7 +94,10 @@ Here is an example of how an estimator is used.
     #              <psi1(theta3)|H3|psi1(theta3)>],
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
-        [(psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), (psi2, hamiltonian2, theta2)],
+        [
+            (psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), 
+            (psi2, hamiltonian2, theta2)
+        ],
         precision=0.01
     )
     job_result = job2.result()
@@ -216,7 +219,11 @@ Here is an example of how the estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
     #             <psi1(theta3)|H3|psi1(theta3)> ]
-    job2 = estimator.run([psi1, psi2, psi1], [H1, H2, H3], [theta1, theta2, theta3])
+    job2 = estimator.run(
+        [psi1, psi2, psi1], 
+        [H1, H2, H3], 
+        [theta1, theta2, theta3]
+    )
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
 
@@ -269,7 +276,9 @@ Here is an example of how sampler is used.
     sampler = Sampler()
 
     # Sampler runs a job on the Bell circuit
-    job = sampler.run(circuits=[bell], parameter_values=[[]], parameters=[[]])
+    job = sampler.run(
+        circuits=[bell], parameter_values=[[]], parameters=[[]]
+    )
     job_result = job.result()
     print([q.binary_probabilities() for q in job_result.quasi_dists])
 

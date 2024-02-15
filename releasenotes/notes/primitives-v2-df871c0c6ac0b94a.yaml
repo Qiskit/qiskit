@@ -67,32 +67,39 @@ features:
             np.linspace(-4 * np.pi, 4 * np.pi, 100)
         ]).T
 
-        # Define three observables. Many formats are supported here including classes
-        # such as qiskit.quantum_info.SparsePauliOp. The inner length-1 lists cause this array
-        # of observables to have shape (3, 1), rather than shape (3,) if they were omitted.
-        observables = [[SparsePauliOp(["XX", "IY"], [0.5, 0.5])], [Pauli("XX")], [Pauli("IY")]]
+        # Define three observables. Many formats are supported here including
+        # classes such as qiskit.quantum_info.SparsePauliOp. The inner length-1
+        # lists cause this array of observables to have shape (3, 1), rather
+        # than shape (3,) if they were omitted.
+        observables = [
+            [SparsePauliOp(["XX", "IY"], [0.5, 0.5])],
+            [Pauli("XX")],
+            [Pauli("IY")]
+        ]
 
         # Instantiate a new statevector simulation based estimator object.
         estimator = StatevectorEstimator()
 
-        # Estimate the expectation value for all 300 combinations of observables and parameter
-        # values, where the pub result will have shape (3, 100). This shape is due to our array
-        # of parameter bindings having shape (100,), combined with our array of observables having
-        # shape (3, 1)
+        # Estimate the expectation value for all 300 combinations of
+        # observables and parameter values, where the pub result will have
+        # shape (3, 100). This shape is due to our array of parameter
+        # bindings having shape (100,), combined with our array of observables
+        # having shape (3, 1)
         pub = (circuit, observables, params)
         job = estimator.run([pub])
 
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
 
-        # Pull out the array-based expectation value estimate data from the result and
-        # plot a trace for each observable.
+        # Error-bar information is also available, but the error is 0
+        # for this StatevectorEstimator.
+        result.data.stds
+
+        # Pull out the array-based expectation value estimate data from the
+        # result and plot a trace for each observable.
         for idx, pauli in enumerate(observables):
             plt.plot(result.data.evs[idx], label=pauli)
         plt.legend()
-
-        # Error-bar information is also available, but the error is always 0 for the StatevectorEstimator.
-        result.data.stds
         
   - |
     The reference implementation :class:`~.StatevectorSampler` of :class:`~.BaseSamplerV2` was
@@ -105,13 +112,16 @@ features:
 
     .. code-block:: python
 
-        from qiskit.circuit import Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
+        from qiskit.circuit import (
+            Parameter, QuantumCircuit, ClassicalRegister, QuantumRegister
+        )
         from qiskit.primitives import StatevectorSampler
 
         import matplotlib.pyplot as plt
         import numpy as np
 
-        # Define our circuit registers, including classical registers called 'alpha' and 'beta'.
+        # Define our circuit registers, including classical registers
+        # called 'alpha' and 'beta'.
         qreg = QuantumRegister(3)
         alpha = ClassicalRegister(2, "alpha")
         beta = ClassicalRegister(1, "beta")
@@ -129,7 +139,7 @@ features:
         circuit.measure([0, 1], alpha)
         circuit.measure([2], beta)
 
-        # Define a sweep over parameter values, where the second axis is over
+        # Define a sweep over parameter values, where the second axis is over.
         # the two parameters in the circuit.
         params = np.vstack([
             np.linspace(-np.pi, np.pi, 100),
@@ -146,21 +156,22 @@ features:
         # Extract the result for the 0th pub (this example only has one pub).
         result = job.result()[0]
 
-        # There is one BitArray object for each ClassicalRegister in the circuit.
-        # Here, we can see that the BitArray for alpha contains data for all 100 sweep points,
-        # and that it is indeed storing data for 2 bits over 256 shots.
+        # There is one BitArray object for each ClassicalRegister in the
+        # circuit. Here, we can see that the BitArray for alpha contains data
+        # for all 100 sweep points, and that it is indeed storing data for 2
+        # bits over 256 shots.
         assert result.data.alpha.shape == (100,)
         assert result.data.alpha.num_bits == 2
         assert result.data.alpha.num_shots == 256
 
-        # We can work directly with the binary array in performant applications.
+        # We can work directly with a binary array in performant applications.
         raw = result.data.alpha.array
 
-        # For small registers where it is anticipated to have many counts associated with the same
-        # bitstrings, we can turn the data from, for example, the 22nd sweep index into a dictionary
-        # of counts.
+        # For small registers where it is anticipated to have many counts
+        # associated with the same bitstrings, we can turn the data from,
+        # for example, the 22nd sweep index into a dictionary of counts.
         counts = result.data.alpha.get_counts(22)
 
-        # We can also convert into a list of bitstrings that preserve shot order.
+        # Or, convert into a list of bitstrings that preserve shot order.
         bitstrings = result.data.alpha.get_bitstrings(22)
         print(bitstrings)
