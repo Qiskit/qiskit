@@ -12,18 +12,19 @@
 
 # pylint: disable=missing-docstring
 
-import unittest
 import os
+import pathlib
+import shutil
 import tempfile
-import json
-
+import unittest
+import warnings
 from unittest.mock import patch
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.utils import optionals
 from qiskit import visualization
-from qiskit.visualization.circuit import text
+from qiskit.visualization.circuit import text, styles
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.circuit.qcstyle import load_style
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
@@ -54,24 +55,35 @@ class TestCircuitDrawer(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_mpl_config_with_path(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp_file:
-            tmp_style = os.path.basename(tmp_file.name).split(".")[0]
-            default_style = load_style("default")[0]
-            default_style["name"] = tmp_style
-            json.dump(load_style("default")[0], tmp_file)
+        # It's too easy to get too nested in a test with many context managers.
+        tempdir = tempfile.TemporaryDirectory()  # pylint: disable=consider-using-with
+        self.addCleanup(tempdir.cleanup)
 
-        with patch(
-            "qiskit.user_config.get_config",
-            return_value={
+        clifford_style = pathlib.Path(styles.__file__).parent / "clifford.json"
+        shutil.copyfile(clifford_style, pathlib.Path(tempdir.name) / "my_clifford.json")
+
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+
+        def config(style_name):
+            return {
                 "circuit_drawer": "mpl",
-                "circuit_mpl_style": tmp_style,
-                "circuit_mpl_style_path": [os.path.dirname(tmp_file.name)],
-            },
-        ):
-            circuit = QuantumCircuit(1)
-            circuit.h(0)
-            out = visualization.circuit_drawer(circuit)
-            self.assertIsInstance(out, figure.Figure)
+                "circuit_mpl_style": style_name,
+                "circuit_mpl_style_path": [tempdir.name],
+            }
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings("error", message="Style JSON file.*not found")
+
+            # Test that a non-standard style can be loaded by name.
+            with patch("qiskit.user_config.get_config", return_value=config("my_clifford")):
+                self.assertIsInstance(visualization.circuit_drawer(circuit), figure.Figure)
+
+            # Test that a non-existent style issues a warning, but still draws something.
+            with patch("qiskit.user_config.get_config", return_value=config("NONEXISTENT")):
+                with self.assertWarnsRegex(UserWarning, "Style JSON file.*not found"):
+                    fig = visualization.circuit_drawer(circuit)
+                self.assertIsInstance(fig, figure.Figure)
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "Skipped because matplotlib is not available")
     def test_user_config_default_output(self):
