@@ -14,8 +14,3 @@ features:
       
       inst_dur = InstructionDurations.from_backend(backendV2)
 
-upgrade:
-  - |
-    Given :code:`dt` and :code:`dtm` for a :class:`.BackendV1` or :class:`.BackendV2` are unequal,
-    :meth:`~.InstructionDurations.from_backend` does not raise any error.
-

@@ -70,8 +70,6 @@ class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
         super().setUp()
 
         self.backend = FakeParis()
-        self.backend_config = self.backend.configuration()
-        self.backend_props = self.backend.properties()
         self.example_qubit = (0,)
         self.example_gate = "x"
 
@@ -81,12 +79,12 @@ class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
 
     def test_backend_dt_equals_inst_dur_dt(self):
         durations = InstructionDurations.from_backend(self.backend)
-        self.assertEqual(durations.dt, self.backend_config.dt)
+        self.assertEqual(durations.dt, self.backend.configuration().dt)
 
     def test_backend_gate_length_equals_inst_dur(self):
         durations = InstructionDurations.from_backend(self.backend)
         inst_dur_duration = durations.get(self.example_gate, self.example_qubit[0], "s")
-        backend_inst_dur = self.backend_props.gate_length(
+        backend_inst_dur = self.backend.properties().gate_length(
             gate=self.example_gate, qubits=self.example_qubit
         )
         self.assertEqual(inst_dur_duration, backend_inst_dur)
@@ -112,7 +110,6 @@ class TestInstrctionDurationsFromBackendV1(QiskitTestCase):
         # This is expcted to fail
         InstructionDurations.from_backend(self.backend_cpy)
 
-        self.backend_cpy.configuration().dt = None  # Resetting to None
         # Check if dt and dtm were indeed unequal
         self.assertNotEqual(self.backend_cpy.configuration().dtm, 1.0)
 
@@ -167,6 +164,5 @@ class TestInstrctionDurationsFromBackendV2(QiskitTestCase):
         # This is expcted to fail
         InstructionDurations.from_backend(self.backend_cpy)
 
-        self.backend_cpy.target.dt = None  # Resetting to None
         # Check if dt and dtm were indeed unequal
         self.assertNotEqual(self.backend_cpy.dtm, 1.0)
