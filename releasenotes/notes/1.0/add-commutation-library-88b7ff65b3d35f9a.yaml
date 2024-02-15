@@ -10,5 +10,5 @@ features_circuits:
 
     Additionally, the :class:`.CommutationChecker` was refactored and now has an upper limit
     set on the number of cached commutation relations that are not in the commutation library.
-    This addressed: `#8020 <https://github.com/Qiskit/qiskit-terra/issues/8020>`__ and
-    `#7101 <https://github.com/Qiskit/qiskit-terra/issues/7101>`__
+    This addressed: `#8020 <https://github.com/Qiskit/qiskit/issues/8020>`__ and
+    `#7101 <https://github.com/Qiskit/qiskit/issues/7101>`__

@@ -16,4 +16,4 @@ fixes:
     QPY :ref:`qpy_version_11` so that each instance of a custom instruction
     is serialized individually and there will no longer be a potential
     conflict with overlapping names.
-    Fixes `#8941 <https://github.com/Qiskit/qiskit/issues/8941>`__
+    Fixes `#8941 <https://github.com/Qiskit/qiskit/issues/8941>`__.

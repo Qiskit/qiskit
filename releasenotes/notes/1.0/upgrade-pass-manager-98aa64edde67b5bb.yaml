@@ -16,7 +16,8 @@ upgrade_transpiler:
 
     .. code-block:: python
 
-      from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
+      from qiskit.passmanager import ConditionalController, DoWhileController
+      from qiskit.transpiler import PassManager
 
       pm = PassManager()
       pm.append(
@@ -43,18 +44,17 @@ upgrade_transpiler:
   - |
     The append method of built-in flow controllers was removed. This includes
 
-    * :meth:`.ConditionalController.append`
-    * :meth:`.DoWhileController.append`
-    * :meth:`.FlowControllerLinear.append`
+    * ``ConditionalController.append``
+    * ``DoWhileController.append``
+    * ``FlowControllerLinear.append``
 
     The task pipeline in a flow controller is frozen, and it must be passed
     when the controller instance is created.
 
   - |
-    Removed methods :meth:`qiskit.transpiler.PassManager.passes` and
-    :meth:`qiskit.transpiler.StagedPassManager.passes` that generates
-    a representation of inset passes in the form of list of dictionary,
-    however, this format doesn't efficiently represent more complicated pass pipeline,
+    Removed the ``passess`` methods of :class:`.PassManager` and :class:`.StagedPassManager` that
+    returned a representation of included passes in the form of list of dictionaries.
+    However, this format doesn't efficiently represent more complicated pass pipeline,
     which may include conditional branching and nested conditions.
     Instead of using this representation, please use following pattern
 
@@ -66,14 +66,15 @@ upgrade_transpiler:
     This directly returns a linearized base task instances in tuple format.
 
   - |
-    The ``max_iteration`` argument was removed from :meth:`qiskit.transpiler.PassManager.append`
-    and :meth:`qiskit.transpiler.PassManager.replace`.
+    The ``max_iteration`` argument was removed from :meth:`.PassManager.append`
+    and :meth:`.PassManager.replace`.
 
   - |
-    The following legacy classes were removed from the pass manager and transpiler module.
+    The following legacy classes were removed from the pass manager and transpiler modules following
+    their deprecation in Qiskit 0.46:
 
-    * :class:`qiskit.passmanager.flow_controllers.FlowController`
-    * :class:`qiskit.transpiler.fencedobjs.FencedObject`
-    * :class:`qiskit.transpiler.fencedobjs.FencedPropertySet`
-    * :class:`qiskit.transpiler.fencedobjs.FencedDAGCircuit`
-    * :class:`qiskit.transpiler.runningpassmanager.RunningPassManager`
+    * ``qiskit.passmanager.flow_controllers.FlowController``
+    * ``qiskit.transpiler.fencedobjs.FencedObject``
+    * ``qiskit.transpiler.fencedobjs.FencedPropertySet``
+    * ``qiskit.transpiler.fencedobjs.FencedDAGCircuit``
+    * ``qiskit.transpiler.runningpassmanager.RunningPassManager``

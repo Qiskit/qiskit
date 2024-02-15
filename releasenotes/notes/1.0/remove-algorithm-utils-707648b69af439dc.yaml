@@ -19,9 +19,7 @@ upgrade_algorithms:
     * ``algorithm_globals``
 
     These were deprecated in Qiskit 0.45 as a consequence of the migration
-    of ``qiskit.algorithms`` to a standalone
-    `package <https://github.com/qiskit-community/qiskit-algorithms>`_, where
-    these utils have also been migrated. They can be found in the new package
+    of ``qiskit.algorithms`` to `a standalone package
+    <https://github.com/qiskit-community/qiskit-algorithms>`_, where
+    these utilities have also been migrated. They can be found in the new package
     under ``qiskit_algorithms.utils``.
-
-

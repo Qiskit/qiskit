@@ -24,4 +24,4 @@ upgrade_pulse:
     * :meth:`.QobjToInstructionConverter.convert_snapshot`
 
     These public methods are all replaced with protected ones which are implicitly called from
-    the single entry point, i.e. call dunder method of the classes.
+    the single entry point, i.e. calling the class as like a function.

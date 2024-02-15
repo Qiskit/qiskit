@@ -16,7 +16,8 @@ fixes:
         qc = QuantumCircuit(1)
         qc.rz(0, 0)
         qc.rz(pi, 0)
+        qc.rz(0, 0)
 
         inverse_pass(qc)
 
-    would previously have incorrectly cancelled the two rz gates.
+    would previously have incorrectly cancelled two of the rz gates.

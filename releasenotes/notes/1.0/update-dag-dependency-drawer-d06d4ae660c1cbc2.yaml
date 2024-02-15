@@ -2,8 +2,8 @@
 features_visualization:
   - |
     The :func:`.dag_drawer` has been updated for the :class:`.DAGDependency`. These
-    drawings have a new color scheme, and the nodes now indicate the ``Qubits`` and
-    ``Clbits`` that are used by the node. If the node has a ``condition`` the drawings
+    drawings have a new color scheme, and the nodes now indicate the qubits and
+    clbits that are used by the node. If the node has a condition, the drawings
     will indicate that as well.
 
       .. code-block:: python

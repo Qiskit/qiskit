@@ -28,3 +28,5 @@ critical:
 
     If you are a library author, or have code that depends on Qiskit, you should update any old
     dependencies on ``qiskit-terra`` to instead depend on ``qiskit``.
+
+    For more information on this change, see our `migration guide on Qiskit packaging <https://qisk.it/1-0-packaging-migration>`__.

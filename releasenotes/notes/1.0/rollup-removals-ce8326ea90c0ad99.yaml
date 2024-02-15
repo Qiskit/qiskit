@@ -26,7 +26,7 @@ upgrade_circuits:
     You can no longer set :attr:`.QuantumCircuit.metadata` to be ``None``, following deprecation
     in Qiskit 0.43.0.  Its type is :class:`dict`, so to clear it, set it to ``{}``.
   - |
-    The attribute :attr:`.Register.name_format` has been removed following its deprecation
+    The attribute ``.Register.name_format`` has been removed following its deprecation
     in Qiskit 0.40.0.  There is no restriction on register names any more, and the
     regular expression there was simply ``[a-z][a-zA-Z0-9_]*``.
 

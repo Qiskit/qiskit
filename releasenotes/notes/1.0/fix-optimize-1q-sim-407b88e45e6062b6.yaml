@@ -7,4 +7,4 @@ fixes:
     is now fixed so the pass :class:`.Optimize1qGatesDecomposition` will defer
     to the circuit's gate if the error rate (which includes number of gates)
     are the same.
-    Fixed `#10568 <https://github.com/Qiskit/qiskit/issues/10568>`__
+    Fixed `#10568 <https://github.com/Qiskit/qiskit/issues/10568>`__.

@@ -4,8 +4,7 @@ upgrade_misc:
     Qiskit's :func:`~.execute_function.execute` function is removed.
     This function served as a high-level wrapper around transpiling
     a circuit with some transpile options and running it on a backend
-    with some run options. If you needed this functionality, consider staying in the 0.*
-    edition until transition is possible for you. To do the same thing, you can explicitly
+    with some run options.  To do the same thing, you can explicitly
     use the :func:`~.transpile` function (with appropriate transpile
     options) followed by ``backend.run()`` (with appropriate run options).
 

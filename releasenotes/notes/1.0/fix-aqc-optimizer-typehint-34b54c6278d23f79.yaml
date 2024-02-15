@@ -11,11 +11,9 @@ fixes:
 
       .. code-block:: python
 
+          from functools import partial
           from scipy.optimize import minimize
-          from qiskit.transpiler.synthesis.aqc.aqc import AQC
+          from qiskit.synthesis.unitary.aqc import AQC
 
           optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
           aqc = AQC(optimizer=optimizer)
-
-
-

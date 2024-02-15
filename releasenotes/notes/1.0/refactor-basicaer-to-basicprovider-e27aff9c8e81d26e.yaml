@@ -36,7 +36,7 @@ upgrade_providers:
         from qiskit.providers.basic_provider import BasicProvider
 
         provider = BasicProvider()
-        backend = provider.get_backend("sim_name")
+        backend = provider.get_backend("basic_simulator")
 
     The following examples show the migration paths of the three simulators in ``BasicAer``.
 
@@ -47,7 +47,6 @@ upgrade_providers:
         qc.h(0)
         qc.h(1)
         qc.cx(1,2)
-        qc.measure_all()
 
         # Former path
         from qiskit import BasicAer
@@ -55,7 +54,6 @@ upgrade_providers:
         statevector = backend.run(qc).result().get_statevector()
 
         # New path
-        qc.remove_final_measurements() # no measurements allowed
         from qiskit.quantum_info import Statevector
         statevector = Statevector(qc)
 
@@ -66,7 +64,6 @@ upgrade_providers:
         qc.h(0)
         qc.h(1)
         qc.cx(1,2)
-        qc.measure_all()
 
         # Former path
         from qiskit import BasicAer
@@ -74,7 +71,6 @@ upgrade_providers:
         result = backend.run(qc).result()
 
         # New path
-        qc.remove_final_measurements() # no measurements allowed
         from qiskit.quantum_info import Operator
         result = Operator(qc).data
 

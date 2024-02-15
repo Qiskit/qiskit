@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    Qiskit 1.0 now requires version 0.14.0 of ``rustworkx``, the minimum
+    Qiskit 1.0 now requires version 0.14.0 of ``rustworkx``. The minimum
     version requirement was raised to support the new ``token_swapper``
     :class:`.PermutationGate` synthesis plugin for :class:`.HighLevelSynthesisPlugin`.
 features_transpiler:
