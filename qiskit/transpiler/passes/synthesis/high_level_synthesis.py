@@ -29,15 +29,15 @@ Clifford Synthesis
     * - ``"ag"``
       - :class:`~.AGSynthesisClifford`
       - all-to-all
-      -
+      - greedily optimizes CX-count
     * - ``"bm"``
       - :class:`~.BMSynthesisClifford`
       - all-to-all
-      -
+      - optimal count for `n=2,3`; used in ``"default"`` for `n=2,3`
     * - ``"greedy"``
       - :class:`~.GreedySynthesisClifford`
       - all-to-all
-      -
+      - greedily optimizes CX-count; used in ``"default"`` for `n>=4`
     * - ``"layers"``
       - :class:`~.LayerSynthesisClifford`
       - all-to-all
@@ -45,11 +45,11 @@ Clifford Synthesis
     * - ``"lnn"``
       - :class:`~.LayerLnnSynthesisClifford`
       - linear
-      -
+      - many CX-gates but guarantees CX-depth of at most `7*n+2`
     * - ``"default"``
       - :class:`~.DefaultSynthesisClifford`
       - all-to-all
-      -
+      - usually best for optimizing CX-count (and optimal CX-count for `n=2,3`)
 
 .. autosummary::
    :toctree: ../stubs/
@@ -75,15 +75,15 @@ Linear Function Synthesis
     * - ``"kms"``
       - :class:`~.KMSSynthesisLinearFunction`
       - linear
-      -
+      - many CX-gates but guarantees CX-depth of at most `5*n`
     * - ``"pmh"``
       - :class:`~.PMHSynthesisLinearFunction`
       - all-to-all
-      -
+      - greedily optimizes CX-count; used in ``"default"``
     * - ``"default"``
       - :class:`~.DefaultSynthesisLinearFunction`
       - all-to-all
-      -
+      - best for optimizing CX-count
 
 .. autosummary::
    :toctree: ../stubs/
@@ -106,23 +106,23 @@ Permutation Synthesis
     * - ``"basic"``
       - :class:`~.BasicSynthesisPermutation`
       - all-to-all
-      - optimal swap count
+      - optimal SWAP-count; used in ``"default"``
     * - ``"acg"``
       - :class:`~.ACGSynthesisPermutation`
       - all-to-all
-      - swap depth of at most `2`
+      - guarantees SWAP-depth of at most `2`
     * - ``"kms"``
       - :class:`~.KMSSynthesisPermutation`
       - linear
-      - swap depth of at most `n`
+      - many SWAP-gates, but guarantees SWAP-depth of at most `n`
     * - ``"token_swapper"``
       - :class:`~.TokenSwapperSynthesisPermutation`
       - any
-      -
+      - greedily optimizes SWAP-count for arbitrary connectivity
     * - ``"default"``
       - :class:`~.BasicSynthesisPermutation`
       - all-to-all
-      - same as ``"basic"``
+      - best for optimizing SWAP-count
 
 .. autosummary::
    :toctree: ../stubs/
@@ -642,7 +642,6 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
 
 class BMSynthesisClifford(HighLevelSynthesisPlugin):
     """Clifford synthesis plugin based on the Bravyi-Maslov method.
-    The plugin is named
 
     The method only works on Cliffords with at most 3 qubits, for which it
     constructs the optimal CX cost decomposition.
