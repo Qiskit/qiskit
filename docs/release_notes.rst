@@ -13,7 +13,7 @@ Release Notes
    :earliest-version: 1.0.0rc1
 
 .. release-notes::
-   :earliest-version: 0.45.0
+   :earliest-version: 0.46.0
    :branch: stable/0.46
 
 .. release-notes::
