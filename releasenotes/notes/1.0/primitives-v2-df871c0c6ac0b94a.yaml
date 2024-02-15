@@ -1,5 +1,5 @@
 ---
-features:
+features_primitives:
   - |
     Version 2 of the primitives is introduced via a new base class for both the sampler and the
     estimator, along with new types for their inputs and outputs. The emphasis of this new
@@ -15,7 +15,7 @@ features:
     (e.g. bitstrings) from every shot, rather than providing a :class:`~.Counts`\-like return, and
     also to store data from separate :class:`~.ClassicalRegister`\s . This enables derived classes
     to implement sampler support for circuits with classical control flow.
-    
+
     The primitive V2 base classes are:
 
     * :class:`.BaseSamplerV2`
@@ -36,11 +36,11 @@ features:
     The reference implementation :class:`~.StatevectorEstimator` of :class:`~.BaseEstimatorV2` was
     added. As seen in the example below, this estimator (and all V2 estimators) supports providing
     arrays of observables and/or  arrays of parameter value sets that are attached to particular
-    circuits. 
-    
+    circuits.
+
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
-    :meth:`~.EstimatorV2.run` method can be given many pubs at once. 
+    :meth:`~.EstimatorV2.run` method can be given many pubs at once.
 
     .. code-block:: python
 
@@ -100,15 +100,15 @@ features:
         for idx, pauli in enumerate(observables):
             plt.plot(result.data.evs[idx], label=pauli)
         plt.legend()
-        
+
   - |
     The reference implementation :class:`~.StatevectorSampler` of :class:`~.BaseSamplerV2` was
     added. As seen in the example below, this sampler (and all V2 samplers) supports
     providing arrays of parameter value sets to bind against a single circuit.
-    
+
     Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
     primitive unified bloc (PUB), produces its own array-based result. The :meth:`~.SamplerV2.run`
-    method can be given many pubs at once. 
+    method can be given many pubs at once.
 
     .. code-block:: python
 
