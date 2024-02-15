@@ -146,7 +146,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
 
     Returns:
         A circuit implementation of the CZ circuit of depth :math:`2n+2` for LNN
-            connectivity.
+        connectivity.
 
     References:
         1. Dmitri Maslov, Martin Roetteler,
