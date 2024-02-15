@@ -21,7 +21,7 @@ from typing import Any
 
 import dill
 
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
@@ -171,6 +171,7 @@ class BasePassManager(ABC):
         self,
         in_programs: Any | list[Any],
         callback: Callable = None,
+        num_processes: int = None,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -204,6 +205,10 @@ class BasePassManager(ABC):
                         running_time = kwargs['running_time']
                         count = kwargs['count']
                         ...
+            num_processes: The maximum number of parallel processes to launch if parallel
+                execution is enabled. This argument overrides ``num_processes`` in the user
+                configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
+                to ``None`` the system default or local user configuration will be used.
 
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
@@ -240,6 +245,7 @@ class BasePassManager(ABC):
             _run_workflow_in_new_process,
             values=in_programs,
             task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            num_processes=num_processes,
         )
 
     def to_flow_controller(self) -> FlowControllerLinear:

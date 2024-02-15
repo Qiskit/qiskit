@@ -20,11 +20,11 @@ from typing import Any
 
 from qiskit.result import QuasiDistribution
 
-from .base_result import BasePrimitiveResult
+from .base_result import _BasePrimitiveResult
 
 
 @dataclass(frozen=True)
-class SamplerResult(BasePrimitiveResult):
+class SamplerResult(_BasePrimitiveResult):
     """Result of Sampler.
 
     .. code-block:: python

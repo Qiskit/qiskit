@@ -115,8 +115,10 @@ class Pauli(BasePauli):
 
     .. math::
 
+        \begin{aligned}
         P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+        \end{aligned}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
 
@@ -149,6 +151,7 @@ class Pauli(BasePauli):
         print('P[:] =', repr(P[:]))
         print('P[::-1] =, repr(P[::-1]))
     """
+
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 

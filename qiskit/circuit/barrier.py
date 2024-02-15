@@ -43,7 +43,7 @@ class Barrier(Instruction):
         self._label = label
         super().__init__("barrier", num_qubits, 0, [], label=label)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Special case. Return self."""
         return Barrier(self.num_qubits)
 

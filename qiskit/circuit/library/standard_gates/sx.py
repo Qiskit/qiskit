@@ -84,8 +84,18 @@ class SXGate(SingletonGate):
             qc._append(operation, qubits, clbits)
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse SX gate (i.e. SXdg)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse SX gate (i.e. SXdg).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SXdgGate`.
+
+        Returns:
+            SXdgGate: inverse of :class:`.SXGate`.
+        """
         return SXdgGate()
 
     def control(
@@ -93,24 +103,36 @@ class SXGate(SingletonGate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-SX gate.
 
         One control returns a CSX gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             SingletonControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CSXGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
+
+    def __eq__(self, other):
+        return isinstance(other, SXGate)
 
 
 @with_gate_array(_SXDG_ARRAY)
@@ -140,7 +162,6 @@ class SXdgGate(SingletonGate):
                         i & 1
                       \end{pmatrix}
                     = e^{-i \pi/4} \sqrt{X}^{\dagger}
-
     """
 
     def __init__(self, label: Optional[str] = None, *, duration=None, unit="dt"):
@@ -165,9 +186,22 @@ class SXdgGate(SingletonGate):
             qc._append(operation, qubits, clbits)
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse SXdg gate (i.e. SX)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse SXdg gate (i.e. SX).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.SXGate`.
+
+        Returns:
+            SXGate: inverse of :class:`.SXdgGate`
+        """
         return SXGate()
+
+    def __eq__(self, other):
+        return isinstance(other, SXdgGate)
 
 
 @with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=1)
@@ -266,3 +300,6 @@ class CSXGate(SingletonControlledGate):
         for operation, qubits, clbits in rules:
             qc._append(operation, qubits, clbits)
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, CSXGate) and self.ctrl_state == other.ctrl_state

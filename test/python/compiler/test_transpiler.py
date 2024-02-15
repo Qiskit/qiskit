@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,17 +17,20 @@ import io
 import math
 import os
 import sys
-import unittest
 from logging import StreamHandler, getLogger
-
-from test import combine  # pylint: disable=wrong-import-order
 from unittest.mock import patch
-
 import numpy as np
 import rustworkx as rx
 from ddt import data, ddt, unpack
 
-from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, QuantumRegister, pulse, qasm3, qpy
+from qiskit import (
+    ClassicalRegister,
+    QuantumCircuit,
+    QuantumRegister,
+    pulse,
+    qasm3,
+    qpy,
+)
 from qiskit.circuit import (
     Clbit,
     ControlFlowOp,
@@ -36,7 +39,6 @@ from qiskit.circuit import (
     IfElseOp,
     Parameter,
     Qubit,
-    Reset,
     SwitchCaseOp,
     WhileLoopOp,
 )
@@ -48,6 +50,8 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
+from qiskit.circuit.measure import Measure
+from qiskit.circuit.reset import Reset
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
@@ -60,38 +64,31 @@ from qiskit.circuit.library import (
     SXGate,
     SXdgGate,
     SdgGate,
-    U1Gate,
     U2Gate,
     UGate,
     XGate,
     ZGate,
 )
-from qiskit.circuit.measure import Measure
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.fake_provider import (
-    FakeBoeblingen,
-    FakeMelbourne,
-    FakeMumbaiV2,
-    FakeNairobiV2,
-    FakeRueschlikon,
-    FakeSherbrooke,
-    FakeVigo,
-)
+from qiskit.providers.fake_provider import Fake20QV1, GenericBackendV2
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.quantum_info import Operator, random_unitary
-from qiskit.test import QiskitTestCase, slow_test
-from qiskit.tools import parallel
+from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
 from qiskit.transpiler.target import InstructionProperties, Target
+from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
 
 
 class CustomCX(Gate):
@@ -140,7 +137,7 @@ class TestTranspile(QiskitTestCase):
         coupling_map = [[1, 0]]
         basis_gates = ["u1", "u2", "u3", "cx", "id"]
 
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
         circuit2 = transpile(
             circuit,
             backend=backend,
@@ -152,6 +149,19 @@ class TestTranspile(QiskitTestCase):
             circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates
         )
         self.assertEqual(circuit2, circuit3)
+
+    @data(0, 1, 2, 3)
+    def test_num_processes_kwarg_concurrent_default(self, num_processes):
+        """Test that num_processes kwarg works when the system default parallel is false"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        target = GenericBackendV2(num_qubits=27).target
+        res = transpile([qc] * 3, target=target, num_processes=num_processes)
+        self.assertIsInstance(res, list)
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
         """Verify transpile() works with no coupling_map or backend."""
@@ -193,6 +203,49 @@ class TestTranspile(QiskitTestCase):
 
               13 -  12  - 11 -  10 -  9  -  8  -   7
         """
+        cmap = [
+            [0, 1],
+            [0, 14],
+            [1, 0],
+            [1, 2],
+            [1, 13],
+            [2, 1],
+            [2, 3],
+            [2, 12],
+            [3, 2],
+            [3, 4],
+            [3, 11],
+            [4, 3],
+            [4, 5],
+            [4, 10],
+            [5, 4],
+            [5, 6],
+            [5, 9],
+            [6, 5],
+            [6, 8],
+            [7, 8],
+            [8, 6],
+            [8, 7],
+            [8, 9],
+            [9, 5],
+            [9, 8],
+            [9, 10],
+            [10, 4],
+            [10, 9],
+            [10, 11],
+            [11, 3],
+            [11, 10],
+            [11, 12],
+            [12, 2],
+            [12, 11],
+            [12, 13],
+            [13, 1],
+            [13, 12],
+            [13, 14],
+            [14, 0],
+            [14, 13],
+        ]
+
         qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -200,14 +253,15 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[2], qr[3])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
+        backend = GenericBackendV2(
+            num_qubits=15, basis_gates=["ecr", "id", "rz", "sx", "x"], coupling_map=cmap
+        )
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         new_circuit = transpile(
             circuit,
-            basis_gates=basis_gates,
-            coupling_map=coupling_map,
+            basis_gates=backend.operation_names,
+            coupling_map=backend.coupling_map,
             initial_layout=initial_layout,
         )
 
@@ -215,10 +269,13 @@ class TestTranspile(QiskitTestCase):
 
         for instruction in new_circuit.data:
             if isinstance(instruction.operation, CXGate):
-                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], backend.coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
+
+        basis_gates = ["cx", "id", "rz", "sx", "x"]
+
         qr = QuantumRegister(8)
         circuit = QuantumCircuit(qr)
         for i, _ in enumerate(qr):
@@ -226,24 +283,21 @@ class TestTranspile(QiskitTestCase):
                 circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
-        new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=coupling_map)
-
+        new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=MELBOURNE_CMAP)
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
-
         for instruction in new_circuit.data:
             if isinstance(instruction.operation, CXGate):
-                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
+                self.assertIn([qubit_indices[x] for x in instruction.qubits], MELBOURNE_CMAP)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        backend = FakeRueschlikon()
-        coupling_map = backend.configuration().coupling_map
-        basis_gates = backend.configuration().basis_gates
+
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+        coupling_map = backend.coupling_map
+        basis_gates = backend.operation_names
 
         qr = QuantumRegister(16, "qr")
         cr = ClassicalRegister(16, "cr")
@@ -409,7 +463,7 @@ class TestTranspile(QiskitTestCase):
 
         If all correct some should exists.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -448,7 +502,7 @@ class TestTranspile(QiskitTestCase):
 
         Check that the top-level `transpile` function returns
         a single circuit."""
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -465,7 +519,7 @@ class TestTranspile(QiskitTestCase):
 
         Check that the transpiler returns a list of two circuits.
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -491,7 +545,7 @@ class TestTranspile(QiskitTestCase):
 
         See https://github.com/Qiskit/qiskit-terra/issues/5260
         """
-        backend = BasicAer.get_backend("qasm_simulator")
+        backend = BasicSimulator()
 
         qubit_reg = QuantumRegister(2)
         clbit_reg = ClassicalRegister(2)
@@ -507,7 +561,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_correction(self):
         """Test mapping works in previous failed case."""
-        backend = FakeRueschlikon()
+        backend = GenericBackendV2(num_qubits=12)
         qr = QuantumRegister(name="qr", size=11)
         cr = ClassicalRegister(name="qc", size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -622,7 +676,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs."""
-        backend = FakeRueschlikon()
+        backend = GenericBackendV2(num_qubits=8)
         qr = QuantumRegister(3, name="qr")
         qr2 = QuantumRegister(1, name="qr2")
         qr3 = QuantumRegister(4, name="qr3")
@@ -639,7 +693,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_circuits_diff_registers(self):
         """Transpile list of circuits with different qreg names."""
-        backend = FakeRueschlikon()
+        backend = GenericBackendV2(num_qubits=4)
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -655,7 +709,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout."""
-        backend = FakeMelbourne()
+        backend = GenericBackendV2(num_qubits=4)
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -681,7 +735,7 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter("theta")
         qc.rz(theta, qr[0])
 
-        transpiled_qc = transpile(qc, backend=BasicAer.get_backend("qasm_simulator"))
+        transpiled_qc = transpile(qc, backend=BasicSimulator())
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.append(RZGate(theta), [qr[0]])
@@ -693,15 +747,18 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
 
         theta = Parameter("theta")
-        qc.rz(theta, qr[0])
+        qc.p(theta, qr[0])
+        backend = GenericBackendV2(num_qubits=4)
 
         transpiled_qc = transpile(
-            qc, backend=FakeMelbourne(), initial_layout=Layout.generate_trivial_layout(qr)
+            qc,
+            backend=backend,
+            initial_layout=Layout.generate_trivial_layout(qr),
         )
 
-        qr = QuantumRegister(14, "q")
-        expected_qc = QuantumCircuit(qr, global_phase=-1 * theta / 2.0)
-        expected_qc.append(U1Gate(theta), [qr[0]])
+        qr = QuantumRegister(backend.num_qubits, "q")
+        expected_qc = QuantumCircuit(qr, global_phase=theta / 2.0)
+        expected_qc.append(RZGate(theta), [qr[0]])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -715,7 +772,7 @@ class TestTranspile(QiskitTestCase):
         square = theta * theta
         qc.rz(square, qr[0])
 
-        transpiled_qc = transpile(qc, backend=BasicAer.get_backend("qasm_simulator"))
+        transpiled_qc = transpile(qc, backend=BasicSimulator())
 
         expected_qc = QuantumCircuit(qr)
         expected_qc.append(RZGate(square), [qr[0]])
@@ -731,13 +788,16 @@ class TestTranspile(QiskitTestCase):
         square = theta * theta
         qc.rz(square, qr[0])
 
+        backend = GenericBackendV2(num_qubits=4)
         transpiled_qc = transpile(
-            qc, backend=FakeMelbourne(), initial_layout=Layout.generate_trivial_layout(qr)
+            qc,
+            backend=backend,
+            initial_layout=Layout.generate_trivial_layout(qr),
         )
 
-        qr = QuantumRegister(14, "q")
-        expected_qc = QuantumCircuit(qr, global_phase=-1 * square / 2.0)
-        expected_qc.append(U1Gate(square), [qr[0]])
+        qr = QuantumRegister(backend.num_qubits, "q")
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.append(RZGate(square), [qr[0]])
         self.assertEqual(expected_qc, transpiled_qc)
 
     def test_final_measurement_barrier_for_devices(self):
@@ -746,10 +806,11 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         orig_pass = BarrierBeforeFinalMeasurements()
+
         with patch.object(BarrierBeforeFinalMeasurements, "run", wraps=orig_pass.run) as mock_pass:
             transpile(
                 circ,
-                coupling_map=FakeRueschlikon().configuration().coupling_map,
+                coupling_map=RUESCHLIKON_CMAP,
                 initial_layout=layout,
             )
             self.assertTrue(mock_pass.called)
@@ -760,7 +821,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
-        for node1, node2 in FakeRueschlikon().configuration().coupling_map:
+        for node1, node2 in GenericBackendV2(num_qubits=16).coupling_map:
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
@@ -819,8 +880,7 @@ class TestTranspile(QiskitTestCase):
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping."""
-        backend = FakeRueschlikon()
-        cmap = backend.configuration().coupling_map
+        cmap = GenericBackendV2(num_qubits=16).coupling_map
         qasm_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "qasm")
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "move_measurements.qasm"))
 
@@ -863,7 +923,7 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
 
-        out = transpile(qc, backend=FakeMelbourne())
+        out = transpile(qc, backend=GenericBackendV2(num_qubits=4))
         out_dag = circuit_to_dag(out)
         reset_nodes = out_dag.named_nodes("reset")
 
@@ -1162,10 +1222,9 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(custom_180, [0], q0_x180)
         circ.add_calibration(custom_90, [1], q1_y90)
 
-        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=4),
             layout_method="trivial",
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
@@ -1183,10 +1242,9 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration("h", [0], q0_x180)
 
-        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=4),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
 
@@ -1203,9 +1261,12 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration(custom_180, [1], q0_x180)
 
-        backend = FakeBoeblingen()
         with self.assertRaises(QiskitError):
-            transpile(circ, backend=backend, layout_method="trivial")
+            transpile(
+                circ,
+                backend=GenericBackendV2(num_qubits=4),
+                layout_method="trivial",
+            )
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
         """Test if the non-basis gates are transpiled if they are on different qubit that
@@ -1220,13 +1281,12 @@ class TestTranspile(QiskitTestCase):
         # Add calibration
         circ.add_calibration("h", [1], q0_x180)
 
-        backend = FakeBoeblingen()
         transpiled_circuit = transpile(
             circ,
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=4),
         )
         self.assertEqual(transpiled_circuit.calibrations, circ.calibrations)
-        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"u2", "h"})
+        self.assertEqual(set(transpiled_circuit.count_ops().keys()), {"rz", "sx", "h"})
 
     def test_transpile_subset_of_calibrated_gates(self):
         """Test transpiling a circuit with both basis gate (not-calibrated) and
@@ -1244,8 +1304,12 @@ class TestTranspile(QiskitTestCase):
         circ.add_calibration(x_180, [0], q0_x180)
         circ.add_calibration("h", [1], q0_x180)  # 'h' is calibrated on qubit 1
 
-        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
-        self.assertEqual(set(transpiled_circ.count_ops().keys()), {"u2", "mycustom", "h"})
+        transpiled_circ = transpile(
+            circ,
+            backend=GenericBackendV2(num_qubits=4),
+            layout_method="trivial",
+        )
+        self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rz", "sx", "mycustom", "h"})
 
     def test_parameterized_calibrations_transpile(self):
         """Check that gates can be matched to their calibrations before and after parameter
@@ -1261,10 +1325,18 @@ class TestTranspile(QiskitTestCase):
 
         circ.add_calibration("rxt", [0], q0_rxt(tau), [2 * 3.14 * tau])
 
-        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
+        transpiled_circ = transpile(
+            circ,
+            backend=GenericBackendV2(num_qubits=4),
+            layout_method="trivial",
+        )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
         circ = circ.assign_parameters({tau: 1})
-        transpiled_circ = transpile(circ, FakeBoeblingen(), layout_method="trivial")
+        transpiled_circ = transpile(
+            circ,
+            backend=GenericBackendV2(num_qubits=4),
+            layout_method="trivial",
+        )
         self.assertEqual(set(transpiled_circ.count_ops().keys()), {"rxt"})
 
     def test_inst_durations_from_calibrations(self):
@@ -1291,8 +1363,9 @@ class TestTranspile(QiskitTestCase):
         custom_gate = Gate("my_custom_gate", 5, [])
         circ.append(custom_gate, [0, 1, 2, 3, 4])
         circ.measure_all()
-        backend = FakeBoeblingen()
-        with pulse.build(backend, name="custom") as my_schedule:
+        backend = GenericBackendV2(num_qubits=6)
+
+        with pulse.build(backend=backend, name="custom") as my_schedule:
             pulse.play(
                 pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.drive_channel(0)
             )
@@ -1321,7 +1394,9 @@ class TestTranspile(QiskitTestCase):
                 pulse.library.Gaussian(duration=128, amp=0.1, sigma=16), pulse.ControlChannel(4)
             )
         circ.add_calibration("my_custom_gate", [0, 1, 2, 3, 4], my_schedule, [])
-        trans_circ = transpile(circ, backend, optimization_level=opt_level, layout_method="trivial")
+        trans_circ = transpile(
+            circ, backend=backend, optimization_level=opt_level, layout_method="trivial"
+        )
         self.assertEqual({"measure": 5, "my_custom_gate": 1, "barrier": 1}, trans_circ.count_ops())
 
     @data(0, 1, 2, 3)
@@ -1348,8 +1423,8 @@ class TestTranspile(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.delay(1000, [0], unit="us")
 
-        backend = FakeRueschlikon()
-        backend.configuration().dt = 0.5e-6
+        backend = GenericBackendV2(num_qubits=4)
+        backend.target.dt = 0.5e-6
         out = transpile([qc, qc], backend)
         self.assertEqual(out[0].data[0].operation.unit, "dt")
         self.assertEqual(out[1].data[0].operation.unit, "dt")
@@ -1364,8 +1439,11 @@ class TestTranspile(QiskitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
 
-        backend = FakeMumbaiV2()
-        out = transpile([qc, qc], backend, scheduling_method="alap")
+        out = transpile(
+            [qc, qc],
+            backend=GenericBackendV2(num_qubits=4),
+            scheduling_method="alap",
+        )
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
 
@@ -1445,10 +1523,11 @@ class TestTranspile(QiskitTestCase):
         qc.cx(1, 2)
 
         qc.measure(qubits, clbits)
+        backend = GenericBackendV2(num_qubits=4)
 
-        out = transpile(qc, FakeBoeblingen(), optimization_level=optimization_level)
+        out = transpile(qc, backend=backend, optimization_level=optimization_level)
 
-        self.assertEqual(len(out.qubits), FakeBoeblingen().configuration().num_qubits)
+        self.assertEqual(len(out.qubits), backend.num_qubits)
         self.assertEqual(len(out.clbits), len(clbits))
 
     @data(0, 1, 2, 3)
@@ -1569,11 +1648,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
         """Test transpile() with a target and constrol flow ops."""
-        target = FakeMumbaiV2().target
-        target.add_instruction(ForLoopOp, name="for_loop")
-        target.add_instruction(WhileLoopOp, name="while_loop")
-        target.add_instruction(IfElseOp, name="if_else")
-        target.add_instruction(SwitchCaseOp, name="switch_case")
+        target = GenericBackendV2(num_qubits=8, control_flow=True).target
 
         circuit = QuantumCircuit(6, 1)
         circuit.h(0)
@@ -1751,7 +1826,7 @@ class TestTranspile(QiskitTestCase):
         qc.append(AnnotatedOperation(SGate(), InverseModifier()), [0])
         qc.append(AnnotatedOperation(XGate(), ControlModifier(1)), [1, 2])
         qc.append(AnnotatedOperation(HGate(), PowerModifier(3)), [2])
-        backend = FakeMelbourne()
+        backend = Fake20QV1()
         transpiled = transpile(
             qc, optimization_level=opt_level, backend=backend, seed_transpiler=42
         )
@@ -1864,7 +1939,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeMelbourne(),
+            backend=GenericBackendV2(num_qubits=8),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1881,7 +1956,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeMumbaiV2(),
+            backend=GenericBackendV2(num_qubits=8),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1905,12 +1980,11 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 "See #10345 for more details."
             )
 
-        backend = FakeMelbourne()
+        backend = GenericBackendV2(num_qubits=8, control_flow=True)
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
-            basis_gates=backend.configuration().basis_gates
-            + ["if_else", "for_loop", "while_loop", "switch_case"],
+            basis_gates=backend.operation_names,
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1926,14 +2000,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qpy_roundtrip_control_flow_backendv2(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be round-tripped
         through QPY."""
-        backend = FakeMumbaiV2()
-        backend.target.add_instruction(IfElseOp, name="if_else")
-        backend.target.add_instruction(ForLoopOp, name="for_loop")
-        backend.target.add_instruction(WhileLoopOp, name="while_loop")
-        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=8, control_flow=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1954,11 +2023,11 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 "This test case triggers a bug in the eigensolver routine on windows. "
                 "See #10345 for more details."
             )
-        backend = FakeMelbourne()
+        backend = GenericBackendV2(num_qubits=16)
         transpiled = transpile(
             self._control_flow_expr_circuit(),
             backend=backend,
-            basis_gates=backend.configuration().basis_gates
+            basis_gates=backend.operation_names
             + ["if_else", "for_loop", "while_loop", "switch_case"],
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
@@ -1973,7 +2042,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qpy_roundtrip_control_flow_expr_backendv2(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow including `Expr` nodes can
         be round-tripped through QPY."""
-        backend = FakeMumbaiV2()
+        backend = GenericBackendV2(num_qubits=27)
         backend.target.add_instruction(IfElseOp, name="if_else")
         backend.target.add_instruction(ForLoopOp, name="for_loop")
         backend.target.add_instruction(WhileLoopOp, name="while_loop")
@@ -1995,7 +2064,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
             self._regular_circuit(),
-            backend=FakeMelbourne(),
+            backend=Fake20QV1(),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2008,14 +2077,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qasm3_output_control_flow(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow can be dumped into
         OpenQASM 3."""
-        backend = FakeMumbaiV2()
-        backend.target.add_instruction(IfElseOp, name="if_else")
-        backend.target.add_instruction(ForLoopOp, name="for_loop")
-        backend.target.add_instruction(WhileLoopOp, name="while_loop")
-        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=8, control_flow=True),
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -2031,14 +2095,9 @@ class TestPostTranspileIntegration(QiskitTestCase):
     def test_qasm3_output_control_flow_expr(self, optimization_level):
         """Test that the output of a transpiled circuit with control flow and `Expr` nodes can be
         dumped into OpenQASM 3."""
-        backend = FakeMumbaiV2()
-        backend.target.add_instruction(IfElseOp, name="if_else")
-        backend.target.add_instruction(ForLoopOp, name="for_loop")
-        backend.target.add_instruction(WhileLoopOp, name="while_loop")
-        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=27, control_flow=True),
             optimization_level=optimization_level,
             seed_transpiler=2023_07_26,
         )
@@ -2092,7 +2151,13 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 vf2_post_layout_called = True
                 self.assertIsNotNone(kwargs["property_set"]["post_layout"])
 
-        backend = FakeVigo()
+        coupling_map = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
+        backend = GenericBackendV2(
+            num_qubits=5,
+            basis_gates=["id", "sx", "x", "cx", "rz"],
+            coupling_map=coupling_map,
+            seed=0,
+        )
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
@@ -2100,7 +2165,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
 
         tqc = transpile(qc, backend=backend, seed_transpiler=4242, callback=callback)
         self.assertTrue(vf2_post_layout_called)
-        self.assertEqual([3, 2, 1], _get_index_layout(tqc, qubits))
+        self.assertEqual([0, 2, 1], _get_index_layout(tqc, qubits))
 
 
 class StreamHandlerRaiseException(StreamHandler):
@@ -2191,8 +2256,7 @@ class TestTranspileParallel(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeMumbaiV2()
-        pm = generate_preset_pass_manager(opt_level, backend)
+        pm = generate_preset_pass_manager(opt_level, backend=GenericBackendV2(num_qubits=4))
         res = pm.run([qc, qc])
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
@@ -2204,8 +2268,21 @@ class TestTranspileParallel(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        target = FakeMumbaiV2().target
+        target = GenericBackendV2(num_qubits=4).target
         res = transpile([qc] * 3, target=target, optimization_level=opt_level)
+        self.assertIsInstance(res, list)
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_num_processes_kwarg(self, num_processes):
+        """Test that num_processes kwarg works when the system default parallel is true"""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        target = GenericBackendV2(num_qubits=27).target
+        res = transpile([qc] * 3, target=target, num_processes=num_processes)
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
@@ -2213,12 +2290,12 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_parallel_dispatch(self, opt_level):
         """Test that transpile in parallel works for all optimization levels."""
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16)
-        cr = ClassicalRegister(16)
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["cx", "id", "rz", "sx", "x"], seed=42)
+        qr = QuantumRegister(5)
+        cr = ClassicalRegister(5)
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
-        for k in range(1, 15):
+        for k in range(1, 4):
             qc.cx(qr[0], qr[k])
         qc.measure(qr, cr)
         qlist = [qc for k in range(15)]
@@ -2228,8 +2305,8 @@ class TestTranspileParallel(QiskitTestCase):
         result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
         counts = result.get_counts()
         for count in counts:
-            self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
-            self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["00000"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["01111"], 500, rel_tol=0.1))
 
     def test_parallel_dispatch_lazy_cal_loading(self):
         """Test adding calibration by lazy loading in parallel environment."""
@@ -2251,9 +2328,13 @@ class TestTranspileParallel(QiskitTestCase):
                 )
                 return dag
 
-        backend = FakeMumbaiV2()
+        # Create backend with empty calibrations (PulseQobjEntries)
+        backend = GenericBackendV2(
+            num_qubits=4,
+            calibrate_instructions=False,
+        )
 
-        # This target has PulseQobj entries that provides a serialized schedule data
+        # This target has PulseQobj entries that provide a serialized schedule data
         pass_ = TestAddCalibration(backend.target)
         pm = PassManager(passes=[pass_])
         self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
@@ -2271,7 +2352,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_parallel_singleton_conditional_gate(self, opt_level):
         """Test that singleton mutable instance doesn't lose state in parallel."""
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=27)
         circ = QuantumCircuit(2, 1)
         circ.h(0)
         circ.measure(0, circ.clbits[0])
@@ -2285,7 +2366,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backendv2_and_basis_gates(self, opt_level):
         """Test transpile() with BackendV2 and basis_gates set."""
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=6)
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cz(0, 1)
@@ -2311,7 +2392,7 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backendv2_and_coupling_map(self, opt_level):
         """Test transpile() with custom coupling map."""
-        backend = FakeNairobiV2()
+
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cz(0, 1)
@@ -2322,7 +2403,7 @@ class TestTranspileParallel(QiskitTestCase):
         cmap = CouplingMap.from_line(5, bidirectional=False)
         tqc = transpile(
             qc,
-            backend=backend,
+            backend=GenericBackendV2(num_qubits=6),
             coupling_map=cmap,
             optimization_level=opt_level,
             seed_transpiler=12345678942,
@@ -2337,7 +2418,7 @@ class TestTranspileParallel(QiskitTestCase):
 
     def test_transpile_with_multiple_coupling_maps(self):
         """Test passing a different coupling map for every circuit"""
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=4)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 2)
@@ -2360,7 +2441,10 @@ class TestTranspileParallel(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
         """Test transpile() with BackendV2, custom basis pulse gate."""
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(
+            num_qubits=5,
+            coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
+        )
         inst_map = InstructionScheduleMap()
         inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
         newgate = Gate("newgate", 2, [])
@@ -2871,7 +2955,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         )[0]
         # The first node should be a measurement
         self.assertIsInstance(first_meas_node.op, Measure)
-        # This shoulde be in the first ocmponent
+        # This should be in the first component
         self.assertIn(qubit_map[first_meas_node.qargs[0]], components[0])
         op_node = tqc_dag._multi_graph.find_successors_by_edge(
             first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
@@ -3235,15 +3319,26 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             transpile(qc, target=target, optimization_level=opt_level)
 
     @data(0, 1, 2, 3)
+    def test_barrier_no_leak_disjoint_connectivity(self, opt_level):
+        """Test that we don't leak an internal labelled barrier from disjoint layout processing."""
+        cmap = CouplingMap([(0, 1), (1, 2), (3, 4)])
+        qc = QuantumCircuit(cmap.size(), cmap.size())
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(2, 0)
+        qc.cx(3, 4)
+        qc.measure(qc.qubits, qc.clbits)
+        out = transpile(qc, coupling_map=cmap, optimization_level=opt_level)
+        self.assertNotIn("barrier", out.count_ops())
+
+    @data(0, 1, 2, 3)
     def test_transpile_does_not_affect_backend_coupling(self, opt_level):
         """Test that transpiliation of a circuit does not mutate the `CouplingMap` stored by a V2
         backend.  Regression test of gh-9997."""
-        if opt_level == 3:
-            raise unittest.SkipTest("unitary resynthesis fails due to gh-10004")
         qc = QuantumCircuit(127)
         for i in range(1, 127):
             qc.ecr(0, i)
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=130)
         original_map = copy.deepcopy(backend.coupling_map)
         transpile(qc, backend, optimization_level=opt_level)
         self.assertEqual(original_map, backend.coupling_map)

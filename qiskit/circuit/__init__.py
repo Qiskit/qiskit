@@ -71,8 +71,7 @@ with equal probability.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
-
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
    qc = QuantumCircuit(qr, cr)
@@ -82,7 +81,8 @@ with equal probability.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 
@@ -100,7 +100,7 @@ always be :math:`|1\\rangle`.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
@@ -115,7 +115,8 @@ always be :math:`|1\\rangle`.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 
@@ -280,7 +281,6 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
-   Store
 
 Control Flow Operations
 -----------------------
@@ -377,7 +377,6 @@ from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-from .store import Store
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
@@ -398,3 +397,5 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+
+from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

@@ -13,15 +13,16 @@
 """Test CZ circuits synthesis functions."""
 
 import unittest
-from test import combine
 import numpy as np
 from ddt import ddt
+
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 from qiskit.quantum_info import Clifford
-from qiskit.test import QiskitTestCase
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
