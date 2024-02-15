@@ -418,3 +418,75 @@ def set_style(current_style, new_style):
             UserWarning,
             2,
         )
+<<<<<<< HEAD
+=======
+        style_name = "default"
+
+    if style_name in ["iqp", "default"]:
+        current_style = DefaultStyle().style
+    else:
+        # Search for file in 'styles' dir, then config_path, and finally the current directory
+        style_name = style_name + ".json"
+        style_paths = []
+
+        default_path = Path(__file__).parent / "styles" / style_name
+        style_paths.append(default_path)
+
+        # check configured paths, if there are any
+        if config:
+            config_path = config.get("circuit_mpl_style_path", "")
+            if config_path:
+                for path in config_path:
+                    style_paths.append(Path(path) / style_name)
+
+        # check current directory
+        cwd_path = Path("") / style_name
+        style_paths.append(cwd_path)
+
+        for path in style_paths:
+            # expand ~ to the user directory and check if the file exists
+            exp_user = path.expanduser()
+            if os.path.isfile(exp_user):
+                try:
+                    with open(exp_user) as infile:
+                        json_style = json.load(infile)
+
+                    current_style = StyleDict(json_style)
+                    break
+                except json.JSONDecodeError as err:
+                    warn(
+                        f"Could not decode JSON in file '{path}': {str(err)}. "
+                        "Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+                except (OSError, FileNotFoundError):
+                    warn(
+                        f"Error loading JSON file '{path}'. Will use default style.",
+                        UserWarning,
+                        2,
+                    )
+                    break
+        else:
+            warn(
+                f"Style JSON file '{style_name}' not found in any of these locations: "
+                f"{', '.join(map(str, style_paths))}. "
+                "Will use default style.",
+                UserWarning,
+                2,
+            )
+            current_style = DefaultStyle().style
+
+    # if the style is a dictionary, update the defaults with the new values
+    # this _needs_ to happen after loading by name to cover cases like
+    #   style = {"name": "bw", "edgecolor": "#FF0000"}
+    if isinstance(style, dict):
+        current_style.update(style)
+
+    # this is the default font ratio
+    # if the font- or subfont-sizes are changed, the new size is based on this ratio
+    def_font_ratio = 13 / 8
+
+    return current_style, def_font_ratio
+>>>>>>> 19c15b749 (bug loading MPL style from the configuration (#11750))
