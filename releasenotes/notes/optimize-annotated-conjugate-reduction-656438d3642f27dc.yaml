@@ -8,7 +8,7 @@ features:
     * the base operation needs to be synthesized (i.e. it's not already supported
       by the target or belongs to the equivalence library)
 
-    * the definition circuit for``B`` can be expressed as ``P -- Q -- R`` with :math:`R = P^{-1}`
+    * the definition circuit for ``B`` can be expressed as ``P -- Q -- R`` with :math:`R = P^{-1}`
 
     In this case the modifiers can moved to the ``Q``-part only. As a specific example, controlled
     QFT-based adders have the form ``control - [QFT -- U -- IQFT]``, which can be simplified to
