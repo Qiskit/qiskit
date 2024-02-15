@@ -1,10 +1,10 @@
 ---
-features:
+features_synthesis:
   - |
     A new class, :class:`~.TwoQubitWeylDecomposition`, has been added to :mod:`qiskit.synthesis`.
     This class allows to apply the Weyl decomposition of two-qubit unitaries.
 
-upgrade:
+upgrade_quantum_info:
   - |
     Removed the ``qiskit.quantum_info.synthesis`` module, which has been deprecated since the 0.46 release.
     The following objects have been moved to :mod:`qiskit.synthesis`:
