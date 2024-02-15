@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_misc:
   - |
     The object ``qiskit.Aer`` has been removed following its deprecation in Qiskit 0.46.  You can
     instead use :attr:`qiskit_aer.Aer`, which is a drop-in replacement.

@@ -8,5 +8,8 @@ fixes:
     even when calibrations for a finite set of qubits are reported.
 upgrade_providers:
   - |
-    Updated information of :class:`.FakeOpenPulse2Q` backend, including properties, defaults and
-    previously missing instructions.
+    The :class:`.BackendProperties` and :class:`.PulseDefaults` model objects used by the
+    :class:`.FakeOpenPulse2Q`  have been updated to be internally consistent and add missing
+    instructions. If you were relying on the previous model objects as a compilation target you can
+    use the backend with Qiskit 0.46 and export a :class:`.QuantumCircuit` generated with
+    :func:`.transpile` and serialize it using :class:`.qpy.dump` to access it in this release.
