@@ -64,11 +64,11 @@ is in general array-valued as well. For more information, please check
 `here <https://github.com/Qiskit/RFCs/blob/master/0015-estimator-interface.md#arrays-and
 -broadcasting->`_.
 
-Here is an example of how the estimator is used.
+Here is an example of how an estimator is used.
 
 .. code-block:: python
 
-    from qiskit.primitives.statevector_estimator import Estimator
+    from qiskit.primitives import StatevectorEstimator as Estimator
     from qiskit.circuit.library import RealAmplitudes
     from qiskit.quantum_info import SparsePauliOp
 
@@ -94,7 +94,8 @@ Here is an example of how the estimator is used.
     #              <psi1(theta3)|H3|psi1(theta3)>],
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
-        [(psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), (psi2, hamiltonian2, theta2)]
+        [(psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), (psi2, hamiltonian2, theta2)],
+        precision=0.01
     )
     job_result = job2.result()
     print(f"The primitive-job finished with result {job_result}")
@@ -338,14 +339,16 @@ level, however, here are some notable differences keep in mind when migrating fr
 
       # V1 sampler usage
       result = sampler_v1.run([circuit]).result()
-      quasi_dists = bitstrings.get_counts()
+      quasi_dist = result.quasi_dists[0]
 
       # V2 sampler usage
       result = sampler_v2.run([circuit]).result()
-      # these are all the bitstrings from the alpha register
-      bitstrings = result[0].data.alpha
-      # we can use it to generate a Counts mapping, which is the most similar thing to a quasi dist
-      counts = bitstrings.get_counts()
+      # these are the bit values from the alpha register, over all shots
+      bitvals = result[0].data.alpha
+      # we can use it to generate a Counts mapping, which is similar to a quasi prob distribution
+      counts = bitvals.get_counts()
+      # which can in turn be converted to the V1 type through normalization
+      quasi_dist = QuasiDistribution({outcome: freq / shots for outcome, freq in counts.items()})
 
 3. The V2 primitives have brought the concept of sampling overhead, inherent to all quantum systems
    via their inherent probabilistic nature, out of the options and into the API itself. For the

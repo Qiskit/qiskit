@@ -114,7 +114,7 @@ class StatevectorSampler(BaseSamplerV2):
         assert result.data.alpha.num_bits == 2
         assert result.data.alpha.num_shots == 256
 
-        # We can work directly with the binary data in performant applications.
+        # We can work directly with the binary array in performant applications.
         raw = result.data.alpha.array
 
         # For small registers where it is anticipated to have many counts associated with the same

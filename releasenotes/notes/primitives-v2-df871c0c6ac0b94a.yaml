@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Version 2 of the primitives was introduced via a new base class for both the sampler and the
+    Version 2 of the primitives is introduced via a new base class for both the sampler and the
     estimator, along with new types for their inputs and outputs. The emphasis of this new
     version is on performing vectorized calls to the primitive ``run()`` methods, so that sweeps
     over parameter value sets and observables can be efficiently specified. See
@@ -29,7 +29,7 @@ features:
       type of allowed inputs to an estimator
     * :class:`.PubResult`\: the data and metadata resulting from a single PUB's execution
     * :class:`.DataBin`\: A namespace to hold data from a single PUB's execution
-    * :class:`.BitArray`\: an array-valued collection of bitstrings in a dense format
+    * :class:`.BitArray`\: an array-valued collection of bit values in a dense format
     * :class:`.PrimitiveResult`: an iterable of :class:`.PubResult`\s along with metadata
 
   - |
@@ -153,7 +153,7 @@ features:
         assert result.data.alpha.num_bits == 2
         assert result.data.alpha.num_shots == 256
 
-        # We can work directly with the binary data in performant applications.
+        # We can work directly with the binary array in performant applications.
         raw = result.data.alpha.array
 
         # For small registers where it is anticipated to have many counts associated with the same
