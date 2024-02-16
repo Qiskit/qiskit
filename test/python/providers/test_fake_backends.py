@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,17 +25,14 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import assemble
 from qiskit.compiler import transpile
 from qiskit.exceptions import QiskitError
-from qiskit.test.base import QiskitTestCase
 from qiskit.providers.fake_provider import (
-    FakeProviderForBackendV2,
-    FakeProvider,
-    FakeMumbaiV2,
-    FakeYorktown,
-    FakeMumbai,
-    FakeWashington,
-    FakeSherbrooke,
-    FakePrague,
+    Fake5QV1,
+    Fake20QV1,
+    Fake7QPulseV1,
+    Fake27QPulseV1,
+    Fake127QPulseV1,
     FakeOpenPulse2Q,
+    GenericBackendV2,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -77,9 +74,15 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from qiskit.transpiler.coupling import CouplingMap
+from test.utils.base import QiskitTestCase  # pylint: disable=wrong-import-order
 
-FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
-FAKE_PROVIDER = FakeProvider()
+BACKENDS = [Fake5QV1(), Fake20QV1(), Fake7QPulseV1(), Fake27QPulseV1(), Fake127QPulseV1()]
+
+BACKENDS_V2 = []
+for n in [5, 7, 16, 20, 27, 65, 127]:
+    cmap = CouplingMap.from_ring(n)
+    BACKENDS_V2.append(GenericBackendV2(num_qubits=n, coupling_map=cmap))
 
 
 @ddt
@@ -97,15 +100,16 @@ class TestFakeBackends(QiskitTestCase):
         cls.circuit.measure_all()
 
     @combine(
-        backend=[be for be in FAKE_PROVIDER_FOR_BACKEND_V2.backends() if be.num_qubits > 1],
+        backend=BACKENDS_V2,
         optimization_level=[0, 1, 2, 3],
     )
     def test_circuit_on_fake_backend_v2(self, backend, optimization_level):
         if not optionals.HAS_AER and backend.num_qubits > 20:
-            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.backend_name)
+            self.skipTest("Unable to run fake_backend %s without qiskit-aer" % backend.name)
         job = backend.run(
-            transpile(self.circuit, backend, seed_transpiler=42),
-            optimization_level=optimization_level,
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
             seed_simulator=42,
         )
         result = job.result()
@@ -114,7 +118,7 @@ class TestFakeBackends(QiskitTestCase):
         self.assertEqual(max_count, "11")
 
     @combine(
-        backend=[be for be in FAKE_PROVIDER.backends() if be.configuration().num_qubits > 1],
+        backend=BACKENDS,
         optimization_level=[0, 1, 2, 3],
         dsc="Test execution path on {backend} with optimization level {optimization_level}",
         name="{backend}_opt_level_{optimization_level}",
@@ -126,8 +130,9 @@ class TestFakeBackends(QiskitTestCase):
                 % backend.configuration().backend_name
             )
         job = backend.run(
-            transpile(self.circuit, backend, seed_transpiler=42),
-            optimization_level=optimization_level,
+            transpile(
+                self.circuit, backend, seed_transpiler=42, optimization_level=optimization_level
+            ),
             seed_simulator=42,
         )
         result = job.result()
@@ -136,13 +141,13 @@ class TestFakeBackends(QiskitTestCase):
         self.assertEqual(max_count, "11")
 
     def test_qobj_failure(self):
-        backend = FAKE_PROVIDER.backends()[-1]
+        backend = BACKENDS[-1]
         tqc = transpile(self.circuit, backend)
         qobj = assemble(tqc, backend)
         with self.assertRaises(QiskitError):
             backend.run(qobj)
 
-    @data(*FAKE_PROVIDER.backends())
+    @data(*BACKENDS)
     def test_to_dict_properties(self, backend):
         properties = backend.properties()
         if properties:
@@ -150,18 +155,18 @@ class TestFakeBackends(QiskitTestCase):
         else:
             self.assertTrue(backend.configuration().simulator)
 
-    @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
+    @data(*BACKENDS_V2)
     def test_convert_to_target(self, backend):
         target = backend.target
         if target.dt is not None:
             self.assertLess(target.dt, 1e-6)
 
-    @data(*FAKE_PROVIDER_FOR_BACKEND_V2.backends())
+    @data(*BACKENDS_V2)
     def test_backend_v2_dtm(self, backend):
         if backend.dtm:
             self.assertLess(backend.dtm, 1e-6)
 
-    @data(*FAKE_PROVIDER.backends())
+    @data(*BACKENDS)
     def test_to_dict_configuration(self, backend):
         configuration = backend.configuration()
         if configuration.open_pulse:
@@ -183,7 +188,7 @@ class TestFakeBackends(QiskitTestCase):
 
         self.assertIsInstance(configuration.to_dict(), dict)
 
-    @data(*FAKE_PROVIDER.backends())
+    @data(BACKENDS)
     def test_defaults_to_dict(self, backend):
         if hasattr(backend, "defaults"):
             defaults = backend.defaults()
@@ -200,7 +205,13 @@ class TestFakeBackends(QiskitTestCase):
             self.skipTest("Backend %s does not have defaults" % backend)
 
     def test_delay_circuit(self):
-        backend = FakeMumbaiV2()
+        backend = Fake27QPulseV1()
+        backend.configuration().timing_constraints = {
+            "acquire_alignment": 1,
+            "granularity": 1,
+            "min_length": 1,
+            "pulse_alignment": 1,
+        }
         qc = QuantumCircuit(2)
         qc.delay(502, 0, unit="ns")
         qc.x(1)
@@ -211,7 +222,7 @@ class TestFakeBackends(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_converter(self, opt_level):
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         backend_v2 = BackendV2Converter(backend)
         self.assertIsInstance(backend_v2, BackendV2)
         res = transpile(self.circuit, backend_v2, optimization_level=opt_level)
@@ -222,7 +233,13 @@ class TestFakeBackends(QiskitTestCase):
         self.assertEqual(max_count, "11")
 
     def test_converter_delay_circuit(self):
-        backend = FakeMumbai()
+        backend = Fake27QPulseV1()
+        backend.configuration().timing_constraints = {
+            "acquire_alignment": 1,
+            "granularity": 1,
+            "min_length": 1,
+            "pulse_alignment": 1,
+        }
         backend_v2 = BackendV2Converter(backend, add_delay=True)
         self.assertIsInstance(backend_v2, BackendV2)
         qc = QuantumCircuit(2)
@@ -247,9 +264,9 @@ class TestFakeBackends(QiskitTestCase):
         self.assertDictEqual(backend_v2.target["u2"], {None: None})
 
     def test_non_cx_tests(self):
-        backend = FakePrague()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"])
         self.assertIsInstance(backend.target.operation_from_name("cz"), CZGate)
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["ecr", "x", "sx", "id", "rz"])
         self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")
@@ -500,7 +517,7 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_backend_v2_converter(self):
         """Test faulty qubits in v2 conversion."""
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         # Get properties dict to make it easier to work with the properties API
         # is difficult to edit because of the multiple layers of nesting and
         # different object types
@@ -521,7 +538,7 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_backend_v2_converter_with_delay(self):
         """Test faulty qubits in v2 conversion."""
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         # Get properties dict to make it easier to work with the properties API
         # is difficult to edit because of the multiple layers of nesting and
         # different object types
@@ -564,13 +581,13 @@ class TestFakeBackends(QiskitTestCase):
             (4, 3),
         }
 
-        backend = BackendV2Converter(backend=FakeYorktown(), filter_faulty=True, add_delay=False)
+        backend = BackendV2Converter(backend=Fake5QV1(), filter_faulty=True, add_delay=False)
 
         self.assertEqual(backend.target.qargs, expected)
 
     def test_backend_v2_converter_with_meaningless_gate_config(self):
         """Test backend with broken gate config can be converted only with properties data."""
-        backend_v1 = FakeYorktown()
+        backend_v1 = Fake5QV1()
         backend_v1.configuration().gates = [
             GateConfig(name="NotValidGate", parameters=[], qasm_def="not_valid_gate")
         ]
@@ -587,7 +604,7 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         # Get properties dict to make it easier to work with the properties API
         # is difficult to edit because of the multiple layers of nesting and
         # different object types
@@ -630,7 +647,7 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_gates_v2_converter(self):
         """Test just faulty gates in conversion."""
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         # Get properties dict to make it easier to work with the properties API
         # is difficult to edit because of the multiple layers of nesting and
         # different object types
@@ -664,14 +681,14 @@ class TestFakeBackends(QiskitTestCase):
 
     def test_filter_faulty_no_faults_v2_converter(self):
         """Test that faulty qubit filtering does nothing with all operational qubits and gates."""
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(v2_backend.num_qubits):
             self.assertIn((i,), v2_backend.target.qargs)
 
     @data(0, 1, 2, 3)
     def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         non_operational_gate = {
             "date": datetime.datetime.now(datetime.timezone.utc),
             "name": "operational",

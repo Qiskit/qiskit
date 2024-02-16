@@ -16,6 +16,7 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 import itertools
 import unittest.mock
 import numpy as np
+
 from qiskit.circuit import (
     QuantumCircuit,
     QuantumRegister,
@@ -40,7 +41,6 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
     HighLevelSynthesisPluginManager,
@@ -58,11 +58,11 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.quantum_info import Operator
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackend5QV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
 # higher-level objects written by a user.
@@ -471,7 +471,12 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
         ):
             hls_config = HLSConfig(op_a=["needs_coupling_map"])
             pm_good = PassManager(
-                [HighLevelSynthesis(hls_config=hls_config, target=FakeBackend5QV2().target)]
+                [
+                    HighLevelSynthesis(
+                        hls_config=hls_config,
+                        target=GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"]).target,
+                    )
+                ]
             )
 
             # HighLevelSynthesis is initialized with target.
@@ -1039,7 +1044,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1052,7 +1057,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, ControlModifier(1))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1, 2])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -1067,7 +1072,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1080,7 +1085,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, InverseModifier())
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:
@@ -1095,7 +1100,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = HighLevelSynthesis(target=backend.target)(qc)
         self.assertEqual(Operator(qc), Operator(qct))
 
@@ -1108,7 +1113,7 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
         annotated_linear_function = AnnotatedOperation(linear_function, PowerModifier(3))
         qc = QuantumCircuit(3)
         qc.append(annotated_linear_function, [0, 1])
-        backend = FakeBackend5QV2()
+        backend = GenericBackendV2(num_qubits=5, basis_gates=["u", "cx"])
         qct = transpile(qc, target=backend.target)
         ops = qct.count_ops().keys()
         for op in ops:

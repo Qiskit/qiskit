@@ -17,9 +17,9 @@ from abc import ABC, abstractmethod
 from typing import Generic, TypeVar, Union
 
 from ..containers import PrimitiveResult
-from .base_result import BasePrimitiveResult
+from .base_result import _BasePrimitiveResult
 
-ResultT = TypeVar("ResultT", bound=Union[BasePrimitiveResult, PrimitiveResult])
+ResultT = TypeVar("ResultT", bound=Union[_BasePrimitiveResult, PrimitiveResult])
 StatusT = TypeVar("StatusT")
 
 

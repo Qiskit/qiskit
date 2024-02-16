@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,19 +17,14 @@ from math import pi
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
-
 from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import (
     EchoRZXWeylDecomposition,
 )
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeParis
-
+from qiskit.providers.fake_provider import Fake27QPulseV1
 import qiskit.quantum_info as qi
-
-from qiskit.synthesis.two_qubit.two_qubit_decompose import (
-    TwoQubitWeylDecomposition,
-)
+from qiskit.synthesis.two_qubit.two_qubit_decompose import TwoQubitWeylDecomposition
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestEchoRZXWeylDecomposition(QiskitTestCase):
@@ -37,7 +32,7 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeParis()
+        self.backend = Fake27QPulseV1()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def assertRZXgates(self, unitary_circuit, after):

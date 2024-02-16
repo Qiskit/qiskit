@@ -210,7 +210,7 @@ class StatePreparation(Gate):
             num_qubits = int(num_qubits)
         return num_qubits
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return inverted StatePreparation"""
 
         label = (

@@ -13,16 +13,16 @@
 """Tests for circuit templates."""
 
 import unittest
-from test import combine
 from inspect import getmembers, isfunction
 from ddt import ddt
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Operator
 import qiskit.circuit.library.templates as templib
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

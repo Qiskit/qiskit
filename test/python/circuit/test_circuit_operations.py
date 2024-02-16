@@ -12,6 +12,8 @@
 
 
 """Test Qiskit's QuantumCircuit class."""
+import copy
+import pickle
 
 import numpy as np
 from ddt import data, ddt
@@ -30,7 +32,7 @@ from qiskit.circuit.quantumregister import AncillaQubit, AncillaRegister, Qubit
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.pulse import DriveChannel, Gaussian, Play, Schedule
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -567,6 +569,57 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(expected, circuit)
 
+    def test_measure_all_after_copy(self):
+        """
+        Test measure_all on a circuit that has been copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = qc.copy()
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
+    def test_measure_all_after_deepcopy(self):
+        """
+        Test measure_all on a circuit that has been deep-copied.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = copy.deepcopy(qc)
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
+    def test_measure_all_after_pickle(self):
+        """
+        Test measure_all on a circuit that has been pickled.
+        """
+        qc = QuantumCircuit(2)
+        qc.h(1)
+
+        qc2 = pickle.loads(pickle.dumps(qc))
+
+        qc.measure_all()
+        qc2.measure_all()
+
+        expected_cregs = [ClassicalRegister(2, "meas")]
+        self.assertEqual(qc.cregs, expected_cregs)
+        self.assertEqual(qc2.cregs, expected_cregs)
+        self.assertEqual(qc, qc2)
+
     def test_measure_all_not_add_bits_equal(self):
         """Test measure_all applies measurements to all qubits.
         Does not create a new ClassicalRegister if the existing one is big enough.
@@ -684,9 +737,9 @@ class TestCircuitOperations(QiskitTestCase):
         circuit.rz(theta, qr)
         circuit.measure(qr, cr)
         circuit.remove_final_measurements()
-        copy = circuit.copy()
+        copied = circuit.copy()
 
-        self.assertEqual(copy, circuit)
+        self.assertEqual(copied, circuit)
 
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit

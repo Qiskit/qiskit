@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,15 +11,13 @@
 # that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
+
 import unittest
 import cmath
 import math
 import copy
 import pickle
 from operator import add, mul, sub, truediv
-
-from test import combine
-
 import numpy
 from ddt import data, ddt, named_data
 
@@ -33,10 +31,10 @@ from qiskit.circuit.exceptions import CircuitError
 from qiskit.compiler import assemble, transpile
 from qiskit import pulse
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import Fake5QV1
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import FakeOurense
 from qiskit.utils import parallel_map
+from test import QiskitTestCase, combine  # pylint: disable=wrong-import-order
 
 
 def raise_if_parameter_table_invalid(circuit):
@@ -1003,7 +1001,7 @@ class TestParameters(QiskitTestCase):
 
         qc.measure(range(5 - 1), range(5 - 1))
 
-        transpile(qc, FakeOurense(), optimization_level=opt_level)
+        transpile(qc, Fake5QV1(), optimization_level=opt_level)
 
     def test_repeated_gates_to_dag_and_back(self):
         """Verify circuits with repeated parameterized gates can be converted
