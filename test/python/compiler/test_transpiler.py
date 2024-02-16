@@ -3383,6 +3383,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             target=target,
             optimization_level=optimization_level,
             scheduling_method=scheduling_method,
+            seed_transpiler=42,
         )
         invalid_qubits = {
             4,
