@@ -45,7 +45,6 @@ from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.providers.fake_provider import (
     GenericBackendV2,
-    Fake5QV1,
     Fake7QPulseV1,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -1896,7 +1895,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def setUp(self):
         super().setUp()
 
-        self.backend = FakeHanoi()
+        self.backend = Fake7QPulseV1()
         self.backend_config = self.backend.configuration()
         self.backend_props = self.backend.properties()
         self.pulse_defaults = self.backend.defaults()
