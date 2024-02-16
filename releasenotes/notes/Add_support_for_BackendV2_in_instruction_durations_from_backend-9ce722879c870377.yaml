@@ -13,4 +13,3 @@ features:
       backendV2 = FakePerth()
       
       inst_dur = InstructionDurations.from_backend(backendV2)
-
