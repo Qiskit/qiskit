@@ -21,6 +21,7 @@ Circuit synthesis for the Clifford class.
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
     _append_h,
@@ -32,16 +33,17 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from .clifford_decompose_bm import _decompose_clifford_1q
 
 
-def synth_clifford_ag(clifford):
-    """Decompose a Clifford operator into a QuantumCircuit based on Aaronson-Gottesman method.
+def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
+    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`
+    based on Aaronson-Gottesman method [1].
 
     Args:
-        clifford (Clifford): a clifford operator.
+        clifford: A Clifford operator.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+    Returns:
+        A circuit implementation of the Clifford.
 
-    Reference:
+    References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
@@ -114,9 +116,9 @@ def _set_qubit_x_true(clifford, circuit, qubit):
 
 
 def _set_row_x_zero(clifford, circuit, qubit):
-    """Set destabilizer.X[qubit, i] to False for all i > qubit.
+    r"""Set destabilizer.X[qubit, i] to False for all i > qubit.
 
-    This is done by applying CNOTS assumes k<=N and A[k][k]=1
+    This is done by applying CNOTs assuming :math:`k \leq N` and A[k][k]=1
     """
     x = clifford.destab_x[qubit]
     z = clifford.destab_z[qubit]

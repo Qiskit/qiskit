@@ -37,6 +37,5 @@ API Reference
    transpiler_preset
    transpiler_plugins
    transpiler_synthesis_plugins
-   transpiler_builtin_plugins
    utils
    exceptions

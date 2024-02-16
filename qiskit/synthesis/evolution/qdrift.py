@@ -46,7 +46,7 @@ class QDrift(ProductFormula):
             reps: The number of times to repeat the Trotterization circuit.
             insert_barriers: Whether to insert barriers between the atomic evolutions.
             cx_structure: How to arrange the CX gates for the Pauli evolutions, can be
-                "chain", where next neighbor connections are used, or "fountain", where all
+                ``"chain"``, where next neighbor connections are used, or ``"fountain"``, where all
                 qubits are connected to one.
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain

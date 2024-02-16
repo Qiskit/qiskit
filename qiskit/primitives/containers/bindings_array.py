@@ -137,7 +137,7 @@ class BindingsArray(ShapedMixin):
         # would not be a particularly friendly way to chop parameters
         data = {params: val[args] for params, val in self._data.items()}
         try:
-            shape = next(data.values()).shape[:-1]
+            shape = next(iter(data.values())).shape[:-1]
         except StopIteration:
             shape = ()
         return BindingsArray(data, shape)

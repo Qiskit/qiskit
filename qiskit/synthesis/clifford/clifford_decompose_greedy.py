@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,32 +22,36 @@ Circuit synthesis for the Clifford class.
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Clifford, Pauli
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
     _append_h,
     _append_s,
     _append_swap,
 )
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
-def synth_clifford_greedy(clifford):
-    """Decompose a Clifford operator into a QuantumCircuit based on the
-    greedy Clifford compiler that is described in Appendix A of
-    Bravyi, Hu, Maslov and Shaydulin.
+def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
+    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
+    on the greedy Clifford compiler that is described in Appendix A of
+    Bravyi, Hu, Maslov and Shaydulin [1].
 
     This method typically yields better CX cost compared to the Aaronson-Gottesman method.
 
-    Args:
-        clifford (Clifford): a clifford operator.
+    Note that this function only implements the greedy Clifford compiler from Appendix A
+    of [1], and not the templates and symbolic Pauli gates optimizations
+    that are mentioned in the same paper.
 
-    Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+    Args:
+        clifford: A Clifford operator.
+
+    Returns:
+        A circuit implementation of the Clifford.
 
     Raises:
         QiskitError: if symplectic Gaussian elimination fails.
 
-    Reference:
+    References:
         1. Sergey Bravyi, Shaohan Hu, Dmitri Maslov, Ruslan Shaydulin,
            *Clifford Circuit Optimization with Templates and Symbolic Pauli Gates*,
            `arXiv:2105.02291 [quant-ph] <https://arxiv.org/abs/2105.02291>`_

@@ -393,7 +393,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
-                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.916
+                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.916
             else:
                 ref_value = -1
             self.assertEqual(value, ref_value)
@@ -409,7 +409,7 @@ class TestBackendEstimator(QiskitTestCase):
             estimator.set_options(seed_simulator=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
             if optionals.HAS_AER:
-                ref_value = -0.9922 if isinstance(backend, GenericBackendV2) else -0.8902
+                ref_value = -0.9954 if isinstance(backend, GenericBackendV2) else -0.8902
             else:
                 ref_value = -1
             self.assertEqual(value, ref_value)

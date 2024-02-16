@@ -10,7 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Synthesize UnitaryGates."""
+"""
+=========================================================================================
+Unitary Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.unitary_synthesis`)
+=========================================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DefaultUnitarySynthesis
+"""
+
 from __future__ import annotations
 from math import pi, inf, isclose
 from typing import Any

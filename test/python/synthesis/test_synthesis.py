@@ -163,6 +163,7 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
         self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
         self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
         self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
@@ -174,7 +175,6 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"K2l matrix differs by {maxdiff}" + msg_base)
         maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
         self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
-        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
 
     def assertRoundTripPickle(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if loads(dumps(weyl1)) not equal to weyl1"""
@@ -185,6 +185,7 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
         self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
         self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
         self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
@@ -196,7 +197,6 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"K2l matrix differs by {maxdiff}" + msg_base)
         maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
         self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
-        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
 
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""

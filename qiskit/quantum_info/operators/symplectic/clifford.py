@@ -30,7 +30,6 @@ from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
-from qiskit.synthesis.linear import calc_inverse_matrix
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
@@ -556,6 +555,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         Returns:
             Clifford: the Clifford object for this linear function.
         """
+        from qiskit.synthesis.linear import calc_inverse_matrix  # pylint: disable=cyclic-import
 
         mat = linear_function.linear
         mat_t = np.transpose(mat)
@@ -632,7 +632,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
         """
-        from qiskit.synthesis.clifford import synth_clifford_full
+        from qiskit.synthesis.clifford import synth_clifford_full  # pylint: disable=cyclic-import
 
         return synth_clifford_full(self)
 

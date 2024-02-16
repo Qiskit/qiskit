@@ -1,6 +1,8 @@
+#!/usr/bin/env python3
+
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,11 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Abstract base classes for primitives module.
-"""
+"""Report some details of the python environment, for debugging"""
 
-from .base_sampler import BaseSampler, BaseSamplerV1, BaseSamplerV2
-from .base_estimator import BaseEstimator, BaseEstimatorV1, BaseEstimatorV2
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+import numpy as np
+
+np.show_config()
+
+try:  # only available starting numpy 1.24.0
+    np.show_runtime()
+except AttributeError:
+    pass
