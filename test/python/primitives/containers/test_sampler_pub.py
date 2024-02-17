@@ -16,7 +16,8 @@ import ddt
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.primitives.containers import SamplerPub, BindingsArray
+from qiskit.primitives.containers.sampler_pub import SamplerPub
+from qiskit.primitives.containers.bindings_array import BindingsArray
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -31,7 +32,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.rx(params[0], 0)
         circuit.ry(params[1], 1)
         circuit.measure_all()
-        parameter_values = BindingsArray(kwvals={params: np.ones((10, 2))})
+        parameter_values = BindingsArray(data={params: np.ones((10, 2))})
         shots = 1000
 
         pub = SamplerPub(
@@ -70,7 +71,9 @@ class SamplerPubTestCase(QiskitTestCase):
     def test_validate_no_parameters(self, num_params):
         """Test unparameterized circuit raises for parameter values"""
         circuit = QuantumCircuit(2)
-        parameter_values = BindingsArray(np.zeros((2, num_params)), shape=2)
+        parameter_values = BindingsArray(
+            {(f"a{idx}" for idx in range(num_params)): np.zeros((2, num_params))}, shape=2
+        )
         if num_params == 0:
             SamplerPub(circuit, parameter_values=parameter_values)
             return
@@ -86,7 +89,9 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.rx(params[0], 0)
         circuit.ry(params[1], 1)
         circuit.measure_all()
-        parameter_values = BindingsArray(np.zeros((2, num_params)), shape=2)
+        parameter_values = BindingsArray(
+            {(f"a{idx}" for idx in range(num_params)): np.zeros((2, num_params))}, shape=2
+        )
         if num_params == len(params):
             SamplerPub(circuit, parameter_values=parameter_values)
             return
@@ -98,7 +103,7 @@ class SamplerPubTestCase(QiskitTestCase):
     def test_shaped_zero_parameter_values(self, shape):
         """Test Passing in a shaped array with no parameters works"""
         circuit = QuantumCircuit(2)
-        parameter_values = BindingsArray(np.zeros((*shape, 0)), shape=shape)
+        parameter_values = BindingsArray({(): np.zeros((*shape, 0))}, shape=shape)
         pub = SamplerPub(circuit, parameter_values=parameter_values)
         self.assertEqual(pub.shape, shape)
 
@@ -145,7 +150,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.measure_all()
         pub1 = SamplerPub(
             circuit=circuit,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             shots=1000,
         )
         pub2 = SamplerPub.coerce(pub1, shots=shots)
@@ -161,7 +166,7 @@ class SamplerPubTestCase(QiskitTestCase):
         circuit.measure_all()
         pub1 = SamplerPub(
             circuit=circuit,
-            parameter_values=BindingsArray(kwvals={params: np.ones((10, 2))}),
+            parameter_values=BindingsArray(data={params: np.ones((10, 2))}),
             shots=None,
         )
         pub2 = SamplerPub.coerce(pub1, shots=shots)

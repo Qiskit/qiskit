@@ -224,8 +224,7 @@ def load_style(style: dict | str | None) -> tuple[StyleDict, float]:
             config_path = config.get("circuit_mpl_style_path", "")
             if config_path:
                 for path in config_path:
-                    path_ = Path(config_path) / style_name
-                    style_paths.append(path_)
+                    style_paths.append(Path(path) / style_name)
 
         # check current directory
         cwd_path = Path("") / style_name

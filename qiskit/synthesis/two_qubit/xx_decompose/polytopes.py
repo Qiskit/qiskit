@@ -144,9 +144,7 @@ class XXPolytope:
             place_strength=(
                 self.max_strength
                 if new_strength > self.max_strength
-                else new_strength
-                if new_strength > self.place_strength
-                else self.place_strength
+                else new_strength if new_strength > self.place_strength else self.place_strength
             ),
         )
 
