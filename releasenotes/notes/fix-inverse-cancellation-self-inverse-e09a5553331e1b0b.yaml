@@ -1,0 +1,6 @@
+---
+
+fixes:
+  - |
+    :class: `InverseCancellation` transpilation pass will now correctly handle self-inverse
+    parameterized gates. Fixed `#11815 <https://github.com/Qiskit/qiskit/issues/11815>`__.
