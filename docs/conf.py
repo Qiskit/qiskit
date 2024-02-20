@@ -15,9 +15,12 @@ from __future__ import annotations
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
-
 import datetime
 import doctest
+import inspect
+import sys
+from pathlib import PurePath
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -39,7 +42,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     # This is used by qiskit/documentation to generate links to github.com.
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
@@ -155,3 +158,41 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+
+
+# Need this method for the sphinx.ext.linkcode extension
+def linkcode_resolve(domain, info):
+    """
+    Determine the URL corresponding to Python object
+    """
+    if domain != "py":
+        return None
+
+    module = sys.modules.get(info["module"])
+    if module is None:
+        return None
+
+    obj = module
+    for part in info["fullname"].split("."):
+        obj = getattr(obj, part)
+        is_valid_code_object = (
+            inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj)
+        )
+        if not is_valid_code_object:
+            return None
+
+    full_file_name = inspect.getsourcefile(obj)
+    if full_file_name is None:
+        return None
+    repo_root = PurePath(__file__).parent.parent
+    file_name = PurePath(full_file_name).relative_to(repo_root)
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except OSError:
+        linespec = ""
+    else:
+        ending_lineno = lineno + len(source) - 1
+        linespec = f"#L{lineno}-L{ending_lineno}"
+
+    return f"https://github.com/Qiskit/qiskit_sphinx_theme/tree/{release}/{file_name}/{linespec}"
