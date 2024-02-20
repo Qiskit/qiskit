@@ -350,7 +350,7 @@ class DAGDependencyV2:
         """
         Updates DagDependencyV2 by adding edges to the newly added node (new_node) from
         the previously added nodes. This update assumes new_node was added to the end of
-        the graph,
+        the graph.
         For each previously added node (prev_node), an edge from prev_node to new_node
         is added if new_node is not "unreachable" from prev_node (this means that the two
         nodes can be made adjacent by commuting them with other nodes), but the two nodes
@@ -362,12 +362,8 @@ class DAGDependencyV2:
         # Analyze nodes in the reverse topological order. An improvement to the original
         # algorithm is to consider only direct predecessors and to avoid constructing the
         # lists of forward and backward reachable predecessors for every node when not required.
-        def _key(x):
-            return x.sort_key
 
-        toposort_list = rx.lexicographical_topological_sort(self._multi_graph, key=_key)
-
-        for prev_node in reversed(toposort_list):
+        for prev_node in reversed(list(self.topological_nodes())):
             if prev_node not in unreachable:
                 if prev_node._node_id == new_node._node_id:
                     continue
