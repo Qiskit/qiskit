@@ -664,10 +664,12 @@ def _dumps_register(register, index_map):
     return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
 
 
-def _dumps_instruction_parameter(param, index_map, use_symengine, *, standalone_var_indices):
+def _dumps_instruction_parameter(
+    param, index_map, use_symengine, *, version, standalone_var_indices
+):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
-        data_bytes = common.data_to_binary(param, write_circuit)
+        data_bytes = common.data_to_binary(param, write_circuit, version=version)
     elif isinstance(param, Modifier):
         type_key = type_keys.Value.MODIFIER
         data_bytes = common.data_to_binary(param, _write_modifier)
@@ -681,6 +683,7 @@ def _dumps_instruction_parameter(param, index_map, use_symengine, *, standalone_
             _dumps_instruction_parameter,
             index_map=index_map,
             use_symengine=use_symengine,
+            version=version,
             standalone_var_indices=standalone_var_indices,
         )
     elif isinstance(param, int):
@@ -831,7 +834,11 @@ def _write_instruction(
     # Encode instruction params
     for param in instruction_params:
         type_key, data_bytes = _dumps_instruction_parameter(
-            param, index_map, use_symengine, standalone_var_indices=standalone_var_indices
+            param,
+            index_map,
+            use_symengine,
+            version=version,
+            standalone_var_indices=standalone_var_indices,
         )
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
@@ -929,7 +936,7 @@ def _write_custom_operation(
         # Build internal definition to support overloaded subclasses by
         # calling definition getter on object
         operation.definition  # pylint: disable=pointless-statement
-        data = common.data_to_binary(operation._definition, write_circuit)
+        data = common.data_to_binary(operation._definition, write_circuit, version=version)
         size = len(data)
         num_ctrl_qubits = operation.num_ctrl_qubits
         ctrl_state = operation.ctrl_state
@@ -939,7 +946,7 @@ def _write_custom_operation(
         base_gate = operation.base_op
     elif operation.definition is not None:
         has_definition = True
-        data = common.data_to_binary(operation.definition, write_circuit)
+        data = common.data_to_binary(operation.definition, write_circuit, version=version)
         size = len(data)
     if base_gate is None:
         base_gate_raw = b""
