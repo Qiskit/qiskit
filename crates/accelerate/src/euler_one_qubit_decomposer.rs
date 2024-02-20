@@ -19,20 +19,16 @@ use std::f64::consts::PI;
 
 use pyo3::exceptions::{PyIndexError, PyTypeError};
 use pyo3::prelude::*;
-use pyo3::types::PySlice;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 
+use crate::quantum_circuit::circuit_data::SliceOrInt;
+
 const DEFAULT_ATOL: f64 = 1e-12;
 
-#[derive(FromPyObject)]
-enum SliceOrInt<'a> {
-    Slice(&'a PySlice),
-    Int(isize),
-}
 
 #[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub struct OneQubitGateErrorMap {
