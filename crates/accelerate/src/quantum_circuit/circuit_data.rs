@@ -157,8 +157,10 @@ pub struct CircuitData {
 /// that may be either an index or a slice.
 #[derive(FromPyObject)]
 pub enum SliceOrInt<'a> {
-    Slice(&'a PySlice),
+    // The order here defines the order the variants are tried in the `FromPyObject` derivation.
+    // `Int` is _much_ more common, so that should be first.
     Int(isize),
+    Slice(&'a PySlice),
 }
 
 #[pymethods]
