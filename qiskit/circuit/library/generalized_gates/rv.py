@@ -39,10 +39,14 @@ class RVGate(Gate):
         \newcommand{\rotationangle}{\frac{|\vec{v}|}{2}}
             R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
                 \begin{pmatrix}
-                    \cos\left(\rotationangle\right) -i \frac{v_z}{|\vec{v}|} \sin\left(\rotationangle\right)
-                    & -(i \frac{v_x}{|\vec{v}|} + \frac{v_y}{|\vec{v}|}) \sin\left(\rotationangle\right) \\
-                    -(i \frac{v_x}{|\vec{v}|} - \frac{v_y}{|\vec{v}|}) \sin\left(\rotationangle\right)
-                    & \cos\left(\rotationangle\right) + i \frac{v_z}{|\vec{v}|} \sin\left(\rotationangle\right)
+                    \cos\left(\rotationangle\right)
+                    -i \frac{v_z}{|\vec{v}|} \sin\left(\rotationangle\right)
+                    & -(i \frac{v_x}{|\vec{v}|}
+                    + \frac{v_y}{|\vec{v}|}) \sin\left(\rotationangle\right) \\
+                    -(i \frac{v_x}{|\vec{v}|}
+                    - \frac{v_y}{|\vec{v}|}) \sin\left(\rotationangle\right)
+                    & \cos\left(\rotationangle\right)
+                    + i \frac{v_z}{|\vec{v}|} \sin\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
