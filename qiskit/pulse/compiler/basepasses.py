@@ -12,7 +12,9 @@
 
 """A base pass for Qiskit PulseIR compilation."""
 
+import warnings
 from abc import ABC, abstractmethod
+
 from qiskit.passmanager.base_tasks import GenericPass
 from qiskit.transpiler.target import Target
 
@@ -45,6 +47,15 @@ class TransformationPass(GenericPass, ABC):
     ) -> PulseIR:
         pass
 
+    def __eq__(self, other):
+        warnings.warn(
+            f"{self.__class__} does not explicitly define a protocol to evaluate equality. "
+            "Two pass objects instantiated individually with the same configuration may be "
+            "considered as different passes.",
+            RuntimeWarning,
+        )
+        super().__eq__(other)
+
 
 class AnalysisPass(GenericPass, ABC):
     """A base analysis pass for Qiskit PulseIR.
@@ -72,3 +83,12 @@ class AnalysisPass(GenericPass, ABC):
         passmanager_ir: PulseIR,
     ) -> None:
         pass
+
+    def __eq__(self, other):
+        warnings.warn(
+            f"{self.__class__} does not explicitly define a protocol to evaluate equality. "
+            "Two pass objects instantiated individually with the same configuration may be "
+            "considered as different passes.",
+            RuntimeWarning,
+        )
+        super().__eq__(other)
