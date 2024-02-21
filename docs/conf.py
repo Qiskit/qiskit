@@ -21,7 +21,6 @@ import inspect
 import sys
 from pathlib import PurePath
 
-
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
 author = "Qiskit Development Team"
