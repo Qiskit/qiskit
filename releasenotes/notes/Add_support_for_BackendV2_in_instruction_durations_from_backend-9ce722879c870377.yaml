@@ -4,7 +4,7 @@ features:
     Support for :class:`.BackendV2` in :meth:`.InstructionDurations.from_backend` is added.
 
     Users can have an object of :class:`.InstructionDurations` using :class:`.BackendV2`
-    from :meth:`.from_backend` with followig code.
+    from :meth:`.InstructionDurations.from_backend` with followig code.
     
     .. code-block:: python
 
