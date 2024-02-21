@@ -232,8 +232,8 @@ class XXDecomposer:
         approximate: bool = True,
     ) -> QuantumCircuit:
         r"""
-        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
-        `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
+        Fashions a circuit which (perhaps ``approximate``ly) models the special unitary operation
+        ``unitary``, using the circuit templates supplied at initialization as ``embodiments``.  The
         routine uses ``basis_fidelity`` to select the optimal circuit template, including when
         performing exact synthesis; the contents of ``basis_fidelity`` is a dictionary mapping
         interaction strengths (scaled so that :math:`CX = RZX(\pi/2)` corresponds to :math:`\pi/2`)
