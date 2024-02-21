@@ -25,10 +25,9 @@ use pyo3::Python;
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 
-use crate::quantum_circuit::circuit_data::SliceOrInt;
+use crate::utils::SliceOrInt;
 
 const DEFAULT_ATOL: f64 = 1e-12;
-
 
 #[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub struct OneQubitGateErrorMap {
