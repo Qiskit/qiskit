@@ -159,7 +159,9 @@ doctest_test_doctest_blocks = ""
 plot_html_show_formats = False
 
 
-# Need this method for the sphinx.ext.linkcode extension
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
 def linkcode_resolve(domain, info):
     """
     Determine the URL corresponding to Python object
