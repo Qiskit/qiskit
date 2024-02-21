@@ -903,6 +903,8 @@ class TwoQubitBasisDecomposer:
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
+
+    .. automethod:: __call__
     """
 
     def __init__(
@@ -1159,11 +1161,13 @@ class TwoQubitBasisDecomposer:
         Args:
             unitary (Operator or ndarray): 4x4 unitary to synthesize.
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
-                If given, overrides basis_fidelity given at init.
+                If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+
         Returns:
             QuantumCircuit: Synthesized circuit.
+
         Raises:
             QiskitError: if pulse_optimize is True but we don't know how to do it.
         """
