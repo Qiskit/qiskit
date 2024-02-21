@@ -160,11 +160,10 @@ doctest_test_doctest_blocks = ""
 plot_html_show_formats = False
 
 
-# Need this method for the sphinx.ext.linkcode extension
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
 def linkcode_resolve(domain, info):
-    """
-    Determine the URL corresponding to Python object
-    """
     if domain != "py":
         return None
 
@@ -195,4 +194,6 @@ def linkcode_resolve(domain, info):
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
 
-    return f"https://github.com/Qiskit/qiskit_sphinx_theme/tree/{release}/{file_name}/{linespec}"
+    git_branch = "main"
+
+    return f"https://github.com/Qiskit/qiskit/tree/{git_branch}/{file_name}{linespec}"
