@@ -163,9 +163,6 @@ plot_html_show_formats = False
 # Source code links
 # ----------------------------------------------------------------------------------
 def linkcode_resolve(domain, info):
-    """
-    Determine the URL corresponding to Python object
-    """
     if domain != "py":
         return None
 
