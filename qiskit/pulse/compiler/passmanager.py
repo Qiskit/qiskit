@@ -18,11 +18,9 @@ from collections.abc import Callable
 from typing import Any
 
 from qiskit.passmanager import BasePassManager
+from qiskit.pulse.ir import IrBlock
 from qiskit.pulse.compiler.converters import schedule_to_ir, ir_to_schedule
 from qiskit.pulse.schedule import ScheduleBlock
-
-# TODO replace with actual type
-PulseIR = object
 
 
 class PulsePassManager(BasePassManager):
@@ -32,12 +30,12 @@ class PulsePassManager(BasePassManager):
         self,
         input_program: ScheduleBlock,
         **kwargs,
-    ) -> PulseIR:
+    ) -> IrBlock:
         return schedule_to_ir(input_program)
 
     def _passmanager_backend(
         self,
-        passmanager_ir: PulseIR,
+        passmanager_ir: IrBlock,
         in_program: ScheduleBlock,
         **kwargs,
     ) -> Any:
