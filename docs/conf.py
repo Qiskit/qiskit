@@ -19,6 +19,8 @@ from __future__ import annotations
 import datetime
 import doctest
 import inspect
+import os
+import re
 import sys
 from pathlib import PurePath
 
@@ -163,6 +165,33 @@ plot_html_show_formats = False
 # ----------------------------------------------------------------------------------
 # Source code links
 # ----------------------------------------------------------------------------------
+def determine_github_branch() -> str:
+    """Determine the GitHub branch name to use for source code links. We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
+     Refer to https://docs.github.com/en/actions/learn-github-actions/variables for how we determine this with GitHub Actions.
+    """
+    print(os.environ)
+    # If not `GITHUB_REF_NAME` is not set, default to `main`. This
+    # is relevant for local builds.
+    if "GITHUB_REF_NAME" not in os.environ:
+        return "main"
+
+    # PR workflows set the branch they're merging into.
+    if base_ref := os.environ.get("GITHUB_BASE_REF"):
+        return base_ref
+
+    ref_name = os.environ["GITHUB_REF_NAME"]
+    if os.environ["GITHUB_REF_TYPE"] == "branch":
+        return ref_name
+
+    # Else, the ref_name is a tag like `1.0.0` or `1.0.0rc1`. We need
+    # to transform this to a Git branch like `stable/1.0`.
+    version_without_patch = re.match(r"(\d+\.\d+)", ref_name).group()
+    return f"stable/{version_without_patch}"
+
+
+GITHUB_BRANCH = determine_github_branch()
+
+
 def linkcode_resolve(domain, info):
     if domain != "py":
         return None
@@ -194,6 +223,4 @@ def linkcode_resolve(domain, info):
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
 
-    git_branch = "main"
-
-    return f"https://github.com/Qiskit/qiskit/tree/{git_branch}/{file_name}{linespec}"
+    return f"https://github.com/Qiskit/qiskit/tree/{GITHUB_BRANCH}/{file_name}{linespec}"
