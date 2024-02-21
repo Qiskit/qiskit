@@ -165,6 +165,7 @@ plot_html_show_formats = False
 # ----------------------------------------------------------------------------------
 # Source code links
 # ----------------------------------------------------------------------------------
+
 def determine_github_branch() -> str:
     """Determine the GitHub branch name to use for source code links. We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
      Refer to https://docs.github.com/en/actions/learn-github-actions/variables for how we determine this with GitHub Actions.
