@@ -15,6 +15,7 @@ from __future__ import annotations
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
+
 import datetime
 import doctest
 import inspect
