@@ -13,6 +13,7 @@
 use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
 use crate::quantum_circuit::py_ext;
+use crate::utils::SliceOrInt;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -151,16 +152,6 @@ pub struct CircuitData {
     qubits: Py<PyList>,
     /// The clbits registered, cached as a ``list[Clbit]``.
     clbits: Py<PyList>,
-}
-
-/// A private enumeration type used to extract arguments to pymethods
-/// that may be either an index or a slice.
-#[derive(FromPyObject)]
-pub enum SliceOrInt<'a> {
-    // The order here defines the order the variants are tried in the `FromPyObject` derivation.
-    // `Int` is _much_ more common, so that should be first.
-    Int(isize),
-    Slice(&'a PySlice),
 }
 
 #[pymethods]
