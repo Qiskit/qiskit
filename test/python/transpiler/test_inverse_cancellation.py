@@ -378,6 +378,7 @@ class TestInverseCancellation(QiskitTestCase):
         qc.rz(3.14159, 0)
         inverse_pass = InverseCancellation([RZGate(0)])
         new_circ = inverse_pass(qc)
+        self.assertEqual(qc, new_circ)
 
     def test_controlled_gate_open_control_does_not_cancel(self):
         """Test that a controlled gate with an open control doesn't cancel."""
