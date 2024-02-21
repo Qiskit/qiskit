@@ -167,8 +167,11 @@ plot_html_show_formats = False
 # ----------------------------------------------------------------------------------
 
 def determine_github_branch() -> str:
-    """Determine the GitHub branch name to use for source code links. We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
-     Refer to https://docs.github.com/en/actions/learn-github-actions/variables for how we determine this with GitHub Actions.
+    """Determine the GitHub branch name to use for source code links.
+    
+    We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
+    Refer to https://docs.github.com/en/actions/learn-github-actions/variables
+    for how we determine this with GitHub Actions.
     """
     # If not `GITHUB_REF_NAME` is not set, default to `main`. This
     # is relevant for local builds.
@@ -210,7 +213,7 @@ def linkcode_resolve(domain, info):
             return None
 
     full_file_name = inspect.getsourcefile(obj)
-    if full_file_name is None:
+    if full_file_name is None or "qiskit" not in full_file_name:
         return None
     repo_root = PurePath(__file__).parent.parent
     file_name = PurePath(full_file_name).relative_to(repo_root)
