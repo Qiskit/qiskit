@@ -70,7 +70,7 @@ class PulsePassManager(BasePassManager):
                     pulse_ir: Return in :class:`.PulseIR` format.
 
             callback: A callback function that will be called after each pass execution. The
-                function will be called with 4 keyword arguments::
+                function will be called with 5 keyword arguments::
 
                     task (GenericPass): the pass being run
                     passmanager_ir (Any): depending on pass manager subclass

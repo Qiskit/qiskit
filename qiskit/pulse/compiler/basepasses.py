@@ -12,7 +12,7 @@
 
 """A base pass for Qiskit PulseIR compilation."""
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from qiskit.passmanager.base_tasks import GenericPass
 from qiskit.transpiler.target import Target
 
@@ -38,11 +38,12 @@ class TransformationPass(GenericPass, ABC):
         super().__init__()
         self.target = target
 
+    @abstractmethod
     def run(
         self,
         passmanager_ir: PulseIR,
     ) -> PulseIR:
-        raise NotImplementedError
+        pass
 
 
 class AnalysisPass(GenericPass, ABC):
@@ -65,8 +66,9 @@ class AnalysisPass(GenericPass, ABC):
         super().__init__()
         self.target = target
 
+    @abstractmethod
     def run(
         self,
         passmanager_ir: PulseIR,
     ) -> None:
-        raise NotImplementedError
+        pass
