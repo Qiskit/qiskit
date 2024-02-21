@@ -199,21 +199,22 @@ def linkcode_resolve(domain, info):
     if domain != "py":
         return None
 
-    module = sys.modules.get(info["module"])
-    if module is None:
+    module_name = info["module"]
+    module = sys.modules.get(module_name)
+    if module is None or "qiskit" not in module_name:
         return None
 
     obj = module
     for part in info["fullname"].split("."):
         obj = getattr(obj, part)
         is_valid_code_object = (
-            inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj) and not inspect.isbuiltin(obj)
+            inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj)
         )
         if not is_valid_code_object:
             return None
 
     full_file_name = inspect.getsourcefile(obj)
-    if full_file_name is None or "qiskit" not in full_file_name:
+    if full_file_name is None:
         return None
     repo_root = PurePath(__file__).parent.parent
     file_name = PurePath(full_file_name).relative_to(repo_root)
