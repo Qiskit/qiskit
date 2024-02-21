@@ -193,4 +193,6 @@ def linkcode_resolve(domain, info):
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
 
-    return f"https://github.com/Qiskit/qiskit_sphinx_theme/tree/{release}/{file_name}/{linespec}"
+    git_branch = "main"
+
+    return f"https://github.com/Qiskit/qiskit/tree/{git_branch}/{file_name}{linespec}"
