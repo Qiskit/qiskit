@@ -13,14 +13,22 @@
 """
 Temporary Compiler passes
 """
-
+from __future__ import annotations
 from collections import defaultdict
 from functools import singledispatch
 from rustworkx import PyDAG
 
 from qiskit.pulse.model import MixedFrame
 from qiskit.pulse.ir import IrBlock
-from qiskit.pulse.ir.alignments import Alignment, AlignLeft
+from qiskit.pulse.ir.ir import InNode, OutNode
+from qiskit.pulse.ir.alignments import (
+    Alignment,
+    AlignLeft,
+    ParallelAlignment,
+    AlignRight,
+    SequentialAlignment,
+    AlignSequential,
+)
 
 
 def analyze_target_frame_pass(ir_block: IrBlock, property_set) -> None:
@@ -62,10 +70,10 @@ def _sequence_instructions(alignment: Alignment, sequence: PyDAG, property_set: 
     raise NotImplementedError
 
 
-@_sequence_instructions.register(AlignLeft)
-def _sequence_left_justfied(alignment, sequence, property_set):
-    """Finalize the sequence of the IrBlock by recursively adding edges to the DAG,
-    aligning elements to the left."""
+@_sequence_instructions.register(ParallelAlignment)
+def _sequence_parallel(alignment, sequence, property_set):
+    """Sequence the IrBlock by recursively adding edges to the DAG,
+    adding elements in parallel to one another in the graph"""
     idle_after = {}
     for ni in sequence.node_indices():
         if ni in (0, 1):
@@ -101,6 +109,20 @@ def _sequence_left_justfied(alignment, sequence, property_set):
     sequence.add_edges_from_no_data([(ni, 1) for ni in idle_after.values()])
 
 
+@_sequence_instructions.register(SequentialAlignment)
+def _sequence_sequential(alignment, sequence: PyDAG, property_set):
+    """Sequence the IrBlock by recursively adding edges to the DAG,
+    adding elements one after the other"""
+    sequence.add_edge(0, 2, None)
+    sequence.add_edge(sequence.num_nodes() - 1, 1, None)
+    sequence.add_edges_from_no_data([(x, x + 1) for x in range(2, sequence.num_nodes() - 1)])
+
+    # Apply recursively
+    for node in sequence.nodes():
+        if isinstance(node, IrBlock):
+            sequence_pass(node, property_set)
+
+
 def schedule_pass(ir_block: IrBlock, property_set: dict) -> IrBlock:
     """Recursively schedule the block by setting initial time for every element"""
     # mutate graph
@@ -115,7 +137,7 @@ def _schedule_elements(alignment, table, sequence, property_set):
 
 
 @_schedule_elements.register(AlignLeft)
-def _schedule_left_justfied(alignment, table, sequence: PyDAG, property_set):
+def _schedule_left_justified(alignment, table: dict, sequence: PyDAG, property_set: dict):
     """Recursively schedule the block by setting initial time for every element,
     aligning elements to the left."""
 
@@ -144,3 +166,53 @@ def _schedule_left_justfied(alignment, table, sequence: PyDAG, property_set):
         t0 = max([table.get(pred) + sequence.get_node_data(pred).duration for pred in preds])
         table[node_index] = t0
         nodes.extend(sequence.successor_indices(node_index))
+
+
+@_schedule_elements.register(AlignSequential)
+def _schedule_sequential(alignment, table: dict, sequence: PyDAG, property_set: dict):
+    """Recursively schedule the block by setting initial time for every element,
+    assuming the elements are sequential"""
+
+    # TODO: This placeholder will fail if any change is done to the graph,
+    #  needs a more robust implementation.
+
+    total_time = 0
+
+    for i in range(2, sequence.num_nodes()):
+        table[i] = total_time
+        node = sequence.get_node_data(i)
+        if isinstance(node, IrBlock):
+            schedule_pass(node, property_set)
+        total_time += node.duration
+
+
+@_schedule_elements.register(AlignRight)
+def _schedule_right_justified(alignment, table: dict, sequence: PyDAG, property_set: dict) -> None:
+    """Recursively schedule the block by setting initial time for every element,
+    aligning elements to the right."""
+
+    reversed_sequence = sequence.copy()
+    # Reverse all edge
+    reversed_sequence.reverse()
+    # Now swap 0 and 1 nodes
+    new_start_node_successors = reversed_sequence.successor_indices(1)
+    new_end_node_predecessors = reversed_sequence.predecessor_indices(0)
+    reversed_sequence.remove_node(0)
+    reversed_sequence.remove_node(1)
+    reversed_sequence.add_node(InNode)
+    reversed_sequence.add_node(OutNode)
+    reversed_sequence.add_edges_from_no_data([(0, x) for x in new_start_node_successors])
+    reversed_sequence.add_edges_from_no_data([(x, 1) for x in new_end_node_predecessors])
+
+    # Schedule with left alignment
+    _schedule_left_justified(alignment, table, reversed_sequence, property_set)
+
+    # Then reverse the timings
+    total_duration = max(
+        [
+            table[i] + reversed_sequence.get_node_data(i).duration
+            for i in reversed_sequence.predecessor_indices(1)
+        ]
+    )
+    for key in table.keys():
+        table[key] = total_duration - table[key] - reversed_sequence.get_node_data(key).duration

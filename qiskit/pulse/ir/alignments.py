@@ -29,5 +29,9 @@ class AlignLeft(ParallelAlignment):
     pass
 
 
+class AlignRight(ParallelAlignment):
+    pass
+
+
 class AlignSequential(SequentialAlignment):
     pass
