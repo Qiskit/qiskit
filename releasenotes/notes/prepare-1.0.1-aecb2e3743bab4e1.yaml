@@ -1,0 +1,4 @@
+---
+prelude: >
+    Qiskit 1.0.1 is a patch release fixing a small number of bugs identified in the Qiskit 1.0.0
+    release.
