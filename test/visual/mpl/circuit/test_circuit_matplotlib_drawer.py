@@ -1036,11 +1036,12 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         with self.subTest(msg="check style dict unchanged"):
             self.assertEqual(
-                style, {
+                style,
+                {
                     "name": "user_style",
                     "displaytext": {"H2": "H_2"},
                     "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
-                }
+                },
             )
 
     def test_subfont_change(self):
