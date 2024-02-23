@@ -386,7 +386,7 @@ class StabilizerState(QuantumState):
 
         return probs
     
-    def probabilities_dict_from_bitstrings(self, target, qargs: None | list = None, decimals: None | int = None) -> dict:
+    def probabilities_dict_from_bitstrings(self, target: list, qargs: None | list = None, decimals: None | int = None) -> dict:
         #python -m unittest test.python.quantum_info.states.test_stabilizerstate.TestStabilizerState.test_probablities_dict_single_qubit
         """Return the subsystem measurement probability dictionary.
 
@@ -665,11 +665,11 @@ class StabilizerState(QuantumState):
         aux_pauli.phase = accum_phase
         return aux_pauli
     
-    def _target_result_contains(target: dict[str, float], qubit_for_branching: int) -> range:
+    def _target_result_contains(target: list[str], qubit_for_branching: int) -> range:
         if(target == None):
             return range(0,2)
         else:
-            items = [int(item) for item in target.keys() if (item[qubit_for_branching-1])]
+            items = [int(item) for item in target if (item[qubit_for_branching-1])]
             if(len(items) == 1):
                 return range(items[0], items[0]+1)
             elif(len(items) == 2):
@@ -679,7 +679,7 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target = None):
+    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: list[str] = None):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
@@ -693,10 +693,21 @@ class StabilizerState(QuantumState):
                 #Determine if it is deterministic
                 if (StabilizerState._is_qubit_deterministic(ret, qubit)):
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
-                    if single_qubit_outcome:
-                        outcome[i] = "1"
+                    #To not affect performance of non-targetted runs iterating through the target list, use of if else statement
+                    if(target != None):
+                        expected = [int(item[i]) for item in target][0]
+                        if((expected == single_qubit_outcome) or single_qubit_outcome ==0):
+                            outcome[i] = str(single_qubit_outcome)
+                        else:
+                            outcome[i] = str(single_qubit_outcome-1)
+                            #Set the outcome probabilitiy to 0
+                            if("X" not in outcome):
+                                outcome_prob = 0
                     else:
-                        outcome[i] = "0"
+                        if (single_qubit_outcome):
+                            outcome[i] = "1"
+                        else:
+                            outcome[i] = "0"
                 else:
                     qubit_for_branching = i
 
