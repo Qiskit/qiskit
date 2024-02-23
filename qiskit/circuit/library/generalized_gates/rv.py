@@ -71,7 +71,7 @@ class RVGate(Gate):
                 f"The {self.name} gate cannot be decomposed with unbound parameters"
             ) from ex
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this gate."""
         vx, vy, vz = self.params
         return RVGate(-vx, -vy, -vz)

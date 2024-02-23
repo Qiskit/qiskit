@@ -15,9 +15,9 @@ Bindings array class
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from typing import Mapping, Union, Tuple
+from collections.abc import Iterable, Mapping as _Mapping
 from itertools import chain, islice
-from typing import Union
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -26,7 +26,29 @@ from qiskit.circuit import Parameter, QuantumCircuit
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
+# Public API classes
+__all__ = ["ParameterLike", "BindingsArrayLike"]
+
+
 ParameterLike = Union[Parameter, str]
+"""A parameter or parameter name."""
+
+BindingsArrayLike = Mapping[Union[ParameterLike, Tuple[ParameterLike, ...]], ArrayLike]
+"""A mapping of numeric bindings for circuit parameters.
+
+This allows array values for single or multi-dimensional sweeps over parameter values.
+
+The mapping keys can be single or tuple of Parameter or parameter name strings.
+The values can be a float for a single parameter an N-dimensional array like where
+the array's last dimension indexes the circuit parameters, with its leading dimensions
+representing the array shape of its parameter bindings.
+
+Examples:
+- 0-d array (single binding): ``{"a": 4, ("b", "c"): [5, 6]}``
+- Single array (last index for parameters): ``{ParameterVector("a", 100): np.ones((10, 10, 100)))``
+- Multiple arrays (last index for parameters, flexible dimensions):
+  ``{("c", "a"): np.ones((10, 10, 2)), "b": np.zeros((10, 10))}``
+"""
 
 
 class BindingsArray(ShapedMixin):
@@ -63,7 +85,7 @@ class BindingsArray(ShapedMixin):
 
     def __init__(
         self,
-        data: Mapping[ParameterLike, ArrayLike | float] | None = None,
+        data: BindingsArrayLike | None = None,
         shape: ShapeInput | None = None,
     ):
         r"""
@@ -96,9 +118,9 @@ class BindingsArray(ShapedMixin):
             self._data = {}
         else:
             self._data = {
-                _format_key((key,))
-                if isinstance(key, (Parameter, str))
-                else _format_key(key): np.asarray(val, dtype=float)
+                (
+                    _format_key((key,)) if isinstance(key, (Parameter, str)) else _format_key(key)
+                ): np.asarray(val, dtype=float)
                 for key, val in data.items()
             }
 
@@ -115,7 +137,7 @@ class BindingsArray(ShapedMixin):
         # would not be a particularly friendly way to chop parameters
         data = {params: val[args] for params, val in self._data.items()}
         try:
-            shape = next(data.values()).shape[:-1]
+            shape = next(iter(data.values())).shape[:-1]
         except StopIteration:
             shape = ()
         return BindingsArray(data, shape)
@@ -274,7 +296,7 @@ class BindingsArray(ShapedMixin):
         """
         if bindings_array is None:
             bindings_array = cls()
-        elif isinstance(bindings_array, Mapping):
+        elif isinstance(bindings_array, _Mapping):
             bindings_array = cls(data=bindings_array)
         elif isinstance(bindings_array, BindingsArray):
             return bindings_array
@@ -365,10 +387,3 @@ def _format_key(key: tuple[Parameter | str, ...]):
 
 def _param_name(param: Parameter | str) -> str:
     return param.name if isinstance(param, Parameter) else param
-
-
-BindingsArrayLike = Union[
-    BindingsArray,
-    "Mapping[Union[Parameter, str, Iterable[Union[Parameter, str]]], ArrayLike]",
-    None,
-]

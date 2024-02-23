@@ -1,5 +1,12 @@
 # Deprecation Policy
 
+Starting from the 1.0.0 release, Qiskit follows semantic versioning, with a yearly release cycle for major releases.
+[Full details of the scheduling are hosted with the external public documentation](https://docs.quantum.ibm.com/start/install#release-schedule).
+
+This document is primarily intended for developers of Qiskit themselves.
+
+## Principles
+
 Many users and other packages depend on different parts of Qiskit.  We must
 make sure that whenever we make changes to the code, we give users ample time to
 adjust without breaking code that they have already written.
@@ -19,55 +26,76 @@ underscore (`_`).
 
 The guiding principles are:
 
-- we must not remove or change code without active warnings for least three
-  months or two complete version cycles;
+- removals or behavior changes in the public API can only occur in major releases;
+
+- new deprecations to the public API can only occur in minor releases;
 
 - there must always be a way to achieve valid goals that does not issue any
-  warnings;
+  warnings with the most recent two minor releases in a series;
 
-- never assume that a function that isn't explicitly internal isn't in use;
+- never assume that an object that is part of the public interface is not in use.
 
-- all deprecations, changes and removals are considered API changes, and can
-  only occur in minor releases not patch releases, per the [stable branch policy](https://github.com/Qiskit/qiskit/blob/main/MAINTAINING.md#stable-branch-policy).
+While the no-breaking-changes rule is only formally required *within* a major release series, you should make every effort to avoid breaking changes wherever possible.
+Similarly, while it is permissible where necessary for behavior to change with no single-code path to support both the last minor of one major release and the first minor of a new major release, it is still strongly preferable if you can achieve this.
+
+
+## What is the public interface?
+
+> [!NOTE]
+> This section should be in sync with [the release schedule documentation of Qiskit](https://docs.quantum.ibm.com/start/install#release-schedule).
+> Please [open an issue against Qiskit](https://github.com/Qiskit/qiskit/issues/new/choose) if there are discrepancies so we can clarify them.
+
+For the purposes of semantic versioning, the Qiskit public API comprises all *publicly documented* packages, modules, classes, functions, methods, and attributes.
+
+An object is *publicly documented* if and only if it appears in [the hosted API documentation](https://docs.quantum.ibm.com/api/qiskit) for Qiskit.
+The presence of a docstring in the Python source (or a `__doc__` attribute) is not sufficient to make an object publicly documented; this documentation must also be rendered in the public API documentation.
+
+As well as the objects themselves needing to be publicly documented, the only public-API *import locations* for a given object is the location it is documented at in [the public API documentation](https://docs.quantum.ibm.com/api/qiskit), and parent modules or packages that re-export the object (if any).
+For example, while it is possible to import `Measure` from `qiskit.circuit.measure`, this is not a supported part of the public API for two reasons:
+
+1. The module `qiskit.circuit.measure` is not publicly documented, so is not part of the public interface.
+2. The [`Measure` object is documented as being in `qiskit.circuit.library`](https://docs.quantum.ibm.com/api/qiskit/qiskit.circuit.library.Measure), and is re-exported by `qiskit.circuit`, so the public import paths are `from qiskit.circuit.library import Measure` and `from qiskit.circuit import Measure`.
+
+As a rule of thumb, if you are using Qiskit, you should import objects from the highest-level package that exports that object.
+
+Some components of the documented public interface may be marked as "experimental", and not subject to the stability guarantees of semantic versioning.
+These will be clearly denoted in the documentation, and will raise an `ExperimentalWarning` when used.
+We will only use these "experimental" features sparingly, when we feel there is a real benefit to making the experimental version public in an unstable form, such as a backwards-incompatible new version of core functionality that shows significant improvements over the existing form for limited inputs, but is not yet fully feature complete.
+Typically, a feature will only become part of the public API when we are ready to commit to its stability properly.
 
 
 ## Removing a feature
+
+> [!IMPORTANT]
+> Features can only be removed in new major versions.
+> Deprecations can only be added in new minor versions.
 
 When removing a feature (for example a class, function or function parameter),
 we will follow this procedure:
 
 - The alternative path must be in place for one minor version before any
   warnings are issued.  For example, if we want to replace the function `foo()`
-  with `bar()`, we must make at least one release with both functions before
+  with `bar()`, we must make at least one minor release with both functions before
   issuing any warnings within `foo()`.  You may issue
-  `PendingDeprecationWarning`s from the old paths immediately.
+  `PendingDeprecationWarning`s from the old paths immediately, but this is not
+  necessary and does not affect any timelines for removal.
 
-   *Reason*: we need to give people time to swap over without breaking their
-   code as soon as they upgrade.
+  *Reason*: we need to give people time to swap over without breaking their
+  code as soon as they upgrade.
 
 - After the alternative path has been in place for at least one minor version,
   [issue the deprecation warnings](#issuing-deprecation-warnings).  Add a
   release note with a `deprecations` section listing all deprecated paths,
   their alternatives, and the reason for deprecation.  [Update the tests to test the warnings](#testing-deprecated-functionality).
 
-   *Reason*: removals must be highly visible for at least one version, to
-   minimize the surprise to users when they actually go.
+  *Reason*: removals must be highly visible for at least one version, to
+  minimize the surprise to users when they actually go.
 
-- Set a removal date for the old feature, and remove it (and the warnings) when
-  reached.  This must be at least three months after the version with the
-  warnings was first released, and cannot be the minor version immediately
-  after the warnings.  Add an `upgrade` release note that lists all the
-  removals.  For example, if the alternative path was provided in `0.19.0`
-  and the warnings were added in `0.20.0`, the earliest version for removal
-  is `0.22.0`, even if `0.21.0` was released more than three months after
-  `0.20.0`.
+- Apply the removal to the branch for the next major release, or open an issue to remind us to effect the removal and tag it for the milestone of the next major release.
 
-  **Note: These are _minimum_** requirements.  For removal of significant or core features, give
-  users at least an extra minor version if not longer.**
-
-  *Reason*: there needs to be time for users to see these messages, and to give
-  them time to adjust.  Not all users will update their version of Qiskit
-  immediately, and some may skip minor versions.
+> [!NOTE]
+> These are _minimum_ requirements.
+> For removal of significant or core features, try to give as long a warning period as is feasible.
 
 When a feature is marked as deprecated it is slated for removal, but users
 should still be able to rely on it to work correctly.  We consider a feature
@@ -77,6 +105,8 @@ fixes until it is removed, but we won't merge new functionality to it.
 
 ## Changing behavior
 
+> [!IMPORTANT]
+> Breaking behavior changes can only occur in new major versions, and should be avoided as much as possible.
 
 Changing behavior without a removal is particularly difficult to manage, because
 we need to have both options available for two versions, and be able to issue

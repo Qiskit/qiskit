@@ -132,10 +132,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().compose(other, qubits, clbits, front, inplace, wrap)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         if not self._is_built:
             self._build()
-        return super().inverse()
+        return super().inverse(annotated=annotated)
 
     def __len__(self):
         return len(self.data)

@@ -127,9 +127,9 @@ class Isometry(Instruction):
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         self.params = []
-        inv = super().inverse()
+        inv = super().inverse(annotated=annotated)
         self.params = [self.iso_data]
         return inv
 
@@ -516,7 +516,7 @@ def _get_binary_rep_as_list(n, num_digits):
 
 
 def _merge_UCGate_and_diag(single_qubit_gates, diag):
-    for (i, gate) in enumerate(single_qubit_gates):
+    for i, gate in enumerate(single_qubit_gates):
         single_qubit_gates[i] = np.array([[diag[2 * i], 0.0], [0.0, diag[2 * i + 1]]]).dot(gate)
     return single_qubit_gates
 

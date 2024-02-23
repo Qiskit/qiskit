@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,23 +18,28 @@ import struct
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit, Parameter, Gate
-from qiskit.providers.fake_provider import FakeHanoi, FakeSherbrooke
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.exceptions import QiskitError
 from qiskit.qpy import dump, load, formats, QPY_COMPATIBILITY_VERSION
 from qiskit.qpy.common import QPY_VERSION
 from qiskit.transpiler import PassManager, TranspileLayout
 from qiskit.transpiler import passes
 from qiskit.compiler import transpile
+from qiskit.utils import optionals
+from qiskit.qpy.formats import FILE_HEADER_V10_PACK, FILE_HEADER_V10, FILE_HEADER_V10_SIZE
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyCircuitTestCase(QiskitTestCase):
     """QPY schedule testing platform."""
 
-    def assert_roundtrip_equal(self, circuit, version=None):
+    def assert_roundtrip_equal(self, circuit, version=None, use_symengine=None):
         """QPY roundtrip equal test."""
         qpy_file = io.BytesIO()
-        dump(circuit, qpy_file, version=version)
+        if use_symengine is None:
+            dump(circuit, qpy_file, version=version)
+        else:
+            dump(circuit, qpy_file, version=version, use_symengine=use_symengine)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
 
@@ -57,7 +62,7 @@ class TestCalibrationPasses(QpyCircuitTestCase):
     def setUp(self):
         super().setUp()
         # This backend provides CX(0,1) with native ECR direction.
-        self.inst_map = FakeHanoi().defaults().instruction_schedule_map
+        self.inst_map = Fake27QPulseV1().defaults().instruction_schedule_map
 
     @data(0.1, 0.7, 1.5)
     def test_rzx_calibration(self, angle):
@@ -107,7 +112,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -121,7 +126,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -132,7 +137,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         tqc.layout.final_layout = None
         self.assert_roundtrip_equal(tqc)
@@ -196,7 +201,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.cx(0, 3)
         qc.cx(0, 4)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         self.assert_roundtrip_equal(tqc)
 
@@ -208,7 +213,7 @@ class TestLayout(QpyCircuitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         qc.measure_all()
-        backend = FakeSherbrooke()
+        backend = GenericBackendV2(num_qubits=127)
         tqc = transpile(qc, backend, optimization_level=opt_level)
         # Manually validate to deal with qubit equality needing exact objects
         qpy_file = io.BytesIO()
@@ -296,3 +301,29 @@ class TestVersionArg(QpyCircuitTestCase):
         qc.cx(0, 1)
         qc.measure_all()
         self.assert_roundtrip_equal(qc, version=QPY_COMPATIBILITY_VERSION)
+
+
+class TestUseSymengineFlag(QpyCircuitTestCase):
+    """Test that the symengine flag works correctly."""
+
+    def test_use_symengine_with_bool_like(self):
+        """Test that the use_symengine flag is set correctly with a bool-like input."""
+        theta = Parameter("theta")
+        two_theta = 2 * theta
+        qc = QuantumCircuit(1)
+        qc.rx(two_theta, 0)
+        qc.measure_all()
+        # Assert Roundtrip works
+        self.assert_roundtrip_equal(qc, use_symengine=optionals.HAS_SYMENGINE, version=10)
+        # Also check the qpy symbolic expression encoding is correct in the
+        # payload
+        with io.BytesIO() as file_obj:
+            dump(qc, file_obj, use_symengine=optionals.HAS_SYMENGINE)
+            file_obj.seek(0)
+            header_data = FILE_HEADER_V10._make(
+                struct.unpack(
+                    FILE_HEADER_V10_PACK,
+                    file_obj.read(FILE_HEADER_V10_SIZE),
+                )
+            )
+            self.assertEqual(header_data.symbolic_encoding, b"e")

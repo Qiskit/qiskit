@@ -48,20 +48,23 @@ from qiskit.utils import optionals as _optionals
 #   if the defaults are ranges.
 # - (duration, error), if the defaults are fixed values.
 _NOISE_DEFAULTS = {
-    "cx": (1e-8, 9e-7, 1e-5, 5e-3),
-    "ecr": (1e-8, 9e-7, 1e-5, 5e-3),
-    "cz": (1e-8, 9e-7, 1e-5, 5e-3),
-    "id": (3e-8, 4e-8, 9e-5, 1e-4),
+    "cx": (8e-8, 9e-7, 1e-5, 5e-3),
+    "ecr": (8e-8, 9e-7, 1e-5, 5e-3),
+    "cz": (8e-8, 9e-7, 1e-5, 5e-3),
+    "id": (3e-8, 6e-8, 9e-5, 1e-4),
     "rz": (0.0, 0.0),
-    "sx": (1e-8, 9e-7, 1e-5, 5e-3),
-    "x": (1e-8, 9e-7, 1e-5, 5e-3),
-    "measure": (1e-8, 9e-7, 1e-5, 5e-3),
+    "sx": (3e-8, 6e-8, 9e-5, 1e-4),
+    "x": (3e-8, 6e-8, 9e-5, 1e-4),
+    "measure": (7e-7, 1.5e-6, 1e-5, 5e-3),
     "delay": (None, None),
     "reset": (None, None),
 }
 
 # Fallback values for gates with unknown noise default ranges.
-_NOISE_DEFAULTS_FALLBACK = (1e-8, 9e-7, 1e-5, 5e-3)
+_NOISE_DEFAULTS_FALLBACK = {
+    "1-q": (3e-8, 6e-8, 9e-5, 1e-4),
+    "multi-q": (8e-8, 9e-7, 1e-5, 5e-3),
+}
 
 # Ranges to sample qubit properties from.
 _QUBIT_PROPERTIES = {
@@ -184,7 +187,7 @@ class GenericBackendV2(BackendV2):
             if num_qubits != self._coupling_map.size():
                 raise QiskitError(
                     f"The number of qubits (got {num_qubits}) must match "
-                    f"the size of the provided coupling map (got {coupling_map.size()})."
+                    f"the size of the provided coupling map (got {self._coupling_map.size()})."
                 )
 
         self._basis_gates = (
@@ -226,14 +229,18 @@ class GenericBackendV2(BackendV2):
         }
         setattr(self, "channels_map", channels_map)
 
-    def _get_noise_defaults(self, name: str) -> tuple:
+    def _get_noise_defaults(self, name: str, num_qubits: int) -> tuple:
         """Return noise default values/ranges for duration and error of supported
         instructions. There are two possible formats:
             - (min_duration, max_duration, min_error, max_error),
               if the defaults are ranges.
             - (duration, error), if the defaults are fixed values.
         """
-        return _NOISE_DEFAULTS.get(name, (1e-8, 9e-7, 1e-5, 5e-3))
+        if name in _NOISE_DEFAULTS:
+            return _NOISE_DEFAULTS[name]
+        if num_qubits == 1:
+            return _NOISE_DEFAULTS_FALLBACK["1-q"]
+        return _NOISE_DEFAULTS_FALLBACK["multi-q"]
 
     def _get_calibration_sequence(
         self, inst: str, num_qubits: int, qargs: tuple[int]
@@ -251,15 +258,15 @@ class GenericBackendV2(BackendV2):
                     name="acquire",
                     duration=1792,
                     t0=0,
-                    qubits=list(range(num_qubits)),
-                    memory_slot=list(range(num_qubits)),
+                    qubits=qargs,
+                    memory_slot=qargs,
                 )
-            ] + [PulseQobjInstruction(name=pulse_library[1], ch=f"m{i}", t0=0) for i in qargs]
+            ] + [PulseQobjInstruction(name=pulse_library[1].name, ch=f"m{i}", t0=0) for i in qargs]
             return sequence
         if num_qubits == 1:
             return [
-                PulseQobjInstruction(name="fc", ch=f"u{qargs}", t0=0, phase="-P0"),
-                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs}", t0=0),
+                PulseQobjInstruction(name="fc", ch=f"u{qargs[0]}", t0=0, phase="-P0"),
+                PulseQobjInstruction(name=pulse_library[0].name, ch=f"d{qargs[0]}", t0=0),
             ]
         return [
             PulseQobjInstruction(name=pulse_library[1].name, ch=f"d{qargs[0]}", t0=0),
@@ -368,7 +375,7 @@ class GenericBackendV2(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
-            noise_params = self._get_noise_defaults(name)
+            noise_params = self._get_noise_defaults(name, gate.num_qubits)
             self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
 
         if self._control_flow:
@@ -434,7 +441,8 @@ class GenericBackendV2(BackendV2):
                     instruction.name, qargs
                 )
                 for qubit in qargs:
-                    self._target[instruction.name][(qubit,)].calibration = calibration_entry
+                    if qubit < self.num_qubits:
+                        self._target[instruction.name][(qubit,)].calibration = calibration_entry
 
     def run(self, run_input, **options):
         """Run on the backend using a simulator.

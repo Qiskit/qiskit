@@ -23,9 +23,10 @@ from numpy.typing import NDArray
 from qiskit import ClassicalRegister, QiskitError, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes, UnitaryGate
-from qiskit.primitives import PrimitiveResult, PubResult, SamplerPub
+from qiskit.primitives import PrimitiveResult, PubResult
 from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.data_bin import DataBin
+from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.statevector_sampler import StatevectorSampler
 from qiskit.providers import JobStatus
 from test import QiskitTestCase  # pylint: disable=wrong-import-order

@@ -52,7 +52,7 @@ class HamiltonianGate(Gate):
         Args:
             data: A hermitian operator.
             time: Time evolution parameter.
-            label: Unitary name for backend [Default: None].
+            label: Unitary name for backend [Default: ``None``].
 
         Raises:
             ValueError: if input data is not an N-qubit unitary operator.
@@ -104,7 +104,7 @@ class HamiltonianGate(Gate):
                 "unbound t parameter {}".format(self.params[1])
             ) from ex
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 

@@ -84,7 +84,7 @@ def generate_preset_pass_manager(
     routing_method=None,
     translation_method=None,
     scheduling_method=None,
-    approximation_degree=None,
+    approximation_degree=1.0,
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
@@ -179,7 +179,7 @@ def generate_preset_pass_manager(
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`

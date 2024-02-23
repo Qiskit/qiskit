@@ -19,6 +19,7 @@ import numpy
 
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
@@ -73,7 +74,7 @@ class UnitaryGate(Gate):
 
         Args:
             data: Unitary operator.
-            label: Unitary name for backend [Default: None].
+            label: Unitary name for backend [Default: ``None``].
             check_input: If set to ``False`` this asserts the input
                 is known to be unitary and the checking to validate this will
                 be skipped. This should only ever be used if you know the
@@ -118,7 +119,7 @@ class UnitaryGate(Gate):
         # pylint: disable=unused-argument
         return self.params[0]
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 
@@ -155,9 +156,10 @@ class UnitaryGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: int | None = None,
+        label: str | None = None,
         ctrl_state: int | str | None = None,
-    ) -> ControlledGate:
+        annotated: bool = False,
+    ) -> ControlledGate | AnnotatedOperation:
         """Return controlled version of gate.
 
         Args:
@@ -165,23 +167,31 @@ class UnitaryGate(Gate):
             label: Optional gate label.
             ctrl_state: The control state in decimal or as a bit string (e.g. ``"1011"``).
                 If ``None``, use ``2**num_ctrl_qubits - 1``.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             Controlled version of gate.
         """
-        mat = self.to_matrix()
-        cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
-        iso = Isometry(cmat, 0, 0)
-        return ControlledGate(
-            "c-unitary",
-            num_qubits=self.num_qubits + num_ctrl_qubits,
-            params=[mat],
-            label=label,
-            num_ctrl_qubits=num_ctrl_qubits,
-            definition=iso.definition,
-            ctrl_state=ctrl_state,
-            base_gate=self.copy(),
-        )
+        if not annotated:
+            mat = self.to_matrix()
+            cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
+            iso = Isometry(cmat, 0, 0)
+            gate = ControlledGate(
+                "c-unitary",
+                num_qubits=self.num_qubits + num_ctrl_qubits,
+                params=[mat],
+                label=label,
+                num_ctrl_qubits=num_ctrl_qubits,
+                definition=iso.definition,
+                ctrl_state=ctrl_state,
+                base_gate=self.copy(),
+            )
+        else:
+            gate = AnnotatedOperation(
+                self, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
+        return gate
 
     def _qasm2_decomposition(self):
         """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the

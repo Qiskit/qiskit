@@ -14,12 +14,14 @@
 """Test Qiskit's controlled gate operation."""
 
 import unittest
+
 import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, QiskitError
 from qiskit.circuit import ControlledGate, Parameter, Gate
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
@@ -1591,6 +1593,130 @@ class TestControlledGateLabel(QiskitTestCase):
         cgate = gate(*args, label="a gate").control(1, label="a controlled gate")
         self.assertEqual(cgate.label, "a controlled gate")
         self.assertEqual(cgate.base_gate.label, "a gate")
+
+
+@ddt
+class TestControlledAnnotatedGate(QiskitTestCase):
+    """Tests for controlled gates and the AnnotatedOperation class."""
+
+    def test_controlled_x(self):
+        """Test creation of controlled x gate"""
+        controlled = XGate().control(annotated=False)
+        annotated = XGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_y(self):
+        """Test creation of controlled y gate"""
+        controlled = YGate().control(annotated=False)
+        annotated = YGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_z(self):
+        """Test creation of controlled z gate"""
+        controlled = ZGate().control(annotated=False)
+        annotated = ZGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_h(self):
+        """Test the creation of a controlled H gate."""
+        controlled = HGate().control(annotated=False)
+        annotated = HGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_phase(self):
+        """Test the creation of a controlled U1 gate."""
+        theta = 0.5
+        controlled = PhaseGate(theta).control(annotated=False)
+        annotated = PhaseGate(theta).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_u1(self):
+        """Test the creation of a controlled U1 gate."""
+        theta = 0.5
+        controlled = U1Gate(theta).control(annotated=False)
+        annotated = U1Gate(theta).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_rz(self):
+        """Test the creation of a controlled RZ gate."""
+        theta = 0.5
+        controlled = RZGate(theta).control(annotated=False)
+        annotated = RZGate(theta).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_ry(self):
+        """Test the creation of a controlled RY gate."""
+        theta = 0.5
+        controlled = RYGate(theta).control(annotated=False)
+        annotated = RYGate(theta).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_rx(self):
+        """Test the creation of a controlled RX gate."""
+        theta = 0.5
+        controlled = RXGate(theta).control(annotated=False)
+        annotated = RXGate(theta).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_u(self):
+        """Test the creation of a controlled U gate."""
+        theta, phi, lamb = 0.1, 0.2, 0.3
+        controlled = UGate(theta, phi, lamb).control(annotated=False)
+        annotated = UGate(theta, phi, lamb).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_u3(self):
+        """Test the creation of a controlled U3 gate."""
+        theta, phi, lamb = 0.1, 0.2, 0.3
+        controlled = U3Gate(theta, phi, lamb).control(annotated=False)
+        annotated = U3Gate(theta, phi, lamb).control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_cx(self):
+        """Test creation of controlled cx gate"""
+        controlled = CXGate().control(annotated=False)
+        annotated = CXGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_swap(self):
+        """Test creation of controlled swap gate"""
+        controlled = SwapGate().control(annotated=False)
+        annotated = SwapGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
+
+    def test_controlled_sx(self):
+        """Test creation of controlled SX gate"""
+        controlled = SXGate().control(annotated=False)
+        annotated = SXGate().control(annotated=True)
+        self.assertNotIsInstance(controlled, AnnotatedOperation)
+        self.assertIsInstance(annotated, AnnotatedOperation)
+        self.assertEqual(Operator(controlled), Operator(annotated))
 
 
 if __name__ == "__main__":

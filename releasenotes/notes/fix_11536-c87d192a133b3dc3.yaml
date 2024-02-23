@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    A bug when loading MPL style from the configuration was fixed.
