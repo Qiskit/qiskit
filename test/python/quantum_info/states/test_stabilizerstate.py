@@ -13,6 +13,7 @@
 
 """Tests for Stabilizerstate quantum state class."""
 
+import time
 import unittest
 import logging
 from ddt import ddt, data, unpack
@@ -309,7 +310,6 @@ class TestStabilizerState(QiskitTestCase):
         num_qubits = 1
         qc = QuantumCircuit(num_qubits)
 
-        #Tests with no target
         for _ in range(self.samples):
             with self.subTest(msg="P(id(0))"):
                 stab = StabilizerState(qc)
@@ -331,8 +331,10 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0, 1])
                 self.assertTrue(np.allclose(probs, target))
 
+        #P(h(0)) with no target bitstring
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
+        test_time_1_start: float = time.monotonic()
         for _ in range(self.samples):
             with self.subTest(msg="P(h(0))"):
                 stab = StabilizerState(qc)
@@ -342,31 +344,12 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
+        test_time_1_total: float = time.monotonic() - test_time_1_start
         
-        #Tests with specific target
-        for _ in range(self.samples):
-            with self.subTest(msg="P(id(0))"):
-                stab = StabilizerState(qc)
-                target = {"0": 1}
-                value = stab.probabilities_dict_from_bitstrings(target)
-                self.assertEqual(value, target)
-                probs = stab.probabilities()
-                target = np.array([1, 0])
-                self.assertTrue(np.allclose(probs, target))
-        '''
-        qc.x(0)
-        for _ in range(self.samples):
-            with self.subTest(msg="P(x(0))"):
-                stab = StabilizerState(qc)
-                target = {"1": 1}
-                value = stab.probabilities_dict_from_bitstrings(target)
-                self.assertEqual(value, target)
-                probs = stab.probabilities()
-                target = np.array([0, 1])
-                self.assertTrue(np.allclose(probs, target))
-
+        #P(h(0)) with specific target bitstring
         qc = QuantumCircuit(num_qubits)
         qc.h(0)
+        #test_time_1_target_start: float = time.monotonic()
         for _ in range(self.samples):
             with self.subTest(msg="P(h(0))"):
                 stab = StabilizerState(qc)
@@ -376,8 +359,21 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
-        '''
-
+        #test_time_1_target_total: float = time.monotonic() - test_time_1_target_start
+        #self.assertTrue(test_time_1_target_total < test_time_1_total)
+                
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(h(0))"):
+                stab = StabilizerState(qc)
+                target = {"1": 0.5}
+                value = stab.probabilities_dict_from_bitstrings(target)
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+        
     def test_probablities_dict_two_qubits(self):
         """Test probabilities and probabilities_dict methods of two qubits"""
 
@@ -386,14 +382,34 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(0)
         stab = StabilizerState(qc)
 
+        #Test #1 for Probabilities Dict without target
+        total_test_1_time: float = 0.0
         for _ in range(self.samples):
             with self.subTest(msg="P(None)"):
+                start_test_1_time: float = time.monotonic()
                 value = stab.probabilities_dict()
+                total_test_1_time += (time.monotonic() - start_test_1_time)
                 target = {"00": 0.5, "01": 0.5}
                 self.assertEqual(value, target)
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5, 0, 0])
                 self.assertTrue(np.allclose(probs, target))
+
+        #Test #1 for Probabilities Dict with target
+        total_test_1_time_with_target: float = 0.0
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None)"):
+                target = {"00": 0.5}
+                start_test_1_time_with_target: float = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(target)
+                total_test_1_time_with_target += (time.monotonic() - start_test_1_time_with_target)
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5, 0, 0])
+                self.assertTrue(np.allclose(probs, target))
+        
+        #Verify the probabilities dict with specific target runs faster
+        self.assertTrue(total_test_1_time_with_target < total_test_1_time)
 
         for _ in range(self.samples):
             with self.subTest(msg="P([0, 1])"):

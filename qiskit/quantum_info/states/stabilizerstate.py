@@ -387,6 +387,7 @@ class StabilizerState(QuantumState):
         return probs
     
     def probabilities_dict_from_bitstrings(self, target, qargs: None | list = None, decimals: None | int = None) -> dict:
+        #python -m unittest test.python.quantum_info.states.test_stabilizerstate.TestStabilizerState.test_probablities_dict_single_qubit
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -663,6 +664,17 @@ class StabilizerState(QuantumState):
         aux_pauli = accum_pauli
         aux_pauli.phase = accum_phase
         return aux_pauli
+    
+    def _target_result_contains(target: dict[str, float], qubit_for_branching: int) -> range:
+        if(target == None):
+            return range(0,2)
+        else:
+            items = [int(item) for item in target.keys() if (item[qubit_for_branching-1])]
+            if(len(items) == 1):
+                return range(items[0], items[0]+1)
+            elif(len(items) == 2):
+                return range(0, 2)
+
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
@@ -692,11 +704,8 @@ class StabilizerState(QuantumState):
             str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
-        
-        #Determine Range to check based on if a target is set
-        range_to_check = range(0, 2) if (target == None) else range(int(target[qubit_for_branching])-1, int(target[qubit_for_branching]), 1)
-        
-        for single_qubit_outcome in range_to_check:
+
+        for single_qubit_outcome in StabilizerState._target_result_contains(target, qubit_for_branching):
             new_outcome = outcome.copy()
             if single_qubit_outcome:
                 new_outcome[qubit_for_branching] = "1"
