@@ -52,6 +52,7 @@ from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.utils import deprecate_arg
 
 
 Interval = Tuple[int, int]
@@ -1634,6 +1635,7 @@ def _common_method(*classes):
     return decorator
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0")
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
@@ -1645,9 +1647,10 @@ def draw(
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = "mpl2d",
     axis: Any | None = None,
+    show_barrier: bool = True,
 ):
     """Plot the schedule.
 
@@ -1668,7 +1671,7 @@ def draw(
         show_framechange: Show frame change instructions. The frame change represents
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show additional information about waveforms such as their name.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -1681,6 +1684,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -1690,6 +1694,7 @@ def draw(
     # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
+    del show_barrier
     return pulse_drawer(
         program=self,
         style=style,
@@ -1700,7 +1705,7 @@ def draw(
         show_snapshot=show_snapshot,
         show_framechange=show_framechange,
         show_waveform_info=show_waveform_info,
-        show_barrier=show_barrier,
+        plot_barrier=plot_barrier,
         plotter=plotter,
         axis=axis,
     )
