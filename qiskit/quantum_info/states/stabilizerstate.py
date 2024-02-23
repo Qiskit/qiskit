@@ -385,6 +385,44 @@ class StabilizerState(QuantumState):
             probs[place] = value
 
         return probs
+    
+    def probabilities_dict_from_bitstrings(self, target, qargs: None | list = None, decimals: None | int = None) -> dict:
+        """Return the subsystem measurement probability dictionary.
+
+        Measurement probabilities are with respect to measurement in the
+        computation (diagonal) basis.
+
+        This dictionary representation uses a Ket-like notation where the
+        dictionary keys are qudit strings for the subsystem basis vectors.
+        If any subsystem has a dimension greater than 10 comma delimiters are
+        inserted between integers so that subsystems can be distinguished.
+
+        Args:
+            target: 
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (ket) form.
+        """
+        if qargs is None:
+            qubits = range(self.clifford.num_qubits)
+        else:
+            qubits = qargs
+
+        outcome = ["X"] * len(qubits)
+        outcome_prob = 1.0
+        probs = {}  # probabilities dictionary
+
+        self._get_probablities(qubits, outcome, outcome_prob, probs, target)
+
+        if decimals is not None:
+            for key, value in probs.items():
+                probs[key] = round(value, decimals)
+
+        return probs
 
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
@@ -406,22 +444,7 @@ class StabilizerState(QuantumState):
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
-        if qargs is None:
-            qubits = range(self.clifford.num_qubits)
-        else:
-            qubits = qargs
-
-        outcome = ["X"] * len(qubits)
-        outcome_prob = 1.0
-        probs = {}  # probabilities dictionary
-
-        self._get_probablities(qubits, outcome, outcome_prob, probs)
-
-        if decimals is not None:
-            for key, value in probs.items():
-                probs[key] = round(value, decimals)
-
-        return probs
+        return self.probabilities_dict_from_bitstrings(None, qargs, decimals)
 
     def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
@@ -644,17 +667,19 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
+    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target = None):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
-        ret = self.copy()
+        ret: StabilizerState = self.copy()
 
+        #Find outcomes for each qubit
         for i in range(len(qubits)):
+            #Get the qubit for the current calculation
             qubit = qubits[len(qubits) - i - 1]
             if outcome[i] == "X":
-                is_deterministic = not any(ret.clifford.stab_x[:, qubit])
-                if is_deterministic:
+                #Determine if it is deterministic
+                if (StabilizerState._is_qubit_deterministic(ret, qubit)):
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     if single_qubit_outcome:
                         outcome[i] = "1"
@@ -667,8 +692,11 @@ class StabilizerState(QuantumState):
             str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
-
-        for single_qubit_outcome in range(0, 2):
+        
+        #Determine Range to check based on if a target is set
+        range_to_check = range(0, 2) if (target == None) else range(int(target[qubit_for_branching])-1, int(target[qubit_for_branching]), 1)
+        
+        for single_qubit_outcome in range_to_check:
             new_outcome = outcome.copy()
             if single_qubit_outcome:
                 new_outcome[qubit_for_branching] = "1"
@@ -679,4 +707,9 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
+            stab_cpy._get_probablities(qubits, new_outcome, (0.5 * outcome_prob), probs, target)
+
+    @staticmethod
+    def _is_qubit_deterministic(ret: StabilizerState, qubit):
+        '''Helper method to Determine if the qubit is deterministic'''
+        return not any(ret.clifford.stab_x[:, qubit])

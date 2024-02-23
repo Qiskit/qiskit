@@ -309,6 +309,7 @@ class TestStabilizerState(QiskitTestCase):
         num_qubits = 1
         qc = QuantumCircuit(num_qubits)
 
+        #Tests with no target
         for _ in range(self.samples):
             with self.subTest(msg="P(id(0))"):
                 stab = StabilizerState(qc)
@@ -341,6 +342,41 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
+        
+        #Tests with specific target
+        for _ in range(self.samples):
+            with self.subTest(msg="P(id(0))"):
+                stab = StabilizerState(qc)
+                target = {"0": 1}
+                value = stab.probabilities_dict_from_bitstrings(target)
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+        '''
+        qc.x(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(x(0))"):
+                stab = StabilizerState(qc)
+                target = {"1": 1}
+                value = stab.probabilities_dict_from_bitstrings(target)
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0, 1])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(h(0))"):
+                stab = StabilizerState(qc)
+                target = {"0": 0.5}
+                value = stab.probabilities_dict_from_bitstrings(target)
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+        '''
 
     def test_probablities_dict_two_qubits(self):
         """Test probabilities and probabilities_dict methods of two qubits"""
