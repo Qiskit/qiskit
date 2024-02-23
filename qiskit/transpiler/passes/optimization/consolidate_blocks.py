@@ -20,7 +20,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.quantum_info import Operator
-from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
+from qiskit.synthesis.two_qubit import TwoQubitBasisDecomposer
 from qiskit.circuit.library.generalized_gates.unitary import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -63,7 +63,7 @@ class ConsolidateBlocks(TransformationPass):
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation.
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
-            approximation_degree (float): a float between $[0.0, 1.0]$. Lower approximates more.
+            approximation_degree (float): a float between :math:`[0.0, 1.0]`. Lower approximates more.
             target (Target): The target object for the compilation target backend.
         """
         super().__init__()

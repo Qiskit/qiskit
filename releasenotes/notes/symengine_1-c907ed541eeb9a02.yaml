@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The minimum version required for symengine was bumped to >=0.11.
+    This allows to simplify some code in :meth:`.ParameterExpression.is_real`.

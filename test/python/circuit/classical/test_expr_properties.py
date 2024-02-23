@@ -14,12 +14,11 @@
 
 import copy
 import pickle
-
 import ddt
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -57,44 +56,29 @@ class TestExprProperties(QiskitTestCase):
         self.assertEqual(obj, copy.deepcopy(obj))
         self.assertEqual(obj, pickle.loads(pickle.dumps(obj)))
 
-    def test_var_equality(self):
-        """Test that various types of :class:`.expr.Var` equality work as expected both in equal and
-        unequal cases."""
-        var_a_bool = expr.Var.new("a", types.Bool())
-        self.assertEqual(var_a_bool, var_a_bool)
+    def test_var_standalone(self):
+        """Test that the ``Var.standalone`` property is set correctly."""
+        self.assertFalse(expr.Var(Clbit(), types.Bool()).standalone)
+        self.assertFalse(expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)).standalone)
 
-        # Allocating a new variable should not compare equal, despite the name match.  A semantic
-        # equality checker can choose to key these variables on only their names and types, if it
-        # knows that that check is valid within the semantic context.
-        self.assertNotEqual(var_a_bool, expr.Var.new("a", types.Bool()))
+    def test_var_hashable(self):
+        clbits = [Clbit(), Clbit()]
+        cregs = [ClassicalRegister(2, "cr1"), ClassicalRegister(2, "cr2")]
 
-        # Manually constructing the same object with the same UUID should cause it compare equal,
-        # though, for serialisation ease.
-        self.assertEqual(var_a_bool, expr.Var(var_a_bool.var, types.Bool(), name="a"))
+        vars_ = [
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
+        duplicates = [
+            expr.Var(clbits[0], types.Bool()),
+            expr.Var(clbits[1], types.Bool()),
+            expr.Var(cregs[0], types.Uint(2)),
+            expr.Var(cregs[1], types.Uint(2)),
+        ]
 
-        # This is a badly constructed variable because it's using a different type to refer to the
-        # same storage location (the UUID) as another variable.  It is an IR error to generate this
-        # sort of thing, but we can't fully be responsible for that and a pass would need to go out
-        # of its way to do this incorrectly, but we can still ensure that the direct equality check
-        # would spot the error.
-        self.assertNotEqual(
-            var_a_bool, expr.Var(var_a_bool.var, types.Uint(8), name=var_a_bool.name)
-        )
-
-        # This is also badly constructed because it uses a different name to refer to the "same"
-        # storage location.
-        self.assertNotEqual(var_a_bool, expr.Var(var_a_bool.var, types.Bool(), name="b"))
-
-        # Obviously, two variables of different types and names should compare unequal.
-        self.assertNotEqual(expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Uint(8)))
-        # As should two variables of the same name but different storage locations and types.
-        self.assertNotEqual(expr.Var.new("a", types.Bool()), expr.Var.new("a", types.Uint(8)))
-
-    def test_var_uuid_clone(self):
-        """Test that :class:`.expr.Var` instances that have an associated UUID and name roundtrip
-        through pickle and copy operations to produce values that compare equal."""
-        var_a_u8 = expr.Var.new("a", types.Uint(8))
-
-        self.assertEqual(var_a_u8, pickle.loads(pickle.dumps(var_a_u8)))
-        self.assertEqual(var_a_u8, copy.copy(var_a_u8))
-        self.assertEqual(var_a_u8, copy.deepcopy(var_a_u8))
+        # Smoke test.
+        self.assertEqual(vars_, duplicates)
+        # Actual test of hashability properties.
+        self.assertEqual(set(vars_ + duplicates), set(vars_))

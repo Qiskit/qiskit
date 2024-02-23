@@ -13,7 +13,6 @@
 """Testing legacy instruction alignment pass."""
 
 from qiskit import QuantumCircuit, pulse
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import (
@@ -22,6 +21,7 @@ from qiskit.transpiler.passes import (
     ALAPSchedule,
     TimeUnitConversion,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestAlignMeasures(QiskitTestCase):

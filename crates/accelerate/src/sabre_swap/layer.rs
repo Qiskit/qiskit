@@ -58,7 +58,9 @@ impl FrontLayer {
 
     /// Remove a node from the front layer.
     pub fn remove(&mut self, index: &NodeIndex) {
-        let [a, b] = self.nodes.remove(index).unwrap();
+        // The actual order in the indexmap doesn't matter as long as it's reproducible.
+        // Swap-remove is more efficient than a full shift-remove.
+        let [a, b] = self.nodes.swap_remove(index).unwrap();
         self.qubits[a.index()] = None;
         self.qubits[b.index()] = None;
     }

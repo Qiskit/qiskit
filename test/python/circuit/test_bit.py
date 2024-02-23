@@ -16,8 +16,8 @@
 import copy
 from unittest import mock
 
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import bit, QuantumRegister
+from qiskit.circuit import bit
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBitClass(QiskitTestCase):
@@ -106,15 +106,3 @@ class TestNewStyleBit(QiskitTestCase):
         self.assertEqual(bit1, bit1)
         self.assertNotEqual(bit1, bit2)
         self.assertNotEqual(bit1, 3.14)
-
-    def test_bit_register_backreferences_deprecated(self):
-        """Verify we raise a deprecation warning for register back-references."""
-
-        qr = QuantumRegister(3, "test_qr")
-        qubit = qr[0]
-
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.index
-
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.register

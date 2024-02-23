@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added a new exception class :class:`.InvalidLayoutError` that is a :class:`.TranspilerError`
+    subclass which is raised when a user provided layout is invalid (mismatched size, duplicate
+    qubits, etc).
+fixes:
+  - |
+    Fixed an issue with the :class:`.SetLayout` transpiler pass where an invalid integer list input
+    that contained duplicate entries which would result in an invalid :class:`.Layout` being
+    generated and subsequent transpiler passes would fail with a cryptic error. This is now caught
+    when :meth:`.SetLayout.run` is called an :class:`.InvalidLayoutError` error will be raised
+    indicating there are duplicate entries in the integer list.
