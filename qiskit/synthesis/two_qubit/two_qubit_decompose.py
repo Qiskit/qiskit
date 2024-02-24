@@ -903,6 +903,8 @@ class TwoQubitBasisDecomposer:
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
+
+    .. automethod:: __call__
     """
 
     def __init__(
@@ -1153,19 +1155,21 @@ class TwoQubitBasisDecomposer:
         *,
         _num_basis_uses: int | None = None,
     ) -> QuantumCircuit:
-        """Decompose a two-qubit ``unitary`` over fixed basis + SU(2) using the best approximation given
-        that each basis application has a finite ``basis_fidelity``.
+        r"""Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
+        approximation given that each basis application has a finite ``basis_fidelity``.
 
         Args:
-            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
-                If given, overrides basis_fidelity given at init.
+                If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+
         Returns:
-            QuantumCircuit: Synthesized circuit.
+            QuantumCircuit: Synthesized quantum circuit.
+
         Raises:
-            QiskitError: if pulse_optimize is True but we don't know how to do it.
+            QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
         if approximate is False:

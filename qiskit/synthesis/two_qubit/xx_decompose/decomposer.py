@@ -64,7 +64,7 @@ class XXDecomposer:
         euler_basis: Basis string provided to :class:`.OneQubitEulerDecomposer` for 1Q synthesis.
             Defaults to ``"U"``.
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
-            embody the gate :math:`CAN(\alpha, 0, 0)`. Strengths are taken so that :math:`pi/2`
+            embody the gate :math:`CAN(\alpha, 0, 0)`. Strengths are taken so that :math:`\pi/2`
             represents the class of a full :class:`.CXGate`.
         backup_optimizer: If supplied, defers synthesis to this callable when :class:`.XXDecomposer`
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
@@ -74,6 +74,8 @@ class XXDecomposer:
     .. note::
         If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
         using the method ``_default_embodiment``.
+
+    .. automethod:: __call__
     """
 
     def __init__(
@@ -229,21 +231,22 @@ class XXDecomposer:
         basis_fidelity: dict | float | None = None,
         approximate: bool = True,
     ) -> QuantumCircuit:
-        """
-        Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
-        `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
-        routine uses `basis_fidelity` to select the optimal circuit template, including when
-        performing exact synthesis; the contents of `basis_fidelity` is a dictionary mapping
-        interaction strengths (scaled so that CX = RZX(pi/2) corresponds to pi/2) to circuit
-        fidelities.
+        r"""
+        Fashions a circuit which (perhaps approximately) models the special unitary operation
+        ``unitary``, using the circuit templates supplied at initialization as ``embodiments``.  The
+        routine uses ``basis_fidelity`` to select the optimal circuit template, including when
+        performing exact synthesis; the contents of ``basis_fidelity`` is a dictionary mapping
+        interaction strengths (scaled so that :math:`CX = RZX(\pi/2)` corresponds to :math:`\pi/2`)
+        to circuit fidelities.
 
         Args:
-            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
             basis_fidelity (dict or float): Fidelity of basis gates. Can be either (1) a dictionary
-                mapping XX angle values to fidelity at that angle; or (2) a single float f,
-                interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
+                mapping ``XX`` angle values to fidelity at that angle; or (2) a single float ``f``,
+                interpreted as ``{pi: f, pi/2: f/2, pi/3: f/3}``.
                 If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
+
         Returns:
             QuantumCircuit: Synthesized circuit.
         """

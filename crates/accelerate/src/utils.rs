@@ -1,9 +1,32 @@
+// This code is part of Qiskit.
+//
+// (C) Copyright IBM 2024
+//
+// This code is licensed under the Apache License, Version 2.0. You may
+// obtain a copy of this license in the LICENSE.txt file in the root directory
+// of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+//
+// Any modifications or derivative works of this code must retain this
+// copyright notice, and modified files need to carry a notice indicating
+// that they have been altered from the originals.
+
 use pyo3::prelude::*;
+use pyo3::types::PySlice;
 
 use faer::prelude::*;
 use faer::IntoFaerComplex;
 use num_complex::Complex;
 use numpy::{IntoPyArray, PyReadonlyArray2};
+
+/// A private enumeration type used to extract arguments to pymethod
+/// that may be either an index or a slice
+#[derive(FromPyObject)]
+pub enum SliceOrInt<'a> {
+    // The order here defines the order the variants are tried in the FromPyObject` derivation.
+    // `Int` is _much_ more common, so that should be first.
+    Int(isize),
+    Slice(&'a PySlice),
+}
 
 /// Return indices that sort partially ordered data.
 /// If `data` contains two elements that are incomparable,

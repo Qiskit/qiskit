@@ -528,6 +528,24 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(len(lib), 2)
         self.assertTrue(all(len(item.samples) == 50 for item in lib))
 
+    def test_custom_pulse_gates_single_circ(self):
+        """Test that we can add calibrations to circuits of pulses which are not in
+        qiskit.qobj.converters.pulse_instruction.ParametricPulseShapes"""
+        circ = QuantumCircuit(2)
+        circ.h(0)
+
+        with pulse.build() as custom_h_schedule:
+            pulse.play(pulse.library.Triangle(50, 0.1, 0.2), pulse.DriveChannel(0))
+
+        circ.add_calibration("h", [0], custom_h_schedule)
+
+        qobj = assemble(circ, FakeOpenPulse2Q())
+        lib = qobj.config.pulse_library
+        self.assertEqual(len(lib), 1)
+        np.testing.assert_almost_equal(
+            lib[0].samples, pulse.library.Triangle(50, 0.1, 0.2).get_waveform().samples
+        )
+
     def test_pulse_gates_with_parameteric_pulses(self):
         """Test that pulse gates are assembled efficiently for backends that enable
         parametric pulses.

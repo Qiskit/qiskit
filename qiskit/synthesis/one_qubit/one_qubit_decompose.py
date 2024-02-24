@@ -128,6 +128,8 @@ class OneQubitEulerDecomposer:
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
+
+    .. automethod:: __call__
     """
 
     def __init__(self, basis: str = "U3", use_dag: bool = False):
@@ -192,6 +194,7 @@ class OneQubitEulerDecomposer:
             simplify: reduce gate count in decomposition [Default: True].
             atol: absolute tolerance for checking angles when simplifying
                          returned circuit [Default: 1e-12].
+
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 

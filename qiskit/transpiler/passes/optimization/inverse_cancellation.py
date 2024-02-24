@@ -111,7 +111,8 @@ class InverseCancellation(TransformationPass):
             for gate_cancel_run in gate_runs:
                 partitions = []
                 chunk = []
-                for i in range(len(gate_cancel_run) - 1):
+                max_index = len(gate_cancel_run) - 1
+                for i in range(len(gate_cancel_run)):
                     if gate_cancel_run[i].op == gate:
                         chunk.append(gate_cancel_run[i])
                     else:
@@ -119,11 +120,9 @@ class InverseCancellation(TransformationPass):
                             partitions.append(chunk)
                             chunk = []
                         continue
-                    if gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
+                    if i == max_index or gate_cancel_run[i].qargs != gate_cancel_run[i + 1].qargs:
                         partitions.append(chunk)
                         chunk = []
-                chunk.append(gate_cancel_run[-1])
-                partitions.append(chunk)
                 # Remove an even number of gates from each chunk
                 for chunk in partitions:
                     if len(chunk) % 2 == 0:
