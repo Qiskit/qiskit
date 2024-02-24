@@ -43,6 +43,7 @@ def draw(
     plotter: Optional[str] = types.Plotter.MPL.value,
     axis: Optional[Any] = None,
     filename: Optional[str] = None,
+    *,
     show_idle: Optional[bool] = None,
     show_barriers: Optional[bool] = None,
 ):
