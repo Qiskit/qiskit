@@ -37,7 +37,11 @@ features = ["hashbrown", "indexmap", "num-complex", "num-bigint"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
-features = ["rayon"]
+features = ["rayon", "approx-0_5"]
+
+[dependencies.approx]
+version = "0.5"
+features = ["num-complex"]
 
 [dependencies.hashbrown]
 workspace = true

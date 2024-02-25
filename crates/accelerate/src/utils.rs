@@ -15,7 +15,9 @@ use pyo3::types::PySlice;
 
 use faer::prelude::*;
 use faer::IntoFaerComplex;
-use num_complex::Complex;
+use faer::IntoNdarray;
+use faer::Side::Lower;
+use num_complex::{Complex, Complex64};
 use numpy::{IntoPyArray, PyReadonlyArray2};
 
 /// A private enumeration type used to extract arguments to pymethod
@@ -53,8 +55,25 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into()
 }
 
+/// Return the eigenvalues of `unitary` as a one-dimensional `numpy.ndarray`
+/// with `dtype(complex128)`.
+#[pyfunction]
+#[pyo3(text_signature = "(unitary, /")]
+pub fn eigh(py: Python, unitary: PyReadonlyArray2<f64>) -> PyObject {
+    unitary
+        .as_array()
+        .into_faer()
+        .selfadjoint_eigendecomposition(Lower)
+        .u()
+        .into_ndarray()
+        .mapv(Complex64::from)
+        .into_pyarray(py)
+        .into()
+}
+
 #[pymodule]
 pub fn utils(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
+    m.add_wrapped(wrap_pyfunction!(eigh))?;
     Ok(())
 }

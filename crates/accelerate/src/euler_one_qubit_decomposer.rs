@@ -27,7 +27,7 @@ use numpy::PyReadonlyArray2;
 
 use crate::utils::SliceOrInt;
 
-const DEFAULT_ATOL: f64 = 1e-12;
+pub const DEFAULT_ATOL: f64 = 1e-12;
 
 #[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub struct OneQubitGateErrorMap {
@@ -61,9 +61,9 @@ impl OneQubitGateErrorMap {
 
 #[pyclass(sequence)]
 pub struct OneQubitGateSequence {
-    gates: Vec<(String, Vec<f64>)>,
+    pub gates: Vec<(String, Vec<f64>)>,
     #[pyo3(get)]
-    global_phase: f64,
+    pub global_phase: f64,
 }
 
 #[pymethods]
@@ -553,7 +553,7 @@ pub fn generate_circuit(
 }
 
 #[inline]
-fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: &str) -> [f64; 4] {
+pub fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: &str) -> [f64; 4] {
     match target_basis {
         "U321" => params_u3_inner(unitary),
         "U3" => params_u3_inner(unitary),
@@ -609,6 +609,7 @@ fn compute_error(
     }
 }
 
+#[inline]
 #[pyfunction]
 pub fn compute_error_one_qubit_sequence(
     circuit: &OneQubitGateSequence,
@@ -618,6 +619,7 @@ pub fn compute_error_one_qubit_sequence(
     compute_error(&circuit.gates, error_map, qubit)
 }
 
+#[inline]
 #[pyfunction]
 pub fn compute_error_list(
     circuit: Vec<(String, Vec<f64>)>,
@@ -648,7 +650,26 @@ pub fn unitary_to_gate_sequence(
         }
     }
     let unitary_mat = unitary.as_array();
-    let best_result = target_basis_list
+    Ok(unitary_to_gate_sequence_inner(
+        unitary_mat,
+        &target_basis_list,
+        qubit,
+        error_map,
+        simplify,
+        atol,
+    ))
+}
+
+#[inline]
+pub fn unitary_to_gate_sequence_inner(
+    unitary_mat: ArrayView2<Complex64>,
+    target_basis_list: &[&str],
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
+    simplify: bool,
+    atol: Option<f64>,
+) -> Option<OneQubitGateSequence> {
+    target_basis_list
         .iter()
         .map(|target_basis| {
             let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
@@ -658,12 +679,11 @@ pub fn unitary_to_gate_sequence(
             let error_a = compare_error_fn(a, &error_map, qubit);
             let error_b = compare_error_fn(b, &error_map, qubit);
             error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
-        });
-    Ok(best_result)
+        })
 }
 
 #[inline]
-fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
+pub fn det_one_qubit(mat: ArrayView2<Complex64>) -> Complex64 {
     mat[[0, 0]] * mat[[1, 1]] - mat[[0, 1]] * mat[[1, 0]]
 }
 
@@ -697,6 +717,7 @@ fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi + PI / 2., lam - PI / 2., phase]
 }
 
+#[inline]
 #[pyfunction]
 pub fn params_zyz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
@@ -712,6 +733,7 @@ fn params_u3_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase - 0.5 * (phi + lam)]
 }
 
+#[inline]
 #[pyfunction]
 pub fn params_u3(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
@@ -726,6 +748,7 @@ fn params_u1x_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase - 0.5 * (theta + phi + lam)]
 }
 
+#[inline]
 #[pyfunction]
 pub fn params_u1x(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
