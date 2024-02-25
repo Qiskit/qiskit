@@ -1025,7 +1025,7 @@ class QuantumCircuit:
 
         Remember that in the little-endian convention the leftmost operation will be at the bottom
         of the circuit. See also
-        `the docs <https://docs.quantum-computing.ibm.com/build/circuit-construction>`__
+        `the docs <https://docs.quantum.ibm.com/build/circuit-construction>`__
         for more information.
 
         .. parsed-literal::
@@ -2526,17 +2526,17 @@ class QuantumCircuit:
 
             .. code-block:: python
 
-            >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
-            >>> x = ParameterVector("x", 12)
-            >>> circuit = QuantumCircuit(1)
-            >>> for x_i in x:
-            ...     circuit.rx(x_i, 0)
-            >>> circuit.parameters
-            ParameterView([
-                ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
-                ParameterVectorElement(x[2]), ParameterVectorElement(x[3]),
-                ..., ParameterVectorElement(x[11])
-            ])
+                >>> from qiskit.circuit import QuantumCircuit, Parameter, ParameterVector
+                >>> x = ParameterVector("x", 12)
+                >>> circuit = QuantumCircuit(1)
+                >>> for x_i in x:
+                ...     circuit.rx(x_i, 0)
+                >>> circuit.parameters
+                ParameterView([
+                    ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+                    ParameterVectorElement(x[2]), ParameterVectorElement(x[3]),
+                    ..., ParameterVectorElement(x[11])
+                ])
 
 
         Returns:
@@ -3991,12 +3991,12 @@ class QuantumCircuit:
 
             .. code-block::
 
-            import numpy as np
-            from qiskit import QuantumCircuit
+                import numpy as np
+                from qiskit import QuantumCircuit
 
-            circuit = QuantumCircuit(1)
-            circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
-            circuit.draw()
+                circuit = QuantumCircuit(1)
+                circuit.prepare_state([1/np.sqrt(2), -1/np.sqrt(2)], 0)
+                circuit.draw()
 
             output:
 

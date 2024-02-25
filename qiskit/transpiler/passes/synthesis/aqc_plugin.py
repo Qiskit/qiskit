@@ -10,7 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-An AQC synthesis plugin to Qiskit's transpiler.
+==============================================================================
+AQC Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.aqc_plugin`)
+==============================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AQCSynthesisPlugin
 """
 from functools import partial
 import numpy as np

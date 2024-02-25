@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,9 +49,14 @@ from qiskit._accelerate import two_qubit_decompose
 logger = logging.getLogger(__name__)
 
 
-def decompose_two_qubit_product_gate(special_unitary_matrix):
-    """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
-    Throws QiskitError if this isn't possible.
+def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
+    r"""Decompose :math:`U = U_l \otimes U_r` where :math:`U \in SU(4)`,
+    and :math:`U_l,~U_r \in SU(2)`.
+
+    Args:
+        special_unitary_matrix: special unitary matrix to decompose
+    Raises:
+        QiskitError: if decomposition isn't possible.
     """
     special_unitary_matrix = np.asarray(special_unitary_matrix, dtype=complex)
     # extract the right component
@@ -98,7 +103,7 @@ class TwoQubitWeylDecomposition:
 
     .. math::
 
-        U = ({K_1}^l \otimes {K_1}^r) \dot e^{(i a XX + i b YY + i c ZZ)} \dot ({K_2}^l \otimes {K_2}^r)
+        U = ({K_1}^l \otimes {K_1}^r) e^{(i a XX + i b YY + i c ZZ)} ({K_2}^l \otimes {K_2}^r)
 
     where
 
@@ -121,10 +126,15 @@ class TwoQubitWeylDecomposition:
     Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
     forcing the specialization is more approximate than asserted.
 
-    Reference:
+    References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
            *Validating quantum computers using randomized model circuits*,
            `arXiv:1811.12926 [quant-ph] <https://arxiv.org/abs/1811.12926>`_
+        2. B. Kraus, J. I. Cirac, *Optimal Creation of Entanglement Using a Two-Qubit Gate*,
+           `arXiv:0011050 [quant-ph] <https://arxiv.org/abs/quant-ph/0011050>`_
+        3. B. Drury, P. J. Love, *Constructive Quantum Shannon Decomposition from Cartan
+           Involutions*, `arXiv:0806.4015 [quant-ph] <https://arxiv.org/abs/0806.4015>`_
+
     """
 
     # The parameters of the decomposition:
@@ -157,17 +167,17 @@ class TwoQubitWeylDecomposition:
 
     @staticmethod
     def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
-        """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
+        """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass."""
 
-        The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
-        062309 (2001).
+        # The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
+        # 062309 (2001).
+        #
+        # FIXME: There's a cleaner-seeming method based on choosing branch cuts carefully, in Andrew
+        # M. Childs, Henry L. Haselgrove, and Michael A. Nielsen, Phys. Rev. A 68, 052311, but I
+        # wasn't able to get that to work.
+        #
+        # The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
 
-        FIXME: There's a cleaner-seeming method based on choosing branch cuts carefully, in Andrew
-        M. Childs, Henry L. Haselgrove, and Michael A. Nielsen, Phys. Rev. A 68, 052311, but I
-        wasn't able to get that to work.
-
-        The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
-        """
         if _unpickling:
             return super().__new__(cls)
 
@@ -336,7 +346,16 @@ class TwoQubitWeylDecomposition:
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix, fidelity=None):
+    def __init__(
+        self,
+        unitary_matrix: list[list[complex]] | np.ndarray[complex],
+        fidelity: float | None = None,
+    ):
+        """
+        Args:
+            unitary_matrix: The unitary to decompose.
+            fidelity: The target fidelity of the decomposed operation.
+        """
         del unitary_matrix  # unused in __init__ (used in new)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
@@ -384,19 +403,19 @@ class TwoQubitWeylDecomposition:
             )
 
     def specialize(self):
-        """Make changes to the decomposition to comply with any specialization.
+        """Make changes to the decomposition to comply with any specialization."""
 
-        Do update a, b, c, k1l, k1r, k2l, k2r, _is_flipped_from_original to round to the
-        specialization. Do not update the global phase, since this gets done in generic
-        __init__()"""
+        # Do update a, b, c, k1l, k1r, k2l, k2r, _is_flipped_from_original to round to the
+        # specialization. Do not update the global phase, since this gets done in generic
+        # __init__()
         raise NotImplementedError
 
     def circuit(
-        self, *, euler_basis: str | None = None, simplify=False, atol=DEFAULT_ATOL
+        self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
-        """Returns Weyl decomposition in circuit form.
+        """Returns Weyl decomposition in circuit form."""
 
-        simplify, atol arguments are passed to OneQubitEulerDecomposer"""
+        # simplify, atol arguments are passed to OneQubitEulerDecomposer
         if euler_basis is None:
             euler_basis = self._default_1q_basis
         oneq_decompose = OneQubitEulerDecomposer(euler_basis)
@@ -413,7 +432,7 @@ class TwoQubitWeylDecomposition:
         return circ
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
-        """Appends Ud(a, b, c) to the circuit.
+        """Appends U_d(a, b, c) to the circuit.
 
         Can be overridden in subclasses for special cases"""
         if not simplify or abs(self.a) > atol:
@@ -424,7 +443,7 @@ class TwoQubitWeylDecomposition:
             circ.rzz(-self.c * 2, 0, 1)
 
     def actual_fidelity(self, **kwargs) -> float:
-        """Calculates the actual fidelity of the decomposed circuit to the input unitary"""
+        """Calculates the actual fidelity of the decomposed circuit to the input unitary."""
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
         return trace_to_fid(trace)
@@ -459,7 +478,8 @@ class TwoQubitWeylDecomposition:
     def from_bytes(
         cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
     ) -> "TwoQubitWeylDecomposition":
-        """Decode bytes into TwoQubitWeylDecomposition. Used by __repr__"""
+        """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
+        # Used by __repr__
         del kwargs  # Unused (just for display)
         b64 = base64.decodebytes(bytes_in)
         with io.BytesIO(b64) as f:
@@ -473,11 +493,10 @@ class TwoQubitWeylDecomposition:
 
 
 class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(0,0,0) ~ Id
+    r""":math:`U \sim U_d(0,0,0) \sim Id`
 
     This gate binds 0 parameters, we make it canonical by setting
-        K2l = Id ,
-        K2r = Id .
+    :math:`K2_l = Id` , :math:`K2_r = Id`.
     """
 
     def specialize(self):
@@ -489,11 +508,10 @@ class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(𝜋/4, 𝜋/4, 𝜋/4) ~ U(𝜋/4, 𝜋/4, -𝜋/4) ~ SWAP
+    r""":math:`U \sim U_d(\pi/4, \pi/4, \pi/4) \sim U(\pi/4, \pi/4, -\pi/4) \sim \text{SWAP}`
 
     This gate binds 0 parameters, we make it canonical by setting
-        K2l = Id ,
-        K2r = Id .
+    :math:`K2_l = Id` , :math:`K2_r = Id`.
     """
 
     def specialize(self):
@@ -516,8 +534,8 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
 
 
 def _closest_partial_swap(a, b, c) -> float:
-    """A good approximation to the best value x to get the minimum
-    trace distance for Ud(x, x, x) from Ud(a, b, c)
+    r"""A good approximation to the best value x to get the minimum
+    trace distance for :math:`U_d(x, x, x)` from :math:`U_d(a, b, c)`.
     """
     m = (a + b + c) / 3
     am, bm, cm = a - m, b - m, c - m
@@ -527,10 +545,9 @@ def _closest_partial_swap(a, b, c) -> float:
 
 
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α𝜋/4, α𝜋/4, α𝜋/4) ~ SWAP**α
-
+    r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, \alpha\pi/4) \sim \text{SWAP}^\alpha`
     This gate binds 3 parameters, we make it canonical by setting:
-        K2l = Id .
+    :math:`K2_l = Id`.
     """
 
     def specialize(self):
@@ -542,13 +559,11 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α𝜋/4, α𝜋/4, -α𝜋/4) ~ SWAP**α
-
+    r""":math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, -\alpha\pi/4) \sim \text{SWAP}^\alpha`
     (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
-    similar to how x = (±sqrt(x))**2 )
-
+    similar to how :math:`x = (\pm \sqrt(x))^2`)
     This gate binds 3 parameters, we make it canonical by setting:
-        K2l = Id .
+    :math:`K2_l = Id`.
     """
 
     def specialize(self):
@@ -565,11 +580,10 @@ _oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 
 
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, 0, 0) ~ Ctrl-U
-
+    r""":math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
     This gate binds 4 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) ,
-        K2r = Ry(θr).Rx(λr) .
+        :math:`K2_l = Ry(\theta_l) Rx(\lambda_l)` ,
+        :math:`K2_r = Ry(\theta_r) Rx(\lambda_r)` .
     """
 
     _default_1q_basis = "XYX"
@@ -586,17 +600,18 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitControlledUDecomposer:
-    """Decompose two-qubit unitary in terms of a desired U ~ Ud(α, 0, 0) ~ Ctrl-U gate
-    that is locally equivalent to an RXXGate."""
+    r"""Decompose two-qubit unitary in terms of a desired
+    :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
+    gate that is locally equivalent to an :class:`.RXXGate`."""
 
     def __init__(self, rxx_equivalent_gate: Type[Gate]):
-        """Initialize the KAK decomposition.
+        r"""Initialize the KAK decomposition.
 
         Args:
-            rxx_equivalent_gate: Gate that is locally equivalent to an RXXGate:
-            U ~ Ud(α, 0, 0) ~ Ctrl-U gate.
+            rxx_equivalent_gate: Gate that is locally equivalent to an :class:`.RXXGate`:
+            :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}` gate.
         Raises:
-            QiskitError: If the gate is not locally equivalent to an RXXGate.
+            QiskitError: If the gate is not locally equivalent to an :class:`.RXXGate`.
         """
         atol = DEFAULT_ATOL
 
@@ -706,7 +721,7 @@ class TwoQubitControlledUDecomposer:
         return rxx_circ
 
     def _weyl_gate(self, circ: QuantumCircuit, atol=1.0e-13):
-        """Appends Ud(a, b, c) to the circuit."""
+        """Appends U_d(a, b, c) to the circuit."""
 
         circ_rxx = self._to_rxx_gate(-2 * self.decomposer.a)
         circ.compose(circ_rxx, inplace=True)
@@ -749,11 +764,10 @@ class TwoQubitControlledUDecomposer:
 
 
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(𝜋/4, 𝜋/4, α) ~ SWAP . Ctrl-U
+    r""":math:`U \sim U_d(\pi/4, \pi/4, \alpha) \sim \text{SWAP} \cdot \text{Ctrl-U}`
 
     This gate binds 4 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) ,
-        K2r = Ry(θr).Rz(λr) .
+    :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)` , :math:`K2_r = Ry(\theta_r)\cdot Rz(\lambda_r)`.
     """
 
     def specialize(self):
@@ -774,10 +788,10 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
 
 # These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
 class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, α, β), α ≥ |β|
+    r""":math:`U \sim U_d(\alpha, \alpha, \beta), \alpha \geq |\beta|`
 
     This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) .
+    :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
     """
 
     def specialize(self):
@@ -791,10 +805,10 @@ class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, β, β), α ≥ β
+    r""":math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
+    :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`.
     """
 
     _default_1q_basis = "XYX"
@@ -810,10 +824,10 @@ class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
 
 
 class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, β, -β), α ≥ β ≥ 0
+    r""":math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
 
     This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
+    :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`.
     """
 
     _default_1q_basis = "XYX"
@@ -841,7 +855,7 @@ class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
 
 
 def Ud(a, b, c):
-    """Generates the array Exp(i(a xx + b yy + c zz))"""
+    r"""Generates the array :math:`e^{(i a XX + i b YY + i c ZZ)}`"""
     return np.array(
         [
             [cmath.exp(1j * c) * math.cos(a - b), 0, 0, 1j * cmath.exp(1j * c) * math.sin(a - b)],
@@ -854,7 +868,12 @@ def Ud(a, b, c):
 
 
 def trace_to_fid(trace):
-    """Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+    r"""Average gate fidelity is
+
+    .. math::
+
+        \bar{F} = \frac{d + |\mathrm{Tr} (U_\text{target} \cdot U^{\dag})|^2}{d(d+1)}
+
     M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)"""
     return (4 + abs(trace) ** 2) / 20
 
@@ -874,15 +893,18 @@ class TwoQubitBasisDecomposer:
     basis gate.
 
     Args:
-        gate (Gate): Two-qubit gate to be used in the KAK decomposition.
-        basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
-        euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
-            Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
-        pulse_optimize (None or bool): If True, try to do decomposition which minimizes
+        gate: Two-qubit gate to be used in the KAK decomposition.
+        basis_fidelity: Fidelity to be assumed for applications of KAK Gate. Defaults to ``1.0``.
+        euler_basis: Basis string to be provided to :class:`.OneQubitEulerDecomposer` for 1Q synthesis.
+            Valid options are [``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'U'``, ``'U3'``, ``'U1X'``,
+            ``'PSX'``, ``'ZSX'``, ``'RR'``].
+        pulse_optimize: If ``True``, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
-            If False, don't attempt optimization. If None, attempt optimization but don't raise
+            If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
+
+    .. automethod:: __call__
     """
 
     def __init__(
@@ -1018,8 +1040,10 @@ class TwoQubitBasisDecomposer:
         self._rqc = None
 
     def traces(self, target):
-        """Give the expected traces :math:`|Tr(U \\cdot Utarget^dag)|` for different number of
-        basis gates."""
+        r"""
+        Give the expected traces :math:`\Big\vert\text{Tr}(U \cdot U_\text{target}^{\dag})\Big\vert`
+        for a different number of basis gates.
+        """
         # Future gotcha: extending this to non-supercontrolled basis.
         # Careful: closest distance between a1,b1,c1 and a2,b2,c2 may be between reflections.
         # This doesn't come up if either c1==0 or c2==0 but otherwise be careful.
@@ -1042,23 +1066,34 @@ class TwoQubitBasisDecomposer:
 
     @staticmethod
     def decomp0(target):
-        """Decompose target ~Ud(x, y, z) with 0 uses of the basis gate.
-        Result Ur has trace:
-        :math:`|Tr(Ur.Utarget^dag)| = 4|(cos(x)cos(y)cos(z)+ j sin(x)sin(y)sin(z)|`,
-        which is optimal for all targets and bases"""
+        r"""
+        Decompose target :math:`\sim U_d(x, y, z)` with :math:`0` uses of the basis gate.
+        Result :math:`U_r` has trace:
+
+        .. math::
+
+            \Big\vert\text{Tr}(U_r\cdot U_\text{target}^{\dag})\Big\vert =
+            4\Big\vert (\cos(x)\cos(y)\cos(z)+ j \sin(x)\sin(y)\sin(z)\Big\vert
+
+        which is optimal for all targets and bases
+        """
 
         U0l = target.K1l.dot(target.K2l)
         U0r = target.K1r.dot(target.K2r)
         return U0r, U0l
 
     def decomp1(self, target):
-        """Decompose target ~Ud(x, y, z) with 1 uses of the basis gate ~Ud(a, b, c).
-        Result Ur has trace:
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with :math:`1` use of the basis gate
+        :math:`\sim U_d(a, b, c)`.
+        Result :math:`U_r` has trace:
+
         .. math::
 
-            |Tr(Ur.Utarget^dag)| = 4|cos(x-a)cos(y-b)cos(z-c) + j sin(x-a)sin(y-b)sin(z-c)|
+            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^{\dag})\Big\vert =
+            4\Big\vert \cos(x-a)\cos(y-b)\cos(z-c) + j \sin(x-a)\sin(y-b)\sin(z-c)\Big\vert
 
-        which is optimal for all targets and bases with z==0 or c==0"""
+        which is optimal for all targets and bases with ``z==0`` or ``c==0``.
+        """
         # FIXME: fix for z!=0 and c!=0 using closest reflection (not always in the Weyl chamber)
         U0l = target.K1l.dot(self.basis.K1l.T.conj())
         U0r = target.K1r.dot(self.basis.K1r.T.conj())
@@ -1068,18 +1103,20 @@ class TwoQubitBasisDecomposer:
         return U1r, U1l, U0r, U0l
 
     def decomp2_supercontrolled(self, target):
-        """Decompose target ~Ud(x, y, z) with 2 uses of the basis gate.
+        r"""
+        Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
 
-        For supercontrolled basis ~Ud(pi/4, b, 0), all b, result Ur has trace
+        For supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b, result :math:`U_r` has trace
+
         .. math::
 
-            |Tr(Ur.Utarget^dag)| = 4cos(z)
+            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^\dag) \Big\vert = 4\cos(z)
 
-        which is the optimal approximation for basis of CNOT-class ``~Ud(pi/4, 0, 0)``
-        or DCNOT-class ``~Ud(pi/4, pi/4, 0)`` and any target.
-        May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
-        ``B~Ud(pi/4, pi/8, 0)``, but not this decomposition.)
-        This is an exact decomposition for supercontrolled basis and target ``~Ud(x, y, 0)``.
+        which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(\pi/4, 0, 0)`
+        or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target. It may
+        be sub-optimal for :math:`b \neq 0` (i.e. there exists an exact decomposition for any target
+        using :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but it may not be this decomposition).
+        This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
         No guarantees for non-supercontrolled basis.
         """
 
@@ -1093,9 +1130,11 @@ class TwoQubitBasisDecomposer:
         return U2r, U2l, U1r, U1l, U0r, U0l
 
     def decomp3_supercontrolled(self, target):
-        """Decompose target with 3 uses of the basis.
-        This is an exact decomposition for supercontrolled basis ~Ud(pi/4, b, 0), all b,
-        and any target. No guarantees for non-supercontrolled basis."""
+        r"""
+        Decompose target with :math:`3` uses of the basis.
+        This is an exact decomposition for supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b,
+        and any target. No guarantees for non-supercontrolled basis.
+        """
 
         U0l = target.K1l.dot(self.u0l)
         U0r = target.K1r.dot(self.u0r)
@@ -1116,19 +1155,21 @@ class TwoQubitBasisDecomposer:
         *,
         _num_basis_uses: int | None = None,
     ) -> QuantumCircuit:
-        """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
-        that each basis application has a finite `basis_fidelity`.
+        r"""Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
+        approximation given that each basis application has a finite ``basis_fidelity``.
 
         Args:
-            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            unitary (Operator or ndarray): :math:`4 \times 4` unitary to synthesize.
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
-                If given, overrides basis_fidelity given at init.
+                If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+
         Returns:
-            QuantumCircuit: Synthesized circuit.
+            QuantumCircuit: Synthesized quantum circuit.
+
         Raises:
-            QiskitError: if pulse_optimize is True but we don't know how to do it.
+            QiskitError: if ``pulse_optimize`` is True but we don't know how to do it.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
         if approximate is False:
@@ -1180,7 +1221,7 @@ class TwoQubitBasisDecomposer:
 
         Returns:
             QuantumCircuit: pulse optimal quantum circuit.
-            None: Probably nbasis=1 and original circuit is fine.
+            None: Probably ``nbasis==1`` and original circuit is fine.
 
         Raises:
             QiskitError: Decomposition for selected basis not implemented.
@@ -1572,3 +1613,16 @@ class _LazyTwoQubitCXDecomposer(TwoQubitBasisDecomposer):
 
 
 two_qubit_cnot_decompose = _LazyTwoQubitCXDecomposer()
+"""
+This is an instance of :class:`.TwoQubitBasisDecomposer` that always uses
+``cx`` as the KAK gate for the basis decomposition. You can use this function
+as a quick access to ``cx``-based 2-qubit decompositions.
+
+Args:
+    unitary (Operator or np.ndarray): The 4x4 unitary to synthesize.
+    basis_fidelity (float or None): If given the assumed fidelity for applications of :class:`.CXGate`.
+    approximate (bool): If ``True`` approximate if ``basis_fidelity`` is less than 1.0.
+
+Returns:
+    QuantumCircuit: The synthesized circuit of the input unitary.
+"""
