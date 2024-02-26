@@ -25,10 +25,10 @@ jobs:
         if: runner.os == 'macOS'
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.5
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
-          name: shared-wheel-builds
+          name: wheels-${{ matrix.os }}
   build_wheels_macos_arm:
     name: Build wheels on macOS arm
     runs-on: ${{ matrix.os }}
@@ -52,10 +52,10 @@ jobs:
           CIBW_ENVIRONMENT: >-
             CARGO_BUILD_TARGET="aarch64-apple-darwin"
             PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
-          name: shared-wheel-builds
+          name: wheels-${{ matrix.os }}-arm
   upload_shared_wheels:
     name: Upload shared build wheels
     runs-on: ubuntu-latest
@@ -64,9 +64,10 @@ jobs:
       id-token: write
     needs: ["build_wheels", "build_wheels_macos_arm"]
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          name: shared-wheel-builds
+          pattern: 'wheels-*'
+          merge-multiple: true
           path: deploy
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -98,8 +99,9 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: wheels-${{ matrix.os }}-s390x
           path: ./wheelhouse/*.whl
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -131,8 +133,9 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: wheels-${{ matrix.os }}-ppc64le
           path: ./wheelhouse/*.whl
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -163,8 +166,9 @@ jobs:
         uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_ARCHS_LINUX: aarch64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
+          name: wheels-${{ matrix.os }}-aarch64
           path: ./wheelhouse/*.whl
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
