@@ -393,11 +393,11 @@ class TestStabilizerState(QiskitTestCase):
                 value = stab.probabilities_dict_from_bitstrings(input_target)
                 target = {"0": 0.5}
                 self.assertEqual(value, target)
-                #Check wrong input target
+                #Check input target with 
                 input_target: list = ["1"]
                 value = stab.probabilities_dict_from_bitstrings(input_target)
-                target = {"0": 0.5}
-                self.assertNotEqual(value, target)
+                target = {"1": 0.5}
+                self.assertEqual(value, target)
                 #Check probabilities
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
@@ -416,8 +416,8 @@ class TestStabilizerState(QiskitTestCase):
                 #Check wrong input target
                 input_target = ["0"]
                 value = stab.probabilities_dict_from_bitstrings(input_target)
-                target = {"1": 0.5}
-                self.assertNotEqual(value, target)
+                target = {"0": 0.5}
+                self.assertEqual(value, target)
                 #Check probabilities
                 probs = stab.probabilities()
                 target = np.array([0.5, 0.5])
@@ -560,9 +560,12 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(2)
         stab = StabilizerState(qc)
 
+        total_test_1_time: float = 0.0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
+                start_test_1_time: float = time.monotonic()
                 value = stab.probabilities_dict(decimals=1)
+                total_test_1_time += (time.monotonic() - start_test_1_time)
                 target = {
                     "000": 0.1,
                     "001": 0.1,
@@ -577,6 +580,28 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(decimals=1)
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
+
+        #With target list
+        total_test_1_time_with_target: float = 0.0
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None), decimals=1"):
+                input_target: list[str] = ['000', '010', '100', '100', '101', '111']
+                start_test_1_time_with_target: float = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(input_target, decimals=1)
+                total_test_1_time_with_target += (time.monotonic() - start_test_1_time_with_target)
+                target = {
+                    "000": 0.1,
+                    "010": 0.1,
+                    "100": 0.1,
+                    "101": 0.1,
+                    "111": 0.1,
+                }
+                self.assertEqual(value, target)
+                probs = stab.probabilities(decimals=1)
+                target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+                self.assertTrue(np.allclose(probs, target))
+
+        self.assertTrue(total_test_1_time_with_target < total_test_1_time)
 
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
