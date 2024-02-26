@@ -18,7 +18,7 @@ indexmap.version = "2.2.3"
 hashbrown.version = "0.14.0"
 # This doesn't set `extension-module` as a shared feature because we need to be able to disable it
 # during Rust-only testing (see # https://github.com/PyO3/pyo3/issues/340).
-pyo3 = { version = "0.20.2", features = ["abi3-py38"] }
+pyo3 = { version = "0.20.3", features = ["abi3-py38"] }
 
 [profile.release]
 lto = 'fat'
