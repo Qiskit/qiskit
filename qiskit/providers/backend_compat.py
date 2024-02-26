@@ -25,6 +25,10 @@ from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.measure import Measure
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
+<<<<<<< HEAD
+=======
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
+>>>>>>> 65ab96508 (Fix handling of control flow instructions in convert_to_target() (#11877))
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
@@ -58,12 +62,48 @@ def convert_to_target(
         InstructionProperties,
     )
 
+<<<<<<< HEAD
     # Standard gates library mapping, multicontrolled gates not included since they're
     # variable width
     name_mapping = get_standard_gate_name_mapping()
     target = None
     if custom_name_mapping is not None:
         name_mapping.update(custom_name_mapping)
+=======
+    required = ["measure", "delay"]
+
+    # Load Qiskit object representation
+    qiskit_inst_mapping = get_standard_gate_name_mapping()
+    if custom_name_mapping:
+        qiskit_inst_mapping.update(custom_name_mapping)
+
+    qiskit_control_flow_mapping = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
+
+    in_data = {"num_qubits": configuration.n_qubits}
+
+    # Parse global configuration properties
+    if hasattr(configuration, "dt"):
+        in_data["dt"] = configuration.dt
+    if hasattr(configuration, "timing_constraints"):
+        in_data.update(configuration.timing_constraints)
+
+    # Create instruction property placeholder from backend configuration
+    basis_gates = set(getattr(configuration, "basis_gates", []))
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
+    gate_configs = {gate.name: gate for gate in configuration.gates}
+    all_instructions = set.union(
+        basis_gates, set(required), supported_instructions.intersection(CONTROL_FLOW_OP_NAMES)
+    )
+
+    inst_name_map = {}  # type: Dict[str, Instruction]
+
+    faulty_ops = set()
+>>>>>>> 65ab96508 (Fix handling of control flow instructions in convert_to_target() (#11877))
     faulty_qubits = set()
     # Parse from properties if it exsits
     if properties is not None:
