@@ -310,8 +310,8 @@ HAS_GRAPHVIZ = _LazySubprocessTester(
     name="Graphviz",
     msg=(
         "To install, follow the instructions at https://graphviz.org/download/."
-        " Qiskit needs the Graphviz binaries. The 'graphviz' package on pip does not install these."
-        " You must install the actual Graphviz software."
+        " Qiskit needs the Graphviz binaries, which the 'graphviz' package on pip does not install."
+        " You must install the actual Graphviz software"
     ),
 )
 HAS_PDFLATEX = _LazySubprocessTester(
