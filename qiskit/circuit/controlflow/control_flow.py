@@ -18,6 +18,7 @@ import typing
 from abc import ABC, abstractmethod
 
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.exceptions import CircuitError
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
@@ -25,6 +26,12 @@ if typing.TYPE_CHECKING:
 
 class ControlFlowOp(Instruction, ABC):
     """Abstract class to encapsulate all control flow operations."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for block in self.blocks:
+            if block.num_input_vars:
+                raise CircuitError("control-flow blocks cannot contain input variables")
 
     @property
     @abstractmethod
