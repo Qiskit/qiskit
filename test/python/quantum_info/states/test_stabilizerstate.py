@@ -493,6 +493,14 @@ class TestStabilizerState(QiskitTestCase):
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
                 target = {"10": 0}
                 self.assertEqual(value, target)
+                input_target: list = ['10', '00']
+                value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
+                target = {"10": 0, "00": 0.5}
+                self.assertEqual(value, target)
+                input_target: list = ['00', '10']
+                value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
+                target = {"10": 0, "00": 0.5}
+                self.assertEqual(value, target)
                 input_target: list = ['01']
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
                 target = {"01": 0.5}

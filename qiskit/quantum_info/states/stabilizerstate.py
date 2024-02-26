@@ -15,6 +15,7 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
+from collections import Counter
 
 from collections.abc import Collection
 
@@ -423,6 +424,11 @@ class StabilizerState(QuantumState):
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
 
+        if(target != None):
+           # temp_list: list = [probs for item in target if item]
+            if(not all(item in probs for item in target if item)):
+                probs.update(self.probabilities_dict_from_bitstrings([item for item in target if item not in probs.keys()], qargs, decimals))
+
         return probs
 
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
@@ -669,7 +675,7 @@ class StabilizerState(QuantumState):
         if(target == None):
             return range(0,2)
         else:
-            items = [int(item) for item in target if (item[qubit_for_branching-1])]
+            items = list(set([int(item[qubit_for_branching]) for item in target if (item[qubit_for_branching-1])]))
             if(len(items) == 1):
                 return range(items[0], items[0]+1)
             elif(len(items) == 2):
@@ -694,15 +700,20 @@ class StabilizerState(QuantumState):
                 if (StabilizerState._is_qubit_deterministic(ret, qubit)):
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     #To not affect performance of non-targetted runs iterating through the target list, use of if else statement
-                    if(target != None):
+                    if(target != None and True):
                         expected = [int(item[i]) for item in target][0]
-                        if((expected == single_qubit_outcome) or single_qubit_outcome ==0):
+                        if((expected == single_qubit_outcome) and single_qubit_outcome == 0):
                             outcome[i] = str(single_qubit_outcome)
                         else:
-                            outcome[i] = str(single_qubit_outcome-1)
-                            #Set the outcome probabilitiy to 0
-                            if("X" not in outcome):
-                                outcome_prob = 0
+                            if((expected != single_qubit_outcome) and single_qubit_outcome == 1):
+                                outcome[i] = str(0)
+                                #Set the outcome probabilitiy to 0
+                                if("X" not in outcome):
+                                    outcome_prob = 0
+                            else:
+                                outcome[i] = str(1)
+                                if("X" in outcome):
+                                    outcome_prob = 0
                     else:
                         if (single_qubit_outcome):
                             outcome[i] = "1"
@@ -711,7 +722,7 @@ class StabilizerState(QuantumState):
                 else:
                     qubit_for_branching = i
 
-        if qubit_for_branching == -1:
+        if (qubit_for_branching == -1):
             str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
