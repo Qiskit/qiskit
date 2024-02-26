@@ -486,25 +486,39 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5, 0, 0])
                 self.assertTrue(np.allclose(probs, target))
 
-        #Test #2 for Probabilities Dict with bad target
+        #Test #2 for Probabilities Dict with 0.0 target, or mix of good and 0.0 targets
+        #00 and 01 will give back probabilities, others should always give back 0.0
         for _ in range(self.samples):
             with self.subTest(msg="P([0, 1])"):
+                #Test of probability that will be 0.0
                 input_target: list = ['10']
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
                 target = {"10": 0}
                 self.assertEqual(value, target)
+
+                #mixing items with 0.0 and 0.5 prob together for targets
                 input_target: list = ['10', '00']
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
                 target = {"10": 0, "00": 0.5}
                 self.assertEqual(value, target)
+
+                #mixing items with 0.5 and 0.0 prob together for targets, but reversed order to make sure correct values come back
                 input_target: list = ['00', '10']
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
                 target = {"10": 0, "00": 0.5}
                 self.assertEqual(value, target)
-                input_target: list = ['01']
+
+                #mixing 0.
+                input_target: list = ['01', '10']
                 value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
-                target = {"01": 0.5}
+                target = {"01": 0.5, '10': 0}
                 self.assertEqual(value, target)
+
+                input_target: list = ['10', '01']
+                value = stab.probabilities_dict_from_bitstrings(input_target, [0, 1])
+                target = {"01": 0.5, '10': 0.0}
+                self.assertEqual(value, target)
+
                 probs = stab.probabilities([0, 1])
                 target = np.array([0.5, 0.5, 0, 0])
                 self.assertTrue(np.allclose(probs, target))

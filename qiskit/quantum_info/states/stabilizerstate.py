@@ -424,13 +424,50 @@ class StabilizerState(QuantumState):
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
 
+        #If a target is provided, check to see if any targets are missing in probs dictionary that need to still be calculated
+        #If missing, recalculate the new target list and recursively call to calculate missing values
         if(target != None):
-           # temp_list: list = [probs for item in target if item]
-            if(not all(item in probs for item in target if item)):
-                probs.update(self.probabilities_dict_from_bitstrings([item for item in target if item not in probs.keys()], qargs, decimals))
-
+            missing_targets: list[str] = StabilizerState._build_list_of_missing_target_values(probs, target)
+            if(len(missing_targets) > 0):
+                probs.update(self.probabilities_dict_from_bitstrings(missing_targets, qargs, decimals))
         return probs
+    
+    @staticmethod
+    def _build_list_of_missing_target_values(probs: dict[str, float], target: list[str]) -> list[str]:
+        '''Build a new list of targets that are missing in the probabilitiy dictionary
 
+        Parameters
+        ----------
+        probs : dict[str, float]
+            the probabilities calculated in the dict
+        target : list[str]
+            the target list of results requested
+
+        Returns
+        -------
+        list[str]
+            the list of entries 
+        '''
+        return [item for item in target if item not in probs.keys()]
+    """
+    @staticmethod
+    def _all_targets_in_prob_dict(probs: dict[str, float], target: list[str]) -> bool:
+        '''Check if all the probs expected to be calculated for the target in the dict
+
+        Parameters
+        ----------
+        probs : dict[str, float]
+            the probabilities calculated in the dict
+        target : list[str]
+            the target list of results requested
+
+        Returns
+        -------
+        bool
+            True if all the target items are in the dict
+        '''
+        return all(item in probs for item in target if item)
+    """
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
@@ -671,11 +708,22 @@ class StabilizerState(QuantumState):
         aux_pauli.phase = accum_phase
         return aux_pauli
     
-    def _target_result_contains(target: list[str], qubit_for_branching: int) -> range:
+    def _target_result_contains(target: list[str], qubit_for_branching: int, outcome) -> range:
         if(target == None):
             return range(0,2)
         else:
+            items = list(set([item[qubit_for_branching] for item in target if (item[qubit_for_branching-1])]))
+            if('X' in outcome and len(outcome) == 1):
+                items = list(set([int(item[qubit_for_branching]) for item in target if (item[qubit_for_branching-1])]))
+            else:
+                outcome_to_check: str = "".join(outcome)[:qubit_for_branching]
+                items: list[str] = [item[qubit_for_branching:] for item in target if (outcome_to_check == item[:qubit_for_branching])] 
+            """
             items = list(set([int(item[qubit_for_branching]) for item in target if (item[qubit_for_branching-1])]))
+            outcome_to_check: str = "".join(outcome)[:qubit_for_branching]
+            #Filter the target
+            temp = [item for item in target if outcome_to_check != item[:qubit_for_branching]]
+            """
             if(len(items) == 1):
                 return range(items[0], items[0]+1)
             elif(len(items) == 2):
@@ -700,7 +748,7 @@ class StabilizerState(QuantumState):
                 if (StabilizerState._is_qubit_deterministic(ret, qubit)):
                     single_qubit_outcome = ret._measure_and_update(qubit, 0)
                     #To not affect performance of non-targetted runs iterating through the target list, use of if else statement
-                    if(target != None and True):
+                    if(target != None):
                         expected = [int(item[i]) for item in target][0]
                         if((expected == single_qubit_outcome) and single_qubit_outcome == 0):
                             outcome[i] = str(single_qubit_outcome)
@@ -727,7 +775,7 @@ class StabilizerState(QuantumState):
             probs[str_outcome] = outcome_prob
             return
 
-        for single_qubit_outcome in StabilizerState._target_result_contains(target, qubit_for_branching):
+        for single_qubit_outcome in StabilizerState._target_result_contains(target, qubit_for_branching, outcome):
             new_outcome = outcome.copy()
             if single_qubit_outcome:
                 new_outcome[qubit_for_branching] = "1"
