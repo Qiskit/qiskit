@@ -87,28 +87,46 @@ class RZGate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-RZ gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CRZGate(self.params[0], label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted RZ gate
 
         :math:`RZ(\lambda)^{\dagger} = RZ(-\lambda)`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZGate` with an inverted parameter value.
+
+        Returns:
+            RZGate: inverse gate.
         """
         return RZGate(-self.params[0])
 
@@ -123,6 +141,11 @@ class RZGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CRZGate(ControlledGate):
@@ -240,8 +263,18 @@ class CRZGate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse CRZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CRZGate` with an inverted parameter value.
+
+         Returns:
+            CRZGate: inverse gate.
+        """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
     def __array__(self, dtype=None):
@@ -259,3 +292,8 @@ class CRZGate(ControlledGate):
                 [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )
+
+    def __eq__(self, other):
+        if isinstance(other, CRZGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False

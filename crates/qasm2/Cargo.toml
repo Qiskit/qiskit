@@ -15,5 +15,5 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-hashbrown = "0.14.0"
+hashbrown.workspace = true
 pyo3.workspace = true

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,14 +17,13 @@ import numpy as np
 from ddt import ddt, named_data
 
 from qiskit import QuantumCircuit
-
 from qiskit.transpiler.passes.optimization.normalize_rx_angle import (
     NormalizeRXAngle,
 )
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeBelemV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import Target
 from qiskit.circuit.library.standard_gates import SXGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -60,7 +59,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
         """Check that RZ is added before and after RX,
         if RX rotation angle is negative"""
 
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
@@ -83,7 +82,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
     )
     def test_angle_wrapping_works(self, raw_theta, correct_wrapped_theta):
         """Check that RX rotation angles are correctly wrapped to [0, pi]"""
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(target=backend.target)
 
         # circuit to transpile and test
@@ -118,7 +117,7 @@ class TestNormalizeRXAngle(QiskitTestCase):
         """Test that quantize_angles() adds a new calibration only if
         the requested angle is not in the vicinity of the already generated angles.
         """
-        backend = FakeBelemV2()
+        backend = GenericBackendV2(num_qubits=5)
         tp = NormalizeRXAngle(backend.target, resolution_in_radian=resolution)
 
         qc = QuantumCircuit(1)

@@ -21,7 +21,7 @@ ATOL_DEFAULT = 1e-8
 RTOL_DEFAULT = 1e-5
 
 
-def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT, props=None):
     """Test if two arrays are equal.
 
     The final comparison is implemented using Numpy.allclose. See its
@@ -38,6 +38,9 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
             matrices [Default: False]
         rtol (double): the relative tolerance parameter [Default {}].
         atol (double): the absolute tolerance parameter [Default {}].
+        props (dict | None): if not ``None`` and ``ignore_phase`` is ``True``
+            returns the phase difference between the two matrices under
+            ``props['phase_difference']``
 
     Returns:
         bool: True if the matrices are equal or False otherwise.
@@ -59,16 +62,25 @@ def matrix_equal(mat1, mat2, ignore_phase=False, rtol=RTOL_DEFAULT, atol=ATOL_DE
         return False
 
     if ignore_phase:
+        phase_difference = 0
+
         # Get phase of first non-zero entry of mat1 and mat2
         # and multiply all entries by the conjugate
         for elt in mat1.flat:
             if abs(elt) > atol:
-                mat1 = np.exp(-1j * np.angle(elt)) * mat1
+                angle = np.angle(elt)
+                phase_difference -= angle
+                mat1 = np.exp(-1j * angle) * mat1
                 break
         for elt in mat2.flat:
             if abs(elt) > atol:
+                angle = np.angle(elt)
+                phase_difference += angle
                 mat2 = np.exp(-1j * np.angle(elt)) * mat2
                 break
+        if props is not None:
+            props["phase_difference"] = phase_difference
+
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 

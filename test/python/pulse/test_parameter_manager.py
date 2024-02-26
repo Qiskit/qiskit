@@ -15,6 +15,7 @@
 """Test cases for parameter manager."""
 
 from copy import deepcopy
+from unittest.mock import patch
 
 import numpy as np
 
@@ -23,7 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class ParameterTestBase(QiskitTestCase):
@@ -77,9 +78,6 @@ class ParameterTestBase(QiskitTestCase):
         subroutine += pulse.ShiftPhase(self.phi1, self.d1)
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi3, self.d3)
-
         long_schedule = pulse.ScheduleBlock(
             alignment_context=AlignEquispaced(self.context_dur), name="long_schedule"
         )
@@ -87,8 +85,7 @@ class ParameterTestBase(QiskitTestCase):
         long_schedule += subroutine
         long_schedule += pulse.ShiftPhase(self.phi2, self.d2)
         long_schedule += pulse.Play(self.parametric_waveform2, self.d2)
-        with self.assertWarns(DeprecationWarning):
-            long_schedule += pulse.Call(sched)
+        long_schedule += pulse.ShiftPhase(self.phi3, self.d3)
         long_schedule += pulse.Play(self.parametric_waveform3, self.d3)
 
         long_schedule += pulse.Acquire(
@@ -145,21 +142,6 @@ class TestParameterGetter(ParameterTestBase):
         visitor.visit(test_obj)
 
         ref_params = {self.phi1, self.phi2}
-
-        self.assertSetEqual(visitor.parameters, ref_params)
-
-    def test_get_parameter_from_call(self):
-        """Test get parameters from instruction."""
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
-
-        with self.assertWarns(DeprecationWarning):
-            test_obj = pulse.Call(subroutine=sched)
-
-        visitor = ParameterGetter()
-        visitor.visit(test_obj)
-
-        ref_params = {self.phi1, self.ch1}
 
         self.assertSetEqual(visitor.parameters, ref_params)
 
@@ -254,27 +236,6 @@ class TestParameterSetter(ParameterTestBase):
 
         self.assertEqual(assigned, ref_obj)
 
-    def test_set_parameter_to_call(self):
-        """Test get parameters from instruction."""
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(self.phi1, self.d1)
-
-        with self.assertWarns(DeprecationWarning):
-            test_obj = pulse.Call(subroutine=sched)
-
-        value_dict = {self.phi1: 1.57, self.ch1: 2}
-
-        visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
-
-        ref_sched = pulse.Schedule()
-        ref_sched += pulse.ShiftPhase(1.57, pulse.DriveChannel(2))
-
-        with self.assertWarns(DeprecationWarning):
-            ref_obj = pulse.Call(subroutine=ref_sched)
-
-        self.assertEqual(assigned, ref_obj)
-
     def test_with_function(self):
         """Test ParameterExpressions formed trivially in a function."""
 
@@ -313,8 +274,8 @@ class TestParameterSetter(ParameterTestBase):
         subroutine += pulse.Play(self.parametric_waveform1, self.d1)
 
         nested_block = pulse.ScheduleBlock()
-        with self.assertWarns(DeprecationWarning):
-            nested_block += pulse.Call(subroutine=subroutine)
+
+        nested_block += subroutine
 
         test_obj = pulse.ScheduleBlock()
         test_obj += nested_block
@@ -352,10 +313,7 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        with self.assertWarns(DeprecationWarning):
-            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_value_to_parameter(self):
         """Test complex value can be assigned to parameter object,
@@ -369,10 +327,7 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertWarns(PendingDeprecationWarning):
             assigned = visitor.visit(test_obj)
 
-        with self.assertWarns(DeprecationWarning):
-            ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
-
-        self.assertEqual(assigned, ref_obj)
+        self.assertEqual(assigned.amp, 0.1j)
 
     def test_complex_parameter_expression(self):
         """Test assignment of complex-valued parameter expression to parameter,
@@ -418,6 +373,35 @@ class TestParameterSetter(ParameterTestBase):
         with self.assertRaises(PulseError):
             test_sched.assign_parameters({amp: 0.6}, inplace=False)
 
+    def test_disable_validation_parameter_assignment(self):
+        """Test that pulse validation can be disabled on the class level.
+
+        Tests for representative examples.
+        """
+        sig = Parameter("sigma")
+        test_sched = pulse.ScheduleBlock()
+        test_sched.append(
+            pulse.Play(
+                pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0), pulse.DriveChannel(0)
+            ),
+            inplace=True,
+        )
+        with self.assertRaises(PulseError):
+            test_sched.assign_parameters({sig: -1.0}, inplace=False)
+        with patch(
+            "qiskit.pulse.library.symbolic_pulses.SymbolicPulse.disable_validation", new=True
+        ):
+            test_sched = pulse.ScheduleBlock()
+            test_sched.append(
+                pulse.Play(
+                    pulse.Gaussian(duration=100, amp=0.5, sigma=sig, angle=0.0),
+                    pulse.DriveChannel(0),
+                ),
+                inplace=True,
+            )
+            binded_sched = test_sched.assign_parameters({sig: -1.0}, inplace=False)
+            self.assertLess(binded_sched.instructions[0][1].pulse.sigma, 0)
+
     def test_set_parameter_to_complex_schedule(self):
         """Test get parameters from complicated schedule."""
         test_block = deepcopy(self.test_sched)
@@ -450,16 +434,12 @@ class TestParameterSetter(ParameterTestBase):
         subroutine += pulse.ShiftPhase(1.0, pulse.DriveChannel(0))
         subroutine += pulse.Play(pulse.Gaussian(100, 0.3, 25), pulse.DriveChannel(0))
 
-        sched = pulse.Schedule()
-        sched += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
-
         ref_obj = pulse.ScheduleBlock(alignment_context=AlignEquispaced(1000), name="long_schedule")
 
         ref_obj += subroutine
         ref_obj += pulse.ShiftPhase(2.0, pulse.DriveChannel(2))
         ref_obj += pulse.Play(pulse.Gaussian(125, 0.3, 25), pulse.DriveChannel(2))
-        with self.assertWarns(DeprecationWarning):
-            ref_obj += pulse.Call(sched)
+        ref_obj += pulse.ShiftPhase(3.0, pulse.DriveChannel(4))
         ref_obj += pulse.Play(pulse.Gaussian(150, 0.4, 25), pulse.DriveChannel(4))
 
         ref_obj += pulse.Acquire(
@@ -500,73 +480,6 @@ class TestAssignFromProgram(QiskitTestCase):
 
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
-
-    def test_parameters_from_subroutine(self):
-        """Test that get parameter objects from subroutines."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
-
-        program_layer0 = pulse.Schedule()
-        program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
-
-        # from call instruction
-        program_layer1 = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            program_layer1 += pulse.instructions.Call(program_layer0)
-        self.assertEqual(program_layer1.get_parameters("amp")[0], param1)
-
-        # from nested call instruction
-        program_layer2 = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            program_layer2 += pulse.instructions.Call(program_layer1)
-        self.assertEqual(program_layer2.get_parameters("amp")[0], param1)
-
-    def test_assign_parameter_to_subroutine(self):
-        """Test that assign parameter objects to subroutines."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
-
-        program_layer0 = pulse.Schedule()
-        program_layer0 += pulse.Play(waveform, pulse.DriveChannel(0))
-        reference = program_layer0.assign_parameters({param1: 0.1}, inplace=False)
-
-        # to call instruction
-        program_layer1 = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            program_layer1 += pulse.instructions.Call(program_layer0)
-        target = program_layer1.assign_parameters({param1: 0.1}, inplace=False)
-        self.assertEqual(inline_subroutines(target), reference)
-
-        # to nested call instruction
-        program_layer2 = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            program_layer2 += pulse.instructions.Call(program_layer1)
-        target = program_layer2.assign_parameters({param1: 0.1}, inplace=False)
-        self.assertEqual(inline_subroutines(target), reference)
-
-    def test_assign_parameter_to_subroutine_parameter(self):
-        """Test that assign parameter objects to parameter of subroutine."""
-        param1 = Parameter("amp")
-        waveform = pulse.library.Constant(duration=100, amp=param1)
-
-        param_sub1 = Parameter("p1")
-        param_sub2 = Parameter("p2")
-
-        subroutine = pulse.Schedule()
-        subroutine += pulse.Play(waveform, pulse.DriveChannel(0))
-        reference = subroutine.assign_parameters({param1: 0.6}, inplace=False)
-
-        main_prog = pulse.Schedule()
-        pdict = {param1: param_sub1 + param_sub2}
-        with self.assertWarns(DeprecationWarning):
-            main_prog += pulse.instructions.Call(subroutine, value_dict=pdict)
-
-        # parameter is overwritten by parameters
-        self.assertEqual(len(main_prog.parameters), 2)
-        target = main_prog.assign_parameters({param_sub1: 0.1, param_sub2: 0.5}, inplace=False)
-        result = inline_subroutines(target)
-
-        self.assertEqual(result, reference)
 
 
 class TestScheduleTimeslots(QiskitTestCase):

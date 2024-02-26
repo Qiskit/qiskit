@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,17 +17,17 @@ import os
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.test.mock import FakeToronto
+from qiskit.providers.fake_provider import Fake27QPulseV1
 
 
 class TranspilerQualitativeBench:
-    params = ([0, 1, 2, 3], ["stochastic", "sabre"], ["dense", "noise_adaptive", "sabre"])
+    params = ([0, 1, 2, 3], ["stochastic", "sabre"], ["dense", "sabre"])
     param_names = ["optimization level", "routing method", "layout method"]
     timeout = 600
 
     # pylint: disable=unused-argument
     def setup(self, optimization_level, routing_method, layout_method):
-        self.backend = FakeToronto()
+        self.backend = Fake27QPulseV1()
         self.qasm_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "qasm"))
 
         self.depth_4gt10_v1_81 = QuantumCircuit.from_qasm_file(

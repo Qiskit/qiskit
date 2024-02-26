@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,8 +21,9 @@ from qiskit.transpiler.target import Target
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import RUESCHLIKON_CMAP, TENERIFE_CMAP
 
 
 class TestTrivialLayout(QiskitTestCase):
@@ -30,8 +31,8 @@ class TestTrivialLayout(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.cmap5 = FakeTenerife().configuration().coupling_map
-        self.cmap16 = FakeRueschlikon().configuration().coupling_map
+        self.cmap5 = TENERIFE_CMAP
+        self.cmap16 = RUESCHLIKON_CMAP
 
     def test_3q_circuit_5q_coupling(self):
         """Test finds trivial layout for 3q circuit on 5q device."""

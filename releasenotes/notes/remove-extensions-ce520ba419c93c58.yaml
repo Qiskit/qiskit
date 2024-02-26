@@ -1,0 +1,47 @@
+---
+upgrade:
+  - |
+    Removed the ``qiskit.extensions`` module, which has been pending deprecation since the 0.45 release
+    and has been fully deprecated in the 0.46 release.
+    The following operations from this module are available in :mod:`qiskit.circuit.library`:
+
+    * :class:`~.library.DiagonalGate`,
+    * :class:`~.library.HamiltonianGateGate`,
+    * :class:`~.library.Initialize`,
+    * :class:`~.library.Isometry`,
+    * :class:`~.library.generalized_gates.mcg_up_diag.MCGupDiag`,
+    * :class:`~.library.UCGate`,
+    * :class:`~.library.UCPauliRotGate`,
+    * :class:`~.library.UCRXGate`,
+    * :class:`~.library.UCRYGate`,
+    * :class:`~.library.UCRZGate`,
+    * :class:`~.library.UnitaryGate`.
+
+    The following objects have been removed:
+
+    * ``SingleQubitUnitary`` (instead use :class:`.library.UnitaryGate`),
+    * ``Snapshot`` (superseded by Qiskit Aer's save instructions),
+    * ``ExtensionError``,
+
+    along with the following circuit methods::
+
+    * ``QuantumCircuit.snapshot``,
+    * ``QuantumCircuit.squ``,
+    * ``QuantumCircuit.diagonal``,
+    * ``QuantumCircuit.hamiltonian``,
+    * ``QuantumCircuit.isometry`` and ``QuantumCircuit.iso``,
+    * ``QuantumCircuit.uc``,
+    * ``QuantumCircuit.ucrx``,
+    * ``QuantumCircuit.ucry``,
+    * ``QuantumCircuit.ucrz``.
+
+    These operations can still be performed by appending the appropriate
+    instruction to a quantum circuit. 
+  - |
+    Removed deprecated, duplicated :class:`.QuantumCircuit` methods. These include
+
+    * ``QuantumCircuit.cnot``, instead use :meth:`.QuantumCircuit.cx`,
+    * ``QuantumCircuit.toffoli``, instead use :meth:`.QuantumCircuit.ccx`,
+    * ``QuantumCircuit.fredkin``, instead use :meth:`.QuantumCircuit.cswap`,
+    * ``QuantumCircuit.mct``, instead use :meth:`.QuantumCircuit.mcx`,
+    * ``QuantumCircuit.i``, instead use :meth:`.QuantumCircuit.id`.

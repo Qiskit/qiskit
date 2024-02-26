@@ -172,13 +172,65 @@ convert it into a :class:`.QuantumCircuit`:
     \"\"\"
     circuit = qiskit.qasm3.loads(program)
     circuit.draw("mpl")
+
+
+Experimental import interface
+-----------------------------
+
+The import functions given above rely on the ANTLR-based reference parser from the OpenQASM project
+itself, which is more intended as a language reference than a performant parser.  You need to have
+the extension ``qiskit-qasm3-import`` installed to use it.
+
+Qiskit is developing a native parser, written in Rust, which is available as part of the core Qiskit
+package.  This parser is still in its early experimental stages, so is missing features and its
+interface is changing and expanding, but it is typically orders of magnitude more performant for the
+subset of OpenQASM 3 it currently supports, and its internals produce better error diagnostics on
+parsing failures.
+
+You can use the experimental interface immediately, with similar functions to the main interface
+above:
+
+.. autofunction:: load_experimental
+.. autofunction:: loads_experimental
+
+These two functions are both experimental, meaning they issue an :exc:`.ExperimentalWarning` on
+usage, and their interfaces may be subject to change within the Qiskit 1.x release series.  In
+particular, the native parser may be promoted to be the default version of :func:`load` and
+:func:`loads`.  If you are happy to accept the risk of using the experimental interface, you can
+disable the warning by doing::
+
+    import warnings
+    from qiskit.exceptions import ExperimentalWarning
+
+    warnings.filterwarnings("ignore", category=ExperimentalWarning, module="qiskit.qasm3")
+
+These two functions allow for specifying include paths as an iterable of paths, and for specifying
+custom Python constructors to use for particular gates.  These custom constructors are specified by
+using the :class:`CustomGate` object:
+
+.. autoclass:: CustomGate
+
+In ``custom_gates`` is not given, Qiskit will attempt to use its standard-library gate objects for
+the gates defined in OpenQASM 3 standard library file ``stdgates.inc``.  This sequence of gates is
+available on this module, if you wish to build on top of it:
+
+.. py:data:: STDGATES_INC_GATES
+
+    A tuple of :class:`CustomGate` objects specifying the Qiskit constructors to use for the
+    ``stdgates.inc`` include file.
 """
 
+import functools
+import warnings
+
+from qiskit import _qasm3
+from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
+from .._qasm3 import CustomGate, STDGATES_INC_GATES
 
 
 def dumps(circuit, **kwargs) -> str:
@@ -253,3 +305,25 @@ def loads(program: str):
         return qiskit_qasm3_import.parse(program)
     except qiskit_qasm3_import.ConversionError as exc:
         raise QASM3ImporterError(str(exc)) from exc
+
+
+@functools.wraps(_qasm3.loads)
+def loads_experimental(source, /, *, custom_gates=None, include_path=None):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental native version of the OpenQASM 3 importer."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    return _qasm3.loads(source, custom_gates=custom_gates, include_path=include_path)
+
+
+@functools.wraps(_qasm3.load)
+def load_experimental(pathlike_or_filelike, /, *, custom_gates=None, include_path=None):
+    """<overridden by functools.wraps>"""
+    warnings.warn(
+        "This is an experimental native version of the OpenQASM 3 importer."
+        " Beware that its interface might change, and it might be missing features.",
+        category=ExperimentalWarning,
+    )
+    return _qasm3.load(pathlike_or_filelike, custom_gates=custom_gates, include_path=include_path)

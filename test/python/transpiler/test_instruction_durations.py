@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,15 +15,14 @@
 """Test InstructionDurations class."""
 
 from qiskit.circuit import Delay, Parameter
-from qiskit.providers.fake_provider import FakeParis, FakeTokyo
+from qiskit.providers.fake_provider import Fake27QPulseV1
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-
-from qiskit.test.base import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructionDurationsClass(QiskitTestCase):
-    """Test Test InstructionDurations class."""
+    """Test InstructionDurations class."""
 
     def test_empty(self):
         durations = InstructionDurations()
@@ -37,14 +36,15 @@ class TestInstructionDurationsClass(QiskitTestCase):
             InstructionDurations(invalid_dic)
 
     def test_from_backend_for_backend_with_dt(self):
-        backend = FakeParis()
+        backend = Fake27QPulseV1()
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertGreater(durations.dt, 0)
         self.assertGreater(durations.get(gate, 0), 0)
 
     def test_from_backend_for_backend_without_dt(self):
-        backend = FakeTokyo()
+        backend = Fake27QPulseV1()
+        delattr(backend.configuration(), "dt")
         gate = self._find_gate_with_length(backend)
         durations = InstructionDurations.from_backend(backend)
         self.assertIsNone(durations.dt)
