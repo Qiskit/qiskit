@@ -92,63 +92,75 @@ class StarPreRouting(TransformationPass):
             return dag
         new_dag = dag.copy_empty_like()
         sequence_starts = {x[0][0]: i for i, x in enumerate(star_sequences)}
+        sequence_nexts = {i: 1 for i in range(len(star_sequences))}
         processed_nodes = set()
+        swap_source = None
+        prev = None
         qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
-            sequence_index = sequence_starts.get(node, None)
+            sequence_index = sequence_starts.pop(node, None)
             if sequence_index is not None:
+                sequence, center_node = star_sequences[sequence_index]
+            if sequence_index is not None and len(sequence) > 2:
                 index = sequence_index
-                sequence, center_node = star_sequences[index]
-                if len(sequence) == 2:
-                    for node in sequence:
-                        new_dag.apply_operation_back(
-                            node.op,
-                            _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
-                            node.cargs,
-                        )
-                        processed_nodes.add(node)
+                if node.qargs == prev:
+                    new_dag.apply_operation_back(
+                        node.op,
+                        _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                        node.cargs,
+                    )
+                    next_in_sequence = sequence_nexts[sequence_index]
+                    if len(sequence) == next_in_sequence:
+                        prev = None
+                        swap_source = None
+                    else:
+                        next_node = sequence[next_in_sequence]
+                        sequence_starts[next_node] = sequence_index
+                        sequence_nexts[sequence_index] += 1
                     continue
-                swap_source = None
-                prev = None
-                for inner_node in sequence:
-                    if inner_node.qargs == prev:
-                        new_dag.apply_operation_back(
-                            inner_node.op,
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                        )
-                        continue
-                    if swap_source is None:
-                        swap_source = center_node
-                        new_dag.apply_operation_back(
-                            inner_node.op,
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                        )
-                        prev = inner_node.qargs
-                        processed_nodes.add(inner_node)
-                        continue
+                if swap_source is None:
+                    swap_source = center_node
                     new_dag.apply_operation_back(
-                        inner_node.op,
-                        _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                        inner_node.cargs,
+                        node.op,
+                        _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                        node.cargs,
                     )
-                    processed_nodes.add(inner_node)
-                    new_dag.apply_operation_back(
-                        SwapGate(),
-                        _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                        inner_node.cargs,
-                    )
-                    # Swap mapping
-                    pos_0 = qubit_mapping[inner_node.qargs[0]]
-                    pos_1 = qubit_mapping[inner_node.qargs[1]]
-                    qubit_mapping[inner_node.qargs[0]] = pos_1
-                    qubit_mapping[inner_node.qargs[1]] = pos_0
-                    prev = inner_node.qargs
-            elif node in processed_nodes:
-                continue
+                    prev = node.qargs
+                    processed_nodes.add(node)
+                    next_node = sequence[sequence_nexts[sequence_index]]
+                    sequence_starts[next_node] = sequence_index
+                    sequence_nexts[sequence_index] += 1
+                    continue
+                new_dag.apply_operation_back(
+                    node.op,
+                    _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                    node.cargs,
+                )
+                new_dag.apply_operation_back(
+                    SwapGate(),
+                    _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                    node.cargs,
+                )
+                # Swap mapping
+                pos_0 = qubit_mapping[node.qargs[0]]
+                pos_1 = qubit_mapping[node.qargs[1]]
+                qubit_mapping[node.qargs[0]] = pos_1
+                qubit_mapping[node.qargs[1]] = pos_0
+                prev = node.qargs
+                next_in_sequence = sequence_nexts[sequence_index]
+                if len(sequence) == next_in_sequence:
+                    prev = None
+                    swap_source = None
+                else:
+                    next_node = sequence[next_in_sequence]
+                    sequence_starts[next_node] = sequence_index
+                    sequence_nexts[sequence_index] += 1
             else:
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(
+                    node.op,
+                    _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                    node.cargs,
+                )
         return new_dag
 
 

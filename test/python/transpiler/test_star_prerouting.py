@@ -15,12 +15,13 @@
 """Test the StarPreRouting pass"""
 
 import unittest
+from test import QiskitTestCase
 
 import ddt
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
-from qiskit.test.base import QiskitTestCase
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -39,7 +40,9 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(9, range(8, 4, -1))
         qc.measure_all()
         result = StarPreRouting()(qc)
+        cr = ClassicalRegister(10, "meas")
         expected = QuantumCircuit(10)
+        expected.add_register(cr)
         expected.h(0)
         expected.h(9)
         expected.cx(0, 1)
@@ -56,7 +59,18 @@ class TestStarPreRouting(QiskitTestCase):
         expected.swap(7, 6)
         expected.cx(6, 5)
         expected.swap(6, 5)
-        expected.measure_all()
+        expected.barrier()
+        expected.measure(4, 0)
+        expected.measure(1, 1)
+        expected.measure(0, 2)
+        expected.measure(2, 3)
+        expected.measure(3, 4)
+        expected.measure(6, 5)
+        expected.measure(7, 6)
+        expected.measure(9, 7)
+        expected.measure(8, 8)
+        expected.measure(5, 9)
+
         self.assertEqual(expected, result)
 
     def test_linear_ghz_no_change(self):
@@ -106,9 +120,12 @@ class TestStarPreRouting(QiskitTestCase):
             expected.cx(i + 1, i)
             expected.swap(i + 1, i)
         expected.barrier()
-        expected.h(qc.qubits[:-1])
-        for i in range(num_qubits - 1):
-            expected.measure(i, i)
+        expected.h(qc.qubits[:-2])
+        expected.h(qc.qubits[-1])
+        expected.measure(0, 0)
+        expected.measure(9, 1)
+        for i in range(2, num_qubits - 1):
+            expected.measure(i - 1, i)
         self.assertEqual(result, expected)
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
@@ -158,9 +175,12 @@ class TestStarPreRouting(QiskitTestCase):
         for i in range(1, num_qubits - 2):
             expected.cx(i + 1, i)
             expected.swap(i + 1, i)
-        expected.h(qc.qubits[:-1])
-        for i in range(num_qubits - 1):
-            expected.measure(i, i)
+        expected.h(qc.qubits[:-2])
+        expected.h(qc.qubits[-1])
+        expected.measure(0, 0)
+        expected.measure(9, 1)
+        for i in range(1, num_qubits - 2):
+            expected.measure(i, i + 1)
         self.assertEqual(result, expected)
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
@@ -187,3 +207,28 @@ class TestStarPreRouting(QiskitTestCase):
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)
+
+    def test_hadamard_ordering(self):
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.h(0)
+        qc.cx(0, 3)
+        qc.h(0)
+        qc.cx(0, 4)
+        result = StarPreRouting()(qc)
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.cx(0, 2)
+        expected.swap(0, 2)
+        expected.h(2)
+        expected.cx(2, 3)
+        expected.swap(2, 3)
+        expected.h(3)
+        expected.cx(3, 4)
+        expected.swap(3, 4)
+        self.assertEqual(expected, result)
