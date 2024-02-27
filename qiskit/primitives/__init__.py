@@ -387,7 +387,7 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
-Primitives V2
+Estimator V2
 -------------
 
 .. autosummary::
@@ -395,6 +395,7 @@ Primitives V2
 
    BaseEstimatorV2
    StatevectorEstimator
+   EstimatorV2Converter
 
 Sampler V2
 ----------
@@ -469,6 +470,7 @@ from .containers import (
     ObservablesArrayLike,
 )
 from .estimator import Estimator
+from .estimatorv2converter import EstimatorV2Converter
 from .primitive_job import BasePrimitiveJob, PrimitiveJob
 from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
