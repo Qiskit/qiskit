@@ -429,16 +429,20 @@ class StabilizerState(QuantumState):
 
         #Iterate through the target or targets to find probabilities
         for item_target in target:
-            outcome: list[str] = (["X"] * len(qubits))
+            outcome: list[str] = None
             outcome_prob: float = 1.0
 
             #Determine if one of the branches was already partially calculated to give a better starting point
             #And reduce the number of items calculated, only when using a target, and cache
             if(target != None and cache != None and len(cache) > 0):
                 key = StabilizerState._retreive_best_cache_starting_point_probability(cache, item_target)
+                #if a key was returned, start at the previously calculated starting point
                 if(key != None):
                     outcome_prob = cache[key]
                     outcome = list(key)
+            if(outcome == None):
+                outcome = (["X"] * len(qubits))
+                outcome_prob = 1.0
             self._get_probablities(qubits, outcome, outcome_prob, probs, item_target, cache)
 
         #Round to the number of decimal places if a decimal is provided
@@ -757,12 +761,14 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[int, float] = None):
+    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float] = None):
         """Recursive helper function for calculating the probabilities"""
 
-        #Build a cache if target values to be calculated to improve performance
-        if(target != None  and cache != None and "".join(outcome) not in cache.keys()):
-            cache["".join(outcome)] = outcome_prob
+        #Build a cache if target values to be calculated to improve performance and cache dict exist
+        if(target != None and cache != None):
+            needed_key: str = "".join(outcome)
+            (needed_key not in cache.keys())
+            cache[needed_key] = outcome_prob
 
         qubit_for_branching = -1
         ret: StabilizerState = self.copy()
