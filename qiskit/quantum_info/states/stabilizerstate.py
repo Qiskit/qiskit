@@ -387,9 +387,9 @@ class StabilizerState(QuantumState):
 
         return probs
     
-    def probabilities_dict_from_bitstrings(self, target: list, qargs: None | list = None, decimals: None | int = None) -> dict:
+    def probabilities_dict_from_bitstrings(self, target: list[str] | str, qargs: None | list = None, decimals: None | int = None) -> dict:
         #python -m unittest test.python.quantum_info.states.test_stabilizerstate.TestStabilizerState.test_probablities_dict_single_qubit
-        """Return the subsystem measurement probability dictionary.
+        '''Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
         computation (diagonal) basis.
@@ -400,74 +400,41 @@ class StabilizerState(QuantumState):
         inserted between integers so that subsystems can be distinguished.
 
         Args:
-            target: 
+            target list[str] | str: a target or list of targets to calculate probabilities for
             qargs (None or list): subsystems to return probabilities for,
-                if None return for all subsystems (Default: None).
+                    if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
-                values. If None no rounding is done (Default: None).
+                    values. If None no rounding is done (Default: None).
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
-        """
+        '''
         if qargs is None:
             qubits = range(self.clifford.num_qubits)
         else:
             qubits = qargs
 
-        outcome = ["X"] * len(qubits)
-        outcome_prob = 1.0
-        probs = {}  # probabilities dictionary
-
-        if (target != None and len(target) > 0):
-            for item_target in target:
-                outcome = ["X"] * len(qubits)
-                self._get_probablities(qubits, outcome, outcome_prob, probs, item_target)
-        else:
-            self._get_probablities(qubits, outcome, outcome_prob, probs)
+        #If no target is provided, put None into a list to indicate to calculate all probabilities
+        #When a str is passed in for a single target, put into a list to calculate the target
+        #When a list of str's are passed in, iterate through all the str to calculate the targets
+        if(target == None):
+            target = [None]
+        elif(type(target) == str):
+            target = [target]
         
+        # probabilities dictionary to return with the calculated values
+        probs = {}
 
+        #Iterate through the targets to find each probability
+        for item_target in target:
+            self._get_probablities(qubits, (["X"] * len(qubits)), 1.0, probs, item_target)
+
+        #Round to the number of decimal places if a decimal is provided
         if decimals is not None:
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
-
         return probs
     
-    @staticmethod
-    def _build_list_of_missing_target_values(probs: dict[str, float], target: list[str]) -> list[str]:
-        '''Build a new list of targets that are missing in the probabilitiy dictionary
-
-        Parameters
-        ----------
-        probs : dict[str, float]
-            the probabilities calculated in the dict
-        target : list[str]
-            the target list of results requested
-
-        Returns
-        -------
-        list[str]
-            the list of entries 
-        '''
-        return [item for item in target if item not in probs.keys()]
-    """
-    @staticmethod
-    def _all_targets_in_prob_dict(probs: dict[str, float], target: list[str]) -> bool:
-        '''Check if all the probs expected to be calculated for the target in the dict
-
-        Parameters
-        ----------
-        probs : dict[str, float]
-            the probabilities calculated in the dict
-        target : list[str]
-            the target list of results requested
-
-        Returns
-        -------
-        bool
-            True if all the target items are in the dict
-        '''
-        return all(item in probs for item in target if item)
-    """
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
@@ -708,7 +675,22 @@ class StabilizerState(QuantumState):
         aux_pauli.phase = accum_phase
         return aux_pauli
     
-    def _target_result_contains(target: str, qubit_for_branching: int, outcome) -> range:
+    def _branches_to_calculate(qubit_for_branching: int, target: str = None) -> range:
+        '''Used to determine if the branch caclulations should be limited when a target is passed
+        If no target value is passed the range will always be range(0,2)
+
+        Parameters
+        ----------
+        target : str
+            target to get results for
+        qubit_for_branching : int
+            the qubit to perform the branching for
+
+        Returns
+        -------
+        range
+            branch or branches to calculate for
+        '''
         if(target == None):
             return range(0,2)
         else:
@@ -760,7 +742,7 @@ class StabilizerState(QuantumState):
             probs[str_outcome] = outcome_prob
             return
 
-        for single_qubit_outcome in StabilizerState._target_result_contains(target, qubit_for_branching, outcome):
+        for single_qubit_outcome in StabilizerState._branches_to_calculate(qubit_for_branching, target):
             new_outcome = outcome.copy()
             if single_qubit_outcome:
                 new_outcome[qubit_for_branching] = "1"
