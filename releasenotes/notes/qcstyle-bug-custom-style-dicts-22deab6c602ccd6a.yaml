@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed bug in `qcstyle` that was causing custom style dictionaries passed by the used to be modified upon calling the `circuit_drawer`.
