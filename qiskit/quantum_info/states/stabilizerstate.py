@@ -727,7 +727,6 @@ class StabilizerState(QuantumState):
                                     outcome_prob = 0
                             else:
                                 outcome[i] = str(1)
-                                #if("X" in outcome):
                                 outcome_prob = single_qubit_outcome
                     else:
                         if (single_qubit_outcome):
