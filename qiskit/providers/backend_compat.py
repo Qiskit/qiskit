@@ -21,7 +21,7 @@ from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
-
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
@@ -92,8 +92,12 @@ def convert_to_target(
 
     # Create instruction property placeholder from backend configuration
     basis_gates = set(getattr(configuration, "basis_gates", []))
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
-    all_instructions = set.union(basis_gates, set(required))
+    all_instructions = set.union(
+        basis_gates, set(required), supported_instructions.intersection(CONTROL_FLOW_OP_NAMES)
+    )
+
     inst_name_map = {}  # type: Dict[str, Instruction]
 
     faulty_ops = set()
