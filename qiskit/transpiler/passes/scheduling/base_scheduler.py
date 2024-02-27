@@ -20,6 +20,8 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
 
+import warnings
+
 
 class BaseSchedulerTransform(TransformationPass):
     """Base scheduler pass.
@@ -270,7 +272,7 @@ class BaseSchedulerTransform(TransformationPass):
             duration = node.op.duration
 
         if isinstance(node.op, Reset):
-            raise RuntimeWarning(
+            warnings.warn(
                 "Qiskit scheduler assumes Reset works similarly to Measure instruction. "
                 "Actual behavior depends on the control system of your quantum backend. "
                 "Your backend may provide a plugin scheduler pass."
@@ -280,7 +282,7 @@ class BaseSchedulerTransform(TransformationPass):
                 isinstance(x, DAGOutNode) for x in dag.quantum_successors(node)
             )
             if is_mid_circuit:
-                raise RuntimeWarning(
+                warnings.warn(
                     "Qiskit scheduler assumes mid-circuit measurement works as a standard instruction. "
                     "Actual backend may apply custom scheduling. "
                     "Your backend may provide a plugin scheduler pass."
