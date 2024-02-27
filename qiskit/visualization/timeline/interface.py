@@ -28,8 +28,8 @@ from qiskit.visualization.timeline import types, core, stylesheet
 from qiskit.utils import deprecate_arg
 
 
-@deprecate_arg("show_idle", new_alias="idle_wires", since="1.1.0")
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0")
+@deprecate_arg("show_idle", new_alias="idle_wires", since="1.1.0", pending=True)
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: circuit.QuantumCircuit,
     style: Optional[Dict[str, Any]] = None,

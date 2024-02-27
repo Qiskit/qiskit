@@ -30,7 +30,7 @@ from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import deprecate_arg
 
 
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0")
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: Union[Waveform, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,

@@ -1635,7 +1635,7 @@ def _common_method(*classes):
     return decorator
 
 
-@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0")
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
@@ -1662,9 +1662,9 @@ def draw(
             preset stylesheets.
         backend (Optional[BaseBackend]): Backend object to play the input pulse program.
             If provided, the plotter may use to make the visualization hardware aware.
-        time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
-        time_unit: The unit of specified time range either `dt` or `ns`.
-            The unit of `ns` is available only when `backend` object is provided.
+        time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+        time_unit: The unit of specified time range either ``dt`` or ``ns``.
+            The unit of `ns` is available only when ``backend`` object is provided.
         disable_channels: A control property to show specific pulse channel.
             Pulse channel instances provided as a list are not shown in the output image.
         show_snapshot: Show snapshot instructions.
