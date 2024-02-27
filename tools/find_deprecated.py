@@ -77,9 +77,13 @@ class DeprecationDecorator(Deprecation):
         """If it is a pending deprecation."""
         if not self._pending:
             self._pending = next(
-                (kwarg.value.value for kwarg in self.decorator_node.keywords if kwarg.arg == "pending"),
+                (
+                    kwarg.value.value
+                    for kwarg in self.decorator_node.keywords
+                    if kwarg.arg == "pending"
+                ),
                 False,
-             )
+            )
         return self._pending
 
     @property
@@ -220,6 +224,7 @@ class DeprecationCollection:
 
 
 def print_main(directory: str, pending: str) -> None:
+    # pylint: disable=invalid-name
     """Prints output"""
     collection = DeprecationCollection(Path(directory))
     collection.group_by("since")
@@ -256,13 +261,14 @@ def print_main(directory: str, pending: str) -> None:
             if pending == "only" and not deprecation.pending:
                 continue
             pending_str = " - PENDING" if deprecation.pending else ""
-            lines.append(f" - {deprecation.location_str} ({deprecation.target}){is_pending}")
+            lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_str}")
         if lines:
             print(f"\n{since_version}: {DETAILS}")
             print("\n".join(lines))
 
 
-if __name__ == "__main__":
+def create_parser() -> argparse.ArgumentParser:
+    """Creates the ArgumentParser object"""
     default_directory = Path(__file__).joinpath("..", "..", "qiskit").resolve()
     parser = argparse.ArgumentParser(
         prog="find_deprecated",
@@ -277,5 +283,9 @@ if __name__ == "__main__":
         default="exclude",
         help="show pending deprecations",
     )
-    args = parser.parse_args()
+    return parser
+
+
+if __name__ == "__main__":
+    args = create_parser().parse_args()
     print_main(args.directory, args.pending)
