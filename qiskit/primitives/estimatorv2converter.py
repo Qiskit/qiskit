@@ -15,7 +15,8 @@ Estimator Converter class
 """
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
+from warnings import warn
 
 import numpy as np
 
@@ -46,7 +47,7 @@ class EstimatorV2Converter(BaseEstimatorV2):
 
     def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
-    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
 
         job = PrimitiveJob(self._run, coerced_pubs)
@@ -60,18 +61,19 @@ class EstimatorV2Converter(BaseEstimatorV2):
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
-        precision = pub.precision
+        if pub.precision is not None:
+            warn("Precision is not defined yet. Ignored now.")
 
         out_shape = np.broadcast_shapes(pub.observables.shape, pub.parameter_values.shape)
-        param_broad = np.broadcast_to(pub.parameter_values, out_shape)
-        param_object = np.zeros(pub.parameter_values.shape, dtype=object)
-        param_array = pub.parameter_values.as_array(circuit.parameters)
-        for idx in np.ndindex(pub.parameter_values.shape):
+
+        param_object = np.zeros(parameter_values.shape, dtype=object)
+        param_array = parameter_values.as_array(circuit.parameters)
+        for idx in np.ndindex(parameter_values.shape):
             param_object[idx] = param_array[idx].tolist()
 
         obs_list = []
         param_list = []
-        for obs, param in np.broadcast(pub.observables, param_object):
+        for obs, param in np.broadcast(observables, param_object):
             spo = SparsePauliOp.from_list(list(obs.items()))
             obs_list.append(spo)
             param_list.append(param)
@@ -80,8 +82,9 @@ class EstimatorV2Converter(BaseEstimatorV2):
         result = self._estimatorv1.run([circuit] * size, obs_list, param_list).result()
         evs = result.values.reshape(out_shape)
         stds_list = [
-            np.sqrt(dat.get("variance", 0) / dat.get("shots", 1)) for dat in result.metadata
+            np.sqrt(dat.get("variance", np.nan) / dat.get("shots", 1)) for dat in result.metadata
         ]
         stds = np.array(stds_list).reshape(out_shape)
         data_bin = self._make_data_bin(pub)(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"precision": precision})
+        metadata = result.metadata
+        return PubResult(data_bin, metadata=metadata)

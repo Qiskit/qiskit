@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import Estimator, EstimatorV2Converter, StatevectorEstimator
+from qiskit.primitives import Estimator, EstimatorV2Converter
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
@@ -133,7 +133,6 @@ class TestEstimatorV2Converter(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target)
-                self.assertEqual(result[0].metadata["precision"], 0)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -267,21 +266,24 @@ class TestEstimatorV2Converter(QiskitTestCase):
     def test_precision_seed(self):
         """Test for precision and seed"""
         precision = 0.1
-        shots = int(1 / precision)  # TODO: define the relation between precision and shots
-        estimator_v1 = Estimator({"seed": 1, "shots": shots})
+        shots = int(1 / precision**2)  # TODO: define the relation between precision and shots
+        estimator_v1 = Estimator(options={"seed": 1, "shots": shots})
         estimator = EstimatorV2Converter(estimator_v1)
         psi1 = self.psi[0]
         hamiltonian1 = self.hamiltonian[0]
         theta1 = self.theta[0]
         job = estimator.run([(psi1, hamiltonian1, [theta1])])
         result = job.result()
-        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881])
+        print(result[0].data.evs[0])
+        np.testing.assert_allclose(result[0].data.evs, [1.5856819871431034])
         # The result of the second run is the same
         job = estimator.run([(psi1, hamiltonian1, [theta1]), (psi1, hamiltonian1, [theta1])])
         result = job.result()
-        np.testing.assert_allclose(result[0].data.evs, [1.901141473854881])
-        np.testing.assert_allclose(result[1].data.evs, [1.901141473854881])
-        # precision=0 impliese the exact expectation value
+        np.testing.assert_allclose(result[0].data.evs, [1.5856819871431034])
+        np.testing.assert_allclose(result[1].data.evs, [1.5856819871431034])
+        # precision=0 is equivalent to shots=None
+        estimator_v1 = Estimator(options={"seed": 1, "shots": None})
+        estimator = EstimatorV2Converter(estimator_v1)
         job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=0)
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956])
