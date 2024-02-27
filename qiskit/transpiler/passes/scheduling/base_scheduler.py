@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Base circuit scheduling pass."""
+import warnings
+
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
@@ -19,8 +21,6 @@ from qiskit.circuit import Delay, Gate, Measure, Reset
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
-
-import warnings
 
 
 class BaseSchedulerTransform(TransformationPass):
