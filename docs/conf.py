@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import datetime
 import doctest
+import os
+import re
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -155,3 +157,49 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
+
+def determine_github_branch() -> str:
+    """Determine the GitHub branch name to use for source code links.
+
+    We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
+    Refer to https://docs.github.com/en/actions/learn-github-actions/variables
+    for how we determine this with GitHub Actions, and
+    https://learn.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml#build-variables-devops-services for Azure
+    Pipelines.
+    """
+    # If CI env vars not set, default to `main`. This is relevant for local builds.
+    if (
+        "GITHUB_REF_NAME" not in os.environ
+        and "BUILD_SOURCE_BRANCH_NAME" not in os.environ
+    ):
+        return "<default>"
+
+    # PR workflows set the branch they're merging into.
+    if base_ref := (
+        os.environ.get("GITHUB_BASE_REF")
+        or os.environ.get("SYSTEM_PULL_REQUEST_TARGET_BRANCH_NAME")
+    ):
+        return base_ref
+
+    ref_name = (
+        os.environ.get("GITHUB_REF_NAME")
+        or os.environ.get("BUILD_SOURCE_BRANCH_NAME")
+    )
+    assert ref_name is not None
+
+    # Check if the ref_name is a tag like `1.0.0` or `1.0.0rc1`. If so, we need
+    # to transform it to a Git branch like `stable/1.0`.
+    version_without_patch_match = re.match(r"(\d+\.\d+)", ref_name)
+    return (
+        f"stable/{version_without_patch_match.group()}"
+        if version_without_patch_match
+        else ref_name
+    )
+
+
+GITHUB_BRANCH = determine_github_branch()
+raise ValueError(f"HERE: {GITHUB_BRANCH}")
