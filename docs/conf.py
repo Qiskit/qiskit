@@ -215,19 +215,19 @@ def linkcode_resolve(domain, info):
         )
         if not is_valid_code_object:
             return None
-
-    full_file_name = inspect.getsourcefile(obj)
+    try:
+        full_file_name = inspect.getsourcefile(obj)
+    except TypeError:
+        return None
     if full_file_name is None:
         return None
-    repo_root = PurePath(__file__).parent.parent
-    file_name = PurePath(full_file_name).relative_to(repo_root)
+    file_name = full_file_name.split("qiskit")[-1]
 
     try:
         source, lineno = inspect.getsourcelines(obj)
-    except OSError:
+    except (OSError, TypeError):
         linespec = ""
     else:
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
-
-    return f"https://github.com/Qiskit/qiskit/tree/{GITHUB_BRANCH}/{file_name}{linespec}"
+    return f"https://github.com/Qiskit/qiskit/tree/{GITHUB_BRANCH}/qiskit{file_name}{linespec}"
