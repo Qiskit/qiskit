@@ -100,7 +100,7 @@ class StyleDict(dict):
             else:
                 self[attr] = other[attr]
 
-        super().update(other)
+        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
 
 
 class DefaultStyle:
