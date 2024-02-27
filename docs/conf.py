@@ -168,7 +168,7 @@ plot_html_show_formats = False
 
 def determine_github_branch() -> str:
     """Determine the GitHub branch name to use for source code links.
-    
+
     We need to decide whether to use `stable/<version>` vs. `main` for dev builds.
     Refer to https://docs.github.com/en/actions/learn-github-actions/variables
     for how we determine this with GitHub Actions.
@@ -206,12 +206,15 @@ def linkcode_resolve(domain, info):
 
     obj = module
     for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
         is_valid_code_object = (
             inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj)
         )
         if not is_valid_code_object:
             return None
-        obj = getattr(obj, part)
 
     full_file_name = inspect.getsourcefile(obj)
     if full_file_name is None:
