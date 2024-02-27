@@ -206,12 +206,12 @@ def linkcode_resolve(domain, info):
 
     obj = module
     for part in info["fullname"].split("."):
-        obj = getattr(obj, part)
         is_valid_code_object = (
             inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj)
         )
         if not is_valid_code_object:
             return None
+        obj = getattr(obj, part)
 
     full_file_name = inspect.getsourcefile(obj)
     if full_file_name is None:
