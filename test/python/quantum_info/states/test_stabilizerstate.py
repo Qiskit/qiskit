@@ -565,6 +565,7 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(1)
         qc.h(2)
         stab = StabilizerState(qc)
+        #print("\n")
 
         test_1_time_no_target: float = 0
         for _ in range(self.samples):
@@ -572,7 +573,9 @@ class TestStabilizerState(QiskitTestCase):
             with self.subTest(msg="P(None), decimals=1"):
                 test_1_time_no_target_start = time.monotonic()
                 value = stab.probabilities_dict(decimals=1)
-                test_1_time_no_target += time.monotonic() - test_1_time_no_target_start
+                temp = (time.monotonic() - test_1_time_no_target_start)
+                test_1_time_no_target += temp
+                #print(str(temp))
                 target = {
                     "000": 0.1,
                     "001": 0.1,
@@ -587,6 +590,7 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(decimals=1)
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
+        #print("\n\n--------")
 
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
@@ -625,24 +629,29 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
         #With Targets
+        #print("\n")
         test_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
-                target_input: list[str] = ["000", "110"]
+                target_input: list[str] = ["000", "110", "010", "011", "100", "001"]
                 test_1_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                test_1_time_with_targets += time.monotonic() - test_1_time_with_target_start
+                #test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
+                temp = (time.monotonic() - test_1_time_with_target_start)
+                test_1_time_with_targets += temp
+                #print(str(temp))
                 #Deliberately commented out values that should not be found
                 target = {
                     "000": 0.1,
-                    #"001": 0.1,
-                    #"010": 0.1,
-                    #"011": 0.1,
-                    #"100": 0.1,
+                    "001": 0.1,
+                    "010": 0.1,
+                    "011": 0.1,
+                    "100": 0.1,
                     #"101": 0.1,
                     "110": 0.1,
                     #"111": 0.1,
                 }
+                self.assertEqual(value, target)
 
                 target_input: list[str] = ["001", "010", "111", "000", "101"]
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)

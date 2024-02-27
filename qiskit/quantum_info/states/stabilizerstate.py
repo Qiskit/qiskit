@@ -15,7 +15,6 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
-from collections import Counter
 
 from collections.abc import Collection
 
@@ -425,15 +424,49 @@ class StabilizerState(QuantumState):
         # probabilities dictionary to return with the calculated values
         probs = {}
 
+        #Only use a cache if using a target for more then 1 value to retrieve, otherwise not needed
+        cache: dict[str, float] = {} if (target != None and len(target) > 1) else None
+
         #Iterate through the target or targets to find probabilities
         for item_target in target:
-            self._get_probablities(qubits, (["X"] * len(qubits)), 1.0, probs, item_target)
+            outcome: list[str] = (["X"] * len(qubits))
+            outcome_prob: float = 1.0
+
+            #Determine if one of the branches was already partially calculated to give a better starting point
+            #And reduce the number of items calculated, only when using a target, and cache
+            if(target != None and cache != None and len(cache) > 0):
+                key = StabilizerState._retreive_best_cache_starting_point_probability(cache, item_target)
+                if(key != None):
+                    outcome_prob = cache[key]
+                    outcome = list(key)
+            self._get_probablities(qubits, outcome, outcome_prob, probs, item_target, cache)
 
         #Round to the number of decimal places if a decimal is provided
         if decimals is not None:
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
         return probs
+    
+    @staticmethod
+    def _retreive_best_cache_starting_point_probability(cache: dict[str, float], target: str) -> str:
+        '''Helper to get the best starting point for calculating the probability 
+        if a partital branch was already calculated
+
+        Args
+            cache dict[str, float]: cache value of previously calculated branch
+            target str: target item wanting to calculate
+
+        Returns:
+        str: the key if it is found in the cache, or None if not found
+        '''
+        key: str = None
+        test_str: str = ""
+        for level in range(1, len((target))):
+            test_str += "X"
+            if(((test_str)+ target[level:]) in cache.keys()):
+                key = ((test_str)+ target[level:])
+                break 
+        return key
     
     def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
@@ -697,12 +730,39 @@ class StabilizerState(QuantumState):
             loc: int = int(target[qubit_for_branching])
             return range(loc, loc+1)
 
+    @staticmethod
+    def retrieve_deterministic_probability(i: int, qubit, outcome, target: str, ret: StabilizerState, outcome_prob: float) -> float:
+        single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
+        
+        #Extra checks are needed to determine the value if a target is provided
+        if(target != None):
+            #Target qubit outcome for probability
+            if((int(target[i:i+1]) == single_qubit_outcome) and single_qubit_outcome == 0):
+                outcome[i] = str(single_qubit_outcome)
+            elif((int(target[i:i+1]) != single_qubit_outcome) and single_qubit_outcome == 1):
+                    outcome[i] = str(0)
+                    if("X" not in outcome):
+                        outcome_prob = 0
+            else:
+                outcome[i] = str(1)
+                outcome_prob = single_qubit_outcome
+        else:
+            #Non-target qubit outcome
+            if (single_qubit_outcome):
+                outcome[i] = "1"
+            else:
+                outcome[i] = "0"
+        return outcome_prob
 
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None):
+    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[int, float] = None):
         """Recursive helper function for calculating the probabilities"""
+
+        #Build a cache if target values to be calculated to improve performance
+        if(target != None  and cache != None and "".join(outcome) not in cache.keys()):
+            cache["".join(outcome)] = outcome_prob
 
         qubit_for_branching = -1
         ret: StabilizerState = self.copy()
@@ -710,29 +770,12 @@ class StabilizerState(QuantumState):
         #Find outcomes for each qubit
         for i in range(len(qubits)):
             #Get the qubit for the current calculation
-            qubit = qubits[len(qubits) - i - 1]
+            qubit_position: int = (len(qubits) - i - 1)
+            qubit = qubits[qubit_position]
             if outcome[i] == "X":
                 #Determine if it is deterministic
                 if (StabilizerState._is_qubit_deterministic(ret, qubit)):
-                    single_qubit_outcome = ret._measure_and_update(qubit, 0)
-                    #To not affect performance of non-targetted runs iterating through the target list, use of if else statement
-                    if(target != None):
-                        if((int(target[i:i+1]) == single_qubit_outcome) and single_qubit_outcome == 0):
-                            outcome[i] = str(single_qubit_outcome)
-                        else:
-                            if((int(target[i:i+1]) != single_qubit_outcome) and single_qubit_outcome == 1):
-                                outcome[i] = str(0)
-                                #Set the outcome probabilitiy to 0
-                                if("X" not in outcome):
-                                    outcome_prob = 0
-                            else:
-                                outcome[i] = str(1)
-                                outcome_prob = single_qubit_outcome
-                    else:
-                        if (single_qubit_outcome):
-                            outcome[i] = "1"
-                        else:
-                            outcome[i] = "0"
+                    outcome_prob = StabilizerState.retrieve_deterministic_probability(i, qubit, outcome, target, ret, outcome_prob)
                 else:
                     qubit_for_branching = i
 
@@ -752,7 +795,7 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, (0.5 * outcome_prob), probs, target)
+            stab_cpy._get_probablities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
 
     @staticmethod
     def _is_qubit_deterministic(ret: StabilizerState, qubit):
