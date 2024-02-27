@@ -387,7 +387,7 @@ class StabilizerState(QuantumState):
 
         return probs
     
-    def probabilities_dict_from_bitstrings(self, target: list[str] | str, qargs: None | list = None, decimals: None | int = None) -> dict:
+    def probabilities_dict_from_bitstrings(self, qargs: None | list = None, decimals: None | int = None, target: list[str] | str | None = None) -> dict:
         #python -m unittest test.python.quantum_info.states.test_stabilizerstate.TestStabilizerState.test_probablities_dict_single_qubit
         '''Return the subsystem measurement probability dictionary.
 
@@ -425,7 +425,7 @@ class StabilizerState(QuantumState):
         # probabilities dictionary to return with the calculated values
         probs = {}
 
-        #Iterate through the targets to find each probability
+        #Iterate through the target or targets to find probabilities
         for item_target in target:
             self._get_probablities(qubits, (["X"] * len(qubits)), 1.0, probs, item_target)
 
@@ -455,7 +455,7 @@ class StabilizerState(QuantumState):
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
-        return self.probabilities_dict_from_bitstrings(None, qargs, decimals)
+        return self.probabilities_dict_from_bitstrings(qargs, decimals, None)
 
     def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
@@ -727,8 +727,8 @@ class StabilizerState(QuantumState):
                                     outcome_prob = 0
                             else:
                                 outcome[i] = str(1)
-                                if("X" in outcome):
-                                    outcome_prob = 0
+                                #if("X" in outcome):
+                                outcome_prob = single_qubit_outcome
                     else:
                         if (single_qubit_outcome):
                             outcome[i] = "1"

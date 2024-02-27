@@ -303,45 +303,6 @@ class TestStabilizerState(QiskitTestCase):
                     value = res.measure()[0]
                     self.assertIn(value, ["000", "001"])
 
-    def test_probablities_dict_single_qubit(self):
-        """Test probabilities and probabilities_dict methods of a single qubit"""
-
-        num_qubits = 1
-        qc = QuantumCircuit(num_qubits)
-
-        for _ in range(self.samples):
-            with self.subTest(msg="P(id(0))"):
-                stab = StabilizerState(qc)
-                value = stab.probabilities_dict()
-                target = {"0": 1}
-                self.assertEqual(value, target)
-                probs = stab.probabilities()
-                target = np.array([1, 0])
-                self.assertTrue(np.allclose(probs, target))
-
-        qc.x(0)
-        for _ in range(self.samples):
-            with self.subTest(msg="P(x(0))"):
-                stab = StabilizerState(qc)
-                value = stab.probabilities_dict()
-                target = {"1": 1}
-                self.assertEqual(value, target)
-                probs = stab.probabilities()
-                target = np.array([0, 1])
-                self.assertTrue(np.allclose(probs, target))
-
-        qc = QuantumCircuit(num_qubits)
-        qc.h(0)
-        for _ in range(self.samples):
-            with self.subTest(msg="P(h(0))"):
-                stab = StabilizerState(qc)
-                value = stab.probabilities_dict()
-                target = {"0": 0.5, "1": 0.5}
-                self.assertEqual(value, target)
-                probs = stab.probabilities()
-                target = np.array([0.5, 0.5])
-                self.assertTrue(np.allclose(probs, target))
-
     def test_probablities_dict_two_qubits(self):
         """Test probabilities and probabilities_dict methods of two qubits"""
 
@@ -393,6 +354,205 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
                 probs = stab.probabilities([1])
                 target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        #With targets
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None)"):
+                input_target: list[str] = ['00']
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"00": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['01']
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"01": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['10']
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"10": 0}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['11']
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"11": 0}
+                self.assertEqual(value, target)
+
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5, 0, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P([0, 1])"):
+                input_target: list[str] = ['00']
+                value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
+                target = {"00": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['01']
+                value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
+                target = {"01": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['11']
+                value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
+                target = {"11": 0}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['10']
+                value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
+                target = {"10": 0}
+                self.assertEqual(value, target)
+
+                probs = stab.probabilities([0, 1])
+                target = np.array([0.5, 0.5, 0, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P([1, 0])"):
+                input_target: list[str] = ['00']
+                value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
+                target = {"00": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['10']
+                value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
+                target = {"10": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['01']
+                value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
+                target = {"01": 0}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['11']
+                value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
+                target = {"11": 0}
+                self.assertEqual(value, target)
+
+                probs = stab.probabilities([1, 0])
+                target = np.array([0.5, 0, 0.5, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P[0]"):
+                input_target: list[str] = ['0']
+                value = stab.probabilities_dict_from_bitstrings([0], target=input_target)
+                target = {"0": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['1']
+                value = stab.probabilities_dict_from_bitstrings([0], target=input_target)
+                target = {"1": 0.5}
+                self.assertEqual(value, target)
+
+                probs = stab.probabilities([0])
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P([1])"):
+                input_target: list[str] = ['0']
+                value = stab.probabilities_dict_from_bitstrings([1], target=input_target)
+                target = {"0": 1.0}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ['1']
+                value = stab.probabilities_dict_from_bitstrings([1], target=input_target)
+                target = {"1": 0}
+                self.assertEqual(value, target)
+
+                probs = stab.probabilities([1])
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+    def test_probablities_dict_single_qubit(self):
+        """Test probabilities and probabilities_dict methods of a single qubit"""
+
+        num_qubits = 1
+        qc = QuantumCircuit(num_qubits)
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P(id(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"0": 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc.x(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(x(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"1": 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0, 1])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(h(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"0": 0.5, "1": 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+
+        # Same Tests as above but with Targets
+        qc = QuantumCircuit(num_qubits)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(id(0))"):
+                stab = StabilizerState(qc)
+                input_target: str = '0'
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"0": 1}
+                self.assertEqual(value, target)
+                
+                #Check probability of target with 0 probability only 
+                input_target: str = '1'
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"1": 0}
+                self.assertEqual(value, target)
+                
+                probs = stab.probabilities()
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc.x(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(x(0))"):
+                stab = StabilizerState(qc)
+                input_target: str = '1'
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"1": 1}
+                self.assertEqual(value, target)
+                input_target: str = '0'
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"0": 0}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0, 1])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(h(0))"):
+                stab = StabilizerState(qc)
+                input_target: list = ['0', '1'] 
+                value = stab.probabilities_dict_from_bitstrings(target=input_target)
+                target = {"0": 0.5, "1": 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
 
     def test_probablities_dict_qubits(self):
