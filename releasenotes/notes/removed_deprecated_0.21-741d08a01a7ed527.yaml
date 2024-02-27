@@ -1,65 +1,21 @@
 ---
-prelude: >
-    Replace this text with content to appear at the top of the section for this
-    release. All of the prelude content is merged together and then rendered
-    separately from the items listed in other parts of the file, so the text
-    needs to be worded so that both the prelude and the other items make sense
-    when read independently. This may mean repeating some details. Not every
-    release note requires a prelude. Usually only notes describing major
-    features or adding release theme details should have a prelude.
-features:
-  - |
-    List new features here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-issues:
-  - |
-    List known issues here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-upgrade:
-  - |
-    List upgrade notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
 deprecations:
   - |
-    List deprecations notes here, or remove this section.  All of the list
-    items in this section are combined when the release notes are rendered, so
-    the text needs to be worded so that it does not depend on any information
-    only available in another section, such as the prelude. This may mean
-    repeating some details.
-critical:
+    The transpilation pass ``qiskit.transpiler.passes.ALAPSchedule`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022. The pass is replaced by 
+    :class:`~.transpiler.passes.ALAPScheduleAnalysis`, which is an
+    analysis pass.
   - |
-    Add critical notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-security:
+    The transpilation pass ``qiskit.transpiler.passes.ASAPSchedule`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022. It has been superseded by
+    :class:`~.ASAPScheduleAnalysis` and the new scheduling workflow.
   - |
-    Add security notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-fixes:
+    The transpilation pass ``qiskit.transpiler.passes.DynamicalDecoupling`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.transpiler.passes.PadDynamicalDecoupling`, which performs the same
+    function but requires scheduling and alignment analysis passes to run prior to it.
   - |
-    Add normal bug fixes here, or remove this section.  All of the list items
-    in this section are combined when the release notes are rendered, so the
-    text needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
-other:
-  - |
-    Add other notes here, or remove this section.  All of the list items in
-    this section are combined when the release notes are rendered, so the text
-    needs to be worded so that it does not depend on any information only
-    available in another section, such as the prelude. This may mean repeating
-    some details.
+    The transpilation pass ``qiskit.transpiler.passes.AlignMeasures`` is now deprecated. It was pending for deprecation 
+    since Qiskit 0.37 (with Terra 0.21), released on June 2022.
+    Instead, use :class:`~.ConstrainedReschedule`, which performs the same function 
+    and also supports aligning to additional timing constraints.
