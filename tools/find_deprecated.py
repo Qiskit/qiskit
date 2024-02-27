@@ -76,10 +76,10 @@ class DeprecationDecorator(Deprecation):
     def pending(self) -> bool | None:
         """If it is a pending deprecation."""
         if not self._pending:
-            self._pending = False
-            for kwarg in self.decorator_node.keywords:
-                if kwarg.arg == "pending":
-                    self._pending = kwarg.value.value
+            self._pending = next(
+                (kwarg.value.value for kwarg in self.decorator_node.keywords if kwarg.arg == "pending"),
+                False,
+             )
         return self._pending
 
     @property
@@ -219,7 +219,7 @@ class DeprecationCollection:
         return decorator_visitor.deprecations
 
 
-def print_main(directory, pending):
+def print_main(directory: str, pending: str) -> None:
     """Prints output"""
     collection = DeprecationCollection(Path(directory))
     collection.group_by("since")
@@ -251,13 +251,12 @@ def print_main(directory, pending):
                 DETAILS = "Future release"
         lines = []
         for deprecation in deprecations:
-            is_pending = " - PENDING" if deprecation.pending else ""
-            if pending == "include":
-                lines.append(f" - {deprecation.location_str} ({deprecation.target}){is_pending}")
-            if pending == "only" and deprecation.pending:
-                lines.append(f" - {deprecation.location_str} ({deprecation.target}){is_pending}")
-            if pending == "exclude" and not deprecation.pending:
-                lines.append(f" - {deprecation.location_str} ({deprecation.target})")
+            if pending == "exclude" and deprecation.pending:
+                continue
+            if pending == "only" and not deprecation.pending:
+                continue
+            pending_str = " - PENDING" if deprecation.pending else ""
+            lines.append(f" - {deprecation.location_str} ({deprecation.target}){is_pending}")
         if lines:
             print(f"\n{since_version}: {DETAILS}")
             print("\n".join(lines))
