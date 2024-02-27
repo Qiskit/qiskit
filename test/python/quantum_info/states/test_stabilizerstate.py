@@ -13,6 +13,7 @@
 
 """Tests for Stabilizerstate quantum state class."""
 
+import time
 import unittest
 import logging
 from ddt import ddt, data, unpack
@@ -565,9 +566,13 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(2)
         stab = StabilizerState(qc)
 
+        test_1_time_no_target: float = 0
         for _ in range(self.samples):
+
             with self.subTest(msg="P(None), decimals=1"):
+                test_1_time_no_target_start = time.monotonic()
                 value = stab.probabilities_dict(decimals=1)
+                test_1_time_no_target += time.monotonic() - test_1_time_no_target_start
                 target = {
                     "000": 0.1,
                     "001": 0.1,
@@ -620,10 +625,13 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
         #With Targets
+        test_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
                 target_input: list[str] = ["000", "110"]
+                test_1_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
+                test_1_time_with_targets += time.monotonic() - test_1_time_with_target_start
                 #Deliberately commented out values that should not be found
                 target = {
                     "000": 0.1,
@@ -653,6 +661,9 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(decimals=1)
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
+
+        #Verify performance increase by using targets, not currently measuring the performance boost, but making sure it always runs faster
+        self.assertTrue(test_1_time_with_targets < test_1_time_no_target)
 
     def test_probablities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
