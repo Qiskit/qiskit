@@ -260,8 +260,8 @@ def print_main(directory: str, pending: str) -> None:
                 continue
             if pending == "only" and not deprecation.pending:
                 continue
-            pending_str = " - PENDING" if deprecation.pending else ""
-            lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_str}")
+            pending_arg = " - PENDING" if deprecation.pending else ""
+            lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_arg}")
         if lines:
             print(f"\n{since_version}: {DETAILS}")
             print("\n".join(lines))
