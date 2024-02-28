@@ -415,7 +415,7 @@ class StabilizerState(QuantumState):
         outcome_prob = 1.0
         probs = {}  # probabilities dictionary
 
-        self._get_probablities(qubits, outcome, outcome_prob, probs)
+        self._get_probabilities(qubits, outcome, outcome_prob, probs)
 
         if decimals is not None:
             for key, value in probs.items():
@@ -644,7 +644,7 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
+    def _get_probabilities(self, qubits, outcome, outcome_prob, probs):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
@@ -679,4 +679,4 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
+            stab_cpy._get_probabilities(qubits, new_outcome, 0.5 * outcome_prob, probs)
