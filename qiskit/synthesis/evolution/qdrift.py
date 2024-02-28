@@ -92,10 +92,10 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
 
-       evolution_circuit = PauliEvolutionGate(
-           sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
-           time=evolution_time,
-           synthesis=lie_trotter,
-       ).definition
+        evolution_circuit = PauliEvolutionGate(
+            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
+            time=evolution_time,
+            synthesis=lie_trotter,
+        ).definition
 
         return evolution_circuit
