@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    Fixed bug in `qcstyle` that was causing custom style dictionaries passed by the used to be modified upon calling the `circuit_drawer`.
+    Fixed bug in :meth:`.QuantumCircuit.draw` that was causing custom style dictionaries 
+    for the Matplotlib drawer to be modified upon execution.
