@@ -324,7 +324,7 @@ class TestPassesInspection(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.cx(qr[2], qr[4])
 
-        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP)
+        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP, seed=42)
 
         _ = transpile(qc, backend, optimization_level=level, callback=self.callback)
 
@@ -365,7 +365,7 @@ class TestPassesInspection(QiskitTestCase):
 
         transpiled = transpile(
             qc, initial_layout=[0, 1], optimization_level=level, callback=self.callback
-        )
+     <   )
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)
@@ -413,7 +413,7 @@ class TestPassesInspection(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
-        target = TargetBackend(num_qubits=7)
+        target = TargetBackend(num_qubits=7, seed=42)
         qr = QuantumRegister(2, "q")
         qc = QuantumCircuit(qr)
         qc.h(qr[0])
@@ -425,7 +425,7 @@ class TestPassesInspection(QiskitTestCase):
 
     def test_level1_runs_vf2post_layout_when_routing_required(self):
         """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
-        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -448,7 +448,7 @@ class TestPassesInspection(QiskitTestCase):
 
     def test_level1_runs_vf2post_layout_when_routing_method_set_and_required(self):
         """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
-        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cy(0, 1)
@@ -473,7 +473,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_runs_vf2post_layout_when_layout_method_set(self):
         """Test that if we don't run VF2PostLayout with custom layout_method."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         qc = QuantumCircuit(5)
         qc.h(0)
@@ -495,7 +498,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_run_vf2post_layout_when_trivial_is_perfect(self):
         """Test that if we find a trivial perfect layout we don't run vf2post."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         qc = QuantumCircuit(2)
         qc.h(0)
@@ -512,7 +518,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_run_vf2post_layout_when_vf2layout_is_perfect(self):
         """Test that if we find a vf2 perfect layout we don't run vf2post."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         qc = QuantumCircuit(4)
         qc.h(0)
@@ -531,7 +540,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_runs_vf2post_layout_when_routing_required_control_flow(self):
         """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         _target = target.target
         target._target.add_instruction(ForLoopOp, name="for_loop")
@@ -558,7 +570,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_runs_vf2post_layout_when_layout_method_set_control_flow(self):
         """Test that if we don't run VF2PostLayout with custom layout_method."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         _target = target.target
         target._target.add_instruction(ForLoopOp, name="for_loop")
@@ -584,7 +599,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_run_vf2post_layout_when_trivial_is_perfect_control_flow(self):
         """Test that if we find a trivial perfect layout we don't run vf2post."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         _target = target.target
         target._target.add_instruction(ForLoopOp, name="for_loop")
@@ -604,7 +622,10 @@ class TestPassesInspection(QiskitTestCase):
     def test_level1_not_run_vf2post_layout_when_vf2layout_is_perfect_control_flow(self):
         """Test that if we find a vf2 perfect layout we don't run vf2post."""
         target = GenericBackendV2(
-            num_qubits=7, basis_gates=["cx", "id", "rz", "sx", "x"], coupling_map=LAGOS_CMAP
+            num_qubits=7,
+            basis_gates=["cx", "id", "rz", "sx", "x"],
+            coupling_map=LAGOS_CMAP,
+            seed=42,
         )
         _target = target.target
         target._target.add_instruction(ForLoopOp, name="for_loop")
@@ -630,7 +651,7 @@ class TestInitialLayouts(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_layout_1711(self, level):
-        """Test that a user-given initial layout is respected,
+        """Test that a user-given initial layout is respected
         in the qobj.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/1711
@@ -661,9 +682,7 @@ class TestInitialLayouts(QiskitTestCase):
             14: ancilla[12],
             15: qr[2],
         }
-
-        backend = Fake20QV1()
-        backend.configuration().coupling_map = RUESCHLIKON_CMAP
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42)
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
         qobj = assemble(qc_b)
 
@@ -672,7 +691,7 @@ class TestInitialLayouts(QiskitTestCase):
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
             if operation.name == "cx":
-                self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                self.assertIn(tuple(operation.qubits), backend.coupling_map)
                 self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
     @data(0, 1, 2, 3)
@@ -711,10 +730,8 @@ class TestInitialLayouts(QiskitTestCase):
             12: ancilla[7],
             13: ancilla[8],
         }
-        backend = Fake20QV1()
-        backend.configuration().coupling_map = MELBOURNE_CMAP
+        backend = GenericBackendV2(num_qubits=14, coupling_map=MELBOURNE_CMAP, seed=42)
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
-
         self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
 
         output_qr = qc_b.qregs[0]
@@ -766,7 +783,6 @@ class TestInitialLayouts(QiskitTestCase):
         }
 
         backend = Fake20QV1()
-
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
         self.assertEqual(qc_b._layout.initial_layout._p2v, final_layout)
@@ -825,21 +841,21 @@ class TestFinalLayouts(QiskitTestCase):
             2: Qubit(QuantumRegister(15, "ancilla"), 2),
             3: Qubit(QuantumRegister(15, "ancilla"), 3),
             4: Qubit(QuantumRegister(15, "ancilla"), 4),
-            5: Qubit(QuantumRegister(15, "ancilla"), 5),
-            6: Qubit(QuantumRegister(15, "ancilla"), 6),
-            7: Qubit(QuantumRegister(15, "ancilla"), 7),
-            8: Qubit(QuantumRegister(3, "qr1"), 1),
-            9: Qubit(QuantumRegister(15, "ancilla"), 8),
-            10: Qubit(QuantumRegister(15, "ancilla"), 9),
-            11: Qubit(QuantumRegister(15, "ancilla"), 10),
-            12: Qubit(QuantumRegister(3, "qr1"), 0),
-            13: Qubit(QuantumRegister(3, "qr1"), 2),
-            14: Qubit(QuantumRegister(2, "qr2"), 1),
-            15: Qubit(QuantumRegister(15, "ancilla"), 11),
-            16: Qubit(QuantumRegister(15, "ancilla"), 12),
-            17: Qubit(QuantumRegister(15, "ancilla"), 13),
-            18: Qubit(QuantumRegister(15, "ancilla"), 14),
-            19: Qubit(QuantumRegister(2, "qr2"), 0),
+            5: Qubit(QuantumRegister(3, "qr1"), 2),
+            6: Qubit(QuantumRegister(2, "qr2"), 0),
+            7: Qubit(QuantumRegister(2, "qr2"), 1),
+            8: Qubit(QuantumRegister(15, "ancilla"), 5),
+            9: Qubit(QuantumRegister(15, "ancilla"), 6),
+            10: Qubit(QuantumRegister(3, "qr1"), 1),
+            11: Qubit(QuantumRegister(3, "qr1"), 0),
+            12: Qubit(QuantumRegister(15, "ancilla"), 7),
+            13: Qubit(QuantumRegister(15, "ancilla"), 8),
+            14: Qubit(QuantumRegister(15, "ancilla"), 9),
+            15: Qubit(QuantumRegister(15, "ancilla"), 10),
+            16: Qubit(QuantumRegister(15, "ancilla"), 11),
+            17: Qubit(QuantumRegister(15, "ancilla"), 12),
+            18: Qubit(QuantumRegister(15, "ancilla"), 13),
+            19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
         # Trivial layout
@@ -856,8 +872,8 @@ class TestFinalLayouts(QiskitTestCase):
             expected_layout_level2,
             expected_layout_level3,
         ]
-        backend = Fake20QV1()
-        backend.configuration().coupling_map = TOKYO_CMAP
+
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
@@ -899,78 +915,32 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[2],
-            6: qr[1],
-            7: ancilla[6],
-            8: ancilla[7],
-            9: ancilla[8],
-            10: qr[3],
-            11: qr[0],
-            12: ancilla[9],
-            13: ancilla[10],
-            14: ancilla[11],
-            15: ancilla[5],
-            16: qr[4],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        sabre_layout_lvl_2 = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[2],
-            6: qr[1],
-            7: ancilla[6],
-            8: ancilla[7],
-            9: ancilla[8],
-            10: qr[3],
-            11: qr[0],
-            12: ancilla[9],
-            13: ancilla[10],
-            14: ancilla[11],
-            15: ancilla[5],
-            16: qr[4],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
-        }
-
-        sabre_layout_lvl_3 = {
-            0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
-            5: qr[2],
-            6: qr[1],
-            7: ancilla[6],
-            8: ancilla[7],
-            9: ancilla[8],
-            10: qr[3],
-            11: qr[0],
-            12: ancilla[9],
-            13: ancilla[10],
-            14: ancilla[11],
-            15: ancilla[5],
-            16: qr[4],
-            17: ancilla[12],
-            18: ancilla[13],
-            19: ancilla[14],
+            0: Qubit(QuantumRegister(15, "ancilla"), 0),
+            1: Qubit(QuantumRegister(15, "ancilla"), 1),
+            2: Qubit(QuantumRegister(15, "ancilla"), 2),
+            3: Qubit(QuantumRegister(15, "ancilla"), 3),
+            4: Qubit(QuantumRegister(15, "ancilla"), 4),
+            5: Qubit(QuantumRegister(5, "qr"), 1),
+            6: Qubit(QuantumRegister(5, "qr"), 0),
+            7: Qubit(QuantumRegister(5, "qr"), 4),
+            8: Qubit(QuantumRegister(15, "ancilla"), 6),
+            9: Qubit(QuantumRegister(15, "ancilla"), 7),
+            10: Qubit(QuantumRegister(5, "qr"), 2),
+            11: Qubit(QuantumRegister(5, "qr"), 3),
+            12: Qubit(QuantumRegister(15, "ancilla"), 5),
+            13: Qubit(QuantumRegister(15, "ancilla"), 8),
+            14: Qubit(QuantumRegister(15, "ancilla"), 9),
+            15: Qubit(QuantumRegister(15, "ancilla"), 10),
+            16: Qubit(QuantumRegister(15, "ancilla"), 11),
+            17: Qubit(QuantumRegister(15, "ancilla"), 12),
+            18: Qubit(QuantumRegister(15, "ancilla"), 13),
+            19: Qubit(QuantumRegister(15, "ancilla"), 14),
         }
 
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout_lvl_2
-        expected_layout_level3 = sabre_layout_lvl_3
+        expected_layout_level2 = sabre_layout
+        expected_layout_level3 = sabre_layout
 
         expected_layouts = [
             expected_layout_level0,
@@ -978,9 +948,7 @@ class TestFinalLayouts(QiskitTestCase):
             expected_layout_level2,
             expected_layout_level3,
         ]
-        backend = Fake20QV1()
-        backend.configuration().coupling_map = TOKYO_CMAP
-
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
         result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
         self.assertEqual(result._layout.initial_layout._p2v, expected_layouts[level])
 
@@ -991,12 +959,10 @@ class TestFinalLayouts(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/5694 for more
         details
         """
-        backend = Fake20QV1()
-        backend.configuration().coupling_map = TOKYO_CMAP
-        config = backend.configuration()
+        backend = GenericBackendV2(num_qubits=20, coupling_map=TOKYO_CMAP, seed=42)
 
-        rows = [x[0] for x in config.coupling_map]
-        cols = [x[1] for x in config.coupling_map]
+        rows = [x[0] for x in backend.coupling_map]
+        cols = [x[1] for x in backend.coupling_map]
 
         adjacency_matrix = np.zeros((20, 20))
         adjacency_matrix[rows, cols] = 1
@@ -1255,7 +1221,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_no_backend(self, optimization_level):
         """Test a passmanager is constructed with no backend and optimization level."""
-        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(
             optimization_level,
             coupling_map=target.coupling_map,
@@ -1270,7 +1236,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_with_no_backend_only_target(self, optimization_level):
         """Test a passmanager is constructed with a manual target and optimization level."""
-        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, target=target.target)
         self.assertIsInstance(pm, PassManager)
 
@@ -1299,7 +1265,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
-        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
@@ -1331,7 +1297,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
-        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
@@ -1363,7 +1329,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
-        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
@@ -1395,7 +1361,7 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
                 """Custom post translation stage."""
                 return "custom_stage_for_test"
 
-        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP)
+        target = TargetBackend(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
         pm = generate_preset_pass_manager(optimization_level, backend=target)
         self.assertIsInstance(pm, PassManager)
 
