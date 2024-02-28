@@ -34,7 +34,6 @@ use crate::utils;
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
 const PI32: f64 = 3.0 * PI2;
-// FIXME: zero and one exist but I cant find the right incantation
 const C0: c64 = c64 { re: 0.0, im: 0.0 };
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 const C1_NEG: c64 = c64 { re: -1.0, im: 0.0 };
