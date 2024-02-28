@@ -12,4 +12,4 @@
 
 """Pass-based Qiskit pulse program compiler."""
 
-from .passmanager import PulsePassManager
+from .passmanager import BlockTranspiler, BlockToIrCompiler

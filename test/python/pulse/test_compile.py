@@ -12,7 +12,7 @@
 
 """A test cases for pulse compilation."""
 
-from qiskit.pulse.compiler import PulsePassManager
+from qiskit.pulse.compiler import BlockTranspiler
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from . import _dummy_programs as schedule_lib
@@ -21,11 +21,20 @@ from . import _dummy_programs as schedule_lib
 class TestCompiler(QiskitTestCase):
     """Test case for pulse compiler."""
 
-    def test_roundtrip(self):
+    def test_roundtrip_simple(self):
         """Test just returns the input program."""
         # Just convert an input to PulseIR and convert it back to ScheduleBlock.
-        pm = PulsePassManager()
+        pm = BlockTranspiler()
 
         in_prog = schedule_lib.play_gaussian()
-        out_prog = pm.run(schedules=in_prog, output="schedule_block")
+        out_prog = pm.run(pulse_programs=in_prog)
+        self.assertEqual(in_prog, out_prog)
+
+    def test_roundtrip_nested(self):
+        """Test just returns the input program."""
+        # Just convert an input to PulseIR and convert it back to ScheduleBlock.
+        pm = BlockTranspiler()
+
+        in_prog = schedule_lib.play_and_inner_block_sequential()
+        out_prog = pm.run(pulse_programs=in_prog)
         self.assertEqual(in_prog, out_prog)

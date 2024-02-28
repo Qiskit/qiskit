@@ -32,3 +32,34 @@ def play_gaussian() -> ScheduleBlock:
             channel=channels.DriveChannel(0),
         )
     return out
+
+
+def play_and_inner_block_sequential() -> ScheduleBlock:
+    """Create sequential schedule with nested program."""
+
+    with builder.build() as subroutine:
+        builder.shift_phase(1.0, channel=channels.DriveChannel(0))
+        builder.play(
+            pulse=symbolic_pulses.Gaussian(
+                duration=100,
+                amp=0.1,
+                sigma=25,
+                angle=0.0,
+            ),
+            channel=channels.DriveChannel(0),
+        )
+
+    with builder.build() as out:
+        with builder.align_sequential():
+            builder.append_schedule(subroutine)
+            builder.play(
+                pulse=symbolic_pulses.Gaussian(
+                    duration=40,
+                    amp=0.1,
+                    sigma=10,
+                    angle=0.0,
+                ),
+                channel=channels.DriveChannel(1),
+            )
+
+    return out

@@ -10,63 +10,73 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Pass manager for pulse schedules."""
+"""Pass manager for pulse programs."""
 
 from __future__ import annotations
 
+from abc import ABC
 from collections.abc import Callable
 from typing import Any
 
 from qiskit.passmanager import BasePassManager
-from qiskit.pulse.ir import IrBlock
-from qiskit.pulse.compiler.converters import schedule_to_ir, ir_to_schedule
+from qiskit.pulse.ir import IrBlock, IrInstruction
 from qiskit.pulse.schedule import ScheduleBlock
 
 
-class PulsePassManager(BasePassManager):
-    """A pass manager for compiling Qiskit ScheduleBlock programs."""
+PulseProgramT = Any
+"""Type alias representing whatever pulse programs."""
+
+
+class BasePulsePassManager(BasePassManager, ABC):
+    """A pulse compiler base class.
+
+    The pulse pass manager takes :class:`.ScheduleBlock` as an input and schedules
+    instructions within the block context according to the alignment specification
+    as a part of lowering.
+
+    Since pulse sequence is a lower-end representation of quantum programs,
+    the compiler may require detailed description of the
+    target control electronics to generate functional output programs.
+    Qiskit :class:`~qiskit.provider.Backend` object may inject vendor specific
+    plugin passes that may consume such hardware specification
+    that the vendor may also provide as a custom :class:`.Target` model.
+
+    Qiskit pulse pass manager relies on the :class:`.IrBlock` as an intermediate
+    representation on which all compiler passes are applied.
+    A developer must define a subclass of the ``BasePulsePassManager`` for
+    each desired compiler backend representation along with the logic to
+    interface with our intermediate representation.
+    """
 
     def _passmanager_frontend(
         self,
         input_program: ScheduleBlock,
         **kwargs,
     ) -> IrBlock:
-        return schedule_to_ir(input_program)
 
-    def _passmanager_backend(
-        self,
-        passmanager_ir: IrBlock,
-        in_program: ScheduleBlock,
-        **kwargs,
-    ) -> Any:
-        output = kwargs.get("output", "schedule_block")
+        def _wrap_recursive(_prog):
+            _ret = IrBlock(alignment=input_program.alignment_context)
+            for _elm in _prog.blocks:
+                if isinstance(_elm, ScheduleBlock):
+                    return _wrap_recursive(_elm)
+                _ret.add_element(IrInstruction(instruction=_elm))
+            return _ret
 
-        if output == "pulse_ir":
-            return passmanager_ir
-        if output == "schedule_block":
-            return ir_to_schedule(passmanager_ir)
-
-        raise ValueError(f"Specified target format '{output}' is not supported.")
+        return _wrap_recursive(input_program)
 
     # pylint: disable=arguments-differ
     def run(
         self,
-        schedules: ScheduleBlock | list[ScheduleBlock],
-        output: str = "schedule_block",
+        pulse_programs: ScheduleBlock | list[ScheduleBlock],
         callback: Callable | None = None,
         num_processes: int | None = None,
-    ) -> Any:
-        """Run all the passes on the input pulse schedules.
+    ) -> PulseProgramT | list[PulseProgramT]:
+        """Run all the passes on the input pulse programs.
 
         Args:
-            schedules: Input pulse programs to transform via all the registered passes.
+            pulse_programs: Input pulse programs to transform via all the registered passes.
                 When a list of schedules are passed, the transform is performed in parallel
                 for each input schedule with multiprocessing.
-            output: Format of the output program::
-
-                    schedule_block: Return in :class:`.ScheduleBlock` format.
-                    pulse_ir: Return in :class:`.PulseIR` format.
-
             callback: A callback function that will be called after each pass execution. The
                 function will be called with 5 keyword arguments::
 
@@ -98,11 +108,54 @@ class PulsePassManager(BasePassManager):
                 to ``None`` the system default or local user configuration will be used.
 
         Returns:
-            The transformed program(s) in specified program format.
+            The transformed program(s).
         """
         return super().run(
-            in_programs=schedules,
+            in_programs=pulse_programs,
             callback=callback,
             num_processes=num_processes,
-            output=output,
         )
+
+
+class BlockToIrCompiler(BasePulsePassManager):
+    """A specialized pulse compiler for IR backend.
+
+    This compiler outputs :class:`.IrBlock`, which is an intermediate representation
+    of the pulse program in Qiskit.
+    """
+
+    def _passmanager_backend(
+        self,
+        passmanager_ir: IrBlock,
+        in_program: ScheduleBlock,
+        **kwargs,
+    ) -> IrBlock:
+        return passmanager_ir
+
+
+class BlockTranspiler(BasePulsePassManager):
+    """A specialized pulse compiler for ScheduleBlock backend.
+
+    This compiler (transpiler) outputs :class:`.ScheduleBlock`, which
+    is an identical data format to the input program.
+    """
+
+    def _passmanager_backend(
+        self,
+        passmanager_ir: IrBlock,
+        in_program: ScheduleBlock,
+        **kwargs,
+    ) -> ScheduleBlock:
+
+        def _unwrap_recursive(_prog):
+            _ret = ScheduleBlock(alignment_context=passmanager_ir.alignment)
+            for _elm in _prog.elements:
+                if isinstance(_elm, IrBlock):
+                    return _unwrap_recursive(_elm)
+                _ret.append(_elm.instruction, inplace=True)
+            return _ret
+
+        out_block = _unwrap_recursive(passmanager_ir)
+        out_block.metadata = in_program.metadata.copy()
+
+        return out_block
