@@ -395,6 +395,7 @@ Estimator V2
 
    BaseEstimatorV2
    StatevectorEstimator
+   BackendEstimatorV2
    EstimatorV2Converter
 
 Sampler V2
@@ -446,7 +447,7 @@ Sampler V1
 
 """
 
-from .backend_estimator import BackendEstimator
+from .backend_estimator import BackendEstimator, BackendEstimatorV2
 from .backend_sampler import BackendSampler
 from .base import (
     BaseEstimator,
@@ -459,15 +460,15 @@ from .base import (
 from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
+    BindingsArrayLike,
     BitArray,
     DataBin,
-    PrimitiveResult,
-    PubResult,
     EstimatorPubLike,
-    SamplerPubLike,
-    BindingsArrayLike,
     ObservableLike,
     ObservablesArrayLike,
+    PrimitiveResult,
+    PubResult,
+    SamplerPubLike,
 )
 from .estimator import Estimator
 from .estimatorv2converter import EstimatorV2Converter

@@ -43,7 +43,7 @@ class EstimatorV2Converter(BaseEstimatorV2):
             estimator: The input :class:`~.BaseEstimatorV1` based backend to wrap in a
                 :class:`~.BaseEstimatorV2` interface.
         """
-        self._estimatorv1 = estimator
+        self.estimatorv1 = estimator
 
     def run(
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
@@ -79,7 +79,7 @@ class EstimatorV2Converter(BaseEstimatorV2):
             param_list.append(param)
 
         size = len(obs_list)
-        result = self._estimatorv1.run([circuit] * size, obs_list, param_list).result()
+        result = self.estimatorv1.run([circuit] * size, obs_list, param_list).result()
         evs = result.values.reshape(out_shape)
         stds_list = [
             np.sqrt(dat.get("variance", np.nan) / dat.get("shots", 1)) for dat in result.metadata

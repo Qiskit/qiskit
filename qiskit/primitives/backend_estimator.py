@@ -37,6 +37,7 @@ from qiskit.transpiler.passes import (
 )
 
 from .base import BaseEstimator, EstimatorResult
+from .estimatorv2converter import EstimatorV2Converter
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
 
@@ -236,7 +237,6 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-
         # Transpile
         self._grouping = list(zip(circuits, observables))
         transpiled_circuits = self.transpiled_circuits
@@ -370,7 +370,6 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         shots_list = []
 
         for i, j in zip(accum, accum[1:]):
-
             combined_expval = 0.0
             combined_var = 0.0
 
@@ -403,6 +402,108 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             if not isinstance(output, list):
                 output = [output]
             return output
+
+
+class BackendEstimatorV2(EstimatorV2Converter):
+    """Evaluates expectation value using Pauli rotation gates.
+
+    The :class:`~.BackendEstimatorV2` class is a generic implementation of the
+    :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
+    facilitates using backends that do not provide a native
+    :class:`~.BaseEstimatorV2` implementation in places that work with
+    :class:`~.BaseEstimatorV2`. However,
+    if you're using a provider that has a native implementation of
+    :class:`~.BaseEstimatorV2`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
+    """
+
+    def __init__(
+        self,
+        backend: BackendV1 | BackendV2,
+        options: dict | None = None,
+        abelian_grouping: bool = True,
+        bound_pass_manager: PassManager | None = None,
+        skip_transpilation: bool = False,
+    ):
+        """Initialize a new BackendEstimatorV2 instance
+
+        Args:
+            backend: Required: the backend to run the primitive on
+            options: Default options.
+            abelian_grouping: Whether the observable should be grouped into
+                commuting
+            bound_pass_manager: An optional pass manager to run after
+                parameter binding.
+            skip_transpilation: If this is set to True the internal compilation
+                of the input circuits is skipped and the circuit objects
+                will be directly executed when this object is called.
+        """
+        estimator = BackendEstimator(
+            backend, options, abelian_grouping, bound_pass_manager, skip_transpilation
+        )
+        super().__init__(estimator=estimator)
+
+    @property
+    def options(self) -> Options:
+        """Return options values for the estimator.
+
+        Returns:
+            options
+        """
+        return self.estimatorv1._run_options
+
+    def set_options(self, **fields):
+        """Set options values for the estimator.
+
+        Args:
+            **fields: The fields to update the options
+        """
+        self.estimatorv1._run_options.update_options(**fields)
+
+    @property
+    def transpile_options(self) -> Options:
+        """Return the transpiler options for transpiling the circuits."""
+        return self.estimatorv1.transpile_options
+
+    def set_transpile_options(self, **fields):
+        """Set the transpiler options for transpiler.
+        Args:
+            **fields: The fields to update the options
+        """
+        self.estimatorv1.set_transpile_options(**fields)
+
+    @property
+    def preprocessed_circuits(
+        self,
+    ) -> list[tuple[QuantumCircuit, list[QuantumCircuit]]]:
+        """
+        Transpiled quantum circuits produced by preprocessing
+        Returns:
+            List of the transpiled quantum circuit
+        """
+        return self.estimatorv1.preprocessed_circuits
+
+    @property
+    def transpiled_circuits(self) -> list[QuantumCircuit]:
+        """
+        Transpiled quantum circuits.
+        Returns:
+            List of the transpiled quantum circuit
+        Raises:
+            QiskitError: if the instance has been closed.
+        """
+        return self.estimatorv1.transpiled_circuits
+
+    @property
+    def backend(self) -> BackendV1 | BackendV2:
+        """
+        Returns:
+            The backend which this estimator object based on
+        """
+        return self.estimatorv1.backend
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:
