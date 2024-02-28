@@ -39,7 +39,6 @@ class QDrift(ProductFormula):
         atomic_evolution: Optional[
             Callable[[Union[Pauli, SparsePauliOp], float], QuantumCircuit]
         ] = None,
-        save_signs: bool = False,
         seed: Optional[int] = None,
     ) -> None:
         r"""
@@ -52,14 +51,10 @@ class QDrift(ProductFormula):
             atomic_evolution: A function to construct the circuit for the evolution of single
                 Pauli string. Per default, a single Pauli evolution is decomposed in a CX chain
                 and a single qubit Z rotation.
-            save_signs: When synthesizing the evolution of the qDRIFT, keep the signs of the
-                coefficients of the original evolution operator consistent with the
-                Trotterized circuit.
             seed: An optional seed for reproducibility of the random sampling process.
         """
         super().__init__(1, reps, insert_barriers, cx_structure, atomic_evolution)
         self.sampled_ops = None
-        self.save_signs = save_signs
         self.rng = np.random.default_rng(seed)
 
     def synthesize(self, evolution):
@@ -97,18 +92,10 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
 
-        evolution_circuit = None
-        if self.save_signs:
-            evolution_circuit = PauliEvolutionGate(
-                sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
-                time=evolution_time,
-                synthesis=lie_trotter,
-            ).definition
-        else:
-            evolution_circuit = PauliEvolutionGate(
-                sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
-                time=evolution_time,
-                synthesis=lie_trotter,
-            ).definition
+       evolution_circuit = PauliEvolutionGate(
+           sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
+           time=evolution_time,
+           synthesis=lie_trotter,
+       ).definition
 
         return evolution_circuit
