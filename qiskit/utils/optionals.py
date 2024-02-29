@@ -14,7 +14,7 @@
 .. currentmodule:: qiskit.utils.optionals
 
 Qiskit has several features that are enabled only
-if certain *optional* dependencies are satisfied.  This module is a collection of objects that can
+if certain *optional* dependencies are satisfied.  The ``qiskit.utils.optionals`` module has a collection of objects that can
 be used to test if certain functionality is available, and optionally raise
 :class:`.MissingOptionalLibraryError` if the functionality is not available.
 
@@ -52,7 +52,7 @@ External Python Libraries
     :widths: 25 75
 
     * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
+      - `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
         constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
     * - .. py:data:: HAS_CPLEX
