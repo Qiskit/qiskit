@@ -1,0 +1,12 @@
+---
+upgrade_transpiler:
+  - |
+    The implicit use of ``approximation_degree!=1.0`` by default in the
+    :func:`~.generate_preset_pass_manager` function has been
+    disabled.  The previous default could cause undue and unexpected approximations, especially in
+    workloads involving Trotterization or similar runs of operations that are close, but decidedly
+    not equal, to the identity.
+
+    This change brings the inner pass-manager generation defaults in line with :func:`.transpile`,
+    which was always the intention.  See `#8595 <https://github.com/Qiskit/qiskit/pull/8595>`__ for
+    more detail.
