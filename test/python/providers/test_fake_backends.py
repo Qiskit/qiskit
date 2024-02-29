@@ -37,7 +37,7 @@ from qiskit.providers.fake_provider import (
     FakeSherbrooke,
     FakePrague,
 )
-from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.backend_compat import BackendV2Converter, convert_to_target
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
@@ -637,7 +637,7 @@ class TestFakeBackends(QiskitTestCase):
         self.assertNotIn((0, 1), connections)
 
     def test_convert_to_target_control_flow(self):
-        backend = FakeMumbaiV2()
+        backend = FakeMumbai()
         properties = backend.properties()
         configuration = backend.configuration()
         configuration.supported_instructions = [
@@ -661,7 +661,7 @@ class TestFakeBackends(QiskitTestCase):
         self.assertTrue(target.instruction_supported("switch_case", ()))
 
     def test_convert_unrelated_supported_instructions(self):
-        backend = FakeMumbaiV2()
+        backend = FakeMumbai()
         properties = backend.properties()
         configuration = backend.configuration()
         configuration.supported_instructions = [
