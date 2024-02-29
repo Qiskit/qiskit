@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    New classes :class:`.EstimatorV2Converter` and :class:`.BackendEstimatorV2` have been added to
+    the :mod:`qiskit.primitives` module. :class:`.EstimatorV2Converter` converts an instance of
+    :class:`.BaseEstimatorV1` into an instance of :class:`.BaseEstimatorV2`.
+    :class:`.BackendEstimatorV2` is simple conversion of :class:`.BackendEstimator` that inherits
+    :class:`.BaseEstimatorV1`.
