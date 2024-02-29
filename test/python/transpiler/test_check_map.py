@@ -19,7 +19,7 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCheckMapCX(QiskitTestCase):

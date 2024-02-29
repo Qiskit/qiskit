@@ -13,12 +13,14 @@
 # pylint: disable=invalid-name
 
 """Parser for mathematical string expressions returned by backends."""
-from typing import Dict, List, Union
+from __future__ import annotations
 import ast
 import copy
 import operator
 
 import cmath
+from collections.abc import Callable
+from typing import Any
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.circuit import ParameterExpression
@@ -27,7 +29,7 @@ from qiskit.circuit import ParameterExpression
 class PulseExpression(ast.NodeTransformer):
     """Expression parser to evaluate parameter values."""
 
-    _math_ops = {
+    _math_ops: dict[str, Callable | float] = {
         "acos": cmath.acos,
         "acosh": cmath.acosh,
         "asin": cmath.asin,
@@ -61,7 +63,7 @@ class PulseExpression(ast.NodeTransformer):
     _unary_ops = {ast.UAdd: operator.pos, ast.USub: operator.neg}
     """Valid unary operations."""
 
-    def __init__(self, source: Union[str, ast.Expression], partial_binding: bool = False):
+    def __init__(self, source: str | ast.Expression, partial_binding: bool = False):
         """Create new evaluator.
 
         Args:
@@ -72,8 +74,8 @@ class PulseExpression(ast.NodeTransformer):
             PulseError: When invalid string is specified.
         """
         self._partial_binding = partial_binding
-        self._locals_dict = {}
-        self._params = set()
+        self._locals_dict: dict[str, Any] = {}
+        self._params: set[str] = set()
 
         if isinstance(source, ast.Expression):
             self._tree = source
@@ -87,7 +89,7 @@ class PulseExpression(ast.NodeTransformer):
         self.visit(self._tree)
 
     @property
-    def params(self) -> List[str]:
+    def params(self) -> list[str]:
         """Get parameters.
 
         Returns:
@@ -95,7 +97,7 @@ class PulseExpression(ast.NodeTransformer):
         """
         return sorted(self._params.copy())
 
-    def __call__(self, *args, **kwargs) -> Union[complex, ast.Expression]:
+    def __call__(self, *args, **kwargs) -> complex | ast.Expression | PulseExpression:
         """Evaluate the expression with the given values of the expression's parameters.
 
         Args:
@@ -141,7 +143,7 @@ class PulseExpression(ast.NodeTransformer):
         return expr.body.value
 
     @staticmethod
-    def _match_ops(opr: ast.AST, opr_dict: Dict, *args) -> complex:
+    def _match_ops(opr: ast.AST, opr_dict: dict, *args) -> complex:
         """Helper method to apply operators.
 
         Args:
@@ -185,7 +187,7 @@ class PulseExpression(ast.NodeTransformer):
         """
         return node
 
-    def visit_Name(self, node: ast.Name) -> Union[ast.Name, ast.Constant]:
+    def visit_Name(self, node: ast.Name) -> ast.Name | ast.Constant:
         """Evaluate name and return ast.Constant if it is bound.
 
         Args:
@@ -218,7 +220,7 @@ class PulseExpression(ast.NodeTransformer):
         self._params.add(node.id)
         return node
 
-    def visit_UnaryOp(self, node: ast.UnaryOp) -> Union[ast.UnaryOp, ast.Constant]:
+    def visit_UnaryOp(self, node: ast.UnaryOp) -> ast.UnaryOp | ast.Constant:
         """Evaluate unary operation and return ast.Constant if operand is bound.
 
         Args:
@@ -234,7 +236,7 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         return node
 
-    def visit_BinOp(self, node: ast.BinOp) -> Union[ast.BinOp, ast.Constant]:
+    def visit_BinOp(self, node: ast.BinOp) -> ast.BinOp | ast.Constant:
         """Evaluate binary operation and return ast.Constant if operands are bound.
 
         Args:
@@ -253,7 +255,7 @@ class PulseExpression(ast.NodeTransformer):
             return ast.copy_location(val, node)
         return node
 
-    def visit_Call(self, node: ast.Call) -> Union[ast.Call, ast.Constant]:
+    def visit_Call(self, node: ast.Call) -> ast.Call | ast.Constant:
         """Evaluate function and return ast.Constant if all arguments are bound.
 
         Args:
@@ -284,7 +286,7 @@ class PulseExpression(ast.NodeTransformer):
         raise PulseError("Unsupported node: %s" % node.__class__.__name__)
 
 
-def parse_string_expr(source: str, partial_binding: bool = False):
+def parse_string_expr(source: str, partial_binding: bool = False) -> PulseExpression:
     """Safe parsing of string expression.
 
     Args:

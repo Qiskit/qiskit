@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import copy
 from itertools import zip_longest
+import math
 from typing import List, Type
 
 import numpy
@@ -45,8 +46,9 @@ from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
-from qiskit.utils.deprecation import deprecate_func
-from .tools import pi_check
+
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
+
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -417,22 +419,36 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
-        If the instruction is composite (i.e. has a definition),
-        then its definition will be recursively inverted.
+        If `annotated` is `False`, the inverse instruction is implemented as
+        a fresh instruction with the recursively inverted definition.
+
+        If `annotated` is `True`, the inverse instruction is implemented as
+        :class:`.AnnotatedOperation`, and corresponds to the given instruction
+        annotated with the "inverse modifier".
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+        In particular, they can choose how to handle the argument ``annotated``
+        which may include ignoring it and always returning a concrete gate class
+        if the inverse is defined as a standard gate.
+
+        Args:
+            annotated: if set to `True` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            The inverse operation.
 
         Raises:
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
@@ -515,30 +531,6 @@ class Instruction(Operation):
                 "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
             )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
-
-    @deprecate_func(
-        additional_msg=(
-            "Correct exporting to OpenQASM 2 is the responsibility of a larger exporter; it cannot "
-            "safely be done on an object-by-object basis without context. No replacement will be "
-            "provided, because the premise is wrong."
-        ),
-        since="0.25.0",
-        package_name="qiskit-terra",
-    )
-    def qasm(self):
-        """Return a default OpenQASM string for the instruction.
-
-        Derived instructions may override this to print in a
-        different format (e.g. ``measure q[0] -> c[0];``).
-        """
-        name_param = self.name
-        if self.params:
-            name_param = "{}({})".format(
-                name_param,
-                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
-            )
-
-        return self._qasmif(name_param)
 
     def broadcast_arguments(self, qargs, cargs):
         """
@@ -653,3 +645,13 @@ class Instruction(Operation):
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
+
+    def _compare_parameters(self, other):
+        for x, y in zip(self.params, other.params):
+            try:
+                if not math.isclose(x, y, rel_tol=0, abs_tol=1e-10):
+                    return False
+            except TypeError:
+                if x != y:
+                    return False
+        return True

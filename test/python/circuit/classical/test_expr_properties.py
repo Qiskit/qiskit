@@ -18,9 +18,9 @@ import uuid
 
 import ddt
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

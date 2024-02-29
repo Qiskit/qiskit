@@ -19,8 +19,8 @@ from qiskit.result import marginal_counts
 from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.qobj import QobjExperimentHeader
-from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestResultOperations(QiskitTestCase):

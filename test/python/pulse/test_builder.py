@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,19 +13,15 @@
 """Test pulse builder context utilities."""
 
 from math import pi
-
 import numpy as np
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
-from qiskit.providers.fake_provider.utils.configurable_backend import (
-    ConfigurableFakeBackend as ConfigurableBackend,
-)
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilder(QiskitTestCase):
@@ -669,12 +665,13 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend_100q = ConfigurableBackend("100q", 100)
-        with pulse.build(backend_100q) as schedule:
+        backend = Fake127QPulseV1()
+        num_qubits = backend.configuration().num_qubits
+        with pulse.build(backend) as schedule:
             regs = pulse.measure_all()
 
-        reference = backend_100q.defaults().instruction_schedule_map.get(
-            "measure", list(range(100))
+        reference = backend.defaults().instruction_schedule_map.get(
+            "measure", list(range(num_qubits))
         )
 
         self.assertScheduleEqual(schedule, reference)
@@ -746,7 +743,6 @@ class TestBuilderComposition(TestBuilder):
             return compiler.schedule(compiler.transpile(qc, backend=backend), backend)
 
         with pulse.build(self.backend) as schedule:
-
             with pulse.align_sequential():
                 pulse.delay(delay_dur, d0)
                 pulse.call(get_sched([1], self.backend))
@@ -821,8 +817,7 @@ class TestSubroutineCall(TestBuilder):
         reference += instructions.Delay(20, d1)
 
         ref_sched = pulse.Schedule()
-        with self.assertWarns(DeprecationWarning):
-            ref_sched += pulse.instructions.Call(reference)
+        ref_sched += reference
 
         with pulse.build() as schedule:
             with pulse.align_right():

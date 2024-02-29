@@ -14,8 +14,8 @@
 
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
 from qiskit.utils import apply_prefix, detach_prefix
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
