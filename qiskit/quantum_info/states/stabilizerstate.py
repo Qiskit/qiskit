@@ -449,7 +449,7 @@ class StabilizerState(QuantumState):
             #this is more efficient then setting at beginning of for loop and then finding a cache value to replace
             if(outcome == None):
                 outcome = (["X"] * len(qubits))
-            self._get_probablities(qubits, outcome, outcome_prob, probs, item_target, cache)
+            self._get_probabilities(qubits, outcome, outcome_prob, probs, item_target, cache)
 
         #Round to the number of decimal places if a decimal is provided
         self._round_decimals(probs, decimals)
