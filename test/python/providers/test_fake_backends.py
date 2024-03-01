@@ -161,6 +161,21 @@ class TestFakeBackends(QiskitTestCase):
         if target.dt is not None:
             self.assertLess(target.dt, 1e-6)
 
+    @data(*BACKENDS)
+    def test_convert_to_target_qargs(self, backend):
+        try:
+            target = convert_to_target(backend.configuration())
+            if target.qargs is not None:
+                self.assertIsInstance(target.qargs, set)
+                for qarg in target.qargs:
+                    self.assertIsInstance(qarg, tuple)
+        except QiskitError as ex:
+            self.assertEqual(
+                ex.message,
+                "Operation name TODO does not have a known mapping. "
+                "Use custom_name_mapping to map this name to an Operation object",
+            )
+
     @data(*BACKENDS_V2)
     def test_backend_v2_dtm(self, backend):
         if backend.dtm:
