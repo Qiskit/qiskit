@@ -313,7 +313,46 @@ class TestStabilizerState(QiskitTestCase):
                     value = res.measure()[0]
                     self.assertIn(value, ["000", "001"])
 
-    def test_probablities_dict_two_qubits(self):
+    def test_probabilities_dict_single_qubit(self):
+        """Test probabilities and probabilities_dict methods of a single qubit"""
+
+        num_qubits = 1
+        qc = QuantumCircuit(num_qubits)
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P(id(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"0": 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([1, 0])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc.x(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(x(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"1": 1}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0, 1])
+                self.assertTrue(np.allclose(probs, target))
+
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for _ in range(self.samples):
+            with self.subTest(msg="P(h(0))"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                target = {"0": 0.5, "1": 0.5}
+                self.assertEqual(value, target)
+                probs = stab.probabilities()
+                target = np.array([0.5, 0.5])
+                self.assertTrue(np.allclose(probs, target))
+
+    def test_probabilities_dict_two_qubits(self):
         """Test probabilities and probabilities_dict methods of two qubits"""
 
         num_qubits = 2
@@ -532,7 +571,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
 
-    def test_probablities_dict_qubits(self):
+    def test_probabilities_dict_qubits(self):
         """Test probabilities and probabilities_dict methods of a subsystem of qubits"""
 
         num_qubits = 3
@@ -777,7 +816,7 @@ class TestStabilizerState(QiskitTestCase):
         self.assertTrue(test_5_time_with_target < test_time_to_be_under)
 
 
-    def test_probablities_dict_ghz(self):
+    def test_probabilities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
 
         num_qubits = 3

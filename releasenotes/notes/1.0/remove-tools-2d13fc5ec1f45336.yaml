@@ -1,0 +1,18 @@
+---
+upgrade_misc:
+  - |
+    The deprecated ``qiskit.tools.visualization`` module has removed. This module
+    was deprecated in the Qiskit 0.46.0 release. This module was a legacy redirect
+    from the original location of Qiskit's visualization module and was moved to
+    :mod:`qiskit.visualization` in Qiskit 0.8.0. If you're still using this path
+    you can just update your imports from ``qiskit.tools.visualization``
+    to :mod:`qiskit.visualization`.
+  - |
+    The deprecated ``qiskit.tools.events`` module and the corresponding
+    ``qiskit.tools.progressbar`` utility it exposed has been removed. It was deprecated
+    in the Qiskit 0.46.0 release. This module's functionality was not widely used and
+    better covered by dedicated packages such as `tqdm <https://github.com/tqdm/tqdm>`__.
+  - |
+    The ``qiskit.tools`` module has been removed. This module was deprecated in Qiskit 0.46.0.
+    All the contents from this module have been removed except for the ``qiskit.tools.parallel_map``
+    function which now can be used from :func:`qiskit.utils.parallel_map` instead.

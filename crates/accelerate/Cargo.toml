@@ -15,7 +15,7 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rayon = "1.8"
+rayon = "1.9"
 numpy = "0.20.0"
 rand = "0.8"
 rand_pcg = "0.3"
@@ -25,6 +25,7 @@ num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.14"
+faer-core = "0.17.0"
 
 [dependencies.smallvec]
 version = "1.13"
@@ -47,8 +48,9 @@ workspace = true
 features = ["rayon"]
 
 [dependencies.faer]
-version = "0.16.0"
+version = "0.17.0"
 features = ["ndarray"]
 
-[dependencies.faer-core]
-version = "0.16.0"
+[dependencies.pulp]
+version = "0.18.8"
+features = ["macro"]

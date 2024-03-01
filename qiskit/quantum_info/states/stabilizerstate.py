@@ -781,7 +781,7 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float | bool] = None):
+    def _get_probabilities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float | bool] = None):
         """Recursive helper function for calculating the probabilities"""
         qubit_for_branching = -1
         ret: StabilizerState = self.copy()
@@ -824,7 +824,7 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[(len(qubits) - qubit_for_branching - 1)], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
+            stab_cpy._get_probabilities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
 
     @staticmethod
     def _is_qubit_deterministic(ret: StabilizerState, qubit, current_outcome: str, cache: dict[str, float | bool] = None):

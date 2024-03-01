@@ -1,9 +1,0 @@
----
-upgrade:
-  - |
-    The class :class:`.EvolvedOperatorAnsatz` has been migrated from
-    :mod:`qiskit.circuit.library` to :mod:`qiskit.circuit.library.n_local` to match
-    the location of its base class. This move has not affected the usual import path
-    of the class: ``from qiskit.circuit.library import EvolvedOperatorAnsatz``, but
-    now it is also accessible doing ``from qiskit.circuit.library.n_local import
-    EvolvedOperatorAnsatz``.

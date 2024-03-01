@@ -17,6 +17,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from .faulty_backends import (
     Fake7QV1FaultyCX01CX10,
     Fake7QV1FaultyQ1,
+    Fake7QV1MissingQ1Property,
     Fake7QV1FaultyCX13CX31,
 )
 
@@ -35,7 +36,7 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
         """Test faulty_qubits method."""
         self.assertEqual(self.backend.properties().faulty_qubits(), [1])
 
-    def test_convert_to_target(self):
+    def test_convert_to_target_with_filter(self):
         """Test converting legacy data structure to V2 target model with faulty qubits.
 
         Measure and Delay are automatically added to the output Target
@@ -44,31 +45,40 @@ class FaultyQubitBackendTestCase(QiskitTestCase):
         """
 
         # Filter out faulty Q1
-        target_with_filter = convert_to_target(
+        target = convert_to_target(
             configuration=self.backend.configuration(),
             properties=self.backend.properties(),
             add_delay=True,
             filter_faulty=True,
         )
-        self.assertFalse(
-            target_with_filter.instruction_supported(operation_name="measure", qargs=(1,))
-        )
-        self.assertFalse(
-            target_with_filter.instruction_supported(operation_name="delay", qargs=(1,))
-        )
+        self.assertFalse(target.instruction_supported(operation_name="measure", qargs=(1,)))
+        self.assertFalse(target.instruction_supported(operation_name="delay", qargs=(1,)))
+
+    def test_convert_to_target_without_filter(self):
+        """Test converting legacy data structure to V2 target model with faulty qubits."""
 
         # Include faulty Q1 even though data could be incomplete
-        target_without_filter = convert_to_target(
+        target = convert_to_target(
             configuration=self.backend.configuration(),
             properties=self.backend.properties(),
             add_delay=True,
             filter_faulty=False,
         )
-        self.assertTrue(
-            target_without_filter.instruction_supported(operation_name="measure", qargs=(1,))
+        self.assertTrue(target.instruction_supported(operation_name="measure", qargs=(1,)))
+        self.assertTrue(target.instruction_supported(operation_name="delay", qargs=(1,)))
+
+        # Properties are preserved
+        self.assertEqual(
+            target.qubit_properties[1].t1,
+            self.backend.properties().t1(1),
         )
-        self.assertTrue(
-            target_without_filter.instruction_supported(operation_name="delay", qargs=(1,))
+        self.assertEqual(
+            target.qubit_properties[1].t2,
+            self.backend.properties().t2(1),
+        )
+        self.assertEqual(
+            target.qubit_properties[1].frequency,
+            self.backend.properties().frequency(1),
         )
 
 
@@ -108,3 +118,30 @@ class FaultyGate01BackendTestCase(QiskitTestCase):
         self.assertEqual(len(gates), 2)
         self.assertEqual([gate.gate for gate in gates], ["cx", "cx"])
         self.assertEqual(sorted(gate.qubits for gate in gates), [[0, 1], [1, 0]])
+
+
+class MissingPropertyQubitBackendTestCase(QiskitTestCase):
+    """Test operational-related methods of backend.properties() with Fake7QV1MissingQ1Property,
+    which is like Fake7QV1 but with Q1 with missing T1 property."""
+
+    backend = Fake7QV1MissingQ1Property()
+
+    def test_convert_to_target(self):
+        """Test converting legacy data structure to V2 target model with missing qubit property."""
+
+        target = convert_to_target(
+            configuration=self.backend.configuration(),
+            properties=self.backend.properties(),
+            add_delay=True,
+            filter_faulty=True,
+        )
+
+        self.assertIsNone(target.qubit_properties[1].t1)
+        self.assertEqual(
+            target.qubit_properties[1].t2,
+            self.backend.properties().t2(1),
+        )
+        self.assertEqual(
+            target.qubit_properties[1].frequency,
+            self.backend.properties().frequency(1),
+        )
