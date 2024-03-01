@@ -12,7 +12,7 @@
 
 """Expand a gate in a circuit using its decomposition rules."""
 from typing import Type, Union, List, Optional
-from fnmatch import fnmatch
+from fnmatch import fnmatchcase
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -84,12 +84,12 @@ class Decompose(TransformationPass):
             getattr(node.op, "label", None) is not None
             and node.op.label != ""
             and (  # check if label or label wildcard is given
-                node.op.label in gates or any(fnmatch(node.op.label, p) for p in strings_list)
+                node.op.label in gates or any(fnmatchcase(node.op.label, p) for p in strings_list)
             )
         ):
             return True
         elif node.name in gates or any(  # check if name or name wildcard is given
-            fnmatch(node.name, p) for p in strings_list
+            fnmatchcase(node.name, p) for p in strings_list
         ):
             return True
         elif any(isinstance(node.op, op) for op in gate_type_list):  # check if Gate type given
