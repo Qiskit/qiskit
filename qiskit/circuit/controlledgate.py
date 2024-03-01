@@ -108,6 +108,17 @@ class ControlledGate(Gate):
         self.ctrl_state = ctrl_state
         self._name = name
 
+    def __repr__(self):
+        """Generates a representation of the ControlledGate object instance
+        Returns:
+            str: A representation of the ControlledGate instance with class name, name, label and
+                 number of control qubits, control state, and number of definition elements"""
+        return (
+            f"<{self.__class__.__name__} '{self._name}' labeled '{self._label}' with "
+            f"{self._num_ctrl_qubits} control qubits, control state = {self._ctrl_state} and"
+            f" params={self.params}>"
+        )
+
     @property
     def definition(self) -> QuantumCircuit:
         """Return definition in terms of other basic gates. If the gate has
