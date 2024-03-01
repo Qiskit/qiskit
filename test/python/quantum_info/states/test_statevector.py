@@ -666,39 +666,45 @@ class TestStatevector(QiskitTestCase):
     def test_sample_counts_ghz(self):
         """Test sample_counts method for GHZ state"""
 
-        shots = 2000
-        threshold = 0.02 * shots
+        shots = 100_000_000
+        threshold = 0.001 * shots
+        seeds = [3786, 5497, 7826, 5528, 7453, 6162, 9044]
         state = (Statevector.from_label("000") + Statevector.from_label("111")) / np.sqrt(2)
-        state.seed(100)
 
         # 3-qubit qargs
         target = {"000": shots / 2, "111": shots / 2}
         for qargs in [[0, 1, 2], [2, 1, 0], [1, 2, 0], [1, 0, 2]]:
 
             with self.subTest(msg=f"counts (qargs={qargs})"):
-                counts = state.sample_counts(shots, qargs=qargs)
-                self.assertDictAlmostEqual(counts, target, threshold)
+                for _seed in seeds:
+                    state.seed(_seed)
+                    counts = state.sample_counts(shots, qargs=qargs)
+                    self.assertDictAlmostEqual(counts, target, threshold)
 
         # 2-qubit qargs
         target = {"00": shots / 2, "11": shots / 2}
         for qargs in [[0, 1], [2, 1], [1, 2], [1, 2]]:
 
             with self.subTest(msg=f"counts (qargs={qargs})"):
-                counts = state.sample_counts(shots, qargs=qargs)
-                self.assertDictAlmostEqual(counts, target, threshold)
+                for _seed in seeds:
+                    state.seed(_seed)
+                    counts = state.sample_counts(shots, qargs=qargs)
+                    self.assertDictAlmostEqual(counts, target, threshold)
 
         # 1-qubit qargs
         target = {"0": shots / 2, "1": shots / 2}
         for qargs in [[0], [1], [2]]:
 
             with self.subTest(msg=f"counts (qargs={qargs})"):
-                counts = state.sample_counts(shots, qargs=qargs)
-                self.assertDictAlmostEqual(counts, target, threshold)
+                for _seed in seeds:
+                    state.seed(_seed)
+                    counts = state.sample_counts(shots, qargs=qargs)
+                    self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_sample_counts_w(self):
         """Test sample_counts method for W state"""
-        shots = 3000
-        threshold = 0.02 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = (
             Statevector.from_label("001")
             + Statevector.from_label("010")
@@ -793,8 +799,8 @@ class TestStatevector(QiskitTestCase):
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
         p = 0.3
-        shots = 1000
-        threshold = 0.03 * shots
+        shots = 10_000_000
+        threshold = 0.001 * shots
         state = Statevector([np.sqrt(p), 0, np.sqrt(1 - p)])
         state.seed(100)
 
