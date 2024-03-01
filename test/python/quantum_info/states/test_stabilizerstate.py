@@ -14,6 +14,7 @@
 """Tests for Stabilizerstate quantum state class."""
 
 from itertools import product
+import random
 import time
 import unittest
 import logging
@@ -971,11 +972,17 @@ class TestStabilizerState(QiskitTestCase):
                 stab = StabilizerState(cliff)
                 probs = stab.probabilities(qargs)
 
+                target_dict = Statevector(qc).probabilities_dict(qargs)
                 probs_dict = stab.probabilities_dict(qargs)
                 target = Statevector(qc).probabilities(qargs)
-                target_dict = Statevector(qc).probabilities_dict(qargs)
                 self.assertTrue(np.allclose(probs, target))
                 self.assertDictAlmostEqual(probs_dict, target_dict)
+
+                #Perform targetted test, with random samples of targets to use
+                random_target_dict: list = random.sample(list(target_dict), random.randint(1, len(target_dict)))
+                probs_dict = stab.probabilities_dict_from_bitstrings(qargs, target=random_target_dict)
+                target_dict_recalc = {key : target_dict[key] for key in probs_dict}
+                self.assertDictAlmostEqual(probs_dict, target_dict_recalc)
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_expval_from_random_clifford(self, num_qubits):
