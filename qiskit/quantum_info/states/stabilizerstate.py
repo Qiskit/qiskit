@@ -768,8 +768,8 @@ class StabilizerState(QuantumState):
             if((int(target[i:i+1]) == single_qubit_outcome)):
                 outcome[i] = str(single_qubit_outcome)
             elif((int(target[i:i+1]) != single_qubit_outcome)):
-                    outcome[i] = str(int(target[i:i+1]))
-                    outcome_prob = 0
+                outcome[i] = str(int(target[i:i+1]))
+                outcome_prob = 0
         else:
             #Non-target qubit outcome
             if (single_qubit_outcome):
@@ -785,12 +785,14 @@ class StabilizerState(QuantumState):
         """Recursive helper function for calculating the probabilities"""
 
         #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is
+        '''
         if(target != None and cache != None):
             key: str = "".join(outcome)
             #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
             #much faster to always set the cache value then to check if it exists and only store if it does not
             if(('X' in key and ('1' in key or '0' in key))):  
                 cache[key] = outcome_prob
+        '''
 
         qubit_for_branching = -1
         ret: StabilizerState = self.copy()
@@ -804,10 +806,17 @@ class StabilizerState(QuantumState):
                     #Get the qubit for the current calculation
                     qubit = qubits[(len(qubits) - i - 1)]
                     #Determine if it is deterministic, use caching if available to prevent recalculation
-                    if (StabilizerState._is_qubit_deterministic(ret, qubit, cache)):
+                    if (StabilizerState._is_qubit_deterministic(ret, qubit, ''.join(outcome), cache)):
                         outcome_prob = StabilizerState.retrieve_deterministic_probability(i, qubit, outcome, ret, outcome_prob, target)
                     else:
                         qubit_for_branching = i
+
+        if(target != None and cache != None):
+            key: str = "".join(outcome)
+            #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
+            #much faster to always set the cache value then to check if it exists and only store if it does not
+            if(('X' in key and ('1' in key or '0' in key))):  
+                cache[key] = outcome_prob
 
         if (qubit_for_branching == -1):
             str_outcome = "".join(outcome)
@@ -828,13 +837,13 @@ class StabilizerState(QuantumState):
             stab_cpy._get_probablities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
 
     @staticmethod
-    def _is_qubit_deterministic(ret: StabilizerState, qubit, cache: dict[str, float | bool] = None):
+    def _is_qubit_deterministic(ret: StabilizerState, qubit, current_outcome: str, cache: dict[str, float | bool] = None):
         '''Helper method to Determine if the qubit is deterministic'''
-        if(cache != None):
+        if(cache != None and False):
             #Only calculate keys if cache is available
-            key: str = ''.join(["D", str(qubit)])
+            key: str = ''.join(["D_", current_outcome, "_D:", str(qubit)])
             if(not (key in cache)):
-                cache[key] = not any(ret.clifford.stab_x[:, qubit])
+                cache[key] = (not any(ret.clifford.stab_x[:, qubit]))
             return cache[key]
         else:
             return (not any(ret.clifford.stab_x[:, qubit]))
