@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Added the `.CommutativeCancellation` pass to preset passmanagers level 2 and level 3.
