@@ -13,6 +13,7 @@
 
 """Tests for Stabilizerstate quantum state class."""
 
+from itertools import product
 import time
 import unittest
 import logging
@@ -41,6 +42,14 @@ class TestStabilizerState(QiskitTestCase):
     samples = 10
     shots = 1000
     threshold = 0.1 * shots
+
+    #Allowed percent head room when checking performance
+    #of probability calculations with targets vs without target
+    performance_varability_percent: float = 0.005
+
+    @staticmethod
+    def probability_percent_of_calculated_branches(number_of_calculated_branhces: int, num_of_qubits: int) -> float:
+        return (number_of_calculated_branhces / ((2**(num_of_qubits+1))-1))
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_init_clifford(self, num_qubits):
@@ -565,17 +574,13 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(1)
         qc.h(2)
         stab = StabilizerState(qc)
-        #print("\n")
 
         test_1_time_no_target: float = 0
         for _ in range(self.samples):
-
             with self.subTest(msg="P(None), decimals=1"):
                 test_1_time_no_target_start = time.monotonic()
                 value = stab.probabilities_dict(decimals=1)
-                temp = (time.monotonic() - test_1_time_no_target_start)
-                test_1_time_no_target += temp
-                #print(str(temp))
+                test_1_time_no_target += (time.monotonic() - test_1_time_no_target_start)
                 target = {
                     "000": 0.1,
                     "001": 0.1,
@@ -590,7 +595,6 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(decimals=1)
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
-        #print("\n\n--------")
 
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
@@ -629,50 +633,110 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
         #With Targets
-        #print("\n")
         test_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
-                target_input: list[str] = ["000", "110", "010", "011", "100", "001"]
+                target_input: list[str] = ["000", "010", "110"]
                 test_1_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                #test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
-                temp = (time.monotonic() - test_1_time_with_target_start)
-                test_1_time_with_targets += temp
-                #print(str(temp))
+                test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
                 #Deliberately commented out values that should not be found
                 target = {
                     "000": 0.1,
-                    "001": 0.1,
                     "010": 0.1,
-                    "011": 0.1,
-                    "100": 0.1,
-                    #"101": 0.1,
                     "110": 0.1,
-                    #"111": 0.1,
                 }
                 self.assertEqual(value, target)
 
-                target_input: list[str] = ["001", "010", "111", "000", "101", "011", "100"]
+                target_input: list[str] = ["001", "011", "101", "111"]
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                #Deliberately commented out values that should not be found
                 target = {
-                    "000": 0.1,
                     "001": 0.1,
-                    "010": 0.1,
                     "011": 0.1,
-                    "100": 0.1,
                     "101": 0.1,
-                    #"110": 0.1,
                     "111": 0.1,
                 }
                 self.assertEqual(value, target)
+
                 probs = stab.probabilities(decimals=1)
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
 
-        #Verify performance increase by using targets, not currently measuring the performance boost, but making sure it always runs faster
-        #self.assertTrue(test_1_time_with_targets < test_1_time_no_target)
+        #Verify performance of calculating only in targets, not currently measuring the performance boost, but making sure it always runs faster
+        self.assertTrue(test_1_time_with_targets < (test_1_time_no_target * (self.probability_percent_of_calculated_branches(6, num_qubits) + self.performance_varability_percent)))
+        #(test_3_time_no_target * (self.probability_percent_of_calculated_branches(13, 3) + self.performance_varability_percent)
+                
+
+        #Test with larger number of qubits where performance will be significantly improved with targets to calculate
+        num_qubits = 12
+        qc = QuantumCircuit(num_qubits)
+        for qubit_num in range(0,num_qubits):
+            qc.h(qubit_num)
+        stab = StabilizerState(qc)
+
+        test_3_time_no_target: float = 0
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None), decimals=5"):
+                test_3_time_no_target_start = time.monotonic()
+                value = stab.probabilities_dict(decimals=5)
+                test_3_time_no_target += (time.monotonic() - test_3_time_no_target_start)
+                #Build target with all combinations of 01 for num_qubits long to value 0.00024, the expected result for each
+                target = {result : float(0.00024) for result in [''.join(x) for x in product(['0', '1'], repeat = num_qubits)]}
+                self.assertEqual(value, target)
+                probs = stab.probabilities(decimals=5)
+                target = np.array(([0.00024] * (2**num_qubits)))
+                self.assertTrue(np.allclose(probs, target))
+
+        test_3_time_with_target: float = 0
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None), decimals=5"):
+                input_target: list[str] = ["011110001010", "111110001010"]
+                test_3_time_with_target_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
+                test_3_time_with_target += (time.monotonic() - test_3_time_with_target_start)
+                #Build target with all combinations of 01 for num_qubits long to value 0.00024, the expected result for each
+                target = {
+                    "011110001010" : 0.00024,
+                    "111110001010" : 0.00024
+                }
+                self.assertEqual(value, target)
+
+        """
+        Note: Adding targets is a performance enhancement, so we need to verify it does increase performance
+        Since we are only calculating 2 complete branches of the 4096 possible branches this should lead 
+        to a significant improvement in performance. The amount of nodes to calculate for 12 qubits for 
+        the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The example above with caching 
+        will need to calculate 13 of the 8191 nodes (due to the second target being 1 branch from the first) 
+        which will roughly take about 0.158% of the time to calculate compared to all the branches. Lets give a 
+        small amount of room for variance, adding 0.1% extra time. We will verify with caching which will allow
+        us to not have to calculate 11 of the nodes for the 2nd target
+        """
+        test_time_to_be_under: float = (test_3_time_no_target * (self.probability_percent_of_calculated_branches(13, num_qubits) + self.performance_varability_percent))
+        self.assertTrue(test_3_time_with_target < test_time_to_be_under)
+
+        #Run same test as above but without branch path caching, this will cause it to have
+        #to calculate the entire branch again for the 2nd target which will lead to 12 + 12 = 24 nodes to calculate
+        test_3_time_with_target_no_caching: float = 0
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None), decimals=5"):
+                input_target: list[str] = ["011110001010", "111110001010"]
+                test_3_time_with_target_no_caching_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target, caching=False)
+                test_3_time_with_target_no_caching += (time.monotonic() - test_3_time_with_target_no_caching_start)
+                #Build target with all combinations of 01 for num_qubits long to value 0.00024, the expected result for each
+                target = {
+                    "011110001010" : 0.00024,
+                    "111110001010" : 0.00024
+                }
+                self.assertEqual(value, target)
+        
+        test_time_to_be_under: float = (test_3_time_no_target * (self.probability_percent_of_calculated_branches(24, num_qubits) + self.performance_varability_percent))
+        #Verify no caching test gains the correct amount of performance when using targets
+        self.assertTrue(test_3_time_with_target_no_caching < test_time_to_be_under)
+
+        #Verify the caching of branch values performs better then not caching when using targets
+        self.assertTrue(test_3_time_with_target < test_3_time_with_target_no_caching)
+
 
     def test_probablities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
@@ -1200,7 +1264,6 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         clifford = random_clifford(3, seed=0)
         stab = StabilizerState(clifford)
         _ = repr(stab)
-
 
 if __name__ == "__main__":
     unittest.main()
