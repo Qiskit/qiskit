@@ -404,6 +404,7 @@ Sampler V2
 
    BaseSamplerV2
    StatevectorSampler
+   BackendSamplerV2
 
 Results V2
 ----------
@@ -473,3 +474,4 @@ from .primitive_job import BasePrimitiveJob, PrimitiveJob
 from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
+from .backend_sampler_v2 import BackendSamplerV2
