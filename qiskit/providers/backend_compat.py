@@ -162,15 +162,22 @@ def convert_to_target(
         faulty_qubits = {
             q for q in range(configuration.num_qubits) if not properties.is_qubit_operational(q)
         }
-        qubit_properties = [
-            QubitProperties(
-                t1=properties.qubit_property(qubit_idx)["T1"][0],
-                t2=properties.qubit_property(qubit_idx)["T2"][0],
-                frequency=properties.qubit_property(qubit_idx)["frequency"][0],
-            )
-            for qubit_idx in range(0, configuration.num_qubits)
-        ]
 
+        qubit_properties = []
+        for qi in range(0, configuration.num_qubits):
+            # TODO faulty qubit handling might be needed since
+            #  faulty qubit reporting qubit properties doesn't make sense.
+            try:
+                prop_dict = properties.qubit_property(qubit=qi)
+            except KeyError:
+                continue
+            qubit_properties.append(
+                QubitProperties(
+                    t1=prop_dict.get("T1", (None, None))[0],
+                    t2=prop_dict.get("T2", (None, None))[0],
+                    frequency=prop_dict.get("frequency", (None, None))[0],
+                )
+            )
         in_data["qubit_properties"] = qubit_properties
 
         for name in all_instructions:
