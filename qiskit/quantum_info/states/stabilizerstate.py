@@ -489,7 +489,6 @@ class StabilizerState(QuantumState):
         for level in range(1, len(target)):
             #Find the deepest branch calculated that can be used from the cache
             test_key = (('X' * level) + target[level:])
-            #test_key = (('X' * level) + target[level:]))
             if(test_key in cache):
                 key = test_key
                 break 
@@ -795,18 +794,19 @@ class StabilizerState(QuantumState):
                     #Get the qubit for the current calculation
                     qubit = qubits[(len(qubits) - i - 1)]
                     #Determine if it is deterministic, use caching if available to prevent recalculation
-                    if (StabilizerState._is_qubit_deterministic(ret, qubit, ''.join(outcome), cache)):
+                    if (StabilizerState._is_qubit_deterministic(ret, qubit)):
                         outcome_prob = StabilizerState.retrieve_deterministic_probability(i, qubit, outcome, ret, outcome_prob, target)
                     else:
                         qubit_for_branching = i
 
-        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is
+        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is provided
         if(target != None and cache != None):
             key: str = "".join(outcome)
             #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
             #much faster to always set the cache value then to check if it exists and only store if it does not
             if(('X' in key and ('1' in key or '0' in key))):  
                 cache[key] = outcome_prob
+
 
         if (qubit_for_branching == -1):
             str_outcome = "".join(outcome)
@@ -827,14 +827,6 @@ class StabilizerState(QuantumState):
             stab_cpy._get_probabilities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
 
     @staticmethod
-    def _is_qubit_deterministic(ret: StabilizerState, qubit, current_outcome: str, cache: dict[str, float | bool] = None):
+    def _is_qubit_deterministic(ret: StabilizerState, qubit) -> bool:
         '''Helper method to Determine if the qubit is deterministic'''
-        if(cache != None):
-            #Only calculate keys if cache is available
-            key: str = ''.join(["D_", current_outcome, "_D:", str(qubit)])
-            #Only calculate this if not in the cache
-            if(not (key in cache)):
-                cache[key] = (not any(ret.clifford.stab_x[:, qubit]))
-            return cache[key]
-        else:
-            return (not any(ret.clifford.stab_x[:, qubit]))
+        return (not any(ret.clifford.stab_x[:, qubit]))
