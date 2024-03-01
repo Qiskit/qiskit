@@ -45,11 +45,11 @@ class TestStabilizerState(QiskitTestCase):
 
     #Allowed percent head room when checking performance
     #of probability calculations with targets vs without target
-    performance_varability_percent: float = 0.005
+    performance_varability_percent: float = 0.001
 
     @staticmethod
-    def probability_percent_of_calculated_branches(number_of_calculated_branhces: int, num_of_qubits: int) -> float:
-        return (number_of_calculated_branhces / ((2**(num_of_qubits+1))-1))
+    def probability_percent_of_calculated_branches(number_of_calculated_branches: int, num_of_qubits: int) -> float:
+        return (number_of_calculated_branches / ((2**(num_of_qubits+1))-1))
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_init_clifford(self, num_qubits):
@@ -636,15 +636,14 @@ class TestStabilizerState(QiskitTestCase):
         test_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
-                target_input: list[str] = ["000", "010", "110"]
+                target_input: list[str] = ["000", "100"]
                 test_1_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
                 test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
                 #Deliberately commented out values that should not be found
                 target = {
                     "000": 0.1,
-                    "010": 0.1,
-                    "110": 0.1,
+                    "100": 0.1
                 }
                 self.assertEqual(value, target)
 
@@ -662,10 +661,10 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
 
-        #Verify performance of calculating only in targets, not currently measuring the performance boost, but making sure it always runs faster
-        self.assertTrue(test_1_time_with_targets < (test_1_time_no_target * (self.probability_percent_of_calculated_branches(6, num_qubits) + self.performance_varability_percent)))
-        #(test_3_time_no_target * (self.probability_percent_of_calculated_branches(13, 3) + self.performance_varability_percent)
-                
+        #Verify the target test always runs faster then non targetted test
+        #Due to the small number of qubits, the performance boost will be much less then when using a large number of qubits
+        #And there will be a more siginifcant amount of overhead, so simply checking if it always performs better which it always should
+        self.assertTrue(test_1_time_with_targets < test_1_time_no_target)                
 
         #Test with larger number of qubits where performance will be significantly improved with targets to calculate
         num_qubits = 12
@@ -702,14 +701,13 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
 
         """
-        Note: Adding targets is a performance enhancement, so we need to verify it does increase performance
+        Note: Using targets is a performance enhancement, so we need to verify it does increase performance
         Since we are only calculating 2 complete branches of the 4096 possible branches this should lead 
         to a significant improvement in performance. The amount of nodes to calculate for 12 qubits for 
         the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The example above with caching 
-        will need to calculate 13 of the 8191 nodes (due to the second target being 1 branch from the first) 
+        will need to calculate 13 of the 8191 nodes (due to the second target to calculate being 1 branch from the first being calculated) 
         which will roughly take about 0.158% of the time to calculate compared to all the branches. Lets give a 
-        small amount of room for variance, adding 0.1% extra time. We will verify with caching which will allow
-        us to not have to calculate 11 of the nodes for the 2nd target
+        small amount of room for variance, adding 0.5% extra time
         """
         test_time_to_be_under: float = (test_3_time_no_target * (self.probability_percent_of_calculated_branches(13, num_qubits) + self.performance_varability_percent))
         self.assertTrue(test_3_time_with_target < test_time_to_be_under)
@@ -731,10 +729,13 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
         
         test_time_to_be_under: float = (test_3_time_no_target * (self.probability_percent_of_calculated_branches(24, num_qubits) + self.performance_varability_percent))
-        #Verify no caching test gains the correct amount of performance when using targets
+        #Verify not caching but still using targets performs withing expected speed compared to calculating all branches
         self.assertTrue(test_3_time_with_target_no_caching < test_time_to_be_under)
 
         #Verify the caching of branch values performs better then not caching when using targets
+        #This will make sure that caching is also working and giving us a performance benefit
+        #The more targets, and specifically the targets that go down similar branches, the more benefit caching will exhibit
+        #This is also more prevelant as the number of qubits grows
         self.assertTrue(test_3_time_with_target < test_3_time_with_target_no_caching)
 
 

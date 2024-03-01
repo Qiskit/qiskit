@@ -787,7 +787,7 @@ class StabilizerState(QuantumState):
     def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float | bool] = None):
         """Recursive helper function for calculating the probabilities"""
 
-        #Build a cache only if targetting values and cache object is provided
+        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is used
         if(target != None and cache != None):
             key: str = "".join(outcome)
             #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
@@ -806,7 +806,7 @@ class StabilizerState(QuantumState):
                 if outcome[i] == "X":
                     #Get the qubit for the current calculation
                     qubit = qubits[(len(qubits) - i - 1)]
-                    #Determine if it is deterministic
+                    #Determine if it is deterministic, use caching if available to prevent recalculation
                     if (StabilizerState._is_qubit_deterministic(ret, qubit, cache)):
                         outcome_prob = StabilizerState.retrieve_deterministic_probability(i, qubit, outcome, ret, outcome_prob, target)
                     else:
