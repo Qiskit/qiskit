@@ -1,5 +1,5 @@
 ---
-features_circuit:
+features_circuits:
   - |
     A :class:`.QuantumCircuit` can now contain typed classical variables::
 
