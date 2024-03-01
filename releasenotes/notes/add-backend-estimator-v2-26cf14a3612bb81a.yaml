@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The implementation :class:`~.BackendEstimatorV2` of :class:`~.BaseEstimatorV2` was added.
