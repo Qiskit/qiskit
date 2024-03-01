@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The implementation :class:`~.BackendSamplerV2` of :class:`~.BaseSamplerV2` was added.
+    This requires :class:`~.BackendV2` object that supports ``memory`` option to computes bitstrings.
