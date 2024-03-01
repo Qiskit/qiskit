@@ -783,17 +783,6 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float | bool] = None):
         """Recursive helper function for calculating the probabilities"""
-
-        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is
-        '''
-        if(target != None and cache != None):
-            key: str = "".join(outcome)
-            #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
-            #much faster to always set the cache value then to check if it exists and only store if it does not
-            if(('X' in key and ('1' in key or '0' in key))):  
-                cache[key] = outcome_prob
-        '''
-
         qubit_for_branching = -1
         ret: StabilizerState = self.copy()
 
@@ -811,6 +800,7 @@ class StabilizerState(QuantumState):
                     else:
                         qubit_for_branching = i
 
+        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is
         if(target != None and cache != None):
             key: str = "".join(outcome)
             #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
@@ -839,9 +829,10 @@ class StabilizerState(QuantumState):
     @staticmethod
     def _is_qubit_deterministic(ret: StabilizerState, qubit, current_outcome: str, cache: dict[str, float | bool] = None):
         '''Helper method to Determine if the qubit is deterministic'''
-        if(cache != None and False):
+        if(cache != None):
             #Only calculate keys if cache is available
             key: str = ''.join(["D_", current_outcome, "_D:", str(qubit)])
+            #Only calculate this if not in the cache
             if(not (key in cache)):
                 cache[key] = (not any(ret.clifford.stab_x[:, qubit]))
             return cache[key]

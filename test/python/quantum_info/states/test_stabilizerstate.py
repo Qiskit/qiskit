@@ -827,6 +827,32 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities_dict(qargs)
                 target = {"000": 0.5, "111": 0.5}
                 self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["000"]
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"000": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ["111"]
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"111": 0.5}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ["001"]
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"001": 0}
+                self.assertEqual(value, target)
+
+                input_target: list[str] = ["001", "111"]
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"001": 0, "111": 0.5}
+                #self.assertEqual(value, target)
+
+                input_target: list[str] = ["001", "010", "100", "110", "101", "011"]
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"001" : 0, "010" : 0, "100" : 0, "110" : 0, "101" : 0, "011" : 0}
+                self.assertEqual(value, target)
+
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
                 self.assertTrue(np.allclose(probs, target))
@@ -837,6 +863,37 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities_dict(qargs)
                 target = {"00": 0.5, "11": 0.5}
                 self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["00"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"00": 0.5}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["11"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"11": 0.5}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["01"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"01": 0}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["10"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"10": 0}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["01", "00"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"01": 0, "00": 0.5}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["10", "11"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"11": 0.5, "10": 0}
+                self.assertDictAlmostEqual(probs, target)
+
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0, 0, 0.5])
                 self.assertTrue(np.allclose(probs, target))
@@ -847,6 +904,17 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities_dict(qargs)
                 target = {"0": 0.5, "1": 0.5}
                 self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["0"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"0": 0.5}
+                self.assertDictAlmostEqual(probs, target)
+
+                input_target: list[str] = ["1"]
+                probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                target = {"1": 0.5}
+                self.assertDictAlmostEqual(probs, target)
+                
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
@@ -863,6 +931,7 @@ class TestStabilizerState(QiskitTestCase):
                 qc = cliff.to_circuit()
                 stab = StabilizerState(cliff)
                 probs = stab.probabilities(qargs)
+
                 probs_dict = stab.probabilities_dict(qargs)
                 target = Statevector(qc).probabilities(qargs)
                 target_dict = Statevector(qc).probabilities_dict(qargs)
