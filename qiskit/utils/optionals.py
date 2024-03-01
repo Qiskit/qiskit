@@ -310,11 +310,27 @@ HAS_GRAPHVIZ = _LazySubprocessTester(
     name="graphviz",
     install="'brew install graphviz' if on Mac, or by downloding it from their website",
 )
+HAS_KPSEWHICH = _LazySubprocessTester(
+    ("kpsewhich", "-version"),
+    msg="Unable to find a minimal TeX installation on your path. To install see https://www.latex-project.org/get/ for installation instructions.",
+)
 HAS_PDFLATEX = _LazySubprocessTester(
     ("pdflatex", "-version"),
-    msg="You will likely need to install a full LaTeX distribution for your system",
+    msg="You will likely need to install a full LaTeX distribution for your system.",
+)
+HAS_XYPIC = _LazySubprocessTester(
+    ("kpsewhich", "xypic.sty"),
+    msg="Unable to find the LaTeX package xypic.",
+)
+HAS_QCIRCUIT = _LazySubprocessTester(
+    ("kpsewhich", "qcircuit.sty"),
+    msg="Unable to find the LaTeX package qcircuit.",
+)
+HAS_STANDALONE = _LazySubprocessTester(
+    ("kpsewhich", "standalone.cls"),
+    msg="Unable to find the LaTeX package standalone.",
 )
 HAS_PDFTOCAIRO = _LazySubprocessTester(
     ("pdftocairo", "-v"),
-    msg="This is part of the 'poppler' set of PDF utilities",
+    msg="This is part of the 'poppler' set of PDF utilities.",
 )
