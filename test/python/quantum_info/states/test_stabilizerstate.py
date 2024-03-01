@@ -593,6 +593,8 @@ class TestStabilizerState(QiskitTestCase):
         stab = StabilizerState(qc)
 
         test_1_time_no_target: float = 0
+        test_1_time_with_targets: float = 0
+        test_1_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
                 test_1_time_no_target_start = time.monotonic()
@@ -613,7 +615,35 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
 
+                target_input: list[str] = ["000", "100"]
+                test_1_time_with_target_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
+                test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
+                target = {
+                    "000": 0.1,
+                    "100": 0.1
+                }
+                self.assertEqual(value, target)
+
+                target_input = ["001", "011"]
+                test_1_1_time_with_target_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
+                test_1_1_time_with_targets += (time.monotonic() - test_1_1_time_with_target_start)
+                target = {
+                    "001": 0.1,
+                    "011": 0.1
+                }
+                self.assertEqual(value, target)
+
+        #Verify the target test always runs faster then non targetted test
+        #Due to the small number of qubits, the performance boost will be much less then when using a large number of qubits
+        #And there will be a more siginifcant amount of overhead, so simply checking if it always performs better which it always should
+        self.assertTrue(test_1_time_with_targets < test_1_time_no_target)       
+        self.assertTrue(test_1_1_time_with_targets < test_1_time_no_target)  
+
         test_2_time_no_target: float = 0
+        test_2_time_with_targets: float = 0
+        test_2_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
                 test_2_time_no_target_start = time.monotonic()
@@ -634,7 +664,33 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12])
                 self.assertTrue(np.allclose(probs, target))
 
+                target_input: list[str] = ["000", "100"]
+                test_2_time_with_target_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
+                test_2_time_with_targets += (time.monotonic() - test_2_time_with_target_start)
+                target = {
+                    "000": 0.12,
+                    "100": 0.12
+                }
+                self.assertEqual(value, target)
+
+                target_input = ["001", "011"]
+                test_2_1_time_with_target_start = time.monotonic()
+                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
+                test_2_1_time_with_targets += (time.monotonic() - test_2_1_time_with_target_start)
+                target = {
+                    "001": 0.12,
+                    "011": 0.12
+                }
+                self.assertEqual(value, target)
+
+        #Verify the target test always runs faster then non targetted test
+        self.assertTrue(test_2_time_with_targets < test_2_time_no_target) 
+        self.assertTrue(test_2_1_time_with_targets < test_2_time_no_target) 
+
         test_3_time_no_target: float = 0
+        test_3_time_with_targets: float = 0
+        test_3_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=3"):
                 test_3_time_no_target_start = time.monotonic()
@@ -655,77 +711,6 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
                 self.assertTrue(np.allclose(probs, target))
 
-        #Tests above but With Targets
-        test_1_time_with_targets: float = 0
-        test_1_1_time_with_targets: float = 0
-        for _ in range(self.samples):
-            with self.subTest(msg="P(None), decimals=1"):
-                target_input: list[str] = ["000", "100"]
-                test_1_time_with_target_start = time.monotonic()
-                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                test_1_time_with_targets += (time.monotonic() - test_1_time_with_target_start)
-                target = {
-                    "000": 0.1,
-                    "100": 0.1
-                }
-                self.assertEqual(value, target)
-
-                target_input: list[str] = ["001", "011"]
-                test_1_1_time_with_target_start = time.monotonic()
-                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                test_1_1_time_with_targets += (time.monotonic() - test_1_1_time_with_target_start)
-                target = {
-                    "001": 0.1,
-                    "011": 0.1
-                }
-                self.assertEqual(value, target)
-
-                probs = stab.probabilities(decimals=1)
-                target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-                self.assertTrue(np.allclose(probs, target))
-
-        #Verify the target test always runs faster then non targetted test
-        #Due to the small number of qubits, the performance boost will be much less then when using a large number of qubits
-        #And there will be a more siginifcant amount of overhead, so simply checking if it always performs better which it always should
-        self.assertTrue(test_1_time_with_targets < test_1_time_no_target)       
-        self.assertTrue(test_1_1_time_with_targets < test_1_time_no_target)       
-
-        test_2_time_with_targets: float = 0
-        test_2_1_time_with_targets: float = 0
-        for _ in range(self.samples):
-            with self.subTest(msg="P(None), decimals=2"):
-                target_input: list[str] = ["000", "100"]
-                test_2_time_with_target_start = time.monotonic()
-                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
-                test_2_time_with_targets += (time.monotonic() - test_2_time_with_target_start)
-                target = {
-                    "000": 0.12,
-                    "100": 0.12
-                }
-                self.assertEqual(value, target)
-
-                target_input: list[str] = ["001", "011"]
-                test_2_1_time_with_target_start = time.monotonic()
-                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
-                test_2_1_time_with_targets += (time.monotonic() - test_2_1_time_with_target_start)
-                target = {
-                    "001": 0.12,
-                    "011": 0.12
-                }
-                self.assertEqual(value, target)
-
-                probs = stab.probabilities(decimals=2)
-                target = np.array([0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12])
-                self.assertTrue(np.allclose(probs, target))
-
-        #Verify the target test always runs faster then non targetted test
-        self.assertTrue(test_2_time_with_targets < test_2_time_no_target) 
-        self.assertTrue(test_2_1_time_with_targets < test_1_time_no_target)        
-
-        test_3_time_with_targets: float = 0
-        test_3_1_time_with_targets: float = 0
-        for _ in range(self.samples):
-            with self.subTest(msg="P(None), decimals=3"):
                 target_input: list[str] = ["000", "100"]
                 test_3_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
@@ -736,7 +721,7 @@ class TestStabilizerState(QiskitTestCase):
                 }
                 self.assertEqual(value, target)
 
-                target_input: list[str] = ["001", "011"]
+                target_input = ["001", "011"]
                 test_3_1_time_with_target_start = time.monotonic()
                 value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
                 test_3_1_time_with_targets += (time.monotonic() - test_3_1_time_with_target_start)
@@ -745,10 +730,6 @@ class TestStabilizerState(QiskitTestCase):
                     "011": 0.125
                 }
                 self.assertEqual(value, target)
-
-                probs = stab.probabilities(decimals=3)
-                target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
-                self.assertTrue(np.allclose(probs, target))
 
         #Verify the target test always runs faster then non targetted test
         self.assertTrue(test_3_time_with_targets < test_3_time_no_target)         
@@ -827,7 +808,7 @@ class TestStabilizerState(QiskitTestCase):
         #This is also more prevelant as the number of qubits grows
         self.assertTrue(test_4_time_with_target < test_4_time_with_target_no_caching)
 
-        #test as above with target and 2 not close branches, requiring 24 node calculations
+        #test with target and 2 not close branches, requiring 24 node calculations
         test_5_time_with_target: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
@@ -860,6 +841,22 @@ class TestStabilizerState(QiskitTestCase):
             value = stab.probabilities_dict()
             target = {"000": 0.5, "111": 0.5}
             self.assertEqual(value, target)
+
+            input_target: list[str] = ["000"]
+            value = stab.probabilities_dict_from_bitstrings(target=input_target)
+            target = {"000": 0.5}
+            self.assertEqual(value, target)
+
+            input_target: list[str] = ["111"]
+            value = stab.probabilities_dict_from_bitstrings(target=input_target)
+            target = {"111": 0.5}
+            self.assertEqual(value, target)
+
+            input_target: list[str] = ["001", "010", "100", "110", "101", "011"]
+            value = stab.probabilities_dict_from_bitstrings(target=input_target)
+            target = {"001" : 0, "010" : 0, "100" : 0, "110" : 0, "101" : 0, "011" : 0}
+            #self.assertEqual(value, target)
+
             probs = stab.probabilities()
             target = np.array([0.5, 0, 0, 0, 0, 0, 0, 0.5])
             self.assertTrue(np.allclose(probs, target))

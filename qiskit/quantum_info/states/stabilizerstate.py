@@ -763,16 +763,13 @@ class StabilizerState(QuantumState):
         
         #Extra checks are needed to determine the value if a target is provided
         if(target != None):
-            #Target qubit outcome for probability
-            if((int(target[i:i+1]) == single_qubit_outcome) and single_qubit_outcome == 0):
+            #Since it is deterministic, if the outcome is what we are targetting, use the current probability
+            #but if it is not what we are targetting, then we know that the probability will be 0
+            if((int(target[i:i+1]) == single_qubit_outcome)):
                 outcome[i] = str(single_qubit_outcome)
-            elif((int(target[i:i+1]) != single_qubit_outcome) and single_qubit_outcome == 1):
-                    outcome[i] = str(0)
-                    if("X" not in outcome):
-                        outcome_prob = 0
-            else:
-                outcome[i] = str(1)
-                outcome_prob = single_qubit_outcome
+            elif((int(target[i:i+1]) != single_qubit_outcome)):
+                    outcome[i] = str(int(target[i:i+1]))
+                    outcome_prob = 0
         else:
             #Non-target qubit outcome
             if (single_qubit_outcome):
@@ -787,7 +784,7 @@ class StabilizerState(QuantumState):
     def _get_probablities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: dict[str, float | bool] = None):
         """Recursive helper function for calculating the probabilities"""
 
-        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is used
+        #Build a cache only if targetting values and cache object is provided, no performance overhead when no target is
         if(target != None and cache != None):
             key: str = "".join(outcome)
             #Only store cache values that have partial branch calculation completed (Contain 'X' and at least one 1 or 0)
