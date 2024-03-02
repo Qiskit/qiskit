@@ -42,7 +42,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self._precision = 1e-2
+        self._precision = 7e-3
         self._rtol = 3e-1
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
         self.observable = SparsePauliOp.from_list(
