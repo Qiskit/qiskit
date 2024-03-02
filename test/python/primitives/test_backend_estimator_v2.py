@@ -22,7 +22,7 @@ from ddt import ddt
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.primitives import BackendEstimatorV2
+from qiskit.primitives import BackendEstimatorV2, StatevectorEstimator
 from qiskit.primitives.containers.bindings_array import BindingsArray
 from qiskit.primitives.containers.estimator_pub import EstimatorPub
 from qiskit.primitives.containers.observables_array import ObservablesArray
@@ -330,19 +330,21 @@ class TestBackendEstimatorV2(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = BackendEstimatorV2(
+        statevector_estimator = StatevectorEstimator(seed=123)
+        target = statevector_estimator.run([(qc, op, params_list)]).result()
+
+        backend_estimator = BackendEstimatorV2(
             backend=backend, abelian_grouping=abelian_grouping, default_precision=self._precision
         )
-        target = estimator.run([(qc, op, params_list)]).result()
 
         with self.subTest("ndarrary"):
-            result = estimator.run([(qc, op, params_array)]).result()
-            self.assertEqual(len(result[0].data.evs), k)
+            result = backend_estimator.run([(qc, op, params_array)]).result()
+            self.assertEqual(result[0].data.evs.shape, (k,))
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
 
         with self.subTest("list of ndarray"):
-            result = estimator.run([(qc, op, params_list_array)]).result()
-            self.assertEqual(len(result[0].data.evs), k)
+            result = backend_estimator.run([(qc, op, params_list_array)]).result()
+            self.assertEqual(result[0].data.evs.shape, (k,))
             np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
@@ -371,34 +373,40 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     @combine(abelian_grouping=[True, False])
     def test_aer(self, abelian_grouping):
-        """Test for numpy array as parameter values with Aer"""
+        """Test for Aer simulator"""
         from qiskit_aer import AerSimulator
 
         backend = AerSimulator()
-
-        qc = RealAmplitudes(num_qubits=2, reps=2)
+        seed = 123
+        qc = RealAmplitudes(num_qubits=2, reps=1)
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
-        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
-        op = op.apply_layout(qc.layout)
-        k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        op = [SparsePauliOp("IX"), SparsePauliOp("YI")]
+        shape = (3, 2)
+        rng = np.random.default_rng(seed)
+        params_array = rng.random(shape + (qc.num_parameters,))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
-        estimator = BackendEstimatorV2(
+        statevector_estimator = StatevectorEstimator(seed=seed)
+        target = statevector_estimator.run([(qc, op, params_list)]).result()
+
+        backend_estimator = BackendEstimatorV2(
             backend=backend, abelian_grouping=abelian_grouping, default_precision=self._precision
         )
-        target = estimator.run([(qc, op, params_list)]).result()
 
         with self.subTest("ndarrary"):
-            result = estimator.run([(qc, op, params_array)]).result()
-            self.assertEqual(len(result[0].data.evs), k)
-            np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
+            result = backend_estimator.run([(qc, op, params_array)]).result()
+            self.assertEqual(result[0].data.evs.shape, shape)
+            np.testing.assert_allclose(
+                result[0].data.evs, target[0].data.evs, rtol=self._rtol, atol=1e-1
+            )
 
         with self.subTest("list of ndarray"):
-            result = estimator.run([(qc, op, params_list_array)]).result()
-            self.assertEqual(len(result[0].data.evs), k)
-            np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
+            result = backend_estimator.run([(qc, op, params_list_array)]).result()
+            self.assertEqual(result[0].data.evs.shape, shape)
+            np.testing.assert_allclose(
+                result[0].data.evs, target[0].data.evs, rtol=self._rtol, atol=1e-1
+            )
 
 
 if __name__ == "__main__":
