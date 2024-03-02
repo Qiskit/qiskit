@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_transpiler:
   - |
     The transpilation pass ``qiskit.transpiler.passes.ALAPSchedule`` is now deprecated. It was pending for deprecation 
     since Qiskit 0.37 (with Terra 0.21), released on June 2022. The pass is replaced by 
