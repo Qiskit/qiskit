@@ -31,6 +31,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import Fake7QPulseV1
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.utils import optionals
 
 BACKENDS = [BasicSimulator(), BackendV2Converter(Fake7QPulseV1())]
 
@@ -366,6 +367,38 @@ class TestBackendEstimatorV2(QiskitTestCase):
         job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=self._precision * 0.5)
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956], rtol=self._rtol)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    @combine(abelian_grouping=[True, False])
+    def test_aer(self, abelian_grouping):
+        """Test for numpy array as parameter values with Aer"""
+        from qiskit_aer import AerSimulator
+
+        backend = AerSimulator()
+
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        qc = pm.run(qc)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        op = op.apply_layout(qc.layout)
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        estimator = BackendEstimatorV2(
+            backend=backend, abelian_grouping=abelian_grouping, default_precision=self._precision
+        )
+        target = estimator.run([(qc, op, params_list)]).result()
+
+        with self.subTest("ndarrary"):
+            result = estimator.run([(qc, op, params_array)]).result()
+            self.assertEqual(len(result[0].data.evs), k)
+            np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
+
+        with self.subTest("list of ndarray"):
+            result = estimator.run([(qc, op, params_list_array)]).result()
+            self.assertEqual(len(result[0].data.evs), k)
+            np.testing.assert_allclose(result[0].data.evs, target[0].data.evs, rtol=self._rtol)
 
 
 if __name__ == "__main__":

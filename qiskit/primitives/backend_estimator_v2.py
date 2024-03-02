@@ -23,7 +23,8 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV2
 from qiskit.quantum_info import Pauli, PauliList
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.transpiler import PassManager, PassManagerConfig
+from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
@@ -76,7 +77,10 @@ class BackendEstimatorV2(BaseEstimatorV2):
         """
         super().__init__()
         self._backend = backend
-        self._passmanager = generate_preset_pass_manager(optimization_level=0, backend=backend)
+        basis = PassManagerConfig.from_backend(backend).basis_gates
+        self._passmanager = PassManager(
+            [Optimize1qGatesDecomposition(basis=basis, target=backend.target)]
+        )
         self._default_precision = default_precision
         self._abelian_grouping = abelian_grouping
 
