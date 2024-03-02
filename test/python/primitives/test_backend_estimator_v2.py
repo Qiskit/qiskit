@@ -92,7 +92,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         # Note that passing objects has an overhead
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
         ham1 = hamiltonian1.apply_layout(psi2.layout)
         result2 = estimator.run([(psi2, ham1, theta2)]).result()
         np.testing.assert_allclose(result2[0].data.evs, [2.97797666], rtol=self._rtol)
