@@ -21,8 +21,11 @@ Pulse IR
 
 from __future__ import annotations
 
+import copy
+
 import rustworkx as rx
 from rustworkx import PyDAG
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.pulse.ir.alignments import Alignment
 from qiskit.pulse import Instruction
@@ -120,7 +123,68 @@ class IrBlock:
         except TypeError:
             return None
 
+    def draw(self, recursive: bool = False):
+        """Draw the graph of the IrBlock"""
+        if recursive:
+            draw_sequence = self.flatten().sequence
+        else:
+            draw_sequence = self.sequence
+
+        def _draw_nodes(n):
+            if n is InNode or n is OutNode:
+                return {"fillcolor": "grey", "style": "filled"}
+            try:
+                name = " " + n.name
+            except (TypeError, AttributeError):
+                name = ""
+            return {"label": f"{n.__class__.__name__}" + name}
+
+        return graphviz_draw(
+            draw_sequence,
+            node_attr_fn=_draw_nodes,
+        )
+
+    def flatten(self, inplace: bool = False) -> IrBlock:
+        """Recursively flatten the IrBlock"""
+        # TODO : Verify that the block\sub blocks are sequenced.
+        if inplace:
+            block = self
+        else:
+            block = copy.deepcopy(self)
+            block._sequence[0] = InNode
+            block._sequence[1] = OutNode
+
+        for ind in block.sequence.node_indices():
+            if isinstance(block.sequence.get_node_data(ind), IrBlock):
+
+                def edge_map(x, y, w):
+                    if y == ind:
+                        return 0
+                    if x == ind:
+                        return 1
+                    return None
+
+                sub_block = block.sequence.get_node_data(ind)
+                sub_block.flatten(inplace=True)
+                initial_time = block._time_table.get(ind, None)
+                nodes_mapping = block._sequence.substitute_node_with_subgraph(
+                    ind, sub_block.sequence, edge_map
+                )
+                if initial_time is not None:
+                    for old_node in nodes_mapping.keys():
+                        if old_node not in (0, 1):
+                            block._time_table[nodes_mapping[old_node]] = (
+                                initial_time + sub_block._time_table[old_node]
+                            )
+                block._sequence.remove_node_retain_edges(nodes_mapping[0])
+                block._sequence.remove_node_retain_edges(nodes_mapping[1])
+
+        return block
+
     def __eq__(self, other):
         if self.alignment != other.alignment:
             return False
-        return rx.is_isomorphic_node_match(self._sequence, other._sequence, lambda x, y: x == y)
+        # TODO : Define alignment equating. Currently this doesn't work.
+        return rx.is_isomorphic_node_match(
+            self._sequence, other._sequence, lambda x, y: x == y or x is y
+        )

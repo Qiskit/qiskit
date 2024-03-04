@@ -126,6 +126,7 @@ def _sequence_sequential(alignment, sequence: PyDAG, property_set):
 def schedule_pass(ir_block: IrBlock, property_set: dict) -> IrBlock:
     """Recursively schedule the block by setting initial time for every element"""
     # mutate graph
+    # TODO : Check if graph has edges. Override existing edges? Raise Error?
     _schedule_elements(ir_block.alignment, ir_block._time_table, ir_block._sequence, property_set)
     return ir_block
 

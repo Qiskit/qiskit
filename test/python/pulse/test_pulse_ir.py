@@ -30,6 +30,11 @@ from qiskit.pulse.ir import (
 
 from qiskit.pulse.ir.alignments import AlignLeft
 from qiskit.pulse.model import QubitFrame, Qubit
+from qiskit.pulse.compiler.temp_passes import (
+    sequence_pass,
+    schedule_pass,
+    analyze_target_frame_pass,
+)
 
 
 class TestIrBlock(QiskitTestCase):
@@ -135,3 +140,147 @@ class TestIrBlock(QiskitTestCase):
         self.assertEqual(ir_example.initial_time(), 100)
         self.assertEqual(ir_example.final_time(), 400)
         self.assertEqual(ir_example.duration, 300)
+
+    def test_flatten_ir_no_sub_blocks(self):
+        """Test that flattening ir with no sub blocks doesn't do anything"""
+        ir_example = IrBlock(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        ir_example.append(inst)
+        ir_example.append(inst2)
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        self.assertEqual(ir_example.flatten(), ir_example)
+
+    def test_flatten_inplace_flag(self):
+        """Test that inplace flag in flattening works"""
+        ir_example = IrBlock(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        ir_example.append(inst)
+        ir_example.append(inst2)
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        self.assertTrue(ir_example.flatten(inplace=True) is ir_example)
+        self.assertFalse(ir_example.flatten() is ir_example)
+
+    def test_flatten_one_sub_block(self):
+        """Test that flattening works with one block"""
+        ir_example = IrBlock(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        block = IrBlock(AlignLeft())
+        block.append(inst)
+        block.append(inst2)
+        ir_example.append(block)
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        flat = ir_example.flatten()
+        edge_list = flat.sequence.edge_list()
+        print(edge_list)
+        self.assertEqual(len(edge_list), 4)
+        self.assertTrue((0, 5) in edge_list)
+        self.assertTrue((0, 6) in edge_list)
+        self.assertTrue((5, 1) in edge_list)
+        self.assertTrue((6, 1) in edge_list)
+
+    def test_flatten_one_sub_block_and_parallel_instruction(self):
+        """Test that flattening works with one block and parallel instruction"""
+        ir_example = IrBlock(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        block = IrBlock(AlignLeft())
+        block.append(inst)
+        block.append(inst2)
+        ir_example.append(block)
+        ir_example.append(Play(Constant(100, 0.5), frame=QubitFrame(3), target=Qubit(3)))
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        flat = ir_example.flatten()
+        edge_list = flat.sequence.edge_list()
+        self.assertEqual(len(edge_list), 6)
+        self.assertTrue((0, 3) in edge_list)
+        self.assertTrue((3, 1) in edge_list)
+        self.assertTrue((0, 6) in edge_list)
+        self.assertTrue((0, 7) in edge_list)
+        self.assertTrue((6, 1) in edge_list)
+        self.assertTrue((7, 1) in edge_list)
+
+    def test_flatten_one_sub_block_and_sequential_instructions(self):
+        """Test that flattening works with one block and sequential instructions"""
+        ir_example = IrBlock(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        block = IrBlock(AlignLeft())
+        block.append(inst)
+        block.append(inst2)
+        ir_example.append(Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1)))
+        ir_example.append(block)
+        ir_example.append(Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2)))
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        flat = ir_example.flatten()
+        edge_list = flat.sequence.edge_list()
+        self.assertEqual(len(edge_list), 8)
+        self.assertTrue((0, 2) in edge_list)
+        self.assertTrue((4, 1) in edge_list)
+        self.assertTrue((2, 7) in edge_list)
+        self.assertTrue((2, 8) in edge_list)
+        self.assertTrue((7, 1) in edge_list)
+        self.assertTrue((8, 1) in edge_list)
+        self.assertTrue((7, 4) in edge_list)
+        self.assertTrue((8, 4) in edge_list)
+
+    def test_flatten_two_levels(self):
+        """Test that flattening works with one block and sequential instructions"""
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+
+        block1 = IrBlock(AlignLeft())
+        block1.append(inst)
+        block = IrBlock(AlignLeft())
+        block.append(inst)
+        block.append(block1)
+
+        ir_example = IrBlock(AlignLeft())
+        ir_example.append(inst)
+        ir_example.append(block)
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        flat = ir_example.flatten()
+        edge_list = flat.sequence.edge_list()
+        self.assertEqual(len(edge_list), 4)
+        self.assertTrue((0, 2) in edge_list)
+        self.assertTrue((2, 6) in edge_list)
+        self.assertTrue((6, 7) in edge_list)
+        self.assertTrue((7, 1) in edge_list)
+        self.assertEqual(flat.scheduled_elements()[0], [0, inst])
+        self.assertEqual(flat.scheduled_elements()[1], [100, inst])
+        self.assertEqual(flat.scheduled_elements()[2], [200, inst])
+
+    # TODO : Test IrBlock equating. Problem with Alignment, and possibly InNode,OutNode.
+
+    # TODO : Test IrBlock.draw()
