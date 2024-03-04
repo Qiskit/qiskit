@@ -440,13 +440,13 @@ class StabilizerState(QuantumState):
             outcome_prob: float = 1.0
 
             #Determine if one of the branches was already partially calculated to give a better starting point
-            #And reduce the number of nodes calculated, only available when using a target and cache
-            if(use_caching and cache.outcome_cache_contains_entries()):
-                outcome_key: list[str] = cache.retreive_best_cache_starting_point(item_target)
+            #And reduce the number of nodes calculated, only available when caching is enabled
+            if(use_caching):
+                key: str = cache.retreive_key_for_most_completed_branch_to_target(item_target)
                 #if a key was returned, start at the previously calculated starting point
-                if(outcome_key != None):
-                    outcome_prob = cache.retrieve_outcome(outcome_key)
-                    outcome = outcome_key
+                if(key != None):
+                    outcome_prob = cache.retrieve_outcome(key)
+                    outcome = list(key)
             #If no cache key was found or cache is not used, then set the outcome to the base values, 
             #this is more efficient then setting at beginning of for loop and then finding a cache value to replace
             if(outcome == None):
@@ -763,19 +763,19 @@ class StabilizerState(QuantumState):
     def _get_probabilities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: ProbabilityCache = None):
         """Recursive helper function for calculating the probabilities"""
         qubit_for_branching = -1
-        #Only use caching if requirements are met
+        #Only use caching if requirements are met, using target and cache object set
         use_caching: bool = (target != None and cache != None)
         ret: StabilizerState = None
 
         #Use cache only if a key was found earlier
         if(use_caching):
             if(cache.is_state_in_stabilizer_cache(outcome)):
-                ret = cache.retrieve_stabalizer_state(outcome)
+                ret = cache.retrieve_state(outcome)
             else:
                 ret = self.copy()
-                cache.insert_stabalizer_state(outcome, ret)
+                cache.insert_state(outcome, ret)
         else: 
-            #Non cached path, no overhead related to caching
+            #Non cached path, no overhead related to caching if caching is disabled
             ret = self.copy()
 
         #Find outcomes for each qubit
@@ -815,6 +815,6 @@ class StabilizerState(QuantumState):
             stab_cpy._get_probabilities(qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache)
 
     @staticmethod
-    def _is_qubit_deterministic(ret: StabilizerState, qubit) -> bool:
+    def _is_qubit_deterministic(ret: StabilizerState, qubit: int) -> bool:
         '''Helper method to Determine if the qubit is deterministic'''
         return (not any(ret.clifford.stab_x[:, qubit]))
