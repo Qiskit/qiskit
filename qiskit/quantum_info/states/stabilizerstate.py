@@ -17,7 +17,6 @@ Stabilizer state class.
 from __future__ import annotations
 
 from collections.abc import Collection
-import time
 
 import numpy as np
 
@@ -725,15 +724,12 @@ class StabilizerState(QuantumState):
         """Used to determine if the branch caclulations should be limited when a target is passed
         If no target value is passed the range will always be range(0,2)
 
-        Parameters
-        ----------
-        target str: target to get results for
-        qubit_for_branching int: the qubit to perform the branching for
+        Parameters:
+            target str: target to get results for
+            qubit_for_branching int: the qubit to perform the branching for
 
-        Returns
-        -------
-        range
-            branch or branches to calculate for in range format
+        Returns:
+            range: branch or branches to calculate for in range format
         """
         if target == None:
             return range(0, 2)
