@@ -36,9 +36,11 @@ by the controllers of the QPU.
     * :ref:`discussion of Qiskit conventions for circuits, matrices and state labelling
       <circuit-conventions>`
 
-Circuits are the low-level construct that are used to build up the higher level :ref:`primitives of
-quantum computation <qiskit-primitives>`, which accumulate many shots of quantum-circuit execution
-along with advanced error-mitigation techniques and measurement optimizations.
+Circuits are at a low level of abstraction when building up quantum programs.  They are the
+construct that is used to build up to higher levels of abstraction, such as the :ref:`primitives of
+quantum computation <qiskit-primitives>`, which accumulate bitwise data from many shots of
+quantum-circuit execution, along with advanced error-mitigation techniques and measurement
+optimizations, into well-typed classical data and error statistics.
 
 In Qiskit, circuits can be defined in one of two regimes:
 
@@ -52,7 +54,7 @@ In Qiskit, circuits can be defined in one of two regimes:
 You convert from an abstract circuit to a physical circuit by using :ref:`Qiskit's transpilation
 package <qiskit-transpiler>`, of which the top-level access point is :func:`.transpile`.
 
-In Qiskit, this core element is represented by the :class:`QuantumCircuit` class.  Below is an
+In Qiskit, a quantum circuit is represented by the :class:`QuantumCircuit` class.  Below is an
 example of a quantum circuit that makes a three-qubit Greenberger–Horne–Zeilinger (GHZ) state
 defined as:
 
@@ -99,17 +101,25 @@ abstract circuit
     You turn an abstract circuit into a *physical circuit* by using :ref:`Qiskit's transpilation
     package <qiskit-transpiler>`.
 
+ancilla qubit
+    An extra qubit that is used to help implement operations on other qubits, but whose final state
+    is not important for the program.
+
 circuit
     A computational routine the defines a single execution to be taken on a QPU.  This can either be
     an *abstract circuit* or a *physical circuit*.
+
+clbit
+    A Qiskit-specific abbreviation meaning a single classical bit of data.
 
 gate
     A *unitary operation* on one or more qubits.
 
 hardware qubit
     The representation of a single qubit on a particular *QPU*.  A hardware qubit has some physical
-    quantum-mechanical system backing it; unlike a *virtual qubit*, it has particular coupling
-    constraints and only certain gates can be applied to certain physical qubits.
+    quantum-mechanical system backing it, such as superconducting circuits; unlike a *virtual
+    qubit*, it has particular coupling constraints and only certain gates can be applied to certain
+    groups of hardware qubits.
 
     Qiskit does not distinguish *logical qubits* from any individual *physical qubits* when talking
     about hardware qubits.  A QPU may implement its hardware qubits as logical qubits, where each
@@ -149,7 +159,7 @@ near-time classical computation
 physical circuit
     A *circuit* defined in terms of *hardware qubits* and only the quantum operations available in a
     particular *QPU's* *ISA*.  Physical circuits are tied to one particular QPU architecture, and
-    will not run on incompatible architectures.  You may also hear this referred to as an *ISA
+    will not run on other incompatible architectures.  You may also hear this referred to as an *ISA
     circuit*.
 
     You typically get a physical circuit by using :ref:`Qiskit's transpilation routines
@@ -203,8 +213,8 @@ sections.  This section provides an overview of the API elements documented here
     TODO: actually write the "in-depth section on building circuits and cross-ref to it.
 
 The principal class is :class:`.QuantumCircuit`, which has its own documentation page, including
-an in-depth section on building circuits. The simplest quantum and classical data is built out of
-"bits" and "registers":
+an in-depth section on building circuits. Quantum data and the simplest classical data are
+represented by "bits" and "registers":
 
 * :class:`Bit`, an atom of data
     * :class:`Qubit`
@@ -250,7 +260,7 @@ classes are each a singleton form of the standard instruction–gate hierarchy:
 Some instructions are particularly special in that they affect the control flow or data flow of the
 circuit.  The top-level ones are:
 
-* :class:`Barrier`, to forbid optimizations from crossing a barrier
+* :class:`Barrier`, to mark parts of the circuit that should be optimized independently
 * :class:`Delay`, to insert a real-time wait period
 * :class:`Measure`, to measure a :class:`Qubit` into a :class:`Clbit`
 * :class:`Reset`, to irreversibly reset a qubit to the :math:`\lvert0\rangle` state
@@ -422,7 +432,7 @@ circuit), but these are now discouraged and you should use the alternatives note
 Operations, instructions and gates
 ----------------------------------
 
-Within a :class:`CircuitInstruction`, the minimal interface that any operation must fulfil is
+Within a :class:`CircuitInstruction`, the minimal interface that any operation must fulfill is
 :class:`Operation`.  This is a *very* high level view, and only usable for abstract circuits.  The
 main purpose of treating operations as :class:`Operation` is to allow arbitrary mathematical
 objects (such as :class:`.quantum_info.Operator`) to be added to abstract circuits directly.
@@ -451,8 +461,8 @@ opaque to optimizers, its :attr:`~Instruction.definition` can be ``None``.  See
 :ref:`circuit-custom-gates` for more detail.
 
 The :attr:`~Instruction.params` of an instruction can technically be arbitrary, but in general you
-should attempt to stick to parametrizations in terms of angles, wherever possible.  Qiskit itself
-breaks this rule in many places, and you will find all sorts of unusual types in
+should attempt to stick to parametrizations in terms of real numbers, wherever possible.  Qiskit
+itself breaks this rule in many places, and you will find all sorts of unusual types in
 :attr:`Instruction.params` fields, but these are an annoying source of bugs because they often imply
 the need for type-aware special casing.  If your instruction is parametrized in terms of angles, you
 will be able to reliably use :ref:`compile-time parametrization in it
@@ -639,10 +649,10 @@ valid in mathematics, such as simplifying :math:`(x + y - x) / y \to 1`.  Such a
 not valid in floating-point arithmetic, and :class:`.expr.Expr` will not do this.
 
 The "compile-time" part of these parameters means that you typically will want to "assign" values to
-the parameters before sending them for execution.  These parameters can typically be used anywhere
-that expects a mathematical angle (like a rotation gate's parameters), with the caveat that hardware
-will usually require them to be assigned to a proper classically typed value before execution.  You
-can do this assignment using :meth:`QuantumCircuit.assign_parameters`.
+the parameters before sending the circuit for execution.  These parameters can typically be used
+anywhere that expects a mathematical angle (like a rotation gate's parameters), with the caveat that
+hardware will usually require them to be assigned to a proper classically typed value before
+execution.  You can do this assignment using :meth:`QuantumCircuit.assign_parameters`.
 
 You may want to use many parameters that are related to each other.  To make this easier (and to
 avoid you needing to come up with many names), you can use the convenience constructor
@@ -777,7 +787,7 @@ The base classes :class:`Instruction`, :class:`Gate` and :class:`ControlledGate`
 be safe to subclass, and have hook points for subclasses to implement.  If your custom gate is
 parameterless and stateless, you may also want to derive from the corresponding singleton class in
 :mod:`qiskit.circuit.singleton`, such as :class:`SingletonGate`.  You should consult the
-documentation in :mod:`qiskit.circuit.singleton` for additional methods and hookpoints for the
+documentation in :mod:`qiskit.circuit.singleton` for additional methods and hook points for the
 singleton machinery.
 
 Subclasses should typically define a default constructor that calls the :class`super` constructor

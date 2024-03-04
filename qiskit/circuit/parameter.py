@@ -27,6 +27,12 @@ from .parameterexpression import ParameterExpression
 class Parameter(ParameterExpression):
     """A compile-time symbolic parameter.
 
+    The value of a :class:`Parameter` must be entirely determined before a circuit begins execution.
+    Typically this will mean that you should supply values for all :class:`Parameter`\\ s in a
+    circuit using :meth:`.QuantumCircuit.assign_parameters`, though certain hardware vendors may
+    allow you to give them a circuit in terms of these parameters, provided you also pass the values
+    separately.
+
     This is the atom of :class:`.ParameterExpression`, and is itself an expression.  The numeric
     value of a parameter need not be fixed while the circuit is being defined.
 
