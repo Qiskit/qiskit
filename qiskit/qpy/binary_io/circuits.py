@@ -226,8 +226,8 @@ def _read_instruction(
             use_symengine=use_symengine,
         )
     if circuit is not None:
-        qubit_indices = dict(enumerate(circuit.qubits))
-        clbit_indices = dict(enumerate(circuit.clbits))
+        qubit_indices = circuit.qubits
+        clbit_indices = circuit.clbits
     else:
         qubit_indices = {}
         clbit_indices = {}
