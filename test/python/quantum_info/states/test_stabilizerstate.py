@@ -741,7 +741,7 @@ class TestStabilizerState(QiskitTestCase):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: list[str] = ["011110001010", "111110001010"]
                 test_4_time_with_target_no_caching_start = time.monotonic()
-                value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target, caching=False)
+                value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target, use_caching=False)
                 test_4_time_with_target_no_caching += (time.monotonic() - test_4_time_with_target_no_caching_start)
                 #Build target with all combinations of 01 for num_qubits long to value 0.00024, the expected result for each
                 target = {
