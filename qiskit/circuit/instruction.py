@@ -41,7 +41,6 @@ from typing import List, Type
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
@@ -589,22 +588,22 @@ class Instruction(Operation):
         n = int(n)
 
         instruction = self._return_repeat(n)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, "q")
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, "c")
-
         if instruction.definition is None:
             # pylint: disable=cyclic-import
             from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
-            qc = QuantumCircuit()
-            if qargs:
-                qc.add_register(qargs)
-            if cargs:
-                qc.add_register(cargs)
-            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            qc = QuantumCircuit(self.num_qubits, self.num_clbits)
+            qargs = tuple(qc.qubits)
+            cargs = tuple(qc.clbits)
+            base = self.to_mutable()
+            # Condition is handled on the outer instruction.
+            base.condition = None
             for _ in [None] * n:
-                qc._append(circuit_instruction)
-        instruction.definition = qc
+                qc._append(CircuitInstruction(base, qargs, cargs))
+
+            instruction.definition = qc
+        if self.condition:
+            instruction = instruction.c_if(*self.condition)
         return instruction
 
     @property
