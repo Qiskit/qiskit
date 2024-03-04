@@ -12,6 +12,12 @@
 from qiskit.quantum_info.states.quantum_state import QuantumState
 
 class ProbabilityCache:
+    '''
+    Used to cache probability outcomes and StabilizerState when calculating the branches using targets.
+    When using multiple targets for the Probability calculation, which will reduce the number of branches calculated, 
+    if a user has multiple branches they are calculating, this can save time on rebuilding the state of a branch that
+    was partially traversed, and gives a better starting point and increases performance.
+    '''
     def __init__(self):
         self.cache_outcome: dict[str, float] = {}
         self.cache_ret: dict[str, QuantumState] = {}
@@ -22,10 +28,10 @@ class ProbabilityCache:
         if in str format it will be assumed this was calculated earlier
 
         Args:
-            outcome (list[str]) : outcome value used for building the key
+            outcome (list[str]): outcome value used for building the key
 
         Returns:
-            str : the key in str format
+            str: the key in str format
         '''
         if(type(list)):
             return "".join(outcome)
@@ -36,10 +42,10 @@ class ProbabilityCache:
         '''Check if the stabilizer state is cached from previous branch calculations
 
         Args:
-            outcome list[str] : outcome value used to get the key and check the cache
+            outcome list[str]: outcome value used to get the key and check the cache
 
         Returns:
-            bool : True if state is in cache, False if not in cache
+            bool: True if state is in cache, False if not in cache
         '''
         key: str = ProbabilityCache.cache_key(outcome)
         return (ProbabilityCache._check_key(key) and (key in self.cache_ret))
@@ -49,10 +55,10 @@ class ProbabilityCache:
         checked to make sure it exists or an exception will be raised
 
         Args:
-            outcome list[str] : outcome value used to get the key and check the cache
+            outcome list[str]: outcome value used to get the key and check the cache
 
         Returns:
-            QuantumState : the state retrieved from the cache
+            QuantumState: the state retrieved from the cache
         '''
         return self.cache_ret[ProbabilityCache.cache_key(outcome)]
     
@@ -61,10 +67,10 @@ class ProbabilityCache:
         it is assumed cache was already checked to make sure it exists or an exception will be raised
 
         Args:
-            outcome list[str] : outcome value used to get the key and check the cache
+            outcome list[str]: outcome value used to get the key and check the cache
 
         Returns:
-            float : the cached float value for the outcome probability
+            float: the cached float value for the outcome probability
         '''
         return self.cache_outcome[ProbabilityCache.cache_key(outcome)]
     
@@ -72,7 +78,7 @@ class ProbabilityCache:
         '''Check if the outcome cache contains any entries
 
         Returns:
-            bool : True if at least 1 entry exists, False if nothing is cached
+            bool: True if at least 1 entry exists, False if nothing is cached
         '''
         return (len(self.cache_outcome) > 0)
     
@@ -83,8 +89,8 @@ class ProbabilityCache:
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome (list[str]) : outcome value used to get the key and check the cache 
-            ret (QuantumState) : the QuantumState to save in the cache
+            outcome (list[str]): outcome value used to get the key and check the cache 
+            ret (QuantumState): the QuantumState to save in the cache
         '''
         key: str = ProbabilityCache.cache_key(outcome)
         if(ProbabilityCache._check_key(key)):
@@ -97,8 +103,8 @@ class ProbabilityCache:
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome (list[str]) : outcome value used to get the key and check the cache 
-            ret (QuantumState) : the QuantumState to save in the cache
+            outcome (list[str]): outcome value used to get the key and check the cache 
+            ret (QuantumState): the QuantumState to save in the cache
         '''
         key: str = ProbabilityCache.cache_key(outcome)
         if(ProbabilityCache._check_key(key)):
@@ -112,10 +118,10 @@ class ProbabilityCache:
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            key (str) : the key to verify
+            key (str): the key to verify
 
         Returns:
-            bool : True if it meets the criteria
+            bool: True if it meets the criteria
         '''
         return (key != None and 'X' in key and ('1' in key or '0' in key))
 
@@ -125,8 +131,8 @@ class ProbabilityCache:
         It will retrieve the key for the closest node used to continue calculating the branch
 
         Args:
-            cache dict[str, float] : cache value of previously calculated branch
-            target str : target item wanting to calculate
+            cache dict[str, float]: cache value of previously calculated branch
+            target str: target item wanting to calculate
 
         Returns:
         str: the key if it is found in the cache, or None if not found

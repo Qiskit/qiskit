@@ -388,8 +388,7 @@ class StabilizerState(QuantumState):
 
         return probs
     
-    def probabilities_dict_from_bitstrings(self, qargs: None | list = None, decimals: None | int = None, target: list[str] | str | None = None, use_caching: bool = True) -> dict:
-        #python -m unittest test.python.quantum_info.states.test_stabilizerstate.TestStabilizerState.test_probablities_dict_single_qubit
+    def probabilities_dict_from_bitstrings(self, qargs: None | list = None, decimals: None | int = None, target: list[str] | str | None = None, use_caching: bool = True) -> dict[str, float]:
         '''Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -405,14 +404,14 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            target list[str] | str: a target list of items to calculate probabilities for
-            use_caching bool: True will utilize caching when a target is provided and not recalculated previously 
-                    calculated nodes, when False caching will not be used when targets are provided which will 
-                    sacrifice performance and recalculate every node for a branch, caching can only be enabled
-                    when there is more then 1 target to calculate as calculating 1 branch will not benefit from caching
+            target list[str] | str: a target list of items to calculate probabilities for, or a specific single target str
+            use_caching bool: enable the user of caching when calculating multiple targets. True will enable only if more then
+                    one target is being calculated, otherwise there will be no performance benefit. If not using target, then caching
+                    will not be enabled as there will not be a performance benefit from enabling. False will not use caching and when
+                    targetting multiple items will recalculate every set of nodes for a branch
 
         Returns:
-            dict: The measurement probabilities in dict (ket) form.
+            dict[str, float]: The measurement probabilities in dict (ket) form.
         '''
         if qargs is None:
             qubits = range(self.clifford.num_qubits)
@@ -428,7 +427,7 @@ class StabilizerState(QuantumState):
             target = [target]
         
         # probabilities dictionary to return with the calculated values
-        probs = {}
+        probs: dict[str, float] = {}
 
         #Check if all the requirements to use caching are met that make sense for the performance improvement
         use_caching = (target != None and len(target) > 1 and use_caching)
@@ -447,7 +446,7 @@ class StabilizerState(QuantumState):
                 if(key != None):
                     outcome_prob = cache.retrieve_outcome(key)
                     outcome = list(key)
-            #If no cache key was found or cache is not used, then set the outcome to the base values, 
+            #If no cache key was found or cache is not used, then set the outcome to the base values
             #this is more efficient then setting at beginning of for loop and then finding a cache value to replace
             if(outcome == None):
                 outcome = (["X"] * len(qubits))
@@ -720,15 +719,13 @@ class StabilizerState(QuantumState):
 
         Parameters
         ----------
-        target : str
-            target to get results for
-        qubit_for_branching : int
-            the qubit to perform the branching for
+        target str: target to get results for
+        qubit_for_branching int: the qubit to perform the branching for
 
         Returns
         -------
         range
-            branch or branches to calculate for
+            branch or branches to calculate for in range format
         '''
         if(target == None):
             return range(0,2)
@@ -737,10 +734,24 @@ class StabilizerState(QuantumState):
             return range(loc, (loc+1))
 
     @staticmethod
-    def retrieve_deterministic_probability(i: int, qubit, outcome, ret: StabilizerState, outcome_prob: float, target: str) -> float:
+    def retrieve_deterministic_probability(i: int, qubit: int, outcome: list[str], ret: StabilizerState, outcome_prob: float, target: str) -> float:
+        '''Helper to get the deterministic probabilitiy
+
+        Args:
+            i int: index in outcome being calculated
+            qubit int: qubit performing calculation on
+            outcome list[str]: outcome being built
+            ret StabilizerState: stabilizer state performing the calculations
+            outcome_prob (float): probabilitiy of the outcome
+            target (str): target outcome wanting to calculate
+
+        Returns:
+            float: _description_
+        '''
         single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
         
-        #Extra checks are needed to determine the value if a target is provided
+        #Extra checks are needed to determine the value if a target is provided, if not using a target
+        #then skip the extra checks and keep the same performance as before
         if(target != None):
             #Since it is deterministic, if the outcome is what we are targetting, use the current probability
             #but if it is not what we are targetting, then we know that the probability will be 0
@@ -760,8 +771,18 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probabilities(self, qubits, outcome, outcome_prob, probs, target: str = None, cache: ProbabilityCache = None):
-        """Recursive helper function for calculating the probabilities"""
+    def _get_probabilities(self, qubits: range, outcome: list[str], outcome_prob: float, probs: dict[str, float], target: str = None, cache: ProbabilityCache = None):
+        '''Recursive helper function for calculating the probabilities
+
+        Args:
+            qubits : range of qubits
+            outcome list[str]: outcome being built
+            outcome_prob (float): probabilitiy of the outcome
+            ret StabilizerState: stabilizer state performing the calculations
+            probs dict[str, float]: holds the outcomes and probabilitiy results
+            target str: target outcome wanting to calculate, None if not targetting a specific target
+            cache: ProbabilityCache: caching object to hold states and outcomes for calculating future branches
+        '''
         qubit_for_branching = -1
         #Only use caching if requirements are met, using target and cache object set
         use_caching: bool = (target != None and cache != None)

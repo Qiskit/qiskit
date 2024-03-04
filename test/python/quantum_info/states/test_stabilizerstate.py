@@ -1392,11 +1392,17 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
 
         # [XX, -ZZ] and [XX, YY] both generate the stabilizer group {II, XX, YY, -ZZ}
         self.assertTrue(cliff1.equiv(cliff2))
-        self.assertEqual(cliff1.probabilities_dict(), cliff2.probabilities_dict())
+        cliff_1_probs: dict[str, float] = cliff1.probabilities_dict()
+        self.assertEqual(cliff_1_probs, cliff2.probabilities_dict())
+        target_input: list[str] = random.sample(list(cliff_1_probs), random.randint(1, len(cliff_1_probs)))
+        self.assertEqual(cliff1.probabilities_dict_from_bitstrings(target=target_input), cliff2.probabilities_dict_from_bitstrings(target=target_input))
 
         # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
         self.assertTrue(cliff3.equiv(cliff4))
-        self.assertEqual(cliff3.probabilities_dict(), cliff4.probabilities_dict())
+        cliff_3_probs: dict[str, float] = cliff3.probabilities_dict()
+        self.assertEqual(cliff_3_probs, cliff4.probabilities_dict())
+        target_input = random.sample(list(cliff_3_probs), random.randint(1, len(cliff_3_probs)))
+        self.assertEqual(cliff3.probabilities_dict_from_bitstrings(target=target_input), cliff4.probabilities_dict_from_bitstrings(target=target_input))
 
         self.assertFalse(cliff1.equiv(cliff3))
         self.assertFalse(cliff2.equiv(cliff4))
