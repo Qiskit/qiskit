@@ -36,9 +36,6 @@ class Parameter(ParameterExpression):
     This is the atom of :class:`.ParameterExpression`, and is itself an expression.  The numeric
     value of a parameter need not be fixed while the circuit is being defined.
 
-    .. autoattribute:: name
-    .. autoattribute:: uuid
-
     Examples:
 
         Construct a variable-rotation X gate using circuit parameters.
