@@ -48,8 +48,6 @@ class TestStabilizerState(QiskitTestCase):
     #of probability calculations with targets vs without target
     performance_varability_percent: float = 0.01
 
-    '''
-
     @staticmethod
     def probability_percent_of_calculated_branches(number_of_calculated_branches: int, num_of_qubits: int) -> float:
         return (number_of_calculated_branches / ((2**(num_of_qubits+1))-1))
@@ -922,7 +920,6 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
-    '''
 
     @combine(num_qubits=[2, 3, 4])
     def test_probs_random_subsystem(self, num_qubits):
@@ -948,8 +945,6 @@ class TestStabilizerState(QiskitTestCase):
                 probs_dict = stab.probabilities_dict_from_bitstrings(qargs, target=random_target_dict)
                 target_dict_recalc = {key : target_dict[key] for key in probs_dict}
                 self.assertDictAlmostEqual(probs_dict, target_dict_recalc)
-
-    '''
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_expval_from_random_clifford(self, num_qubits):
@@ -1411,8 +1406,6 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         clifford = random_clifford(3, seed=0)
         stab = StabilizerState(clifford)
         _ = repr(stab)
-
-    '''
 
 if __name__ == "__main__":
     unittest.main()
