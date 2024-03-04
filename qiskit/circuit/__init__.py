@@ -407,8 +407,10 @@ The scalar type of the :attr:`QuantumCircuit.data` sequence is the "instruction 
 of what is to be done (its :attr:`~CircuitInstruction.operation`), and the data it acts on (the
 :attr:`~CircuitInstruction.qubits` and :attr:`~CircuitInstruction.clbits`).
 
-.. autoclass:: CircuitInstruction
-    :members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    CircuitInstruction
 
 Programmatically, this class is actually implemented in Rust and is a constructed handle to internal
 data within Rust space.  Mutations to instances of this class will not be reflected in the circuit.
@@ -421,8 +423,10 @@ The :class:`QuantumCircuit` methods that add instructions to circuits (such as
 :meth:`~QuantumCircuit.append`, and all the helper standard-gate methods) return an
 :class:`InstructionSet`, which is a handle to several :class:`CircuitInstruction`\ s simultaneously.
 
-.. autoclass:: InstructionSet
-    :members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    InstructionSet
 
 This :class:`InstructionSet` is now little used in Qiskit.  It provides a very minimal set of
 methods to perform post-append mutations on instructions (which *will* be propagated to the
@@ -437,17 +441,20 @@ Within a :class:`CircuitInstruction`, the minimal interface that any operation m
 main purpose of treating operations as :class:`Operation` is to allow arbitrary mathematical
 objects (such as :class:`.quantum_info.Operator`) to be added to abstract circuits directly.
 
-.. autoclass:: Operation
-    :members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    Operation
 
 Most operations, including all operations on physical circuits, are instances of the more concretely
 defined :class:`Instruction`.  This represents any instruction that some QPU might be able to carry
 out natively, such as :class:`Measure`.  :class:`Instruction` need not be unitary (much as
 :class:`Measure` isn't); an instruction is specifically unitary if it is a :class:`Gate`.
 
-.. autoclass:: Instruction
-    :members:
-    :show-inheritance:
+.. autosummary::
+    :toctree: ../stubs/
+
+    Instruction
 
 :class:`Instruction`\ s can be near arbitrary, provided they only act on :class:`Qubit`\ s and
 :class:`Clbit`\ s, and are parametrized by their :attr:`~Instruction.params`; they should not
@@ -473,10 +480,10 @@ While :class:`Instruction` is not necessarily unitary, its subclass :class:`Gate
 and adds :meth:`~Gate.to_matrix` and :meth:`~Gate.control` methods to all the methods inherited from
 :class:`Instruction`.
 
-.. autoclass:: Gate
-    :members:
-    :show-inheritance:
-    :no-inherited-members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    Gate
 
 :class:`Gate` inherits all the methods for :class:`Instruction` and all the same considerations
 about its :attr:`~Instruction.params` and :attr:`~Instruction.definition` field, except of course
@@ -490,10 +497,10 @@ Subclassing :class:`Gate`, Qiskit has a special :class:`ControlledGate` class as
 is the base of many standard-library gates that are controlled (such as :class:`CXGate`), which is
 where you are most likely to encounter it:
 
-.. autoclass:: ControlledGate
-    :members:
-    :show-inheritance:
-    :no-inherited-members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    ControlledGate
 
 Each of :class:`Instruction`, :class:`Gate` and :class:`ControlledGate` has a corresponding
 singleton type, built using the machinery described in :mod:`qiskit.circuit.singleton`.  The
@@ -514,9 +521,10 @@ and abstract optimization is more important, Qiskit offers a composable class ca
 :class:`AnnotatedOperation`, which tracks "gate modifiers" (of which :class:`ControlModifier` is
 one) to apply to the inner :attr:`~AnnotatedOperation.base_op`.
 
-.. autoclass:: AnnotatedOperation
-    :members:
-    :show-inheritance:
+.. autosummary::
+    :toctree: ../stubs/
+
+    AnnotatedOperation
 
 The available modifiers for :class:`AnnotatedOperation` are:
 
@@ -634,8 +642,11 @@ Various parametric :class:`Instruction` instances in Qiskit can be parametrized 
 designed to be resolved at compile time.  These are characterized by the use of the
 :class:`Parameter` and :class:`ParameterExpression` classes.
 
-.. autoclass:: Parameter
-.. autoclass:: ParameterExpression
+.. autosummary::
+    :toctree: ../stubs/
+
+    Parameter
+    ParameterExpression
 
 The main way that this differs from the :class:`expr.Var` variables used in near-time classical
 computation is that :class:`ParameterExpression` is a symbolic representation of a mathematical
@@ -658,7 +669,10 @@ You may want to use many parameters that are related to each other.  To make thi
 avoid you needing to come up with many names), you can use the convenience constructor
 :class:`ParameterVector`.  The elements of the vector are all valid :class:`Parameter` instances.
 
-.. autoclass:: ParameterVector
+.. autosummary::
+    :toctree: ../stubs/
+
+    ParameterVector
 
 .. _circuit-control-flow:
 
@@ -668,23 +682,23 @@ Control flow in circuits
 Within :class:`QuantumCircuit`, classical control flow is represented by specific
 :class:`Instruction`\ s, which are subclasses of :class:`ControlFlowOp`.
 
-.. autoclass:: ControlFlowOp
-    :members:
-    :no-inherited-members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    ControlFlowOp
 
 These control-flow operations (:class:`IfElseOp`, :class:`WhileLoopOp`,
 :class:`SwitchCaseOp` and :class:`ForLoopOp`) all have specific state that defines the branching
 conditions and strategies, but contain all the different subcircuit blocks that might be entered in
 their :attr:`~ControlFlowOp.blocks` property.
 
-.. autoclass:: IfElseOp
-    :show-inheritance:
-.. autoclass:: WhileLoopOp
-    :show-inheritance:
-.. autoclass:: SwitchCaseOp
-    :show-inheritance:
-.. autoclass:: ForLoopOp
-    :show-inheritance:
+.. autosummary::
+    :toctree: ../stubs/
+
+    IfElseOp
+    WhileLoopOp
+    SwitchCaseOp
+    ForLoopOp
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
@@ -694,8 +708,11 @@ In addition to the block-structure control-flow operations, there are also two s
 that affect the flow of control when within loops.  These correspond to typical uses of the
 ``break`` and ``continue`` statements in classical programming languages.
 
-.. autoclass:: BreakLoopOp
-.. autoclass:: ContinueLoopOp
+.. autosummary::
+    :toctree: ../stubs/
+
+    BreakLoopOp
+    ContinueLoopOp
 
 .. note::
     The classes representations are documented here, but please note that manually constructing
@@ -1079,8 +1096,10 @@ A common task in mapping abstract circuits to physical hardware and optimizing t
 equivalence relations that map a gate to a different basis set.  Qiskit stores this information in a
 database class called :class:`EquivalenceLibrary`.
 
-.. autoclass:: EquivalenceLibrary
-    :members:
+.. autosummary::
+    :toctree: ../stubs/
+
+    EquivalenceLibrary
 
 Qiskit ships with a large set of predefined equivalence relationships for all of its standard gates.
 This base library is called :data:`StandardEquivalenceLibrary`, and should be treated as immutable.
