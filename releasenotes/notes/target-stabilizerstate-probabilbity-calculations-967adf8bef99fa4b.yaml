@@ -1,12 +1,14 @@
 
 features:
   - |
-    The 'qiskit.quantum_info.states.stabilizerstate' class now has a new method probabilities_dict_from_bitstrings
+    The :class:'.StabilizerState' class now has a new method :meth:'~.StabilizerState.probabilities_dict_from_bitstrings'
     allowing the user to pass in a string or list or string targets to calculate probabilities for. Previouslly this
     would always calculate (2^n) number of probabilbity calculations, but now will only calculate the necessary probabilbites to 
     calculate the targets provided. As the number of qubits increases, the more prevelant the performance enhancement will be. The
-    method also has caching abilities implemented, which can be enabled or disabled, to help performance when calculating multiple targets.
-    The closer the paths of the calculations of previous targets, the better it the method will perform. The logic in method probabilities_dict was moved to 
-    probabilities_dict_from_bitstrings and now calls probabilities_dict_from_bitstrings with no targets values. No changes will need to be made for 
-    previous calls to probabilities_dict, and caching is disabled when no targets are provided, which causes no extra overhead.
+    method also has caching abilities implemented, which can be enabled or disabled via bool, to help performance when calculating multiple targets.
+    The closer the paths of the calculations of previously calculated targets, the better the method will perform. The logic in method 
+    :meth:'~.StabilizerState.probabilities_dict' was moved to method :meth:'~.StabilizerState.probabilities_dict_from_bitstrings' and 
+    :meth:'~.StabilizerState.probabilities_dict' now calls :meth:'~.StabilizerState.probabilities_dict_from_bitstrings' with no target parm set.
+    No changes will need to be made for previous calls to :meth:'~.StabilizerState.probabilities_dict', and caching is disabled when no targets are provided, 
+    which causes no extra overhead for the :meth:'~.StabilizerState.probabilities_dict' mehtod. 
     Refer to issue '#11425 <https://github.com/Qiskit/qiskit/issues/11425>' for more details.
