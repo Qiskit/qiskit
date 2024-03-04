@@ -595,9 +595,11 @@ class Instruction(Operation):
             qc = QuantumCircuit(self.num_qubits, self.num_clbits)
             qargs = tuple(qc.qubits)
             cargs = tuple(qc.clbits)
-            base = self.to_mutable()
-            # Condition is handled on the outer instruction.
-            base.condition = None
+            base = self.copy()
+            if self.condition:
+                # Condition is handled on the outer instruction.
+                base = base.to_mutable()
+                base.condition = None
             for _ in [None] * n:
                 qc._append(CircuitInstruction(base, qargs, cargs))
 
