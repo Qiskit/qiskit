@@ -12,6 +12,7 @@
 from __future__ import annotations
 from qiskit.quantum_info.states.quantum_state import QuantumState
 
+
 class ProbabilityCache:
     """
     Used to cache probability outcomes and StabilizerState when calculating the branches using targets.
