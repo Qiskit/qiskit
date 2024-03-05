@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Calling :meth:`~.QuantumCircuit.copy` or :meth:`~.QuantumCircuit.copy_empty_like` on a
-    :class:¬.BlueprintCircuit` will now correctly propagate the
-    :attr:`~.QuantumCircuit.global_phase` to the copy.  Previously, the global phase would always be zero after the copy.

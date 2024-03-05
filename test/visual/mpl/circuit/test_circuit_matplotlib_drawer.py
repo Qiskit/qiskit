@@ -1010,15 +1010,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
+        style = {
+            "name": "user_style",
+            "displaytext": {"H2": "H_2"},
+            "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+        }
         fname = "user_style.png"
         self.circuit_drawer(
             circuit,
             output="mpl",
-            style={
-                "name": "user_style",
-                "displaytext": {"H2": "H_2"},
-                "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
-            },
+            style=style,
             filename=fname,
         )
 
@@ -1029,7 +1030,19 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check image"):
+            self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check style dict unchanged"):
+            self.assertEqual(
+                style,
+                {
+                    "name": "user_style",
+                    "displaytext": {"H2": "H_2"},
+                    "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+                },
+            )
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
