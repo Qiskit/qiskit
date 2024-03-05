@@ -10,17 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test for the DAGDependencyV2 object"""
+"""Test for the _DAGDependencyV2 object"""
 
 import unittest
 
-from qiskit.dagcircuit import DAGDependencyV2, DAGOpNode
+from qiskit.dagcircuit import _DAGDependencyV2, DAGOpNode
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
 from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.converters.circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
+from qiskit.converters.circuit_to_dagdependency_v2 import _circuit_to_dagdependency_v2
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 try:
@@ -30,11 +30,11 @@ except ImportError:
 
 
 def raise_if_dagdependency_invalid(dag):
-    """Validates the internal consistency of a DAGDependencyV2._multi_graph.
+    """Validates the internal consistency of a _DAGDependencyV2._multi_graph.
     Intended for use in testing.
 
     Raises:
-       DAGDependencyError: if DAGDependencyV2._multi_graph is inconsistent.
+       DAGDependencyError: if _DAGDependencyV2._multi_graph is inconsistent.
     """
 
     multi_graph = dag._multi_graph
@@ -53,7 +53,7 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_add_qreg_creg(self):
         """add_qreg() and  add_creg() methods"""
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         dag.add_qreg(QuantumRegister(2, "qr"))
         dag.add_creg(ClassicalRegister(1, "cr"))
         self.assertDictEqual(dag.qregs, {"qr": QuantumRegister(2, "qr")})
@@ -61,7 +61,7 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_dag_get_qubits(self):
         """get_qubits() method"""
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         dag.add_qreg(QuantumRegister(1, "qr1"))
         dag.add_qreg(QuantumRegister(1, "qr10"))
         dag.add_qreg(QuantumRegister(1, "qr0"))
@@ -82,14 +82,14 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_add_reg_duplicate(self):
         """add_qreg with the same register twice is not allowed."""
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         qr = QuantumRegister(2)
         dag.add_qreg(qr)
         self.assertRaises(DAGDependencyError, dag.add_qreg, qr)
 
     def test_add_reg_duplicate_name(self):
         """Adding quantum registers with the same name is not allowed."""
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         qr1 = QuantumRegister(3, "qr")
         dag.add_qreg(qr1)
         qr2 = QuantumRegister(2, "qr")
@@ -97,7 +97,7 @@ class TestDagRegisters(QiskitTestCase):
 
     def test_add_reg_bad_type(self):
         """add_qreg with a classical register is not allowed."""
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         cr = ClassicalRegister(2)
         self.assertRaises(DAGDependencyError, dag.add_qreg, cr)
 
@@ -106,7 +106,7 @@ class TestDagRegisters(QiskitTestCase):
         qubits = [Qubit() for _ in range(5)]
         clbits = [Clbit() for _ in range(3)]
 
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         dag.add_qubits(qubits)
         dag.add_clbits(clbits)
 
@@ -118,7 +118,7 @@ class TestDagRegisters(QiskitTestCase):
         qubits = [Qubit() for _ in range(5)]
         clbits = [Clbit() for _ in range(3)]
 
-        dag = DAGDependencyV2()
+        dag = _DAGDependencyV2()
         dag.add_qubits(qubits)
         dag.add_clbits(clbits)
 
@@ -133,7 +133,7 @@ class TestDagNodeEdge(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.dag = DAGDependencyV2()
+        self.dag = _DAGDependencyV2()
         self.qreg = QuantumRegister(2, "qr")
         self.creg = ClassicalRegister(2, "cr")
 
@@ -174,7 +174,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.dag = DAGDependencyV2()
+        self.dag = _DAGDependencyV2()
         self.qreg = QuantumRegister(2, "qr")
         self.creg = ClassicalRegister(2, "cr")
         self.dag.add_qreg(self.qreg)
@@ -191,7 +191,7 @@ class TestDagNodeSelection(QiskitTestCase):
         circuit.h(self.qreg[0])
         circuit.measure(self.qreg[0], self.creg[0])
 
-        self.dag = circuit_to_dagdependency_v2(circuit)
+        self.dag = _circuit_to_dagdependency_v2(circuit)
 
         test_successors = [2, 4]
         successors = sorted([node._node_id for node in self.dag.successors(self.dag._get_node(1))])
@@ -262,7 +262,7 @@ class TestDagProperties(QiskitTestCase):
         circ.u(0.0, 0.1, 0.2, qr1[3])
         circ.ccx(qr2[0], qr2[1], qr1[0])
 
-        self.dag = circuit_to_dagdependency_v2(circ)
+        self.dag = _circuit_to_dagdependency_v2(circ)
 
     def test_size(self):
         """Test total number of operations in dag."""
@@ -276,11 +276,11 @@ class TestDagProperties(QiskitTestCase):
         """Empty circuit DAG is zero depth"""
         q = QuantumRegister(5, "q")
         qc = QuantumCircuit(q)
-        dag = circuit_to_dagdependency_v2(qc)
+        dag = _circuit_to_dagdependency_v2(qc)
         self.assertEqual(dag.depth(), 0)
 
     def test_default_metadata_value(self):
-        """Test that the default DAGDependencyV2 metadata is valid QuantumCircuit metadata."""
+        """Test that the default _DAGDependencyV2 metadata is valid QuantumCircuit metadata."""
         qc = QuantumCircuit(1)
         qc.metadata = self.dag.metadata
         self.assertEqual(qc.metadata, {})
@@ -291,7 +291,7 @@ class TestCopy(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.dag = DAGDependencyV2()
+        self.dag = _DAGDependencyV2()
         self.dag.name = "Name"
         self.dag.metadata = "Metadata"
         qreg = QuantumRegister(3, "qr")
