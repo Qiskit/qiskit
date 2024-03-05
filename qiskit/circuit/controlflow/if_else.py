@@ -60,7 +60,7 @@ class IfElseOp(ControlFlowOp):
     ):
         """
         Args:
-            condition: A condition to be evaluated at circuit runtime which,
+            condition: A condition to be evaluated in real time during circuit execution which,
                 if true, will trigger the evaluation of ``true_body``. Can be
                 specified as either a tuple of a ``ClassicalRegister`` to be
                 tested for equality with a given ``int``, or as a tuple of a

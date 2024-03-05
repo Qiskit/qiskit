@@ -62,7 +62,7 @@ class SwitchCaseOp(ControlFlowOp):
     ):
         """
         Args:
-            target: the runtime value to switch on.
+            target: the real-time value to switch on.
             cases: an ordered iterable of the corresponding value of the ``target`` and the circuit
                 block that should be executed if this is matched.  There is no fall-through between
                 blocks, and the order matters.

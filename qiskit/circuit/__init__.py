@@ -21,7 +21,7 @@ The fundamental element of quantum computing is the *quantum circuit*.  This is 
 routine that can be run, one shot at a time, on a quantum processing unit (QPU).  A circuit will act
 on a predefined amount of quantum data (in Qiskit, we only directly support qubits) with unitary
 operations (gates), measurements and resets.  In addition, a quantum circuit can contain operations
-on classical data, including near-time computations and control-flow constructs, which are executed
+on classical data, including real-time computations and control-flow constructs, which are executed
 by the controllers of the QPU.
 
 .. note::
@@ -95,7 +95,7 @@ beginning.
 abstract circuit
     A *circuit* defined in terms of abstract mathematical operations and *virtual qubits*.  This is
     typically how you think about quantum algorithms; an abstract circuit can be made up of
-    completely arbitrary unitary operations, measurements, and potentially *near-time classical
+    completely arbitrary unitary operations, measurements, and potentially *real-time classical
     computation*, with no restrictions about which qubits can interact with each other.
 
     You turn an abstract circuit into a *physical circuit* by using :ref:`Qiskit's transpilation
@@ -148,14 +148,6 @@ measurement
     irreversible operation, and usually destroys entanglement and phase coherence between the target
     qubit and the rest of the system.
 
-near-time classical computation
-    Any classical computation that can happen within the execution of a single shot of a *circuit*,
-    where the results of the classical computation can affect later execution of the circuit.  The
-    amount of near-time classical computation available with particular *QPU*\ s will vary
-    significantly dependent on many factors, such as the controlling electronics and the qubit
-    technology in use. You should consult your hardware vendor's documentation for more information
-    on this.
-
 physical circuit
     A *circuit* defined in terms of *hardware qubits* and only the quantum operations available in a
     particular *QPU's* *ISA*.  Physical circuits are tied to one particular QPU architecture, and
@@ -174,12 +166,20 @@ quantum processing unit (QPU)
     Analogous to a CPU in classical computing or a GPU in graphics processing, a QPU is the hardware
     that runs quantum operations on quantum data.  You can always expect a QPU that uses the
     *circuit* model of computation to be able to perform some set of *gates*, and *measurement*
-    operations.  Depending on the particular technology, they also may be able to run some near-time
+    operations.  Depending on the particular technology, they also may be able to run some real-time
     classical computations as well, such as classical control flow and bitwise calculations on
     classical data.
 
 qubit
     The basic unit of quantum information.
+
+real-time classical computation
+    Any classical computation that can happen within the execution of a single shot of a *circuit*,
+    where the results of the classical computation can affect later execution of the circuit.  The
+    amount of real-time classical computation available with particular *QPU*\ s will vary
+    significantly dependent on many factors, such as the controlling electronics and the qubit
+    technology in use. You should consult your hardware vendor's documentation for more information
+    on this.
 
 unitary operation
     A reversible operation on a quantum state. All quantum *gates* are unitary operations (by
@@ -264,7 +264,7 @@ circuit.  The top-level ones are:
 * :class:`Delay`, to insert a real-time wait period
 * :class:`Measure`, to measure a :class:`Qubit` into a :class:`Clbit`
 * :class:`Reset`, to irreversibly reset a qubit to the :math:`\lvert0\rangle` state
-* :class:`Store`, to write a runtime classical expression to a storage location
+* :class:`Store`, to write a real-time classical expression to a storage location
 * :class:`ControlFlowOp`, which has specific subclasses:
     * :class:`BreakLoopOp`, to break out of the nearest containing loop
     * :class:`ContinueLoopOp`, to move immediately to the next iteration of the containing loop
@@ -273,21 +273,21 @@ circuit.  The top-level ones are:
     * :class:`SwitchCaseOp`, to conditionally enter one of many subcicuits
     * :class:`WhileLoopOp`, to repeat a subcircuit until a condition is falsified.
 
-:ref:`Circuits can include classical expressions that are evaluated in near-time
-<circuit-repr-near-time-classical>`, while the QPU is executing a single shot of the circuit.  These
+:ref:`Circuits can include classical expressions that are evaluated in real time
+<circuit-repr-real-time-classical>`, while the QPU is executing a single shot of the circuit.  These
 are primarily documented in the module documentation of :mod:`qiskit.circuit.classical`.  You might
 be particularly interested in the base classes (which are not exposed from the :mod:`qiskit.circuit`
 root):
 
 * :class:`~classical.expr.Var`, a typed classical storage location in a circuit
-* :class:`~classical.expr.Expr`, a runtime-evaluated expression
+* :class:`~classical.expr.Expr`, a real-time-evaluated expression
 * :class:`~classical.types.Type`, the classical type of an expression.
 
-In addition to this runtime expression evaluation, which is limited by classical hardware
+In addition to this real-time expression evaluation, which is limited by classical hardware
 representations of data, Qiskit has the concept of "compile-time" parametrization, which is done in
 abstract symbolic algebra.  These are typically used to represent gate angles in high-level
 algorithms that might want to perform numerical derivatives, but they are an older part of Qiskit
-than the runtime evaluation, so are still used in some places to do general parametrization.  The
+than the real-time evaluation, so are still used in some places to do general parametrization.  The
 main related classes are:
 
 * :class:`Parameter`, the atom of compile-time expressions
@@ -332,7 +332,7 @@ documentation.
     QuantumCircuit
 
 Internally, a :class:`QuantumCircuit` contains the qubits, classical bits, compile-time parameters,
-runtime variables, and other tracking information about the data it acts on and how it is
+real-time variables, and other tracking information about the data it acts on and how it is
 parametrized.  It then contains a sequence of :class:`CircuitInstruction`\ s, which contain
 the particular operation (gate, measurement, etc) and its operands (the qubits and classical bits).
 
@@ -395,7 +395,7 @@ unsigned integers for use in conditional comparisons of :ref:`control flow opera
 Classical registers and bits were the original way of representing classical data in Qiskit, and
 remain the most supported currently.  Longer term, the data model is moving towards a more complete
 and strongly typed representation of a range of classical data (see
-:ref:`circuit-repr-near-time-classical`), but you will still very commonly use classical bits in
+:ref:`circuit-repr-real-time-classical`), but you will still very commonly use classical bits in
 current Qiskit.
 
 
@@ -582,7 +582,7 @@ it is forbidden for the optimizer to cancel out the two :math:`X` instructions.
     :show-inheritance:
 
 The :class:`Store` instruction is particularly special, in that it allows writing the result of a
-:ref:`near-time classical computation expression <circuit-repr-near-time-classical>` (an
+:ref:`real-time classical computation expression <circuit-repr-real-time-classical>` (an
 :class:`.expr.Expr`) in a local classical variable (a :class:`.expr.Var`).  It takes *neither*
 :class:`Qubit` nor :class:`Clbit` operands, but has an explicit :attr:`~Store.lvalue` and
 :attr:`~Store.rvalue`.
@@ -593,35 +593,35 @@ The :class:`Store` instruction is particularly special, in that it allows writin
     :no-inherited-members:
 
 
-.. _circuit-repr-near-time-classical:
+.. _circuit-repr-real-time-classical:
 
-Near-time classical computation
+Real-time classical computation
 -------------------------------
 
 .. note::
 
-    The primary documentation for near-time classical computation is in the module-level
+    The primary documentation for real-time classical computation is in the module-level
     documentation of :mod:`qiskit.circuit.classical`.
 
-    You might also want to read about the circuit methods for working with runtime variables on the
-    :class:`QuantumCircuit` class page.
+    You might also want to read about the circuit methods for working with real-time variables on
+    the :class:`QuantumCircuit` class page.
 
     ..
-        TODO: write a section in the QuantumCircuit-level guide about runtime-variable methods and
+        TODO: write a section in the QuantumCircuit-level guide about real-time-variable methods and
         cross-ref to it.
 
-Qiskit has rudimentary low-level support for representing near-time classical computations, which
+Qiskit has rudimentary low-level support for representing real-time classical computations, which
 happen during the QPU execution and affect the results.  We are still relatively early into hardware
 support for these concepts as well, so beware that you will need to work closely with your hardware
-provider's documentation to get the best use out of any near-time classical computation.
+provider's documentation to get the best use out of any real-time classical computation.
 
-These near-time calculations are represented by the expression and type system in
-:mod:`qiskit.circuit.classical`.  At a high level, all near-time expressions are represented by an
+These real-time calculations are represented by the expression and type system in
+:mod:`qiskit.circuit.classical`.  At a high level, all real-time expressions are represented by an
 :class:`.Expr` node, which is part of an expression "tree" representation, which has a well-defined
 :class:`~.classical.Type` associated with it at every level.  See the module-level documentation for
 much more detail on the internal representations of these classes.
 
-The result of a near-time :class:`.Expr` can be used directly in certain places.  Currently this is
+The result of a real-time :class:`.Expr` can be used directly in certain places.  Currently this is
 limited to conditions of :class:`.IfElseOp` and :class:`.WhileLoopOp`, and the target of
 :class:`.SwitchCaseOp`.  The result can also be stored in a typed classical storage location, using
 the :class:`.Store` instruction (or its :meth:`QuantumCircuit.store` constructor), backed by a
@@ -648,7 +648,7 @@ designed to be resolved at compile time.  These are characterized by the use of 
     Parameter
     ParameterExpression
 
-The main way that this differs from the :class:`expr.Var` variables used in near-time classical
+The main way that this differs from the :class:`expr.Var` variables used in real-time classical
 computation is that :class:`ParameterExpression` is a symbolic representation of a mathematical
 expression.  The semantics of the expression are those of regular mathematics over the continuous
 real numbers (and, in limited cases, over the complex numbers). In contrast, :class:`.Var` is a
@@ -764,8 +764,8 @@ all blocks in the same :class:`ControlFlowOp` need to contain the same registers
 builder interface will arrange for this to be the case (or produce an eager error if they cannot).
 
 When the low-level construction is being used the inner :class:`QuantumCircuit` blocks must
-manually close over any outer-scope :ref:`near-time classical computation variables
-<circuit-repr-near-time-classical>` that they use.  This is marked by these being in the
+manually close over any outer-scope :ref:`real-time classical computation variables
+<circuit-repr-real-time-classical>` that they use.  This is marked by these being in the
 :meth:`~QuantumCircuit.iter_captured_vars` iterator for that block.  Libraries constructing these
 blocks manually will need to track these captures when building control-flow circuit blocks and add
 them to the block using :meth:`~QuantumCircuit.add_capture` (or the ``captures`` constructor
