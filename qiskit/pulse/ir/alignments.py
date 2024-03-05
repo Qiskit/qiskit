@@ -9,29 +9,44 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+=========
+Pulse IR Alignments
+=========
+"""
 
 
 class Alignment:
-    @property
-    def conditions(self) -> dict:
-        return {}
+    """Base abstract class for IR alignments"""
+
+    pass
 
 
 class ParallelAlignment(Alignment):
+    """Base abstract class for IR alignments which align instructions in parallel"""
+
     pass
 
 
 class SequentialAlignment(Alignment):
+    """Base abstract class for IR alignments which align instructions sequentially"""
+
     pass
 
 
 class AlignLeft(ParallelAlignment):
+    """Left Alignment"""
+
     pass
 
 
 class AlignRight(ParallelAlignment):
+    """Right Alignment"""
+
     pass
 
 
 class AlignSequential(SequentialAlignment):
+    """Sequential Alignment"""
+
     pass

@@ -19,7 +19,7 @@ from functools import singledispatch
 from rustworkx import PyDAG
 
 from qiskit.pulse.model import MixedFrame
-from qiskit.pulse.ir import IrBlock
+from qiskit.pulse.ir import SequenceIR
 from qiskit.pulse.ir.ir import InNode, OutNode
 from qiskit.pulse.ir.alignments import (
     Alignment,
@@ -31,7 +31,7 @@ from qiskit.pulse.ir.alignments import (
 )
 
 
-def analyze_target_frame_pass(ir_block: IrBlock, property_set) -> None:
+def analyze_target_frame_pass(ir_block: SequenceIR, property_set) -> None:
     """Map the dependency of ``MixedFrame``s on ``PulseTarget`` and ``Frame``.
 
     Recursively traverses through the ``ir_block`` to find all ``MixedFrame``s,
@@ -45,11 +45,11 @@ def analyze_target_frame_pass(ir_block: IrBlock, property_set) -> None:
     property_set["target_frame_map"] = dict(target_frame_map)
 
 
-def _analyze_target_frame_in_block(ir_block: IrBlock, target_frame_map: dict) -> None:
+def _analyze_target_frame_in_block(ir_block: SequenceIR, target_frame_map: dict) -> None:
     """A helper function to recurse through the block while mapping mixed frame dependency"""
     for elm in ir_block.elements():
         # Sub Block
-        if isinstance(elm, IrBlock):
+        if isinstance(elm, SequenceIR):
             _analyze_target_frame_in_block(elm, target_frame_map)
         # Pulse Instruction
         else:
@@ -58,21 +58,21 @@ def _analyze_target_frame_in_block(ir_block: IrBlock, target_frame_map: dict) ->
                 target_frame_map[elm.inst_target.pulse_target].add(elm.inst_target)
 
 
-def sequence_pass(ir_block: IrBlock, property_set: dict) -> IrBlock:
-    """Finalize the sequence of the IrBlock by adding edges to the DAG"""
+def sequence_pass(ir_block: SequenceIR, property_set: dict) -> SequenceIR:
+    """Finalize the sequence of the SequenceIR by adding edges to the DAG"""
     _sequence_instructions(ir_block.alignment, ir_block._sequence, property_set)
     return ir_block
 
 
 @singledispatch
 def _sequence_instructions(alignment: Alignment, sequence: PyDAG, property_set: dict):
-    """Finalize the sequence of the IrBlock by adding edges to the DAG"""
+    """Finalize the sequence of the SequenceIR by adding edges to the DAG"""
     raise NotImplementedError
 
 
 @_sequence_instructions.register(ParallelAlignment)
 def _sequence_parallel(alignment, sequence, property_set):
-    """Sequence the IrBlock by recursively adding edges to the DAG,
+    """Sequence the SequenceIR by recursively adding edges to the DAG,
     adding elements in parallel to one another in the graph"""
     idle_after = {}
     for ni in sequence.node_indices():
@@ -82,7 +82,7 @@ def _sequence_parallel(alignment, sequence, property_set):
         node = sequence.get_node_data(ni)
         node_mixed_frames = set()
 
-        if isinstance(node, IrBlock):
+        if isinstance(node, SequenceIR):
             # Recurse over sub block
             sequence_pass(node, property_set)
             inst_targets = node.inst_targets
@@ -111,7 +111,7 @@ def _sequence_parallel(alignment, sequence, property_set):
 
 @_sequence_instructions.register(SequentialAlignment)
 def _sequence_sequential(alignment, sequence: PyDAG, property_set):
-    """Sequence the IrBlock by recursively adding edges to the DAG,
+    """Sequence the SequenceIR by recursively adding edges to the DAG,
     adding elements one after the other"""
     sequence.add_edge(0, 2, None)
     sequence.add_edge(sequence.num_nodes() - 1, 1, None)
@@ -119,12 +119,12 @@ def _sequence_sequential(alignment, sequence: PyDAG, property_set):
 
     # Apply recursively
     for node in sequence.nodes():
-        if isinstance(node, IrBlock):
+        if isinstance(node, SequenceIR):
             sequence_pass(node, property_set)
 
 
-def schedule_pass(ir_block: IrBlock, property_set: dict) -> IrBlock:
-    """Recursively schedule the block by setting initial time for every element"""
+def schedule_pass(ir_block: SequenceIR, property_set: dict) -> SequenceIR:
+    """Recursively schedule the SequenceIR by setting initial time for every element"""
     # mutate graph
     # TODO : Check if graph has edges. Override existing edges? Raise Error?
     _schedule_elements(ir_block.alignment, ir_block._time_table, ir_block._sequence, property_set)
@@ -133,13 +133,13 @@ def schedule_pass(ir_block: IrBlock, property_set: dict) -> IrBlock:
 
 @singledispatch
 def _schedule_elements(alignment, table, sequence, property_set):
-    """Recursively schedule the block by setting initial time for every element"""
+    """Recursively schedule the SequenceIR by setting initial time for every element"""
     raise NotImplementedError
 
 
 @_schedule_elements.register(AlignLeft)
 def _schedule_left_justified(alignment, table: dict, sequence: PyDAG, property_set: dict):
-    """Recursively schedule the block by setting initial time for every element,
+    """Recursively schedule the SequenceIR by setting initial time for every element,
     aligning elements to the left."""
 
     first_nodes = sequence.successor_indices(0)
@@ -148,7 +148,7 @@ def _schedule_left_justified(alignment, table: dict, sequence: PyDAG, property_s
     for node_index in first_nodes:
         table[node_index] = 0
         node = sequence.get_node_data(node_index)
-        if isinstance(node, IrBlock):
+        if isinstance(node, SequenceIR):
             # Recruse over sub blocks
             schedule_pass(node, property_set)
         nodes.extend(sequence.successor_indices(node_index))
@@ -159,7 +159,7 @@ def _schedule_left_justified(alignment, table: dict, sequence: PyDAG, property_s
             # reached end or already scheduled
             continue
         node = sequence.get_node_data(node_index)
-        if isinstance(node, IrBlock):
+        if isinstance(node, SequenceIR):
             # Recruse over sub blocks
             schedule_pass(node, property_set)
         # Because we go in order, all predecessors are already scheduled
@@ -182,7 +182,7 @@ def _schedule_sequential(alignment, table: dict, sequence: PyDAG, property_set: 
     for i in range(2, sequence.num_nodes()):
         table[i] = total_time
         node = sequence.get_node_data(i)
-        if isinstance(node, IrBlock):
+        if isinstance(node, SequenceIR):
             schedule_pass(node, property_set)
         total_time += node.duration
 

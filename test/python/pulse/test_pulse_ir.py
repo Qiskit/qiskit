@@ -25,20 +25,21 @@ from qiskit.pulse import (
 )
 
 from qiskit.pulse.ir import (
-    IrBlock,
+    SequenceIR,
 )
 
-from qiskit.pulse.ir.alignments import AlignLeft
+from qiskit.pulse.ir.alignments import AlignLeft, AlignRight
 from qiskit.pulse.model import QubitFrame, Qubit
 from qiskit.pulse.compiler.temp_passes import (
     sequence_pass,
     schedule_pass,
     analyze_target_frame_pass,
 )
+from qiskit.pulse.exceptions import PulseError
 
 
-class TestIrBlock(QiskitTestCase):
-    """Test IrBlock objects"""
+class TestSequenceIR(QiskitTestCase):
+    """Test SequenceIR objects"""
 
     _delay_inst = Delay(50, channel=DriveChannel(0))
     _play_inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
@@ -47,7 +48,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_ir_creation(self):
         """Test ir creation"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         self.assertEqual(ir_example.sequence.num_nodes(), 2)
         self.assertEqual(ir_example.initial_time(), None)
         self.assertEqual(ir_example.final_time(), None)
@@ -55,7 +56,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_add_elements(self):
         """Test addition of elements"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         ir_example.append(inst)
 
@@ -70,7 +71,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_initial_time(self):
         """Test initial time"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         ir_example.append(inst)
         ir_example.append(inst)
@@ -88,7 +89,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_final_time(self):
         """Test final time"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         ir_example.append(inst)
         ir_example.append(inst)
@@ -103,7 +104,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_duration(self):
         """Test duration"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         ir_example.append(inst)
         ir_example.append(inst)
@@ -119,7 +120,7 @@ class TestIrBlock(QiskitTestCase):
     def test_duration_with_sub_block(self):
         """Test duration with sub block"""
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
-        sub_block = IrBlock(AlignLeft())
+        sub_block = SequenceIR(AlignLeft())
         sub_block.append(inst)
         sub_block._time_table[2] = 0
         sub_block._sequence.add_edge(0, 2, None)
@@ -129,7 +130,7 @@ class TestIrBlock(QiskitTestCase):
         self.assertEqual(sub_block.final_time(), 100)
         self.assertEqual(sub_block.duration, 100)
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(inst)
         ir_example.append(sub_block)
         ir_example._time_table[2] = 100
@@ -141,9 +142,63 @@ class TestIrBlock(QiskitTestCase):
         self.assertEqual(ir_example.final_time(), 400)
         self.assertEqual(ir_example.duration, 300)
 
+    def test_scheduled_elements_no_recursion(self):
+        """Test that scheduled elements with no recursion works"""
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        sub_block = SequenceIR(AlignLeft())
+        sub_block.append(inst)
+
+        ir_example = SequenceIR(AlignRight())
+        ir_example.append(inst)
+        ir_example.append(sub_block)
+
+        sch_elements = ir_example.scheduled_elements()
+        self.assertEqual(len(sch_elements), 2)
+        self.assertEqual(sch_elements[0], (None, inst))
+        self.assertEqual(sch_elements[1], (None, sub_block))
+
+    def test_scheduled_elements_with_recursion(self):
+        """Test that scheduled elements with recursion works"""
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        sub_block2 = SequenceIR(AlignLeft())
+        sub_block2.append(inst2)
+        sub_block2._time_table[2] = 0
+
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        sub_block1 = SequenceIR(AlignLeft())
+        sub_block1.append(inst1)
+        sub_block1.append(sub_block2)
+        sub_block1._time_table[2] = 0
+        sub_block1._time_table[3] = 100
+
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(3), target=Qubit(3))
+        ir_example = SequenceIR(AlignRight())
+        ir_example.append(inst)
+        ir_example.append(sub_block1)
+        ir_example._time_table[2] = 0
+        ir_example._time_table[3] = 100
+
+        sch_elements = ir_example.scheduled_elements(recursive=True)
+        self.assertEqual(len(sch_elements), 3)
+        self.assertTrue((0, inst) in sch_elements)
+        self.assertTrue((100, inst1) in sch_elements)
+        self.assertTrue((200, inst2) in sch_elements)
+
+    def test_scheduled_elements_with_recursion_raises_error(self):
+        """Test that scheduled elements with recursion raises error if sub block is not scheduled"""
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        sub_block1 = SequenceIR(AlignLeft())
+        sub_block1.append(inst1)
+
+        ir_example = SequenceIR(AlignLeft())
+        ir_example.append(sub_block1)
+
+        with self.assertRaises(PulseError):
+            ir_example.scheduled_elements(recursive=True)
+
     def test_flatten_ir_no_sub_blocks(self):
         """Test that flattening ir with no sub blocks doesn't do anything"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
         ir_example.append(inst)
@@ -158,7 +213,7 @@ class TestIrBlock(QiskitTestCase):
 
     def test_flatten_inplace_flag(self):
         """Test that inplace flag in flattening works"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
         ir_example.append(inst)
@@ -174,10 +229,10 @@ class TestIrBlock(QiskitTestCase):
 
     def test_flatten_one_sub_block(self):
         """Test that flattening works with one block"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
-        block = IrBlock(AlignLeft())
+        block = SequenceIR(AlignLeft())
         block.append(inst)
         block.append(inst2)
         ir_example.append(block)
@@ -198,10 +253,10 @@ class TestIrBlock(QiskitTestCase):
 
     def test_flatten_one_sub_block_and_parallel_instruction(self):
         """Test that flattening works with one block and parallel instruction"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
-        block = IrBlock(AlignLeft())
+        block = SequenceIR(AlignLeft())
         block.append(inst)
         block.append(inst2)
         ir_example.append(block)
@@ -224,10 +279,10 @@ class TestIrBlock(QiskitTestCase):
 
     def test_flatten_one_sub_block_and_sequential_instructions(self):
         """Test that flattening works with one block and sequential instructions"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
         inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
-        block = IrBlock(AlignLeft())
+        block = SequenceIR(AlignLeft())
         block.append(inst)
         block.append(inst2)
         ir_example.append(Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1)))
@@ -251,17 +306,48 @@ class TestIrBlock(QiskitTestCase):
         self.assertTrue((7, 4) in edge_list)
         self.assertTrue((8, 4) in edge_list)
 
+    def test_flatten_two_sub_blocks(self):
+        """Test that flattening works with two sub blocks"""
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(200, 0.5), frame=QubitFrame(1), target=Qubit(1))
+
+        block1 = SequenceIR(AlignLeft())
+        block1.append(inst1)
+        block2 = SequenceIR(AlignLeft())
+        block2.append(inst2)
+
+        ir_example = SequenceIR(AlignLeft())
+        ir_example.append(block1)
+        ir_example.append(block2)
+
+        property_set = {}
+        analyze_target_frame_pass(ir_example, property_set)
+        ir_example = sequence_pass(ir_example, property_set)
+        ir_example = schedule_pass(ir_example, property_set)
+
+        flat = ir_example.flatten()
+        ref = SequenceIR(AlignLeft())
+        ref.append(inst1)
+        ref.append(inst2)
+
+        property_set = {}
+        analyze_target_frame_pass(ref, property_set)
+        ref = sequence_pass(ref, property_set)
+        ref = schedule_pass(ref, property_set)
+
+        self.assertEqual(flat, ref)
+
     def test_flatten_two_levels(self):
         """Test that flattening works with one block and sequential instructions"""
         inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
 
-        block1 = IrBlock(AlignLeft())
+        block1 = SequenceIR(AlignLeft())
         block1.append(inst)
-        block = IrBlock(AlignLeft())
+        block = SequenceIR(AlignLeft())
         block.append(inst)
         block.append(block1)
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(inst)
         ir_example.append(block)
 
@@ -277,10 +363,50 @@ class TestIrBlock(QiskitTestCase):
         self.assertTrue((2, 6) in edge_list)
         self.assertTrue((6, 7) in edge_list)
         self.assertTrue((7, 1) in edge_list)
-        self.assertEqual(flat.scheduled_elements()[0], [0, inst])
-        self.assertEqual(flat.scheduled_elements()[1], [100, inst])
-        self.assertEqual(flat.scheduled_elements()[2], [200, inst])
+        self.assertEqual(flat.scheduled_elements()[0], (0, inst))
+        self.assertEqual(flat.scheduled_elements()[1], (100, inst))
+        self.assertEqual(flat.scheduled_elements()[2], (200, inst))
 
-    # TODO : Test IrBlock equating. Problem with Alignment, and possibly InNode,OutNode.
+    def test_ir_equating_different_alignment(self):
+        """Test equating of blocks with different alignment"""
+        self.assertFalse(SequenceIR(AlignLeft()) == SequenceIR(AlignRight()))
 
-    # TODO : Test IrBlock.draw()
+    def test_ir_equating_different_instructions(self):
+        """Test equating of blocks with different instructions"""
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(1))
+
+        ir1 = SequenceIR(AlignLeft())
+        ir1.append(inst1)
+        ir2 = SequenceIR(AlignLeft())
+        ir2.append(inst2)
+        self.assertFalse(ir1 == ir2)
+
+    def test_ir_equating_different_ordering(self):
+        """Test equating of blocks with different ordering, but the same sequence structure"""
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+
+        ir1 = SequenceIR(AlignLeft())
+        ir1.append(inst1)
+        ir1.append(inst2)
+
+        ir2 = SequenceIR(AlignLeft())
+        ir2.append(inst2)
+        ir2.append(inst1)
+
+        self.assertTrue(ir1 == ir2)
+
+        property_set = {}
+        analyze_target_frame_pass(ir1, property_set)
+        ir1 = sequence_pass(ir1, property_set)
+        ir1 = schedule_pass(ir1, property_set)
+
+        property_set = {}
+        analyze_target_frame_pass(ir2, property_set)
+        ir2 = sequence_pass(ir2, property_set)
+        ir2 = schedule_pass(ir2, property_set)
+
+        self.assertTrue(ir1 == ir2)
+
+    # TODO : Test SequenceIR.draw()

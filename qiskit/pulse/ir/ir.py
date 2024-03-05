@@ -16,10 +16,10 @@
 =========
 Pulse IR
 =========
-
 """
 
 from __future__ import annotations
+from collections import defaultdict
 
 import copy
 
@@ -29,39 +29,38 @@ from rustworkx.visualization import graphviz_draw
 
 from qiskit.pulse.ir.alignments import Alignment
 from qiskit.pulse import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 InNode = object()
 OutNode = object()
 
 
-class IrBlock:
+class SequenceIR:
     """IR representation of instruction sequences
 
-    ``IrBlock`` is the backbone of the intermediate representation used in the Qiskit Pulse compiler.
-    A pulse program is represented as a single ``IrBlock`` object, with elements
-    which include ``IrInstruction`` objects and other nested ``IrBlock`` objects.
+    ``SequenceIR`` is the backbone of the intermediate representation used in the Qiskit Pulse compiler.
+    A pulse program is represented as a single ``SequenceIR`` object, with elements
+    which include ``IrInstruction`` objects and other nested ``SequenceIR`` objects.
     """
 
     def __init__(self, alignment: Alignment):
         self._alignment = alignment
 
-        self.time_offset = 0
-        self._time_table = {}
-        self._children = []
+        self._time_table = defaultdict(lambda: None)
         self._sequence = rx.PyDAG(multigraph=False)
         self._sequence.add_nodes_from([InNode, OutNode])
 
     @property
     def alignment(self) -> Alignment:
-        """Return the alignment of the IrBlock"""
+        """Return the alignment of the SequenceIR"""
         return self._alignment
 
     @property
     def inst_targets(self) -> set:
-        """Recursively return a set of all Instruction.inst_target in the IrBlock"""
+        """Recursively return a set of all Instruction.inst_target in the SequenceIR"""
         inst_targets = set()
         for elm in self.elements():
-            if isinstance(elm, IrBlock):
+            if isinstance(elm, SequenceIR):
                 inst_targets |= elm.inst_targets
             else:
                 inst_targets.add(elm.inst_target)
@@ -69,36 +68,71 @@ class IrBlock:
 
     @property
     def sequence(self) -> PyDAG:
-        """Return the DAG sequence of the IrBlock"""
+        """Return the DAG sequence of the SequenceIR"""
         return self._sequence
 
-    def append(self, element: IrBlock | Instruction) -> None:
-        """Append element to the IrBlock"""
-        new_node_id = self._sequence.add_node(element)
-        if isinstance(element, IrBlock):
-            self._children.append(new_node_id)
+    def append(self, element: SequenceIR | Instruction) -> int:
+        """Append element to the SequenceIR
 
-    def elements(self) -> list[IrBlock | Instruction]:
-        """Return a list of all elements in the IrBlock"""
+        Returns: The index of the added element in the sequence.
+        """
+        return self._sequence.add_node(element)
+
+    def elements(self) -> list[SequenceIR | Instruction]:
+        """Return a list of all elements in the SequenceIR"""
         return self._sequence.nodes()[2:]
 
-    def scheduled_elements(self) -> list[list[int | None, IrBlock | Instruction]]:
+    def scheduled_elements(
+        self, recursive: bool = False
+    ) -> list[tuple[int | None, SequenceIR | Instruction]]:
         """Return a list of scheduled elements.
 
         Each element in the list is [initial_time, element].
         """
-        return [
-            [self._time_table.get(ni, None), self._sequence.get_node_data(ni)]
-            for ni in self._sequence.node_indices()
-            if ni not in (0, 1)
-        ]
+        if recursive:
+            return self._recursive_scheduled_elements(0)
+        else:
+            return [
+                (self._time_table[ind], self._sequence.get_node_data(ind))
+                for ind in self._sequence.node_indices()
+                if ind not in (0, 1)
+            ]
+
+    def _recursive_scheduled_elements(
+        self, time_offset: int
+    ) -> list[tuple[int | None, SequenceIR | Instruction]]:
+        """Helper function to recursively return the scheduled elements.
+
+        The absolute timing is tracked via the `time_offset`` argument, which represents the initial time
+        of the block itself.
+
+        Each element in the list is a tuple (initial_time, element).
+        """
+        scheduled_elements = []
+        for ind in self._sequence.node_indices():
+            if ind not in [0, 1]:
+                node = self._sequence.get_node_data(ind)
+                try:
+                    time = self._time_table[ind] + time_offset
+                except TypeError as ex:
+                    raise PulseError(
+                        "Can not return recursive list of scheduled elements"
+                        " if sub blocks are not scheduled."
+                    ) from ex
+
+                if isinstance(node, SequenceIR):
+                    scheduled_elements.extend(node._recursive_scheduled_elements(time))
+                else:
+                    scheduled_elements.append((time, node))
+
+        return scheduled_elements
 
     def initial_time(self) -> int | None:
         """Return initial time"""
         first_nodes = self._sequence.successor_indices(0)
         if not first_nodes:
             return None
-        return min([self._time_table.get(node, None) for node in first_nodes], default=None)
+        return min([self._time_table[ind] for ind in first_nodes], default=None)
 
     def final_time(self) -> int | None:
         """Return final time"""
@@ -106,9 +140,9 @@ class IrBlock:
         if not last_nodes:
             return None
         tf = None
-        for ni in last_nodes:
-            if (t0 := self._time_table.get(ni, None)) is not None:
-                duration = self._sequence.get_node_data(ni).duration
+        for ind in last_nodes:
+            if (t0 := self._time_table[ind]) is not None:
+                duration = self._sequence.get_node_data(ind).duration
                 if tf is None:
                     tf = t0 + duration
                 else:
@@ -117,14 +151,14 @@ class IrBlock:
 
     @property
     def duration(self) -> int | None:
-        """Return the duration of the IrBlock"""
+        """Return the duration of the SequenceIR"""
         try:
             return self.final_time() - self.initial_time()
         except TypeError:
             return None
 
     def draw(self, recursive: bool = False):
-        """Draw the graph of the IrBlock"""
+        """Draw the graph of the SequenceIR"""
         if recursive:
             draw_sequence = self.flatten().sequence
         else:
@@ -144,31 +178,31 @@ class IrBlock:
             node_attr_fn=_draw_nodes,
         )
 
-    def flatten(self, inplace: bool = False) -> IrBlock:
-        """Recursively flatten the IrBlock"""
-        # TODO : Verify that the block\sub blocks are sequenced.
+    def flatten(self, inplace: bool = False) -> SequenceIR:
+        """Recursively flatten the SequenceIR"""
+        # TODO : Verify that the block\sub blocks are sequenced correctly.
         if inplace:
             block = self
         else:
             block = copy.deepcopy(self)
             block._sequence[0] = InNode
             block._sequence[1] = OutNode
+            # TODO : Move this to __deepcopy__
+
+        def edge_map(x, y, node):
+            if y == node:
+                return 0
+            if x == node:
+                return 1
+            return None
 
         for ind in block.sequence.node_indices():
-            if isinstance(block.sequence.get_node_data(ind), IrBlock):
-
-                def edge_map(x, y, w):
-                    if y == ind:
-                        return 0
-                    if x == ind:
-                        return 1
-                    return None
-
+            if isinstance(block.sequence.get_node_data(ind), SequenceIR):
                 sub_block = block.sequence.get_node_data(ind)
                 sub_block.flatten(inplace=True)
-                initial_time = block._time_table.get(ind, None)
+                initial_time = block._time_table[ind]
                 nodes_mapping = block._sequence.substitute_node_with_subgraph(
-                    ind, sub_block.sequence, edge_map
+                    ind, sub_block.sequence, lambda x, y, _: edge_map(x, y, ind)
                 )
                 if initial_time is not None:
                     for old_node in nodes_mapping.keys():
@@ -181,10 +215,14 @@ class IrBlock:
 
         return block
 
-    def __eq__(self, other):
-        if self.alignment != other.alignment:
+    def __eq__(self, other: SequenceIR):
+        if not isinstance(other.alignment, type(self.alignment)):
             return False
-        # TODO : Define alignment equating. Currently this doesn't work.
-        return rx.is_isomorphic_node_match(
-            self._sequence, other._sequence, lambda x, y: x == y or x is y
-        )
+        # TODO : This is a temporary setup until we figure out the
+        #  alignment hierarchy and set equating there.
+        return rx.is_isomorphic_node_match(self._sequence, other._sequence, lambda x, y: x == y)
+
+        # TODO : What about the time_table? The isomorphic comparison allows for the indices
+        #  to be different, But then it's not straightforward to compare the time_table.
+        #  It is reasonable to assume that blocks with the same alignment and the same sequence
+        #  will result in the same time_table, but this decision should be made consciously.

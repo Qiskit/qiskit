@@ -24,7 +24,7 @@ from qiskit.pulse import (
 )
 
 from qiskit.pulse.ir import (
-    IrBlock,
+    SequenceIR,
 )
 
 from qiskit.pulse.ir.alignments import (
@@ -43,7 +43,7 @@ class TestAnalyzeTargetFramePass(QiskitTestCase):
 
     def test_basic_ir(self):
         """test with basic IR"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         mf = MixedFrame(Qubit(0), QubitFrame(1))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=mf))
 
@@ -66,7 +66,7 @@ class TestAnalyzeTargetFramePass(QiskitTestCase):
 
     def test_with_several_inst_target_types(self):
         """test with different inst_target types"""
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         mf = MixedFrame(Qubit(0), QubitFrame(1))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=mf))
         ir_example.append(Delay(100, target=Qubit(2)))
@@ -85,10 +85,10 @@ class TestAnalyzeTargetFramePass(QiskitTestCase):
         mf2 = MixedFrame(Qubit(0), QubitFrame(1))
         mf3 = MixedFrame(Qubit(0), QubitFrame(2))
 
-        sub_block_2 = IrBlock(AlignLeft())
+        sub_block_2 = SequenceIR(AlignLeft())
         sub_block_2.append(Play(Constant(100, 0.1), mixed_frame=mf1))
 
-        sub_block_1 = IrBlock(AlignLeft())
+        sub_block_1 = SequenceIR(AlignLeft())
         sub_block_1.append(Play(Constant(100, 0.1), mixed_frame=mf2))
         sub_block_1.append(sub_block_2)
 
@@ -100,7 +100,7 @@ class TestAnalyzeTargetFramePass(QiskitTestCase):
         self.assertEqual(mapping[QubitFrame(0)], {mf1})
         self.assertEqual(mapping[QubitFrame(1)], {mf2})
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=mf3))
         ir_example.append(sub_block_1)
 
@@ -121,7 +121,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_single_instruction(self):
         """test with a single instruction"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         property_set = {}
@@ -136,7 +136,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     # def test_instruction_not_in_mapping(self):
     #     """test with an instruction which is not in the mapping"""
     #
-    #     ir_example = IrBlock(AlignLeft())
+    #     ir_example = SequenceIR(AlignLeft())
     #     ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
     #     ir_example.append(Delay(100, target=Qubit(5)))
     #
@@ -153,7 +153,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
@@ -170,7 +170,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_sequential_instructions(self):
         """test with two sequential instructions"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
@@ -187,7 +187,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
         """test with an instruction which is defined on a PulseTarget and is
         broadcasted to several children"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Delay(100, target=Qubit(0)))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
@@ -206,7 +206,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_frame_instruction_broadcasting_to_children(self):
         """test with an instruction which is defined on a Frame and is broadcasted to several children"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(ShiftPhase(100, frame=QubitFrame(0)))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(0))))
@@ -226,7 +226,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
         """test with an instruction which is defined on a PulseTarget and depends on
         several mixed frames"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -245,7 +245,7 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_frame_instruction_dependency(self):
         """test with an instruction which is defined on a Frame and depends on several mixed frames"""
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(0))))
         ir_example.append(ShiftPhase(100, frame=QubitFrame(0)))
@@ -264,10 +264,10 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_recursion_to_sub_blocks(self):
         """test that sequencing is recursively applied to sub blocks"""
 
-        sub_block = IrBlock(ParallelAlignment())
+        sub_block = SequenceIR(ParallelAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -283,10 +283,10 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_with_parallel_sub_block(self):
         """test with a sub block which doesn't depend on previous instructions"""
 
-        sub_block = IrBlock(ParallelAlignment())
+        sub_block = SequenceIR(ParallelAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -303,10 +303,10 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_with_simple_sequential_sub_block(self):
         """test with a sub block which depends on a single previous instruction"""
 
-        sub_block = IrBlock(ParallelAlignment())
+        sub_block = SequenceIR(ParallelAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(sub_block)
@@ -325,10 +325,10 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_with_sequential_sub_block_with_more_dependencies(self):
         """test with a sub block which depends on a single previous instruction"""
 
-        sub_block = IrBlock(ParallelAlignment())
+        sub_block = SequenceIR(ParallelAlignment())
         sub_block.append(Delay(100, target=Qubit(0)))
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
@@ -354,10 +354,10 @@ class TestSequenceParallelAlignment(QiskitTestCase):
     def test_specific_alignments(self, alignment):
         """Test that specific alignments are the same as parallel alignment"""
 
-        sub_block = IrBlock(ParallelAlignment())
+        sub_block = SequenceIR(ParallelAlignment())
         sub_block.append(Delay(100, target=Qubit(0)))
 
-        ir_example = IrBlock(ParallelAlignment())
+        ir_example = SequenceIR(ParallelAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
@@ -384,7 +384,7 @@ class TestSequenceSequentialAlignment(QiskitTestCase):
     def test_single_instruction(self):
         """test with a single instruction"""
 
-        ir_example = IrBlock(SequentialAlignment())
+        ir_example = SequenceIR(SequentialAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         property_set = {}
@@ -398,7 +398,7 @@ class TestSequenceSequentialAlignment(QiskitTestCase):
     def test_several_instructions(self):
         """test with several instructions"""
 
-        ir_example = IrBlock(SequentialAlignment())
+        ir_example = SequenceIR(SequentialAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(2), QubitFrame(1))))
@@ -416,10 +416,10 @@ class TestSequenceSequentialAlignment(QiskitTestCase):
     def test_recursion_to_sub_blocks(self):
         """test that sequencing is recursively applied to sub blocks"""
 
-        sub_block = IrBlock(SequentialAlignment())
+        sub_block = SequenceIR(SequentialAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(SequentialAlignment())
+        ir_example = SequenceIR(SequentialAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -435,10 +435,10 @@ class TestSequenceSequentialAlignment(QiskitTestCase):
     def test_sub_blocks_and_instructions(self):
         """test sequencing with a mix of instructions and sub blocks"""
 
-        sub_block = IrBlock(SequentialAlignment())
+        sub_block = SequenceIR(SequentialAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(SequentialAlignment())
+        ir_example = SequenceIR(SequentialAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
@@ -457,10 +457,10 @@ class TestSequenceSequentialAlignment(QiskitTestCase):
     def test_align_sequential(self):
         """test sequencing with AlignSequential"""
 
-        sub_block = IrBlock(SequentialAlignment())
+        sub_block = SequenceIR(SequentialAlignment())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(SequentialAlignment())
+        ir_example = SequenceIR(SequentialAlignment())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
@@ -486,7 +486,7 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_single_instruction(self):
         """test with a single instruction"""
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         property_set = {}
@@ -499,7 +499,7 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
@@ -515,7 +515,7 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_sequential_instructions(self):
         """test with two sequential instructions"""
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
@@ -531,7 +531,7 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_multiple_children(self):
         """test for a graph where one node has several children"""
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Delay(100, target=Qubit(0)))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
@@ -549,7 +549,7 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_multiple_parents(self):
         """test for a graph where one node has several parents"""
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -567,10 +567,10 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_recursion_to_leading_sub_blocks(self):
         """test that scheduling is recursively applied to sub blocks which are first in the order"""
 
-        sub_block = IrBlock(AlignLeft())
+        sub_block = SequenceIR(AlignLeft())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -588,10 +588,10 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_recursion_to_non_leading_sub_blocks(self):
         """test that scheduling is recursively applied to sub blocks when they are not first in order"""
 
-        sub_block = IrBlock(AlignLeft())
+        sub_block = SequenceIR(AlignLeft())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(sub_block)
@@ -612,10 +612,10 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_with_parallel_sub_block(self):
         """test with a sub block which doesn't depend on previous instructions"""
 
-        sub_block = IrBlock(AlignLeft())
+        sub_block = SequenceIR(AlignLeft())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -630,10 +630,10 @@ class TestSchedulePassAlignLeft(QiskitTestCase):
     def test_with_sequential_sub_block_with_more_dependencies(self):
         """test with a sub block which depends on a several previous instruction"""
 
-        sub_block = IrBlock(AlignLeft())
+        sub_block = SequenceIR(AlignLeft())
         sub_block.append(Delay(100, target=Qubit(0)))
 
-        ir_example = IrBlock(AlignLeft())
+        ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
@@ -660,7 +660,7 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_single_instruction(self):
         """test with a single instruction"""
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         property_set = {}
@@ -673,7 +673,7 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
@@ -689,7 +689,7 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_sequential_instructions(self):
         """test with two sequential instructions"""
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
@@ -705,7 +705,7 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_multiple_children(self):
         """test for a graph where one node has several children"""
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Delay(100, target=Qubit(0)))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
@@ -723,7 +723,7 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_multiple_parents(self):
         """test for a graph where one node has several parents"""
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -741,10 +741,10 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_recursion_to_sub_blocks(self):
         """test that scheduling is recursively applied to sub blocks which are first in the order"""
 
-        sub_block = IrBlock(AlignRight())
+        sub_block = SequenceIR(AlignRight())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -762,10 +762,10 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_with_parallel_sub_block(self):
         """test with a sub block which doesn't depend on previous instructions"""
 
-        sub_block = IrBlock(AlignRight())
+        sub_block = SequenceIR(AlignRight())
         sub_block.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -782,10 +782,10 @@ class TestSchedulePassAlignRight(QiskitTestCase):
     def test_with_sequential_sub_block_with_more_dependencies(self):
         """test with a sub block which depends on a several previous instruction"""
 
-        sub_block = IrBlock(AlignRight())
+        sub_block = SequenceIR(AlignRight())
         sub_block.append(Delay(100, target=Qubit(0)))
 
-        ir_example = IrBlock(AlignRight())
+        ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
@@ -812,7 +812,7 @@ class TestSchedulePassAlignSequential(QiskitTestCase):
     def test_single_instruction(self):
         """test with a single instruction"""
 
-        ir_example = IrBlock(AlignSequential())
+        ir_example = SequenceIR(AlignSequential())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         property_set = {}
@@ -825,7 +825,7 @@ class TestSchedulePassAlignSequential(QiskitTestCase):
     def test_several_instructions(self):
         """test with several instructions"""
 
-        ir_example = IrBlock(AlignSequential())
+        ir_example = SequenceIR(AlignSequential())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
@@ -843,10 +843,10 @@ class TestSchedulePassAlignSequential(QiskitTestCase):
     def test_recursion_to_sub_blocks(self):
         """test that scheduling is recursively applied to sub blocks"""
 
-        sub_block = IrBlock(AlignSequential())
+        sub_block = SequenceIR(AlignSequential())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = IrBlock(AlignSequential())
+        ir_example = SequenceIR(AlignSequential())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
@@ -864,11 +864,11 @@ class TestSchedulePassAlignSequential(QiskitTestCase):
     def test_with_instructions_and_sub_blocks(self):
         """test that scheduling is recursively applied to sub blocks"""
 
-        sub_block = IrBlock(AlignSequential())
+        sub_block = SequenceIR(AlignSequential())
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         sub_block.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
 
-        ir_example = IrBlock(AlignSequential())
+        ir_example = SequenceIR(AlignSequential())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
