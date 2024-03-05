@@ -22,8 +22,8 @@ from qiskit.circuit.operation import Operation
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.quantum_info.operators import Operator
 
-_skipped_op_names = {"measure", "reset", "delay"}
-_no_cache_op_names = {"initialize", "annotated"}
+_skipped_op_names = {"measure", "reset", "delay", "initialize"}
+_no_cache_op_names = {"annotated"}
 
 
 @lru_cache(maxsize=None)
