@@ -38,9 +38,9 @@ by the controllers of the QPU.
 
 Circuits are at a low level of abstraction when building up quantum programs.  They are the
 construct that is used to build up to higher levels of abstraction, such as the :ref:`primitives of
-quantum computation <qiskit-primitives>`, which accumulate bitwise data from many shots of
-quantum-circuit execution, along with advanced error-mitigation techniques and measurement
-optimizations, into well-typed classical data and error statistics.
+quantum computation <qiskit-primitives>`, which accumulate data from many shots of quantum-circuit
+execution, along with advanced error-mitigation techniques and measurement optimizations, into
+well-typed classical data and error statistics.
 
 In Qiskit, circuits can be defined in one of two regimes:
 
