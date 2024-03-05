@@ -719,16 +719,14 @@ class TestStabilizerState(QiskitTestCase):
                 # the expected result for each
                 target = {"011110001010": 0.00024, "111110001010": 0.00024}
                 self.assertEqual(value, target)
-
-        
-        # Note: Using targets is a performance enhancement, so we need to verify it does increase 
-        # performance. Since we are only calculating 2 complete branches of the 4096 possible branches 
-        # this should lead to a significant improvement in performance. The amount of nodes to calculate 
-        # for 12 qubits for the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The 
-        # example above with caching will need to calculate 13 of the 8191 nodes (due to the second target 
-        # to calculate being 1 branch from the first being calculated) which will roughly take about 0.158% 
-        # of the time to calculate compared to all the branches. Lets give a small amount of room for 
-        # variance, adding 0.5% extra time
+        #Note: Using targets is a performance enhancement, so we need to verify it does increase
+        #performance. Since we are only calculating 2 complete branches of the 4096 possible branches
+        #this should lead to a significant improvement in performance. The amount of nodes to calculate
+        #for 12 qubits for the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The
+        #example above with caching will need to calculate 13 of the 8191 nodes (due to the second
+        #target to calculate being 1 branch from the first being calculated) which will roughly take
+        #about 0.158% of the time to calculate compared to all the branches. Lets give a small amount
+        #of room for variance, adding 0.5% extra time
         test_time_to_be_under: float = test_4_time_no_target * (
             self.probability_percent_of_calculated_branches(13, num_qubits)
             + self.performance_varability_percent

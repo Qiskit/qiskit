@@ -729,7 +729,7 @@ class StabilizerState(QuantumState):
         """Used to determine if the branch caclulations should be limited when a target is passed
         If no target value is passed the range will always be range(0,2)
 
-        args:
+        Args:
             qubit_for_branching int: the qubit to perform the branching for
             target str: target to get results for
 
@@ -744,7 +744,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def retrieve_deterministic_probability(
-        i: int,
+        index: int,
         qubit: int,
         outcome: list[str],
         ret: StabilizerState,
@@ -754,12 +754,12 @@ class StabilizerState(QuantumState):
         """Helper to get the deterministic probabilitiy
 
         Args:
-            i int: index in outcome being calculated
+            index int: index in outcome being calculated
             qubit int: qubit performing calculation on
             outcome list[str]: outcome being built
             ret StabilizerState: stabilizer state performing the calculations
-            outcome_prob (float): probabilitiy of the outcome
-            target (str): target outcome wanting to calculate
+            outcome_prob float: probabilitiy of the outcome
+            target str: target outcome wanting to calculate
 
         Returns:
             float: the deterministic probability
@@ -771,17 +771,17 @@ class StabilizerState(QuantumState):
             # Since it is deterministic, if the outcome is what we are targeting,
             # use the current probability but if it is not what we are targetting,
             # then we know that the probability will be 0
-            if int(target[i : i + 1]) == single_qubit_outcome:
-                outcome[i] = str(single_qubit_outcome)
-            elif int(target[i : i + 1]) != single_qubit_outcome:
-                outcome[i] = str(int(target[i : i + 1]))
+            if int(target[index : index + 1]) == single_qubit_outcome:
+                outcome[index] = str(single_qubit_outcome)
+            elif int(target[index : index + 1]) != single_qubit_outcome:
+                outcome[index] = str(int(target[index : index + 1]))
                 outcome_prob = 0
         else:
             # Non-target qubit outcome
             if single_qubit_outcome:
-                outcome[i] = "1"
+                outcome[index] = "1"
             else:
-                outcome[i] = "0"
+                outcome[index] = "0"
         return outcome_prob
 
     # -----------------------------------------------------------------------

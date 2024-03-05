@@ -15,18 +15,16 @@
 
 import unittest
 import logging
+#from qiskit.quantum_info.states.probabilitycache import ProbabilityCache
 from ddt import ddt
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
-
 logger = logging.getLogger(__name__)
-
 
 @ddt
 class TestProbabilityCache(QiskitTestCase):
     """Tests for StabilizerState class."""
-    ...
-
 
 if __name__ == "__main__":
     unittest.main()
+    
