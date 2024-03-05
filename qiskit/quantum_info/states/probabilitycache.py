@@ -14,12 +14,13 @@
 from __future__ import annotations
 from qiskit.quantum_info.states.quantum_state import QuantumState
 
+
 class ProbabilityCache:
     """
-    Used to cache probability outcomes and StabilizerState when calculating the branches 
-    using targets. When using multiple targets for the Probability calculation, which will 
-    reduce the number of branches calculated, if a user has multiple branches they are 
-    calculating, this can save time on rebuilding the state of a branch that was partially 
+    Used to cache probability outcomes and StabilizerState when calculating the branches
+    using targets. When using multiple targets for the Probability calculation, which will
+    reduce the number of branches calculated, if a user has multiple branches they are
+    calculating, this can save time on rebuilding the state of a branch that was partially
     traversed, and gives a better starting point and increases performance.
     """
 

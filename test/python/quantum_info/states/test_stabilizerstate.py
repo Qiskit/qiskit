@@ -52,7 +52,7 @@ class TestStabilizerState(QiskitTestCase):
     def probability_percent_of_calculated_branches(
         number_of_calculated_branches: int, num_of_qubits: int
     ) -> float:
-        '''Helper function to calculate the acceptable performance of a 
+        """Helper function to calculate the acceptable performance of a
         targetted probabilities branch calculation
 
         Args:
@@ -61,7 +61,7 @@ class TestStabilizerState(QiskitTestCase):
 
         Returns:
             float: the amount of percent of branches to calculate
-        '''
+        """
         return number_of_calculated_branches / ((2 ** (num_of_qubits + 1)) - 1)
 
     @combine(num_qubits=[2, 3, 4, 5])
@@ -719,14 +719,14 @@ class TestStabilizerState(QiskitTestCase):
                 # the expected result for each
                 target = {"011110001010": 0.00024, "111110001010": 0.00024}
                 self.assertEqual(value, target)
-        #Note: Using targets is a performance enhancement, so we need to verify it does increase
-        #performance. Since we are only calculating 2 complete branches of the 4096 possible branches
-        #this should lead to a significant improvement in performance. The amount of nodes to calculate
-        #for 12 qubits for the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The
-        #example above with caching will need to calculate 13 of the 8191 nodes (due to the second
-        #target to calculate being 1 branch from the first being calculated) which will roughly take
-        #about 0.158% of the time to calculate compared to all the branches. Lets give a small amount
-        #of room for variance, adding 0.5% extra time
+        # Note: Using targets is a performance enhancement, so we need to verify it does increase
+        # performance. Since we are only calculating 2 complete branches of the 4096 possible branches
+        # this should lead to a significant improvement in performance. The amount of nodes to calculate
+        # for 12 qubits for the test above is 2^(N+1)-1. This give us (2^(12+1)-1) = 8191 nodes. The
+        # example above with caching will need to calculate 13 of the 8191 nodes (due to the second
+        # target to calculate being 1 branch from the first being calculated) which will roughly take
+        # about 0.158% of the time to calculate compared to all the branches. Lets give a small amount
+        # of room for variance, adding 0.5% extra time
         test_time_to_be_under: float = test_4_time_no_target * (
             self.probability_percent_of_calculated_branches(13, num_qubits)
             + self.performance_varability_percent
@@ -744,9 +744,7 @@ class TestStabilizerState(QiskitTestCase):
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=5, target=input_target, use_caching=False
                 )
-                test_4_target_no_caching += (
-                    time.monotonic() - test_4_target_no_cache_start
-                )
+                test_4_target_no_caching += time.monotonic() - test_4_target_no_cache_start
                 # Build target with all combinations of 01 for num_qubits long to
                 # value 0.00024, the expected result for each
                 target = {"011110001010": 0.00024, "111110001010": 0.00024}

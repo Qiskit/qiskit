@@ -392,7 +392,7 @@ class StabilizerState(QuantumState):
         qargs: None | list = None,
         decimals: None | int = None,
         target: list[str] | str | None = None,
-        use_caching: bool = True
+        use_caching: bool = True,
     ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
@@ -409,11 +409,11 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals None or int: the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            target list[str] | str: a target list of items to calculate probabilities for, or a specific 
+            target list[str] | str: a target list of items to calculate probabilities for, or a specific
                     single target str
-            use_caching bool: enable the user of caching when calculating multiple targets. True will 
-                    enable only if more then one target is being calculated, otherwise there will be no 
-                    performance benefit. If not using target, then caching will not be enabled as there 
+            use_caching bool: enable the user of caching when calculating multiple targets. True will
+                    enable only if more then one target is being calculated, otherwise there will be no
+                    performance benefit. If not using target, then caching will not be enabled as there
                     will not be a performance benefit from enabling. False will not use caching and when
                     targetting multiple items will recalculate every set of nodes for a branch
 
@@ -804,9 +804,9 @@ class StabilizerState(QuantumState):
             outcome_prob float: probabilitiy of the outcome
             ret StabilizerState: stabilizer state performing the calculations
             probs dict[str, float]: holds the outcomes and probabilitiy results
-            target str: target outcome wanting to calculate, None if not targetting 
+            target str: target outcome wanting to calculate, None if not targetting
                         a specific target
-            cache: ProbabilityCache: caching object to hold states and outcomes for 
+            cache: ProbabilityCache: caching object to hold states and outcomes for
                         calculating future branches
         """
         qubit_for_branching = -1
