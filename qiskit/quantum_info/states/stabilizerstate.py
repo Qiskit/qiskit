@@ -15,8 +15,10 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
+from ast import List
 
 from collections.abc import Collection
+from typing import Dict
 
 import numpy as np
 
@@ -391,9 +393,9 @@ class StabilizerState(QuantumState):
         self,
         qargs: None | list = None,
         decimals: None | int = None,
-        target: list[str] | str | None = None,
+        target: List[str] | str | None = None,
         use_caching: bool = True,
-    ) -> dict[str, float]:
+    ) -> Dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -409,7 +411,7 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals None or int: the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            target list[str] | str: a target list of items to calculate probabilities for, or a specific
+            target List[str] | str: a target list of items to calculate probabilities for, or a specific
                     single target str
             use_caching bool: enable the user of caching when calculating multiple targets. True will
                     enable only if more then one target is being calculated, otherwise there will be no
@@ -418,7 +420,7 @@ class StabilizerState(QuantumState):
                     targetting multiple items will recalculate every set of nodes for a branch
 
         Returns:
-            dict[str, float]: The measurement probabilities in dict (ket) form.
+            Dict[str, float]: The measurement probabilities in dict (ket) form.
         """
         if qargs is None:
             qubits = range(self.clifford.num_qubits)
@@ -434,7 +436,7 @@ class StabilizerState(QuantumState):
             target = [target]
 
         # probabilities dictionary to return with the calculated values
-        probs: dict[str, float] = {}
+        probs: Dict[str, float] = {}
 
         # Check if all the requirements to use caching are met to use performance improvement
         use_caching = target is not None and len(target) > 1 and use_caching
@@ -442,7 +444,7 @@ class StabilizerState(QuantumState):
 
         # Iterate through the target or targets to find probabilities
         for item_target in target:
-            outcome: list[str] = None
+            outcome: List[str] = None
             outcome_prob: float = 1.0
 
             # Determine if one of the branches was already partially calculated to
@@ -467,15 +469,15 @@ class StabilizerState(QuantumState):
         return probs
 
     @staticmethod
-    def _round_decimals(probs: dict[str, float], decimals: int | None) -> dict[str, float]:
+    def _round_decimals(probs: Dict[str, float], decimals: int | None) -> Dict[str, float]:
         """Helper function that founds all floats in the dict to the decimal place provided
 
         Args:
-            probs dict[str, float]: dictionary to iterate through and round all float values for
+            probs Dict[str, float]: dictionary to iterate through and round all float values for
             decimals int | None: number of decimal places to round to, if None then do not round
 
         Returns:
-            dict[str, float]: provided dict with rounded values
+            Dict[str, float]: provided dict with rounded values
         """
         if decimals is not None:
             for key, value in probs.items():
@@ -746,7 +748,7 @@ class StabilizerState(QuantumState):
     def retrieve_deterministic_probability(
         index: int,
         qubit: int,
-        outcome: list[str],
+        outcome: List[str],
         ret: StabilizerState,
         outcome_prob: float,
         target: str,
@@ -756,7 +758,7 @@ class StabilizerState(QuantumState):
         Args:
             index int: index in outcome being calculated
             qubit int: qubit performing calculation on
-            outcome list[str]: outcome being built
+            outcome List[str]: outcome being built
             ret StabilizerState: stabilizer state performing the calculations
             outcome_prob float: probabilitiy of the outcome
             target str: target outcome wanting to calculate
@@ -790,9 +792,9 @@ class StabilizerState(QuantumState):
     def _get_probabilities(
         self,
         qubits: range,
-        outcome: list[str],
+        outcome: List[str],
         outcome_prob: float,
-        probs: dict[str, float],
+        probs: Dict[str, float],
         target: str = None,
         cache: ProbabilityCache = None,
     ):
@@ -800,10 +802,10 @@ class StabilizerState(QuantumState):
 
         Args:
             qubits : range of qubits
-            outcome list[str]: outcome being built
+            outcome List[str]: outcome being built
             outcome_prob float: probabilitiy of the outcome
             ret StabilizerState: stabilizer state performing the calculations
-            probs dict[str, float]: holds the outcomes and probabilitiy results
+            probs Dict[str, float]: holds the outcomes and probabilitiy results
             target str: target outcome wanting to calculate, None if not targetting
                         a specific target
             cache: ProbabilityCache: caching object to hold states and outcomes for

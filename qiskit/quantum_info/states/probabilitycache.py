@@ -56,29 +56,37 @@ class ProbabilityCache:
         key: str = ProbabilityCache.cache_key(outcome)
         return ProbabilityCache._check_key(key) and (key in self.cache_ret)
 
-    def retrieve_state(self, outcome: str | list[str]) -> QuantumState:
-        """Retrieve the stabilizer state from the cache, it is assumed cache was already
-        checked to make sure it exists or an exception will be raised
+    def retrieve_state(self, outcome: str | list[str]) -> QuantumState | None:
+        """Retrieve the stabilizer state from the cache, if the state does not
+        exist in the cache, None is returned
 
         Args:
             outcome list[str]: outcome value used to get the key and check the cache
 
         Returns:
-            QuantumState: the state retrieved from the cache
+            QuantumState | None: the state retrieved from the cache, None if key is
+                not in in cache
         """
-        return self.cache_ret[ProbabilityCache.cache_key(outcome)]
+        try:
+            return self.cache_ret[ProbabilityCache.cache_key(outcome)]
+        except KeyError:
+            return None
 
-    def retrieve_outcome(self, outcome: str | list[str]) -> float:
+    def retrieve_outcome(self, outcome: str | list[str]) -> float | None:
         """Retrieve the outcome value based on the outcome value to build the key,
-        it is assumed cache was already checked to make sure it exists or an exception will be raised
+        if the state does not exist in the cache, None is returned
 
         Args:
             outcome list[str]: outcome value used to get the key and check the cache
 
         Returns:
-            float: the cached float value for the outcome probability
+            float | None: the cached float value for the outcome probability, None
+                if key is not in cache
         """
-        return self.cache_outcome[ProbabilityCache.cache_key(outcome)]
+        try:
+            return self.cache_outcome[ProbabilityCache.cache_key(outcome)]
+        except KeyError:
+            return None
 
     def outcome_cache_contains_entries(self) -> bool:
         """Check if the outcome cache contains any entries
