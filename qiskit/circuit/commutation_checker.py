@@ -201,7 +201,7 @@ def _hashable_parameters(params):
     return ("fallback", str(params))
 
 
-_skipped_op_names = {"measure", "reset", "delay", "initialize", "annotated"}
+_skipped_op_names = {"measure", "reset", "delay"}
 
 
 def _commutation_precheck(
