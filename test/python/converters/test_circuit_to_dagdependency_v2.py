@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Test for the converter dag dependency to circuit and circuit to dag
-dependency."""
+dependency V2."""
 
 import unittest
 
