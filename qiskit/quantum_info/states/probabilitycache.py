@@ -15,10 +15,11 @@ from qiskit.quantum_info.states.quantum_state import QuantumState
 
 class ProbabilityCache:
     """
-    Used to cache probability outcomes and StabilizerState when calculating the branches using targets.
-    When using multiple targets for the Probability calculation, which will reduce the number of branches calculated,
-    if a user has multiple branches they are calculating, this can save time on rebuilding the state of a branch that
-    was partially traversed, and gives a better starting point and increases performance.
+    Used to cache probability outcomes and StabilizerState when calculating the branches 
+    using targets. When using multiple targets for the Probability calculation, which will 
+    reduce the number of branches calculated, if a user has multiple branches they are 
+    calculating, this can save time on rebuilding the state of a branch that was partially 
+    traversed, and gives a better starting point and increases performance.
     """
 
     def __init__(self):
@@ -106,8 +107,8 @@ class ProbabilityCache:
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome (list[str]): outcome value used to get the key and check the cache
-            ret (QuantumState): the QuantumState to save in the cache
+            outcome list[str]: outcome value used to get the key and check the cache
+            outcome_prob float: probability to save in the cache for the outcome
         """
         key: str = ProbabilityCache.cache_key(outcome)
         if ProbabilityCache._check_key(key):
@@ -126,7 +127,7 @@ class ProbabilityCache:
         Returns:
             bool: True if it meets the criteria
         """
-        return key != None and "X" in key and ("1" in key or "0" in key)
+        return key is not None and "X" in key and ("1" in key or "0" in key)
 
     def retreive_key_for_most_completed_branch_to_target(self, target: str) -> str:
         """Retrieves the best starting point for calculating the probability
