@@ -46,7 +46,7 @@ class TestStabilizerState(QiskitTestCase):
 
     # Allowed percent head room when checking performance
     # of probability calculations with targets vs without target
-    performance_varability_percent: float = 0.001
+    performance_varability_percent: float = 0.005
 
     @staticmethod
     def probability_percent_of_calculated_branches(

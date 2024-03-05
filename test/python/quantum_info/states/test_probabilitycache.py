@@ -13,11 +13,14 @@
 
 """Tests for ProbabilityCache quantum state class."""
 
+# import itertools
+# import random
 import unittest
 import logging
-from ddt import ddt
 
 # from qiskit.quantum_info.states.probabilitycache import ProbabilityCache
+from ddt import ddt
+
 # from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
