@@ -484,7 +484,7 @@ class StabilizerState(QuantumState):
                 probs[key] = round(value, decimals)
         return probs
 
-    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> Dict:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the

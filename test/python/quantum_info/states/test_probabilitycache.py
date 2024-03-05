@@ -18,6 +18,7 @@ import random
 from typing import Dict, List
 import unittest
 import logging
+from ddt import ddt
 import numpy as np
 from qiskit.quantum_info.states.probabilitycache import ProbabilityCache
 from test import combine  # pylint: disable=wrong-import-order
@@ -26,6 +27,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 logger = logging.getLogger(__name__)
 
 
+@ddt
 class TestProbabilityCache(QiskitTestCase):
     """Tests for StabilizerState class."""
 
