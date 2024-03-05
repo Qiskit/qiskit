@@ -16,12 +16,12 @@
 import itertools
 import random
 from typing import Dict, List
+import unittest
+import logging
+import numpy as np
 from qiskit.quantum_info.states.probabilitycache import ProbabilityCache
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-import numpy as np
-import unittest
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -126,9 +126,9 @@ class TestProbabilityCache(QiskitTestCase):
         if len(keys_to_pick) > 0:
             # Only verify cache key where a valid starting place can be found
             choice: str = random.choice(keys_to_pick)
-            choiceFind: str = choice.replace("X", "1")
+            choice_find: str = choice.replace("X", "1")
             self.assertTrue(
-                cache.retreive_key_for_most_completed_branch_to_target(choiceFind) == choice
+                cache.retreive_key_for_most_completed_branch_to_target(choice_find) == choice
             )
 
 
