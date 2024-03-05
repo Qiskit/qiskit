@@ -263,6 +263,7 @@ def is_commutation_skipped(op, qargs, max_num_qubits):
     # last resort: try to generate an Operator out of op, if this succeeds we can determine commutativity
     # this might be runtime-intensive in general so we should attempt to branch out before running this
     # it may be more runtime-efficient to check for entries in the commutation library before
+    # TODO deduplicate/merge the call to Operator() here and and in _commute_matmul
     try:
         Operator(op)
         return False
