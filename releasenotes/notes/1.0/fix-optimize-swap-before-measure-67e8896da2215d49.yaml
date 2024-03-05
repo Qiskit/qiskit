@@ -1,0 +1,42 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~.OptimizeSwapBeforeMeasure` pass where
+    it would incorrectly optimize circuits involving swap and measure
+    instructions.  For example::
+
+        from qiskit import QuantumCircuit
+        from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
+        pass_ = OptimizeSwapBeforeMeasure()
+        qc = QuantumCircuit(2, 1)
+        qc.swap(0, 1)
+        qc.measure(0, 0)
+        qc.measure(0, 0)
+        print(qc.draw())
+        print(pass_(qc).draw())
+
+    would previously print::
+
+                  ┌─┐┌─┐
+          q_0: ─X─┤M├┤M├
+                │ └╥┘└╥┘
+          q_1: ─X──╫──╫─
+                   ║  ║
+          c: 1/════╩══╩═
+                   0  0
+               ┌─┐
+          q_0: ┤M├───
+               └╥┘┌─┐
+          q_1: ─╫─┤M├
+                ║ └╥┘
+          c: 1/═╩══╩═
+                0  0
+
+    and now the second circuit is correctly optimized to::
+
+          q_0: ──────
+               ┌─┐┌─┐
+          q_1: ┤M├┤M├
+               └╥┘└╥┘
+          c: 1/═╩══╩═
+                0  0

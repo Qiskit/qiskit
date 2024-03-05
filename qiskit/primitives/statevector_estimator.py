@@ -115,8 +115,8 @@ class StatevectorEstimator(BaseEstimatorV2):
         self._seed = seed
 
     @property
-    def default_precision(self) -> int:
-        """Return the default shots"""
+    def default_precision(self) -> float:
+        """Return the default precision"""
         return self._default_precision
 
     @property

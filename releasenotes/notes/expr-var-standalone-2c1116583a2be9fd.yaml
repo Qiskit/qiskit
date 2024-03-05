@@ -1,7 +1,0 @@
----
-features:
-  - |
-    :class:`~.expr.Var` nodes now have a :attr:`.Var.standalone` property to quickly query whether
-    they own their own memory, or if they wrap old-style classical memory in the form of a
-    :class:`.Clbit` or :class:`.ClassicalRegister`.  This currently always returns ``False`` (i.e.
-    all :class:`~.expr.Var` nodes *do* wrap bits or registers), but will expand in the future.

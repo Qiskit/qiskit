@@ -21,7 +21,7 @@ from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.providers.backend import QubitProperties
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
-
+from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.providers.models.pulsedefaults import PulseDefaults
 from qiskit.providers.options import Options
 from qiskit.providers.exceptions import BackendPropertyError
@@ -92,8 +92,12 @@ def convert_to_target(
 
     # Create instruction property placeholder from backend configuration
     basis_gates = set(getattr(configuration, "basis_gates", []))
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
     gate_configs = {gate.name: gate for gate in configuration.gates}
-    all_instructions = set.union(basis_gates, set(required))
+    all_instructions = set.union(
+        basis_gates, set(required), supported_instructions.intersection(CONTROL_FLOW_OP_NAMES)
+    )
+
     inst_name_map = {}  # type: Dict[str, Instruction]
 
     faulty_ops = set()
@@ -158,15 +162,22 @@ def convert_to_target(
         faulty_qubits = {
             q for q in range(configuration.num_qubits) if not properties.is_qubit_operational(q)
         }
-        qubit_properties = [
-            QubitProperties(
-                t1=properties.qubit_property(qubit_idx)["T1"][0],
-                t2=properties.qubit_property(qubit_idx)["T2"][0],
-                frequency=properties.qubit_property(qubit_idx)["frequency"][0],
-            )
-            for qubit_idx in range(0, configuration.num_qubits)
-        ]
 
+        qubit_properties = []
+        for qi in range(0, configuration.num_qubits):
+            # TODO faulty qubit handling might be needed since
+            #  faulty qubit reporting qubit properties doesn't make sense.
+            try:
+                prop_dict = properties.qubit_property(qubit=qi)
+            except KeyError:
+                continue
+            qubit_properties.append(
+                QubitProperties(
+                    t1=prop_dict.get("T1", (None, None))[0],
+                    t2=prop_dict.get("T2", (None, None))[0],
+                    frequency=prop_dict.get("frequency", (None, None))[0],
+                )
+            )
         in_data["qubit_properties"] = qubit_properties
 
         for name in all_instructions:

@@ -1,8 +1,0 @@
----
-features:
-  - |
-    A :attr:`~qiskit.circuit.Parameter.uuid` property was added to the
-    :class:`qiskit.circuit.Parameter` class. In advanced use cases,
-    this property can be used for creating
-    :class:`qiskit.circuit.Parameter` instances that compare equal to
-    each other.

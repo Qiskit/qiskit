@@ -17,13 +17,13 @@ import numpy
 from numpy.testing import assert_allclose
 
 import qiskit
-from qiskit.circuit.library import UnitaryGate
+from qiskit.circuit.library import UnitaryGate, CXGate
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import Operator
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.qasm2 import dumps
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -103,7 +103,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         uni2q = UnitaryGate(matrix)
         qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
-        passman.append(CXCancellation())
+        passman.append(InverseCancellation([CXGate()]))
         qc2 = passman.run(qc)
         # test of qasm output
         self.log.info(dumps(qc2))

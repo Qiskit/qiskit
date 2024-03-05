@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The property ``IntegerComparator.num_ancilla_qubits`` is removed, which was
+    deprecated in Qiskit 0.23 (released in 2020-10). Its functionality is fully covered
+    by :attr:`.IntegerComparator.num_ancilla`.

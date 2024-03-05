@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`.Optimize1qGatesDecomposition` transpiler
+    pass where it would potentially resynthesize a single ideal (meaning the
+    error rate is ``0.0``) gate which was present in the :class:`.Target`. This
+    is now fixed so the pass :class:`.Optimize1qGatesDecomposition` will defer
+    to the circuit's gate if the error rate (which includes number of gates)
+    are the same.
+    Fixed `#10568 <https://github.com/Qiskit/qiskit/issues/10568>`__.

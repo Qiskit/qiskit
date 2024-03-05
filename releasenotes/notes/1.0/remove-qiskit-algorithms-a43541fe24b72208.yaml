@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The ``qiskit.algorithms`` module has been removed, following its deprecation in
+    Qiskit 0.44. The primitive-based algorithms from this module have been migrated to a standalone library (``qiskit_algorithms``)
+    and can be found on PyPI or `GitHub <https://github.com/qiskit-community/qiskit-algorithms>`_.
+    The decision to migrate the algorithms module to a separate package
+    was made to clarify the purpose Qiskit and make a distinction between the tools
+    and libraries built on top of it.

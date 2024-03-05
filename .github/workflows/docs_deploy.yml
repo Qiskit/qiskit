@@ -20,7 +20,7 @@ jobs:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           # Sync with 'documentationPythonVersion' in 'azure-pipelines.yml'.
@@ -33,7 +33,7 @@ jobs:
         run: tox run -e docs
 
       - name: Store built documentation artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qiskit-docs
           path: |

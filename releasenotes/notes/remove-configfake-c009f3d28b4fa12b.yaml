@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Removed the ``ConfigurableFakeBackend`` class deprecated in
-    Qiskit 0.46.0. Instead, a suitable :class:`.FakeBackend` can be used.

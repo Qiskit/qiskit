@@ -34,20 +34,42 @@ use crate::utils;
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
 const PI32: f64 = 3.0 * PI2;
-// FIXME: zero and one exist but I cant find the right incantation
 const C0: c64 = c64 { re: 0.0, im: 0.0 };
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
+const C1_NEG: c64 = c64 { re: -1.0, im: 0.0 };
 const C1IM: c64 = c64 { re: 0.0, im: 1.0 };
+const C1_NEG_IM: c64 = c64 { re: 0.0, im: -1.0 };
+const C0_5: c64 = c64 { re: 0.5, im: 0.0 };
+const C0_5_NEG: c64 = c64 { re: -0.5, im: 0.0 };
+const C0_5_IM: c64 = c64 { re: 0.0, im: 0.5 };
+const C0_5_IM_NEG: c64 = c64 { re: 0.0, im: -0.5 };
 
-// FIXME: Find a way to compute these matrices at compile time.
+const B_NON_NORMALIZED: [c64; 16] = [
+    C1, C1IM, C0, C0, C0, C0, C1IM, C1, C0, C0, C1IM, C1_NEG, C1, C1_NEG_IM, C0, C0,
+];
+
+const B_NON_NORMALIZED_DAGGER: [c64; 16] = [
+    C0_5,
+    C0,
+    C0,
+    C0_5,
+    C0_5_IM_NEG,
+    C0,
+    C0,
+    C0_5_IM,
+    C0,
+    C0_5_IM_NEG,
+    C0_5_IM_NEG,
+    C0,
+    C0,
+    C0_5,
+    C0_5_NEG,
+    C0,
+];
+
 fn transform_from_magic_basis(unitary: Mat<c64>) -> Mat<c64> {
-    let _b_nonnormalized: Mat<c64> = mat![
-        [C1, C1IM, C0, C0],
-        [C0, C0, C1IM, C1],
-        [C0, C0, C1IM, -C1],
-        [C1, -C1IM, C0, C0]
-    ];
-    let _b_nonnormalized_dagger = scale(c64 { re: 0.5, im: 0.0 }) * _b_nonnormalized.adjoint();
+    let _b_nonnormalized = mat::from_row_major_slice::<c64>(&B_NON_NORMALIZED, 4, 4);
+    let _b_nonnormalized_dagger = mat::from_row_major_slice::<c64>(&B_NON_NORMALIZED_DAGGER, 4, 4);
     _b_nonnormalized_dagger * unitary * _b_nonnormalized
 }
 

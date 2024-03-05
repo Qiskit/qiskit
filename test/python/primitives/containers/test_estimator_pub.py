@@ -182,6 +182,19 @@ class EstimatorPubTestCase(QiskitTestCase):
         pub2 = EstimatorPub.coerce(pub1, precision=precision)
         self.assertEqual(pub1, pub2)
 
+    def test_coerce_pub_with_exact_types(self):
+        """Test coercing an EstimatorPub"""
+        params = (Parameter("a"), Parameter("b"))
+        circuit = QuantumCircuit(2)
+        circuit.rx(params[0], 0)
+        circuit.ry(params[1], 1)
+        obs = ObservablesArray({"XY": 1})
+        params = BindingsArray(data={params: np.ones((10, 2))})
+        pub = EstimatorPub.coerce((circuit, obs, params))
+        self.assertIs(pub.circuit, circuit)
+        self.assertIs(pub.observables, obs)
+        self.assertIs(pub.parameter_values, params)
+
     @ddt.data(0.01, 0.02)
     def test_coerce_pub_without_shots(self, precision):
         """Test coercing an EstimatorPub"""

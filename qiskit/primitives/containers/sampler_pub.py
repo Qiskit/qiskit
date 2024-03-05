@@ -121,7 +121,7 @@ class SamplerPub(ShapedMixin):
 
         if len(pub) > 1 and pub[1] is not None:
             values = pub[1]
-            if not isinstance(values, Mapping):
+            if not isinstance(values, (BindingsArray, Mapping)):
                 values = {tuple(circuit.parameters): values}
             parameter_values = BindingsArray.coerce(values)
         else:

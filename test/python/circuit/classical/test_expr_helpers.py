@@ -115,3 +115,30 @@ class TestStructurallyEquivalent(QiskitTestCase):
         # ``True`` instead.
         self.assertFalse(expr.structurally_equivalent(left, right, not_handled, not_handled))
         self.assertTrue(expr.structurally_equivalent(left, right, always_equal, always_equal))
+
+
+@ddt.ddt
+class TestIsLValue(QiskitTestCase):
+    @ddt.data(
+        expr.Var.new("a", types.Bool()),
+        expr.Var.new("b", types.Uint(8)),
+        expr.Var(Clbit(), types.Bool()),
+        expr.Var(ClassicalRegister(8, "cr"), types.Uint(8)),
+    )
+    def test_happy_cases(self, lvalue):
+        self.assertTrue(expr.is_lvalue(lvalue))
+
+    @ddt.data(
+        expr.Value(3, types.Uint(2)),
+        expr.Value(False, types.Bool()),
+        expr.Cast(expr.Var.new("a", types.Uint(2)), types.Uint(8)),
+        expr.Unary(expr.Unary.Op.LOGIC_NOT, expr.Var.new("a", types.Bool()), types.Bool()),
+        expr.Binary(
+            expr.Binary.Op.LOGIC_AND,
+            expr.Var.new("a", types.Bool()),
+            expr.Var.new("b", types.Bool()),
+            types.Bool(),
+        ),
+    )
+    def test_bad_cases(self, not_an_lvalue):
+        self.assertFalse(expr.is_lvalue(not_an_lvalue))

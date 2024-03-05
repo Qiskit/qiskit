@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    The use of the (deprecated) ``Optimizer`` class on :class:`~.AQC` did not have a
+    non-deprecated alternative path, which should have been introduced in
+    the original ``qiskit-algorithms`` deprecation PR
+    `#10406 <https://github.com/Qiskit/qiskit/pull/10406>`_.
+    It now accepts a callable that implements the :class:`~.Minimizer` protocol,
+    as explicitly stated in the deprecation warning. The callable can look like the
+    following example:
+
+      .. code-block:: python
+
+          from functools import partial
+          from scipy.optimize import minimize
+          from qiskit.synthesis.unitary.aqc import AQC
+
+          optimizer = partial(minimize, args=(), method="L-BFGS-B", options={"maxiter": 200})
+          aqc = AQC(optimizer=optimizer)

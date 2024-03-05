@@ -14,10 +14,20 @@
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CXCancellation(TransformationPass):
     """Cancel back-to-back ``cx`` gates in dag."""
+
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use :class:`~.InverseCancellation`, which is a more generic pass."
+        ),
+        since="1.1.0",
+    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     @control_flow.trivial_recurse
     def run(self, dag):

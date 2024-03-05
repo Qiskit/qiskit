@@ -96,11 +96,11 @@ class StyleDict(dict):
         nested_attrs = {"displaycolor", "displaytext"}
         for attr in nested_attrs.intersection(other.keys()):
             if attr in self.keys():
-                self[attr].update(other.pop(attr))
+                self[attr].update(other[attr])
             else:
-                self[attr] = other.pop(attr)
+                self[attr] = other[attr]
 
-        super().update(other)
+        super().update((key, value) for key, value in other.items() if key not in nested_attrs)
 
 
 class DefaultStyle:

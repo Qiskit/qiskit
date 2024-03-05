@@ -520,18 +520,6 @@ class Instruction(Operation):
             cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
 
-    def _qasmif(self, string):
-        """Print an if statement if needed."""
-        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
-
-        if self.condition is None:
-            return string
-        if not isinstance(self.condition[0], ClassicalRegister):
-            raise QASM2ExportError(
-                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
-            )
-        return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
-
     def broadcast_arguments(self, qargs, cargs):
         """
         Validation of the arguments.

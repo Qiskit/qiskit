@@ -1,7 +1,0 @@
----
-features:
-  - |
-    A new exception, :exc:`~.QPYLoadingDeprecatedFeatureWarning`, has been added to the QPY module.
-    This class allows for deprecation warnings to surface even if the depreacted feature
-    is in a variable point in the call stack, as is the case for many QPY loading functions that
-    are called recursively.

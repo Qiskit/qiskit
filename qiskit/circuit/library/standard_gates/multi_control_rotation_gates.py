@@ -123,6 +123,9 @@ def _mcsu2_real_diagonal(
     if not is_unitary_matrix(unitary):
         raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
 
+    if not np.isclose(1.0, np.linalg.det(unitary)):
+        raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
+
     is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
     is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
         unitary[1, 0].imag, 0.0

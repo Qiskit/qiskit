@@ -1,0 +1,21 @@
+---
+features_providers:
+  - |
+    The :mod:`qiskit.providers.fake_provider` module now includes a series of generic fake backends
+    following the :class:`.BackendV1` interface. They have been introduced as an alternative to the
+    snapshot-based fake backends exposed in the deprecated ``FakeProvider``
+    (``FakeVigo``, ``FakeTokyo``, etc). The list of new fake backends includes:
+
+      * Backends without pulse capabilities:
+
+        * :class:`.Fake5QV1`
+        * :class:`.Fake20QV1`
+
+      * Backends with pulse capabilities:
+
+        * :class:`.Fake7QPulseV1`
+        * :class:`.Fake27QPulseV1`
+        * :class:`.Fake127QPulseV1`
+
+    They can be imported following the pattern: ``from qiskit.providers.fake_provider import Fake5QV1``.
+    More details on the backend properties can be found on each backend's API documentation.

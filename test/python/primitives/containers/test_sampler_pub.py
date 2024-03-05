@@ -333,3 +333,15 @@ class SamplerPubTestCase(QiskitTestCase):
             0,
             msg="incorrect num parameters for `parameter_values` property",
         )
+
+    def test_coerce_pub_with_exact_types(self):
+        """Test coercing a SamplerPub with exact types."""
+        params = (Parameter("a"), Parameter("b"))
+        circuit = QuantumCircuit(2)
+        circuit.rx(params[0], 0)
+        circuit.ry(params[1], 1)
+
+        params = BindingsArray(data={params: np.ones((10, 2))})
+        pub = SamplerPub.coerce((circuit, params))
+        self.assertIs(pub.circuit, circuit)
+        self.assertIs(pub.parameter_values, params)
