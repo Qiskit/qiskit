@@ -16,7 +16,7 @@ dependency."""
 import unittest
 
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
-from qiskit.converters.circuit_to_dagdependency_v2 import circuit_to_dagdependency_v2
+from qiskit.converters.circuit_to_dagdependency_v2 import _circuit_to_dagdependency_v2
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -37,7 +37,7 @@ class TestCircuitToDAGDependencyV2(QiskitTestCase):
         circuit_in.measure(qr[0], cr[0])
         circuit_in.measure(qr[1], cr[1])
         circuit_in.measure(qr[2], cr[2])
-        dag_dependency = circuit_to_dagdependency_v2(circuit_in)
+        dag_dependency = _circuit_to_dagdependency_v2(circuit_in)
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out, circuit_in)
 
@@ -47,7 +47,7 @@ class TestCircuitToDAGDependencyV2(QiskitTestCase):
         circuit_in.add_calibration("h", [0], None)
         self.assertEqual(len(circuit_in.calibrations), 1)
 
-        dag_dependency = circuit_to_dagdependency_v2(circuit_in)
+        dag_dependency = _circuit_to_dagdependency_v2(circuit_in)
         self.assertEqual(len(dag_dependency.calibrations), 1)
 
         circuit_out = dagdependency_to_circuit(dag_dependency)
@@ -61,7 +61,7 @@ class TestCircuitToDAGDependencyV2(QiskitTestCase):
         circuit_in.h(qr[0])
         circuit_in.cx(qr[0], qr[1])
         circuit_in.measure_all()
-        dag_dependency = circuit_to_dagdependency_v2(circuit_in)
+        dag_dependency = _circuit_to_dagdependency_v2(circuit_in)
         self.assertEqual(dag_dependency.metadata, meta_dict)
         circuit_out = dagdependency_to_circuit(dag_dependency)
         self.assertEqual(circuit_out.metadata, meta_dict)
