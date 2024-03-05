@@ -163,16 +163,16 @@ class TestEvolutionGate(QiskitTestCase):
 
         def energy(evo):
             return Statevector(evo).expectation_value(op.to_matrix())
-        
+
         for i in range(num_samples):
             qdrift = PauliEvolutionGate(
                 op, time=time, synthesis=QDrift(reps=reps, seed=self.seed + i)
             ).definition
 
             qdrift_energy.append(energy(qdrift))
-        
+
         exact = scipy.linalg.expm(-1j * time * op.to_matrix()).dot(np.eye(4)[0, :])
-        
+
         self.assertAlmostEqual(energy(exact), np.average(qdrift_energy), places=2)
 
     def test_passing_grouped_paulis(self):
