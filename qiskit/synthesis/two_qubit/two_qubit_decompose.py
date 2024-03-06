@@ -29,17 +29,16 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional, Type
+from typing import Optional, Type
 
 import logging
 
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
+from qiskit.circuit.library.standard_gates import CXGate, RXGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
-from qiskit.synthesis.two_qubit.weyl import transform_to_magic_basis
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
@@ -155,7 +154,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
-        circuit_sequence = super().circuit()
+        circuit_sequence = super().circuit(euler_basis=euler_basis, simplify=simplify, atol=atol)
         circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
         for name, params, qubits in circuit_sequence:
             if qubits[0] == qubits[1]:
@@ -240,11 +239,19 @@ class TwoQubitControlledUDecomposer:
 
             circ = QuantumCircuit(2)
             circ.rxx(test_angle, 0, 1)
-            decomposer_rxx = TwoQubitWeylDecomposition(Operator(circ).data, fidelity=None, specialization=two_qubit_decompose.Specializations.ControlledEquiv)
+            decomposer_rxx = TwoQubitWeylDecomposition(
+                Operator(circ).data,
+                fidelity=None,
+                specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+            )
 
             circ = QuantumCircuit(2)
             circ.append(rxx_equivalent_gate(test_angle), qargs=[0, 1])
-            decomposer_equiv = TwoQubitWeylDecomposition(Operator(circ).data, fidelity=None, specialization=two_qubit_decompose.Specializations.ControlledEquiv)
+            decomposer_equiv = TwoQubitWeylDecomposition(
+                Operator(circ).data,
+                fidelity=None,
+                specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+            )
 
             scale = decomposer_rxx.a / decomposer_equiv.a
 

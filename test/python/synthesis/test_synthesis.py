@@ -14,8 +14,6 @@
 
 import pickle
 import unittest
-import contextlib
-import logging
 import math
 import numpy as np
 import scipy
@@ -228,10 +226,9 @@ class CheckDecompositions(QiskitTestCase):
         decomp2 = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
         self.assertRoundTrip(decomp2)
         self.assertRoundTripPickle(decomp2)
-        if expected_specialization is not TwoQubitWeylGeneral:
-            with self.assertRaises(QiskitError) as exc:
-                _ = expected_specialization(target_unitary, fidelity=1.0)
-            self.assertIn("worse than requested", exc.exception.message)
+        with self.assertRaises(QiskitError) as exc:
+            _ = expected_specialization(target_unitary, fidelity=1.0)
+        self.assertIn("worse than requested", exc.exception.message)
 
     def check_exact_decomposition(
         self, target_unitary, decomposer, tolerance=1.0e-12, num_basis_uses=None
