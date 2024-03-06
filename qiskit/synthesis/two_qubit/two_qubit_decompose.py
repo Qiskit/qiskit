@@ -501,7 +501,7 @@ def _closest_partial_swap(a, b, c) -> float:
     am, bm, cm = a - m, b - m, c - m
     ab, bc, ca = a - b, b - c, c - a
 
-    return m + am * bm * cm * (6 + ab * ab + bc * bc * ca * ca) / 18
+    return m + am * bm * cm * (6 + ab * ab + bc * bc + ca * ca) / 18
 
 
 class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
