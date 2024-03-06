@@ -65,6 +65,26 @@ class TestStabilizerState(QiskitTestCase):
         """
         return number_of_calculated_branches / ((2 ** (num_of_qubits + 1)) - 1)
 
+    def _verify_performance_time(self, better_performing_time: float, baseline_compare_time: float):
+        """Verify the performance of an expected better performing function against a worse
+        performing function. Used to output the time values if the test fails to aid in debugging
+
+        Args:
+            better_performing_time (float): the process measured with the better performing time
+            compare_time (float): the process measured to compare with the worse performing time
+
+        Raises:
+            ex AssertionError: exception raised when assertTrue fails
+        """
+        try:
+            self.assertTrue(better_performing_time < baseline_compare_time)
+        except AssertionError as ex:
+            print(
+                "\nCompared Times: "
+                + (str(better_performing_time) + " < " + str(baseline_compare_time))
+            )
+            raise ex
+
     @combine(num_qubits=[2, 3, 4, 5])
     def test_init_clifford(self, num_qubits):
         """Test initialization from Clifford."""
@@ -581,14 +601,18 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
                 test_1_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=1, target=target_input, use_caching=True
+                )
                 test_1_time_with_targets += time.process_time_ns() - test_1_time_with_target_start
                 target = {"000": 0.1, "100": 0.1}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
                 test_1_1_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=1, target=target_input, use_caching=True
+                )
                 test_1_1_time_with_targets += (
                     time.process_time_ns() - test_1_1_time_with_target_start
                 )
@@ -600,8 +624,8 @@ class TestStabilizerState(QiskitTestCase):
         # less then when using a large number of qubits And there will be a more
         # siginifcant amount of overhead, so simply checking if it always performs
         # better which it always should
-        self.assertTrue(test_1_time_with_targets < test_1_time_no_target)
-        self.assertTrue(test_1_1_time_with_targets < test_1_time_no_target)
+        self._verify_performance_time(test_1_time_with_targets, test_1_time_no_target)
+        self._verify_performance_time(test_1_1_time_with_targets, test_1_time_no_target)
 
         test_2_time_no_target: float = 0
         test_2_time_with_targets: float = 0
@@ -628,14 +652,18 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
                 test_2_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=2, target=target_input, use_caching=True
+                )
                 test_2_time_with_targets += time.process_time_ns() - test_2_time_with_target_start
                 target = {"000": 0.12, "100": 0.12}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
                 test_2_1_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=2, target=target_input, use_caching=True
+                )
                 test_2_1_time_with_targets += (
                     time.process_time_ns() - test_2_1_time_with_target_start
                 )
@@ -643,8 +671,8 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
 
         # Verify the target test always runs faster then non targetted test
-        self.assertTrue(test_2_time_with_targets < test_2_time_no_target)
-        self.assertTrue(test_2_1_time_with_targets < test_2_time_no_target)
+        self._verify_performance_time(test_2_time_with_targets, test_2_time_no_target)
+        self._verify_performance_time(test_2_1_time_with_targets, test_2_time_no_target)
 
         test_3_time_no_target: float = 0
         test_3_time_with_targets: float = 0
@@ -671,14 +699,18 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
                 test_3_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=3, target=target_input, use_caching=True
+                )
                 test_3_time_with_targets += time.process_time_ns() - test_3_time_with_target_start
                 target = {"000": 0.125, "100": 0.125}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
                 test_3_1_time_with_target_start = time.process_time_ns()
-                value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
+                value = stab.probabilities_dict_from_bitstrings(
+                    decimals=3, target=target_input, use_caching=True
+                )
                 test_3_1_time_with_targets += (
                     time.process_time_ns() - test_3_1_time_with_target_start
                 )
@@ -686,8 +718,8 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
 
         # Verify the target test always runs faster then non targetted test
-        self.assertTrue(test_3_time_with_targets < test_3_time_no_target)
-        self.assertTrue(test_3_1_time_with_targets < test_3_time_no_target)
+        self._verify_performance_time(test_3_time_with_targets, test_3_time_no_target)
+        self._verify_performance_time(test_3_1_time_with_targets, test_3_time_no_target)
 
         # Test with larger number of qubits where performance will be significantly
         # improved with targets to calculate
@@ -738,7 +770,7 @@ class TestStabilizerState(QiskitTestCase):
             self.probability_percent_of_calculated_branches(13, num_qubits)
             + self.performance_varability_percent
         )
-        self.assertTrue(test_4_time_with_target < test_time_to_be_under)
+        self._verify_performance_time(test_4_time_with_target, test_time_to_be_under)
 
         # Run same test as above but without branch path caching, this will cause it to have
         # to calculate the entire branch again for the 2nd target which will
@@ -763,13 +795,13 @@ class TestStabilizerState(QiskitTestCase):
         )
         # Verify not caching but still using targets performs withing expected speed
         # compared to calculating all branches
-        self.assertTrue(test_4_target_no_caching < test_time_to_be_under)
+        self._verify_performance_time(test_4_target_no_caching, test_time_to_be_under)
 
         # Verify the caching of branch values performs better then not caching when using targets
         # This will make sure that caching is also working and giving us a performance benefit
         # The more targets, and specifically the targets that go down similar branches, the more
         # benefit caching will exhibit, This is also more prevelant as the number of qubits grows
-        self.assertTrue(test_4_time_with_target < test_4_target_no_caching)
+        self._verify_performance_time(test_4_time_with_target, test_4_target_no_caching)
 
         # test with target and 2 not close branches, requiring 24 node calculations
         test_5_time_with_target: float = 0
@@ -788,7 +820,7 @@ class TestStabilizerState(QiskitTestCase):
             self.probability_percent_of_calculated_branches(24, num_qubits)
             + self.performance_varability_percent
         )
-        self.assertTrue(test_5_time_with_target < test_time_to_be_under)
+        self._verify_performance_time(test_5_time_with_target, test_time_to_be_under)
 
     def test_probabilities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
@@ -1413,8 +1445,8 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
             list(cliff_1_probs), random.randint(1, len(cliff_1_probs))
         )
         self.assertEqual(
-            cliff1.probabilities_dict_from_bitstrings(target=target_input),
-            cliff2.probabilities_dict_from_bitstrings(target=target_input),
+            cliff1.probabilities_dict_from_bitstrings(target=target_input, use_caching=True),
+            cliff2.probabilities_dict_from_bitstrings(target=target_input, use_caching=True),
         )
 
         # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
@@ -1423,8 +1455,8 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         self.assertEqual(cliff_3_probs, cliff4.probabilities_dict())
         target_input = random.sample(list(cliff_3_probs), random.randint(1, len(cliff_3_probs)))
         self.assertEqual(
-            cliff3.probabilities_dict_from_bitstrings(target=target_input),
-            cliff4.probabilities_dict_from_bitstrings(target=target_input),
+            cliff3.probabilities_dict_from_bitstrings(target=target_input, use_caching=True),
+            cliff4.probabilities_dict_from_bitstrings(target=target_input, use_caching=True),
         )
 
         self.assertFalse(cliff1.equiv(cliff3))
