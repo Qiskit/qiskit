@@ -290,7 +290,7 @@ fn closest_partial_swap(a: f64, b: f64, c: f64) -> f64 {
     let m = (a + b + c) / 3.;
     let [am, bm, cm] = [a - m, b - m, c - m];
     let [ab, bc, ca] = [a - b, b - c, c - a];
-    m + am * bm * cm * (6. + ab * ab + bc * bc * ca * ca) / 18.
+    m + am * bm * cm * (6. + ab * ab + bc * bc + ca * ca) / 18.
 }
 
 fn rx_matrix(theta: f64) -> Array2<Complex64> {
