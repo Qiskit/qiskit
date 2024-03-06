@@ -571,7 +571,13 @@ class Instruction(Operation):
         )
 
     def repeat(self, n):
-        """Creates an instruction with `gate` repeated `n` amount of times.
+        """Creates an instruction with ``self`` repeated :math`n` times.
+
+        If this operation has a conditional, the output instruction will have the same conditional
+        and the inner repeated operations will be unconditional; instructions within a compound
+        definition cannot be conditioned on registers within Qiskit's data model.  This means that
+        it is not valid to apply a repeated instruction to a clbit that it both writes to and reads
+        from in its condition.
 
         Args:
             n (int): Number of times to repeat the instruction
