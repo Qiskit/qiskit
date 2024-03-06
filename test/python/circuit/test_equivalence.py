@@ -103,24 +103,42 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         self.assertEqual(entry[1], second_equiv)
 
     def test_set_entry(self):
-        """Verify setting an entry overrides any previously added."""
+        """Verify setting an entry overrides any previously added, without affecting entries that
+        depended on the set entry."""
         eq_lib = EquivalenceLibrary()
 
-        gate = OneQubitZeroParamGate()
-        first_equiv = QuantumCircuit(1)
-        first_equiv.h(0)
+        gates = {key: Gate(key, 1, []) for key in "abcd"}
+        target = Gate("target", 1, [])
 
-        eq_lib.add_equivalence(gate, first_equiv)
+        old = QuantumCircuit(1)
+        old.append(gates["a"], [0])
+        old.append(gates["b"], [0])
+        eq_lib.add_equivalence(target, old)
 
-        second_equiv = QuantumCircuit(1)
-        second_equiv.append(U2Gate(0, np.pi), [0])
+        outbound = QuantumCircuit(1)
+        outbound.append(target, [0])
+        eq_lib.add_equivalence(gates["c"], outbound)
 
-        eq_lib.set_entry(gate, [second_equiv])
+        self.assertEqual(eq_lib.get_entry(target), [old])
+        self.assertEqual(eq_lib.get_entry(gates["c"]), [outbound])
+        # Assert the underlying graph structure is correct as well.
+        gate_indices = {eq_lib.graph[node].key.name: node for node in eq_lib.graph.node_indices()}
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["a"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["b"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["target"], gate_indices["c"]))
 
-        entry = eq_lib.get_entry(gate)
+        new = QuantumCircuit(1)
+        new.append(gates["d"], [0])
+        eq_lib.set_entry(target, [new])
 
-        self.assertEqual(len(entry), 1)
-        self.assertEqual(entry[0], second_equiv)
+        self.assertEqual(eq_lib.get_entry(target), [new])
+        self.assertEqual(eq_lib.get_entry(gates["c"]), [outbound])
+        # Assert the underlying graph structure is correct as well.
+        gate_indices = {eq_lib.graph[node].key.name: node for node in eq_lib.graph.node_indices()}
+        self.assertFalse(eq_lib.graph.has_edge(gate_indices["a"], gate_indices["target"]))
+        self.assertFalse(eq_lib.graph.has_edge(gate_indices["b"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["d"], gate_indices["target"]))
+        self.assertTrue(eq_lib.graph.has_edge(gate_indices["target"], gate_indices["c"]))
 
     def test_raise_if_gate_entry_shape_mismatch(self):
         """Verify we raise if adding a circuit and gate with different shapes."""
