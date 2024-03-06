@@ -260,15 +260,7 @@ def is_commutation_skipped(op, qargs, max_num_qubits):
     if (hasattr(op, "to_matrix") and hasattr(op, "__array__")) or hasattr(op, "to_operator"):
         return False
 
-    # last resort: try to generate an Operator out of op, if this succeeds we can determine commutativity
-    # this might be runtime-intensive in general so we should attempt to branch out before running this
-    # it may be more runtime-efficient to check for entries in the commutation library before
-    # TODO deduplicate/merge the call to Operator() here and and in _commute_matmul
-    try:
-        Operator(op)
-        return False
-    except QiskitError:
-        return True
+    return False
 
 
 def _commutation_precheck(
@@ -417,12 +409,17 @@ def _commute_matmul(
     first_qarg = tuple(qarg[q] for q in first_qargs)
     second_qarg = tuple(qarg[q] for q in second_qargs)
 
-    operator_1 = Operator(
-        first_ops, input_dims=(2,) * len(first_qarg), output_dims=(2,) * len(first_qarg)
-    )
-    operator_2 = Operator(
-        second_op, input_dims=(2,) * len(second_qarg), output_dims=(2,) * len(second_qarg)
-    )
+    # try to generate an Operator out of op, if this succeeds we can determine commutativity, otherwise
+    # return false
+    try:
+        operator_1 = Operator(
+            first_ops, input_dims=(2,) * len(first_qarg), output_dims=(2,) * len(first_qarg)
+        )
+        operator_2 = Operator(
+            second_op, input_dims=(2,) * len(second_qarg), output_dims=(2,) * len(second_qarg)
+        )
+    except QiskitError:
+        return False
 
     if first_qarg == second_qarg:
         # Use full composition if possible to get the fastest matmul paths.
