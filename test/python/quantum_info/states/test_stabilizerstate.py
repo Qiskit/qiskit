@@ -561,9 +561,9 @@ class TestStabilizerState(QiskitTestCase):
         test_1_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
-                test_1_time_no_target_start = time.monotonic()
+                test_1_time_no_target_start = time.process_time_ns()
                 value = stab.probabilities_dict(decimals=1)
-                test_1_time_no_target += time.monotonic() - test_1_time_no_target_start
+                test_1_time_no_target += time.process_time_ns() - test_1_time_no_target_start
                 target = {
                     "000": 0.1,
                     "001": 0.1,
@@ -580,16 +580,18 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
                 target_input: List[str] = ["000", "100"]
-                test_1_time_with_target_start = time.monotonic()
+                test_1_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                test_1_time_with_targets += time.monotonic() - test_1_time_with_target_start
+                test_1_time_with_targets += time.process_time_ns() - test_1_time_with_target_start
                 target = {"000": 0.1, "100": 0.1}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
-                test_1_1_time_with_target_start = time.monotonic()
+                test_1_1_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=1, target=target_input)
-                test_1_1_time_with_targets += time.monotonic() - test_1_1_time_with_target_start
+                test_1_1_time_with_targets += (
+                    time.process_time_ns() - test_1_1_time_with_target_start
+                )
                 target = {"001": 0.1, "011": 0.1}
                 self.assertEqual(value, target)
 
@@ -606,9 +608,9 @@ class TestStabilizerState(QiskitTestCase):
         test_2_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
-                test_2_time_no_target_start = time.monotonic()
+                test_2_time_no_target_start = time.process_time_ns()
                 value = stab.probabilities_dict(decimals=2)
-                test_2_time_no_target += time.monotonic() - test_2_time_no_target_start
+                test_2_time_no_target += time.process_time_ns() - test_2_time_no_target_start
                 target = {
                     "000": 0.12,
                     "001": 0.12,
@@ -625,16 +627,18 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
                 target_input: List[str] = ["000", "100"]
-                test_2_time_with_target_start = time.monotonic()
+                test_2_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
-                test_2_time_with_targets += time.monotonic() - test_2_time_with_target_start
+                test_2_time_with_targets += time.process_time_ns() - test_2_time_with_target_start
                 target = {"000": 0.12, "100": 0.12}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
-                test_2_1_time_with_target_start = time.monotonic()
+                test_2_1_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=2, target=target_input)
-                test_2_1_time_with_targets += time.monotonic() - test_2_1_time_with_target_start
+                test_2_1_time_with_targets += (
+                    time.process_time_ns() - test_2_1_time_with_target_start
+                )
                 target = {"001": 0.12, "011": 0.12}
                 self.assertEqual(value, target)
 
@@ -647,9 +651,9 @@ class TestStabilizerState(QiskitTestCase):
         test_3_1_time_with_targets: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=3"):
-                test_3_time_no_target_start = time.monotonic()
+                test_3_time_no_target_start = time.process_time_ns()
                 value = stab.probabilities_dict(decimals=3)
-                test_3_time_no_target += time.monotonic() - test_3_time_no_target_start
+                test_3_time_no_target += time.process_time_ns() - test_3_time_no_target_start
                 target = {
                     "000": 0.125,
                     "001": 0.125,
@@ -666,16 +670,18 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
                 target_input: List[str] = ["000", "100"]
-                test_3_time_with_target_start = time.monotonic()
+                test_3_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
-                test_3_time_with_targets += time.monotonic() - test_3_time_with_target_start
+                test_3_time_with_targets += time.process_time_ns() - test_3_time_with_target_start
                 target = {"000": 0.125, "100": 0.125}
                 self.assertEqual(value, target)
 
                 target_input = ["001", "011"]
-                test_3_1_time_with_target_start = time.monotonic()
+                test_3_1_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=3, target=target_input)
-                test_3_1_time_with_targets += time.monotonic() - test_3_1_time_with_target_start
+                test_3_1_time_with_targets += (
+                    time.process_time_ns() - test_3_1_time_with_target_start
+                )
                 target = {"001": 0.125, "011": 0.125}
                 self.assertEqual(value, target)
 
@@ -694,9 +700,9 @@ class TestStabilizerState(QiskitTestCase):
         test_4_time_no_target: float = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
-                test_4_time_no_target_start = time.monotonic()
+                test_4_time_no_target_start = time.process_time_ns()
                 value = stab.probabilities_dict(decimals=5)
-                test_4_time_no_target += time.monotonic() - test_4_time_no_target_start
+                test_4_time_no_target += time.process_time_ns() - test_4_time_no_target_start
                 # Build target with all combinations of 01 for num_qubits long to value
                 # 0.00024, the expected result for each
                 target = {
@@ -713,9 +719,9 @@ class TestStabilizerState(QiskitTestCase):
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "111110001010"]
-                test_4_time_with_target_start = time.monotonic()
+                test_4_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
-                test_4_time_with_target += time.monotonic() - test_4_time_with_target_start
+                test_4_time_with_target += time.process_time_ns() - test_4_time_with_target_start
                 # Build target with all combinations of 01 for num_qubits long to value 0.00024,
                 # the expected result for each
                 target = {"011110001010": 0.00024, "111110001010": 0.00024}
@@ -741,11 +747,11 @@ class TestStabilizerState(QiskitTestCase):
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "111110001010"]
-                test_4_target_no_cache_start = time.monotonic()
+                test_4_target_no_cache_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=5, target=input_target, use_caching=False
                 )
-                test_4_target_no_caching += time.monotonic() - test_4_target_no_cache_start
+                test_4_target_no_caching += time.process_time_ns() - test_4_target_no_cache_start
                 # Build target with all combinations of 01 for num_qubits long to
                 # value 0.00024, the expected result for each
                 target = {"011110001010": 0.00024, "111110001010": 0.00024}
@@ -770,9 +776,9 @@ class TestStabilizerState(QiskitTestCase):
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "100001110101"]
-                test_5_time_with_target_start = time.monotonic()
+                test_5_time_with_target_start = time.process_time_ns()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
-                test_5_time_with_target += time.monotonic() - test_5_time_with_target_start
+                test_5_time_with_target += time.process_time_ns() - test_5_time_with_target_start
                 # Build target with all combinations of 01 for num_qubits long
                 # to value 0.00024, the expected result for each
                 target = {"011110001010": 0.00024, "100001110101": 0.00024}
