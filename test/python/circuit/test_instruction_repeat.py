@@ -52,6 +52,18 @@ class TestRepeatInt1Q(QiskitTestCase):
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
+    def test_conditional(self):
+        """Test that repetition works with a condition."""
+        cr = ClassicalRegister(3, "cr")
+        gate = SGate().c_if(cr, 7).repeat(5)
+        self.assertEqual(gate.condition, (cr, 7))
+
+        defn = QuantumCircuit(1)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.s(0)
+        self.assertEqual(gate.definition, defn)
+
 
 class TestRepeatInt2Q(QiskitTestCase):
     """Test gate_q2.repeat() with integer"""
@@ -82,6 +94,18 @@ class TestRepeatInt2Q(QiskitTestCase):
         self.assertEqual(result.name, "cx*1")
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
+
+    def test_conditional(self):
+        """Test that repetition works with a condition."""
+        cr = ClassicalRegister(3, "cr")
+        gate = CXGate().c_if(cr, 7).repeat(5)
+        self.assertEqual(gate.condition, (cr, 7))
+
+        defn = QuantumCircuit(2)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.cx(0, 1)
+        self.assertEqual(gate.definition, defn)
 
 
 class TestRepeatIntMeasure(QiskitTestCase):
@@ -117,6 +141,18 @@ class TestRepeatIntMeasure(QiskitTestCase):
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Instruction)
         self.assertNotIsInstance(result, Gate)
+
+    def test_measure_conditional(self):
+        """Test conditional measure moves condition to the outside."""
+        cr = ClassicalRegister(3, "cr")
+        measure = Measure().c_if(cr, 7).repeat(5)
+        self.assertEqual(measure.condition, (cr, 7))
+
+        defn = QuantumCircuit(1, 1)
+        for _ in range(5):
+            # No conditions on the inner bit.
+            defn.measure(0, 0)
+        self.assertEqual(measure.definition, defn)
 
 
 class TestRepeatErrors(QiskitTestCase):
