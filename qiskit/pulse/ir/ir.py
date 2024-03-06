@@ -229,6 +229,8 @@ class SequenceIR:
             block._sequence[0] = SequenceIR._InNode
             block._sequence[1] = SequenceIR._OutNode
 
+        # TODO : Create a dedicated half shallow copier.
+
         def edge_map(x, y, node):
             if y == node:
                 return 0
