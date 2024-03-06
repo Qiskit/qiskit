@@ -140,6 +140,51 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
         self.assertTrue(eq_lib.graph.has_edge(gate_indices["d"], gate_indices["target"]))
         self.assertTrue(eq_lib.graph.has_edge(gate_indices["target"], gate_indices["c"]))
 
+    def test_set_entry_parallel_edges(self):
+        """Test that `set_entry` works correctly in the case of parallel wires."""
+        eq_lib = EquivalenceLibrary()
+        gates = {key: Gate(key, 1, []) for key in "abcd"}
+        target = Gate("target", 1, [])
+
+        old_1 = QuantumCircuit(1, name="a")
+        old_1.append(gates["a"], [0])
+        old_1.append(gates["b"], [0])
+        eq_lib.add_equivalence(target, old_1)
+
+        old_2 = QuantumCircuit(1, name="b")
+        old_2.append(gates["b"], [0])
+        old_2.append(gates["a"], [0])
+        eq_lib.add_equivalence(target, old_2)
+
+        # This extra rule is so that 'a' still has edges, so we can do an exact isomorphism test.
+        # There's not particular requirement for `set_entry` to remove orphan nodes, so we'll just
+        # craft a test that doesn't care either way.
+        a_to_b = QuantumCircuit(1)
+        a_to_b.append(gates["b"], [0])
+        eq_lib.add_equivalence(gates["a"], a_to_b)
+
+        self.assertEqual(sorted(eq_lib.get_entry(target), key=lambda qc: qc.name), [old_1, old_2])
+
+        new = QuantumCircuit(1, name="c")
+        # No more use of 'a', but re-use 'b' and introduce 'c'.
+        new.append(gates["b"], [0])
+        new.append(gates["c"], [0])
+        eq_lib.set_entry(target, [new])
+
+        self.assertEqual(eq_lib.get_entry(target), [new])
+
+        expected = EquivalenceLibrary()
+        expected.add_equivalence(gates["a"], a_to_b)
+        expected.add_equivalence(target, new)
+
+        def node_fn(left, right):
+            return left == right
+
+        def edge_fn(left, right):
+            return left.rule == right.rule
+
+        self.assertTrue(rx.is_isomorphic(eq_lib.graph, expected.graph, node_fn, edge_fn))
+
     def test_raise_if_gate_entry_shape_mismatch(self):
         """Verify we raise if adding a circuit and gate with different shapes."""
         # This could be relaxed in the future to e.g. support ancilla management.
