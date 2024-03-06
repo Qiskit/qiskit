@@ -197,8 +197,7 @@ class SequenceIR:
             return None
 
         for ind in block.sequence.node_indices():
-            if isinstance(block.sequence.get_node_data(ind), SequenceIR):
-                sub_block = block.sequence.get_node_data(ind)
+            if isinstance(sub_block := block.sequence.get_node_data(ind), SequenceIR):
                 sub_block.flatten(inplace=True)
                 initial_time = block._time_table[ind]
                 nodes_mapping = block._sequence.substitute_node_with_subgraph(
