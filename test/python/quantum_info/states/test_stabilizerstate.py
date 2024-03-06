@@ -95,7 +95,7 @@ class TestStabilizerState(QiskitTestCase):
             int: time from process_time_ns
         """
         gc.disable()
-        return time.process_time_ns()
+        return time.perf_counter_ns()
 
     @staticmethod
     def _performance_end_time() -> int:
@@ -105,7 +105,7 @@ class TestStabilizerState(QiskitTestCase):
         Returns:
             int: time from process_time_ns
         """
-        end_time: int = time.process_time_ns()
+        end_time: int = time.perf_counter_ns()
         gc.enable()
         return end_time
 
