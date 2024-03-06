@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 
 from qiskit.passmanager.base_tasks import GenericPass
 from qiskit.transpiler.target import Target
-from qiskit.pulse.ir import IrBlock
+from qiskit.pulse.ir import SequenceIR
 
 
 class TransformationPass(GenericPass, ABC):
@@ -42,8 +42,8 @@ class TransformationPass(GenericPass, ABC):
     @abstractmethod
     def run(
         self,
-        passmanager_ir: IrBlock,
-    ) -> IrBlock:
+        passmanager_ir: SequenceIR,
+    ) -> SequenceIR:
         pass
 
     def __eq__(self, other):
@@ -79,7 +79,7 @@ class AnalysisPass(GenericPass, ABC):
     @abstractmethod
     def run(
         self,
-        passmanager_ir: IrBlock,
+        passmanager_ir: SequenceIR,
     ) -> None:
         pass
 

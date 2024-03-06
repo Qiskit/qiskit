@@ -19,7 +19,7 @@ from collections.abc import Callable
 from typing import Any
 
 from qiskit.passmanager import BasePassManager
-from qiskit.pulse.ir import IrBlock, IrInstruction
+from qiskit.pulse.ir import SequenceIR
 from qiskit.pulse.schedule import ScheduleBlock
 
 
@@ -52,14 +52,14 @@ class BasePulsePassManager(BasePassManager, ABC):
         self,
         input_program: ScheduleBlock,
         **kwargs,
-    ) -> IrBlock:
+    ) -> SequenceIR:
 
         def _wrap_recursive(_prog):
-            _ret = IrBlock(alignment=input_program.alignment_context)
+            _ret = SequenceIR(alignment=input_program.alignment_context)
             for _elm in _prog.blocks:
                 if isinstance(_elm, ScheduleBlock):
                     return _wrap_recursive(_elm)
-                _ret.add_element(IrInstruction(instruction=_elm))
+                _ret.append(_elm)
             return _ret
 
         return _wrap_recursive(input_program)
@@ -120,16 +120,16 @@ class BasePulsePassManager(BasePassManager, ABC):
 class BlockToIrCompiler(BasePulsePassManager):
     """A specialized pulse compiler for IR backend.
 
-    This compiler outputs :class:`.IrBlock`, which is an intermediate representation
+    This compiler outputs :class:`.SequenceIR`, which is an intermediate representation
     of the pulse program in Qiskit.
     """
 
     def _passmanager_backend(
         self,
-        passmanager_ir: IrBlock,
+        passmanager_ir: SequenceIR,
         in_program: ScheduleBlock,
         **kwargs,
-    ) -> IrBlock:
+    ) -> SequenceIR:
         return passmanager_ir
 
 
@@ -142,15 +142,15 @@ class BlockTranspiler(BasePulsePassManager):
 
     def _passmanager_backend(
         self,
-        passmanager_ir: IrBlock,
+        passmanager_ir: SequenceIR,
         in_program: ScheduleBlock,
         **kwargs,
     ) -> ScheduleBlock:
 
         def _unwrap_recursive(_prog):
-            _ret = ScheduleBlock(alignment_context=passmanager_ir.alignment)
+            _ret = ScheduleBlock(alignment_context=_prog.alignment)
             for _elm in _prog.elements:
-                if isinstance(_elm, IrBlock):
+                if isinstance(_elm, SequenceIR):
                     return _unwrap_recursive(_elm)
                 _ret.append(_elm.instruction, inplace=True)
             return _ret
