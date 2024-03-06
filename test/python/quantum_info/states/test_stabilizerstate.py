@@ -50,7 +50,7 @@ class TestStabilizerState(QiskitTestCase):
     performance_varability_percent: float = 0.005
 
     @staticmethod
-    def probability_percent_of_calculated_branches(
+    def _probability_percent_of_calculated_branches(
         number_of_calculated_branches: int, num_of_qubits: int
     ) -> float:
         """Helper function to calculate the acceptable performance of a
@@ -786,7 +786,7 @@ class TestStabilizerState(QiskitTestCase):
         # about 0.158% of the time to calculate compared to all the branches. Lets give a small amount
         # of room for variance, adding 0.5% extra time
         test_time_to_be_under: int = test_4_time_no_target * (
-            self.probability_percent_of_calculated_branches(13, num_qubits)
+            self._probability_percent_of_calculated_branches(13, num_qubits)
             + self.performance_varability_percent
         )
         self._verify_performance_time(test_4_time_with_target, test_time_to_be_under)
@@ -812,7 +812,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
 
         test_time_to_be_under: float = test_4_time_no_target * (
-            self.probability_percent_of_calculated_branches(24, num_qubits)
+            self._probability_percent_of_calculated_branches(24, num_qubits)
             + self.performance_varability_percent
         )
         # Verify not caching but still using targets performs withing expected speed
@@ -842,7 +842,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertEqual(value, target)
 
         test_time_to_be_under: float = test_4_time_no_target * (
-            self.probability_percent_of_calculated_branches(24, num_qubits)
+            self._probability_percent_of_calculated_branches(24, num_qubits)
             + self.performance_varability_percent
         )
         self._verify_performance_time(test_5_time_with_target, test_time_to_be_under)
