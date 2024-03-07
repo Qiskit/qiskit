@@ -266,7 +266,7 @@ class MatplotlibDrawer:
         self._style, def_font_ratio = load_style(self._style)
 
         # If font/subfont ratio changes from default, have to scale width calculations for
-        # subfont. Font change is auto scaled in the mpl_figure.set_size_inches call in draw()
+        # subfont. Font change is auto-scaled in the mpl_figure.set_size_inches call in draw()
         glob_data["subfont_factor"] = self._style["sfs"] * def_font_ratio / self._style["fs"]
 
         # if no user ax, setup default figure. Else use the user figure.

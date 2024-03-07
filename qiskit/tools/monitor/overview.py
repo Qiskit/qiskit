@@ -14,7 +14,10 @@
 """
 
 import math
+import warnings
+
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.providers.fake_provider import FakeBackend
 
 
 def get_unique_backends():
@@ -28,62 +31,65 @@ def get_unique_backends():
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
     try:
-        from qiskit.providers.ibmq import IBMQ
+        from qiskit_ibm_provider import IBMProvider
     except ImportError as ex:
         raise MissingOptionalLibraryError(
-            libname="qiskit-ibmq-provider",
+            libname="qiskit-ibm-provider",
             name="get_unique_backends",
-            pip_install="pip install qiskit-ibmq-provider",
+            pip_install="pip install qiskit-ibm-provider",
         ) from ex
     backends = []
-    for provider in IBMQ.providers():
-        for backend in provider.backends():
+    for instance in IBMProvider().instances():
+        for backend in IBMProvider(instance=instance).backends():
             backends.append(backend)
     unique_hardware_backends = []
     unique_names = []
     for back in backends:
-        if back.name() not in unique_names and not back.configuration().simulator:
+        if back.name not in unique_names and not back.configuration().simulator:
             unique_hardware_backends.append(back)
-            unique_names.append(back.name())
+            unique_names.append(back.name)
     if not unique_hardware_backends:
         raise QiskitError("No backends available.")
     return unique_hardware_backends
 
 
 def backend_monitor(backend):
-    """Monitor a single IBMQ backend.
+    """Monitor a single IBM Quantum backend.
 
     Args:
-        backend (IBMQBackend): Backend to monitor.
+        backend (IBMBackend): Backend to monitor.
     Raises:
-        QiskitError: Input is not a IBMQ backend.
-        MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
+        QiskitError: Input is not a IBM Quantum backend.
+        MissingOptionalLibraryError: If qiskit-ibm-provider is not installed
 
     Examples:
     .. code-block:: python
 
-       from qiskit.providers.ibmq import IBMQ
+       from qiskit_ibm_provider import IBMProvider
        from qiskit.tools.monitor import backend_monitor
-       provider = IBMQ.get_provider(hub='ibm-q')
-       backend_monitor(provider.backends.ibmq_lima)
+       provider = IBMProvider()
+       backend_monitor(provider.get_backend('ibm_sherbrooke'))
     """
     try:
-        from qiskit.providers.ibmq import IBMQBackend
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            from qiskit_ibm_provider.ibm_backend import IBMBackend
     except ImportError as ex:
         raise MissingOptionalLibraryError(
-            libname="qiskit-ibmq-provider",
+            libname="qiskit-ibm-provider",
             name="backend_monitor",
-            pip_install="pip install qiskit-ibmq-provider",
+            pip_install="pip install qiskit-ibm-provider",
         ) from ex
 
-    if not isinstance(backend, IBMQBackend):
-        raise QiskitError("Input variable is not of type IBMQBackend.")
+    if not isinstance(backend, (IBMBackend, FakeBackend)):
+        raise QiskitError("Input variable is not of type IBMBackend.")
     config = backend.configuration().to_dict()
     status = backend.status().to_dict()
     config_dict = {**status, **config}
 
-    print(backend.name())
-    print("=" * len(backend.name()))
+    name = backend.name() if callable(backend.name) else backend.name
+    print(name)
+    print("=" * len(name))
     print("Configuration")
     print("-" * 13)
     offset = "    "
@@ -168,16 +174,14 @@ def backend_monitor(backend):
 
 
 def backend_overview():
-    """Gives overview information on all the IBMQ
+    """Gives overview information on all the IBM Quantum
     backends that are available.
 
     Examples:
 
         .. code-block:: python
 
-            from qiskit.providers.ibmq import IBMQ
             from qiskit.tools.monitor import backend_overview
-            provider = IBMQ.get_provider(hub='ibm-q')
             backend_overview()
     """
     unique_hardware_backends = get_unique_backends()
@@ -213,10 +217,10 @@ def backend_overview():
             props = _backends[count].properties().to_dict()
             num_qubits = config["n_qubits"]
             str_list[0] += " " * (max_len - len(str_list[0])) + offset
-            str_list[0] += _backends[count].name()
-
+            backend = _backends[count]
+            str_list[0] += backend.name() if callable(backend.name) else backend.name
             str_list[1] += " " * (max_len - len(str_list[1])) + offset
-            str_list[1] += "-" * len(_backends[count].name())
+            str_list[1] += "-" * len(str_list[0])
 
             str_list[2] += " " * (max_len - len(str_list[2])) + offset
             str_list[2] += "Num. Qubits:  %s" % config["n_qubits"]
