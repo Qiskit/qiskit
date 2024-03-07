@@ -160,7 +160,10 @@ class SequenceIR:
         first_nodes = self._sequence.successor_indices(0)
         if not first_nodes:
             return None
-        return min([self._time_table[ind] for ind in first_nodes], default=None)
+        try:
+            return min(self._time_table[ind] for ind in first_nodes)
+        except TypeError:
+            return None
 
     def final_time(self) -> int | None:
         """Return final time.
@@ -170,15 +173,13 @@ class SequenceIR:
         last_nodes = self._sequence.predecessor_indices(1)
         if not last_nodes:
             return None
-        tf = None
-        for ind in last_nodes:
-            if (t0 := self._time_table[ind]) is not None:
-                duration = self._sequence.get_node_data(ind).duration
-                if tf is None:
-                    tf = t0 + duration
-                else:
-                    tf = max(tf, t0 + duration)
-        return tf
+        try:
+            return max(
+                self._time_table[ind] + self._sequence.get_node_data(ind).duration
+                for ind in last_nodes
+            )
+        except TypeError:
+            return None
 
     @property
     def duration(self) -> int | None:
@@ -231,10 +232,10 @@ class SequenceIR:
 
         # TODO : Create a dedicated half shallow copier.
 
-        def edge_map(x, y, node):
-            if y == node:
+        def edge_map(_x, _y, _node):
+            if _y == _node:
                 return 0
-            if x == node:
+            if _x == _node:
                 return 1
             return None
 

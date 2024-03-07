@@ -73,6 +73,18 @@ class TestSequenceIR(QiskitTestCase):
         ir_example._time_table[3] = 0
         self.assertEqual(ir_example.initial_time(), 0)
 
+    def test_initial_time_partial_scheduling(self):
+        """Test initial time with partial scheduling"""
+        ir_example = SequenceIR(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        ir_example.append(inst)
+        ir_example.append(inst)
+        ir_example._time_table[2] = 100
+        ir_example._time_table[3] = None
+        ir_example._sequence.add_edge(0, 2, None)
+        ir_example._sequence.add_edge(0, 3, None)
+        self.assertEqual(ir_example.initial_time(), None)
+
     def test_final_time(self):
         """Test final time"""
         ir_example = SequenceIR(AlignLeft())
@@ -87,6 +99,18 @@ class TestSequenceIR(QiskitTestCase):
         ir_example._sequence.add_edge(3, 1, None)
         ir_example._sequence.add_edge(4, 1, None)
         self.assertEqual(ir_example.final_time(), 300)
+
+    def test_final_time_partial_scheduling(self):
+        """Test final time with partial scheduling"""
+        ir_example = SequenceIR(AlignLeft())
+        inst = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        ir_example.append(inst)
+        ir_example.append(inst)
+        ir_example._time_table[2] = 1000
+        ir_example._time_table[3] = None
+        ir_example._sequence.add_edge(2, 1, None)
+        ir_example._sequence.add_edge(3, 1, None)
+        self.assertEqual(ir_example.final_time(), None)
 
     def test_duration(self):
         """Test duration"""

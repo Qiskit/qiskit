@@ -14,7 +14,7 @@
 
 from qiskit.pulse.compiler import BlockTranspiler
 from qiskit.pulse.compiler.basepasses import TransformationPass
-from qiskit.pulse.ir.ir import IrBlock
+from qiskit.pulse.ir.ir import SequenceIR
 from qiskit.providers.fake_provider import GenericBackendV2
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -24,7 +24,7 @@ from . import _dummy_programs as schedule_lib
 class _DummyPass(TransformationPass):
     """A test pass that doesn't perform any transformation."""
 
-    def run(self, passmanager_ir: IrBlock) -> IrBlock:
+    def run(self, passmanager_ir: SequenceIR) -> SequenceIR:
         return passmanager_ir
 
     def __hash__(self) -> int:
