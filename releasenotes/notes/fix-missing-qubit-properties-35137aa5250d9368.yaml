@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    A bug that crashes the :func:`.convert_to_target` function when qubit properties
-    (either T1, T2 or frequency) are missing was fixed.
-    The missing property values in :class:`.QubitProperties` are filled with ``None``.
+    Fixed a crash in :func:`.convert_to_target` which would occur
+    when qubit properties (either T1, T2 or frequency) were missing.
+    The missing property values in :class:`.QubitProperties` are now
+    filled with ``None``.
