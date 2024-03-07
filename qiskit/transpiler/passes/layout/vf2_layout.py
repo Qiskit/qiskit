@@ -104,15 +104,18 @@ class VF2Layout(AnalysisPass):
                 limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
-                ``coupling_map``.
+                ``coupling_map`` if it generates non-trivial values for these.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """
         super().__init__()
         self.target = target
-        if target is not None:
-            self.coupling_map = self.target.build_coupling_map()
+        if (
+            target is not None
+            and (target_coupling_map := self.target.build_coupling_map()) is not None
+        ):
+            self.coupling_map = target_coupling_map
         else:
             self.coupling_map = coupling_map
         self.properties = properties
@@ -145,7 +148,7 @@ class VF2Layout(AnalysisPass):
         )
         # Filter qubits without any supported operations. If they don't support any operations
         # They're not valid for layout selection
-        if self.target is not None:
+        if self.target is not None and self.target.qargs is not None:
             has_operations = set(itertools.chain.from_iterable(self.target.qargs))
             to_remove = set(range(len(cm_nodes))).difference(has_operations)
             if to_remove:
