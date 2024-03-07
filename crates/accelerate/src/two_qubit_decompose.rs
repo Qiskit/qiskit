@@ -423,7 +423,8 @@ impl TwoQubitWeylDecomposition {
         // Faer sometimes returns negative 0s which will throw off the signs
         // after the powf we do below, normalize to 0. instead by adding a
         // zero complex.
-        let det_u = u.view().into_faer_complex().determinant().to_num_complex() + Complex64::new(0., 0.);
+        let det_u =
+            u.view().into_faer_complex().determinant().to_num_complex() + Complex64::new(0., 0.);
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
