@@ -23,6 +23,13 @@ from qiskit.providers.backend import QubitProperties
 from qiskit.utils.units import apply_prefix
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.controlflow import (
+    CONTROL_FLOW_OP_NAMES,
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+)
 from qiskit.providers.models.backendconfiguration import BackendConfiguration
 from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.models.pulsedefaults import PulseDefaults
@@ -153,6 +160,17 @@ def convert_to_target(
         target.min_length = configuration.timing_constraints.get("min_length")
         target.pulse_alignment = configuration.timing_constraints.get("pulse_alignment")
         target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
+    # Handle control flow ops in supported instructions of configuratios
+    supported_instructions = set(getattr(configuration, "supported_instructions", []))
+    control_flow_ops = CONTROL_FLOW_OP_NAMES.intersection(supported_instructions)
+    control_flow_name_map = {
+        "if_else": IfElseOp,
+        "while_loop": WhileLoopOp,
+        "for_loop": ForLoopOp,
+        "switch_case": SwitchCaseOp,
+    }
+    for op in control_flow_ops:
+        target.add_instruction(control_flow_name_map[op], name=op)
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
         inst_map = defaults.instruction_schedule_map

@@ -1139,7 +1139,7 @@ class SparsePauliOp(LinearOp):
                 )
             n_qubits = num_qubits
         if any(x >= n_qubits for x in layout):
-            raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+            raise QiskitError("Provided layout contains indices outside the number of qubits.")
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
 
