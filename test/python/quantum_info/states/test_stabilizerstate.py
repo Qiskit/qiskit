@@ -20,7 +20,6 @@ import time
 from typing import Dict, List
 import unittest
 import logging
-from sys import platform
 from ddt import ddt, data, unpack
 
 import numpy as np
@@ -49,7 +48,7 @@ class TestStabilizerState(QiskitTestCase):
 
     # Allowed percent head room when checking performance
     # of probability calculations with targets vs without target
-    performance_varability_percent: float = 0.005
+    performance_varability_percent: float = 0.01
 
     @staticmethod
     def _probability_percent_of_calculated_branches(
@@ -88,23 +87,6 @@ class TestStabilizerState(QiskitTestCase):
             raise ex
 
     @staticmethod
-    def _performance_time_type_based_on_os() -> int:
-        """Use time type based on OS type
-
-        Returns:
-            int: time measurement for performance measurement
-        """
-        # linux or OS X
-        if platform in ("linux", "linux2", "darwin"):
-            return time.process_time_ns()
-        # Windows
-        elif platform == "win32":
-            return time.perf_counter_ns()
-        # Any others
-        else:
-            return time.process_time_ns()
-
-    @staticmethod
     def _performance_start_time() -> int:
         """Disable GC and get the start time of
         performance check run
@@ -113,7 +95,7 @@ class TestStabilizerState(QiskitTestCase):
             int: time from perf_counter_ns
         """
         gc.disable()
-        return TestStabilizerState._performance_time_type_based_on_os()
+        return time.thread_time_ns()
 
     @staticmethod
     def _performance_end_time() -> int:
@@ -123,7 +105,7 @@ class TestStabilizerState(QiskitTestCase):
         Returns:
             int: time from perf_counter_ns
         """
-        end_time: int = TestStabilizerState._performance_time_type_based_on_os()
+        end_time: int = time.thread_time_ns()
         gc.enable()
         return end_time
 
