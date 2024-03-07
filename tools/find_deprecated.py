@@ -19,6 +19,7 @@ from collections import OrderedDict, defaultdict
 import ast
 from datetime import datetime
 import sys
+import argparse
 import requests
 
 
@@ -60,6 +61,7 @@ class DeprecationDecorator(Deprecation):
         self.decorator_node = decorator_node
         self.func_node = func_node
         self._since: str | None = None
+        self._pending: bool | None = None
 
     @property
     def since(self) -> str | None:
@@ -69,6 +71,20 @@ class DeprecationDecorator(Deprecation):
                 if kwarg.arg == "since":
                     self._since = ".".join(cast(ast.Constant, kwarg.value).value.split(".")[:2])
         return self._since
+
+    @property
+    def pending(self) -> bool | None:
+        """If it is a pending deprecation."""
+        if not self._pending:
+            self._pending = next(
+                (
+                    kwarg.value.value
+                    for kwarg in self.decorator_node.keywords
+                    if kwarg.arg == "pending"
+                ),
+                False,
+            )
+        return self._pending
 
     @property
     def lineno(self) -> int:
@@ -207,8 +223,10 @@ class DeprecationCollection:
         return decorator_visitor.deprecations
 
 
-if __name__ == "__main__":
-    collection = DeprecationCollection(Path(__file__).joinpath("..", "..", "qiskit").resolve())
+def print_main(directory: str, pending: str) -> None:
+    # pylint: disable=invalid-name
+    """Prints output"""
+    collection = DeprecationCollection(Path(directory))
     collection.group_by("since")
 
     DATA_JSON = LAST_TIME_MINOR = DETAILS = None
@@ -236,6 +254,38 @@ if __name__ == "__main__":
                     DETAILS += f" (wrt last minor release, {round(diff_days / 30.4)} month old)"
             except KeyError:
                 DETAILS = "Future release"
-        print(f"\n{since_version}: {DETAILS}")
+        lines = []
         for deprecation in deprecations:
-            print(f" - {deprecation.location_str} ({deprecation.target})")
+            if pending == "exclude" and deprecation.pending:
+                continue
+            if pending == "only" and not deprecation.pending:
+                continue
+            pending_arg = " - PENDING" if deprecation.pending else ""
+            lines.append(f" - {deprecation.location_str} ({deprecation.target}){pending_arg}")
+        if lines:
+            print(f"\n{since_version}: {DETAILS}")
+            print("\n".join(lines))
+
+
+def create_parser() -> argparse.ArgumentParser:
+    """Creates the ArgumentParser object"""
+    default_directory = Path(__file__).joinpath("..", "..", "qiskit").resolve()
+    parser = argparse.ArgumentParser(
+        prog="find_deprecated",
+        description="Finds the deprecation decorators in a path",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument("-d", "--directory", default=default_directory, help="directory to search")
+    parser.add_argument(
+        "-p",
+        "--pending",
+        choices=["only", "include", "exclude"],
+        default="exclude",
+        help="show pending deprecations",
+    )
+    return parser
+
+
+if __name__ == "__main__":
+    args = create_parser().parse_args()
+    print_main(args.directory, args.pending)
