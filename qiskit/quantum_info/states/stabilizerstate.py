@@ -413,11 +413,11 @@ class StabilizerState(QuantumState):
                     values. If None no rounding is done (Default: None)
             target List[str] | str: a target list of items to calculate probabilities for, or a specific
                     single target str
-            use_caching bool: enable the user of caching when calculating multiple targets. True will
-                    enable only if more then one target is being calculated, otherwise there will be no
-                    performance benefit. If not using target, then caching will not be enabled as there
+            use_caching bool: enable the use of caching when calculating multiple targets. True will
+                    enable caching only if more then one target is being calculated, otherwise there will
+                    be no performance benefit. If not using target, caching will not be enabled as there
                     will not be a performance benefit from enabling. False will not use caching and when
-                    targetting multiple items will recalculate every set of nodes for a branch
+                    calculating multiple targets may repeat measurements that were previouslly calculated
 
         Returns:
             Dict[str, float]: The measurement probabilities in dict (ket) form.
@@ -427,9 +427,10 @@ class StabilizerState(QuantumState):
         else:
             qubits = qargs
 
-        # If no target is provided, put None into a list to indicate to calculate all probabilities
-        # When a str is passed in for a single target, put into a list to calculate the target
-        # When a list of str's are passed in, iterate through all the str to calculate the targets
+        # If no target is provided, insert None into a list to indicate not to target measurements
+        # for any particular targets. When a str is passed in for a single target, insert into a
+        # list for processing, when a List[str] are passed in, iterate through all the str to
+        # find the probabilities of only the targets
         if target is None:
             target = [None]
         elif isinstance(target, str):
@@ -448,17 +449,17 @@ class StabilizerState(QuantumState):
             outcome_prob: float = 1.0
 
             # Determine if one of the branches was already partially calculated to
-            # give a better starting point And reduce the number of nodes calculated,
-            # only available when caching is enabled
+            # give a better starting point and reduce the number of probabilities measured,
+            # only available when use_caching is enabled
             if use_caching:
                 key: str = cache.retreive_key_for_most_completed_branch_to_target(item_target)
-                # if a key was returned, start at the previously calculated starting point
+                # If a key was found, start at the cached starting point
                 if key is not None:
                     outcome_prob = cache.retrieve_outcome(key)
                     outcome = list(key)
             # If no cache key was found or cache is not used, then set the outcome to
-            # the base values, this is more efficient then setting at beginning of for
-            # loop and then finding a cache value to replace
+            # the base starting values, this is more efficient then setting at beginning
+            # of for loop and if a cache value is found
             if outcome is None:
                 outcome = ["X"] * len(qubits)
             self._get_probabilities(qubits, outcome, outcome_prob, probs, item_target, cache)
@@ -470,7 +471,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _round_decimals(probs: Dict[str, float], decimals: int | None) -> Dict[str, float]:
-        """Helper function that founds all floats in the dict to the decimal place provided
+        """Helper function that rounds all floats in the dict to the decimal place provided
 
         Args:
             probs Dict[str, float]: dictionary to iterate through and round all float values for
@@ -812,7 +813,7 @@ class StabilizerState(QuantumState):
                         calculating future branches
         """
         qubit_for_branching = -1
-        # Only use caching if requirements are met, using target and cache object set
+        # Only use caching if requirements are met, when target and cache object are not None
         use_caching: bool = target is not None and cache is not None
         ret: StabilizerState = None
 
@@ -827,15 +828,14 @@ class StabilizerState(QuantumState):
             # Non cached path, no overhead related to caching if caching is disabled
             ret = self.copy()
 
-        # Find outcomes for each qubit
-        for i in range(len(qubits)):
-            # Speed up path of having no 'X' in outcome, lets check if there is an 'X' in the outcome
-            # If not we can skip through iterating through all the outcomes
-            if "X" in outcome:
+        # Speed up path of having no 'X' in outcome
+        if "X" in outcome:
+            # Find outcomes for each qubit
+            for i in range(len(qubits)):
                 if outcome[i] == "X":
-                    # Get the qubit for the current calculation
+                    # Retrieve the qubit for the current measurement
                     qubit = qubits[(len(qubits) - i - 1)]
-                    # Determine if it is deterministic, use caching if available to prevent recalculation
+                    # Determine the probabilitiy is deterministic
                     if StabilizerState._is_qubit_deterministic(ret, qubit):
                         outcome_prob = StabilizerState.retrieve_deterministic_probability(
                             i, qubit, outcome, ret, outcome_prob, target
@@ -844,7 +844,7 @@ class StabilizerState(QuantumState):
                         qubit_for_branching = i
 
         # Build a cache only if targetting values and cache object is provided
-        # no performance overhead when no target is provided
+        # No performance overhead when not targeting measurements
         if use_caching:
             cache.insert_outcome(outcome, outcome_prob)
 
