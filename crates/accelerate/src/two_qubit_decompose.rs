@@ -318,7 +318,7 @@ fn rz_matrix(theta: f64) -> Array2<Complex64> {
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 const C1_IM: Complex64 = Complex64::new(0.0, 1.0);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
 enum Specializations {
     General,
@@ -417,10 +417,15 @@ impl TwoQubitWeylDecomposition {
         let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let ipy: ArrayView2<Complex64> = aview2(&IPY);
         let ipx: ArrayView2<Complex64> = aview2(&IPX);
+
         let mut u = unitary_matrix.as_array().to_owned();
         let unitary_matrix = unitary_matrix.as_array().to_owned();
-        let det_u = u.view().into_faer_complex().determinant().to_num_complex();
-        u.mapv_inplace(|x| x * det_u.powf(-0.25));
+        // Faer sometimes returns negative 0s which will throw off the signs
+        // after the powf we do below, normalize to 0. instead by adding a
+        // zero complex.
+        let det_u = u.view().into_faer_complex().determinant().to_num_complex() + Complex64::new(0., 0.);
+        let det_pow = det_u.powf(-0.25);
+        u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
         let u_p = transform_from_magic_basis(u.view(), true);
         // Use ndarray here because matmul precision in faer is lower, it seems
@@ -476,6 +481,7 @@ impl TwoQubitWeylDecomposition {
                 .iter_mut()
                 .enumerate()
                 .for_each(|(index, x)| *x = d_inner[index]);
+
             let compare = p_inner.dot(&diag_d).dot(&p_inner.t()).to_owned();
             found = abs_diff_eq!(compare.view(), m2, epsilon = 1.0e-13);
             if found {
