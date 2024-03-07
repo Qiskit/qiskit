@@ -411,13 +411,13 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals None or int: the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            target List[str] | str: a target list of items to calculate probabilities for, or a specific
+            target List[str] | str: a target list of items to measure probabilities for, or a specific
                     single target str
             use_caching bool: enable the use of caching when calculating multiple targets. True will
-                    enable caching only if more then one target is being calculated, otherwise there will
+                    enable caching only if more then one target is being measured, otherwise there will
                     be no performance benefit. If not using target, caching will not be enabled as there
                     will not be a performance benefit from enabling. False will not use caching and when
-                    calculating multiple targets may repeat measurements that were previouslly calculated
+                    measuring multiple targets, may repeat previous measurements
 
         Returns:
             Dict[str, float]: The measurement probabilities in dict (ket) form.
@@ -436,7 +436,7 @@ class StabilizerState(QuantumState):
         elif isinstance(target, str):
             target = [target]
 
-        # probabilities dictionary to return with the calculated values
+        # probabilities dictionary to return with the measured values
         probs: Dict[str, float] = {}
 
         # Check if all the requirements to use caching are met to use performance improvement
@@ -448,7 +448,7 @@ class StabilizerState(QuantumState):
             outcome: List[str] = None
             outcome_prob: float = 1.0
 
-            # Determine if one of the branches was already partially calculated to
+            # Determine if one of the branches was already partially measured to
             # give a better starting point and reduce the number of probabilities measured,
             # only available when use_caching is enabled
             if use_caching:
@@ -728,16 +728,16 @@ class StabilizerState(QuantumState):
         return aux_pauli
 
     @staticmethod
-    def _branches_to_calculate(qubit_for_branching: int, target: str = None) -> range:
-        """Used to determine if the branch caclulations should be limited when a target is passed
-        If no target value is passed the range will always be range(0,2)
+    def _branches_to_measure(qubit_for_branching: int, target: str = None) -> range:
+        """Used to determine if the branch measurements should be limited when a target
+        is passed, if no target value is passed the range will always be range(0,2)
 
         Args:
             qubit_for_branching int: the qubit to perform the branching for
-            target str: target to get results for
+            target str: target to measure results for
 
         Returns:
-            range: branch or branches to calculate for in range format
+            range: branch or branches to measure for in range format
         """
         if target is None:
             return range(0, 2)
@@ -754,15 +754,15 @@ class StabilizerState(QuantumState):
         outcome_prob: float,
         target: str,
     ) -> float:
-        """Helper to get the deterministic probabilitiy
+        """Helper to measure the deterministic probabilitiy
 
         Args:
-            index int: index in outcome being calculated
+            index int: index in outcome being measured
             qubit int: qubit performing calculation on
             outcome List[str]: outcome being built
             ret StabilizerState: stabilizer state performing the calculations
             outcome_prob float: probabilitiy of the outcome
-            target str: target outcome wanting to calculate
+            target str: target outcome wanting to measure
 
         Returns:
             float: the deterministic probability
@@ -807,7 +807,7 @@ class StabilizerState(QuantumState):
             outcome_prob float: probabilitiy of the outcome
             ret StabilizerState: stabilizer state performing the calculations
             probs Dict[str, float]: holds the outcomes and probabilitiy results
-            target str: target outcome wanting to calculate, None if not targetting
+            target str: target outcome wanting to measure, None if not targetting
                         a specific target
             cache: ProbabilityCache: caching object to hold states and outcomes for
                         calculating future branches
@@ -853,7 +853,7 @@ class StabilizerState(QuantumState):
             probs[str_outcome] = outcome_prob
             return
 
-        for single_qubit_outcome in StabilizerState._branches_to_calculate(
+        for single_qubit_outcome in StabilizerState._branches_to_measure(
             qubit_for_branching, target
         ):
             new_outcome = outcome.copy()
