@@ -55,11 +55,12 @@ class BasePulsePassManager(BasePassManager, ABC):
     ) -> IrBlock:
 
         def _wrap_recursive(_prog):
-            _ret = IrBlock(alignment=input_program.alignment_context)
+            _ret = IrBlock(alignment=_prog.alignment_context)
             for _elm in _prog.blocks:
                 if isinstance(_elm, ScheduleBlock):
-                    return _wrap_recursive(_elm)
-                _ret.add_element(IrInstruction(instruction=_elm))
+                    _ret.add_element(_wrap_recursive(_elm))
+                else:
+                    _ret.add_element(IrInstruction(instruction=_elm))
             return _ret
 
         return _wrap_recursive(input_program)
@@ -148,11 +149,12 @@ class BlockTranspiler(BasePulsePassManager):
     ) -> ScheduleBlock:
 
         def _unwrap_recursive(_prog):
-            _ret = ScheduleBlock(alignment_context=passmanager_ir.alignment)
+            _ret = ScheduleBlock(alignment_context=_prog.alignment)
             for _elm in _prog.elements:
                 if isinstance(_elm, IrBlock):
-                    return _unwrap_recursive(_elm)
-                _ret.append(_elm.instruction, inplace=True)
+                    _ret.append(_unwrap_recursive(_elm), inplace=True)
+                else:
+                    _ret.append(_elm.instruction, inplace=True)
             return _ret
 
         out_block = _unwrap_recursive(passmanager_ir)

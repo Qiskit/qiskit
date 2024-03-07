@@ -46,6 +46,16 @@ class TransformationPass(GenericPass, ABC):
     ) -> IrBlock:
         pass
 
+    def __hash__(self) -> int:
+        warnings.warn(
+            f"{self.__class__} does not explicitly define a protocol to calculate hash. "
+            "This pass created the hash only by considering the class name. "
+            "Qiskit flow controller assumes passes with the identical hash are idempotent, "
+            "and it may skip execution of the other passes in the pipeline.",
+            RuntimeWarning,
+        )
+        return hash((self.__class__.__name__,))
+
     def __eq__(self, other):
         warnings.warn(
             f"{self.__class__} does not explicitly define a protocol to evaluate equality. "
@@ -82,6 +92,16 @@ class AnalysisPass(GenericPass, ABC):
         passmanager_ir: IrBlock,
     ) -> None:
         pass
+
+    def __hash__(self) -> int:
+        warnings.warn(
+            f"{self.__class__} does not explicitly define a protocol to calculate hash. "
+            "This pass created the hash only by considering the class name. "
+            "Qiskit flow controller assumes passes with the identical hash are idempotent, "
+            "and it may skip execution of the other passes in the pipeline.",
+            RuntimeWarning,
+        )
+        return hash((self.__class__.__name__,))
 
     def __eq__(self, other):
         warnings.warn(
