@@ -203,4 +203,4 @@ def linkcode_resolve(domain, info):
         linespec = f"#L{lineno}-L{ending_lineno}"
 
     github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
-    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/qiskit{file_name}{linespec}"
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/qiskit/{file_name}{linespec}"
