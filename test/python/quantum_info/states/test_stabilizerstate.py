@@ -16,6 +16,7 @@
 import gc
 from itertools import product
 import random
+import sys
 import time
 from typing import Dict, List
 import unittest
@@ -48,7 +49,7 @@ class TestStabilizerState(QiskitTestCase):
 
     # Allowed percent head room when checking performance
     # of probability calculations with targets vs without target
-    performance_varability_percent: float = 0.01
+    performance_varability_percent = 0.01
 
     @staticmethod
     def _probability_percent_of_calculated_branches(
@@ -66,13 +67,13 @@ class TestStabilizerState(QiskitTestCase):
         """
         return number_of_calculated_branches / ((2 ** (num_of_qubits + 1)) - 1)
 
-    def _verify_performance_time(self, better_performing_time: float, baseline_compare_time: float):
+    def _verify_performance_time(self, better_performing_time, baseline_compare_time):
         """Verify the performance of an expected better performing function against a worse
         performing function. Used to output the time values if the test fails to aid in debugging
 
         Args:
-            better_performing_time float: the process measured with the better performing time
-            baseline_compare_time float: the process measured to compare with the worse performing time
+            better_performing_time: the process measured with the better performing time
+            baseline_compare_time: the process measured to compare with the worse performing time
 
         Raises:
             ex AssertionError: exception raised when assertTrue fails
@@ -82,30 +83,48 @@ class TestStabilizerState(QiskitTestCase):
         except AssertionError as ex:
             print(
                 "\nCompared Times: "
-                + (str(better_performing_time) + " < " + str(baseline_compare_time))
+                + (
+                    str(better_performing_time)
+                    + " < "
+                    + str(baseline_compare_time)
+                    + " Current time: "
+                    + str(TestStabilizerState._perf_time_type_based_on_os())
+                )
             )
             raise ex
 
     @staticmethod
-    def _performance_start_time() -> int:
+    def _perf_time_type_based_on_os():
+        """Get time for performance checking based on OS
+
+        Returns:
+           time to use for compares of performance
+        """
+        if sys.platform == "win32":
+            return time.perf_counter_ns()
+        else:
+            return time.thread_time_ns()
+
+    @staticmethod
+    def _performance_start_time():
         """Disable GC and get the start time of
         performance check run
 
         Returns:
-            int: time from perf_counter_ns
+            time from perf_counter_ns
         """
         gc.disable()
-        return time.thread_time()
+        return TestStabilizerState._perf_time_type_based_on_os()
 
     @staticmethod
-    def _performance_end_time() -> int:
+    def _performance_end_time():
         """Get the end time of performance check run
         re-enable GC
 
         Returns:
-            int: time from perf_counter_ns
+            time from perf_counter_ns
         """
-        end_time: float = time.thread_time()
+        end_time = TestStabilizerState._perf_time_type_based_on_os()
         gc.enable()
         return end_time
 
@@ -600,14 +619,14 @@ class TestStabilizerState(QiskitTestCase):
         qc.h(2)
         stab = StabilizerState(qc)
 
-        test_1_time_no_target: float = 0
-        test_1_time_with_targets: float = 0
-        test_1_1_time_with_targets: float = 0
+        test_1_time_no_target = 0
+        test_1_time_with_targets = 0
+        test_1_1_time_with_targets = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=1"):
-                test_1_time_no_target_start: float = self._performance_start_time()
+                test_1_time_no_target_start = self._performance_start_time()
                 value = stab.probabilities_dict(decimals=1)
-                test_1_time_no_target_end: float = self._performance_end_time()
+                test_1_time_no_target_end = self._performance_end_time()
                 test_1_time_no_target += test_1_time_no_target_end - test_1_time_no_target_start
                 target = {
                     "000": 0.1,
@@ -622,11 +641,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
 
-                test_1_time_with_target_start: float = self._performance_start_time()
+                test_1_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=1, target=target_input, use_caching=True
                 )
-                test_1_time_with_target_end: float = self._performance_end_time()
+                test_1_time_with_target_end = self._performance_end_time()
 
                 test_1_time_with_targets += (
                     test_1_time_with_target_end - test_1_time_with_target_start
@@ -636,11 +655,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input = ["001", "011"]
 
-                test_1_1_time_with_target_start: float = self._performance_start_time()
+                test_1_1_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=1, target=target_input, use_caching=True
                 )
-                test_1_1_time_with_target_end: float = self._performance_end_time()
+                test_1_1_time_with_target_end = self._performance_end_time()
 
                 test_1_1_time_with_targets += (
                     test_1_1_time_with_target_end - test_1_1_time_with_target_start
@@ -659,15 +678,15 @@ class TestStabilizerState(QiskitTestCase):
         self._verify_performance_time(test_1_time_with_targets, test_1_time_no_target)
         self._verify_performance_time(test_1_1_time_with_targets, test_1_time_no_target)
 
-        test_2_time_no_target: float = 0
-        test_2_time_with_targets: float = 0
-        test_2_1_time_with_targets: float = 0
+        test_2_time_no_target = 0
+        test_2_time_with_targets = 0
+        test_2_1_time_with_targets = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=2"):
 
-                test_2_time_no_target_start: float = self._performance_start_time()
+                test_2_time_no_target_start = self._performance_start_time()
                 value = stab.probabilities_dict(decimals=2)
-                test_2_time_no_target_end: float = self._performance_end_time()
+                test_2_time_no_target_end = self._performance_end_time()
 
                 test_2_time_no_target += test_2_time_no_target_end - test_2_time_no_target_start
                 target = {
@@ -683,11 +702,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
 
-                test_2_time_with_target_start: float = self._performance_start_time()
+                test_2_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=2, target=target_input, use_caching=True
                 )
-                test_2_time_with_target_end: float = self._performance_end_time()
+                test_2_time_with_target_end = self._performance_end_time()
 
                 test_2_time_with_targets += (
                     test_2_time_with_target_end - test_2_time_with_target_start
@@ -697,11 +716,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input = ["001", "011"]
 
-                test_2_1_time_with_target_start: float = self._performance_start_time()
+                test_2_1_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=2, target=target_input, use_caching=True
                 )
-                test_2_1_time_with_target_end: float = self._performance_end_time()
+                test_2_1_time_with_target_end = self._performance_end_time()
 
                 test_2_1_time_with_targets += (
                     test_2_1_time_with_target_end - test_2_1_time_with_target_start
@@ -718,15 +737,15 @@ class TestStabilizerState(QiskitTestCase):
         self._verify_performance_time(test_2_time_with_targets, test_2_time_no_target)
         self._verify_performance_time(test_2_1_time_with_targets, test_2_time_no_target)
 
-        test_3_time_no_target: float = 0
-        test_3_time_with_targets: float = 0
-        test_3_1_time_with_targets: float = 0
+        test_3_time_no_target = 0
+        test_3_time_with_targets = 0
+        test_3_1_time_with_targets = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=3"):
 
-                test_3_time_no_target_start: float = self._performance_start_time()
+                test_3_time_no_target_start = self._performance_start_time()
                 value = stab.probabilities_dict(decimals=3)
-                test_3_time_no_target_end: float = self._performance_end_time()
+                test_3_time_no_target_end = self._performance_end_time()
 
                 test_3_time_no_target += test_3_time_no_target_end - test_3_time_no_target_start
                 target = {
@@ -742,11 +761,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input: List[str] = ["000", "100"]
 
-                test_3_time_with_target_start: float = self._performance_start_time()
+                test_3_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=3, target=target_input, use_caching=True
                 )
-                test_3_time_with_target_end: float = self._performance_end_time()
+                test_3_time_with_target_end = self._performance_end_time()
 
                 test_3_time_with_targets += (
                     test_3_time_with_target_end - test_3_time_with_target_start
@@ -756,11 +775,11 @@ class TestStabilizerState(QiskitTestCase):
 
                 target_input = ["001", "011"]
 
-                test_3_1_time_with_target_start: float = self._performance_start_time()
+                test_3_1_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=3, target=target_input, use_caching=True
                 )
-                test_3_1_time_with_target_end: float = self._performance_end_time()
+                test_3_1_time_with_target_end = self._performance_end_time()
 
                 test_3_1_time_with_targets += (
                     test_3_1_time_with_target_end - test_3_1_time_with_target_start
@@ -785,13 +804,13 @@ class TestStabilizerState(QiskitTestCase):
             qc.h(qubit_num)
         stab = StabilizerState(qc)
 
-        test_4_time_no_target: float = 0
+        test_4_time_no_target = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
 
-                test_4_time_no_target_start: float = self._performance_start_time()
+                test_4_time_no_target_start = self._performance_start_time()
                 value = stab.probabilities_dict(decimals=5)
-                test_4_time_no_target_end: float = self._performance_end_time()
+                test_4_time_no_target_end = self._performance_end_time()
 
                 test_4_time_no_target += test_4_time_no_target_end - test_4_time_no_target_start
                 # Build target dict with all combinations of '0', '1' for num_qubits long to value
@@ -806,14 +825,14 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
         # test with target and 2 close branches
-        test_4_time_with_target: float = 0
+        test_4_time_with_target = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "111110001010", "001110001010"]
 
-                test_4_time_with_target_start: float = self._performance_start_time()
+                test_4_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
-                test_4_time_with_target_end: float = self._performance_end_time()
+                test_4_time_with_target_end = self._performance_end_time()
 
                 test_4_time_with_target += (
                     test_4_time_with_target_end - test_4_time_with_target_start
@@ -828,7 +847,7 @@ class TestStabilizerState(QiskitTestCase):
         # example above with caching will need to measure 13 of the 8191 nodes (due to the second
         # target to measure being 1 branch from the first being measured) which will roughly take
         # about 0.158% of the time to calculate compared to all the branches.
-        test_time_to_be_under: float = test_4_time_no_target * (
+        test_time_to_be_under = test_4_time_no_target * (
             self._probability_percent_of_calculated_branches(13, num_qubits)
             + self.performance_varability_percent
         )
@@ -837,16 +856,16 @@ class TestStabilizerState(QiskitTestCase):
         # Same test as above but without caching, this will cause measurements to have
         # to be recalculate for the entire branch of each target
         # this leads to 12 + 12 = 24 measurements to calculate
-        test_4_target_no_caching: float = 0
+        test_4_target_no_caching = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "111110001010", "001110001010"]
 
-                test_4_target_no_cache_start: float = self._performance_start_time()
+                test_4_target_no_cache_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
                     decimals=5, target=input_target, use_caching=False
                 )
-                test_4_target_no_cache_end: float = self._performance_end_time()
+                test_4_target_no_cache_end = self._performance_end_time()
 
                 test_4_target_no_caching += (
                     test_4_target_no_cache_end - test_4_target_no_cache_start
@@ -854,7 +873,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"011110001010": 0.00024, "111110001010": 0.00024, "001110001010": 0.00024}
                 self.assertEqual(value, target)
 
-        test_time_to_be_under: float = test_4_time_no_target * (
+        test_time_to_be_under = test_4_time_no_target * (
             self._probability_percent_of_calculated_branches(24, num_qubits)
             + self.performance_varability_percent
         )
@@ -869,14 +888,14 @@ class TestStabilizerState(QiskitTestCase):
         self._verify_performance_time(test_4_time_with_target, test_4_target_no_caching)
 
         # Test with target and 2 not close branches of measurements, requiring 24 measurements
-        test_5_time_with_target: float = 0
+        test_5_time_with_target = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
                 input_target: List[str] = ["011110001010", "100001110101"]
 
-                test_5_time_with_target_start: float = self._performance_start_time()
+                test_5_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
-                test_5_time_with_target_end: float = self._performance_end_time()
+                test_5_time_with_target_end = self._performance_end_time()
 
                 test_5_time_with_target += (
                     test_5_time_with_target_end - test_5_time_with_target_start
@@ -884,7 +903,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"011110001010": 0.00024, "100001110101": 0.00024}
                 self.assertEqual(value, target)
 
-        test_time_to_be_under: float = test_4_time_no_target * (
+        test_time_to_be_under = test_4_time_no_target * (
             self._probability_percent_of_calculated_branches(24, num_qubits)
             + self.performance_varability_percent
         )
