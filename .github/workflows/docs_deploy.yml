@@ -19,19 +19,30 @@ jobs:
         with:
           # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
           fetch-depth: 0
-
       - uses: actions/setup-python@v5
         name: Install Python
         with:
           # Sync with 'documentationPythonVersion' in 'azure-pipelines.yml'.
           python-version: '3.9'
-
       - name: Install dependencies
         run: tools/install_ubuntu_docs_dependencies.sh
 
+      - name: Determine GitHub branch name
+        run: |
+          # PR workflows set the branch they're merging into.
+          if [ -n "$GITHUB_BASE_REF" ]; then
+            BRANCH_NAME="$GITHUB_BASE_REF"
+          # Tags like 1.0.0 and 1.0.0rc1 should point to their stable branch.
+          elif [[ $GITHUB_REF_NAME =~ ^([0-9]+\.[0-9]+) ]]; then
+            BRANCH_NAME="stable/${BASH_REMATCH[1]}"
+          else
+              BRANCH_NAME="$GITHUB_REF_NAME"
+          fi
+          echo "Using branch '${BRANCH_NAME}' for GitHub source code links"
+          echo "QISKIT_DOCS_GITHUB_BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+
       - name: Build documentation
         run: tox run -e docs
-
       - name: Store built documentation artifact
         uses: actions/upload-artifact@v4
         with:

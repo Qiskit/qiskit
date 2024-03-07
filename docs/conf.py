@@ -165,41 +165,6 @@ plot_html_show_formats = False
 # Source code links
 # ----------------------------------------------------------------------------------
 
-def determine_github_branch() -> str:
-    """Determine the GitHub branch name to use for source code links.
-
-    We need to decide whether to use `stable/<version>` vs. `main` for links to source code.
-    Refer to
-    https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
-    for how we determine this with GitHub Actions.
-
-    We only have logic for GitHub Actions because Azure is only used for PR builds,
-    which is only for previews of the docs. Meanwhile, GitHub Actions is used for
-    branch and tag builds that get deployed via qiskit/documentation, so the
-    URL must be correct. Azure defaults to `main` to keep this code simpler.
-    """
-    # If GitHub Actions env vars not set (Azure and local builds), default to `main`.
-    if "GITHUB_REF_NAME" not in os.environ:
-        return "main"
-
-    # PR workflows set the branch they're merging into.
-    if base_ref := os.environ.get("GITHUB_BASE_REF"):
-        return base_ref
-
-    ref_name = os.environ["GITHUB_REF_NAME"]
-
-    # Check if the ref_name is a tag like `1.0.0` or `1.0.0rc1`. If so, we need
-    # to transform it to a Git branch like `stable/1.0`.
-    version_without_patch = re.match(r"(\d+\.\d+)", ref_name)
-    return (
-        f"stable/{version_without_patch.group()}"
-        if version_without_patch
-        else ref_name
-    )
-
-
-GITHUB_BRANCH = determine_github_branch()
-
 
 def linkcode_resolve(domain, info):
     if domain != "py":
@@ -236,4 +201,6 @@ def linkcode_resolve(domain, info):
     else:
         ending_lineno = lineno + len(source) - 1
         linespec = f"#L{lineno}-L{ending_lineno}"
-    return f"https://github.com/Qiskit/qiskit/tree/{GITHUB_BRANCH}/qiskit{file_name}{linespec}"
+
+    github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/qiskit{file_name}{linespec}"
