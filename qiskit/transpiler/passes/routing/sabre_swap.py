@@ -31,8 +31,8 @@ from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.utils.parallel import CPU_COUNT
 
-from qiskit._accelerate.sabre_swap import (
-    build_swap_map,
+from qiskit._accelerate.sabre import (
+    sabre_routing,
     Heuristic,
     NeighborTable,
     SabreDAG,
@@ -239,8 +239,7 @@ class SabreSwap(TransformationPass):
             self._qubit_indices,
         )
         sabre_start = time.perf_counter()
-        *sabre_result, final_permutation = build_swap_map(
-            len(dag.qubits),
+        *sabre_result, final_permutation = sabre_routing(
             sabre_dag,
             self._neighbor_table,
             self.dist_matrix,
