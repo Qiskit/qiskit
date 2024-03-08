@@ -213,6 +213,7 @@ class SequenceIR:
             node_attr_fn=_draw_nodes,
         )
 
+    # pylint: disable=cell-var-from-loop
     def flatten(self, inplace: bool = False) -> SequenceIR:
         """Recursively flatten the SequenceIR.
 
