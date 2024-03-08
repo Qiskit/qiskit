@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    The monitoring tools :mod:`qiskit.tools.monitor` (included in the now deprecated :mod:`qiskit.tools`)
-    got a fixing refresh. The function :func:`~qiskit.tools.monitor.job_monitor` now works with
-    :class:`~.RuntimeJob`. The functions
-    :func:`~qiskit.tools.monitor.backend_overview` and 
-    :func:`~qiskit.tools.monitor.backend_monitor` are now working.
+    The monitoring tools module :mod:`qiskit.tools.monitor` (included in the now deprecated module :mod:`qiskit.tools`)
+    has been updated to work as expected. The function :func:`~qiskit.tools.job_monitor` now works with
+    :class:`~qiskit.providers.job.Job` instances. The functions
+    :func:`~qiskit.tools.backend_overview` and 
+    :func:`~qiskit.tools.backend_monitor` should now work as expected.
