@@ -128,7 +128,7 @@ Here is an example of how a sampler is used.
 
 .. code-block:: python
 
-    from qiskit.primitives.statevector_sampler import Sampler
+    from qiskit.primitives import StatevectorSampler as Sampler
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
