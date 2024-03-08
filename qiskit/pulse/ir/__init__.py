@@ -18,5 +18,4 @@ Pulse IR (:mod:`qiskit.pulse.ir`)
 =======================================
 
 """
-
-from .ir import IrElement, IrBlock, IrInstruction
+from .ir import SequenceIR
