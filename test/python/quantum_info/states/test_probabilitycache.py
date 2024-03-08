@@ -59,68 +59,75 @@ class TestProbabilityCache(QiskitTestCase):
         # Verify cache is empty
         self.assertFalse(cache.outcome_cache_contains_entries())
         # Add items to cache
-        for key in dict_random_probs_to_insert:
+        for i, key in enumerate(dict_random_probs_to_insert):
             cache.insert_outcome(key, dict_random_probs_to_insert[key])
 
         # Add items to cache for state, use int
         for i, key in enumerate(dict_random_probs_to_insert, 0):
-            cache.insert_state(key, i)
+            # Switch between passing the key as a list[str] and a str
+            cache.insert_state(self._key_type(key, self._odd_num(i)), i)
 
         # Verfiy cache has at least 1 entry
         self.assertTrue(cache.outcome_cache_contains_entries())
 
         # Verify values in cache exist and are the correct value
         for i, key in enumerate(dict_random_probs_to_insert):
+            key_t = self._key_type(key, not self._odd_num(i))
             # formula to decide if key was allowed to be inserted in cache
-            if "X" in key and ("1" in key or "0" in key):
-                self.assertTrue(cache.retrieve_outcome(key) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) == i)
+            if cache._check_key(key):
+                self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
+                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
-                self.assertTrue(cache.retrieve_outcome(key) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) is None)
+                self.assertTrue(cache.retrieve_outcome(key_t) is None)
+                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify all non inserted items not in cache
-        for key in list_not_cached:
-            self.assertTrue(cache.retrieve_outcome(key) is None)
-            self.assertTrue(cache.retrieve_state(key) is None)
+        for i, key in enumerate(list_not_cached):
+            key_t = self._key_type(key, not self._odd_num(i))
+            self.assertTrue(cache.retrieve_outcome(key_t) is None)
+            self.assertTrue(cache.retrieve_state(key_t) is None)
 
         items_to_cache_next: Dict[str, float] = {
             item: random.uniform(0, 1) for item in list_not_cached
         }
 
         # Add items to cache
-        for key in items_to_cache_next:
-            cache.insert_outcome(key, items_to_cache_next[key])
+        for i, key in enumerate(items_to_cache_next):
+            cache.insert_outcome(
+                self._key_type(key, not self._odd_num(i)), items_to_cache_next[key]
+            )
 
         # Add items to cache for state, use int
         for i, key in enumerate(items_to_cache_next, len(dict_random_probs_to_insert)):
-            cache.insert_state(key, i)
+            cache.insert_state(self._key_type(key, not self._odd_num(i)), i)
 
         # Verify values in cache exist and are the correct value
         for i, key in enumerate(dict_random_probs_to_insert):
+            key_t = self._key_type(key, self._odd_num(i))
             # formula to decide if key was allowed to be inserted in cache
-            if "X" in key and ("1" in key or "0" in key):
-                self.assertTrue(cache.retrieve_outcome(key) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) == i)
+            if cache._check_key(key):
+                self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
+                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
-                self.assertTrue(cache.retrieve_outcome(key) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) is None)
+                self.assertTrue(cache.retrieve_outcome(key_t) is None)
+                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify values in cache exist and are the correct value
         for i, key in enumerate(items_to_cache_next, len(dict_random_probs_to_insert)):
             # formula to decide if key was allowed to be inserted in cache
-            if "X" in key and ("1" in key or "0" in key):
-                self.assertTrue(cache.retrieve_outcome(key) == items_to_cache_next[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) == i)
+            key_t = self._key_type(key, self._odd_num(i))
+            if cache._check_key(key):
+                self.assertTrue(cache.retrieve_outcome(key_t) == items_to_cache_next[key])
+                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
-                self.assertTrue(cache.retrieve_outcome(key) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key))
-                self.assertTrue(cache.retrieve_state(key) is None)
+                self.assertTrue(cache.retrieve_outcome(key_t) is None)
+                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.retrieve_state(key_t) is None)
 
         keys_to_pick: List[str] = [
             key for key in test_input_to_cache if (key.count("X") == 1 and key[0] == "X")
@@ -132,6 +139,19 @@ class TestProbabilityCache(QiskitTestCase):
             self.assertTrue(
                 cache.retreive_key_for_most_completed_branch_to_target(choice_find) == choice
             )
+
+    @staticmethod
+    def _key_type(key: str, as_list: bool):
+        """Switch between passing the key as a list[str] and a str
+
+        Returns:
+            str | list[str]: key in form
+        """
+        return list(key) if as_list else key
+
+    @staticmethod
+    def _odd_num(val: int) -> bool:
+        return val % 2
 
 
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ class ProbabilityCache:
         Returns:
             str: the key in str format
         """
-        if type(list):
+        if isinstance(outcome, list):
             return "".join(outcome)
         else:
             return outcome
@@ -137,7 +137,7 @@ class ProbabilityCache:
         Returns:
             bool: True if it meets the criteria
         """
-        return key is not None and "X" in key and ("1" in key or "0" in key)
+        return key is not None and ("X" in key) and ("1" in key or "0" in key)
 
     def retreive_key_for_most_completed_branch_to_target(self, target: str) -> str:
         """Retrieves the best starting point for calculating the probability
