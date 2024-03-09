@@ -11,3 +11,6 @@
 # that they have been altered from the originals.
 
 """Built-in pulse compile passes."""
+
+from .map_mixed_frames import MapMixedFrame
+from .set_sequence import SetSequence

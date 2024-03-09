@@ -13,6 +13,7 @@
 from __future__ import annotations
 import abc
 from typing import Callable, Tuple
+from rustworkx import PyDAG
 
 import numpy as np
 
@@ -20,6 +21,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression, ParameterVal
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.pulse.model import MixedFrame
 
 
 class AlignmentKind(abc.ABC):
@@ -41,6 +43,22 @@ class AlignmentKind(abc.ABC):
 
         Returns:
             Schedule with reallocated instructions.
+        """
+        pass
+
+    @abc.abstractmethod
+    def set_sequence(self, sequence: PyDAG, **kwargs) -> None:
+        """Set the sequence of the IR program according to the policy.
+
+        The ``sequence`` is mutated to include all the edges
+        connecting the elements in the sequence.
+
+        Only top-level elements are sequences. If sub-sequences are nested,
+        nested sequences are not recursively set.
+
+        Args:
+            sequence: The graph object to be sequenced.
+            kwargs: Keyword arguments needed for some subclasses.
         """
         pass
 
@@ -87,7 +105,110 @@ class AlignmentKind(abc.ABC):
         return f"{self.__class__.__name__}({', '.join(self._context_params)})"
 
 
-class AlignLeft(AlignmentKind):
+class SequentialAlignment(AlignmentKind, abc.ABC):
+    """Abstract base class for ``AlignmentKind`` which aligns instructions sequentially"""
+
+    def set_sequence(self, sequence: PyDAG, **kwargs) -> None:
+        """Sets the sequence sequentially.
+
+        The ``sequence`` property of ``ir_program`` is mutated to include all the edges
+        connecting the elements of the sequence sequentially according to their order.
+
+        Only top-level elements are sequences. If sub-sequences are nested,
+        nested sequences are not recursively set.
+
+        Args:
+            sequence: The graph object to be sequenced.
+            kwargs: Included only to match the signature of the function with other subclasses.
+        """
+        nodes = sequence.node_indices()
+        prev = 0
+        # The first two nodes are the in\out nodes.
+        for ind in nodes[2:]:
+            sequence.add_edge(prev, ind, None)
+            prev = ind
+        sequence.add_edge(prev, 1, None)
+
+    @property
+    def is_sequential(self) -> bool:
+        return True
+
+
+class ParallelAlignment(AlignmentKind, abc.ABC):
+    """Abstract base class for ``AlignmentKind`` which aligns instructions in parallel"""
+
+    def set_sequence(self, sequence: PyDAG, **kwargs) -> None:
+        """Sets the sequence in parallel.
+
+        The ``sequence`` property of ``ir_program`` is mutated to include all the edges
+        connecting the elements of the sequence in parallel.
+
+        The function requires a ``mixed_frame_mapping`` dictionary - mapping all ``PulseTarget``
+        and ``Frame`` to the associated ``MixedFrame`` - to be passed to ``kwargs``. As part
+        of a pass manager work flow the dictionary is obtained via the pass
+        :class:`~qiskit.pulse.compiler.MapMixedFrames`.
+
+        Only top-level elements are sequenced. If sub-sequences are nested,
+        nested sequences are not recursively set.
+
+        Args:
+            sequence: The graph object to be sequenced.
+            kwargs: Expecting a keyword argument ``mixed_frame_mapping``.
+
+        Raises:
+            PulseError: if ``kwargs`` does not include a "mixed_frames_mapping" key.
+        """
+        if "mixed_frames_mapping" not in kwargs.keys() or kwargs["mixed_frames_mapping"] is None:
+            raise PulseError(
+                "Expected a keyword argument mixed_frames_mapping with a"
+                " mapping of PulseTarget and Frame to MixedFrame"
+            )
+        mixed_frame_mapping = kwargs["mixed_frames_mapping"]
+
+        idle_after = {}
+        for ind in sequence.node_indices():
+            if ind in (0, 1):
+                # In, Out node
+                continue
+            node = sequence.get_node_data(ind)
+            node_mixed_frames = set()
+
+            # if isinstance(node, SequenceIR):
+            #     inst_targets = node.inst_targets
+            # else:
+            #     inst_targets = [node.inst_target]
+            if hasattr(node, "inst_targets"):
+                # SequenceIR object
+                inst_targets = node.inst_targets
+            else:
+                # Instruction object
+                inst_targets = [node.inst_target]
+
+            for inst_target in inst_targets:
+                if isinstance(inst_target, MixedFrame):
+                    node_mixed_frames.add(inst_target)
+                else:
+                    node_mixed_frames |= mixed_frame_mapping[inst_target]
+
+            pred_nodes = [
+                idle_after[mixed_frame]
+                for mixed_frame in node_mixed_frames
+                if mixed_frame in idle_after
+            ]
+            if len(pred_nodes) == 0:
+                pred_nodes = [0]
+            for pred_node in pred_nodes:
+                sequence.add_edge(pred_node, ind, None)
+            for mixed_frame in node_mixed_frames:
+                idle_after[mixed_frame] = ind
+        sequence.add_edges_from_no_data([(ni, 1) for ni in idle_after.values()])
+
+    @property
+    def is_sequential(self) -> bool:
+        return False
+
+
+class AlignLeft(ParallelAlignment):
     """Align instructions in as-soon-as-possible manner.
 
     Instructions are placed at earliest available timeslots.
@@ -96,10 +217,6 @@ class AlignLeft(AlignmentKind):
     def __init__(self):
         """Create new left-justified context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -154,7 +271,7 @@ class AlignLeft(AlignmentKind):
         return this.insert(insert_time, other, inplace=True)
 
 
-class AlignRight(AlignmentKind):
+class AlignRight(ParallelAlignment):
     """Align instructions in as-late-as-possible manner.
 
     Instructions are placed at latest available timeslots.
@@ -163,10 +280,6 @@ class AlignRight(AlignmentKind):
     def __init__(self):
         """Create new right-justified context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -222,7 +335,7 @@ class AlignRight(AlignmentKind):
         return this
 
 
-class AlignSequential(AlignmentKind):
+class AlignSequential(SequentialAlignment):
     """Align instructions sequentially.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -232,10 +345,6 @@ class AlignSequential(AlignmentKind):
     def __init__(self):
         """Create new sequential context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -256,7 +365,7 @@ class AlignSequential(AlignmentKind):
         return aligned
 
 
-class AlignEquispaced(AlignmentKind):
+class AlignEquispaced(SequentialAlignment):
     """Align instructions with equispaced interval within a specified duration.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -273,10 +382,6 @@ class AlignEquispaced(AlignmentKind):
                 This duration can be parametrized.
         """
         super().__init__(context_params=(duration,))
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     @property
     def duration(self):
@@ -325,7 +430,7 @@ class AlignEquispaced(AlignmentKind):
         return aligned
 
 
-class AlignFunc(AlignmentKind):
+class AlignFunc(SequentialAlignment):
     """Allocate instructions at position specified by callback function.
 
     The position is specified for each instruction of index ``j`` as a
@@ -361,10 +466,6 @@ class AlignFunc(AlignmentKind):
                 defined within [0, 1]. The pulse index starts from 1.
         """
         super().__init__(context_params=(duration, func))
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     @property
     def duration(self):
