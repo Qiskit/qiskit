@@ -142,9 +142,7 @@ def plot_histogram(
 
     kind = "counts"
     for dat in data:
-        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or isinstance(
-            next(iter(dat.values())), float
-        ):
+        if isinstance(dat, (QuasiDistribution, ProbDistribution)) or any(isinstance(value, float) for value in dat.values()):
             kind = "distribution"
     return _plotting_core(
         data,
