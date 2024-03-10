@@ -459,9 +459,21 @@ impl TwoQubitWeylDecomposition {
         let mut found = false;
         let mut d: Array1<Complex64> = Array1::zeros(0);
         let mut p: Array2<Complex64> = Array2::zeros((0, 0));
-        for _ in 0..100 {
-            let rand_a: f64 = state.sample(StandardNormal);
-            let rand_b: f64 = state.sample(StandardNormal);
+        for i in 0..100 {
+            let rand_a: f64;
+            let rand_b: f64;
+            // For debugging the algorithm use the same RNG values from the
+            // previous Python implementation for the first random trial.
+            // In most cases this loop only executes a single iteration and
+            // using the same rng values rules out possible RNG differences
+            // as the root cause of a test failure
+            if i == 0 {
+                rand_a = 1.2602066112249388;
+                rand_b = 0.22317849046722027;
+            } else {
+                rand_a = state.sample(StandardNormal);
+                rand_b = state.sample(StandardNormal);
+            }
             let m2_real = m2.mapv(|val| rand_a * val.re + rand_b * val.im).to_owned();
             let p_inner = m2_real
                 .view()
