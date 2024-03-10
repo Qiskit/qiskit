@@ -168,7 +168,7 @@ fn decompose_two_qubit_product_gate(
     }
     assert!(
         det_r.abs() < 0.1,
-        "decompose_two_qubit_product_gate: unable to decompose: detR < 0 .1"
+        "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1"
     );
     r.mapv_inplace(|x| x / det_r.sqrt());
     let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj()).to_owned();
