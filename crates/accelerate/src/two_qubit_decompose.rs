@@ -166,6 +166,10 @@ fn decompose_two_qubit_product_gate(
         r = unitary.slice(s![2.., ..2]).to_owned();
         det_r = det_one_qubit(r.view());
     }
+    assert!(
+        det_r.abs() < 0.1,
+        "decompose_two_qubit_product_gate: unable to decompose: detR < 0 .1"
+    );
     r.mapv_inplace(|x| x / det_r.sqrt());
     let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj()).to_owned();
     let eye = array![
@@ -176,6 +180,10 @@ fn decompose_two_qubit_product_gate(
     temp = unitary.dot(&temp);
     let mut l = temp.slice_mut(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
+    assert!(
+        det_l.abs() < 0.9,
+        "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9"
+    );
     l.mapv_inplace(|x| x / det_l.sqrt());
     let phase = det_l.arg() / 2.;
     (l, r, phase)
