@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A base pass for Qiskit PulseIR compilation."""
+"""MixedFrames mapping analysis pass"""
 
 from __future__ import annotations
 from collections import defaultdict

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""A base pass for Qiskit PulseIR compilation."""
+"""Sequencing pass for Qiskit PulseIR compilation."""
 
 from __future__ import annotations
 
@@ -19,17 +19,17 @@ from qiskit.pulse.ir import SequenceIR
 
 
 class SetSequence(TransformationPass):
-    """Map the dependencies of all ``MixedFrame``s on ``PulseTaraget`` and ``Frame``.
+    """Sets the sequence of a ``SequenceIR`` object.
 
-    The pass recursively scans the ``SequenceIR``, identifies all ``MixedFrame``s and
-    tracks the dependencies of them on ``PulseTarget`` and ``Frame``. The analysis result
-    is added as a dictionary to the property set under key "mixed_frames_mapping". The
-    added dictionary is keyed on every ``PulseTarget`` and ``Frame`` in ``SequenceIR``
-    with the value being a set of all ``MixedFrame``s associated with the key.
+    The pass traverses the ``SequenceIR``, recursively sets the sequence, by adding edges to
+    the ``sequence`` property. Sequencing is done according to the alignment strategy.
+
+    For parallel alignment types, the pass depends on the results of the analysis pass
+    :class:`~qiskit.pulse.compiler.passes.MapMixedFrame`.
     """
 
     def __init__(self):
-        """Create new MapMixedFrames pass"""
+        """Create new SetSequence pass"""
         super().__init__(target=None)
 
     def run(
