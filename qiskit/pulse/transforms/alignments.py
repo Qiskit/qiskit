@@ -68,8 +68,8 @@ class AlignmentKind(abc.ABC):
         """Concretely schedule a ``SequenceIR`` program.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include  the initial time of each node
         in the sequence, keyed on the node index.
@@ -292,8 +292,8 @@ class AlignLeft(ParallelAlignment):
         """Concretely schedule a ``SequenceIR`` program with left alignment.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include  the initial time of each node
         in the sequence, keyed on the node index.
@@ -399,8 +399,8 @@ class AlignRight(ParallelAlignment):
         """Concretely schedule a ``SequenceIR`` program with right alignment.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include the initial time of each node
         in the sequence, keyed on the node index.
@@ -477,8 +477,8 @@ class AlignSequential(SequentialAlignment):
         """Concretely schedule a ``SequenceIR`` program with sequential alignment.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include the initial time of each node
         in the sequence, keyed on the node index.
@@ -560,8 +560,8 @@ class AlignEquispaced(SequentialAlignment):
         """Concretely schedule a ``SequenceIR`` program with equisapced alignment.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include  the initial time of each node
         in the sequence, keyed on the node index.
@@ -654,8 +654,8 @@ class AlignFunc(SequentialAlignment):
         """Concretely schedule a ``SequenceIR`` program with functional alignment.
 
         Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration
-         - and thus scheduling - of child sequences).
+        scheduled beforehand (because scheduling of parent sequence depends on the duration,
+        and thus scheduling, of child sequences).
 
         The ``time_table`` dictionary will be mutated to include  the initial time of each node
         in the sequence, keyed on the node index.
