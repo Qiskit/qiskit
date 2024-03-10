@@ -31,12 +31,7 @@ from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.utils.parallel import CPU_COUNT
 
-from qiskit._accelerate.sabre import (
-    sabre_routing,
-    Heuristic,
-    NeighborTable,
-    SabreDAG,
-)
+from qiskit._accelerate.sabre import sabre_routing, Heuristic, SetScaling, NeighborTable, SabreDAG
 from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
@@ -211,12 +206,25 @@ class SabreSwap(TransformationPass):
                 " This circuit cannot be routed to this device."
             )
 
-        if self.heuristic == "basic":
-            heuristic = Heuristic.Basic
+        if isinstance(self.heuristic, Heuristic):
+            heuristic = self.heuristic
+        elif self.heuristic == "basic":
+            heuristic = Heuristic(attempt_limit=10 * num_dag_qubits).with_basic(
+                1.0, SetScaling.Size
+            )
         elif self.heuristic == "lookahead":
-            heuristic = Heuristic.Lookahead
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+            )
         elif self.heuristic == "decay":
-            heuristic = Heuristic.Decay
+            heuristic = (
+                Heuristic(attempt_limit=10 * num_dag_qubits)
+                .with_basic(1.0, SetScaling.Size)
+                .with_lookahead(0.5, 20, SetScaling.Size)
+                .with_decay(0.001, 5)
+            )
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
         disjoint_utils.require_layout_isolated_to_component(
