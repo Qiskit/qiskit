@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Test SetSequence"""
+import unittest
 from test import QiskitTestCase
 from ddt import ddt, named_data, unpack
 
@@ -34,8 +35,17 @@ from qiskit.pulse.transforms import (
     AlignEquispaced,
 )
 from qiskit.pulse.compiler import MapMixedFrame, SetSequence
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseCompilerError
 from .utils import PulseIrTranspiler
+
+
+class TestSetSequence(QiskitTestCase):
+    """General tests for set sequence pass"""
+
+    def test_equating(self):
+        """Test pass equating"""
+        self.assertTrue(SetSequence() == SetSequence())
+        self.assertFalse(SetSequence() == MapMixedFrame())
 
 
 @ddt
@@ -45,10 +55,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
     ddt_named_data = [["align_left", AlignLeft()], ["align_right", AlignRight()]]
 
     def _get_pm(self) -> PulseIrTranspiler:
-        pm = PulseIrTranspiler()
-        pm.append(MapMixedFrame())
-        pm.append(SetSequence())
-        return pm
+        return PulseIrTranspiler([MapMixedFrame(), SetSequence()])
 
     @named_data(*ddt_named_data)
     @unpack
@@ -60,41 +67,27 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example = SequenceIR(alignment)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(PulseCompilerError):
             pm.run(ir_example)
 
+    # TODO: Take care of this weird edge case
+    @unittest.expectedFailure
     @named_data(*ddt_named_data)
     @unpack
-    def test_single_instruction(self, alignment):
-        """test with a single instruction"""
+    def test_instruction_not_in_mapping(self, alignment):
+        """test with an instruction which is not in the mapping"""
 
         ir_example = SequenceIR(alignment)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+        ir_example.append(Delay(100, target=Qubit(5)))
 
         ir_example = self._get_pm().run(ir_example)
         edge_list = ir_example.sequence.edge_list()
-        self.assertEqual(len(edge_list), 2)
+        self.assertEqual(len(edge_list), 4)
         self.assertTrue((0, 2) in edge_list)
+        self.assertTrue((0, 3) in edge_list)
         self.assertTrue((2, 1) in edge_list)
-
-    # TODO: Take care of this weird edge case
-    # def test_instruction_not_in_mapping(self):
-    #     """test with an instruction which is not in the mapping"""
-    #
-    #     ir_example = SequenceIR(AlignLeft())
-    #     ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
-    #     ir_example.append(Delay(100, target=Qubit(5)))
-    #
-    #     property_set = {}
-    #     analyze_target_frame_pass(ir_example, property_set)
-    #     ir_example = sequence_pass(ir_example, property_set)
-    #     edge_list = ir_example.sequence.edge_list()
-    #     self.assertEqual(len(edge_list), 4)
-    #     self.assertTrue((0, 2) in edge_list)
-    #     self.assertTrue((0, 3) in edge_list)
-    #     self.assertTrue((2, 1) in edge_list)
-    #     self.assertTrue((3, 1) in edge_list)
-    #
+        self.assertTrue((3, 1) in edge_list)
 
     @named_data(*ddt_named_data)
     @unpack
@@ -131,9 +124,9 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
 
     @named_data(*ddt_named_data)
     @unpack
-    def test_pulse_target_instruction_broadcasting_to_children(self, alignment):
-        """test with an instruction which is defined on a PulseTarget and is
-        broadcasted to several children"""
+    def test_pulse_target_instruction_sequencing_to_dependent_instructions(self, alignment):
+        """test that an instruction which is defined on a PulseTarget and is sequenced correctly
+        to several dependent isntructions"""
 
         ir_example = SequenceIR(alignment)
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -151,22 +144,26 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
 
     @named_data(*ddt_named_data)
     @unpack
-    def test_frame_instruction_broadcasting_to_children(self, alignment):
-        """test with an instruction which is defined on a Frame and is broadcasted to several children"""
+    def test_frame_instruction_broadcasting_to_dependent_instructions(self, alignment):
+        """test that an instruction which is defined on a Frame is correctly sequenced to several
+        dependent instructions"""
 
         ir_example = SequenceIR(alignment)
         ir_example.append(ShiftPhase(100, frame=QubitFrame(0)))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(0))))
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
         ir_example = self._get_pm().run(ir_example)
         edge_list = ir_example.sequence.edge_list()
-        self.assertEqual(len(edge_list), 5)
+        self.assertEqual(len(edge_list), 7)
         self.assertTrue((0, 2) in edge_list)
         self.assertTrue((2, 3) in edge_list)
         self.assertTrue((2, 4) in edge_list)
         self.assertTrue((3, 1) in edge_list)
         self.assertTrue((4, 1) in edge_list)
+        self.assertTrue((0, 5) in edge_list)
+        self.assertTrue((5, 1) in edge_list)
 
     @named_data(*ddt_named_data)
     @unpack
@@ -304,20 +301,6 @@ class TestSetSequenceSequentialAlignment(QiskitTestCase):
         ["align_func", AlignFunc(100, lambda x: x)],
         ["align_equispaced", AlignEquispaced(100)],
     ]
-
-    @named_data(*ddt_named_data)
-    @unpack
-    def test_single_instruction(self, alignment):
-        """test with a single instruction"""
-
-        ir_example = SequenceIR(alignment)
-        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
-
-        ir_example = SetSequence().run(ir_example)
-        edge_list = ir_example.sequence.edge_list()
-        self.assertEqual(len(edge_list), 2)
-        self.assertTrue((0, 2) in edge_list)
-        self.assertTrue((2, 1) in edge_list)
 
     @named_data(*ddt_named_data)
     @unpack

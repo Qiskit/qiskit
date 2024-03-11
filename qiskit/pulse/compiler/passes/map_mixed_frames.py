@@ -21,39 +21,37 @@ from qiskit.pulse.model import MixedFrame
 
 
 class MapMixedFrame(AnalysisPass):
-    """Map the dependencies of all ``MixedFrame``s on ``PulseTaraget`` and ``Frame``.
+    r"""Map the dependencies of all class:`.MixedFrame`\s
+    on class:`~qiskit.pulse.PulseTaraget` and :class:`~qiskit.pulse.Frame`.
 
-    The pass recursively scans the ``SequenceIR``, identifies all ``MixedFrame``s and
-    tracks the dependencies of them on ``PulseTarget`` and ``Frame``. The analysis result
+    The pass recursively scans the :class:`.SequenceIR`, identifies all :class:`.MixedFrame`\s and
+    tracks the dependencies of them on class:`~qiskit.pulse.PulseTaraget` and
+    :class:`~qiskit.pulse.Frame`. The analysis result
     is added as a dictionary to the property set under key "mixed_frames_mapping". The
-    added dictionary is keyed on every ``PulseTarget`` and ``Frame`` in ``SequenceIR``
-    with the value being a set of all ``MixedFrame``s associated with the key.
+    added dictionary is keyed on every class:`~qiskit.pulse.PulseTaraget` and
+    :class:`~qiskit.pulse.Frame` in :class:`.SequenceIR`
+    with the value being a set of all class:`.MixedFrame`\s associated with the key.
     """
 
     def __init__(self):
-        """Create new MapMixedFrames pass"""
+        """Create new ``MapMixedFrames`` pass"""
         super().__init__(target=None)
-        self.mixed_frames_mapping = defaultdict(set)
 
     def run(
         self,
         passmanager_ir: SequenceIR,
     ) -> None:
+        """Run ``MapMixedFrame`` pass"""
+        mixed_frames_mapping = defaultdict(set)
 
-        self._analyze_mixed_frames_in_sequence(passmanager_ir)
-        self.property_set["mixed_frames_mapping"] = self.mixed_frames_mapping
-
-    def _analyze_mixed_frames_in_sequence(self, prog: SequenceIR) -> None:
-        """A helper function to recurse through the sequence while mapping mixed frame dependency"""
-        for elm in prog.elements():
-            # Sub Block
-            if isinstance(elm, SequenceIR):
-                self._analyze_mixed_frames_in_sequence(elm)
-            # Pulse Instruction
-            else:
-                if isinstance(inst_target := elm.inst_target, MixedFrame):
-                    self.mixed_frames_mapping[inst_target.frame].add(inst_target)
-                    self.mixed_frames_mapping[inst_target.pulse_target].add(inst_target)
+        for inst_target in passmanager_ir.inst_targets:
+            if isinstance(inst_target, MixedFrame):
+                mixed_frames_mapping[inst_target.frame].add(inst_target)
+                mixed_frames_mapping[inst_target.pulse_target].add(inst_target)
+        self.property_set["mixed_frames_mapping"] = mixed_frames_mapping
 
     def __hash__(self):
         return hash((self.__class__.__name__,))
+
+    def __eq__(self, other):
+        return self.__class__.__name__ == other.__class__.__name__

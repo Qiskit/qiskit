@@ -50,6 +50,7 @@ class TestMapMixedFrames(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=mf2))
 
         mapping_pass.run(ir_example)
+        mapping = mapping_pass.property_set["mixed_frames_mapping"]
         self.assertEqual(len(mapping), 3)
         self.assertEqual(mapping[mf.pulse_target], {mf, mf2})
         self.assertEqual(mapping[mf.frame], {mf})
@@ -104,3 +105,8 @@ class TestMapMixedFrames(QiskitTestCase):
         self.assertEqual(mapping[QubitFrame(0)], {mf1})
         self.assertEqual(mapping[QubitFrame(1)], {mf2})
         self.assertEqual(mapping[QubitFrame(2)], {mf3})
+
+    def test_equating(self):
+        """Test equating of passes"""
+        self.assertTrue(MapMixedFrame() == MapMixedFrame())
+        self.assertFalse(MapMixedFrame() == QubitFrame(1))
