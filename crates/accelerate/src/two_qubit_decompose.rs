@@ -165,32 +165,36 @@ impl Arg for c64 {
 }
 
 fn decompose_two_qubit_product_gate(
-    unitary: ArrayView2<Complex64>,
-) -> (Array2<Complex64>, Array2<Complex64>, f64) {
-    let mut r: Array2<Complex64> = unitary.slice(s![..2, ..2]).to_owned();
+    special_unitary: ArrayView2<Complex64>,
+) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
+    let mut r: Array2<Complex64> = special_unitary.slice(s![..2, ..2]).to_owned();
     let mut det_r = det_one_qubit(r.view());
     if det_r.abs() < 0.1 {
-        r = unitary.slice(s![2.., ..2]).to_owned();
+        r = special_unitary.slice(s![2.., ..2]).to_owned();
         det_r = det_one_qubit(r.view());
     }
-    assert!(
-        det_r.abs() >= 0.1,
-        "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1"
-    );
+    if det_r.abs() < 0.1 {
+        import_exception!(qiskit, QiskitError);
+        return Err(QiskitError::new_err(
+            "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1",
+        ));
+    }
     r.mapv_inplace(|x| x / det_r.sqrt());
     let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj());
     let eye = aview2(&ONE_QUBIT_IDENTITY);
     let mut temp = kron(&eye, &r_t_conj);
-    temp = unitary.dot(&temp);
+    temp = special_unitary.dot(&temp);
     let mut l = temp.slice(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
-    assert!(
-        det_l.abs() >= 0.9,
-        "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9"
-    );
+    if det_l.abs() < 0.9 {
+        import_exception!(qiskit, QiskitError);
+        return Err(QiskitError::new_err(
+            "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9",
+        ));
+    }
     l.mapv_inplace(|x| x / det_l.sqrt());
     let phase = det_l.arg() / 2.;
-    (l, r, phase)
+    Ok((l, r, phase))
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
@@ -650,9 +654,9 @@ impl TwoQubitWeylDecomposition {
         let k2 = transform_from_magic_basis(p.t(), false);
 
         #[allow(non_snake_case)]
-        let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1.view());
+        let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1.view())?;
         #[allow(non_snake_case)]
-        let (K2l, mut K2r, phase_r) = decompose_two_qubit_product_gate(k2.view());
+        let (K2l, mut K2r, phase_r) = decompose_two_qubit_product_gate(k2.view())?;
         global_phase += phase_l + phase_r;
 
         // Flip into Weyl chamber
