@@ -57,14 +57,8 @@ const TWO_PI: f64 = 2.0 * PI;
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
 const ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-    ],
+    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
+    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
 ];
 
 const B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
@@ -381,7 +375,7 @@ pub struct TwoQubitWeylDecomposition {
 
 impl TwoQubitWeylDecomposition {
     fn weyl_gate(
-        &mut self,
+        &self,
         simplify: bool,
         sequence: &mut TwoQubitSequenceVec,
         atol: f64,
@@ -1001,13 +995,12 @@ impl TwoQubitWeylDecomposition {
 
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
     fn circuit(
-        &mut self,
+        &self,
         euler_basis: Option<&str>,
         simplify: bool,
         atol: Option<f64>,
     ) -> TwoQubitGateSequence {
-        let binding = self.default_euler_basis.clone();
-        let euler_basis: &str = euler_basis.unwrap_or(&binding);
+        let euler_basis: &str = euler_basis.unwrap_or(&self.default_euler_basis);
         let target_1q_basis_list: Vec<&str> = vec![euler_basis];
 
         let mut gate_sequence = Vec::new();
