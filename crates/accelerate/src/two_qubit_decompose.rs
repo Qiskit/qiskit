@@ -56,6 +56,17 @@ const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
+const ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
+    [
+        Complex64::new(1., 0.),
+        Complex64::new(0., 0.),
+    ],
+    [
+        Complex64::new(0., 0.),
+        Complex64::new(1., 0.),
+    ],
+];
+
 const B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     [
         Complex64::new(1.0, 0.),
@@ -174,10 +185,7 @@ fn decompose_two_qubit_product_gate(
     );
     r.mapv_inplace(|x| x / det_r.sqrt());
     let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj());
-    let eye = array![
-        [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-        [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-    ];
+    let eye = aview2(&ONE_QUBIT_IDENTITY);
     let mut temp = kron(&eye, &r_t_conj);
     temp = unitary.dot(&temp);
     let mut l = temp.slice_mut(s![..;2, ..;2]).to_owned();
