@@ -12,7 +12,7 @@
 
 
 """Tests for ProbabilityCache quantum state class."""
-
+from __future__ import annotations
 import itertools
 import random
 import unittest

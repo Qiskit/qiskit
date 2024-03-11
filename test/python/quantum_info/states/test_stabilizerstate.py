@@ -13,6 +13,7 @@
 
 """Tests for Stabilizerstate quantum state class."""
 
+from __future__ import annotations
 import gc
 from itertools import product
 import random
