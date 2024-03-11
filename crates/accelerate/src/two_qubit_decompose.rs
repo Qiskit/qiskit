@@ -311,14 +311,14 @@ fn rx_matrix(theta: f64) -> Array2<Complex64> {
 fn ry_matrix(theta: f64) -> Array2<Complex64> {
     let half_theta = theta / 2.;
     let cos = Complex64::new(half_theta.cos(), 0.);
-    let isin = Complex64::new(0., half_theta.sin());
-    array![[cos, -isin], [isin, cos]]
+    let sin = Complex64::new(half_theta.sin(), 0.);
+    array![[cos, -sin], [sin, cos]]
 }
 
 fn rz_matrix(theta: f64) -> Array2<Complex64> {
     let ilam2 = Complex64::new(0., 0.5 * theta);
     array![
-        [-ilam2.exp(), Complex64::new(0., 0.)],
+        [(-ilam2).exp(), Complex64::new(0., 0.)],
         [Complex64::new(0., 0.), ilam2.exp()]
     ]
 }
@@ -343,7 +343,7 @@ enum Specializations {
     SimabmbEquiv,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
 pub struct TwoQubitWeylDecomposition {
@@ -605,7 +605,6 @@ impl TwoQubitWeylDecomposition {
             global_phase -= PI2;
         }
         let [a, b, c] = [cs[1], cs[0], cs[2]];
-
         let is_close = |ap: f64, bp: f64, cp: f64| -> bool {
             let [da, db, dc] = [a - ap, b - bp, c - cp];
             let tr = 4.
@@ -650,7 +649,6 @@ impl TwoQubitWeylDecomposition {
                 }
             }
         };
-
         let mut specialized: TwoQubitWeylDecomposition = match specialization {
             Specializations::IdEquiv => TwoQubitWeylDecomposition {
                 a: 0.,
@@ -746,9 +744,9 @@ impl TwoQubitWeylDecomposition {
             Specializations::ControlledEquiv => {
                 let default_euler_basis = "XYX";
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), "XYX");
+                    angles_from_unitary(K2l.view(), default_euler_basis);
                 let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
-                    angles_from_unitary(K2r.view(), "XYX");
+                    angles_from_unitary(K2r.view(), default_euler_basis);
                 TwoQubitWeylDecomposition {
                     a,
                     b: 0.,
@@ -775,8 +773,8 @@ impl TwoQubitWeylDecomposition {
                     b: PI4,
                     c,
                     global_phase: global_phase + k2lphase + k2rphase,
-                    K1l: K1l.dot(&rz_matrix(k2lphi)),
-                    K1r: K1r.dot(&rz_matrix(k2rphi)),
+                    K1l: K1l.dot(&rz_matrix(k2rphi)),
+                    K1r: K1r.dot(&rz_matrix(k2lphi)),
                     K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
                     K2r: ry_matrix(k2rtheta).dot(&rz_matrix(k2rlambda)),
                     specialization: Specializations::MirrorControlledEquiv,
