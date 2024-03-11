@@ -172,7 +172,7 @@ fn decompose_two_qubit_product_gate(
         "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1"
     );
     r.mapv_inplace(|x| x / det_r.sqrt());
-    let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj()).to_owned();
+    let r_t_conj: Array2<Complex64> = r.t().mapv(|x| x.conj());
     let eye = array![
         [Complex64::new(1., 0.), Complex64::new(0., 0.)],
         [Complex64::new(0., 0.), Complex64::new(1., 0.)],
@@ -587,16 +587,6 @@ impl TwoQubitWeylDecomposition {
                 .into_ndarray()
                 .mapv(Complex64::from)
                 .to_owned();
-            // Uncomment this to use numpy for eigh instead of faer (useful if needed to compare)
-            // let numpy_linalg = PyModule::import(py, "numpy.linalg")?;
-            // let eigh = numpy_linalg.getattr("eigh")?;
-            // let m2_real_arr = m2_real.to_pyarray(py);
-            // let result = eigh.call1((m2_real_arr,))?.downcast::<PyTuple>()?;
-            // let p_raw = result.get_item(1)?;
-            // let p_inner = p_raw
-            //     .extract::<PyReadonlyArray2<f64>>()?
-            //     .as_array()
-            //     .mapv(Complex64::from);
             let d_inner = p_inner.t().dot(&m2).dot(&p_inner).diag().to_owned();
             let mut diag_d: Array2<Complex64> = Array2::zeros((4, 4));
             diag_d
