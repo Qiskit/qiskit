@@ -219,7 +219,9 @@ class CheckDecompositions(QiskitTestCase):
                 "Incorrect saved unitary in the decomposition.",
             )
             self.assertEqual(
-                decomp.specialization, expected_specialization, "Incorrect Weyl specialization."
+                decomp._inner_decomposition.specialization,
+                expected_specialization,
+                "Incorrect Weyl specialization.",
             )
             circ = decomp.circuit(simplify=True)
             self.assertDictEqual(

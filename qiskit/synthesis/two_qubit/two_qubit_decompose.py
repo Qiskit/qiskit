@@ -96,7 +96,7 @@ _ipz = np.array([[1j, 0], [0, -1j]], dtype=complex)
 _id = np.array([[1, 0], [0, 1]], dtype=complex)
 
 
-class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
+class TwoQubitWeylDecomposition:
     r"""Two-qubit Weyl decomposition.
 
     Decompose two-qubit unitary
@@ -151,6 +151,29 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
+    def __init__(
+        self,
+        unitary_matrix: np.ndarray,
+        fidelity: float | None = 1.0 - 1.0e-9,
+        *,
+        _specialization: two_qubit_decompose.Specialization | None = None,
+    ):
+        unitary_matrix = np.asarray(unitary_matrix, dtype=complex)
+        self._inner_decomposition = two_qubit_decompose.TwoQubitWeylDecomposition(
+            unitary_matrix, fidelity=fidelity, _specialization=_specialization
+        )
+        self.a = self._inner_decomposition.a
+        self.b = self._inner_decomposition.b
+        self.c = self._inner_decomposition.c
+        self.global_phase = self._inner_decomposition.global_phase
+        self.K1l = self._inner_decomposition.K1l
+        self.K1r = self._inner_decomposition.K1r
+        self.K2l = self._inner_decomposition.K2l
+        self.K2r = self._inner_decomposition.K2r
+        self.unitary_matrix = unitary_matrix
+        self.requested_fidelity = fidelity
+        self.calculated_fidelity = self._inner_decomposition.calculated_fidelity
+
     @deprecate_func(since="1.1.0", removal_timeline="in the 2.0.0 release")
     def specialize(self):
         """Make changes to the decomposition to comply with any specializations.
@@ -164,7 +187,9 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
     ) -> QuantumCircuit:
         """Returns Weyl decomposition in circuit form."""
-        circuit_sequence = super().circuit(euler_basis=euler_basis, simplify=simplify, atol=atol)
+        circuit_sequence = self._inner_decomposition.circuit(
+            euler_basis=euler_basis, simplify=simplify, atol=atol
+        )
         circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
         for name, params, qubits in circuit_sequence:
             getattr(circ, name)(*params, *qubits)
@@ -192,7 +217,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
             + b64ascii
             + [
                 f"requested_fidelity={self.requested_fidelity},",
-                f"_specialization={self.specialization},"
+                f"_specialization={self._inner_decomposition.specialization},"
                 f"calculated_fidelity={self.calculated_fidelity},",
                 f"actual_fidelity={self.actual_fidelity()},",
                 f"abc={(self.a, self.b, self.c)})",
