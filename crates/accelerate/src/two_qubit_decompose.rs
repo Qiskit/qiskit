@@ -167,7 +167,7 @@ fn decompose_two_qubit_product_gate(
         det_r = det_one_qubit(r.view());
     }
     assert!(
-        det_r.abs() < 0.1,
+        det_r.abs() >= 0.1,
         "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1"
     );
     r.mapv_inplace(|x| x / det_r.sqrt());
@@ -181,7 +181,7 @@ fn decompose_two_qubit_product_gate(
     let mut l = temp.slice_mut(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
     assert!(
-        det_l.abs() < 0.9,
+        det_l.abs() >= 0.9,
         "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9"
     );
     l.mapv_inplace(|x| x / det_l.sqrt());
