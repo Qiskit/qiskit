@@ -819,7 +819,7 @@ class StabilizerState(QuantumState):
 
         # Use cache only if a key was found earlier
         if use_caching:
-            if cache.is_state_in_stabilizer_cache(outcome):
+            if cache.is_state_in_quantum_state_cache(outcome):
                 ret = cache.retrieve_state(outcome)
             else:
                 ret = self.copy()

@@ -39,10 +39,10 @@ class TestProbabilityCache(QiskitTestCase):
         the values exist in the cache and retrieve the correct values
 
         Args:
-            num_qubits (int): number of qubits to use for testing the cache
+            num_qubits int: number of qubits to use for testing the cache
         """
         cache: ProbabilityCache = ProbabilityCache()
-        # Build all cominations for 'X, 0, 1' possible combinations to store
+        # Build all combinations for 'X, 0, 1' possible combinations to store
         test_input: List[str] = [
             "".join(map(str, i)) for i in itertools.product(["X", "0", "1"], repeat=num_qubits)
         ]
@@ -64,7 +64,7 @@ class TestProbabilityCache(QiskitTestCase):
 
         # Add items to cache for state, use int
         for i, key in enumerate(dict_random_probs_to_insert, 0):
-            # Switch between passing the key as a list[str] and a str
+            # Switch between passing the key as a List[str] and a str
             cache.insert_state(self._key_type(key, self._odd_num(i)), i)
 
         # Verfiy cache has at least 1 entry
@@ -76,11 +76,11 @@ class TestProbabilityCache(QiskitTestCase):
             # formula to decide if key was allowed to be inserted in cache
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify all non inserted items not in cache
@@ -109,11 +109,11 @@ class TestProbabilityCache(QiskitTestCase):
             # formula to decide if key was allowed to be inserted in cache
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify values in cache exist and are the correct value
@@ -122,11 +122,11 @@ class TestProbabilityCache(QiskitTestCase):
             key_t = self._key_type(key, self._odd_num(i))
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == items_to_cache_next[key])
-                self.assertTrue(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_stabilizer_cache(key_t))
+                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         keys_to_pick: List[str] = [
@@ -142,10 +142,10 @@ class TestProbabilityCache(QiskitTestCase):
 
     @staticmethod
     def _key_type(key: str, as_list: bool):
-        """Switch between passing the key as a list[str] and a str
+        """Switch between passing the key as a List[str] and a str
 
         Returns:
-            str | list[str]: key in form
+            str | List[str]: key in form
         """
         return list(key) if as_list else key
 
