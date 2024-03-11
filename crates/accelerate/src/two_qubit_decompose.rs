@@ -164,6 +164,24 @@ impl Arg for c64 {
     }
 }
 
+pub trait TraceToFidelity {
+    /// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
+    /// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
+    fn trace_to_fid(self) -> f64;
+}
+
+impl TraceToFidelity for Complex64 {
+    fn trace_to_fid(self) -> f64 {
+        (4.0 + self.abs().powi(2)) / 20.0
+    }
+}
+
+impl TraceToFidelity for c64 {
+    fn trace_to_fid(self) -> f64 {
+        (4.0 + self.faer_abs2()) / 20.0
+    }
+}
+
 fn decompose_two_qubit_product_gate(
     special_unitary: ArrayView2<Complex64>,
 ) -> PyResult<(Array2<Complex64>, Array2<Complex64>, f64)> {
@@ -279,25 +297,10 @@ fn __num_basis_gates(basis_b: f64, basis_fidelity: f64, unitary: MatRef<c64>) ->
     traces
         .into_iter()
         .enumerate()
-        .map(|(idx, trace)| {
-            (
-                idx,
-                trace_to_fid_c64(&trace) * basis_fidelity.powi(idx as i32),
-            )
-        })
+        .map(|(idx, trace)| (idx, trace.trace_to_fid() * basis_fidelity.powi(idx as i32)))
         .min_by(|(_idx1, fid1), (_idx2, fid2)| fid2.partial_cmp(fid1).unwrap())
         .unwrap()
         .0
-}
-
-/// Average gate fidelity is :math:`Fbar = (d + |Tr (Utarget \\cdot U^dag)|^2) / d(d+1)`
-/// M. Horodecki, P. Horodecki and R. Horodecki, PRA 60, 1888 (1999)
-fn trace_to_fid_c64(trace: &c64) -> f64 {
-    (4.0 + trace.faer_abs2()) / 20.0
-}
-
-fn trace_to_fid(trace: Complex64) -> f64 {
-    (4.0 + trace.abs().powi(2)) / 20.0
 }
 
 /// A good approximation to the best value x to get the minimum
@@ -720,7 +723,7 @@ impl TwoQubitWeylDecomposition {
                     da.sin() * db.sin() * dc.sin(),
                 );
             match fidelity {
-                Some(fid) => trace_to_fid(tr) >= fid,
+                Some(fid) => tr.trace_to_fid() >= fid,
                 // Set to false here to default to general specialization in the absence of a
                 // fidelity and provided specialization.
                 None => false,
@@ -954,7 +957,7 @@ impl TwoQubitWeylDecomposition {
                 da.sin() * db.sin() * dc.sin(),
             )
         };
-        specialized.calculated_fidelity = trace_to_fid(tr);
+        specialized.calculated_fidelity = tr.trace_to_fid();
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
                 import_exception!(qiskit, QiskitError);
