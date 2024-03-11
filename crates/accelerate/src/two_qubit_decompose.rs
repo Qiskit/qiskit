@@ -182,7 +182,7 @@ fn decompose_two_qubit_product_gate(
     let eye = aview2(&ONE_QUBIT_IDENTITY);
     let mut temp = kron(&eye, &r_t_conj);
     temp = unitary.dot(&temp);
-    let mut l = temp.slice_mut(s![..;2, ..;2]).to_owned();
+    let mut l = temp.slice(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
     assert!(
         det_l.abs() >= 0.9,
@@ -585,15 +585,14 @@ impl TwoQubitWeylDecomposition {
                 rand_a = state.sample(StandardNormal);
                 rand_b = state.sample(StandardNormal);
             }
-            let m2_real = m2.mapv(|val| rand_a * val.re + rand_b * val.im).to_owned();
+            let m2_real = m2.mapv(|val| rand_a * val.re + rand_b * val.im);
             let p_inner = m2_real
                 .view()
                 .into_faer()
                 .selfadjoint_eigendecomposition(Lower)
                 .u()
                 .into_ndarray()
-                .mapv(Complex64::from)
-                .to_owned();
+                .mapv(Complex64::from);
             let d_inner = p_inner.t().dot(&m2).dot(&p_inner).diag().to_owned();
             let mut diag_d: Array2<Complex64> = Array2::zeros((4, 4));
             diag_d
@@ -602,7 +601,7 @@ impl TwoQubitWeylDecomposition {
                 .enumerate()
                 .for_each(|(index, x)| *x = d_inner[index]);
 
-            let compare = p_inner.dot(&diag_d).dot(&p_inner.t()).to_owned();
+            let compare = p_inner.dot(&diag_d).dot(&p_inner.t());
             found = abs_diff_eq!(compare.view(), m2, epsilon = 1.0e-13);
             if found {
                 p = p_inner;
@@ -618,7 +617,7 @@ impl TwoQubitWeylDecomposition {
         }
         let mut d = -d.map(|x| x.arg() / 2.);
         d[3] = -d[0] - d[1] - d[2];
-        let mut cs: Array1<f64> = (0..3)
+        let mut cs: SmallVec<[f64; 3]> = (0..3)
             .map(|i| ((d[i] + d[3]) / 2.0).rem_euclid(TWO_PI))
             .collect();
         let cstemp: SmallVec<[f64; 3]> = cs
