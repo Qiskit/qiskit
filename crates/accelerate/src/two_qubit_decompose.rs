@@ -359,6 +359,7 @@ pub struct TwoQubitWeylDecomposition {
     K2l: Array2<Complex64>,
     K1r: Array2<Complex64>,
     K2r: Array2<Complex64>,
+    #[pyo3(get)]
     specialization: Specializations,
     default_euler_basis: String,
     #[pyo3(get)]
@@ -374,16 +375,17 @@ impl TwoQubitWeylDecomposition {
         simplify: bool,
         sequence: &mut Vec<(String, Vec<f64>, [u8; 2])>,
         atol: f64,
+        global_phase: &mut f64,
     ) {
         match self.specialization {
             Specializations::MirrorControlledEquiv => {
                 sequence.push(("swap".to_string(), Vec::new(), [0, 1]));
                 sequence.push(("rzz".to_string(), vec![(PI4 - self.c) * 2.], [0, 1]));
-                self.global_phase += PI4;
+                *global_phase += PI4
             }
             Specializations::SWAPEquiv => {
                 sequence.push(("swap".to_string(), Vec::new(), [0, 1]));
-                self.global_phase -= 3. * PI / 4.;
+                *global_phase -= 3. * PI / 4.
             }
             _ => {
                 if !simplify || self.a.abs() > atol {
@@ -762,7 +764,7 @@ impl TwoQubitWeylDecomposition {
                 specialization: Specializations::IdEquiv,
                 default_euler_basis: default_euler_basis.to_string(),
                 requested_fidelity: fidelity,
-                calculated_fidelity: 1.0,
+                calculated_fidelity: -1.0,
                 unitary_matrix,
             },
             Specializations::SWAPEquiv => {
@@ -779,7 +781,7 @@ impl TwoQubitWeylDecomposition {
                         specialization: Specializations::SWAPEquiv,
                         default_euler_basis: default_euler_basis.to_string(),
                         requested_fidelity: fidelity,
-                        calculated_fidelity: 1.0,
+                        calculated_fidelity: -1.0,
                         unitary_matrix,
                     }
                 } else {
@@ -796,7 +798,7 @@ impl TwoQubitWeylDecomposition {
                         specialization: Specializations::SWAPEquiv,
                         default_euler_basis: default_euler_basis.to_string(),
                         requested_fidelity: fidelity,
-                        calculated_fidelity: 1.0,
+                        calculated_fidelity: -1.0,
                         unitary_matrix,
                     }
                 }
@@ -817,7 +819,7 @@ impl TwoQubitWeylDecomposition {
                     specialization: Specializations::PartialSWAPEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -828,7 +830,7 @@ impl TwoQubitWeylDecomposition {
                 TwoQubitWeylDecomposition {
                     a: closest,
                     b: closest,
-                    c: -a,
+                    c: -closest,
                     global_phase,
                     K1l: K1l.dot(&K2l),
                     K1r: K1r.dot(&ipz).dot(&K2l).dot(&ipz),
@@ -837,7 +839,7 @@ impl TwoQubitWeylDecomposition {
                     specialization: Specializations::PartialSWAPFlipEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -859,7 +861,7 @@ impl TwoQubitWeylDecomposition {
                     specialization: Specializations::ControlledEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -880,7 +882,7 @@ impl TwoQubitWeylDecomposition {
                     specialization: Specializations::MirrorControlledEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -899,7 +901,7 @@ impl TwoQubitWeylDecomposition {
                     specialization: Specializations::SimaabEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -914,12 +916,12 @@ impl TwoQubitWeylDecomposition {
                     global_phase: global_phase + k2lphase,
                     K1r: K1r.dot(&rx_matrix(k2lphi)),
                     K1l: K1l.dot(&rx_matrix(k2lphi)),
-                    K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
-                    K2r: ry_matrix(-k2lphi).dot(&K2r),
+                    K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
+                    K2r: rx_matrix(-k2lphi).dot(&K2r),
                     specialization: Specializations::SimabbEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -932,14 +934,14 @@ impl TwoQubitWeylDecomposition {
                     b: (b - c) / 2.,
                     c: -((b - c) / 2.),
                     global_phase: global_phase + k2lphase,
-                    K1l: K1l.dot(&rz_matrix(k2lphi)),
+                    K1l: K1l.dot(&rx_matrix(k2lphi)),
                     K1r: K1r.dot(&ipz).dot(&rx_matrix(k2lphi)).dot(&ipz),
                     K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
                     K2r: ipz.dot(&rx_matrix(-k2lphi)).dot(&ipz).dot(&K2r),
                     specialization: Specializations::SimabmbEquiv,
                     default_euler_basis: default_euler_basis.to_string(),
                     requested_fidelity: fidelity,
-                    calculated_fidelity: 1.0,
+                    calculated_fidelity: -1.0,
                     unitary_matrix,
                 }
             }
@@ -955,7 +957,7 @@ impl TwoQubitWeylDecomposition {
                 specialization: Specializations::General,
                 default_euler_basis: default_euler_basis.to_string(),
                 requested_fidelity: fidelity,
-                calculated_fidelity: 1.0,
+                calculated_fidelity: -1.0,
                 unitary_matrix,
             },
         };
@@ -977,7 +979,6 @@ impl TwoQubitWeylDecomposition {
                 da.sin() * db.sin() * dc.sin(),
             )
         };
-
         specialized.calculated_fidelity = trace_to_fid(tr);
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
@@ -1062,7 +1063,12 @@ impl TwoQubitWeylDecomposition {
             gate_sequence.push((gate.0, gate.1, [1, 1]))
         }
         global_phase += c2l.global_phase;
-        self.weyl_gate(simplify, &mut gate_sequence, atol.unwrap_or(DEFAULT_ATOL));
+        self.weyl_gate(
+            simplify,
+            &mut gate_sequence,
+            atol.unwrap_or(DEFAULT_ATOL),
+            &mut global_phase,
+        );
         let c1r = unitary_to_gate_sequence_inner(
             self.K1r.view(),
             &target_1q_basis_list,

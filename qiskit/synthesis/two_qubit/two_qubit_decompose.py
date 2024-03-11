@@ -186,6 +186,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
             + b64ascii
             + [
                 f"requested_fidelity={self.requested_fidelity},",
+                f"specialization={self.specialization},"
                 f"calculated_fidelity={self.calculated_fidelity},",
                 f"actual_fidelity={self.actual_fidelity()},",
                 f"abc={(self.a, self.b, self.c)})",
@@ -195,7 +196,12 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
 
     @classmethod
     def from_bytes(
-        cls, bytes_in: bytes, *, requested_fidelity: float, **kwargs
+        cls,
+        bytes_in: bytes,
+        *,
+        requested_fidelity: float,
+        specialization: two_qubit_decompose.Specializations | None,
+        **kwargs,
     ) -> "TwoQubitWeylDecomposition":
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
         # Used by __repr__
@@ -203,7 +209,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         b64 = base64.decodebytes(bytes_in)
         with io.BytesIO(b64) as f:
             arr = np.load(f, allow_pickle=False)
-        return cls(arr, fidelity=requested_fidelity)
+        return cls(arr, fidelity=requested_fidelity, specialization=specialization)
 
     def __str__(self):
         pre = f"{self.__class__.__name__}(\n\t"
