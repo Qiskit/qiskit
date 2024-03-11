@@ -326,7 +326,7 @@ fn rz_matrix(theta: f64) -> Array2<Complex64> {
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 const C1_IM: Complex64 = Complex64::new(0.0, 1.0);
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Copy)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
 enum Specializations {
     General,
@@ -415,13 +415,114 @@ const IPX: [[Complex64; 2]; 2] = [
 
 #[pymethods]
 impl TwoQubitWeylDecomposition {
+    fn __getstate__(&self, py: Python) -> ([f64; 5], [PyObject; 5], u8, String, Option<f64>) {
+        let specialization = match self.specialization {
+            Specializations::General => 0,
+            Specializations::IdEquiv => 1,
+            Specializations::SWAPEquiv => 2,
+            Specializations::PartialSWAPEquiv => 3,
+            Specializations::PartialSWAPFlipEquiv => 4,
+            Specializations::ControlledEquiv => 5,
+            Specializations::MirrorControlledEquiv => 6,
+            Specializations::SimaabEquiv => 7,
+            Specializations::SimabbEquiv => 8,
+            Specializations::SimabmbEquiv => 9,
+        };
+        (
+            [
+                self.a,
+                self.b,
+                self.c,
+                self.global_phase,
+                self.calculated_fidelity,
+            ],
+            [
+                self.K1l.to_pyarray(py).into(),
+                self.K1r.to_pyarray(py).into(),
+                self.K2l.to_pyarray(py).into(),
+                self.K2r.to_pyarray(py).into(),
+                self.unitary_matrix.to_pyarray(py).into(),
+            ],
+            specialization,
+            self.default_euler_basis.clone(),
+            self.requested_fidelity,
+        )
+    }
+
+    fn __setstate__(
+        &mut self,
+        state: (
+            [f64; 5],
+            [PyReadonlyArray2<Complex64>; 5],
+            u8,
+            String,
+            Option<f64>,
+        ),
+    ) {
+        self.a = state.0[0];
+        self.b = state.0[1];
+        self.c = state.0[2];
+        self.global_phase = state.0[3];
+        self.calculated_fidelity = state.0[4];
+        self.K1l = state.1[0].as_array().to_owned();
+        self.K1r = state.1[1].as_array().to_owned();
+        self.K2l = state.1[2].as_array().to_owned();
+        self.K2r = state.1[3].as_array().to_owned();
+        self.unitary_matrix = state.1[4].as_array().to_owned();
+        self.default_euler_basis = state.3;
+        self.requested_fidelity = state.4;
+        self.specialization = match state.2 {
+            0 => Specializations::General,
+            1 => Specializations::IdEquiv,
+            2 => Specializations::SWAPEquiv,
+            3 => Specializations::PartialSWAPEquiv,
+            4 => Specializations::PartialSWAPFlipEquiv,
+            5 => Specializations::ControlledEquiv,
+            6 => Specializations::MirrorControlledEquiv,
+            7 => Specializations::SimaabEquiv,
+            8 => Specializations::SimabbEquiv,
+            9 => Specializations::SimabmbEquiv,
+            _ => unreachable!("Invalid specialization value"),
+        };
+    }
+
+    fn __getnewargs__(&self, py: Python) -> (PyObject, Option<f64>, Option<Specializations>, bool) {
+        (
+            self.unitary_matrix.to_pyarray(py).into(),
+            self.requested_fidelity,
+            None,
+            true,
+        )
+    }
+
     #[new]
-    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, specialization=None))]
+    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, specialization=None, _pickle_context=false))]
     fn new(
         unitary_matrix: PyReadonlyArray2<Complex64>,
         fidelity: Option<f64>,
         specialization: Option<Specializations>,
+        _pickle_context: bool,
     ) -> PyResult<Self> {
+        // If we're in a pickle context just make the closest to an empty
+        // object as we can with minimal allocations and effort. All the
+        // data will be filled in during deserialization from __setstate__.
+        if _pickle_context {
+            return Ok(TwoQubitWeylDecomposition {
+                a: 0.,
+                b: 0.,
+                c: 0.,
+                global_phase: 0.,
+                K1l: Array2::zeros((0, 0)),
+                K2l: Array2::zeros((0, 0)),
+                K1r: Array2::zeros((0, 0)),
+                K2r: Array2::zeros((0, 0)),
+                specialization: Specializations::General,
+                default_euler_basis: "ZYZ".to_string(),
+                requested_fidelity: fidelity,
+                calculated_fidelity: 0.,
+                unitary_matrix: Array2::zeros((0, 0)),
+            });
+        }
         let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let ipy: ArrayView2<Complex64> = aview2(&IPY);
         let ipx: ArrayView2<Complex64> = aview2(&IPX);
