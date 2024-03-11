@@ -14,6 +14,7 @@
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
+use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
 
@@ -61,10 +62,12 @@ impl OneQubitGateErrorMap {
 
 #[pyclass(sequence)]
 pub struct OneQubitGateSequence {
-    pub gates: Vec<(String, Vec<f64>)>,
+    pub gates: Vec<(String, SmallVec<[f64; 3]>)>,
     #[pyo3(get)]
     pub global_phase: f64,
 }
+
+type OneQubitGateSequenceState = (Vec<(String, SmallVec<[f64; 3]>)>, f64);
 
 #[pymethods]
 impl OneQubitGateSequence {
@@ -75,11 +78,11 @@ impl OneQubitGateSequence {
             global_phase: 0.,
         }
     }
-    fn __getstate__(&self) -> (Vec<(String, Vec<f64>)>, f64) {
+    fn __getstate__(&self) -> OneQubitGateSequenceState {
         (self.gates.clone(), self.global_phase)
     }
 
-    fn __setstate__(&mut self, state: (Vec<(String, Vec<f64>)>, f64)) {
+    fn __setstate__(&mut self, state: OneQubitGateSequenceState) {
         self.gates = state.0;
         self.global_phase = state.1;
     }
@@ -93,7 +96,7 @@ impl OneQubitGateSequence {
             SliceOrInt::Slice(slc) => {
                 let len = self.gates.len().try_into().unwrap();
                 let indices = slc.indices(len)?;
-                let mut out_vec: Vec<(String, Vec<f64>)> = Vec::new();
+                let mut out_vec: Vec<(String, SmallVec<[f64; 3]>)> = Vec::new();
                 // Start and stop will always be positive the slice api converts
                 // negatives to the index for example:
                 // list(range(5))[-1:-3:-1]
@@ -145,7 +148,7 @@ fn circuit_kak(
     let mut lam = lam;
     let mut theta = theta;
     let mut phi = phi;
-    let mut circuit: Vec<(String, Vec<f64>)> = Vec::with_capacity(3);
+    let mut circuit: Vec<(String, SmallVec<[f64; 3]>)> = Vec::with_capacity(3);
     let mut atol = match atol {
         Some(atol) => atol,
         None => DEFAULT_ATOL,
@@ -161,7 +164,7 @@ fn circuit_kak(
         // slippage coming from _mod_2pi injecting multiples of 2pi.
         lam = mod_2pi(lam, atol);
         if lam.abs() > atol {
-            circuit.push((String::from(k_gate), vec![lam]));
+            circuit.push((String::from(k_gate), smallvec![lam]));
             global_phase += lam / 2.;
         }
         return OneQubitGateSequence {
@@ -182,13 +185,13 @@ fn circuit_kak(
     lam = mod_2pi(lam, atol);
     if lam.abs() > atol {
         global_phase += lam / 2.;
-        circuit.push((String::from(k_gate), vec![lam]));
+        circuit.push((String::from(k_gate), smallvec![lam]));
     }
-    circuit.push((String::from(a_gate), vec![theta]));
+    circuit.push((String::from(a_gate), smallvec![theta]));
     phi = mod_2pi(phi, atol);
     if phi.abs() > atol {
         global_phase += phi / 2.;
-        circuit.push((String::from(k_gate), vec![phi]));
+        circuit.push((String::from(k_gate), smallvec![phi]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -212,7 +215,7 @@ fn circuit_u3(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((String::from("u3"), vec![theta, phi, lam]));
+        circuit.push((String::from("u3"), smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -239,17 +242,17 @@ fn circuit_u321(
     if theta.abs() < atol {
         let tot = mod_2pi(phi + lam, atol);
         if tot.abs() > atol {
-            circuit.push((String::from("u1"), vec![tot]));
+            circuit.push((String::from("u1"), smallvec![tot]));
         }
     } else if (theta - PI / 2.).abs() < atol {
         circuit.push((
             String::from("u2"),
-            vec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
+            smallvec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     } else {
         circuit.push((
             String::from("u3"),
-            vec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
+            smallvec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
         ));
     }
     OneQubitGateSequence {
@@ -277,7 +280,7 @@ fn circuit_u(
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
     if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
-        circuit.push((String::from("u"), vec![theta, phi, lam]));
+        circuit.push((String::from("u"), smallvec![theta, phi, lam]));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -379,19 +382,22 @@ fn circuit_rr(
     if mod_2pi((phi + lam) / 2., atol).abs() < atol {
         // This can be expressed as a single R gate
         if theta.abs() > atol {
-            circuit.push((String::from("r"), vec![theta, mod_2pi(PI / 2. + phi, atol)]));
+            circuit.push((
+                String::from("r"),
+                smallvec![theta, mod_2pi(PI / 2. + phi, atol)],
+            ));
         }
     } else {
         // General case: use two R gates
         if (theta - PI).abs() > atol {
             circuit.push((
                 String::from("r"),
-                vec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
+                smallvec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
             ));
         }
         circuit.push((
             String::from("r"),
-            vec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
+            smallvec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
         ));
     }
 
@@ -430,11 +436,11 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("p"), vec![phi]));
+                    circuit.gates.push((String::from("p"), smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), Vec::new()));
+                circuit.gates.push((String::from("sx"), SmallVec::new()));
             };
 
             circuit_psx_gen(
@@ -460,12 +466,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("rz"), vec![phi]));
+                    circuit.gates.push((String::from("rz"), smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), Vec::new()));
+                circuit.gates.push((String::from("sx"), SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -490,12 +496,12 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("u1"), vec![phi]));
+                    circuit.gates.push((String::from("u1"), smallvec![phi]));
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
                 circuit.global_phase += PI / 4.;
-                circuit.gates.push((String::from("rx"), vec![PI / 2.]));
+                circuit.gates.push((String::from("rx"), smallvec![PI / 2.]));
             };
             circuit_psx_gen(
                 theta,
@@ -520,15 +526,15 @@ pub fn generate_circuit(
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
                 let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
-                    circuit.gates.push((String::from("rz"), vec![phi]));
+                    circuit.gates.push((String::from("rz"), smallvec![phi]));
                     circuit.global_phase += phi / 2.;
                 }
             };
             let fnx = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("sx"), Vec::new()));
+                circuit.gates.push((String::from("sx"), SmallVec::new()));
             };
             let fnxpi = |circuit: &mut OneQubitGateSequence| {
-                circuit.gates.push((String::from("x"), Vec::new()));
+                circuit.gates.push((String::from("x"), SmallVec::new()));
             };
             circuit_psx_gen(
                 theta,
@@ -592,7 +598,7 @@ fn compare_error_fn(
 }
 
 fn compute_error(
-    gates: &[(String, Vec<f64>)],
+    gates: &[(String, SmallVec<[f64; 3]>)],
     error_map: Option<&OneQubitGateErrorMap>,
     qubit: usize,
 ) -> (f64, usize) {
@@ -622,7 +628,7 @@ pub fn compute_error_one_qubit_sequence(
 #[inline]
 #[pyfunction]
 pub fn compute_error_list(
-    circuit: Vec<(String, Vec<f64>)>,
+    circuit: Vec<(String, SmallVec<[f64; 3]>)>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
 ) -> (f64, usize) {

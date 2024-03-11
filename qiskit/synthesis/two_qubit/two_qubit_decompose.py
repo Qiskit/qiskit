@@ -157,11 +157,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         circuit_sequence = super().circuit(euler_basis=euler_basis, simplify=simplify, atol=atol)
         circ = QuantumCircuit(2, global_phase=circuit_sequence.global_phase)
         for name, params, qubits in circuit_sequence:
-            if qubits[0] == qubits[1]:
-                qargs = (qubits[0],)
-            else:
-                qargs = tuple(qubits)
-            getattr(circ, name)(*params, *qargs)
+            getattr(circ, name)(*params, *qubits)
         return circ
 
     def actual_fidelity(self, **kwargs) -> float:

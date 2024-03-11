@@ -25,6 +25,7 @@ use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
+use smallvec::{smallvec, SmallVec};
 use std::f64::consts::PI;
 
 use faer::IntoFaerComplex;
@@ -374,29 +375,33 @@ impl TwoQubitWeylDecomposition {
     fn weyl_gate(
         &mut self,
         simplify: bool,
-        sequence: &mut Vec<(String, Vec<f64>, [u8; 2])>,
+        sequence: &mut TwoQubitSequenceVec,
         atol: f64,
         global_phase: &mut f64,
     ) {
         match self.specialization {
             Specializations::MirrorControlledEquiv => {
-                sequence.push(("swap".to_string(), Vec::new(), [0, 1]));
-                sequence.push(("rzz".to_string(), vec![(PI4 - self.c) * 2.], [0, 1]));
+                sequence.push(("swap".to_string(), SmallVec::new(), smallvec![0, 1]));
+                sequence.push((
+                    "rzz".to_string(),
+                    smallvec![(PI4 - self.c) * 2.],
+                    smallvec![0, 1],
+                ));
                 *global_phase += PI4
             }
             Specializations::SWAPEquiv => {
-                sequence.push(("swap".to_string(), Vec::new(), [0, 1]));
+                sequence.push(("swap".to_string(), SmallVec::new(), smallvec![0, 1]));
                 *global_phase -= 3. * PI / 4.
             }
             _ => {
                 if !simplify || self.a.abs() > atol {
-                    sequence.push(("rxx".to_string(), vec![-self.a * 2.], [0, 1]));
+                    sequence.push(("rxx".to_string(), smallvec![-self.a * 2.], smallvec![0, 1]));
                 }
                 if !simplify || self.b.abs() > atol {
-                    sequence.push(("ryy".to_string(), vec![-self.b * 2.], [0, 1]));
+                    sequence.push(("ryy".to_string(), smallvec![-self.b * 2.], smallvec![0, 1]));
                 }
                 if !simplify || self.c.abs() > atol {
-                    sequence.push(("rzz".to_string(), vec![-self.c * 2.], [0, 1]));
+                    sequence.push(("rzz".to_string(), smallvec![-self.c * 2.], smallvec![0, 1]));
                 }
             }
         }
@@ -614,7 +619,7 @@ impl TwoQubitWeylDecomposition {
         let mut cs: Array1<f64> = (0..3)
             .map(|i| ((d[i] + d[3]) / 2.0).rem_euclid(TWO_PI))
             .collect();
-        let cstemp: Vec<f64> = cs
+        let cstemp: SmallVec<[f64; 3]> = cs
             .iter()
             .map(|x| x.rem_euclid(PI2))
             .map(|x| x.min(PI2 - x))
@@ -1010,7 +1015,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2r.gates {
-            gate_sequence.push((gate.0, gate.1, [0, 0]))
+            gate_sequence.push((gate.0, gate.1, smallvec![0]))
         }
         global_phase += c2r.global_phase;
         let c2l = unitary_to_gate_sequence_inner(
@@ -1023,7 +1028,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c2l.gates {
-            gate_sequence.push((gate.0, gate.1, [1, 1]))
+            gate_sequence.push((gate.0, gate.1, smallvec![1]))
         }
         global_phase += c2l.global_phase;
         self.weyl_gate(
@@ -1042,7 +1047,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1r.gates {
-            gate_sequence.push((gate.0, gate.1, [0, 0]))
+            gate_sequence.push((gate.0, gate.1, smallvec![0]))
         }
         global_phase += c2r.global_phase;
         let c1l = unitary_to_gate_sequence_inner(
@@ -1055,7 +1060,7 @@ impl TwoQubitWeylDecomposition {
         )
         .unwrap();
         for gate in c1l.gates {
-            gate_sequence.push((gate.0, gate.1, [1, 1]))
+            gate_sequence.push((gate.0, gate.1, smallvec![1]))
         }
         TwoQubitGateSequence {
             gates: gate_sequence,
@@ -1064,7 +1069,7 @@ impl TwoQubitWeylDecomposition {
     }
 }
 
-type TwoQubitSequenceVec = Vec<(String, Vec<f64>, [u8; 2])>;
+type TwoQubitSequenceVec = Vec<(String, SmallVec<[f64; 3]>, SmallVec<[u8; 2]>)>;
 
 #[pyclass(sequence)]
 pub struct TwoQubitGateSequence {
@@ -1101,7 +1106,7 @@ impl TwoQubitGateSequence {
             utils::SliceOrInt::Slice(slc) => {
                 let len = self.gates.len().try_into().unwrap();
                 let indices = slc.indices(len)?;
-                let mut out_vec: Vec<(String, Vec<f64>, [u8; 2])> = Vec::new();
+                let mut out_vec: TwoQubitSequenceVec = Vec::new();
                 // Start and stop will always be positive the slice api converts
                 // negatives to the index for example:
                 // list(range(5))[-1:-3:-1]
