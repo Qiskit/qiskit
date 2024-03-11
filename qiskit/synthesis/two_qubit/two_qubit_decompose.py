@@ -238,7 +238,7 @@ class TwoQubitWeylDecomposition:
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
         K1 = transform_to_magic_basis(Up @ P @ np.diag(np.exp(1j * d)))
-        K2 = transform_to_magic_basis(P.T)
+        K2 = transform_to_magic_basis(P.T.astype(complex, copy=False))
 
         K1l, K1r, phase_l = decompose_two_qubit_product_gate(K1)
         K2l, K2r, phase_r = decompose_two_qubit_product_gate(K2)

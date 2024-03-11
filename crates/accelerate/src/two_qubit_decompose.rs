@@ -18,15 +18,17 @@
 // of real components and one of imaginary components.
 // In order to avoid copying we want to use `MatRef<c64>` or `MatMut<c64>`.
 
-use num_complex::Complex;
+use num_complex::{Complex, Complex64};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use std::f64::consts::PI;
 
 use faer::IntoFaerComplex;
+use faer::IntoNdarrayComplex;
 use faer::{mat, prelude::*, scale, Mat, MatRef};
 use faer_core::{c64, ComplexField};
+use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 
 use crate::utils;
@@ -44,6 +46,16 @@ const C0_5_NEG: c64 = c64 { re: -0.5, im: 0.0 };
 const C0_5_IM: c64 = c64 { re: 0.0, im: 0.5 };
 const C0_5_IM_NEG: c64 = c64 { re: 0.0, im: -0.5 };
 
+// "Magic" basis used for the Weyl decomposition. The basis and its adjoint
+// are stored individually
+// unnormalized, but such that their matrix multiplication is still the
+// identity. This is because
+// they are only used in unitary transformations (so it's safe to do so),
+// and `sqrt(0.5)` is not
+// exactly representable in floating point. Doing it this way means
+// that every element of the matrix
+// is stored exactly correctly, and the multiplication is _exactly_ the
+// identity rather than differing by 1ULP.
 const B_NON_NORMALIZED: [c64; 16] = [
     C1, C1IM, C0, C0, C0, C0, C1IM, C1, C0, C0, C1IM, C1_NEG, C1, C1_NEG_IM, C0, C0,
 ];
@@ -67,10 +79,41 @@ const B_NON_NORMALIZED_DAGGER: [c64; 16] = [
     C0,
 ];
 
-fn transform_from_magic_basis(unitary: Mat<c64>) -> Mat<c64> {
+fn transform_from_magic_basis(unitary: MatRef<c64>, reverse: bool) -> Mat<c64> {
     let _b_nonnormalized = mat::from_row_major_slice::<c64>(&B_NON_NORMALIZED, 4, 4);
     let _b_nonnormalized_dagger = mat::from_row_major_slice::<c64>(&B_NON_NORMALIZED_DAGGER, 4, 4);
-    _b_nonnormalized_dagger * unitary * _b_nonnormalized
+    if reverse {
+        _b_nonnormalized_dagger * unitary * _b_nonnormalized
+    } else {
+        _b_nonnormalized * unitary * _b_nonnormalized_dagger
+    }
+}
+/// Transform the 4-by-4 matrix ``unitary`` into the magic basis.
+///
+/// This method internally uses non-normalized versions of the basis to
+/// minimize the floating-point errors during the transformation
+///
+/// Args:
+///     unitary (np.ndarray): 4-by-4 matrix to transform.
+///     reverse (bool): Whether to do the transformation forwards
+///         (``B @ U @ B.conj().T``, the default) or backwards
+///         (``B.conj().T @ U @ B``).
+///
+/// Returns:
+///     np.ndarray: The transformed 4-by-4 matrix.
+#[pyfunction]
+#[pyo3(signature = (unitary, reverse=false))]
+pub fn transform_to_magic_basis(
+    py: Python,
+    unitary: PyReadonlyArray2<Complex64>,
+    reverse: bool,
+) -> PyObject {
+    transform_from_magic_basis(unitary.as_array().into_faer_complex(), reverse)
+        .as_ref()
+        .into_ndarray_complex()
+        .to_owned()
+        .into_pyarray(py)
+        .into()
 }
 
 // faer::c64 and num_complex::Complex<f64> are both structs
@@ -100,7 +143,7 @@ impl Arg for c64 {
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
-    let uup = transform_from_magic_basis(uscaled);
+    let uup = transform_from_magic_basis(uscaled.as_ref(), true);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
         .complex_eigenvalues()
         .into_iter()
@@ -145,6 +188,21 @@ fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
         cs[2] -= PI2;
     }
     [cs[1], cs[0], cs[2]]
+}
+
+/// Computes the Weyl coordinates for a given two-qubit unitary matrix.
+///
+/// Args:
+///     unitary (np.ndarray): Input two-qubit unitary.
+///
+/// Returns:
+///     np.ndarray: Array of the 3 Weyl coordinates.
+#[pyfunction]
+pub fn weyl_coordinates(py: Python, unitary: PyReadonlyArray2<Complex64>) -> PyObject {
+    __weyl_coordinates(unitary.as_array().into_faer_complex())
+        .to_vec()
+        .into_pyarray(py)
+        .into()
 }
 
 #[pyfunction]
@@ -195,5 +253,7 @@ fn trace_to_fid(trace: &c64) -> f64 {
 #[pymodule]
 pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
+    m.add_wrapped(wrap_pyfunction!(transform_to_magic_basis))?;
+    m.add_wrapped(wrap_pyfunction!(weyl_coordinates))?;
     Ok(())
 }

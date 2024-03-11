@@ -32,7 +32,7 @@ class TestWeyl(QiskitTestCase):
     def test_weyl_coordinates_simple(self):
         """Check Weyl coordinates against known cases."""
         # Identity [0,0,0]
-        U = np.identity(4)
+        U = np.identity(4, dtype=complex)
         weyl = weyl_coordinates(U)
         assert_allclose(weyl, [0, 0, 0])
 
