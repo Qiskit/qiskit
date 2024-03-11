@@ -378,7 +378,7 @@ impl TwoQubitWeylDecomposition {
         match self.specialization {
             Specializations::MirrorControlledEquiv => {
                 sequence.push(("swap".to_string(), Vec::new(), [0, 1]));
-                sequence.push(("rzz".to_string(), vec![PI4 - self.c], [0, 1]));
+                sequence.push(("rzz".to_string(), vec![(PI4 - self.c) * 2.], [0, 1]));
                 self.global_phase += PI4;
             }
             Specializations::SWAPEquiv => {
