@@ -1,0 +1,14 @@
+---
+features_synthesis:
+  - |
+    The :class:`.TwoQubitWeylDecomposition` synthesis class has been rewritten
+    in Rust for better performance.
+upgrade_synthesis:
+  - |
+    The :class:`.TwoQubitWeylDecomposition` no longer will self specialize into
+    a subclass on creation. This was an internal detail of the :class:`.TwoQubitWeylDecomposition`
+    previously, and was not a documented public behavior as all the subclasses behaved
+    the same and were only used for internal dispatch. However, as it was discoverable
+    behavior this release note is to document that this will no longer occur and all
+    instances of :class:`.TwoQubitWeylDecomposition` will be of the same type. There is no
+    change in behavior for public methods of the class.
