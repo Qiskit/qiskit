@@ -753,215 +753,185 @@ impl TwoQubitWeylDecomposition {
                 }
             }
         };
+        let general = TwoQubitWeylDecomposition {
+            a,
+            b,
+            c,
+            global_phase,
+            K1l,
+            K1r,
+            K2l,
+            K2r,
+            specialization: Specializations::General,
+            default_euler_basis: default_euler_basis.to_owned(),
+            requested_fidelity: fidelity,
+            calculated_fidelity: -1.0,
+            unitary_matrix,
+        };
         let mut specialized: TwoQubitWeylDecomposition = match specialization {
             Specializations::IdEquiv => TwoQubitWeylDecomposition {
+                specialization,
                 a: 0.,
                 b: 0.,
                 c: 0.,
-                global_phase,
-                K1l: K1l.dot(&K2l),
-                K1r: K1r.dot(&K2r),
+                K1l: general.K1l.dot(&general.K2l),
+                K1r: general.K1r.dot(&general.K2r),
                 K2l: Array2::eye(2),
                 K2r: Array2::eye(2),
-                specialization: Specializations::IdEquiv,
-                default_euler_basis: default_euler_basis.to_string(),
-                requested_fidelity: fidelity,
-                calculated_fidelity: -1.0,
-                unitary_matrix,
+                ..general
             },
             Specializations::SWAPEquiv => {
                 if c > 0. {
                     TwoQubitWeylDecomposition {
+                        specialization,
                         a: PI4,
                         b: PI4,
                         c: PI4,
-                        global_phase,
-                        K1l: K1l.dot(&K2r),
-                        K1r: K1r.dot(&K2l),
+                        K1l: general.K1l.dot(&general.K2r),
+                        K1r: general.K1r.dot(&general.K2l),
                         K2l: Array2::eye(2),
                         K2r: Array2::eye(2),
-                        specialization: Specializations::SWAPEquiv,
-                        default_euler_basis: default_euler_basis.to_string(),
-                        requested_fidelity: fidelity,
-                        calculated_fidelity: -1.0,
-                        unitary_matrix,
+                        ..general
                     }
                 } else {
                     flipped_from_original = true;
                     TwoQubitWeylDecomposition {
+                        specialization,
                         a: PI4,
                         b: PI4,
                         c: PI4,
                         global_phase: global_phase + PI2,
-                        K1l: K1l.dot(&ipz).dot(&K2r),
-                        K1r: K1r.dot(&ipz).dot(&K2l),
+                        K1l: general.K1l.dot(&ipz).dot(&general.K2r),
+                        K1r: general.K1r.dot(&ipz).dot(&general.K2l),
                         K2l: Array2::eye(2),
                         K2r: Array2::eye(2),
-                        specialization: Specializations::SWAPEquiv,
-                        default_euler_basis: default_euler_basis.to_string(),
-                        requested_fidelity: fidelity,
-                        calculated_fidelity: -1.0,
-                        unitary_matrix,
+                        ..general
                     }
                 }
             }
             Specializations::PartialSWAPEquiv => {
                 let closest = closest_partial_swap(a, b, c);
-                let mut k2r_temp = K2l.t().to_owned();
-                k2r_temp.view_mut().mapv_inplace(|x| x.conj());
+                let mut k2l_dag = general.K2l.t().to_owned();
+                k2l_dag.view_mut().mapv_inplace(|x| x.conj());
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a: closest,
                     b: closest,
                     c: closest,
-                    global_phase,
-                    K1l: K1l.dot(&K2l),
-                    K1r: K1r.dot(&K2l),
-                    K2r: k2r_temp.dot(&K2r),
+                    K1l: general.K1l.dot(&general.K2l),
+                    K1r: general.K1r.dot(&general.K2l),
+                    K2r: k2l_dag.dot(&general.K2r),
                     K2l: Array2::eye(2),
-                    specialization: Specializations::PartialSWAPEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    ..general
                 }
             }
             Specializations::PartialSWAPFlipEquiv => {
                 let closest = closest_partial_swap(a, b, -c);
-                let mut k2_temp = K2l.t().to_owned();
-                k2_temp.mapv_inplace(|x| x.conj());
+                let mut k2l_dag = general.K2l.t().to_owned();
+                k2l_dag.mapv_inplace(|x| x.conj());
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a: closest,
                     b: closest,
                     c: -closest,
-                    global_phase,
-                    K1l: K1l.dot(&K2l),
-                    K1r: K1r.dot(&ipz).dot(&K2l).dot(&ipz),
-                    K2r: ipz.dot(&k2_temp).dot(&ipz).dot(&K2r),
+                    K1l: general.K1l.dot(&general.K2l),
+                    K1r: general.K1r.dot(&ipz).dot(&general.K2l).dot(&ipz),
+                    K2r: ipz.dot(&k2l_dag).dot(&ipz).dot(&general.K2r),
                     K2l: Array2::eye(2),
-                    specialization: Specializations::PartialSWAPFlipEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    ..general
                 }
             }
             Specializations::ControlledEquiv => {
-                let default_euler_basis = "XYX";
+                let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), default_euler_basis);
+                    angles_from_unitary(general.K2l.view(), &euler_basis);
                 let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
-                    angles_from_unitary(K2r.view(), default_euler_basis);
+                    angles_from_unitary(general.K2r.view(), &euler_basis);
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a,
                     b: 0.,
                     c: 0.,
                     global_phase: global_phase + k2lphase + k2rphase,
-                    K1l: K1l.dot(&rx_matrix(k2lphi)),
-                    K1r: K1r.dot(&rx_matrix(k2rphi)),
+                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
+                    K1r: general.K1r.dot(&rx_matrix(k2rphi)),
                     K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
                     K2r: ry_matrix(k2rtheta).dot(&rx_matrix(k2rlambda)),
-                    specialization: Specializations::ControlledEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    default_euler_basis: euler_basis,
+                    ..general
                 }
             }
             Specializations::MirrorControlledEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), "ZYZ");
+                    angles_from_unitary(general.K2l.view(), "ZYZ");
                 let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
-                    angles_from_unitary(K2r.view(), "ZYZ");
+                    angles_from_unitary(general.K2r.view(), "ZYZ");
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a: PI4,
                     b: PI4,
                     c,
                     global_phase: global_phase + k2lphase + k2rphase,
-                    K1l: K1l.dot(&rz_matrix(k2rphi)),
-                    K1r: K1r.dot(&rz_matrix(k2lphi)),
+                    K1l: general.K1l.dot(&rz_matrix(k2rphi)),
+                    K1r: general.K1r.dot(&rz_matrix(k2lphi)),
                     K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
                     K2r: ry_matrix(k2rtheta).dot(&rz_matrix(k2rlambda)),
-                    specialization: Specializations::MirrorControlledEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    ..general
                 }
             }
             Specializations::SimaabEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), "ZYZ");
+                    angles_from_unitary(general.K2l.view(), "ZYZ");
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a: (a + b) / 2.,
                     b: (a + b) / 2.,
                     c,
                     global_phase: global_phase + k2lphase,
-                    K1r: K1r.dot(&rz_matrix(k2lphi)),
-                    K1l: K1l.dot(&rz_matrix(k2lphi)),
+                    K1r: general.K1r.dot(&rz_matrix(k2lphi)),
+                    K1l: general.K1l.dot(&rz_matrix(k2lphi)),
                     K2l: ry_matrix(k2ltheta).dot(&rz_matrix(k2llambda)),
-                    K2r: rz_matrix(-k2lphi).dot(&K2r),
-                    specialization: Specializations::SimaabEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    K2r: rz_matrix(-k2lphi).dot(&general.K2r),
+                    ..general
                 }
             }
             Specializations::SimabbEquiv => {
-                let default_euler_basis = "XYX";
+                let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), "XYX");
+                    angles_from_unitary(general.K2l.view(), &euler_basis);
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a,
                     b: (b + c) / 2.,
                     c: (b + c) / 2.,
                     global_phase: global_phase + k2lphase,
-                    K1r: K1r.dot(&rx_matrix(k2lphi)),
-                    K1l: K1l.dot(&rx_matrix(k2lphi)),
+                    K1r: general.K1r.dot(&rx_matrix(k2lphi)),
+                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
                     K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
-                    K2r: rx_matrix(-k2lphi).dot(&K2r),
-                    specialization: Specializations::SimabbEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    K2r: rx_matrix(-k2lphi).dot(&general.K2r),
+                    default_euler_basis: euler_basis,
+                    ..general
                 }
             }
             Specializations::SimabmbEquiv => {
-                let default_euler_basis = "XYX";
+                let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), default_euler_basis);
+                    angles_from_unitary(general.K2l.view(), &euler_basis);
                 TwoQubitWeylDecomposition {
+                    specialization,
                     a,
                     b: (b - c) / 2.,
                     c: -((b - c) / 2.),
                     global_phase: global_phase + k2lphase,
-                    K1l: K1l.dot(&rx_matrix(k2lphi)),
-                    K1r: K1r.dot(&ipz).dot(&rx_matrix(k2lphi)).dot(&ipz),
+                    K1l: general.K1l.dot(&rx_matrix(k2lphi)),
+                    K1r: general.K1r.dot(&ipz).dot(&rx_matrix(k2lphi)).dot(&ipz),
                     K2l: ry_matrix(k2ltheta).dot(&rx_matrix(k2llambda)),
-                    K2r: ipz.dot(&rx_matrix(-k2lphi)).dot(&ipz).dot(&K2r),
-                    specialization: Specializations::SimabmbEquiv,
-                    default_euler_basis: default_euler_basis.to_string(),
-                    requested_fidelity: fidelity,
-                    calculated_fidelity: -1.0,
-                    unitary_matrix,
+                    K2r: ipz.dot(&rx_matrix(-k2lphi)).dot(&ipz).dot(&general.K2r),
+                    default_euler_basis: euler_basis,
+                    ..general
                 }
             }
-            Specializations::General => TwoQubitWeylDecomposition {
-                a,
-                b,
-                c,
-                global_phase,
-                K1l,
-                K2l,
-                K1r,
-                K2r,
-                specialization: Specializations::General,
-                default_euler_basis: default_euler_basis.to_string(),
-                requested_fidelity: fidelity,
-                calculated_fidelity: -1.0,
-                unitary_matrix,
-            },
+            Specializations::General => general,
         };
 
         let tr = if flipped_from_original {
