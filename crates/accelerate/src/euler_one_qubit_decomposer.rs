@@ -11,6 +11,7 @@
 // that they have been altered from the originals.
 
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::upper_case_acronyms)]
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
@@ -409,7 +410,7 @@ fn circuit_rr(
 
 #[pyfunction]
 pub fn generate_circuit(
-    target_basis: &str,
+    target_basis: &EulerBasis,
     theta: f64,
     phi: f64,
     lam: f64,
@@ -418,14 +419,14 @@ pub fn generate_circuit(
     atol: Option<f64>,
 ) -> PyResult<OneQubitGateSequence> {
     let res = match target_basis {
-        "ZYZ" => circuit_kak(theta, phi, lam, phase, "rz", "ry", simplify, atol),
-        "ZXZ" => circuit_kak(theta, phi, lam, phase, "rz", "rx", simplify, atol),
-        "XZX" => circuit_kak(theta, phi, lam, phase, "rx", "rz", simplify, atol),
-        "XYX" => circuit_kak(theta, phi, lam, phase, "rx", "ry", simplify, atol),
-        "U3" => circuit_u3(theta, phi, lam, phase, simplify, atol),
-        "U321" => circuit_u321(theta, phi, lam, phase, simplify, atol),
-        "U" => circuit_u(theta, phi, lam, phase, simplify, atol),
-        "PSX" => {
+        EulerBasis::ZYZ => circuit_kak(theta, phi, lam, phase, "rz", "ry", simplify, atol),
+        EulerBasis::ZXZ => circuit_kak(theta, phi, lam, phase, "rz", "rx", simplify, atol),
+        EulerBasis::XZX => circuit_kak(theta, phi, lam, phase, "rx", "rz", simplify, atol),
+        EulerBasis::XYX => circuit_kak(theta, phi, lam, phase, "rx", "ry", simplify, atol),
+        EulerBasis::U3 => circuit_u3(theta, phi, lam, phase, simplify, atol),
+        EulerBasis::U321 => circuit_u321(theta, phi, lam, phase, simplify, atol),
+        EulerBasis::U => circuit_u(theta, phi, lam, phase, simplify, atol),
+        EulerBasis::PSX => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
                 None => ANGLE_ZERO_EPSILON,
@@ -455,7 +456,7 @@ pub fn generate_circuit(
                 None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
-        "ZSX" => {
+        EulerBasis::ZSX => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
                 None => ANGLE_ZERO_EPSILON,
@@ -485,7 +486,7 @@ pub fn generate_circuit(
                 None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
-        "U1X" => {
+        EulerBasis::U1X => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
                 None => ANGLE_ZERO_EPSILON,
@@ -515,7 +516,7 @@ pub fn generate_circuit(
                 None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
-        "ZSXX" => {
+        EulerBasis::ZSXX => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
                 None => ANGLE_ZERO_EPSILON,
@@ -548,32 +549,88 @@ pub fn generate_circuit(
                 Some(fnxpi),
             )
         }
-        "RR" => circuit_rr(theta, phi, lam, phase, simplify, atol),
-        other => {
-            return Err(PyTypeError::new_err(format!(
-                "Invalid target basis: {other}"
-            )))
-        }
+        EulerBasis::RR => circuit_rr(theta, phi, lam, phase, simplify, atol),
     };
     Ok(res)
 }
 
+#[derive(Clone, Debug, Copy)]
+#[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
+pub enum EulerBasis {
+    U321,
+    U3,
+    U,
+    PSX,
+    ZSX,
+    ZSXX,
+    U1X,
+    RR,
+    ZYZ,
+    ZXZ,
+    XYX,
+    XZX,
+}
+
+#[pymethods]
+impl EulerBasis {
+    #![allow(clippy::wrong_self_convention)]
+    pub fn to_str(&self) -> String {
+        match self {
+            Self::U321 => "U321".to_string(),
+            Self::U3 => "U3".to_string(),
+            Self::U => "U".to_string(),
+            Self::PSX => "PSX".to_string(),
+            Self::ZSX => "ZSX".to_string(),
+            Self::ZSXX => "ZSXX".to_string(),
+            Self::U1X => "U1X".to_string(),
+            Self::RR => "RR".to_string(),
+            Self::ZYZ => "ZYZ".to_string(),
+            Self::ZXZ => "ZXZ".to_string(),
+            Self::XYX => "XYX".to_string(),
+            Self::XZX => "XZX".to_string(),
+        }
+    }
+
+    #[staticmethod]
+    pub fn from_string(input: &str) -> PyResult<Self> {
+        let res = match input {
+            "U321" => EulerBasis::U321,
+            "U3" => EulerBasis::U3,
+            "U" => EulerBasis::U,
+            "PSX" => EulerBasis::PSX,
+            "ZSX" => EulerBasis::ZSX,
+            "ZSXX" => EulerBasis::ZSXX,
+            "U1X" => EulerBasis::U1X,
+            "RR" => EulerBasis::RR,
+            "ZYZ" => EulerBasis::ZYZ,
+            "ZXZ" => EulerBasis::ZXZ,
+            "XYX" => EulerBasis::XYX,
+            "XZX" => EulerBasis::XZX,
+            basis => {
+                return Err(PyTypeError::new_err(format!(
+                    "Invalid target basis {basis}"
+                )));
+            }
+        };
+        Ok(res)
+    }
+}
+
 #[inline]
-pub fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: &str) -> [f64; 4] {
+pub fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: EulerBasis) -> [f64; 4] {
     match target_basis {
-        "U321" => params_u3_inner(unitary),
-        "U3" => params_u3_inner(unitary),
-        "U" => params_u3_inner(unitary),
-        "PSX" => params_u1x_inner(unitary),
-        "ZSX" => params_u1x_inner(unitary),
-        "ZSXX" => params_u1x_inner(unitary),
-        "U1X" => params_u1x_inner(unitary),
-        "RR" => params_zyz_inner(unitary),
-        "ZYZ" => params_zyz_inner(unitary),
-        "ZXZ" => params_zxz_inner(unitary),
-        "XYX" => params_xyx_inner(unitary),
-        "XZX" => params_xzx_inner(unitary),
-        &_ => unreachable!(),
+        EulerBasis::U321 => params_u3_inner(unitary),
+        EulerBasis::U3 => params_u3_inner(unitary),
+        EulerBasis::U => params_u3_inner(unitary),
+        EulerBasis::PSX => params_u1x_inner(unitary),
+        EulerBasis::ZSX => params_u1x_inner(unitary),
+        EulerBasis::ZSXX => params_u1x_inner(unitary),
+        EulerBasis::U1X => params_u1x_inner(unitary),
+        EulerBasis::RR => params_zyz_inner(unitary),
+        EulerBasis::ZYZ => params_zyz_inner(unitary),
+        EulerBasis::ZXZ => params_zxz_inner(unitary),
+        EulerBasis::XYX => params_xyx_inner(unitary),
+        EulerBasis::XZX => params_xzx_inner(unitary),
     }
 }
 
@@ -643,20 +700,15 @@ pub fn unitary_to_gate_sequence(
     simplify: bool,
     atol: Option<f64>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
-    const VALID_BASES: [&str; 12] = [
-        "U321", "U3", "U", "PSX", "ZSX", "ZSXX", "U1X", "RR", "ZYZ", "ZXZ", "XYX", "XZX",
-    ];
-    for basis in &target_basis_list {
-        if !VALID_BASES.contains(basis) {
-            return Err(PyTypeError::new_err(format!(
-                "Invalid target basis {basis}"
-            )));
-        }
+    let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
+    for basis in target_basis_list {
+        let basis_enum = EulerBasis::from_string(basis)?;
+        target_basis_vec.push(basis_enum)
     }
     let unitary_mat = unitary.as_array();
     Ok(unitary_to_gate_sequence_inner(
         unitary_mat,
-        &target_basis_list,
+        &target_basis_vec,
         qubit,
         error_map,
         simplify,
@@ -667,7 +719,7 @@ pub fn unitary_to_gate_sequence(
 #[inline]
 pub fn unitary_to_gate_sequence_inner(
     unitary_mat: ArrayView2<Complex64>,
-    target_basis_list: &[&str],
+    target_basis_list: &[EulerBasis],
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
@@ -676,7 +728,7 @@ pub fn unitary_to_gate_sequence_inner(
     target_basis_list
         .iter()
         .map(|target_basis| {
-            let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
+            let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, *target_basis);
             generate_circuit(target_basis, theta, phi, lam, phase, simplify, atol).unwrap()
         })
         .min_by(|a, b| {
