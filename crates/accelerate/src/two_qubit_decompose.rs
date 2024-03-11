@@ -675,7 +675,6 @@ impl TwoQubitWeylDecomposition {
         }
         if cs[1] > PI4 {
             cs[1] = PI2 - cs[1];
-            conjs += 1;
             K1l = K1l.dot(&ipx);
             K2r = ipx.dot(&K2r);
             conjs += 1;
