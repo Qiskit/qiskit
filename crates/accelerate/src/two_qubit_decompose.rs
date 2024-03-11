@@ -347,6 +347,39 @@ enum Specialization {
     SimabmbEquiv,
 }
 
+impl Specialization {
+    fn to_u8(self) -> u8 {
+        match self {
+            Specialization::General => 0,
+            Specialization::IdEquiv => 1,
+            Specialization::SWAPEquiv => 2,
+            Specialization::PartialSWAPEquiv => 3,
+            Specialization::PartialSWAPFlipEquiv => 4,
+            Specialization::ControlledEquiv => 5,
+            Specialization::MirrorControlledEquiv => 6,
+            Specialization::SimaabEquiv => 7,
+            Specialization::SimabbEquiv => 8,
+            Specialization::SimabmbEquiv => 9,
+        }
+    }
+
+    fn from_u8(val: u8) -> Self {
+        match val {
+            0 => Specialization::General,
+            1 => Specialization::IdEquiv,
+            2 => Specialization::SWAPEquiv,
+            3 => Specialization::PartialSWAPEquiv,
+            4 => Specialization::PartialSWAPFlipEquiv,
+            5 => Specialization::ControlledEquiv,
+            6 => Specialization::MirrorControlledEquiv,
+            7 => Specialization::SimaabEquiv,
+            8 => Specialization::SimabbEquiv,
+            9 => Specialization::SimabmbEquiv,
+            _ => unreachable!("Invalid specialization value"),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[allow(non_snake_case)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose", subclass)]
@@ -426,18 +459,7 @@ const IPX: [[Complex64; 2]; 2] = [
 #[pymethods]
 impl TwoQubitWeylDecomposition {
     fn __getstate__(&self, py: Python) -> ([f64; 5], [PyObject; 5], u8, String, Option<f64>) {
-        let specialization = match self.specialization {
-            Specialization::General => 0,
-            Specialization::IdEquiv => 1,
-            Specialization::SWAPEquiv => 2,
-            Specialization::PartialSWAPEquiv => 3,
-            Specialization::PartialSWAPFlipEquiv => 4,
-            Specialization::ControlledEquiv => 5,
-            Specialization::MirrorControlledEquiv => 6,
-            Specialization::SimaabEquiv => 7,
-            Specialization::SimabbEquiv => 8,
-            Specialization::SimabmbEquiv => 9,
-        };
+        let specialization = self.specialization.to_u8();
         (
             [
                 self.a,
@@ -481,19 +503,7 @@ impl TwoQubitWeylDecomposition {
         self.unitary_matrix = state.1[4].as_array().to_owned();
         self.default_euler_basis = state.3;
         self.requested_fidelity = state.4;
-        self.specialization = match state.2 {
-            0 => Specialization::General,
-            1 => Specialization::IdEquiv,
-            2 => Specialization::SWAPEquiv,
-            3 => Specialization::PartialSWAPEquiv,
-            4 => Specialization::PartialSWAPFlipEquiv,
-            5 => Specialization::ControlledEquiv,
-            6 => Specialization::MirrorControlledEquiv,
-            7 => Specialization::SimaabEquiv,
-            8 => Specialization::SimabbEquiv,
-            9 => Specialization::SimabmbEquiv,
-            _ => unreachable!("Invalid specialization value"),
-        };
+        self.specialization = Specialization::from_u8(state.2);
     }
 
     fn __getnewargs__(&self, py: Python) -> (PyObject, Option<f64>, Option<Specialization>, bool) {
@@ -539,8 +549,7 @@ impl TwoQubitWeylDecomposition {
 
         let mut u = unitary_matrix.as_array().to_owned();
         let unitary_matrix = unitary_matrix.as_array().to_owned();
-        let det_u =
-            u.view().into_faer_complex().determinant().to_num_complex();
+        let det_u = u.view().into_faer_complex().determinant().to_num_complex();
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
