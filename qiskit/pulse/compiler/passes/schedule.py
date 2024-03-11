@@ -13,9 +13,13 @@
 """A scheduling pass for Qiskit PulseIR compilation."""
 
 from __future__ import annotations
+from functools import singledispatchmethod
+from collections import defaultdict
+from rustworkx import PyDAG, topological_sort
 
 from qiskit.pulse.compiler.basepasses import TransformationPass
 from qiskit.pulse.ir import SequenceIR
+from qiskit.pulse.transforms import AlignmentKind, AlignLeft, AlignRight, AlignSequential
 
 
 class SchedulePass(TransformationPass):
@@ -39,13 +43,130 @@ class SchedulePass(TransformationPass):
         return passmanager_ir
 
     def _schedule_recursion(self, prog: SequenceIR) -> None:
-        """A helper function to recurse through the sequence"""
-        # Parent sequences depend on the scheduling of child sequences, so we recurse first
-        for elm in prog.elements():
-            if isinstance(elm, SequenceIR):
-                self._schedule_recursion(elm)
+        """Recursively schedule the IR.
 
-        prog.alignment.schedule(prog.sequence, prog.time_table)
+        Nested IR objects must be scheduled first, so we traverse the IR,
+        and recursively schedule the IR objects.
+        After all nested IR objects are scheduled, we apply the scheduling strategy to the
+        current object.
+
+        Arguments:
+            prog: The IR object to be scheduled.
+        """
+        for elem in prog.elements():
+            if isinstance(elem, SequenceIR):
+                self._schedule_recursion(elem)
+
+        self._schedule_single_program(prog.alignment, prog.sequence, prog.time_table)
+
+    @singledispatchmethod
+    def _schedule_single_program(
+        self, alignment: AlignmentKind, sequence: PyDAG, time_table: defaultdict
+    ) -> None:
+        """Concretely schedule the IR object.
+
+        The ``time_table`` argument is mutated to include the initial time of each element of
+        ``sequence``, according to the structure of ``sequence`` and the alignment.
+        The function assumes that nested IR objects are already scheduled.
+
+        ``sequence`` is assumed to have the following structure - node 0 marks the beginning of the
+        sequence, while node 1 marks the end of it. All branches of the graph originate from node 0
+        and end at node 1.
+
+        Arguments:
+            alignment: The alignment of the IR object.
+            sequence: The sequence of the IR object.
+            time_table: The time_table of the IR object.
+        """
+        raise NotImplementedError
+
+    # pylint: disable=unused-argument
+    @_schedule_single_program.register(AlignLeft)
+    @_schedule_single_program.register(AlignSequential)
+    def _schedule_recursion_align_left(
+        self, alignment: AlignmentKind, sequence: PyDAG, time_table: defaultdict
+    ) -> None:
+        """Concretely schedule the IR object, aligning to the left.
+
+        The ``time_table`` argument is mutated to include the initial time of each element of
+        ``sequence``, according to the structure of ``sequence`` and aligning to the left.
+        The function assumes that nested IR objects are already scheduled.
+
+        ``sequence`` is assumed to have the following structure - node 0 marks the beginning of the
+        sequence, while node 1 marks the end of it. All branches of the graph originate from node 0
+        and end at node 1.
+
+        Arguments:
+            alignment: The alignment of the IR object.
+            sequence: The sequence of the IR object.
+            time_table: The time_table of the IR object.
+        """
+        nodes = list(topological_sort(sequence))
+
+        while nodes:
+            node_index = nodes.pop(0)
+            if node_index in (0, 1):
+                # in,out nodes
+                continue
+            preds = sequence.predecessor_indices(node_index)
+            if preds == [0]:
+                time_table[node_index] = 0
+            else:
+                time_table[node_index] = max(
+                    time_table[pred] + sequence.get_node_data(pred).duration for pred in preds
+                )
+
+    # pylint: disable=unused-argument
+    @_schedule_single_program.register(AlignRight)
+    def _schedule_recursion_align_right(
+        self, alignment: AlignmentKind, sequence: PyDAG, time_table: defaultdict
+    ) -> None:
+        """Concretely schedule the IR object, aligning to the right.
+
+        The ``time_table`` argument is mutated to include the initial time of each element of
+        ``sequence``, according to the structure of ``sequence`` and aligning to the right.
+        The function assumes that nested IR objects are already scheduled.
+
+        ``sequence`` is assumed to have the following structure - node 0 marks the beginning of the
+        sequence, while node 1 marks the end of it. All branches of the graph originate from node 0
+        and end at node 1.
+
+        Arguments:
+            alignment: The alignment of the IR object.
+            sequence: The sequence of the IR object.
+            time_table: The time_table of the IR object.
+        """
+        # We reverse the sequence, schedule to the left, then reverse the timings.
+        reversed_sequence = sequence.copy()
+        reversed_sequence.reverse()
+
+        nodes = list(topological_sort(reversed_sequence))
+        while nodes:
+            node_index = nodes.pop(0)
+            if node_index in (0, 1):
+                # in,out nodes
+                continue
+            preds = reversed_sequence.predecessor_indices(node_index)
+            if preds == [1]:
+                time_table[node_index] = 0
+            else:
+                time_table[node_index] = max(
+                    time_table[pred] + sequence.get_node_data(pred).duration for pred in preds
+                )
+
+        total_duration = max(
+            time_table[i] + sequence.get_node_data(i).duration
+            for i in reversed_sequence.predecessor_indices(0)
+        )
+
+        for node in sequence.node_indices():
+            if node not in (0, 1):
+                time_table[node] = (
+                    total_duration - time_table[node] - sequence.get_node_data(node).duration
+                )
 
     def __hash__(self):
         return hash((self.__class__.__name__,))
+
+    def __eq__(self, other):
+        return self.__class__.__name__ == other.__class__.__name__

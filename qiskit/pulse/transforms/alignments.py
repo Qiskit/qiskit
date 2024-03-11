@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 from __future__ import annotations
-from collections import defaultdict
 import abc
 from typing import Callable, Tuple
 
@@ -42,23 +41,6 @@ class AlignmentKind(abc.ABC):
 
         Returns:
             Schedule with reallocated instructions.
-        """
-        pass
-
-    @abc.abstractmethod
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include  the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
         """
         pass
 
@@ -183,49 +165,6 @@ class AlignLeft(ParallelAlignment):
 
         return this.insert(insert_time, other, inplace=True)
 
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program with left alignment.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include  the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
-        """
-        first_nodes = sequence.successor_indices(0)
-        active_nodes = []
-        # Node 0 has no duration so is treated separately
-        for node_index in first_nodes:
-            time_table[node_index] = 0
-            active_nodes.extend(sequence.successor_indices(node_index))
-
-        count = 0
-        max_count = sequence.num_nodes() * 10
-
-        while active_nodes and count < max_count:
-            count += 1
-            node_index = active_nodes.pop(0)
-            if node_index == 1 or time_table[node_index] is not None:
-                # reached end or already scheduled
-                continue
-            preds = sequence.predecessor_indices(node_index)
-            if all(time_table[pred] is not None for pred in preds):
-                # All predecessors are scheduled, we can schedule this node.
-                t0 = max(time_table[pred] + sequence.get_node_data(pred).duration for pred in preds)
-                time_table[node_index] = t0
-                active_nodes.extend(sequence.successor_indices(node_index))
-            else:
-                # Predecessors not scheduled, we move this node to the back of the line.
-                active_nodes.append(node_index)
-
-        if len(active_nodes) != 0:
-            raise PulseError("Could not schedule the sequence. Infinite loop created.")
-
 
 class AlignRight(ParallelAlignment):
     """Align instructions in as-late-as-possible manner.
@@ -290,54 +229,6 @@ class AlignRight(ParallelAlignment):
 
         return this
 
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program with right alignment.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
-        """
-        # We reverse the sequence, align left, and then flip the timings.
-
-        reversed_sequence = sequence.copy()
-        # Reverse all edges
-        reversed_sequence.reverse()
-        # Now swap 0 and 1 nodes
-        new_start_node_successors = reversed_sequence.successor_indices(1)
-        new_end_node_predecessors = reversed_sequence.predecessor_indices(0)
-        reversed_sequence.remove_node(0)
-        reversed_sequence.remove_node(1)
-
-        # Note that these are not the same node objects typically in SequenceIR.
-        reversed_sequence.add_node(None)
-        reversed_sequence.add_node(None)
-
-        reversed_sequence.add_edges_from_no_data([(0, x) for x in new_start_node_successors])
-        reversed_sequence.add_edges_from_no_data([(x, 1) for x in new_end_node_predecessors])
-
-        # Schedule with left alignment
-        AlignLeft().schedule(reversed_sequence, time_table)
-
-        # Then reverse the timings
-        total_duration = max(
-            time_table[i] + reversed_sequence.get_node_data(i).duration
-            for i in reversed_sequence.predecessor_indices(1)
-        )
-        for node in sequence.node_indices():
-            if node not in (0, 1):
-                time_table[node] = (
-                    total_duration
-                    - time_table[node]
-                    - reversed_sequence.get_node_data(node).duration
-                )
-
 
 class AlignSequential(SequentialAlignment):
     """Align instructions sequentially.
@@ -367,24 +258,6 @@ class AlignSequential(SequentialAlignment):
             aligned.insert(aligned.duration, child, inplace=True)
 
         return aligned
-
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program with sequential alignment.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
-        """
-        # In terms of scheduling, sequential alignment is the same as left alignment.
-        # (The two differ in sequencing)
-        AlignLeft().schedule(sequence, time_table)
 
 
 class AlignEquispaced(SequentialAlignment):
@@ -450,23 +323,6 @@ class AlignEquispaced(SequentialAlignment):
             _t0 = int(aligned.stop_time + interval)
 
         return aligned
-
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program with equisapced alignment.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include  the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
-        """
-        raise NotImplementedError
-        # TODO : Implement this.
 
 
 class AlignFunc(SequentialAlignment):
@@ -544,20 +400,3 @@ class AlignFunc(SequentialAlignment):
             aligned.insert(_t0, child, inplace=True)
 
         return aligned
-
-    def schedule(self, sequence: PyDAG, time_table: defaultdict) -> None:
-        """Concretely schedule a ``SequenceIR`` program with functional alignment.
-
-        Only top-level elements are scheduled, and sub-sequences are assumed to have been
-        scheduled beforehand (because scheduling of parent sequence depends on the duration,
-        and thus scheduling, of child sequences).
-
-        The ``time_table`` dictionary will be mutated to include  the initial time of each node
-        in the sequence, keyed on the node index.
-
-        Args:
-            sequence: The graph object to be scheduled.
-            time_table: A default dictionary (with default value ``None``) to be mutated.
-        """
-        raise NotImplementedError
-        # TODO : Implement this.

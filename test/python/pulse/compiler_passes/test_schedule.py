@@ -12,6 +12,7 @@
 
 """Test Schedule"""
 import copy
+import unittest
 
 from test import QiskitTestCase
 
@@ -30,6 +31,8 @@ from qiskit.pulse.transforms import (
     AlignLeft,
     AlignRight,
     AlignSequential,
+    AlignEquispaced,
+    AlignFunc,
 )
 from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SchedulePass
 from .utils import PulseIrTranspiler
@@ -352,3 +355,31 @@ class TestScheduleAlignSequential(SchedulingTestCase):
         self.assertEqual(ir_example.time_table[2], 0)
         self.assertEqual(ir_example.time_table[3], 200)
         self.assertEqual(ir_example.time_table[4], 300)
+
+
+class TestSchedulePassAlignEquispaced(SchedulingTestCase):
+    """Test SchedulePass with align equispaced"""
+
+    @unittest.expectedFailure
+    def test_single_instruction(self):
+        """test with a single instruction"""
+
+        ir_example = SequenceIR(AlignEquispaced(100))
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+        self._get_pm().run(ir_example)
+
+    # TODO : Implement align equispaced.
+
+
+class TestSchedulePassAlignFunc(SchedulingTestCase):
+    """Test SchedulePass with align equispaced"""
+
+    @unittest.expectedFailure
+    def test_single_instruction(self):
+        """test with a single instruction"""
+
+        ir_example = SequenceIR(AlignFunc(100, lambda x: x))
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+        self._get_pm().run(ir_example)
+
+    # TODO : Implement align func.
