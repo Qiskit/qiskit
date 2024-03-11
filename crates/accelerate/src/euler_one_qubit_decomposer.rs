@@ -615,7 +615,6 @@ fn compute_error(
     }
 }
 
-#[inline]
 #[pyfunction]
 pub fn compute_error_one_qubit_sequence(
     circuit: &OneQubitGateSequence,
@@ -625,7 +624,6 @@ pub fn compute_error_one_qubit_sequence(
     compute_error(&circuit.gates, error_map, qubit)
 }
 
-#[inline]
 #[pyfunction]
 pub fn compute_error_list(
     circuit: Vec<(String, SmallVec<[f64; 3]>)>,
@@ -723,7 +721,6 @@ fn params_zxz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi + PI / 2., lam - PI / 2., phase]
 }
 
-#[inline]
 #[pyfunction]
 pub fn params_zyz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
@@ -739,7 +736,6 @@ fn params_u3_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase - 0.5 * (phi + lam)]
 }
 
-#[inline]
 #[pyfunction]
 pub fn params_u3(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
@@ -754,7 +750,6 @@ fn params_u1x_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
     [theta, phi, lam, phase - 0.5 * (theta + phi + lam)]
 }
 
-#[inline]
 #[pyfunction]
 pub fn params_u1x(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
     let mat = unitary.as_array();
