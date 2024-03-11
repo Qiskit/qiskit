@@ -20,7 +20,8 @@
 
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
+use pyo3::exceptions::PyIndexError;
+use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
@@ -613,7 +614,8 @@ impl TwoQubitWeylDecomposition {
             }
         }
         if !found {
-            return Err(PyTypeError::new_err(format!(
+            import_exception!(qiskit, QiskitError);
+            return Err(QiskitError::new_err(format!(
                 "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
             )));
         }
@@ -982,7 +984,8 @@ impl TwoQubitWeylDecomposition {
         specialized.calculated_fidelity = trace_to_fid(tr);
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
-                return Err(PyValueError::new_err(format!(
+                import_exception!(qiskit, QiskitError);
+                return Err(QiskitError::new_err(format!(
                     "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
                     specialized.specialization,
                     specialized.calculated_fidelity,

@@ -237,11 +237,10 @@ class CheckDecompositions(QiskitTestCase):
         self.assertRoundTrip(decomp2)
         self.assertRoundTripPickle(decomp2)
         if expected_specialization != Specializations.General:
-            # TODO: When rust code emits QiskitError change assertion to match
-            with self.assertRaises(ValueError) as exc:
+            with self.assertRaises(QiskitError) as exc:
                 _ = TwoQubitWeylDecomposition(
                     target_unitary, fidelity=1.0, specialization=expected_specialization
-            )
+                )
             self.assertIn("worse than requested", str(exc.exception))
 
     def check_exact_decomposition(
