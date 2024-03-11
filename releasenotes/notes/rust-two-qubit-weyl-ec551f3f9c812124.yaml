@@ -23,5 +23,5 @@ deprecations_synthesis:
     :class:`.TwoQubitWeylDecomposition` object. Despite this it was still a
     documented part of the public API for the class and is now being
     deprecated without any potential replacement. This release it always will
-    raise a ``NotImplementedError` when called because the specialization
+    raise a ``NotImplementedError`` when called because the specialization
     subclassing has been removed as part of the Rust rewrite of the class.
