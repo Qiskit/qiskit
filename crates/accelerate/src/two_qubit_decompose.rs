@@ -924,14 +924,13 @@ impl TwoQubitWeylDecomposition {
                 }
             }
             Specializations::SimabmbEquiv => {
-                // TwoQubitWeylfSimabmbEquiv
                 let default_euler_basis = "XYX";
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
-                    angles_from_unitary(K2l.view(), "XYX");
+                    angles_from_unitary(K2l.view(), default_euler_basis);
                 TwoQubitWeylDecomposition {
                     a,
                     b: (b - c) / 2.,
-                    c: (b - c) / 2.,
+                    c: -((b - c) / 2.),
                     global_phase: global_phase + k2lphase,
                     K1l: K1l.dot(&rz_matrix(k2lphi)),
                     K1r: K1r.dot(&ipz).dot(&rx_matrix(k2lphi)).dot(&ipz),
@@ -982,7 +981,12 @@ impl TwoQubitWeylDecomposition {
         specialized.calculated_fidelity = trace_to_fid(tr);
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
-                return Err(PyValueError::new_err("Uh oh"));
+                return Err(PyValueError::new_err(format!(
+                    "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
+                    specialized.specialization,
+                    specialized.calculated_fidelity,
+                    fid
+                )));
             }
         }
         specialized.global_phase += tr.arg();
