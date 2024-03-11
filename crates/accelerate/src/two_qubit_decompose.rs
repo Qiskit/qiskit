@@ -82,7 +82,7 @@ const B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     ],
     [
         Complex64::new(1., 0.),
-        Complex64::new(-0., -1.),
+        Complex64::new(0., -1.),
         Complex64::new(0., 0.),
         Complex64::new(0., 0.),
     ],
@@ -99,7 +99,7 @@ const B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
         Complex64::new(0., -0.5),
         Complex64::new(0., 0.),
         Complex64::new(0., 0.),
-        Complex64::new(-0., 0.5),
+        Complex64::new(0., 0.5),
     ],
     [
         Complex64::new(0., 0.),
@@ -110,7 +110,7 @@ const B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
     [
         Complex64::new(0., 0.),
         Complex64::new(0.5, 0.),
-        Complex64::new(-0.5, -0.),
+        Complex64::new(-0.5, 0.),
         Complex64::new(0., 0.),
     ],
 ];
@@ -539,18 +539,12 @@ impl TwoQubitWeylDecomposition {
 
         let mut u = unitary_matrix.as_array().to_owned();
         let unitary_matrix = unitary_matrix.as_array().to_owned();
-        // Faer sometimes returns negative 0s which will throw off the signs
-        // after the powf we do below, normalize to 0. instead by adding a
-        // zero complex.
         let det_u =
-            u.view().into_faer_complex().determinant().to_num_complex() + Complex64::new(0., 0.);
+            u.view().into_faer_complex().determinant().to_num_complex();
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
         let u_p = transform_from_magic_basis(u.view(), true);
-        // Use ndarray here because matmul precision in faer is lower, it seems
-        // to more aggressively round to zero which causes different behaviour
-        // during the eigen decomposition below.
         let m2 = u_p.t().dot(&u_p);
         let default_euler_basis = "ZYZ";
 
