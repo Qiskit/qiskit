@@ -332,7 +332,7 @@ const C1_IM: Complex64 = Complex64::new(0.0, 1.0);
 
 #[derive(Clone, Debug, Copy)]
 #[pyclass(module = "qiskit._accelerate.two_qubit_decompose")]
-enum Specializations {
+enum Specialization {
     General,
     IdEquiv,
     SWAPEquiv,
@@ -364,7 +364,7 @@ pub struct TwoQubitWeylDecomposition {
     K1r: Array2<Complex64>,
     K2r: Array2<Complex64>,
     #[pyo3(get)]
-    specialization: Specializations,
+    specialization: Specialization,
     default_euler_basis: String,
     #[pyo3(get)]
     requested_fidelity: Option<f64>,
@@ -382,7 +382,7 @@ impl TwoQubitWeylDecomposition {
         global_phase: &mut f64,
     ) {
         match self.specialization {
-            Specializations::MirrorControlledEquiv => {
+            Specialization::MirrorControlledEquiv => {
                 sequence.push(("swap".to_string(), SmallVec::new(), smallvec![0, 1]));
                 sequence.push((
                     "rzz".to_string(),
@@ -391,7 +391,7 @@ impl TwoQubitWeylDecomposition {
                 ));
                 *global_phase += PI4
             }
-            Specializations::SWAPEquiv => {
+            Specialization::SWAPEquiv => {
                 sequence.push(("swap".to_string(), SmallVec::new(), smallvec![0, 1]));
                 *global_phase -= 3. * PI / 4.
             }
@@ -427,16 +427,16 @@ const IPX: [[Complex64; 2]; 2] = [
 impl TwoQubitWeylDecomposition {
     fn __getstate__(&self, py: Python) -> ([f64; 5], [PyObject; 5], u8, String, Option<f64>) {
         let specialization = match self.specialization {
-            Specializations::General => 0,
-            Specializations::IdEquiv => 1,
-            Specializations::SWAPEquiv => 2,
-            Specializations::PartialSWAPEquiv => 3,
-            Specializations::PartialSWAPFlipEquiv => 4,
-            Specializations::ControlledEquiv => 5,
-            Specializations::MirrorControlledEquiv => 6,
-            Specializations::SimaabEquiv => 7,
-            Specializations::SimabbEquiv => 8,
-            Specializations::SimabmbEquiv => 9,
+            Specialization::General => 0,
+            Specialization::IdEquiv => 1,
+            Specialization::SWAPEquiv => 2,
+            Specialization::PartialSWAPEquiv => 3,
+            Specialization::PartialSWAPFlipEquiv => 4,
+            Specialization::ControlledEquiv => 5,
+            Specialization::MirrorControlledEquiv => 6,
+            Specialization::SimaabEquiv => 7,
+            Specialization::SimabbEquiv => 8,
+            Specialization::SimabmbEquiv => 9,
         };
         (
             [
@@ -482,21 +482,21 @@ impl TwoQubitWeylDecomposition {
         self.default_euler_basis = state.3;
         self.requested_fidelity = state.4;
         self.specialization = match state.2 {
-            0 => Specializations::General,
-            1 => Specializations::IdEquiv,
-            2 => Specializations::SWAPEquiv,
-            3 => Specializations::PartialSWAPEquiv,
-            4 => Specializations::PartialSWAPFlipEquiv,
-            5 => Specializations::ControlledEquiv,
-            6 => Specializations::MirrorControlledEquiv,
-            7 => Specializations::SimaabEquiv,
-            8 => Specializations::SimabbEquiv,
-            9 => Specializations::SimabmbEquiv,
+            0 => Specialization::General,
+            1 => Specialization::IdEquiv,
+            2 => Specialization::SWAPEquiv,
+            3 => Specialization::PartialSWAPEquiv,
+            4 => Specialization::PartialSWAPFlipEquiv,
+            5 => Specialization::ControlledEquiv,
+            6 => Specialization::MirrorControlledEquiv,
+            7 => Specialization::SimaabEquiv,
+            8 => Specialization::SimabbEquiv,
+            9 => Specialization::SimabmbEquiv,
             _ => unreachable!("Invalid specialization value"),
         };
     }
 
-    fn __getnewargs__(&self, py: Python) -> (PyObject, Option<f64>, Option<Specializations>, bool) {
+    fn __getnewargs__(&self, py: Python) -> (PyObject, Option<f64>, Option<Specialization>, bool) {
         (
             self.unitary_matrix.to_pyarray(py).into(),
             self.requested_fidelity,
@@ -510,7 +510,7 @@ impl TwoQubitWeylDecomposition {
     fn new(
         unitary_matrix: PyReadonlyArray2<Complex64>,
         fidelity: Option<f64>,
-        _specialization: Option<Specializations>,
+        _specialization: Option<Specialization>,
         _pickle_context: bool,
     ) -> PyResult<Self> {
         // If we're in a pickle context just make the closest to an empty
@@ -526,7 +526,7 @@ impl TwoQubitWeylDecomposition {
                 K2l: Array2::zeros((0, 0)),
                 K1r: Array2::zeros((0, 0)),
                 K2r: Array2::zeros((0, 0)),
-                specialization: Specializations::General,
+                specialization: Specialization::General,
                 default_euler_basis: "ZYZ".to_string(),
                 requested_fidelity: fidelity,
                 calculated_fidelity: 0.,
@@ -728,25 +728,25 @@ impl TwoQubitWeylDecomposition {
             Some(specialization) => specialization,
             None => {
                 if is_close(0., 0., 0.) {
-                    Specializations::IdEquiv
+                    Specialization::IdEquiv
                 } else if is_close(PI4, PI4, PI4) || is_close(PI4, PI4, -PI4) {
-                    Specializations::SWAPEquiv
+                    Specialization::SWAPEquiv
                 } else if is_close(closest_abc, closest_abc, closest_abc) {
-                    Specializations::PartialSWAPEquiv
+                    Specialization::PartialSWAPEquiv
                 } else if is_close(closest_ab_minus_c, closest_ab_minus_c, -closest_ab_minus_c) {
-                    Specializations::PartialSWAPFlipEquiv
+                    Specialization::PartialSWAPFlipEquiv
                 } else if is_close(a, 0., 0.) {
-                    Specializations::ControlledEquiv
+                    Specialization::ControlledEquiv
                 } else if is_close(PI4, PI4, c) {
-                    Specializations::MirrorControlledEquiv
+                    Specialization::MirrorControlledEquiv
                 } else if is_close((a + b) / 2., (a + b) / 2., c) {
-                    Specializations::SimaabEquiv
+                    Specialization::SimaabEquiv
                 } else if is_close(a, (b + c) / 2., (b + c) / 2.) {
-                    Specializations::SimabbEquiv
+                    Specialization::SimabbEquiv
                 } else if is_close(a, (b - c) / 2., (c - b) / 2.) {
-                    Specializations::SimabmbEquiv
+                    Specialization::SimabmbEquiv
                 } else {
-                    Specializations::General
+                    Specialization::General
                 }
             }
         };
@@ -759,14 +759,14 @@ impl TwoQubitWeylDecomposition {
             K1r,
             K2l,
             K2r,
-            specialization: Specializations::General,
+            specialization: Specialization::General,
             default_euler_basis: default_euler_basis.to_owned(),
             requested_fidelity: fidelity,
             calculated_fidelity: -1.0,
             unitary_matrix,
         };
         let mut specialized: TwoQubitWeylDecomposition = match specialization {
-            Specializations::IdEquiv => TwoQubitWeylDecomposition {
+            Specialization::IdEquiv => TwoQubitWeylDecomposition {
                 specialization,
                 a: 0.,
                 b: 0.,
@@ -777,7 +777,7 @@ impl TwoQubitWeylDecomposition {
                 K2r: Array2::eye(2),
                 ..general
             },
-            Specializations::SWAPEquiv => {
+            Specialization::SWAPEquiv => {
                 if c > 0. {
                     TwoQubitWeylDecomposition {
                         specialization,
@@ -806,7 +806,7 @@ impl TwoQubitWeylDecomposition {
                     }
                 }
             }
-            Specializations::PartialSWAPEquiv => {
+            Specialization::PartialSWAPEquiv => {
                 let closest = closest_partial_swap(a, b, c);
                 let mut k2l_dag = general.K2l.t().to_owned();
                 k2l_dag.view_mut().mapv_inplace(|x| x.conj());
@@ -822,7 +822,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::PartialSWAPFlipEquiv => {
+            Specialization::PartialSWAPFlipEquiv => {
                 let closest = closest_partial_swap(a, b, -c);
                 let mut k2l_dag = general.K2l.t().to_owned();
                 k2l_dag.mapv_inplace(|x| x.conj());
@@ -838,7 +838,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::ControlledEquiv => {
+            Specialization::ControlledEquiv => {
                 let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), &euler_basis);
@@ -858,7 +858,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::MirrorControlledEquiv => {
+            Specialization::MirrorControlledEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), "ZYZ");
                 let [k2rtheta, k2rphi, k2rlambda, k2rphase] =
@@ -876,7 +876,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::SimaabEquiv => {
+            Specialization::SimaabEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), "ZYZ");
                 TwoQubitWeylDecomposition {
@@ -892,7 +892,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::SimabbEquiv => {
+            Specialization::SimabbEquiv => {
                 let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), &euler_basis);
@@ -910,7 +910,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::SimabmbEquiv => {
+            Specialization::SimabmbEquiv => {
                 let euler_basis = "XYX".to_owned();
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), &euler_basis);
@@ -928,7 +928,7 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
-            Specializations::General => general,
+            Specialization::General => general,
         };
 
         let tr = if flipped_from_original {
@@ -1151,6 +1151,6 @@ pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
-    m.add_class::<Specializations>()?;
+    m.add_class::<Specialization>()?;
     Ok(())
 }

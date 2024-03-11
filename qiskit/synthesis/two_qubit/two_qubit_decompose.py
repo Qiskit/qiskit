@@ -196,7 +196,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         bytes_in: bytes,
         *,
         requested_fidelity: float,
-        _specialization: two_qubit_decompose.Specializations | None,
+        _specialization: two_qubit_decompose.Specialization | None,
         **kwargs,
     ) -> "TwoQubitWeylDecomposition":
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
@@ -244,7 +244,7 @@ class TwoQubitControlledUDecomposer:
             decomposer_rxx = TwoQubitWeylDecomposition(
                 Operator(circ).data,
                 fidelity=None,
-                _specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+                _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
             )
 
             circ = QuantumCircuit(2)
@@ -252,7 +252,7 @@ class TwoQubitControlledUDecomposer:
             decomposer_equiv = TwoQubitWeylDecomposition(
                 Operator(circ).data,
                 fidelity=None,
-                _specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+                _specialization=two_qubit_decompose.Specialization.ControlledEquiv,
             )
 
             scale = decomposer_rxx.a / decomposer_equiv.a
