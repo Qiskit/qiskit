@@ -135,6 +135,8 @@ class SetSequence(TransformationPass):
         """
         nodes = sequence.node_indices()
         prev = 0
+        # TODO : What's the correct order to use here? Addition index? Actual index?
+        #  Should at least be documented.
         # The first two nodes are the in\out nodes.
         for ind in nodes[2:]:
             sequence.add_edge(prev, ind, None)
