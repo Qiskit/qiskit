@@ -499,11 +499,11 @@ impl TwoQubitWeylDecomposition {
     }
 
     #[new]
-    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, specialization=None, _pickle_context=false))]
+    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, _specialization=None, _pickle_context=false))]
     fn new(
         unitary_matrix: PyReadonlyArray2<Complex64>,
         fidelity: Option<f64>,
-        specialization: Option<Specializations>,
+        _specialization: Option<Specializations>,
         _pickle_context: bool,
     ) -> PyResult<Self> {
         // If we're in a pickle context just make the closest to an empty
@@ -727,7 +727,7 @@ impl TwoQubitWeylDecomposition {
         let closest_abc = closest_partial_swap(a, b, c);
         let closest_ab_minus_c = closest_partial_swap(a, b, -c);
         let mut flipped_from_original = false;
-        let specialization = match specialization {
+        let specialization = match _specialization {
             Some(specialization) => specialization,
             None => {
                 if is_close(0., 0., 0.) {

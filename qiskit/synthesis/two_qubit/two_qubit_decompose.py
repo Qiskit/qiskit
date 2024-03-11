@@ -186,7 +186,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
             + b64ascii
             + [
                 f"requested_fidelity={self.requested_fidelity},",
-                f"specialization={self.specialization},"
+                f"_specialization={self.specialization},"
                 f"calculated_fidelity={self.calculated_fidelity},",
                 f"actual_fidelity={self.actual_fidelity()},",
                 f"abc={(self.a, self.b, self.c)})",
@@ -200,7 +200,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         bytes_in: bytes,
         *,
         requested_fidelity: float,
-        specialization: two_qubit_decompose.Specializations | None,
+        _specialization: two_qubit_decompose.Specializations | None,
         **kwargs,
     ) -> "TwoQubitWeylDecomposition":
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
@@ -209,7 +209,7 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
         b64 = base64.decodebytes(bytes_in)
         with io.BytesIO(b64) as f:
             arr = np.load(f, allow_pickle=False)
-        return cls(arr, fidelity=requested_fidelity, specialization=specialization)
+        return cls(arr, fidelity=requested_fidelity, _specialization=_specialization)
 
     def __str__(self):
         pre = f"{self.__class__.__name__}(\n\t"
@@ -248,7 +248,7 @@ class TwoQubitControlledUDecomposer:
             decomposer_rxx = TwoQubitWeylDecomposition(
                 Operator(circ).data,
                 fidelity=None,
-                specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+                _specialization=two_qubit_decompose.Specializations.ControlledEquiv,
             )
 
             circ = QuantumCircuit(2)
@@ -256,7 +256,7 @@ class TwoQubitControlledUDecomposer:
             decomposer_equiv = TwoQubitWeylDecomposition(
                 Operator(circ).data,
                 fidelity=None,
-                specialization=two_qubit_decompose.Specializations.ControlledEquiv,
+                _specialization=two_qubit_decompose.Specializations.ControlledEquiv,
             )
 
             scale = decomposer_rxx.a / decomposer_equiv.a

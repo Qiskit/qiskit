@@ -208,7 +208,7 @@ class CheckDecompositions(QiskitTestCase):
                 decomp_name = decomp.specialization
             else:
                 decomp = TwoQubitWeylDecomposition(
-                    target_unitary, fidelity=None, specialization=expected_specialization
+                    target_unitary, fidelity=None, _specialization=expected_specialization
                 )
                 decomp_name = expected_specialization
             self.assertRoundTrip(decomp)
@@ -232,14 +232,14 @@ class CheckDecompositions(QiskitTestCase):
             trace = np.trace(actual_unitary.T.conj() @ target_unitary)
             self.assertAlmostEqual(trace.imag, 0, places=13, msg=f"Real trace for {decomp_name}")
         decomp2 = TwoQubitWeylDecomposition(
-            target_unitary, fidelity=None, specialization=expected_specialization
+            target_unitary, fidelity=None, _specialization=expected_specialization
         )  # Shouldn't raise
         self.assertRoundTrip(decomp2)
         self.assertRoundTripPickle(decomp2)
         if expected_specialization != Specializations.General:
             with self.assertRaises(QiskitError) as exc:
                 _ = TwoQubitWeylDecomposition(
-                    target_unitary, fidelity=1.0, specialization=expected_specialization
+                    target_unitary, fidelity=1.0, _specialization=expected_specialization
                 )
             self.assertIn("worse than requested", str(exc.exception))
 
