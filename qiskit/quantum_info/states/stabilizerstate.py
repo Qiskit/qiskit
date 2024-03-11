@@ -15,10 +15,8 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
-from ast import List
 
 from collections.abc import Collection
-from typing import Dict
 
 import numpy as np
 
@@ -393,9 +391,9 @@ class StabilizerState(QuantumState):
         self,
         qargs: None | list = None,
         decimals: None | int = None,
-        target: List[str] | str | None = None,
+        target: dict[str, any] | list[str] | str | None = None,
         use_caching: bool = True,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -407,20 +405,20 @@ class StabilizerState(QuantumState):
         inserted between integers so that subsystems can be distinguished.
 
         Args:
-            qargs None or list: subsystems to return probabilities for,
+            qargs (None or list): subsystems to return probabilities for,
                     if None return for all subsystems (Default: None).
-            decimals None or int: the number of decimal places to round
+            decimals (None or int): the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            target List[str] | str: a target list of items to measure probabilities for, or a specific
+            target (list[str] or str): a target list of items to measure probabilities for, or a specific
                     single target str
-            use_caching bool: enable the use of caching when calculating multiple targets. True will
+            use_caching (bool): enable the use of caching when calculating multiple targets. True will
                     enable caching only if more then one target is being measured, otherwise there will
                     be no performance benefit. If not using target, caching will not be enabled as there
                     will not be a performance benefit from enabling. False will not use caching and when
                     measuring multiple targets, may repeat previous measurements
 
         Returns:
-            Dict[str, float]: The measurement probabilities in dict (ket) form.
+            dict[str, float]: The measurement probabilities in dict (ket) form.
         """
         if qargs is None:
             qubits = range(self.clifford.num_qubits)
@@ -429,23 +427,26 @@ class StabilizerState(QuantumState):
 
         # If no target is provided, insert None into a list to indicate not to target measurements
         # for any particular targets. When a str is passed in for a single target, insert into a
-        # list for processing, when a List[str] are passed in, iterate through all the str to
-        # find the probabilities of only the targets
+        # list for processing, when a list[str] are passed in, iterate through all the str to
+        # find the probabilities of only the targets, if dict passed in, use the keys as the target
+        # values to perform measurements for
         if target is None:
             target = [None]
         elif isinstance(target, str):
             target = [target]
+        elif isinstance(target, dict):
+            target = list(target.keys())
 
         # probabilities dictionary to return with the measured values
-        probs: Dict[str, float] = {}
+        probs: dict[str, float] = {}
 
         # Check if all the requirements to use caching are met to use performance improvement
-        use_caching = target is not None and len(target) > 1 and use_caching
+        use_caching = target is not None and (len(target) > 1) and use_caching
         cache: ProbabilityCache = ProbabilityCache() if (use_caching) else None
 
         # Iterate through the target or targets to find probabilities
         for item_target in target:
-            outcome: List[str] = None
+            outcome: list[str] = None
             outcome_prob: float = 1.0
 
             # Determine if one of the branches was already partially measured to
@@ -470,22 +471,22 @@ class StabilizerState(QuantumState):
         return probs
 
     @staticmethod
-    def _round_decimals(probs: Dict[str, float], decimals: int | None) -> Dict[str, float]:
+    def _round_decimals(probs: dict[str, float], decimals: int | None) -> dict[str, float]:
         """Helper function that rounds all floats in the dict to the decimal place provided
 
         Args:
-            probs Dict[str, float]: dictionary to iterate through and round all float values for
-            decimals int | None: number of decimal places to round to, if None then do not round
+            probs (dict[str, float]): dictionary to iterate through and round all float values for
+            decimals (int or None): number of decimal places to round to, if None then do not round
 
         Returns:
-            Dict[str, float]: provided dict with rounded values
+            dict[str, float]: provided dict with rounded values
         """
         if decimals is not None:
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
         return probs
 
-    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> Dict:
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -749,7 +750,7 @@ class StabilizerState(QuantumState):
     def retrieve_deterministic_probability(
         index: int,
         qubit: int,
-        outcome: List[str],
+        outcome: list[str],
         ret: StabilizerState,
         outcome_prob: float,
         target: str,
@@ -759,7 +760,7 @@ class StabilizerState(QuantumState):
         Args:
             index int: index in outcome being measured
             qubit int: qubit performing calculation on
-            outcome List[str]: outcome being built
+            outcome list[str]: outcome being built
             ret StabilizerState: stabilizer state performing the calculations
             outcome_prob float: probabilitiy of the outcome
             target str: target outcome wanting to measure
@@ -793,9 +794,9 @@ class StabilizerState(QuantumState):
     def _get_probabilities(
         self,
         qubits: range,
-        outcome: List[str],
+        outcome: list[str],
         outcome_prob: float,
-        probs: Dict[str, float],
+        probs: dict[str, float],
         target: str = None,
         cache: ProbabilityCache = None,
     ):
@@ -803,10 +804,10 @@ class StabilizerState(QuantumState):
 
         Args:
             qubits : range of qubits
-            outcome List[str]: outcome being built
+            outcome list[str]: outcome being built
             outcome_prob float: probabilitiy of the outcome
             ret StabilizerState: stabilizer state performing the calculations
-            probs Dict[str, float]: holds the outcomes and probabilitiy results
+            probs dict[str, float]: holds the outcomes and probabilitiy results
             target str: target outcome wanting to measure, None if not targetting
                         a specific target
             cache: ProbabilityCache: caching object to hold states and outcomes for

@@ -15,7 +15,6 @@
 
 import itertools
 import random
-from typing import Dict, List
 import unittest
 import logging
 from ddt import ddt
@@ -43,18 +42,18 @@ class TestProbabilityCache(QiskitTestCase):
         """
         cache: ProbabilityCache = ProbabilityCache()
         # Build all combinations for 'X, 0, 1' possible combinations to store
-        test_input: List[str] = [
+        test_input: list[str] = [
             "".join(map(str, i)) for i in itertools.product(["X", "0", "1"], repeat=num_qubits)
         ]
 
         # Cache half of the items
-        test_input_to_cache: List[str] = random.sample(test_input, int(len(test_input) / 2))
+        test_input_to_cache: list[str] = random.sample(test_input, int(len(test_input) / 2))
 
         # Build probabilties for all items to be cached
-        dict_random_probs_to_insert: Dict[str, float] = {
+        dict_random_probs_to_insert: dict[str, float] = {
             item: random.uniform(0, 1) for item in test_input_to_cache
         }
-        list_not_cached: List[str] = list(np.setdiff1d(test_input, test_input_to_cache))
+        list_not_cached: list[str] = list(np.setdiff1d(test_input, test_input_to_cache))
 
         # Verify cache is empty
         self.assertFalse(cache.outcome_cache_contains_entries())
@@ -64,7 +63,7 @@ class TestProbabilityCache(QiskitTestCase):
 
         # Add items to cache for state, use int
         for i, key in enumerate(dict_random_probs_to_insert, 0):
-            # Switch between passing the key as a List[str] and a str
+            # Switch between passing the key as a list[str] and a str
             cache.insert_state(self._key_type(key, self._odd_num(i)), i)
 
         # Verfiy cache has at least 1 entry
@@ -89,7 +88,7 @@ class TestProbabilityCache(QiskitTestCase):
             self.assertTrue(cache.retrieve_outcome(key_t) is None)
             self.assertTrue(cache.retrieve_state(key_t) is None)
 
-        items_to_cache_next: Dict[str, float] = {
+        items_to_cache_next: dict[str, float] = {
             item: random.uniform(0, 1) for item in list_not_cached
         }
 
@@ -129,7 +128,7 @@ class TestProbabilityCache(QiskitTestCase):
                 self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
-        keys_to_pick: List[str] = [
+        keys_to_pick: list[str] = [
             key for key in test_input_to_cache if (key.count("X") == 1 and key[0] == "X")
         ]
         if len(keys_to_pick) > 0:
@@ -142,10 +141,10 @@ class TestProbabilityCache(QiskitTestCase):
 
     @staticmethod
     def _key_type(key: str, as_list: bool):
-        """Switch between passing the key as a List[str] and a str
+        """Switch between passing the key as a list[str] and a str
 
         Returns:
-            str | List[str]: key in form
+            str | list[str]: key in form
         """
         return list(key) if as_list else key
 

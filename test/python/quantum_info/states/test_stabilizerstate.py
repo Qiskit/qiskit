@@ -18,7 +18,6 @@ from itertools import product
 import random
 import sys
 import time
-from typing import Dict, List
 import unittest
 import logging
 from ddt import ddt, data, unpack
@@ -56,7 +55,7 @@ class TestStabilizerState(QiskitTestCase):
         number_of_calculated_branches: int, num_of_qubits: int
     ) -> float:
         """Helper function to calculate the acceptable performance of a
-        targetted probabilities branch calculation
+        targeted probabilities branch calculation
 
         Args:
             number_of_calculated_branches int: number of branches to calculate
@@ -449,17 +448,17 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"0": 0.5, "1": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: list = ["0", "1"]
+                input_target: list[str] = ["0", "1"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"0": 0.5, "1": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: list = ["1"]
+                input_target = ["1"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"1": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: list = ["0"]
+                input_target = ["0"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"0": 0.5}
                 self.assertEqual(value, target)
@@ -481,24 +480,24 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"00": 0.5, "01": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["00"]
+                input_target: list[str] = ["00"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"00": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["01"]
+                input_target = ["01"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"01": 0.5}
                 self.assertEqual(value, target)
 
                 # Verify probability for a target that will return back 0
-                input_target: List[str] = ["10"]
+                input_target = ["10"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"10": 0}
                 self.assertEqual(value, target)
 
                 # Verify probability for a target that will return back 0
-                input_target: List[str] = ["11"]
+                input_target = ["11"]
                 value = stab.probabilities_dict_from_bitstrings(target=input_target)
                 target = {"11": 0}
                 self.assertEqual(value, target)
@@ -516,24 +515,24 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5, 0, 0])
                 self.assertTrue(np.allclose(probs, target))
 
-                input_target: List[str] = ["00"]
+                input_target: list[str] = ["00"]
                 value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
                 target = {"00": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["01"]
+                input_target = ["01"]
                 value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
                 target = {"01": 0.5}
                 self.assertEqual(value, target)
 
                 # Verify probability for a target that will return back 0
-                input_target: List[str] = ["11"]
+                input_target = ["11"]
                 value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
                 target = {"11": 0}
                 self.assertEqual(value, target)
 
                 # Verify probability for a target that will return back 0
-                input_target: List[str] = ["10"]
+                input_target = ["10"]
                 value = stab.probabilities_dict_from_bitstrings([0, 1], target=input_target)
                 target = {"10": 0}
                 self.assertEqual(value, target)
@@ -547,22 +546,22 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0, 0.5, 0])
                 self.assertTrue(np.allclose(probs, target))
 
-                input_target: List[str] = ["00"]
+                input_target: list[str] = ["00"]
                 value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
                 target = {"00": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["10"]
+                input_target = ["10"]
                 value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
                 target = {"10": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["01"]
+                input_target = ["01"]
                 value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
                 target = {"01": 0}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["11"]
+                input_target = ["11"]
                 value = stab.probabilities_dict_from_bitstrings([1, 0], target=input_target)
                 target = {"11": 0}
                 self.assertEqual(value, target)
@@ -580,12 +579,12 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
 
-                input_target: List[str] = ["0"]
+                input_target: list[str] = ["0"]
                 value = stab.probabilities_dict_from_bitstrings([0], target=input_target)
                 target = {"0": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["1"]
+                input_target = ["1"]
                 value = stab.probabilities_dict_from_bitstrings([0], target=input_target)
                 target = {"1": 0.5}
                 self.assertEqual(value, target)
@@ -596,12 +595,12 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"0": 1.0}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["0"]
+                input_target: list[str] = ["0"]
                 value = stab.probabilities_dict_from_bitstrings([1], target=input_target)
                 target = {"0": 1.0}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["1"]
+                input_target = ["1"]
                 value = stab.probabilities_dict_from_bitstrings([1], target=input_target)
                 target = {"1": 0}
                 self.assertEqual(value, target)
@@ -639,7 +638,7 @@ class TestStabilizerState(QiskitTestCase):
                     "111": 0.1,
                 }
 
-                target_input: List[str] = ["000", "100"]
+                target_input: list[str] = ["000", "100"]
 
                 test_1_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
@@ -672,7 +671,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
                 self.assertTrue(np.allclose(probs, target))
 
-        # Verify the target test always runs faster then non targetted test
+        # Verify the target test always runs faster then non targeted test
         # Due to the small number of qubits, the performance boost will be much
         # less then when using a large number of qubits
         self._verify_performance_time(test_1_time_with_targets, test_1_time_no_target)
@@ -700,7 +699,7 @@ class TestStabilizerState(QiskitTestCase):
                     "111": 0.12,
                 }
 
-                target_input: List[str] = ["000", "100"]
+                target_input: list[str] = ["000", "100"]
 
                 test_2_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
@@ -733,7 +732,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12, 0.12])
                 self.assertTrue(np.allclose(probs, target))
 
-        # Verify the target test always runs faster then non targetted test
+        # Verify the target test always runs faster then non targeted test
         self._verify_performance_time(test_2_time_with_targets, test_2_time_no_target)
         self._verify_performance_time(test_2_1_time_with_targets, test_2_time_no_target)
 
@@ -759,7 +758,7 @@ class TestStabilizerState(QiskitTestCase):
                     "111": 0.125,
                 }
 
-                target_input: List[str] = ["000", "100"]
+                target_input: list[str] = ["000", "100"]
 
                 test_3_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
@@ -792,7 +791,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
                 self.assertTrue(np.allclose(probs, target))
 
-        # Verify the target test always runs faster then non targetted test
+        # Verify the target test always runs faster then non targeted test
         self._verify_performance_time(test_3_time_with_targets, test_3_time_no_target)
         self._verify_performance_time(test_3_1_time_with_targets, test_3_time_no_target)
 
@@ -828,7 +827,7 @@ class TestStabilizerState(QiskitTestCase):
         test_4_time_with_target = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
-                input_target: List[str] = ["011110001010", "111110001010", "001110001010"]
+                input_target: list[str] = ["011110001010", "111110001010", "001110001010"]
 
                 test_4_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
@@ -859,7 +858,7 @@ class TestStabilizerState(QiskitTestCase):
         test_4_target_no_caching = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
-                input_target: List[str] = ["011110001010", "111110001010", "001110001010"]
+                input_target: list[str] = ["011110001010", "111110001010", "001110001010"]
 
                 test_4_target_no_cache_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(
@@ -891,7 +890,7 @@ class TestStabilizerState(QiskitTestCase):
         test_5_time_with_target = 0
         for _ in range(self.samples):
             with self.subTest(msg="P(None), decimals=5"):
-                input_target: List[str] = ["011110001010", "100001110101"]
+                input_target: list[str] = ["011110001010", "100001110101"]
 
                 test_5_time_with_target_start = self._performance_start_time()
                 value = stab.probabilities_dict_from_bitstrings(decimals=5, target=input_target)
@@ -924,27 +923,27 @@ class TestStabilizerState(QiskitTestCase):
             target = {"000": 0.5, "111": 0.5}
             self.assertEqual(value, target)
 
-            input_target: List[str] = ["000"]
+            input_target: list[str] = ["000"]
             value = stab.probabilities_dict_from_bitstrings(target=input_target)
             target = {"000": 0.5}
             self.assertEqual(value, target)
 
-            input_target: List[str] = ["111"]
+            input_target = ["111"]
             value = stab.probabilities_dict_from_bitstrings(target=input_target)
             target = {"111": 0.5}
             self.assertEqual(value, target)
 
-            input_target: List[str] = ["001"]
+            input_target = ["001"]
             value = stab.probabilities_dict_from_bitstrings(target=input_target)
             target = {"001": 0}
             self.assertEqual(value, target)
 
-            input_target: List[str] = ["001", "111"]
+            input_target = ["001", "111"]
             value = stab.probabilities_dict_from_bitstrings(target=input_target)
             target = {"001": 0, "111": 0.5}
             # self.assertEqual(value, target)
 
-            input_target: List[str] = ["001", "010", "100", "110", "101", "011"]
+            input_target = ["001", "010", "100", "110", "101", "011"]
             value = stab.probabilities_dict_from_bitstrings(target=input_target)
             target = {"001": 0, "010": 0, "100": 0, "110": 0, "101": 0, "011": 0}
             self.assertEqual(value, target)
@@ -960,28 +959,33 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"000": 0.5, "111": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["000"]
+                input_target: list[str] = ["000"]
                 value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"000": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["111"]
+                input_target = ["111"]
                 value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"111": 0.5}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["001"]
+                input_target = ["001"]
                 value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"001": 0}
                 self.assertEqual(value, target)
 
-                input_target: List[str] = ["001", "111"]
+                input_target = ["001", "111"]
                 value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"001": 0, "111": 0.5}
                 # self.assertEqual(value, target)
 
-                input_target: List[str] = ["001", "010", "100", "110", "101", "011"]
-                value = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
+                input_target = ["001", "010", "100", "110", "101", "011"]
+
+                # test passing in dict instead of list
+                random_target_dict: dict[str, any] = {
+                    input_target[i]: None for i in range(len(input_target))
+                }
+                value = stab.probabilities_dict_from_bitstrings(qargs, target=random_target_dict)
                 target = {"001": 0, "010": 0, "100": 0, "110": 0, "101": 0, "011": 0}
                 self.assertEqual(value, target)
 
@@ -996,32 +1000,32 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"00": 0.5, "11": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["00"]
+                input_target: list[str] = ["00"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"00": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["11"]
+                input_target = ["11"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"11": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["01"]
+                input_target = ["01"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"01": 0}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["10"]
+                input_target = ["10"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"10": 0}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["01", "00"]
+                input_target = ["01", "00"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"01": 0, "00": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["10", "11"]
+                input_target = ["10", "11"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"11": 0.5, "10": 0}
                 self.assertDictAlmostEqual(probs, target)
@@ -1037,12 +1041,12 @@ class TestStabilizerState(QiskitTestCase):
                 target = {"0": 0.5, "1": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["0"]
+                input_target: list[str] = ["0"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"0": 0.5}
                 self.assertDictAlmostEqual(probs, target)
 
-                input_target: List[str] = ["1"]
+                input_target = ["1"]
                 probs = stab.probabilities_dict_from_bitstrings(qargs, target=input_target)
                 target = {"1": 0.5}
                 self.assertDictAlmostEqual(probs, target)
@@ -1070,10 +1074,14 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
                 self.assertDictAlmostEqual(probs_dict, target_dict)
 
-                # Perform targetted test, with random samples of targets to use
-                random_target_dict: list = random.sample(
+                # Perform targeted test, with random samples of targets to use
+                random_target_list: list[str] = random.sample(
                     list(target_dict), random.randint(1, len(target_dict))
                 )
+                # Test passing in dict
+                random_target_dict: dict[str, any] = {
+                    random_target_list[i]: None for i in range(len(random_target_list))
+                }
                 probs_dict = stab.probabilities_dict_from_bitstrings(
                     qargs, target=random_target_dict
                 )
@@ -1526,9 +1534,9 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
 
         # [XX, -ZZ] and [XX, YY] both generate the stabilizer group {II, XX, YY, -ZZ}
         self.assertTrue(cliff1.equiv(cliff2))
-        cliff_1_probs: Dict[str, float] = cliff1.probabilities_dict()
+        cliff_1_probs: dict[str, float] = cliff1.probabilities_dict()
         self.assertEqual(cliff_1_probs, cliff2.probabilities_dict())
-        target_input: List[str] = random.sample(
+        target_input: list[str] = random.sample(
             list(cliff_1_probs), random.randint(1, len(cliff_1_probs))
         )
         self.assertEqual(
@@ -1538,7 +1546,7 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
 
         # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
         self.assertTrue(cliff3.equiv(cliff4))
-        cliff_3_probs: Dict[str, float] = cliff3.probabilities_dict()
+        cliff_3_probs: dict[str, float] = cliff3.probabilities_dict()
         self.assertEqual(cliff_3_probs, cliff4.probabilities_dict())
         target_input = random.sample(list(cliff_3_probs), random.randint(1, len(cliff_3_probs)))
         self.assertEqual(

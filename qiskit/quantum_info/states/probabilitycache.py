@@ -12,7 +12,6 @@
 """ Probabilities Cache class. """
 
 from __future__ import annotations
-from typing import Dict, List
 from qiskit.quantum_info.states.quantum_state import QuantumState
 
 
@@ -26,16 +25,16 @@ class ProbabilityCache:
     """
 
     def __init__(self):
-        self.cache_outcome: Dict[str, float] = {}
-        self.cache_ret: Dict[str, QuantumState] = {}
+        self.cache_outcome: dict[str, float] = {}
+        self.cache_ret: dict[str, QuantumState] = {}
 
     @staticmethod
-    def cache_key(outcome: str | List[str]) -> str:
+    def cache_key(outcome: str | list[str]) -> str:
         """Calculate the cache key used for inserting and retrieving all cache entries
         if in str format it will be assumed this was calculated earlier
 
         Args:
-            outcome List[str]: outcome value used for building the key
+            outcome (str or list[str]): outcome value used for building the key
 
         Returns:
             str: the key in str format
@@ -45,11 +44,11 @@ class ProbabilityCache:
         else:
             return outcome
 
-    def is_state_in_quantum_state_cache(self, outcome: str | List[str]) -> bool:
+    def is_state_in_quantum_state_cache(self, outcome: str | list[str]) -> bool:
         """Check if the stabilizer state is cached from previous branch calculations
 
         Args:
-            outcome List[str]: outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome value used to get the key and check the cache
 
         Returns:
             bool: True if state is in cache, False if not in cache
@@ -57,15 +56,15 @@ class ProbabilityCache:
         key: str = ProbabilityCache.cache_key(outcome)
         return ProbabilityCache._check_key(key) and (key in self.cache_ret)
 
-    def retrieve_state(self, outcome: str | List[str]) -> QuantumState | None:
+    def retrieve_state(self, outcome: str | list[str]) -> QuantumState | None:
         """Retrieve the stabilizer state from the cache, if the state does not
         exist in the cache, None is returned
 
         Args:
-            outcome List[str]: outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome value used to get the key and check the cache
 
         Returns:
-            QuantumState | None: the state retrieved from the cache, None if key is
+            (QuantumState or None): the state retrieved from the cache, None if key is
                 not in in cache
         """
         try:
@@ -73,15 +72,15 @@ class ProbabilityCache:
         except KeyError:
             return None
 
-    def retrieve_outcome(self, outcome: str | List[str]) -> float | None:
+    def retrieve_outcome(self, outcome: str | list[str]) -> float | None:
         """Retrieve the outcome value based on the outcome value to build the key,
         if the state does not exist in the cache, None is returned
 
         Args:
-            outcome List[str]: outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome value used to get the key and check the cache
 
         Returns:
-            float | None: the cached float value for the outcome probability, None
+            (float or None): the cached float value for the outcome probability, None
                 if key is not in cache
         """
         try:
@@ -97,29 +96,29 @@ class ProbabilityCache:
         """
         return len(self.cache_outcome) > 0
 
-    def insert_state(self, outcome: str | List[str], ret: QuantumState):
+    def insert_state(self, outcome: str | list[str], ret: QuantumState):
         """Insert into the state cache. Key is verified before inserting
         as it must NOT be a fully calculated branch, or a branch with no caclulations
         for example 'XXXX' or '00101' will not be cached.
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome List[str]: outcome value used to get the key and check the cache
-            ret QuantumState: the QuantumState to save in the cache
+            outcome (str or list[str]): outcome value used to get the key and check the cache
+            ret (QuantumState): the QuantumState to save in the cache
         """
         key: str = ProbabilityCache.cache_key(outcome)
         if ProbabilityCache._check_key(key):
             self.cache_ret[key] = ret
 
-    def insert_outcome(self, outcome: str | List[str], outcome_prob: float):
+    def insert_outcome(self, outcome: str | list[str], outcome_prob: float):
         """Insert into the outcome cache. Key is verified before inserting
         as it must NOT be a fully calculated branch, or a branch with no caclulations
         for example 'XXXX' or '00101' will not be cached.
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome List[str]: outcome value used to get the key and check the cache
-            outcome_prob float: probability to save in the cache for the outcome
+            outcome (str or list[str]): outcome value used to get the key and check the cache
+            outcome_prob (float): probability to save in the cache for the outcome
         """
         key: str = ProbabilityCache.cache_key(outcome)
         if ProbabilityCache._check_key(key):
@@ -133,7 +132,7 @@ class ProbabilityCache:
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            key str: the key to verify
+            key (str): the key to verify
 
         Returns:
             bool: True if it meets the criteria
@@ -146,13 +145,12 @@ class ProbabilityCache:
         It will retrieve the key for the closest node used to continue calculating the branch
 
         Args:
-            cache Dict[str, float]: cache value of previously calculated branch
-            target str: target item wanting to calculate
+            target (str): target item wanting to calculate
 
         Returns:
-        str: the key if it is found in the cache, or None if not found
+            str: the key if it is found in the cache, or None if not found
         """
-        key: List[str] = None
+        key: list[str] = None
         test_key: str = None
         for level in range(1, len(target)):
             # Find the deepest branch calculated that can be used from the cache
