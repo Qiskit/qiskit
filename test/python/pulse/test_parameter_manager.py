@@ -628,6 +628,9 @@ class TestFormatParameter(QiskitTestCase):
         """Format integer parameter expression with
         a particular integer number that causes rounding error at typecast."""
 
+        # Numbers to be tested here are chosen randomly.
+        # These numbers had caused mis-typecast into float before qiskit/#11972.
+
         p1 = Parameter("P1")
         expr = p1.assign(p1, edge_case_val)
         out = format_parameter_value(expr)

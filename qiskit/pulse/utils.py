@@ -59,11 +59,17 @@ def format_parameter_value(
             # Unassigned expression
             return operand
 
+    # Return integer before calling the numpy round function.
+    # The input value is multiplied by 10**decimals, rounds to an integer
+    # and divided by 10**decimals. For a large enough integer,
+    # this operation may introduce a rounding error in the float operations
+    # and accidentally returns a float number.
     if isinstance(operand, int):
         return operand
 
-    # Remove truncation error and convert the result into Python builtin type
-    # Value could contain truncation error
+    # Remove truncation error and convert the result into Python builtin type.
+    # Value could originally contain a rounding error, e.g. 1.00000000001
+    # which may occur during the parameter expression evaluation.
     evaluated = np.round(operand, decimals=decimal).item()
 
     if isinstance(evaluated, complex):
@@ -83,6 +89,7 @@ def format_parameter_value(
                 PendingDeprecationWarning,
             )
             return evaluated
+    # Type cast integer-like float into Python builtin integer, after rounding.
     if evaluated.is_integer():
         return int(evaluated)
     return evaluated
