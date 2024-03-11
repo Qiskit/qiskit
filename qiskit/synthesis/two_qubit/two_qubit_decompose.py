@@ -43,6 +43,7 @@ from qiskit.synthesis.one_qubit.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
+from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
 logger = logging.getLogger(__name__)
@@ -149,6 +150,15 @@ class TwoQubitWeylDecomposition(two_qubit_decompose.TwoQubitWeylDecomposition):
     unitary_matrix: np.ndarray  # The unitary that was input
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
+
+    @deprecate_func(since="1.1.0", removal_timeline="in the 2.0.0 release")
+    def specialize(self):
+        """Make changes to the decomposition to comply with any specializations.
+
+        This method will always raise a ``NotImplementedError`` because
+        there are no specializations to comply with in the current implementation.
+        """
+        raise NotImplementedError
 
     def circuit(
         self, *, euler_basis: str | None = None, simplify: bool = False, atol: float = DEFAULT_ATOL
