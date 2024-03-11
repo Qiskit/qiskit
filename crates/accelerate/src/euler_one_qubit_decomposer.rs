@@ -28,7 +28,7 @@ use numpy::PyReadonlyArray2;
 
 use crate::utils::SliceOrInt;
 
-pub const DEFAULT_ATOL: f64 = 1e-12;
+pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
 #[pyclass(module = "qiskit._accelerate.euler_one_qubit_decomposer")]
 pub struct OneQubitGateErrorMap {
@@ -151,7 +151,7 @@ fn circuit_kak(
     let mut circuit: Vec<(String, SmallVec<[f64; 3]>)> = Vec::with_capacity(3);
     let mut atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     if !simplify {
         atol = -1.0;
@@ -210,7 +210,7 @@ fn circuit_u3(
     let mut circuit = Vec::new();
     let atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     let phi = mod_2pi(phi, atol);
     let lam = mod_2pi(lam, atol);
@@ -234,7 +234,7 @@ fn circuit_u321(
     let mut circuit = Vec::new();
     let mut atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     if !simplify {
         atol = -1.0;
@@ -272,7 +272,7 @@ fn circuit_u(
     let mut circuit = Vec::new();
     let mut atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     if !simplify {
         atol = -1.0;
@@ -313,7 +313,7 @@ where
     };
     let mut atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     if !simplify {
         atol = -1.0;
@@ -373,7 +373,7 @@ fn circuit_rr(
     let mut circuit = Vec::new();
     let mut atol = match atol {
         Some(atol) => atol,
-        None => DEFAULT_ATOL,
+        None => ANGLE_ZERO_EPSILON,
     };
     if !simplify {
         atol = -1.0;
@@ -428,7 +428,7 @@ pub fn generate_circuit(
         "PSX" => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
-                None => DEFAULT_ATOL,
+                None => ANGLE_ZERO_EPSILON,
             };
             if !simplify {
                 inner_atol = -1.0;
@@ -458,7 +458,7 @@ pub fn generate_circuit(
         "ZSX" => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
-                None => DEFAULT_ATOL,
+                None => ANGLE_ZERO_EPSILON,
             };
             if !simplify {
                 inner_atol = -1.0;
@@ -488,7 +488,7 @@ pub fn generate_circuit(
         "U1X" => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
-                None => DEFAULT_ATOL,
+                None => ANGLE_ZERO_EPSILON,
             };
             if !simplify {
                 inner_atol = -1.0;
@@ -518,7 +518,7 @@ pub fn generate_circuit(
         "ZSXX" => {
             let mut inner_atol = match atol {
                 Some(atol) => atol,
-                None => DEFAULT_ATOL,
+                None => ANGLE_ZERO_EPSILON,
             };
             if !simplify {
                 inner_atol = -1.0;

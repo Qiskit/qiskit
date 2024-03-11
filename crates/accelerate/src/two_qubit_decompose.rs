@@ -41,7 +41,7 @@ use numpy::PyReadonlyArray2;
 use numpy::ToPyArray;
 
 use crate::euler_one_qubit_decomposer::{
-    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, DEFAULT_ATOL,
+    angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, ANGLE_ZERO_EPSILON,
 };
 use crate::utils;
 
@@ -1034,7 +1034,7 @@ impl TwoQubitWeylDecomposition {
         self.weyl_gate(
             simplify,
             &mut gate_sequence,
-            atol.unwrap_or(DEFAULT_ATOL),
+            atol.unwrap_or(ANGLE_ZERO_EPSILON),
             &mut global_phase,
         );
         let c1r = unitary_to_gate_sequence_inner(
