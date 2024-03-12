@@ -34,7 +34,7 @@ from qiskit.primitives.containers import (
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.primitives.primitive_job import PrimitiveJob
-from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import BackendV1, BackendV2
 from qiskit.result import Result
 
 
@@ -69,7 +69,7 @@ class BackendSamplerV2(BaseSamplerV2):
     def __init__(
         self,
         *,
-        backend: BackendV2,
+        backend: BackendV1 | BackendV2,
         default_shots: int = 1024,
     ):
         """
@@ -81,7 +81,7 @@ class BackendSamplerV2(BaseSamplerV2):
         self._default_shots = default_shots
 
     @property
-    def backend(self) -> BackendV2:
+    def backend(self) -> BackendV1 | BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
 

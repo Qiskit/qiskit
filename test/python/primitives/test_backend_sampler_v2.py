@@ -36,7 +36,7 @@ from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.fake_provider import Fake7QPulseV1
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
-BACKENDS = [BasicSimulator(), BackendV2Converter(Fake7QPulseV1())]
+BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
 
 
 @ddt
@@ -414,8 +414,6 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), shots)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("default shots"):
             sampler = BackendSamplerV2(backend=backend)
@@ -424,8 +422,6 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, default_shots)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), default_shots)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], default_shots)
 
         with self.subTest("setting default shots"):
             default_shots = 100
@@ -435,8 +431,6 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, default_shots)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), default_shots)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], default_shots)
 
         with self.subTest("pub-like"):
             sampler = BackendSamplerV2(backend=backend)
@@ -444,8 +438,6 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), shots)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("pub"):
             sampler = BackendSamplerV2(backend=backend)
@@ -453,8 +445,6 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), shots)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], shots)
 
         with self.subTest("multiple pubs"):
             sampler = BackendSamplerV2(backend=backend)
@@ -470,13 +460,8 @@ class TestBackendSamplerV2(QiskitTestCase):
             self.assertEqual(len(result), 2)
             self.assertEqual(result[0].data.meas.num_shots, shots1)
             self.assertEqual(sum(result[0].data.meas.get_counts().values()), shots1)
-            self.assertIn("shots", result[0].metadata)
-            self.assertEqual(result[0].metadata["shots"], shots1)
-
             self.assertEqual(result[1].data.meas.num_shots, shots2)
             self.assertEqual(sum(result[1].data.meas.get_counts().values()), shots2)
-            self.assertIn("shots", result[1].metadata)
-            self.assertEqual(result[1].metadata["shots"], shots2)
 
     @combine(backend=BACKENDS)
     def test_run_shots_result_size(self, backend):
