@@ -140,7 +140,7 @@ def generate_preset_pass_manager(
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``,
-            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~DenseLayout` and
+            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~.DenseLayout` and
             :class:`~.SabreLayout` respectively. This can also
             be the external plugin name to use for the ``layout`` stage of the output
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
