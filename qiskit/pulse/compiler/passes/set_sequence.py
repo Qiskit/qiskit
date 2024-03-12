@@ -29,8 +29,9 @@ class SetSequence(TransformationPass):
     The pass traverses the :class:`.SequenceIR` and recursively sets the sequence, by adding edges to
     the ``sequence`` property. Sequencing is done according to the alignment strategy.
 
-    For parallel alignment types, the pass depends on the results of the analysis pass
-    :class:`~qiskit.pulse.compiler.passes.MapMixedFrame`.
+    .. notes::
+        The pass depends on the results of the analysis pass
+        :class:`~qiskit.pulse.compiler.passes.MapMixedFrame`.
     """
 
     def __init__(self):
@@ -45,8 +46,15 @@ class SetSequence(TransformationPass):
 
         Arguments:
             passmanager_ir: The IR object to be sequenced.
-        """
 
+        Raises:
+            PulseCompilerError: if ``property_set`` does not include a mixed_frames_mapping dictionary.
+        """
+        if self.property_set["mixed_frames_mapping"] is None:
+            raise PulseCompilerError(
+                "Parallel sequencing requires mixed frames mapping."
+                " Run MapMixedFrame before sequencing"
+            )
         self._sequence_instructions(passmanager_ir.alignment, passmanager_ir.sequence)
         return passmanager_ir
 
@@ -74,16 +82,7 @@ class SetSequence(TransformationPass):
         Args:
             alignment: The IR alignment.
             sequence: The graph object to be sequenced.
-
-        Raises:
-            PulseCompilerError: if ``property_set`` does not include a mixed_frames_mapping dictionary.
         """
-        if self.property_set["mixed_frames_mapping"] is None:
-            raise PulseCompilerError(
-                "Parallel sequencing requires mixed frames mapping."
-                " Run MapMixedFrame before sequencing"
-            )
-
         mixed_frame_mapping = self.property_set["mixed_frames_mapping"]
 
         idle_after = {}

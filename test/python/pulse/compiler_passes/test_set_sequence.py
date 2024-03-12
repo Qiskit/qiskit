@@ -54,8 +54,9 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
 
     ddt_named_data = [["align_left", AlignLeft()], ["align_right", AlignRight()]]
 
-    def _get_pm(self) -> PulseIrTranspiler:
-        return PulseIrTranspiler([MapMixedFrame(), SetSequence()])
+    def setUp(self):
+        super().setUp()
+        self._pm = PulseIrTranspiler([MapMixedFrame(), SetSequence()])
 
     @named_data(*ddt_named_data)
     @unpack
@@ -81,7 +82,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Delay(100, target=Qubit(5)))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 4)
         self.assertTrue((0, 2) in edge_list)
@@ -98,7 +99,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 4)
         self.assertTrue((0, 2) in edge_list)
@@ -115,7 +116,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 3)
         self.assertTrue((0, 2) in edge_list)
@@ -133,7 +134,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 5)
         self.assertTrue((0, 2) in edge_list)
@@ -154,7 +155,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(0))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 7)
         self.assertTrue((0, 2) in edge_list)
@@ -176,7 +177,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 5)
         self.assertTrue((0, 2) in edge_list)
@@ -195,7 +196,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(0))))
         ir_example.append(ShiftPhase(100, frame=QubitFrame(0)))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 5)
         self.assertTrue((0, 2) in edge_list)
@@ -216,7 +217,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list_sub_block = ir_example.elements()[1].sequence.edge_list()
         self.assertEqual(len(edge_list_sub_block), 2)
         self.assertTrue((0, 2) in edge_list_sub_block)
@@ -234,7 +235,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 4)
         self.assertTrue((0, 2) in edge_list)
@@ -255,7 +256,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 5)
         self.assertTrue((0, 2) in edge_list)
@@ -279,7 +280,7 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 8)
         self.assertTrue((0, 2) in edge_list)
@@ -302,6 +303,23 @@ class TestSetSequenceSequentialAlignment(QiskitTestCase):
         ["align_equispaced", AlignEquispaced(100)],
     ]
 
+    def setUp(self):
+        super().setUp()
+        self._pm = PulseIrTranspiler([MapMixedFrame(), SetSequence()])
+
+    @named_data(*ddt_named_data)
+    @unpack
+    def test_no_mapping_pass_error(self, alignment):
+        """test that running without MapMixedFrame pass raises a PulseError"""
+
+        pm = PulseIrTranspiler()
+        pm.append(SetSequence())
+        ir_example = SequenceIR(alignment)
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+
+        with self.assertRaises(PulseCompilerError):
+            pm.run(ir_example)
+
     @named_data(*ddt_named_data)
     @unpack
     def test_several_instructions(self, alignment):
@@ -312,7 +330,7 @@ class TestSetSequenceSequentialAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(2), QubitFrame(1))))
 
-        ir_example = SetSequence().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 4)
         self.assertTrue((0, 2) in edge_list)
@@ -332,7 +350,7 @@ class TestSetSequenceSequentialAlignment(QiskitTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = SetSequence().run(ir_example)
+        ir_example = self._pm.run(ir_example)
 
         edge_list_sub_block = ir_example.elements()[1].sequence.edge_list()
         self.assertEqual(len(edge_list_sub_block), 2)
@@ -352,7 +370,7 @@ class TestSetSequenceSequentialAlignment(QiskitTestCase):
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
 
-        ir_example = SetSequence().run(ir_example)
+        ir_example = self._pm.run(ir_example)
 
         edge_list = ir_example.sequence.edge_list()
         self.assertEqual(len(edge_list), 4)
