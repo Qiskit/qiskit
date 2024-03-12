@@ -14,4 +14,3 @@
 
 from .passmanager import BlockTranspiler, BlockToIrCompiler
 from .passes import MapMixedFrame, SetSequence, SchedulePass
-
