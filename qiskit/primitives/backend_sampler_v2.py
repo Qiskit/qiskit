@@ -48,10 +48,10 @@ class _MeasureInfo:
 
 class BackendSamplerV2(BaseSamplerV2):
     """
-    Implementation of :class:`BaseSamplerV2` using a backend.
+    Implementation of :class:`~.BaseSamplerV2` using the run method of a backend.
 
-    This class provides a SamplerV2 interface from any :class:`~.BackendV2` backend
-    and doesn't do any measurement mitigation, it just computes the bitstrings.
+    This class provides a SamplerV2 interface from any :class:`~.BackendV2` backend.
+    No measurement mitigation is performed.
 
     This sampler supports providing arrays of parameter value sets to
     bind against a single circuit.
@@ -77,7 +77,6 @@ class BackendSamplerV2(BaseSamplerV2):
             backend: Required: the backend to run the sampler primitive on
             default_shots: The default shots for the sampler if not specified during run.
         """
-        super().__init__()
         self._backend = backend
         self._default_shots = default_shots
 
@@ -143,7 +142,7 @@ class BackendSamplerV2(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={"shots": pub.shots})
+        return PubResult(data_bin, metadata={})
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
