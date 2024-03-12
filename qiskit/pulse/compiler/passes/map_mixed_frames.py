@@ -31,6 +31,9 @@ class MapMixedFrame(AnalysisPass):
     added dictionary is keyed on every class:`~qiskit.pulse.PulseTaraget` and
     :class:`~qiskit.pulse.Frame` in :class:`.SequenceIR`
     with the value being a set of all class:`.MixedFrame`\s associated with the key.
+
+    .. notes::
+        The pass will override results of previous ``MapMixedFrame`` runs.
     """
 
     def __init__(self):
