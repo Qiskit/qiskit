@@ -42,15 +42,16 @@ class TimeUnitConversion(TransformationPass):
         Args:
             inst_durations (InstructionDurations): A dictionary of durations of instructions.
             target: The :class:`~.Target` representing the target backend, if both
-                  ``inst_durations`` and ``target`` are specified then this argument will take
-                  precedence and ``inst_durations`` will be ignored.
-
-
+                  ``inst_durations`` and ``target`` are specified, the ``inst_durations`` argument
+                  will take precedence and ``target`` will be ignored.
         """
         super().__init__()
-        self.inst_durations = inst_durations or InstructionDurations()
-        if target is not None:
-            self.inst_durations = target.durations()
+        if inst_durations is not None:
+            self.inst_durations = inst_durations
+        else:
+            self.inst_durations = (
+                target.durations() if target is not None else InstructionDurations()
+            )
 
     def run(self, dag: DAGCircuit):
         """Run the TimeUnitAnalysis pass on `dag`.

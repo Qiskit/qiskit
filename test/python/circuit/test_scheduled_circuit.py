@@ -20,6 +20,7 @@ from qiskit import transpile, assemble
 from qiskit.circuit import Parameter
 from qiskit.circuit.duration import convert_durations_to_dt
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.scheduler import ScheduleConfig
 from qiskit.transpiler.exceptions import TranspilerError
@@ -44,6 +45,9 @@ class TestScheduledCircuit(QiskitTestCase):
         # run when alignment values different to 1 are found.
         self.backend_with_dt.configuration().timing_constraints = {}
         self.backend_without_dt.configuration().timing_constraints = {}
+        # Generate V2 backends
+        self.backend_with_dt_v2 = BackendV2Converter(self.backend_with_dt)
+        self.backend_without_dt_v2 = BackendV2Converter(self.backend_without_dt)
         self.dt = 2.2222222222222221e-10
         self.simulator_backend = BasicSimulator()
 
@@ -79,24 +83,27 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.delay(100, 0, unit="ns")  # 450[dt]
         qc.h(0)
         qc.h(1)
-        sc = transpile(
-            qc,
-            self.backend_without_dt,
-            scheduling_method="alap",
-            dt=self.dt,
-            layout_method="trivial",
-        )
-        self.assertEqual(sc.duration, 450546)
-        self.assertEqual(sc.unit, "dt")
-        self.assertEqual(sc.data[0].operation.name, "delay")
-        self.assertEqual(sc.data[0].operation.duration, 450450)
-        self.assertEqual(sc.data[0].operation.unit, "dt")
-        self.assertEqual(sc.data[1].operation.name, "rz")
-        self.assertEqual(sc.data[1].operation.duration, 0)
-        self.assertEqual(sc.data[1].operation.unit, "dt")
-        self.assertEqual(sc.data[4].operation.name, "delay")
-        self.assertEqual(sc.data[4].operation.duration, 450450)
-        self.assertEqual(sc.data[4].operation.unit, "dt")
+
+        for backend in [self.backend_without_dt, self.backend_without_dt_v2]:
+            with self.subTest(backend=backend):
+                sc = transpile(
+                    qc,
+                    backend,
+                    scheduling_method="alap",
+                    dt=self.dt,
+                    layout_method="trivial",
+                )
+                self.assertEqual(sc.duration, 450546)
+                self.assertEqual(sc.unit, "dt")
+                self.assertEqual(sc.data[0].operation.name, "delay")
+                self.assertEqual(sc.data[0].operation.duration, 450450)
+                self.assertEqual(sc.data[0].operation.unit, "dt")
+                self.assertEqual(sc.data[1].operation.name, "rz")
+                self.assertEqual(sc.data[1].operation.duration, 0)
+                self.assertEqual(sc.data[1].operation.unit, "dt")
+                self.assertEqual(sc.data[4].operation.name, "delay")
+                self.assertEqual(sc.data[4].operation.duration, 450450)
+                self.assertEqual(sc.data[4].operation.unit, "dt")
 
     def test_schedule_circuit_in_sec_when_no_one_tells_dt(self):
         """dt is unknown and all delays and gate times are in SI"""
@@ -245,23 +252,26 @@ class TestScheduledCircuit(QiskitTestCase):
         qc.h(0)
         qc.delay(500 * self.dt, 1, "s")
         qc.cx(0, 1)
-        # usual case
-        scheduled = transpile(
-            qc, backend=self.backend_with_dt, scheduling_method="alap", layout_method="trivial"
-        )
-        self.assertEqual(scheduled.duration, 1876)
 
-        # update durations
-        durations = InstructionDurations.from_backend(self.backend_with_dt)
-        durations.update([("cx", [0, 1], 1000 * self.dt, "s")])
-        scheduled = transpile(
-            qc,
-            backend=self.backend_with_dt,
-            scheduling_method="alap",
-            instruction_durations=durations,
-            layout_method="trivial",
-        )
-        self.assertEqual(scheduled.duration, 1500)
+        for backend in [self.backend_with_dt, self.backend_with_dt_v2]:
+            with self.subTest(backend=backend):
+                # usual case
+                scheduled = transpile(
+                    qc, backend=backend, scheduling_method="alap", layout_method="trivial"
+                )
+                self.assertEqual(scheduled.duration, 1876)
+
+                # update durations
+                durations = InstructionDurations.from_backend(self.backend_with_dt)
+                durations.update([("cx", [0, 1], 1000 * self.dt, "s")])
+                scheduled = transpile(
+                    qc,
+                    backend=backend,
+                    scheduling_method="alap",
+                    instruction_durations=durations,
+                    layout_method="trivial",
+                )
+                self.assertEqual(scheduled.duration, 1500)
 
     def test_per_qubit_durations(self):
         """See: https://github.com/Qiskit/qiskit-terra/issues/5109"""
@@ -348,15 +358,15 @@ class TestScheduledCircuit(QiskitTestCase):
         qc = QuantumCircuit(1, 1)
         qc.x(0)
         qc.measure(0, 0)
-        # default case
-        scheduled = transpile(qc, backend=self.backend_with_dt, scheduling_method="asap")
-        org_duration = scheduled.duration
 
-        # halve dt in sec = double duration in dt
-        scheduled = transpile(
-            qc, backend=self.backend_with_dt, scheduling_method="asap", dt=self.dt / 2
-        )
-        self.assertEqual(scheduled.duration, org_duration * 2)
+        for backend in [self.backend_with_dt, self.backend_with_dt_v2]:
+            with self.subTest(backend=backend):
+                # default case
+                scheduled = transpile(qc, backend=backend, scheduling_method="asap")
+                org_duration = scheduled.duration
+                # halve dt in sec = double duration in dt
+                scheduled = transpile(qc, backend=backend, scheduling_method="asap", dt=self.dt / 2)
+                self.assertEqual(scheduled.duration, org_duration * 2)
 
     @data("asap", "alap")
     def test_duration_on_same_instruction_instance(self, scheduling_method):
