@@ -272,7 +272,7 @@ class TwoQubitControlledUDecomposer:
                 rxx_equivalent_gate(test_angle, label="foo")
             except TypeError as _:
                 raise QiskitError("Equivalent gate needs to take exactly 1 angle parameter.") from _
-            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle).to_matrix())
+            decomp = TwoQubitWeylDecomposition(rxx_equivalent_gate(test_angle))
 
             circ = QuantumCircuit(2)
             circ.rxx(test_angle, 0, 1)
@@ -317,7 +317,7 @@ class TwoQubitControlledUDecomposer:
         """
 
         # pylint: disable=attribute-defined-outside-init
-        self.decomposer = TwoQubitWeylDecomposition(np.asarray(unitary, dtype=complex))
+        self.decomposer = TwoQubitWeylDecomposition(unitary)
 
         oneq_decompose = OneQubitEulerDecomposer("ZYZ")
         c1l, c1r, c2l, c2r = (

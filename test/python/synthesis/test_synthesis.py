@@ -620,13 +620,13 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_TwoQubitWeylDecomposition_repr(self, seed=42):
         """Check that eval(__repr__) is exact round trip"""
         target = random_unitary(4, seed=seed)
-        weyl1 = TwoQubitWeylDecomposition(target.data, fidelity=0.99)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
         self.assertRoundTrip(weyl1)
 
     def test_TwoQubitWeylDecomposition_pickle(self, seed=42):
         """Check that loads(dumps()) is exact round trip"""
         target = random_unitary(4, seed=seed)
-        weyl1 = TwoQubitWeylDecomposition(target.data, fidelity=0.99)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
         self.assertRoundTripPickle(weyl1)
 
     def test_two_qubit_weyl_decomposition_cnot(self):
