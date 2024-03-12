@@ -19,7 +19,7 @@ Base class for dummy backends.
 import warnings
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties, BackendConfiguration
+from qiskit.providers.models import BackendProperties
 from qiskit.providers import BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
