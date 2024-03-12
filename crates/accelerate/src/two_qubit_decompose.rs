@@ -116,28 +116,29 @@ const B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
     ],
 ];
 
-fn transform_from_magic_basis(unitary: ArrayView2<Complex64>, reverse: bool) -> Array2<Complex64> {
+enum MagicBasisTransform {
+    Into,
+    OutOf,
+}
+
+fn magic_basis_transform(
+    unitary: ArrayView2<Complex64>,
+    direction: MagicBasisTransform,
+) -> Array2<Complex64> {
     let _b_nonnormalized = aview2(&B_NON_NORMALIZED);
     let _b_nonnormalized_dagger = aview2(&B_NON_NORMALIZED_DAGGER);
-    if reverse {
-        _b_nonnormalized_dagger.dot(&unitary).dot(&_b_nonnormalized)
-    } else {
-        _b_nonnormalized.dot(&unitary).dot(&_b_nonnormalized_dagger)
+    match direction {
+        MagicBasisTransform::OutOf => _b_nonnormalized_dagger.dot(&unitary).dot(&_b_nonnormalized),
+        MagicBasisTransform::Into => _b_nonnormalized.dot(&unitary).dot(&_b_nonnormalized_dagger),
     }
 }
 
-fn transform_from_magic_basis_faer(u: Mat<c64>, reverse: bool) -> Mat<c64> {
+fn transform_from_magic_basis(u: Mat<c64>) -> Mat<c64> {
     let unitary: ArrayView2<Complex64> = u.as_ref().into_ndarray_complex();
-    let _b_nonnormalized = aview2(&B_NON_NORMALIZED);
-    let _b_nonnormalized_dagger = aview2(&B_NON_NORMALIZED_DAGGER);
-    if reverse {
-        _b_nonnormalized_dagger.dot(&unitary).dot(&_b_nonnormalized)
-    } else {
-        _b_nonnormalized.dot(&unitary).dot(&_b_nonnormalized_dagger)
-    }
-    .view()
-    .into_faer_complex()
-    .to_owned()
+    magic_basis_transform(unitary, MagicBasisTransform::OutOf)
+        .view()
+        .into_faer_complex()
+        .to_owned()
 }
 
 // faer::c64 and num_complex::Complex<f64> are both structs
@@ -218,7 +219,7 @@ fn decompose_two_qubit_product_gate(
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
     let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
-    let uup = transform_from_magic_basis_faer(uscaled, true);
+    let uup = transform_from_magic_basis(uscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
         .complex_eigenvalues()
         .into_iter()
@@ -561,7 +562,7 @@ impl TwoQubitWeylDecomposition {
         let det_pow = det_u.powf(-0.25);
         u.mapv_inplace(|x| x * det_pow);
         let mut global_phase = det_u.arg() / 4.;
-        let u_p = transform_from_magic_basis(u.view(), true);
+        let u_p = magic_basis_transform(u.view(), MagicBasisTransform::OutOf);
         let m2 = u_p.t().dot(&u_p);
         let default_euler_basis = EulerBasis::ZYZ;
 
@@ -654,8 +655,8 @@ impl TwoQubitWeylDecomposition {
             .iter_mut()
             .enumerate()
             .for_each(|(index, x)| *x = (C1_IM * d[index]).exp());
-        let k1 = transform_from_magic_basis(u_p.dot(&p).dot(&temp).view(), false);
-        let k2 = transform_from_magic_basis(p.t(), false);
+        let k1 = magic_basis_transform(u_p.dot(&p).dot(&temp).view(), MagicBasisTransform::Into);
+        let k2 = magic_basis_transform(p.t(), MagicBasisTransform::Into);
 
         #[allow(non_snake_case)]
         let (mut K1l, mut K1r, phase_l) = decompose_two_qubit_product_gate(k1.view())?;
