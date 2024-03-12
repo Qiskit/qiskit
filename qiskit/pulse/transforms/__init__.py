@@ -87,6 +87,8 @@ from .alignments import (
     AlignRight,
     AlignSequential,
     AlignmentKind,
+    ParallelAlignment,
+    SequentialAlignment,
 )
 
 from .base_transforms import target_qobj_transform

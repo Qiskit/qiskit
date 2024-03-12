@@ -87,7 +87,23 @@ class AlignmentKind(abc.ABC):
         return f"{self.__class__.__name__}({', '.join(self._context_params)})"
 
 
-class AlignLeft(AlignmentKind):
+class SequentialAlignment(AlignmentKind, abc.ABC):
+    """Abstract base class for ``AlignmentKind`` which aligns instructions sequentially"""
+
+    @property
+    def is_sequential(self) -> bool:
+        return True
+
+
+class ParallelAlignment(AlignmentKind, abc.ABC):
+    """Abstract base class for ``AlignmentKind`` which aligns instructions in parallel"""
+
+    @property
+    def is_sequential(self) -> bool:
+        return False
+
+
+class AlignLeft(ParallelAlignment):
     """Align instructions in as-soon-as-possible manner.
 
     Instructions are placed at earliest available timeslots.
@@ -96,10 +112,6 @@ class AlignLeft(AlignmentKind):
     def __init__(self):
         """Create new left-justified context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -154,7 +166,7 @@ class AlignLeft(AlignmentKind):
         return this.insert(insert_time, other, inplace=True)
 
 
-class AlignRight(AlignmentKind):
+class AlignRight(ParallelAlignment):
     """Align instructions in as-late-as-possible manner.
 
     Instructions are placed at latest available timeslots.
@@ -163,10 +175,6 @@ class AlignRight(AlignmentKind):
     def __init__(self):
         """Create new right-justified context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -222,7 +230,7 @@ class AlignRight(AlignmentKind):
         return this
 
 
-class AlignSequential(AlignmentKind):
+class AlignSequential(SequentialAlignment):
     """Align instructions sequentially.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -232,10 +240,6 @@ class AlignSequential(AlignmentKind):
     def __init__(self):
         """Create new sequential context."""
         super().__init__(context_params=())
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -256,7 +260,7 @@ class AlignSequential(AlignmentKind):
         return aligned
 
 
-class AlignEquispaced(AlignmentKind):
+class AlignEquispaced(SequentialAlignment):
     """Align instructions with equispaced interval within a specified duration.
 
     Instructions played on different channels are also arranged in a sequence.
@@ -273,10 +277,6 @@ class AlignEquispaced(AlignmentKind):
                 This duration can be parametrized.
         """
         super().__init__(context_params=(duration,))
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     @property
     def duration(self):
@@ -325,7 +325,7 @@ class AlignEquispaced(AlignmentKind):
         return aligned
 
 
-class AlignFunc(AlignmentKind):
+class AlignFunc(SequentialAlignment):
     """Allocate instructions at position specified by callback function.
 
     The position is specified for each instruction of index ``j`` as a
@@ -361,10 +361,6 @@ class AlignFunc(AlignmentKind):
                 defined within [0, 1]. The pulse index starts from 1.
         """
         super().__init__(context_params=(duration, func))
-
-    @property
-    def is_sequential(self) -> bool:
-        return True
 
     @property
     def duration(self):

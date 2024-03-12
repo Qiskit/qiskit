@@ -27,6 +27,10 @@ class PulseError(QiskitError):
         return repr(self.message)
 
 
+class PulseCompilerError(PulseError):
+    """Errors raised by the pulse module compiler"""
+
+
 class BackendNotSet(PulseError):
     """Raised if the builder context does not have a backend."""
 
