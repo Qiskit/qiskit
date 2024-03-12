@@ -35,18 +35,16 @@ from qiskit.pulse.transforms import (
     AlignFunc,
 )
 from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SchedulePass
+from qiskit.pulse.exceptions import PulseCompilerError
 from .utils import PulseIrTranspiler
 
 
 class SchedulingTestCase(QiskitTestCase):
     """Base class for scheduling tests"""
 
-    def _get_pm(self) -> PulseIrTranspiler:
-        pm = PulseIrTranspiler()
-        pm.append(MapMixedFrame())
-        pm.append(SetSequence())
-        pm.append(SchedulePass())
-        return pm
+    def setUp(self):
+        super().setUp()
+        self._pm = PulseIrTranspiler([MapMixedFrame(), SetSequence(), SchedulePass()])
 
 
 class TestScheduleAlignLeft(SchedulingTestCase):
@@ -58,9 +56,22 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 100)
+
+    def test_bad_or_missing_sequencing(self):
+        """test that bad or missing sequencing raises an error"""
+
+        ir_example = SequenceIR(AlignLeft())
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
+
+        ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
 
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
@@ -69,7 +80,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -82,7 +93,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -96,7 +107,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -111,7 +122,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -128,7 +139,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         sub_block = ir_example.elements()[1]
         # Note that sub blocks are oblivious to their relative timing
         self.assertEqual(sub_block.initial_time(), 0)
@@ -145,7 +156,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 100)
 
@@ -162,7 +173,7 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
         self.assertEqual(ir_example.time_table[2], 0)
@@ -218,9 +229,22 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 100)
+
+    def test_bad_or_missing_sequencing(self):
+        """test that bad or missing sequencing raises an error"""
+
+        ir_example = SequenceIR(AlignRight())
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
+
+        ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
 
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
@@ -229,7 +253,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example.time_table[2], 100)
@@ -242,7 +266,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -256,7 +280,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
@@ -271,7 +295,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(200, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(2))))
         ir_example.append(Delay(100, target=Qubit(0)))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
         self.assertEqual(ir_example.time_table[2], 100)
@@ -288,7 +312,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         sub_block = ir_example.elements()[1]
         # Note that sub blocks are oblivious to their relative timing
         self.assertEqual(sub_block.initial_time(), 0)
@@ -305,7 +329,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(0))))
         ir_example.append(sub_block)
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 200)
         self.assertEqual(ir_example._time_table[2], 100)
@@ -324,7 +348,7 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
 
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
@@ -349,12 +373,25 @@ class TestScheduleAlignSequential(SchedulingTestCase):
         ir_example.append(sub_block)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(1), QubitFrame(1))))
 
-        ir_example = self._get_pm().run(ir_example)
+        ir_example = self._pm.run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 400)
         self.assertEqual(ir_example.time_table[2], 0)
         self.assertEqual(ir_example.time_table[3], 200)
         self.assertEqual(ir_example.time_table[4], 300)
+
+    def test_bad_or_missing_sequencing(self):
+        """test that bad or missing sequencing raises an error"""
+
+        ir_example = SequenceIR(AlignSequential())
+        ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
+
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
+
+        ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
+        with self.assertRaises(PulseCompilerError):
+            SchedulePass().run(ir_example)
 
 
 class TestSchedulePassAlignEquispaced(SchedulingTestCase):
@@ -366,7 +403,7 @@ class TestSchedulePassAlignEquispaced(SchedulingTestCase):
 
         ir_example = SequenceIR(AlignEquispaced(100))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
-        self._get_pm().run(ir_example)
+        self._pm.run(ir_example)
 
     # TODO : Implement align equispaced.
 
@@ -380,6 +417,6 @@ class TestSchedulePassAlignFunc(SchedulingTestCase):
 
         ir_example = SequenceIR(AlignFunc(100, lambda x: x))
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
-        self._get_pm().run(ir_example)
+        self._pm.run(ir_example)
 
     # TODO : Implement align func.

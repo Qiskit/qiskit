@@ -20,6 +20,7 @@ from rustworkx import PyDAG, topological_sort
 from qiskit.pulse.compiler.basepasses import TransformationPass
 from qiskit.pulse.ir import SequenceIR
 from qiskit.pulse.transforms import AlignmentKind, AlignLeft, AlignRight, AlignSequential
+from qiskit.pulse.exceptions import PulseCompilerError
 
 
 class SchedulePass(TransformationPass):
@@ -100,8 +101,15 @@ class SchedulePass(TransformationPass):
             alignment: The alignment of the IR object.
             sequence: The sequence of the IR object.
             time_table: The time_table of the IR object.
+
+        Raises:
+            PulseCompilerError: If the sequence is not sequenced as expected.
         """
         nodes = list(topological_sort(sequence))
+        if nodes[0] != 0 or nodes[-1] != 1:
+            raise PulseCompilerError(
+                "The sequence is not sequenced as expected. Use SetSequence pass."
+            )
 
         while nodes:
             node_index = nodes.pop(0)
@@ -135,12 +143,21 @@ class SchedulePass(TransformationPass):
             alignment: The alignment of the IR object.
             sequence: The sequence of the IR object.
             time_table: The time_table of the IR object.
+
+        Raises:
+            PulseCompilerError: If the sequence is not sequenced as expected.
         """
         # We reverse the sequence, schedule to the left, then reverse the timings.
         reversed_sequence = sequence.copy()
         reversed_sequence.reverse()
 
         nodes = list(topological_sort(reversed_sequence))
+
+        if nodes[0] != 1 or nodes[-1] != 0:
+            raise PulseCompilerError(
+                "The sequence is not sequenced as expected. Use SetSequence pass."
+            )
+
         while nodes:
             node_index = nodes.pop(0)
             if node_index in (0, 1):
