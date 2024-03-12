@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Estimator V2 implementation for an arbitrary BackendV2 object."""
+"""Estimator V2 implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.providers import BackendV2
+from qiskit.providers import BackendV1, BackendV2
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
@@ -51,7 +51,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     Implementation of :class:`BaseEstimatorV2` using a backend.
 
-    This class does not perform any measurement or gate mitigation, and, presently, is only 
+    This class does not perform any measurement or gate mitigation, and, presently, is only
     compatible with Pauli-based observables.
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
@@ -59,29 +59,32 @@ class BackendEstimatorV2(BaseEstimatorV2):
     :meth:`~.BackendEstimatorV2.run` method can be given a sequence of pubs to run in one call.
     """
 
-    _VARIANCE_UPPER_BOUND: float = 1.0
-
     def __init__(
         self,
         *,
-        backend: BackendV2,
-        default_precision: float = 0.015,
+        backend: BackendV1 | BackendV2,
+        default_precision: float = 0.015625,
         abelian_grouping: bool = True,
     ):
         """
         Args:
             backend: The backend to run the primitive on.
             default_precision: The default precision to use if none are specified in :meth:`~run`.
-            abelian_grouping: Whether the observable should be grouped into commuting
+                Default: 0.015625 (1 / sqrt(4096)).
+            abelian_grouping: Whether the observables should be grouped into sets of
+                qubit-wise commuting observables.
         """
         super().__init__()
         self._backend = backend
-        basis = PassManagerConfig.from_backend(backend).basis_gates
-        self._passmanager = PassManager(
-            [Optimize1qGatesDecomposition(basis=basis, target=backend.target)]
-        )
         self._default_precision = default_precision
         self._abelian_grouping = abelian_grouping
+
+        basis = PassManagerConfig.from_backend(backend).basis_gates
+        if isinstance(backend, BackendV2):
+            opt1q = Optimize1qGatesDecomposition(basis=basis, target=backend.target)
+        else:
+            opt1q = Optimize1qGatesDecomposition(basis=basis)
+        self._passmanager = PassManager([opt1q])
 
     @property
     def default_precision(self) -> float:
@@ -94,7 +97,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return self._abelian_grouping
 
     @property
-    def backend(self) -> BackendV2:
+    def backend(self) -> BackendV1 | BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
 
@@ -120,7 +123,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return PrimitiveResult([self._run_pub(pub) for pub in pubs])
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
-        shots = int(np.ceil(self._VARIANCE_UPPER_BOUND / pub.precision**2))
+        shots = int(np.ceil(1.0 / pub.precision**2))
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values

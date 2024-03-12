@@ -33,7 +33,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils import optionals
 
-BACKENDS = [BasicSimulator(), BackendV2Converter(Fake7QPulseV1())]
+BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
 
 
 @ddt
@@ -42,7 +42,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self._precision = 7e-3
+        self._precision = 5e-3
         self._rtol = 3e-1
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
         self.observable = SparsePauliOp.from_list(
@@ -178,7 +178,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target, rtol=self._rtol)
-                self.assertEqual(result[0].metadata["precision"], self._precision)
+                self.assertEqual(result[0].metadata["target_precision"], self._precision)
 
         with self.subTest("One parameter"):
             param = Parameter("x")
@@ -196,7 +196,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target, rtol=self._rtol)
-                self.assertEqual(result[0].metadata["precision"], self._precision)
+                self.assertEqual(result[0].metadata["target_precision"], self._precision)
 
         with self.subTest("More than one parameter"):
             qc = self.psi[0]
@@ -215,7 +215,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
                 self.subTest(f"{val}")
                 result = est.run([(qc, op, val)]).result()
                 np.testing.assert_allclose(result[0].data.evs, target, rtol=self._rtol)
-                self.assertEqual(result[0].metadata["precision"], self._precision)
+                self.assertEqual(result[0].metadata["target_precision"], self._precision)
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_1qubit(self, backend, abelian_grouping):
