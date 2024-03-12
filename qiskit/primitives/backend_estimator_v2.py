@@ -35,44 +35,43 @@ from .primitive_job import PrimitiveJob
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
-    """Evaluates expectation value using Pauli rotation gates.
+    """Evaluates expectation values for provided quantum circuit and observable combinations
 
-    The :class:`~.BackendEstimator` class is a generic implementation of the
+    The :class:`~.BackendEstimatorV2` class is a generic implementation of the
     :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
-    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
+    (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
     facilitates using backends that do not provide a native
-    :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`. However,
+    :class:`~.BaseEstimatorV2` implementation in places that work with
+    :class:`~.BaseEstimatorV2`. However,
     if you're using a provider that has a native implementation of
-    :class:`~.BaseEstimator`, it is a better choice to leverage that native
+    :class:`~.BaseEstimatorV2`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
     a more efficient implementation. The generic nature of this class
     precludes doing any provider- or backend-specific optimizations.
 
     Implementation of :class:`BaseEstimatorV2` using a backend.
 
-    This class provides a EstimatorV2 interface from any :class:`~.BackendV2` backend
-    and doesn't do any measurement mitigation, it just computes the expectation values.
-    At present, this implementation is only compatible with Pauli-based observables.
+    This class does not perform any measurement or gate mitigation, and, presently, is only 
+    compatible with Pauli-based observables.
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
-    :meth:`~.EstimatorV2.run` method can be given a sequence of pubs to run in one call.
+    :meth:`~.BackendEstimatorV2.run` method can be given a sequence of pubs to run in one call.
     """
 
-    _VARIANCE_UPPER_BOUND: float = 4.0
+    _VARIANCE_UPPER_BOUND: float = 1.0
 
     def __init__(
         self,
         *,
         backend: BackendV2,
-        default_precision: float = 0.0,
+        default_precision: float = 0.015,
         abelian_grouping: bool = True,
     ):
         """
         Args:
-            backend: Required: the backend to run the primitive on
-            default_precision: Default precision
+            backend: The backend to run the primitive on.
+            default_precision: The default precision to use if none are specified in :meth:`~run`.
             abelian_grouping: Whether the observable should be grouped into commuting
         """
         super().__init__()
@@ -150,7 +149,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         stds = np.sqrt(variances / shots)
         data_bin_cls = self._make_data_bin(pub)
         data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"precision": pub.precision})
+        return PubResult(data_bin, metadata={"target_precision": pub.precision})
 
     def _calc_expval_paulis(
         self,

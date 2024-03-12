@@ -388,7 +388,7 @@ Primitives API
 ==============
 
 Estimator V2
--------------
+------------
 
 .. autosummary::
    :toctree: ../stubs/
