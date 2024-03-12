@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The :class:`.TimeUnitConversion` transformation pass now gives precedence to the ``inst_durations``
+    argument over the ``target`` argument. This fixes an unexpected behavior in :meth:`.transpile` where
+    custom ``dt`` inputs would be ignored if a ``target`` was provided too (directly or as part of a 
+    :class:`.BackendV2` instance).
