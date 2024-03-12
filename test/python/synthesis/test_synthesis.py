@@ -14,6 +14,8 @@
 
 import pickle
 import unittest
+import contextlib
+import logging
 import math
 import numpy as np
 import scipy
@@ -130,10 +132,24 @@ class CheckDecompositions(QiskitTestCase):
             np.abs(maxdist) < tolerance, f"Operator {operator}: Worst distance {maxdist}"
         )
 
+    @contextlib.contextmanager
+    def assertDebugOnly(self):  # FIXME: when at python 3.10+ replace with assertNoLogs
+        """Context manager, asserts log is emitted at level DEBUG but no higher"""
+        with self.assertLogs("qiskit.synthesis", "DEBUG") as ctx:
+            yield
+        for i in range(len(ctx.records)):
+            self.assertLessEqual(
+                ctx.records[i].levelno,
+                logging.DEBUG,
+                msg=f"Unexpected logging entry: {ctx.output[i]}",
+            )
+            self.assertIn("Requested fidelity:", ctx.records[i].getMessage())
+
     def assertRoundTrip(self, weyl1: TwoQubitWeylDecomposition):
         """Fail if eval(repr(weyl1)) not equal to weyl1"""
         repr1 = repr(weyl1)
-        weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
+        with self.assertDebugOnly():
+            weyl2: TwoQubitWeylDecomposition = eval(repr1)  # pylint: disable=eval-used
         msg_base = f"weyl1:\n{repr1}\nweyl2:\n{repr(weyl2)}"
         self.assertEqual(type(weyl1), type(weyl2), msg_base)
         maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
@@ -176,7 +192,8 @@ class CheckDecompositions(QiskitTestCase):
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
-        decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
+        with self.assertDebugOnly():
+            decomp = TwoQubitWeylDecomposition(target_unitary, fidelity=None)
         # self.assertRoundTrip(decomp)  # Too slow
         op = np.exp(1j * decomp.global_phase) * Operator(np.eye(4))
         for u, qs in (
@@ -204,12 +221,14 @@ class CheckDecompositions(QiskitTestCase):
         # Loop to check both for implicit and explicity specialization
         for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
             if isinstance(decomposer, TwoQubitWeylDecomposition):
-                decomp = decomposer(target_unitary, fidelity=fidelity)
+                with self.assertDebugOnly():
+                    decomp = decomposer(target_unitary, fidelity=fidelity)
                 decomp_name = decomp.specialization
             else:
-                decomp = TwoQubitWeylDecomposition(
-                    target_unitary, fidelity=None, _specialization=expected_specialization
-                )
+                with self.assertDebugOnly():
+                    decomp = TwoQubitWeylDecomposition(
+                        target_unitary, fidelity=None, _specialization=expected_specialization
+                    )
                 decomp_name = expected_specialization
             self.assertRoundTrip(decomp)
             self.assertRoundTripPickle(decomp)
@@ -233,9 +252,10 @@ class CheckDecompositions(QiskitTestCase):
             actual_unitary = Operator(circ).data
             trace = np.trace(actual_unitary.T.conj() @ target_unitary)
             self.assertAlmostEqual(trace.imag, 0, places=13, msg=f"Real trace for {decomp_name}")
-        decomp2 = TwoQubitWeylDecomposition(
-            target_unitary, fidelity=None, _specialization=expected_specialization
-        )  # Shouldn't raise
+        with self.assertDebugOnly():
+            decomp2 = TwoQubitWeylDecomposition(
+                target_unitary, fidelity=None, _specialization=expected_specialization
+            )  # Shouldn't raise
         self.assertRoundTrip(decomp2)
         self.assertRoundTripPickle(decomp2)
         if expected_specialization != Specialization.General:
@@ -1064,7 +1084,8 @@ class TestTwoQubitDecompose(CheckDecompositions):
         tgt = random_unitary(4, seed=state).data
         tgt *= np.exp(1j * tgt_phase)
 
-        traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
+        with self.assertDebugOnly():
+            traces_pred = decomposer.traces(TwoQubitWeylDecomposition(tgt))
 
         for i in range(4):
             with self.subTest(i=i):

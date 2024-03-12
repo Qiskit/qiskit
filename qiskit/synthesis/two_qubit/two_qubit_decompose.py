@@ -173,6 +173,19 @@ class TwoQubitWeylDecomposition:
         self.unitary_matrix = unitary_matrix
         self.requested_fidelity = fidelity
         self.calculated_fidelity = self._inner_decomposition.calculated_fidelity
+        if logger.isEnabledFor(logging.DEBUG):
+            actual_fidelity = self.actual_fidelity()
+            logger.debug(
+                "Requested fidelity: %s calculated fidelity: %s actual fidelity %s",
+                self.requested_fidelity,
+                self.calculated_fidelity,
+                actual_fidelity,
+            )
+            if abs(self.calculated_fidelity - actual_fidelity) > 1.0e-12:
+                logger.warning(
+                    "Requested fidelity different from actual by %s",
+                    self.calculated_fidelity - actual_fidelity,
+                )
 
     @deprecate_func(since="1.1.0", removal_timeline="in the 2.0.0 release")
     def specialize(self):
