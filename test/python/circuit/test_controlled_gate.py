@@ -20,7 +20,6 @@ from numpy import pi
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, QiskitError, transpile
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
