@@ -1409,8 +1409,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
-        relative_phase: bool = False, # pylint: disable=unused-argument
-        action_only: bool = False, # pylint: disable=unused-argument
+        relative_phase: bool = False,  # pylint: disable=unused-argument
+        action_only: bool = False,  # pylint: disable=unused-argument
     ):
         """Create a new MCX instance.
 
@@ -1452,8 +1452,6 @@ class MCXVChain(MCXGate):
         self._relative_phase = relative_phase
         self._action_only = action_only
         super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
-
-
 
     def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse.
@@ -1528,9 +1526,7 @@ class MCXVChain(MCXGate):
                                             [],
                                         )
                                     )
-                                    definition.append(
-                                        (TdgGate(), [targets[i]], [])
-                                    )
+                                    definition.append((TdgGate(), [targets[i]], []))
                                     definition.append((HGate(), [targets[i]], []))
                                 else:
                                     definition.append((HGate(), [targets[i]], []))
@@ -1542,9 +1538,7 @@ class MCXVChain(MCXGate):
                                             [],
                                         )
                                     )
-                                    definition.append(
-                                        (TdgGate(), [targets[i]], [])
-                                    )
+                                    definition.append((TdgGate(), [targets[i]], []))
                                     definition.append(
                                         (
                                             CXGate(),
@@ -1594,9 +1588,7 @@ class MCXVChain(MCXGate):
                         definition.append((CXGate(), [q_ancillas[i], q_ancillas[i + 1]], []))
                         definition.append((TGate(), [q_ancillas[i + 1]], []))
                         definition.append((CXGate(), [q_controls[2 + i], q_ancillas[i + 1]], []))
-                        definition.append(
-                            (TdgGate(), [q_ancillas[i + 1]], [])
-                        )
+                        definition.append((TdgGate(), [q_ancillas[i + 1]], []))
                         definition.append((HGate(), [q_ancillas[i + 1]], []))
 
                     if self._action_only:
