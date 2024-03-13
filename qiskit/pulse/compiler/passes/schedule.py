@@ -15,7 +15,7 @@
 from __future__ import annotations
 from functools import singledispatchmethod
 from collections import defaultdict
-from rustworkx import PyDAG, topological_sort
+from rustworkx import PyDAG, topological_sort, number_weakly_connected_components
 
 from qiskit.pulse.compiler.basepasses import TransformationPass
 from qiskit.pulse.ir import SequenceIR
@@ -105,11 +105,11 @@ class SetSchedule(TransformationPass):
         Raises:
             PulseCompilerError: If the sequence is not sequenced as expected.
         """
-        nodes = list(topological_sort(sequence))
-        if nodes[0] != 0 or nodes[-1] != 1:
+        nodes = topological_sort(sequence)
+        if number_weakly_connected_components(sequence) != 1 or nodes[0] != 0 or nodes[-1] != 1:
             raise PulseCompilerError(
                 "The pulse program is not sequenced as expected. "
-                "Insert SetSequence pass in advance of the SchedulePass."
+                "Insert SetSequence pass in advance of SchedulePass."
             )
 
         for node_index in nodes:
@@ -151,11 +151,12 @@ class SetSchedule(TransformationPass):
         reversed_sequence = sequence.copy()
         reversed_sequence.reverse()
 
-        nodes = list(topological_sort(reversed_sequence))
+        nodes = topological_sort(reversed_sequence)
 
-        if nodes[0] != 1 or nodes[-1] != 0:
+        if number_weakly_connected_components(sequence) != 1 or nodes[0] != 1 or nodes[-1] != 0:
             raise PulseCompilerError(
-                "The sequence is not sequenced as expected. Use SetSequence pass."
+                "The pulse program is not sequenced as expected. "
+                "Insert SetSequence pass in advance of SchedulePass."
             )
 
         for node_index in nodes:
