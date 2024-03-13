@@ -227,11 +227,7 @@ class SequenceIR:
         if inplace:
             block = self
         else:
-            block = copy.deepcopy(self)
-            block._sequence[0] = SequenceIR._InNode
-            block._sequence[1] = SequenceIR._OutNode
-
-        # TODO : Create a dedicated half shallow copier.
+            block = self.copy()
 
         def edge_map(_x, _y, _node):
             if _y == _node:
@@ -259,6 +255,28 @@ class SequenceIR:
                 block._sequence.remove_node_retain_edges(nodes_mapping[1])
 
         return block
+
+    def copy(self) -> SequenceIR:
+        """Semi-deep copy of ``SequenceIR``.
+
+        ``SequenceIR`` is poorly suited for both shallow and deep copy. A shallow copy
+        will contain references to mutable properties like ``sequence`` and ``time_table``.
+        A deep copy on the other hand will needlessly copy immutable objects like
+        :class:`.qiskit.pulse.Instruction`. This function returns a semi-deep copy -
+        A new object containing new objects for ``sequence`` and ``time_table``. However,
+        node data of type :class:`.qiskit.pulse.Instruction` will be passed as a reference.
+        Nested ``SequenceIR`` objects are copied using the same logic.
+
+        Returns: A semi-deep copy of the object.
+        """
+        copied = SequenceIR(self.alignment)
+        copied._time_table = copy.copy(self._time_table)
+        copied._sequence = copy.copy(self._sequence)
+        for node_index in copied.sequence.node_indices():
+            if isinstance(nested := copied._sequence[node_index], SequenceIR):
+                copied._sequence[node_index] = nested.copy()
+
+        return copied
 
     def __eq__(self, other: SequenceIR):
         if other.alignment != self.alignment:

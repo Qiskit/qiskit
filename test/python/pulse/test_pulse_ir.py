@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Test pulse IR"""
-
 from test import QiskitTestCase
+from rustworkx import is_isomorphic_node_match
+
 from qiskit.pulse import (
     Constant,
     Play,
@@ -473,5 +474,37 @@ class TestSequenceIR(QiskitTestCase):
         ir2.sequence.add_edge(2, 1, None)
 
         self.assertTrue(ir1 == ir2)
+
+    def test_ir_copy(self):
+        """Test the dedicated semi-deep copy method"""
+        inst1 = Play(Constant(100, 0.5), frame=QubitFrame(1), target=Qubit(1))
+        inst2 = Play(Constant(100, 0.5), frame=QubitFrame(2), target=Qubit(2))
+        block = SequenceIR(AlignRight())
+        block.append(inst1)
+        ir1 = SequenceIR(AlignLeft())
+        ir1.append(block)
+        ir1.append(inst2)
+        ir1.sequence.add_edge(0, 2, None)
+        ir1._time_table[3] = 100
+
+        copied = ir1.copy()
+        # Top level properties and nested IRs are new objects
+        self.assertEqual(copied, ir1)
+        self.assertFalse(copied is ir1)
+        self.assertEqual(copied.alignment, ir1.alignment)
+        self.assertEqual(copied._time_table, ir1._time_table)
+        self.assertFalse(copied._time_table is ir1._time_table)
+        # PyDAG has no built-in equality check
+        self.assertTrue(
+            is_isomorphic_node_match(copied._sequence, ir1._sequence, lambda x, y: x == y)
+        )
+        self.assertFalse(copied._sequence is ir1._sequence)
+        self.assertEqual(copied.elements()[0], ir1.elements()[0])
+        self.assertFalse(copied.elements()[0] is ir1.elements()[0])
+        # Instructions are passed by reference
+        self.assertEqual(copied.elements()[1], inst2)
+        self.assertTrue(copied.elements()[1] is inst2)
+        self.assertEqual(copied.elements()[0].elements()[0], inst1)
+        self.assertTrue(copied.elements()[0].elements()[0] is inst1)
 
     # TODO : Test SequenceIR.draw()
