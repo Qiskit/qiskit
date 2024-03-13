@@ -257,20 +257,24 @@ class SequenceIR:
         return block
 
     def copy(self) -> SequenceIR:
-        """Semi-deep copy of ``SequenceIR``.
+        """Create a copy of ``SequenceIR``.
 
         The returned copy can be safely mutated without affecting the original object, while immutable
         objects are still passed as reference for memory efficiency.
 
+        .. warning::
+            If node data (not a nester IR object) is mutated via ``.sequence`` or ``.elements`` it will
+            affect the original IR object.
+
         ``SequenceIR`` is poorly suited for both shallow and deep copy. A shallow copy
         will contain references to mutable properties like ``sequence`` and ``time_table``.
         A deep copy on the other hand will needlessly copy immutable objects like
-        :class:`.qiskit.pulse.Instruction`. This function returns a semi-deep copy -
+        :class:`.qiskit.pulse.Instruction`. This function returns a "semi-deep" copy -
         A new object containing new objects for ``sequence`` and ``time_table``. However,
         node data of type :class:`.qiskit.pulse.Instruction` will be passed as a reference.
         Nested ``SequenceIR`` objects are copied using the same logic.
 
-        Returns: A semi-deep copy of the object.
+        Returns: A copy of the object.
         """
         copied = self.__class__(self.alignment)
         copied._time_table = copy.copy(self._time_table)

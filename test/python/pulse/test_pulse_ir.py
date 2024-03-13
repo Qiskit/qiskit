@@ -490,21 +490,19 @@ class TestSequenceIR(QiskitTestCase):
         copied = ir1.copy()
         # Top level properties and nested IRs are new objects
         self.assertEqual(copied, ir1)
-        self.assertFalse(copied is ir1)
+        self.assertIsNot(copied, ir1)
         self.assertEqual(copied.alignment, ir1.alignment)
         self.assertEqual(copied._time_table, ir1._time_table)
-        self.assertFalse(copied._time_table is ir1._time_table)
+        self.assertIsNot(copied._time_table, ir1._time_table)
         # PyDAG has no built-in equality check
         self.assertTrue(
             is_isomorphic_node_match(copied._sequence, ir1._sequence, lambda x, y: x == y)
         )
-        self.assertFalse(copied._sequence is ir1._sequence)
+        self.assertIsNot(copied._sequence, ir1._sequence)
         self.assertEqual(copied.elements()[0], ir1.elements()[0])
-        self.assertFalse(copied.elements()[0] is ir1.elements()[0])
+        self.assertIsNot(copied.elements()[0], ir1.elements()[0])
         # Instructions are passed by reference
-        self.assertEqual(copied.elements()[1], inst2)
-        self.assertTrue(copied.elements()[1] is inst2)
-        self.assertEqual(copied.elements()[0].elements()[0], inst1)
-        self.assertTrue(copied.elements()[0].elements()[0] is inst1)
+        self.assertIs(copied.elements()[1], inst2)
+        self.assertIs(copied.elements()[0].elements()[0], inst1)
 
     # TODO : Test SequenceIR.draw()
