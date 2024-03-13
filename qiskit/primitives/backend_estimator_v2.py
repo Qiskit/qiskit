@@ -65,6 +65,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         backend: BackendV1 | BackendV2,
         default_precision: float = 0.015625,
         abelian_grouping: bool = True,
+        seed_simulator: int | None = None,
     ):
         """
         Args:
@@ -73,11 +74,14 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 Default: 0.015625 (1 / sqrt(4096)).
             abelian_grouping: Whether the observables should be grouped into sets of
                 qubit-wise commuting observables.
+            seed_simulator: The seed to use in the simulator.
+                If None, a random seed will be used.
         """
         super().__init__()
         self._backend = backend
         self._default_precision = default_precision
         self._abelian_grouping = abelian_grouping
+        self._seed_simulator = seed_simulator
 
         basis = PassManagerConfig.from_backend(backend).basis_gates
         if isinstance(backend, BackendV2):
@@ -165,12 +169,14 @@ class BackendEstimatorV2(BaseEstimatorV2):
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
             bound_circuit = parameter_values.bind(circuit, param_index)
-            meas_paulis = PauliList(pauli_strings)
+            meas_paulis = PauliList(sorted(pauli_strings))
             new_circuits = self._preprocessing(bound_circuit, meas_paulis, param_index)
             circuits.extend(new_circuits)
 
         # run circuits
-        result, metadata = _run_circuits(circuits, self._backend, shots=shots)
+        result, metadata = _run_circuits(
+            circuits, self._backend, shots=shots, seed_simulator=self._seed_simulator
+        )
 
         # postprocessing results
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}
