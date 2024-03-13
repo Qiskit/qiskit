@@ -1484,8 +1484,8 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .u1 import U1Gate
-        from .u2 import U2Gate
+        from .t import TGate, TdgGate
+        from .h import HGate
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -1520,7 +1520,7 @@ class MCXVChain(MCXGate):
                                             [],
                                         )
                                     )
-                                    definition.append((U1Gate(pi / 4), [targets[i]], []))  # T gate
+                                    definition.append((TGate(), [targets[i]], []))
                                     definition.append(
                                         (
                                             CXGate(),
@@ -1529,12 +1529,12 @@ class MCXVChain(MCXGate):
                                         )
                                     )
                                     definition.append(
-                                        (U1Gate(-pi / 4), [targets[i]], [])  # inverse T gate
+                                        (TdgGate(), [targets[i]], [])
                                     )
-                                    definition.append((U2Gate(0, pi), [targets[i]], []))  # H gate
+                                    definition.append((HGate(), [targets[i]], []))
                                 else:
-                                    definition.append((U2Gate(0, pi), [targets[i]], []))  # H gate
-                                    definition.append((U1Gate(pi / 4), [targets[i]], []))  # T gate
+                                    definition.append((HGate(), [targets[i]], []))
+                                    definition.append((TGate(), [targets[i]], []))
                                     definition.append(
                                         (
                                             CXGate(),
@@ -1543,7 +1543,7 @@ class MCXVChain(MCXGate):
                                         )
                                     )
                                     definition.append(
-                                        (U1Gate(-pi / 4), [targets[i]], [])  # inverse T gate
+                                        (TdgGate(), [targets[i]], [])
                                     )
                                     definition.append(
                                         (
@@ -1560,8 +1560,8 @@ class MCXVChain(MCXGate):
 
                                 definition.append((CCXGate(), [*controls, targets[i]], []))
                         else:
-                            definition.append((U2Gate(0, pi), [targets[i]], []))  # H gate
-                            definition.append((U1Gate(pi / 4), [targets[i]], []))  # T gate
+                            definition.append((HGate(), [targets[i]], []))
+                            definition.append((TGate(), [targets[i]], []))
                             definition.append(
                                 (
                                     CXGate(),
@@ -1569,7 +1569,7 @@ class MCXVChain(MCXGate):
                                     [],
                                 )
                             )
-                            definition.append((U1Gate(-pi / 4), [targets[i]], []))  # inverse T gate
+                            definition.append((TdgGate(), [targets[i]], []))
                             definition.append(
                                 (
                                     CXGate(),
@@ -1577,7 +1577,7 @@ class MCXVChain(MCXGate):
                                     [],
                                 )
                             )
-                            definition.append((U1Gate(pi / 4), [targets[i]], []))  # T gate
+                            definition.append((TGate(), [targets[i]], []))
                             definition.append(
                                 (
                                     CXGate(),
@@ -1585,19 +1585,19 @@ class MCXVChain(MCXGate):
                                     [],
                                 )
                             )
-                            definition.append((U1Gate(-pi / 4), [targets[i]], []))  # inverse T gate
-                            definition.append((U2Gate(0, pi), [targets[i]], []))  # H gate
+                            definition.append((TdgGate(), [targets[i]], []))
+                            definition.append((HGate(), [targets[i]], []))
 
                             break
 
                     for i in range(num_ancillas - 1):  # reset part
                         definition.append((CXGate(), [q_ancillas[i], q_ancillas[i + 1]], []))
-                        definition.append((U1Gate(pi / 4), [q_ancillas[i + 1]], []))  # T gate
+                        definition.append((TGate(), [q_ancillas[i + 1]], []))
                         definition.append((CXGate(), [q_controls[2 + i], q_ancillas[i + 1]], []))
                         definition.append(
-                            (U1Gate(-pi / 4), [q_ancillas[i + 1]], [])  # inverse T gate
+                            (TdgGate(), [q_ancillas[i + 1]], [])
                         )
-                        definition.append((U2Gate(0, pi), [q_ancillas[i + 1]], []))  # H gate
+                        definition.append((HGate(), [q_ancillas[i + 1]], []))
 
                     if self._action_only:
                         definition.append(
