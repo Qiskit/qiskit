@@ -272,7 +272,7 @@ class SequenceIR:
 
         Returns: A semi-deep copy of the object.
         """
-        copied = SequenceIR(self.alignment)
+        copied = self.__class__(self.alignment)
         copied._time_table = copy.copy(self._time_table)
         copied._sequence = copy.copy(self._sequence)
         for node_index in copied.sequence.node_indices():
