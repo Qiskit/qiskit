@@ -108,7 +108,8 @@ class SchedulePass(TransformationPass):
         nodes = list(topological_sort(sequence))
         if nodes[0] != 0 or nodes[-1] != 1:
             raise PulseCompilerError(
-                "The sequence is not sequenced as expected. Use SetSequence pass."
+                "The pulse program is not sequenced as expected. "
+                "Insert SetSequence pass in advance of the SchedulePass."
             )
 
         while nodes:
