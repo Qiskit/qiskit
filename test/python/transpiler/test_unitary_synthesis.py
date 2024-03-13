@@ -210,6 +210,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm_nat = PassManager([triv_layout_pass, unisynth_pass_nat])
         qc_out_nat = pm_nat.run(qc)
 
+        print(qc)
+        print(qc_out)
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
 

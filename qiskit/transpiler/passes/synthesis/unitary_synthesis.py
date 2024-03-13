@@ -811,7 +811,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     pi2_decomposer = TwoQubitBasisDecomposer(
                         pi2_basis,
                         euler_basis=basis_1q,
-                        basis_fidelity=basis_2q_fidelity,
+                        #                        basis_fidelity=basis_2q_fidelity,
                         pulse_optimize=True,
                     )
                     embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
