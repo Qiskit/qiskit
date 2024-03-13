@@ -29,7 +29,7 @@ from qiskit.pulse.ir import (
 from qiskit.pulse.transforms import AlignLeft, AlignRight
 from qiskit.pulse.model import QubitFrame, Qubit, MixedFrame
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SchedulePass
+from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SetSchedule
 
 
 class TestSequenceIR(QiskitTestCase):
@@ -39,7 +39,7 @@ class TestSequenceIR(QiskitTestCase):
         pm = PulseIrTranspiler()
         pm.append(MapMixedFrame())
         pm.append(SetSequence())
-        pm.append(SchedulePass())
+        pm.append(SetSchedule())
         return pm
 
     def _compare_scheduled_elements(self, list1, list2):

@@ -23,7 +23,7 @@ from qiskit.pulse.transforms import AlignmentKind, AlignLeft, AlignRight, AlignS
 from qiskit.pulse.exceptions import PulseCompilerError
 
 
-class SchedulePass(TransformationPass):
+class SetSchedule(TransformationPass):
     """Concretely schedule ``SequenceIR`` object.
 
     The pass traverses the ``SequenceIR``, and recursively sets initial time for every
@@ -32,7 +32,7 @@ class SchedulePass(TransformationPass):
     typically with the pass :class:`~qiskit.pulse.compiler.passes.SetSequence`."""
 
     def __init__(self):
-        """Create new Schedule pass"""
+        """Create new SetSchedule pass"""
         super().__init__(target=None)
 
     def run(
@@ -84,7 +84,7 @@ class SchedulePass(TransformationPass):
     # pylint: disable=unused-argument
     @_schedule_single_program.register(AlignLeft)
     @_schedule_single_program.register(AlignSequential)
-    def _schedule_recursion_align_left(
+    def _schedule_asap(
         self, alignment: AlignmentKind, sequence: PyDAG, time_table: defaultdict
     ) -> None:
         """Concretely schedule the IR object, aligning to the left.
@@ -112,8 +112,7 @@ class SchedulePass(TransformationPass):
                 "Insert SetSequence pass in advance of the SchedulePass."
             )
 
-        while nodes:
-            node_index = nodes.pop(0)
+        for node_index in nodes:
             if node_index in (0, 1):
                 # in,out nodes
                 continue
@@ -127,7 +126,7 @@ class SchedulePass(TransformationPass):
 
     # pylint: disable=unused-argument
     @_schedule_single_program.register(AlignRight)
-    def _schedule_recursion_align_right(
+    def _schedule_alap(
         self, alignment: AlignmentKind, sequence: PyDAG, time_table: defaultdict
     ) -> None:
         """Concretely schedule the IR object, aligning to the right.
@@ -159,8 +158,7 @@ class SchedulePass(TransformationPass):
                 "The sequence is not sequenced as expected. Use SetSequence pass."
             )
 
-        while nodes:
-            node_index = nodes.pop(0)
+        for node_index in nodes:
             if node_index in (0, 1):
                 # in,out nodes
                 continue

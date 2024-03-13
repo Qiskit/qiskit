@@ -34,7 +34,7 @@ from qiskit.pulse.transforms import (
     AlignEquispaced,
     AlignFunc,
 )
-from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SchedulePass
+from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SetSchedule
 from qiskit.pulse.exceptions import PulseCompilerError
 from .utils import PulseIrTranspiler
 
@@ -44,7 +44,7 @@ class SchedulingTestCase(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self._pm = PulseIrTranspiler([MapMixedFrame(), SetSequence(), SchedulePass()])
+        self._pm = PulseIrTranspiler([MapMixedFrame(), SetSequence(), SetSchedule()])
 
 
 class TestScheduleAlignLeft(SchedulingTestCase):
@@ -67,11 +67,11 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
         ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
@@ -99,8 +99,8 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
         self.assertEqual(ir_example.scheduled_elements()[1][0], 100)
 
-    def test_multiple_children(self):
-        """test for a graph where one node has several children"""
+    def test_multiple_successors(self):
+        """test for a graph where one node has several successors"""
 
         ir_example = SequenceIR(AlignLeft())
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -114,8 +114,8 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         self.assertEqual(ir_example.scheduled_elements()[1][0], 100)
         self.assertEqual(ir_example.scheduled_elements()[2][0], 100)
 
-    def test_multiple_parents(self):
-        """test for a graph where one node has several parents"""
+    def test_multiple_predecessors(self):
+        """test for a graph where one node has several predecessors"""
 
         ir_example = SequenceIR(AlignLeft())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
@@ -182,12 +182,13 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         self.assertEqual(ir_example.time_table[5], 200)
         self.assertEqual(ir_example.time_table[6], 100)
 
-    def test_non_scheduled_predecessor(self):
-        """test scheduling when an element's predecessor is still not scheduled.
+    def test_sorting_effects(self):
+        """test that sorting is done correctly and doesn't create side effects
 
-        This is an edge case which I am not entirely sure can happen with the AlignLeft sequencing.
-        The test is included for completeness (manual sequencing, change in nodes numbering or
-        ordering etc.).
+        The pass relies on a topological sort of the nodes, to make sure a node is only scheduled
+        after all its predecessors did. Here we test with two graphs where the ordering matters,
+        to validate the sorting.
+
         An example problematic graph:
 
                2 <- 0 -> 3
@@ -196,8 +197,8 @@ class TestScheduleAlignLeft(SchedulingTestCase):
                |
                1
 
-        The situation will occur if node 4 is evaluated before node 5. To avoid depending on the
-        order the pass goes by, we simply run both options.
+        The situation will occur if node 4 is evaluated before node 5. We swap 4 and 5 next to
+        have another test case.
         """
 
         ir_example = SequenceIR(AlignLeft())
@@ -208,20 +209,20 @@ class TestScheduleAlignLeft(SchedulingTestCase):
         ir_example2 = copy.deepcopy(ir_example)
 
         ir_example.sequence.add_edges_from_no_data([(0, 2), (0, 3), (2, 4), (3, 5), (5, 4), (4, 1)])
-        SchedulePass().run(ir_example)
+        SetSchedule().run(ir_example)
         self.assertEqual(ir_example.initial_time(), 0)
         self.assertEqual(ir_example.final_time(), 300)
 
         ir_example2.sequence.add_edges_from_no_data(
             [(0, 2), (0, 3), (2, 4), (3, 5), (4, 5), (5, 1)]
         )
-        SchedulePass().run(ir_example2)
+        SetSchedule().run(ir_example2)
         self.assertEqual(ir_example2.initial_time(), 0)
         self.assertEqual(ir_example2.final_time(), 300)
 
 
-class TestSchedulePassAlignRight(SchedulingTestCase):
-    """Test SchedulePass with align right"""
+class TestSetScheduleAlignRight(SchedulingTestCase):
+    """Test SetSchedule with align right"""
 
     def test_single_instruction(self):
         """test with a single instruction"""
@@ -240,11 +241,11 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
         ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
     def test_parallel_instructions(self):
         """test with two parallel instructions"""
@@ -272,8 +273,8 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         self.assertEqual(ir_example.scheduled_elements()[0][0], 0)
         self.assertEqual(ir_example.scheduled_elements()[1][0], 100)
 
-    def test_multiple_children(self):
-        """test for a graph where one node has several children"""
+    def test_multiple_successors(self):
+        """test for a graph where one node has several successors"""
 
         ir_example = SequenceIR(AlignRight())
         ir_example.append(Delay(100, target=Qubit(0)))
@@ -287,8 +288,8 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
         self.assertEqual(ir_example.scheduled_elements()[1][0], 100)
         self.assertEqual(ir_example.scheduled_elements()[2][0], 200)
 
-    def test_multiple_parents(self):
-        """test for a graph where one node has several parents"""
+    def test_multiple_predecessors(self):
+        """test for a graph where one node has several predecessors"""
 
         ir_example = SequenceIR(AlignRight())
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
@@ -360,7 +361,12 @@ class TestSchedulePassAlignRight(SchedulingTestCase):
 
 
 class TestScheduleAlignSequential(SchedulingTestCase):
-    """Test Schedule pass with AlignSequential"""
+    """Test Schedule pass with AlignSequential.
+
+    The pass actually uses the same logic to schedule AlignSequential and AlignLeft.
+    The tests are added for completeness, and in order to verify that the combination
+    of SetSequence+SetSchedule works as expected.
+    """
 
     def test_instructions_and_sub_blocks(self):
         """test with instructions and sub blocks"""
@@ -387,15 +393,15 @@ class TestScheduleAlignSequential(SchedulingTestCase):
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
 
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
         ir_example.sequence.add_edges_from_no_data([(1, 0), (2, 0)])
         with self.assertRaises(PulseCompilerError):
-            SchedulePass().run(ir_example)
+            SetSchedule().run(ir_example)
 
 
-class TestSchedulePassAlignEquispaced(SchedulingTestCase):
-    """Test SchedulePass with align equispaced"""
+class TestSetScheduleAlignEquispaced(SchedulingTestCase):
+    """Test SetSchedule with align equispaced"""
 
     @unittest.expectedFailure
     def test_single_instruction(self):
@@ -408,8 +414,8 @@ class TestSchedulePassAlignEquispaced(SchedulingTestCase):
     # TODO : Implement align equispaced.
 
 
-class TestSchedulePassAlignFunc(SchedulingTestCase):
-    """Test SchedulePass with align equispaced"""
+class TestSetScheduleAlignFunc(SchedulingTestCase):
+    """Test SetSchedule with align equispaced"""
 
     @unittest.expectedFailure
     def test_single_instruction(self):
