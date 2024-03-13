@@ -17,35 +17,10 @@ import typing
 from collections.abc import Callable, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import Gate, Instruction, Parameter
+from qiskit.circuit import Gate, Instruction
 
 from .n_local import NLocal
-from ..standard_gates import (
-    IGate,
-    XGate,
-    YGate,
-    ZGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    HGate,
-    SGate,
-    SdgGate,
-    TGate,
-    TdgGate,
-    RXXGate,
-    RYYGate,
-    RZXGate,
-    RZZGate,
-    SwapGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CHGate,
-)
+from ..standard_gates import get_standard_gate_name_mapping
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -269,38 +244,7 @@ class TwoLocal(NLocal):
         if isinstance(layer, QuantumCircuit):
             return layer
 
-        # check the list of valid layers
-        # this could be a lot easier if the standard layers would have ``name`` and ``num_params``
-        # as static types, which might be something they should have anyway
-        theta = Parameter("θ")
-        valid_layers = {
-            "ch": CHGate(),
-            "cx": CXGate(),
-            "cy": CYGate(),
-            "cz": CZGate(),
-            "crx": CRXGate(theta),
-            "cry": CRYGate(theta),
-            "crz": CRZGate(theta),
-            "h": HGate(),
-            "i": IGate(),
-            "id": IGate(),
-            "iden": IGate(),
-            "rx": RXGate(theta),
-            "rxx": RXXGate(theta),
-            "ry": RYGate(theta),
-            "ryy": RYYGate(theta),
-            "rz": RZGate(theta),
-            "rzx": RZXGate(theta),
-            "rzz": RZZGate(theta),
-            "s": SGate(),
-            "sdg": SdgGate(),
-            "swap": SwapGate(),
-            "x": XGate(),
-            "y": YGate(),
-            "z": ZGate(),
-            "t": TGate(),
-            "tdg": TdgGate(),
-        }
+        valid_layers = get_standard_gate_name_mapping()
 
         # try to exchange `layer` from a string to a gate instance
         if isinstance(layer, str):
