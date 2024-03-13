@@ -259,6 +259,9 @@ class SequenceIR:
     def copy(self) -> SequenceIR:
         """Semi-deep copy of ``SequenceIR``.
 
+        The returned copy can be safely mutated without affecting the original object, while immutable
+        objects are still passed as reference for memory efficiency.
+
         ``SequenceIR`` is poorly suited for both shallow and deep copy. A shallow copy
         will contain references to mutable properties like ``sequence`` and ``time_table``.
         A deep copy on the other hand will needlessly copy immutable objects like
