@@ -151,6 +151,8 @@ class TwoQubitWeylDecomposition:
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
+    _specializations = two_qubit_decompose.Specialization
+
     def __init__(
         self,
         unitary_matrix: np.ndarray,
@@ -224,13 +226,15 @@ class TwoQubitWeylDecomposition:
         b64ascii[-1] += ","
         pretty = [f"# {x.rstrip()}" for x in str(self).splitlines()]
         indent = "\n" + " " * 4
+        specialization_variant = str(self._inner_decomposition.specialization).split(".")[1]
+        specialization_repr = f"{type(self).__qualname__}._specializations.{specialization_variant}"
         lines = (
             [prefix]
             + pretty
             + b64ascii
             + [
                 f"requested_fidelity={self.requested_fidelity},",
-                f"_specialization={self._inner_decomposition.specialization},",
+                f"_specialization={specialization_repr},",
                 f"calculated_fidelity={self.calculated_fidelity},",
                 f"actual_fidelity={self.actual_fidelity()},",
                 f"abc={(self.a, self.b, self.c)})",
