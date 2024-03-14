@@ -13,4 +13,4 @@
 """Pass-based Qiskit pulse program compiler."""
 
 from .passmanager import BlockTranspiler, BlockToIrCompiler
-from .passes import MapMixedFrame, SetSequence
+from .passes import MapMixedFrame, SetSequence, SetSchedule
