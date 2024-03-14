@@ -16,14 +16,9 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Callable
-from typing import Any
 
 from qiskit.passmanager import BasePassManager
 from qiskit.pulse.ir import SequenceIR
-
-
-PulseProgramT = Any
-"""Type alias representing whatever pulse programs."""
 
 
 class PulseIrTranspiler(BasePassManager, ABC):
@@ -52,7 +47,7 @@ class PulseIrTranspiler(BasePassManager, ABC):
         pulse_programs: SequenceIR | list[SequenceIR],
         callback: Callable | None = None,
         num_processes: int | None = None,
-    ) -> PulseProgramT | list[PulseProgramT]:
+    ) -> SequenceIR | list[SequenceIR]:
         """Run all the passes on the input pulse programs."""
         return super().run(
             in_programs=pulse_programs,
