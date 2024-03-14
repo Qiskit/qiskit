@@ -410,7 +410,7 @@ def _read_instruction(
                     gate.label = label
             # NOTE: MSGate is deprecated, so we will switch it to the GMS gate. See
             #       https://github.com/Qiskit/qiskit/issues/11378.
-            if gate_name == "MSGate":
+            elif gate_name == "MSGate":
                 gate_class = getattr(library, "GMS")
                 gate = gate_class(num_qubits=len(qargs), theta=params)
             else:
