@@ -903,7 +903,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 self.check_two_qubit_weyl_specialization(
                     k1 @ Ud(a + da, b + db, c + dc) @ k2,
                     0.999,
-                    Specialization.SimaabEquiv,
+                    Specialization.fSimaabEquiv,
                     {"rz": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
                 )
 
@@ -917,7 +917,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 self.check_two_qubit_weyl_specialization(
                     k1 @ Ud(a + da, b + db, c + dc) @ k2,
                     0.999,
-                    Specialization.SimabbEquiv,
+                    Specialization.fSimabbEquiv,
                     {"rx": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
                 )
 
@@ -931,7 +931,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                 self.check_two_qubit_weyl_specialization(
                     k1 @ Ud(a + da, b + db, c + dc) @ k2,
                     0.999,
-                    Specialization.SimabmbEquiv,
+                    Specialization.fSimabmbEquiv,
                     {"rx": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
                 )
 
