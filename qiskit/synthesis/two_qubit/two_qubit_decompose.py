@@ -230,7 +230,7 @@ class TwoQubitWeylDecomposition:
             + b64ascii
             + [
                 f"requested_fidelity={self.requested_fidelity},",
-                f"_specialization={self._inner_decomposition.specialization},"
+                f"_specialization={self._inner_decomposition.specialization},",
                 f"calculated_fidelity={self.calculated_fidelity},",
                 f"actual_fidelity={self.actual_fidelity()},",
                 f"abc={(self.a, self.b, self.c)})",
