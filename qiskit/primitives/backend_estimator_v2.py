@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from qiskit.providers import BackendV1, BackendV2
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
-from qiskit.providers import Options
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
@@ -33,6 +33,21 @@ from .containers import EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.bindings_array import BindingsArray
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
+
+
+@dataclass
+class Options:
+    """Options for :class:`~.BackendEstimatorV2`."""
+
+    abelian_grouping: bool = True
+    """Whether the observables should be grouped into sets of qubit-wise commuting observables.
+    Default: True.
+    """
+
+    seed_simulator: int | None = None
+    """The seed to use in the simulator. If None, a random seed will be used.
+    Default: None.
+    """
 
 
 class BackendEstimatorV2(BaseEstimatorV2):
@@ -72,21 +87,12 @@ class BackendEstimatorV2(BaseEstimatorV2):
             backend: The backend to run the primitive on.
             default_precision: The default precision to use if none are specified in :meth:`~run`.
                 Default: 0.015625 (1 / sqrt(4096)).
-            options: The options.
-
-        .. notes::
-
-            ``options`` has the following items.
-            - abelian_grouping: Whether the observables should be grouped into sets of
-                qubit-wise commuting observables.
-            - seed_simulator: The seed to use in the simulator.
-                If None, a random seed will be used.
+            options: The options to control the operator grouping (``abelian_grouping``) and
+                the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
         self._default_precision = default_precision
-        self._options = self._default_options()
-        if options is not None:
-            self._options.update_options(**options)
+        self._options = Options(**options) if options else Options()
 
         basis = PassManagerConfig.from_backend(backend).basis_gates
         if isinstance(backend, BackendV2):
@@ -94,14 +100,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         else:
             opt1q = Optimize1qGatesDecomposition(basis=basis)
         self._passmanager = PassManager([opt1q])
-
-    @classmethod
-    def _default_options(cls) -> Options:
-        """Return the default options"""
-        return Options(
-            abelian_grouping=True,
-            seed_simulator=None,
-        )
 
     @property
     def options(self) -> Options:
