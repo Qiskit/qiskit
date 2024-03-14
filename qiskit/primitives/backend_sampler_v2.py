@@ -39,6 +39,16 @@ from qiskit.result import Result
 
 
 @dataclass
+class Options:
+    """Options for :class:`~.BackendSamplerV2`"""
+
+    seed_simulator: int | None = None
+    """The seed to use in the simulator. If None, a random seed will be used.
+    Default: None.
+    """
+
+
+@dataclass
 class _MeasureInfo:
     creg_name: str
     num_bits: int
@@ -71,14 +81,17 @@ class BackendSamplerV2(BaseSamplerV2):
         *,
         backend: BackendV1 | BackendV2,
         default_shots: int = 1024,
+        options: dict | None = None,
     ):
         """
         Args:
             backend: Required: the backend to run the sampler primitive on
             default_shots: The default shots for the sampler if not specified during run.
+            options: The options to control the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
         self._default_shots = default_shots
+        self._options = Options(**options) if options else Options()
 
     @property
     def backend(self) -> BackendV1 | BackendV2:
@@ -89,6 +102,11 @@ class BackendSamplerV2(BaseSamplerV2):
     def default_shots(self) -> int:
         """Return the default shots"""
         return self._default_shots
+
+    @property
+    def options(self) -> Options:
+        """Return the options"""
+        return self._options
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
@@ -125,7 +143,11 @@ class BackendSamplerV2(BaseSamplerV2):
         }
         flatten_circuits = np.ravel(bound_circuits).tolist()
         result_memory, _ = _run_circuits(
-            flatten_circuits, self._backend, memory=True, shots=pub.shots
+            flatten_circuits,
+            self._backend,
+            memory=True,
+            shots=pub.shots,
+            seed_simulator=self._options.seed_simulator,
         )
         memory_list = _prepare_memory(result_memory, max_num_bytes)
 

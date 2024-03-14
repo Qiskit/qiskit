@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023, 2024.
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -94,6 +94,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             bell, _, target = self._cases[1]
             bell = pm.run(bell)
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             job = sampler.run([bell], shots=self._shots)
             result = job.result()
             self.assertIsInstance(result, PrimitiveResult)
@@ -107,6 +108,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("single with param"):
             pqc, param_vals, target = self._cases[2]
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             pqc = pm.run(pqc)
             params = (param.name for param in pqc.parameters)
             job = sampler.run([(pqc, {params: param_vals})], shots=self._shots)
@@ -122,6 +124,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("multiple"):
             pqc, param_vals, target = self._cases[2]
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             pqc = pm.run(pqc)
             params = (param.name for param in pqc.parameters)
             job = sampler.run(
@@ -141,6 +144,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test run() returns the same results if the same input is given."""
         bell, _, _ = self._cases[1]
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
         result1 = sampler.run([bell], shots=self._shots).result()
@@ -154,6 +158,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test run() with multiple circuits."""
         bell, _, target = self._cases[1]
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         bell = pm.run(bell)
         result = sampler.run([bell, bell, bell], shots=self._shots).result()
@@ -172,6 +177,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         pqc1, pqc2, pqc3 = pm.run([pqc1, pqc2, pqc3])
 
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         result = sampler.run(
             [(pqc1, param1), (pqc2, param2), (pqc3, param3)], shots=self._shots
         ).result()
@@ -192,6 +198,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc, qc2 = pm.run([qc, qc2])
 
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         result = sampler.run([qc, qc2], shots=self._shots).result()
         self.assertEqual(len(result), 2)
         for i in range(2):
@@ -215,6 +222,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc0, qc1, qc2, qc3 = pm.run([qc0, qc1, qc2, qc3])
 
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         result = sampler.run([qc0, qc1, qc2, qc3], shots=self._shots).result()
         self.assertEqual(len(result), 4)
         for i in range(4):
@@ -224,6 +232,7 @@ class TestBackendSamplerV2(QiskitTestCase):
     def test_run_single_circuit(self, backend):
         """Test for single circuit case."""
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
         with self.subTest("No parameter"):
@@ -295,6 +304,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         qc = pm.run(qc)
 
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         result = sampler.run([(qc, [0, 0]), (qc, [np.pi / 2, 0])], shots=self._shots).result()
         self.assertEqual(len(result), 2)
 
@@ -359,6 +369,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc = pm.run(qc)
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         with self.subTest("one circuit"):
             result = sampler.run([qc], shots=self._shots).result()
             self.assertEqual(len(result), 1)
@@ -385,12 +396,14 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("ndarray"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([(qc, params_array)], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, target[0].data.meas)
 
         with self.subTest("split a list"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run(
                 [(qc, params) for params in params_list], shots=self._shots
             ).result()
@@ -410,6 +423,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("run arg"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([bell], shots=shots).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -417,6 +431,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("default shots"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             default_shots = sampler.default_shots
             result = sampler.run([bell]).result()
             self.assertEqual(len(result), 1)
@@ -426,6 +441,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("setting default shots"):
             default_shots = 100
             sampler = BackendSamplerV2(backend=backend, default_shots=default_shots)
+            sampler.options.seed_simulator = self._seed
             self.assertEqual(sampler.default_shots, default_shots)
             result = sampler.run([bell]).result()
             self.assertEqual(len(result), 1)
@@ -434,6 +450,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("pub-like"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([(bell, None, shots)]).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -441,6 +458,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("pub"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([SamplerPub(bell, shots=shots)]).result()
             self.assertEqual(len(result), 1)
             self.assertEqual(result[0].data.meas.num_shots, shots)
@@ -448,6 +466,7 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         with self.subTest("multiple pubs"):
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             shots1 = 100
             shots2 = 200
             result = sampler.run(
@@ -503,6 +522,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             circuit = pm.run(circuit)
 
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([circuit], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
@@ -516,6 +536,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             circuit = pm.run(circuit)
 
             sampler = BackendSamplerV2(backend=backend)
+            sampler.options.seed_simulator = self._seed
             result = sampler.run([circuit], shots=self._shots).result()
             self.assertEqual(len(result), 1)
             self._assert_allclose(result[0].data.meas, np.array({1: self._shots}))
@@ -592,6 +613,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         for title, qc, target in cases:
             with self.subTest(title):
                 sampler = BackendSamplerV2(backend=backend)
+                sampler.options.seed_simulator = self._seed
                 result = sampler.run([qc], shots=self._shots).result()
                 self.assertEqual(len(result), 1)
                 data = result[0].data
@@ -626,6 +648,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         }
 
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         qc2 = pm.run(qc2)
         result = sampler.run([qc2], shots=self._shots).result()
@@ -641,6 +664,7 @@ class TestBackendSamplerV2(QiskitTestCase):
         """Test that the sampler works when there are no classical register in the circuit."""
         qc = QuantumCircuit(2)
         sampler = BackendSamplerV2(backend=backend)
+        sampler.options.seed_simulator = self._seed
         with self.assertWarns(UserWarning):
             result = sampler.run([qc]).result()
 
