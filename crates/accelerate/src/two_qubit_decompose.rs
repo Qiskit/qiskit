@@ -351,9 +351,12 @@ enum Specialization {
     MirrorControlledEquiv,
     // These next 3 gates use the definition of fSim from eq (1) in:
     // https://arxiv.org/pdf/2001.08343.pdf
-    SimaabEquiv,
-    SimabbEquiv,
-    SimabmbEquiv,
+    #[allow(non_camel_case_types)]
+    fSimaabEquiv,
+    #[allow(non_camel_case_types)]
+    fSimabbEquiv,
+    #[allow(non_camel_case_types)]
+    fSimabmbEquiv,
 }
 
 impl Specialization {
@@ -366,9 +369,9 @@ impl Specialization {
             Specialization::PartialSWAPFlipEquiv => 4,
             Specialization::ControlledEquiv => 5,
             Specialization::MirrorControlledEquiv => 6,
-            Specialization::SimaabEquiv => 7,
-            Specialization::SimabbEquiv => 8,
-            Specialization::SimabmbEquiv => 9,
+            Specialization::fSimaabEquiv => 7,
+            Specialization::fSimabbEquiv => 8,
+            Specialization::fSimabmbEquiv => 9,
         }
     }
 
@@ -381,9 +384,9 @@ impl Specialization {
             4 => Specialization::PartialSWAPFlipEquiv,
             5 => Specialization::ControlledEquiv,
             6 => Specialization::MirrorControlledEquiv,
-            7 => Specialization::SimaabEquiv,
-            8 => Specialization::SimabbEquiv,
-            9 => Specialization::SimabmbEquiv,
+            7 => Specialization::fSimaabEquiv,
+            8 => Specialization::fSimabbEquiv,
+            9 => Specialization::fSimabmbEquiv,
             _ => unreachable!("Invalid specialization value"),
         }
     }
@@ -751,11 +754,11 @@ impl TwoQubitWeylDecomposition {
                 } else if is_close(PI4, PI4, c) {
                     Specialization::MirrorControlledEquiv
                 } else if is_close((a + b) / 2., (a + b) / 2., c) {
-                    Specialization::SimaabEquiv
+                    Specialization::fSimaabEquiv
                 } else if is_close(a, (b + c) / 2., (b + c) / 2.) {
-                    Specialization::SimabbEquiv
+                    Specialization::fSimabbEquiv
                 } else if is_close(a, (b - c) / 2., (c - b) / 2.) {
-                    Specialization::SimabmbEquiv
+                    Specialization::fSimabmbEquiv
                 } else {
                     Specialization::General
                 }
@@ -924,7 +927,7 @@ impl TwoQubitWeylDecomposition {
             // This gate binds 5 parameters, we make it canonical by setting:
             //
             // :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
-            Specialization::SimaabEquiv => {
+            Specialization::fSimaabEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), EulerBasis::ZYZ);
                 TwoQubitWeylDecomposition {
@@ -945,7 +948,7 @@ impl TwoQubitWeylDecomposition {
             // This gate binds 5 parameters, we make it canonical by setting:
             //
             // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
-            Specialization::SimabbEquiv => {
+            Specialization::fSimabbEquiv => {
                 let euler_basis = EulerBasis::XYX;
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), euler_basis);
@@ -968,7 +971,7 @@ impl TwoQubitWeylDecomposition {
             // This gate binds 5 parameters, we make it canonical by setting:
             //
             // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
-            Specialization::SimabmbEquiv => {
+            Specialization::fSimabmbEquiv => {
                 let euler_basis = EulerBasis::XYX;
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), euler_basis);
