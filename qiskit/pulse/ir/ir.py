@@ -242,7 +242,6 @@ class SequenceIR:
         else:
             block = self.copy()
 
-
         def edge_map(_x, _y, _node):
             if _y == _node:
                 return 0
@@ -313,5 +312,17 @@ class SequenceIR:
         #  to be different, But then it's not straightforward to compare the time_table.
         #  It is reasonable to assume that blocks with the same alignment and the same sequence
         #  will result in the same time_table, but this decision should be made consciously.
+
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        copied = self.__class__(copy.deepcopy(self.alignment, memo=memo))
+        memo[id(self)] = copied
+        copied._time_table = copy.copy(self._time_table)  # Only int keys and values.
+        copied._sequence = copy.deepcopy(self._sequence, memo=memo)
+        # To ensure that copied object will be equal to the original.
+        copied._sequence[0] = self._InNode
+        copied._sequence[1] = self._OutNode
+        return copied
 
     # TODO : __repr__
