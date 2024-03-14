@@ -777,6 +777,10 @@ impl TwoQubitWeylDecomposition {
             unitary_matrix,
         };
         let mut specialized: TwoQubitWeylDecomposition = match specialization {
+            // :math:`U \sim U_d(0,0,0) \sim Id`
+            //
+            // This gate binds 0 parameters, we make it canonical by setting
+            // :math:`K2_l = Id` , :math:`K2_r = Id`.
             Specialization::IdEquiv => TwoQubitWeylDecomposition {
                 specialization,
                 a: 0.,
@@ -788,6 +792,10 @@ impl TwoQubitWeylDecomposition {
                 K2r: Array2::eye(2),
                 ..general
             },
+            // :math:`U \sim U_d(\pi/4, \pi/4, \pi/4) \sim U(\pi/4, \pi/4, -\pi/4) \sim \text{SWAP}`
+            //
+            // This gate binds 0 parameters, we make it canonical by setting
+            // :math:`K2_l = Id` , :math:`K2_r = Id`.
             Specialization::SWAPEquiv => {
                 if c > 0. {
                     TwoQubitWeylDecomposition {
@@ -817,6 +825,11 @@ impl TwoQubitWeylDecomposition {
                     }
                 }
             }
+            // :math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, \alpha\pi/4) \sim \text{SWAP}^\alpha`
+            //
+            // This gate binds 3 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Id`.
             Specialization::PartialSWAPEquiv => {
                 let closest = closest_partial_swap(a, b, c);
                 let mut k2l_dag = general.K2l.t().to_owned();
@@ -833,6 +846,14 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\alpha\pi/4, \alpha\pi/4, -\alpha\pi/4) \sim \text{SWAP}^\alpha`
+            //
+            // (a non-equivalent root of SWAP from the TwoQubitWeylPartialSWAPEquiv
+            // similar to how :math:`x = (\pm \sqrt(x))^2`)
+            //
+            // This gate binds 3 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Id`
             Specialization::PartialSWAPFlipEquiv => {
                 let closest = closest_partial_swap(a, b, -c);
                 let mut k2l_dag = general.K2l.t().to_owned();
@@ -849,6 +870,12 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\alpha, 0, 0) \sim \text{Ctrl-U}`
+            //
+            // This gate binds 4 parameters, we make it canonical by setting:
+            //
+            //      :math:`K2_l = Ry(\theta_l) Rx(\lambda_l)` ,
+            //      :math:`K2_r = Ry(\theta_r) Rx(\lambda_r)` .
             Specialization::ControlledEquiv => {
                 let euler_basis = EulerBasis::XYX;
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
@@ -869,6 +896,11 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\pi/4, \pi/4, \alpha) \sim \text{SWAP} \cdot \text{Ctrl-U}`
+            //
+            // This gate binds 4 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)` , :math:`K2_r = Ry(\theta_r)\cdot Rz(\lambda_r)`
             Specialization::MirrorControlledEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), EulerBasis::ZYZ);
@@ -887,6 +919,11 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\alpha, \alpha, \beta), \alpha \geq |\beta|`
+            //
+            // This gate binds 5 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Ry(\theta_l)\cdot Rz(\lambda_l)`.
             Specialization::SimaabEquiv => {
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
                     angles_from_unitary(general.K2l.view(), EulerBasis::ZYZ);
@@ -903,6 +940,11 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
+            //
+            // This gate binds 5 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
             Specialization::SimabbEquiv => {
                 let euler_basis = EulerBasis::XYX;
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
@@ -921,6 +963,11 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // :math:`U \sim U_d(\alpha, \beta, -\beta), \alpha \geq \beta \geq 0`
+            //
+            // This gate binds 5 parameters, we make it canonical by setting:
+            //
+            // :math:`K2_l = Ry(\theta_l)Rx(\lambda_l)`
             Specialization::SimabmbEquiv => {
                 let euler_basis = EulerBasis::XYX;
                 let [k2ltheta, k2lphi, k2llambda, k2lphase] =
@@ -939,6 +986,10 @@ impl TwoQubitWeylDecomposition {
                     ..general
                 }
             }
+            // U has no special symmetry.
+            //
+            // This gate binds all 6 possible parameters, so there is no need to make the single-qubit
+            // pre-/post-gates canonical.
             Specialization::General => general,
         };
 
