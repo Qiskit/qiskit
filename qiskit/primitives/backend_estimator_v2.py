@@ -25,6 +25,7 @@ from qiskit.providers import BackendV1, BackendV2
 from qiskit.quantum_info import Pauli, PauliList
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+from qiskit.providers import Options
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
@@ -64,24 +65,28 @@ class BackendEstimatorV2(BaseEstimatorV2):
         *,
         backend: BackendV1 | BackendV2,
         default_precision: float = 0.015625,
-        abelian_grouping: bool = True,
-        seed_simulator: int | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             backend: The backend to run the primitive on.
             default_precision: The default precision to use if none are specified in :meth:`~run`.
                 Default: 0.015625 (1 / sqrt(4096)).
-            abelian_grouping: Whether the observables should be grouped into sets of
+            options: The options.
+
+        .. notes::
+
+            ``options`` has the following items.
+            - abelian_grouping: Whether the observables should be grouped into sets of
                 qubit-wise commuting observables.
-            seed_simulator: The seed to use in the simulator.
+            - seed_simulator: The seed to use in the simulator.
                 If None, a random seed will be used.
         """
-        super().__init__()
         self._backend = backend
         self._default_precision = default_precision
-        self._abelian_grouping = abelian_grouping
-        self._seed_simulator = seed_simulator
+        self._options = self._default_options()
+        if options is not None:
+            self._options.update_options(**options)
 
         basis = PassManagerConfig.from_backend(backend).basis_gates
         if isinstance(backend, BackendV2):
@@ -90,15 +95,23 @@ class BackendEstimatorV2(BaseEstimatorV2):
             opt1q = Optimize1qGatesDecomposition(basis=basis)
         self._passmanager = PassManager([opt1q])
 
+    @classmethod
+    def _default_options(cls) -> Options:
+        """Return the default options"""
+        return Options(
+            abelian_grouping=True,
+            seed_simulator=None,
+        )
+
+    @property
+    def options(self) -> Options:
+        """Return the options"""
+        return self._options
+
     @property
     def default_precision(self) -> float:
         """Return the default precision"""
         return self._default_precision
-
-    @property
-    def ablian_grouping(self) -> bool:
-        """Return whether Abelian grouping is used or not."""
-        return self._abelian_grouping
 
     @property
     def backend(self) -> BackendV1 | BackendV2:
@@ -175,7 +188,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
         # run circuits
         result, metadata = _run_circuits(
-            circuits, self._backend, shots=shots, seed_simulator=self._seed_simulator
+            circuits, self._backend, shots=shots, seed_simulator=self._options.seed_simulator
         )
 
         # postprocessing results
@@ -195,7 +208,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     ) -> list[QuantumCircuit]:
         # generate measurement circuits with metadata
         meas_circuits: list[QuantumCircuit] = []
-        if self._abelian_grouping:
+        if self._options.abelian_grouping:
             for obs in observable.group_commuting(qubit_wise=True):
                 basis = Pauli((np.logical_or.reduce(obs.z), np.logical_or.reduce(obs.x)))
                 meas_circuit, indices = _measurement_circuit(circuit.num_qubits, basis)

@@ -80,9 +80,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         psi1, psi2 = pm.run([psi1, psi2])
         estimator = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
 
         # Specify the circuit and observable by indices.
@@ -144,9 +143,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         estimator = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         result4 = estimator.run([pub1, pub2]).result()
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318], rtol=self._rtol)
@@ -160,9 +158,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         circuit = pm.run(circuit)
         est = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         observable = self.observable.apply_layout(circuit.layout)
         result = est.run([(circuit, observable)]).result()
@@ -173,9 +170,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test for single circuit and single observable case."""
         est = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
@@ -244,9 +240,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         est = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         op_1 = op.apply_layout(qc.layout)
         result = est.run([(qc, op_1)]).result()
@@ -279,9 +274,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         est = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         op_1 = op.apply_layout(qc.layout)
         result = est.run([(qc, op_1)]).result()
@@ -318,9 +312,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         est = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         with self.assertRaises(ValueError):
             est.run([(qc, op2)]).result()
@@ -357,9 +350,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         backend_estimator = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
 
         with self.subTest("ndarrary"):
@@ -377,9 +369,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         """Test for precision"""
         estimator = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1 = pm.run(self.psi[0])
@@ -420,9 +411,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
 
         backend_estimator = BackendEstimatorV2(
             backend=backend,
-            abelian_grouping=abelian_grouping,
             default_precision=self._precision,
-            seed_simulator=self._seed,
+            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
         )
 
         with self.subTest("ndarrary"):
