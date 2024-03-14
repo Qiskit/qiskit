@@ -256,7 +256,8 @@ class TwoQubitWeylDecomposition:
         return cls(arr, fidelity=requested_fidelity, _specialization=_specialization)
 
     def __str__(self):
-        pre = f"{self.__class__.__name__}(\n\t"
+        specialization = str(self._inner_decomposition.specialization).split(".")[1]
+        pre = f"{self.__class__.__name__} [specialization={specialization}] (\n\t"
         circ_indent = "\n\t".join(self.circuit(simplify=True).draw("text").lines(-1))
         return f"{pre}{circ_indent}\n)"
 
