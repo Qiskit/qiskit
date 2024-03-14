@@ -16,6 +16,7 @@
 
 from copy import deepcopy
 
+import ddt
 import numpy as np
 
 from qiskit import pulse
@@ -23,7 +24,12 @@ from qiskit.circuit import Parameter
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
+<<<<<<< HEAD
 from qiskit.test import QiskitTestCase
+=======
+from qiskit.pulse.utils import format_parameter_value
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+>>>>>>> f48d81983 (Fix pulse parameter value formatter bug (#11972))
 
 
 class ParameterTestBase(QiskitTestCase):
@@ -644,3 +650,80 @@ class TestScheduleTimeslots(QiskitTestCase):
         sched = pulse.Schedule()
         with self.assertRaises(UnassignedDurationError):
             sched.insert(0, test_play)
+
+
+@ddt.ddt
+class TestFormatParameter(QiskitTestCase):
+    """Test format_parameter_value function."""
+
+    def test_format_unassigned(self):
+        """Format unassigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = p1 + p2
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    def test_partly_unassigned(self):
+        """Format partly assigned parameter expression."""
+        p1 = Parameter("P1")
+        p2 = Parameter("P2")
+        expr = (p1 + p2).assign(p1, 3.0)
+
+        self.assertEqual(format_parameter_value(expr), expr)
+
+    @ddt.data(1, 1.0, 1.00000000001, np.int64(1))
+    def test_integer(self, value):
+        """Format integer parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, 1)
+
+    @ddt.data(1.2, np.float64(1.2))
+    def test_float(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    @ddt.data(1.2 + 3.4j, np.complex128(1.2 + 3.4j))
+    def test_complex(self, value):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, value)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, complex)
+        self.assertEqual(out, 1.2 + 3.4j)
+
+    def test_complex_rounding_error(self):
+        """Format float parameter expression."""
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, 1.2 + 1j * 1e-20)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.2)
+
+    def test_builtin_float(self):
+        """Format float parameter expression."""
+        expr = 1.23
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, float)
+        self.assertEqual(out, 1.23)
+
+    @ddt.data(15482812500000, 8465625000000, 4255312500000)
+    def test_edge_case(self, edge_case_val):
+        """Format integer parameter expression with
+        a particular integer number that causes rounding error at typecast."""
+
+        # Numbers to be tested here are chosen randomly.
+        # These numbers had caused mis-typecast into float before qiskit/#11972.
+
+        p1 = Parameter("P1")
+        expr = p1.assign(p1, edge_case_val)
+        out = format_parameter_value(expr)
+        self.assertIsInstance(out, int)
+        self.assertEqual(out, edge_case_val)
