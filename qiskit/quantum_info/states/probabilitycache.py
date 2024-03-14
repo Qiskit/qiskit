@@ -29,12 +29,12 @@ class ProbabilityCache:
         self.cache_ret: dict[str, QuantumState] = {}
 
     @staticmethod
-    def cache_key(outcome: str | list[str]) -> str:
+    def _cache_key(outcome: str | list[str]) -> str:
         """Calculate the cache key used for inserting and retrieving all cache entries
         if in str format it will be assumed this was calculated earlier
 
         Args:
-            outcome (str or list[str]): outcome value used for building the key
+            outcome (str or list[str]): outcome value used build the key and check the cache
 
         Returns:
             str: the key in str format
@@ -44,85 +44,73 @@ class ProbabilityCache:
         else:
             return outcome
 
-    def is_state_in_quantum_state_cache(self, outcome: str | list[str]) -> bool:
-        """Check if the stabilizer state is cached from previous branch calculations
+    def is_state_cached(self, outcome: str | list[str]) -> bool:
+        """Check if the QuantumState is cached from previous branch calculations
 
         Args:
-            outcome (str or list[str]): outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome used to build the key and check the cache
 
         Returns:
             bool: True if state is in cache, False if not in cache
         """
-        key: str = ProbabilityCache.cache_key(outcome)
+        key: str = ProbabilityCache._cache_key(outcome)
         return ProbabilityCache._check_key(key) and (key in self.cache_ret)
 
     def retrieve_state(self, outcome: str | list[str]) -> QuantumState | None:
-        """Retrieve the stabilizer state from the cache, if the state does not
+        """Retrieve the QuantumState from the cache, if the state does not
         exist in the cache, None is returned
 
         Args:
-            outcome (str or list[str]): outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome used to build the key and check the cache
 
         Returns:
             (QuantumState or None): the state retrieved from the cache, None if key is
                 not in in cache
         """
         try:
-            return self.cache_ret[ProbabilityCache.cache_key(outcome)]
+            return self.cache_ret[ProbabilityCache._cache_key(outcome)]
         except KeyError:
             return None
 
     def retrieve_outcome(self, outcome: str | list[str]) -> float | None:
-        """Retrieve the outcome value based on the outcome value to build the key,
+        """Retrieve the outcome value based on the outcome to build the key,
         if the state does not exist in the cache, None is returned
 
         Args:
-            outcome (str or list[str]): outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome used to build the key and check the cache
 
         Returns:
             (float or None): the cached float value for the outcome probability, None
                 if key is not in cache
         """
         try:
-            return self.cache_outcome[ProbabilityCache.cache_key(outcome)]
+            return self.cache_outcome[ProbabilityCache._cache_key(outcome)]
         except KeyError:
             return None
 
-    def outcome_cache_contains_entries(self) -> bool:
+    def contains_entries(self) -> bool:
         """Check if the outcome cache contains any entries
 
         Returns:
             bool: True if at least 1 entry exists, False if nothing is cached
         """
-        return len(self.cache_outcome) > 0
+        return len(self.cache_outcome) > 0 and len(self.cache_ret) > 0
 
-    def insert_state(self, outcome: str | list[str], ret: QuantumState):
-        """Insert into the state cache. Key is verified before inserting
-        as it must NOT be a fully calculated branch, or a branch with no caclulations
-        for example 'XXXX' or '00101' will not be cached.
+    def insert(self, outcome: str | list[str], outcome_prob: float, ret: QuantumState) -> None:
+        """Insert into cache the outcome and state. Key is verified before inserting as
+        it must NOT be a fully calculated branch, or a branch with no measurements for
+        example 'XXXX' or '00101' will not be cached.
         Must contain at least 1 'X' and 1 ('1' or '0') to cache
 
         Args:
-            outcome (str or list[str]): outcome value used to get the key and check the cache
+            outcome (str or list[str]): outcome used to build the key and check the cache
+            outcome_prob (float): probability to save in the cache for the outcome
             ret (QuantumState): the QuantumState to save in the cache
         """
-        key: str = ProbabilityCache.cache_key(outcome)
-        if ProbabilityCache._check_key(key):
-            self.cache_ret[key] = ret
-
-    def insert_outcome(self, outcome: str | list[str], outcome_prob: float):
-        """Insert into the outcome cache. Key is verified before inserting
-        as it must NOT be a fully calculated branch, or a branch with no caclulations
-        for example 'XXXX' or '00101' will not be cached.
-        Must contain at least 1 'X' and 1 ('1' or '0') to cache
-
-        Args:
-            outcome (str or list[str]): outcome value used to get the key and check the cache
-            outcome_prob (float): probability to save in the cache for the outcome
-        """
-        key: str = ProbabilityCache.cache_key(outcome)
+        key: str = ProbabilityCache._cache_key(outcome)
         if ProbabilityCache._check_key(key):
             self.cache_outcome[key] = outcome_prob
+            self.cache_ret[key] = ret
 
     @staticmethod
     def _check_key(key: str) -> bool:

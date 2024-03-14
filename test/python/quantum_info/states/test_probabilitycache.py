@@ -56,18 +56,14 @@ class TestProbabilityCache(QiskitTestCase):
         list_not_cached: list[str] = list(np.setdiff1d(test_input, test_input_to_cache))
 
         # Verify cache is empty
-        self.assertFalse(cache.outcome_cache_contains_entries())
+        self.assertFalse(cache.contains_entries())
+
         # Add items to cache
         for i, key in enumerate(dict_random_probs_to_insert):
-            cache.insert_outcome(key, dict_random_probs_to_insert[key])
-
-        # Add items to cache for state, use int
-        for i, key in enumerate(dict_random_probs_to_insert, 0):
-            # Switch between passing the key as a list[str] and a str
-            cache.insert_state(self._key_type(key, self._odd_num(i)), i)
+            cache.insert(self._key_type(key, self._odd_num(i)), dict_random_probs_to_insert[key], i)
 
         # Verfiy cache has at least 1 entry
-        self.assertTrue(cache.outcome_cache_contains_entries())
+        self.assertTrue(cache.contains_entries())
 
         # Verify values in cache exist and are the correct value
         for i, key in enumerate(dict_random_probs_to_insert):
@@ -75,11 +71,11 @@ class TestProbabilityCache(QiskitTestCase):
             # formula to decide if key was allowed to be inserted in cache
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertTrue(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertFalse(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify all non inserted items not in cache
@@ -93,14 +89,8 @@ class TestProbabilityCache(QiskitTestCase):
         }
 
         # Add items to cache
-        for i, key in enumerate(items_to_cache_next):
-            cache.insert_outcome(
-                self._key_type(key, not self._odd_num(i)), items_to_cache_next[key]
-            )
-
-        # Add items to cache for state, use int
         for i, key in enumerate(items_to_cache_next, len(dict_random_probs_to_insert)):
-            cache.insert_state(self._key_type(key, not self._odd_num(i)), i)
+            cache.insert(self._key_type(key, not self._odd_num(i)), items_to_cache_next[key], i)
 
         # Verify values in cache exist and are the correct value
         for i, key in enumerate(dict_random_probs_to_insert):
@@ -108,11 +98,11 @@ class TestProbabilityCache(QiskitTestCase):
             # formula to decide if key was allowed to be inserted in cache
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == dict_random_probs_to_insert[key])
-                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertTrue(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertFalse(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         # Verify values in cache exist and are the correct value
@@ -121,11 +111,11 @@ class TestProbabilityCache(QiskitTestCase):
             key_t = self._key_type(key, self._odd_num(i))
             if cache._check_key(key):
                 self.assertTrue(cache.retrieve_outcome(key_t) == items_to_cache_next[key])
-                self.assertTrue(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertTrue(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) == i)
             else:
                 self.assertTrue(cache.retrieve_outcome(key_t) is None)
-                self.assertFalse(cache.is_state_in_quantum_state_cache(key_t))
+                self.assertFalse(cache.is_state_cached(key_t))
                 self.assertTrue(cache.retrieve_state(key_t) is None)
 
         keys_to_pick: list[str] = [

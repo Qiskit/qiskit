@@ -747,7 +747,7 @@ class StabilizerState(QuantumState):
             return range(loc, (loc + 1))
 
     @staticmethod
-    def retrieve_deterministic_probability(
+    def _retrieve_deterministic_probability(
         index: int,
         qubit: int,
         outcome: list[str],
@@ -803,31 +803,27 @@ class StabilizerState(QuantumState):
         """Recursive helper function for calculating the probabilities
 
         Args:
-            qubits : range of qubits
-            outcome list[str]: outcome being built
-            outcome_prob float: probabilitiy of the outcome
-            ret StabilizerState: stabilizer state performing the calculations
-            probs dict[str, float]: holds the outcomes and probabilitiy results
-            target str: target outcome wanting to measure, None if not targetting
+            qubits (range): range of qubits
+            outcome (list[str]): outcome being built
+            outcome_prob (float): probabilitiy of the outcome
+            ret (StabilizerState): stabilizer state performing the calculations
+            probs (dict[str, float]): holds the outcomes and probabilitiy results
+            target (str): target outcome wanting to measure, None if not targetting
                         a specific target
-            cache: ProbabilityCache: caching object to hold states and outcomes for
+            cache (ProbabilityCache): caching object to hold states and outcomes for
                         calculating future branches
         """
-        qubit_for_branching = -1
+        qubit_for_branching: int = -1
+
         # Only use caching if requirements are met, when target and cache object are not None
         use_caching: bool = target is not None and cache is not None
-        ret: StabilizerState = None
 
-        # Use cache only if a key was found earlier
-        if use_caching:
-            if cache.is_state_in_quantum_state_cache(outcome):
-                ret = cache.retrieve_state(outcome)
-            else:
-                ret = self.copy()
-                cache.insert_state(outcome, ret)
-        else:
-            # Non cached path, no overhead related to caching if caching is disabled
-            ret = self.copy()
+        # Use cache to retrieve StabilizerState (if enabled and value cached) otherwise copy
+        ret: StabilizerState = (
+            cache.retrieve_state(outcome)
+            if (use_caching and cache.is_state_cached(outcome))
+            else self.copy()
+        )
 
         # Speed up path of having no 'X' in outcome
         if "X" in outcome:
@@ -838,16 +834,15 @@ class StabilizerState(QuantumState):
                     qubit = qubits[(len(qubits) - i - 1)]
                     # Determine the probabilitiy is deterministic
                     if StabilizerState._is_qubit_deterministic(ret, qubit):
-                        outcome_prob = StabilizerState.retrieve_deterministic_probability(
+                        outcome_prob = StabilizerState._retrieve_deterministic_probability(
                             i, qubit, outcome, ret, outcome_prob, target
                         )
                     else:
                         qubit_for_branching = i
 
-        # Build a cache only if targetting values and cache object is provided
-        # No performance overhead when not targeting measurements
+        # Insert current probability and state into the cache when enabled
         if use_caching:
-            cache.insert_outcome(outcome, outcome_prob)
+            cache.insert(outcome, outcome_prob, ret)
 
         if qubit_for_branching == -1:
             str_outcome = "".join(outcome)
