@@ -387,14 +387,15 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
-Primitives V2
--------------
+Estimator V2
+------------
 
 .. autosummary::
    :toctree: ../stubs/
 
    BaseEstimatorV2
    StatevectorEstimator
+   BackendEstimatorV2
 
 Sampler V2
 ----------
@@ -473,3 +474,4 @@ from .primitive_job import BasePrimitiveJob, PrimitiveJob
 from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
+from .backend_estimator_v2 import BackendEstimatorV2
