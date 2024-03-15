@@ -42,6 +42,11 @@ from qiskit.result import Result
 class Options:
     """Options for :class:`~.BackendSamplerV2`"""
 
+    default_shots: int = 1024
+    """The default shots to use if none are specified in :meth:`~.run`.
+    Default: 1024.
+    """
+
     seed_simulator: int | None = None
     """The seed to use in the simulator. If None, a random seed will be used.
     Default: None.
@@ -57,18 +62,33 @@ class _MeasureInfo:
 
 
 class BackendSamplerV2(BaseSamplerV2):
-    """
-    Implementation of :class:`~.BaseSamplerV2` using the run method of a backend.
+    """Evaluates bitstrings for provided quantum circuits
 
-    This class provides a SamplerV2 interface from any :class:`~.BackendV2` backend.
-    No measurement mitigation is performed.
+    The :class:`~.BackendSamplerV2` class is a generic implementation of the
+    :class:`~.BaseSamplerV2` interface that is used to wrap a :class:`~.BackendV2`
+    (or :class:`~.BackendV1`) object in the class :class:`~.BaseSamplerV2` API. It
+    facilitates using backends that do not provide a native
+    :class:`~.BaseSamplerV2` implementation in places that work with
+    :class:`~.BaseSamplerV2`. However,
+    if you're using a provider that has a native implementation of
+    :class:`~.BaseSamplerV2`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
 
-    This sampler supports providing arrays of parameter value sets to
-    bind against a single circuit.
+    This class does not perform any measurement or gate mitigation.
 
     Each tuple of ``(circuit, <optional> parameter values, <optional> shots)``, called a sampler
     primitive unified bloc (PUB), produces its own array-valued result. The :meth:`~run` method can
     be given many pubs at once.
+
+    The options for :class:`~.BackendSamplerV2` consist of the following items.
+
+    * ``default_shots``: The default shots to use if none are specified in :meth:`~run`.
+      Default: 1024.
+
+    * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
+      Default: None.
 
     .. note::
 
@@ -80,28 +100,21 @@ class BackendSamplerV2(BaseSamplerV2):
         self,
         *,
         backend: BackendV1 | BackendV2,
-        default_shots: int = 1024,
         options: dict | None = None,
     ):
         """
         Args:
-            backend: Required: the backend to run the sampler primitive on
-            default_shots: The default shots for the sampler if not specified during run.
-            options: The options to control the random seed for the simulator (``seed_simulator``).
+            backend: The backend to run the primitive on.
+            options: The options to control the default shots (``default_shots``) and
+                the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
-        self._default_shots = default_shots
         self._options = Options(**options) if options else Options()
 
     @property
     def backend(self) -> BackendV1 | BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
-
-    @property
-    def default_shots(self) -> int:
-        """Return the default shots"""
-        return self._default_shots
 
     @property
     def options(self) -> Options:
@@ -112,7 +125,7 @@ class BackendSamplerV2(BaseSamplerV2):
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         if shots is None:
-            shots = self._default_shots
+            shots = self._options.default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
         self._validate_pubs(coerced_pubs)
         job = PrimitiveJob(self._run, coerced_pubs)
