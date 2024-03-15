@@ -405,6 +405,7 @@ Sampler V2
 
    BaseSamplerV2
    StatevectorSampler
+   BackendSamplerV2
 
 Results V2
 ----------
@@ -475,3 +476,4 @@ from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
 from .backend_estimator_v2 import BackendEstimatorV2
+from .backend_sampler_v2 import BackendSamplerV2
