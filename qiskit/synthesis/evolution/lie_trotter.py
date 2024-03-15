@@ -85,11 +85,11 @@ class LieTrotter(ProductFormula):
         # if we only evolve a single Pauli we don't need to additionally wrap it
         wrap = not (len(pauli_list) == 1 and self.reps == 1)
 
-        for op, coeff in pauli_list:
+        for i, (op, coeff) in enumerate(pauli_list):
             evolution_circuit.compose(
                 self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
             )
-            if self.insert_barriers:
+            if self.insert_barriers and i != len(pauli_list) - 1:
                 evolution_circuit.barrier()
 
         return evolution_circuit.repeat(self.reps).decompose()
