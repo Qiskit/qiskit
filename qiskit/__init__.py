@@ -70,6 +70,7 @@ sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
     qiskit._accelerate.convert_2q_block_matrix
 )
+sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
