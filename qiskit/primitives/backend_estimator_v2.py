@@ -59,7 +59,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
     """Evaluates expectation values for provided quantum circuit and observable combinations
 
     The :class:`~.BackendEstimatorV2` class is a generic implementation of the
-    :class:`~.BaseEstimator` interface that is used to wrap a :class:`~.BackendV2`
+    :class:`~.BaseEstimatorV2` interface that is used to wrap a :class:`~.BackendV2`
     (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimatorV2` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimatorV2` implementation in places that work with
@@ -70,14 +70,24 @@ class BackendEstimatorV2(BaseEstimatorV2):
     a more efficient implementation. The generic nature of this class
     precludes doing any provider- or backend-specific optimizations.
 
-    Implementation of :class:`BaseEstimatorV2` using a backend.
-
     This class does not perform any measurement or gate mitigation, and, presently, is only
     compatible with Pauli-based observables.
 
     Each tuple of ``(circuit, observables, <optional> parameter values, <optional> precision)``,
     called an estimator primitive unified bloc (PUB), produces its own array-based result. The
     :meth:`~.BackendEstimatorV2.run` method can be given a sequence of pubs to run in one call.
+
+    The options for :class:`~.BackendEstimatorV2` consist of the following items.
+
+    * ``default_precision``: The default precision to use if none are specified in :meth:`~run`.
+      Default: 0.015625 (1 / sqrt(4096)).
+
+    * ``abelian_grouping``: Whether the observables should be grouped into sets of qubit-wise
+      commuting observables.
+      Default: True.
+
+    * ``seed_simulator``: The seed to use in the simulator. If None, a random seed will be used.
+      Default: None.
     """
 
     def __init__(
@@ -89,7 +99,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         """
         Args:
             backend: The backend to run the primitive on.
-            options: The options to control the default_precision (``default_precision``),
+            options: The options to control the default precision (``default_precision``),
                 the operator grouping (``abelian_grouping``), and
                 the random seed for the simulator (``seed_simulator``).
         """
