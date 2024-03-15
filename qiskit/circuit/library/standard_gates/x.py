@@ -1482,8 +1482,6 @@ class MCXVChain(MCXGate):
         """Define the MCX gate using a V-chain of CX gates."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        from .t import TGate, TdgGate
-        from .h import HGate
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
@@ -1491,13 +1489,11 @@ class MCXVChain(MCXGate):
         q_target = q[self.num_ctrl_qubits]
         q_ancillas = q[self.num_ctrl_qubits + 1 :]
 
-        definition = []
-
         if self._dirty_ancillas:
             if self.num_ctrl_qubits < 3:
-                definition.append((MCXGate(self.num_ctrl_qubits), [*q_controls, q_target], []))
+                qc.mcx(q_controls, q_target)
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
-                definition.append((C3XGate(), [*q_controls, q_target], []))
+                qc.mcx(q_controls, q_target)
             else:
                 num_ancillas = self.num_ctrl_qubits - 2
                 targets = [q_target] + q_ancillas[:num_ancillas][::-1]
@@ -1511,110 +1507,63 @@ class MCXVChain(MCXGate):
                                 # cancel rightmost gates of action part
                                 # with leftmost gates of reset part
                                 if self._relative_phase and targets[i] == q_target and j == 1:
-                                    definition.append(
-                                        (
-                                            CXGate(),
-                                            [q_ancillas[num_ancillas - i - 1], targets[i]],
-                                            [],
-                                        )
-                                    )
-                                    definition.append((TGate(), [targets[i]], []))
-                                    definition.append(
-                                        (
-                                            CXGate(),
-                                            [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
-                                            [],
-                                        )
-                                    )
-                                    definition.append((TdgGate(), [targets[i]], []))
-                                    definition.append((HGate(), [targets[i]], []))
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.h(targets[i])
                                 else:
-                                    definition.append((HGate(), [targets[i]], []))
-                                    definition.append((TGate(), [targets[i]], []))
-                                    definition.append(
-                                        (
-                                            CXGate(),
-                                            [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
-                                            [],
-                                        )
-                                    )
-                                    definition.append((TdgGate(), [targets[i]], []))
-                                    definition.append(
-                                        (
-                                            CXGate(),
-                                            [q_ancillas[num_ancillas - i - 1], targets[i]],
-                                            [],
-                                        )
-                                    )
+                                    qc.h(targets[i])
+                                    qc.t(targets[i])
+                                    qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                                    qc.tdg(targets[i])
+                                    qc.cx(q_ancillas[num_ancillas - i - 1], targets[i])
                             else:
                                 controls = [
                                     q_controls[self.num_ctrl_qubits - i - 1],
                                     q_ancillas[num_ancillas - i - 1],
                                 ]
 
-                                definition.append((CCXGate(), [*controls, targets[i]], []))
+                                qc.ccx(controls[0], controls[1], targets[i])
                         else:
-                            definition.append((HGate(), [targets[i]], []))
-                            definition.append((TGate(), [targets[i]], []))
-                            definition.append(
-                                (
-                                    CXGate(),
-                                    [q_controls[self.num_ctrl_qubits - i - 2], targets[i]],
-                                    [],
-                                )
-                            )
-                            definition.append((TdgGate(), [targets[i]], []))
-                            definition.append(
-                                (
-                                    CXGate(),
-                                    [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
-                                    [],
-                                )
-                            )
-                            definition.append((TGate(), [targets[i]], []))
-                            definition.append(
-                                (
-                                    CXGate(),
-                                    [q_controls[self.num_ctrl_qubits - i - 2], targets[i]],
-                                    [],
-                                )
-                            )
-                            definition.append((TdgGate(), [targets[i]], []))
-                            definition.append((HGate(), [targets[i]], []))
+                            qc.h(targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 1], targets[i])
+                            qc.t(targets[i])
+                            qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
+                            qc.tdg(targets[i])
+                            qc.h(targets[i])
 
                             break
 
                     for i in range(num_ancillas - 1):  # reset part
-                        definition.append((CXGate(), [q_ancillas[i], q_ancillas[i + 1]], []))
-                        definition.append((TGate(), [q_ancillas[i + 1]], []))
-                        definition.append((CXGate(), [q_controls[2 + i], q_ancillas[i + 1]], []))
-                        definition.append((TdgGate(), [q_ancillas[i + 1]], []))
-                        definition.append((HGate(), [q_ancillas[i + 1]], []))
+                        qc.cx(q_ancillas[i], q_ancillas[i + 1])
+                        qc.t(q_ancillas[i + 1])
+                        qc.cx(q_controls[2 + i], q_ancillas[i + 1])
+                        qc.tdg(q_ancillas[i + 1])
+                        qc.h(q_ancillas[i + 1])
 
                     if self._action_only:
-                        definition.append(
-                            (CCXGate(), [q_controls[-1], q_ancillas[-1], q_target], [])
-                        )
+                        qc.ccx(q_controls[-1], q_ancillas[-1], q_target)
 
                         break
         else:
-            definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[0])
             i = 0
             for j in range(2, self.num_ctrl_qubits - 1):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-                )
+                qc.rccx(q_controls[j], q_ancillas[i], q_ancillas[i + 1])
+
                 i += 1
 
-            definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
+            qc.ccx(q_controls[-1], q_ancillas[i], q_target)
 
             for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
-                )
-                i -= 1
-            definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
+                qc.rccx(q_controls[j], q_ancillas[i - 1], q_ancillas[i])
 
-        for instr, qargs, cargs in definition:
-            qc._append(instr, qargs, cargs)
+                i -= 1
+
+            qc.rccx(q_controls[0], q_controls[1], q_ancillas[i])
+
         self.definition = qc
