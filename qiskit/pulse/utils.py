@@ -52,17 +52,29 @@ def format_parameter_value(
     Returns:
         Value casted to non-parameter data type, when possible.
     """
-    try:
-        # value is assigned.
-        # note that ParameterExpression directly supports __complex__ via sympy or symengine
-        evaluated = complex(operand)
-        # remove truncation error
-        evaluated = np.round(evaluated, decimals=decimal)
-        # typecast into most likely data type
-        if np.isreal(evaluated):
-            evaluated = float(evaluated.real)
-            if evaluated.is_integer():
-                evaluated = int(evaluated)
+    if isinstance(operand, ParameterExpression):
+        try:
+            operand = operand.numeric()
+        except TypeError:
+            # Unassigned expression
+            return operand
+
+    # Return integer before calling the numpy round function.
+    # The input value is multiplied by 10**decimals, rounds to an integer
+    # and divided by 10**decimals. For a large enough integer,
+    # this operation may introduce a rounding error in the float operations
+    # and accidentally returns a float number.
+    if isinstance(operand, int):
+        return operand
+
+    # Remove truncation error and convert the result into Python builtin type.
+    # Value could originally contain a rounding error, e.g. 1.00000000001
+    # which may occur during the parameter expression evaluation.
+    evaluated = np.round(operand, decimals=decimal).item()
+
+    if isinstance(evaluated, complex):
+        if np.isclose(evaluated.imag, 0.0):
+            evaluated = evaluated.real
         else:
             warnings.warn(
                 "Assignment of complex values to ParameterExpression in Qiskit Pulse objects is "
@@ -76,13 +88,11 @@ def format_parameter_value(
                 "converted in a similar fashion to avoid the use of complex parameters.",
                 PendingDeprecationWarning,
             )
-
-        return evaluated
-    except TypeError:
-        # value is not assigned
-        pass
-
-    return operand
+            return evaluated
+    # Type cast integer-like float into Python builtin integer, after rounding.
+    if evaluated.is_integer():
+        return int(evaluated)
+    return evaluated
 
 
 def instruction_duration_validation(duration: int):
