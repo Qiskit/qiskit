@@ -45,6 +45,7 @@ class TestBackendEstimatorV2(QiskitTestCase):
         self._precision = 5e-3
         self._rtol = 3e-1
         self._seed = 12
+        self._options = {"default_precision": self._precision, "seed_simulator": self._seed}
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
         self.observable = SparsePauliOp.from_list(
             [
@@ -78,12 +79,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         theta1, theta2, theta3 = self.theta
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1, psi2 = pm.run([psi1, psi2])
-        estimator = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
-
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator.options.abelian_grouping = abelian_grouping
         # Specify the circuit and observable by indices.
         # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
         ham1 = hamiltonian1.apply_layout(psi1.layout)
@@ -141,11 +138,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         bind2 = BindingsArray.coerce({tuple(psi2.parameters): theta2})
         pub2 = EstimatorPub(psi2, obs2, bind2)
 
-        estimator = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator.options.abelian_grouping = abelian_grouping
         result4 = estimator.run([pub1, pub2]).result()
         np.testing.assert_allclose(result4[0].data.evs, [1.55555728, -1.08766318], rtol=self._rtol)
         np.testing.assert_allclose(result4[1].data.evs, [0.17849238], rtol=self._rtol)
@@ -156,11 +150,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         circuit = pm.run(circuit)
-        est = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        est = BackendEstimatorV2(backend=backend, options=self._options)
+        est.options.abelian_grouping = abelian_grouping
         observable = self.observable.apply_layout(circuit.layout)
         result = est.run([(circuit, observable)]).result()
         np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733], rtol=self._rtol)
@@ -168,11 +159,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_single_circuit_observable(self, backend, abelian_grouping):
         """Test for single circuit and single observable case."""
-        est = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        est = BackendEstimatorV2(backend=backend, options=self._options)
+        est.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
 
         with self.subTest("No parameter"):
@@ -238,11 +226,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("Z", 1)])
 
-        est = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        est = BackendEstimatorV2(backend=backend, options=self._options)
+        est.options.abelian_grouping = abelian_grouping
         op_1 = op.apply_layout(qc.layout)
         result = est.run([(qc, op_1)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1], rtol=self._rtol)
@@ -272,11 +257,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("ZI", 1)])
         op3 = SparsePauliOp.from_list([("IZ", 1)])
 
-        est = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        est = BackendEstimatorV2(backend=backend, options=self._options)
+        est.options.abelian_grouping = abelian_grouping
         op_1 = op.apply_layout(qc.layout)
         result = est.run([(qc, op_1)]).result()
         np.testing.assert_allclose(result[0].data.evs, [1], rtol=self._rtol)
@@ -310,11 +292,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
 
-        est = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        est = BackendEstimatorV2(backend=backend, options=self._options)
+        est.options.abelian_grouping = abelian_grouping
         with self.assertRaises(ValueError):
             est.run([(qc, op2)]).result()
         with self.assertRaises(ValueError):
@@ -332,6 +311,11 @@ class TestBackendEstimatorV2(QiskitTestCase):
             est.run([(qc, op, None, 0)]).result()
         with self.assertRaises(ValueError):
             est.run([(qc, op)], precision=0).result()
+        # precision < 0
+        with self.assertRaises(ValueError):
+            est.run([(qc, op, None, -1)]).result()
+        with self.assertRaises(ValueError):
+            est.run([(qc, op)], precision=-1).result()
 
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_run_numpy_params(self, backend, abelian_grouping):
@@ -348,11 +332,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         statevector_estimator = StatevectorEstimator(seed=123)
         target = statevector_estimator.run([(qc, op, params_list)]).result()
 
-        backend_estimator = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        backend_estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        backend_estimator.options.abelian_grouping = abelian_grouping
 
         with self.subTest("ndarrary"):
             result = backend_estimator.run([(qc, op, params_array)]).result()
@@ -367,11 +348,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
     @combine(backend=BACKENDS, abelian_grouping=[True, False])
     def test_precision(self, backend, abelian_grouping):
         """Test for precision"""
-        estimator = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        estimator.options.abelian_grouping = abelian_grouping
         pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
         psi1 = pm.run(self.psi[0])
         hamiltonian1 = self.hamiltonian[0].apply_layout(psi1.layout)
@@ -409,11 +387,8 @@ class TestBackendEstimatorV2(QiskitTestCase):
         statevector_estimator = StatevectorEstimator(seed=seed)
         target = statevector_estimator.run([(qc, op, params_list)]).result()
 
-        backend_estimator = BackendEstimatorV2(
-            backend=backend,
-            default_precision=self._precision,
-            options={"abelian_grouping": abelian_grouping, "seed_simulator": self._seed},
-        )
+        backend_estimator = BackendEstimatorV2(backend=backend, options=self._options)
+        backend_estimator.options.abelian_grouping = abelian_grouping
 
         with self.subTest("ndarrary"):
             result = backend_estimator.run([(qc, op, params_array)]).result()

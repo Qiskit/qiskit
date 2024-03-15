@@ -39,6 +39,11 @@ from .primitive_job import PrimitiveJob
 class Options:
     """Options for :class:`~.BackendEstimatorV2`."""
 
+    default_precision: float = 0.015625
+    """The default precision to use if none are specified in :meth:`~run`.
+    Default: 0.015625 (1 / sqrt(4096)).
+    """
+
     abelian_grouping: bool = True
     """Whether the observables should be grouped into sets of qubit-wise commuting observables.
     Default: True.
@@ -79,19 +84,16 @@ class BackendEstimatorV2(BaseEstimatorV2):
         self,
         *,
         backend: BackendV1 | BackendV2,
-        default_precision: float = 0.015625,
         options: dict | None = None,
     ):
         """
         Args:
             backend: The backend to run the primitive on.
-            default_precision: The default precision to use if none are specified in :meth:`~run`.
-                Default: 0.015625 (1 / sqrt(4096)).
-            options: The options to control the operator grouping (``abelian_grouping``) and
+            options: The options to control the default_precision (``default_precision``),
+                the operator grouping (``abelian_grouping``), and
                 the random seed for the simulator (``seed_simulator``).
         """
         self._backend = backend
-        self._default_precision = default_precision
         self._options = Options(**options) if options else Options()
 
         basis = PassManagerConfig.from_backend(backend).basis_gates
@@ -107,11 +109,6 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return self._options
 
     @property
-    def default_precision(self) -> float:
-        """Return the default precision"""
-        return self._default_precision
-
-    @property
     def backend(self) -> BackendV1 | BackendV2:
         """Returns the backend which this sampler object based on."""
         return self._backend
@@ -120,7 +117,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         self, pubs: Iterable[EstimatorPubLike], *, precision: float | None = None
     ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
         if precision is None:
-            precision = self._default_precision
+            precision = self._options.default_precision
         coerced_pubs = [EstimatorPub.coerce(pub, precision) for pub in pubs]
         self._validate_pubs(coerced_pubs)
         job = PrimitiveJob(self._run, coerced_pubs)
@@ -129,9 +126,10 @@ class BackendEstimatorV2(BaseEstimatorV2):
 
     def _validate_pubs(self, pubs: list[EstimatorPub]):
         for i, pub in enumerate(pubs):
-            if pub.precision == 0.0:
+            if pub.precision <= 0.0:
                 raise ValueError(
-                    f"The {i}-th pub has precision 0. But precision should be larger than 0."
+                    f"The {i}-th pub has precision less than or equal to 0 ({pub.precision}). ",
+                    "But precision should be larger than 0.",
                 )
 
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
@@ -155,7 +153,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             param_obs_map[param_index].update(bc_obs[index].keys())
         expval_map = self._calc_expval_paulis(circuit, parameter_values, param_obs_map, shots)
 
-        # calculate expectation values and standard deviations
+        # calculate expectation values (evs) and standard errors (stds)
         evs = np.zeros_like(bc_param_ind, dtype=float)
         variances = np.zeros_like(bc_param_ind, dtype=float)
         for index in np.ndindex(*bc_param_ind.shape):
@@ -180,6 +178,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
             bound_circuit = parameter_values.bind(circuit, param_index)
+            # sort pauli_strings so that the order is deterministic
             meas_paulis = PauliList(sorted(pauli_strings))
             new_circuits = self._preprocessing(bound_circuit, meas_paulis, param_index)
             circuits.extend(new_circuits)
