@@ -76,7 +76,6 @@ class LieTrotter(ProductFormula):
 
         # construct the evolution circuit
         evolution_circuit = QuantumCircuit(operators[0].num_qubits)
-        first_barrier = False
 
         if not isinstance(operators, list):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
@@ -86,20 +85,15 @@ class LieTrotter(ProductFormula):
         # if we only evolve a single Pauli we don't need to additionally wrap it
         wrap = not (len(pauli_list) == 1 and self.reps == 1)
 
-        for _ in range(self.reps):
-            for op, coeff in pauli_list:
-                # add barriers
-                if first_barrier:
-                    if self.insert_barriers:
-                        evolution_circuit.barrier()
-                else:
-                    first_barrier = True
+        for op, coeff in pauli_list:
+            evolution_circuit.compose(
+                self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
+            )
 
-                evolution_circuit.compose(
-                    self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
-                )
+        if self.insert_barriers:
+            evolution_circuit.barrier()
 
-        return evolution_circuit
+        return evolution_circuit.repeat(self.reps)
 
     @property
     def settings(self) -> Dict[str, Any]:
