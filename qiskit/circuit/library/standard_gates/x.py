@@ -1493,7 +1493,7 @@ class MCXVChain(MCXGate):
             if self.num_ctrl_qubits < 3:
                 qc.mcx(q_controls, q_target)
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
-                qc.mcx(q_controls, q_target)
+                qc._append(C3XGate(), [*q_controls, q_target], [])
             else:
                 num_ancillas = self.num_ctrl_qubits - 2
                 targets = [q_target] + q_ancillas[:num_ancillas][::-1]
