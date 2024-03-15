@@ -447,7 +447,17 @@ class StabilizerState(QuantumState):
 
         # Iterate through the target or targets to find probabilities
         for target in targets:
-            self._get_probabilities(qubits, (["X"] * len(qubits)), 1.0, probs, target, cache)
+            # Order is important here for performance and getting correct data to hand to probabilities
+            # helper. If caching isn't used then extra overhead cache retrieval functions are not called
+            outcome_key: list[str] = (
+                cache.retrieve_closest_outcome(target) if (cache is not None) else None
+            )
+            use_cache: bool = (cache is not None) and cache.is_state_cached(outcome_key)
+            outcome: list[str] = outcome_key if (use_cache) else (["X"] * len(qubits))
+            ret: StabilizerState = cache.retrieve_state(outcome) if use_cache else self
+            outcome_prob: float = cache.retrieve_outcome(outcome) if (use_cache) else 1.0
+
+            ret._get_probabilities(qubits, outcome, outcome_prob, probs, target, cache)
 
         # Round to the number of decimal places if a decimal is provided
         self._round_decimals(probs, decimals)
@@ -739,18 +749,7 @@ class StabilizerState(QuantumState):
         """
         qubit_for_branching: int = -1
 
-        # Only use caching when cache object is available
-        use_cache: bool = cache is not None and cache.is_state_cached(outcome)
-        outcome_key: list[str] = (
-            cache.retreive_most_completed_outcome(target) if (use_cache) else None
-        )
-        use_cache = use_cache and (outcome_key is not None)
-        ret: StabilizerState = cache.retrieve_state(outcome) if use_cache else self.copy()
-
-        if use_cache:
-            # Update outcome and outcome probability from the cache
-            outcome = outcome_key
-            outcome_prob = cache.retrieve_outcome(outcome)
+        ret: StabilizerState = self.copy()
 
         # If no "X" in outcome no other measururements to perform
         if "X" in outcome:
