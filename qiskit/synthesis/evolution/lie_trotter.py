@@ -89,9 +89,8 @@ class LieTrotter(ProductFormula):
             evolution_circuit.compose(
                 self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True
             )
-
-        if self.insert_barriers:
-            evolution_circuit.barrier()
+            if self.insert_barriers:
+                evolution_circuit.barrier()
 
         return evolution_circuit.repeat(self.reps).decompose()
 
