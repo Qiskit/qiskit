@@ -75,7 +75,7 @@ class TestEstimator(QiskitTestCase):
         # Note that passing objects has an overhead
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
         result2 = estimator.run([psi2], [hamiltonian1], [theta2]).result()
         np.testing.assert_allclose(result2.values, [2.97797666])
 
