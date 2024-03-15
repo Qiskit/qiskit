@@ -118,13 +118,9 @@ class TwoQubitWeylDecomposition:
 
         \pi /4 \geq a \geq b \geq |c|
 
-    This is an abstract factory class that instantiates itself as specialized subclasses based on
-    the fidelity, such that the approximation error from specialization has an average gate fidelity
-    at least as high as requested. The specialized subclasses have unique canonical representations
-    thus avoiding problems of numerical stability.
-
-    Passing non-None fidelity to specializations is treated as an assertion, raising QiskitError if
-    forcing the specialization is more approximate than asserted.
+    This class avoids some problems of numerical instability near high-symmetry loci within the Weyl
+    chamber. If there is a high-symmetry gate "nearby" (in terms of the requested average gate fidelity),
+    then it return a canonicalized decomposition of that high-symmetry gate.
 
     References:
         1. Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. & Gambetta, J. M.,
