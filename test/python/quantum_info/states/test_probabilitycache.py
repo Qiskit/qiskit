@@ -125,9 +125,7 @@ class TestProbabilityCache(QiskitTestCase):
             # Only verify cache key where a valid starting place can be found
             choice: str = random.choice(keys_to_pick)
             choice_find: str = choice.replace("X", "1")
-            self.assertTrue(
-                cache.retreive_key_for_most_completed_branch_to_target(choice_find) == choice
-            )
+            self.assertTrue(cache.retreive_most_completed_outcome(choice_find) == list(choice))
 
     @staticmethod
     def _key_type(key: str, as_list: bool):

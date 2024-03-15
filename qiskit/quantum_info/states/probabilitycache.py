@@ -127,7 +127,7 @@ class ProbabilityCache:
         """
         return key is not None and ("X" in key) and ("1" in key or "0" in key)
 
-    def retreive_key_for_most_completed_branch_to_target(self, target: str) -> str:
+    def retreive_most_completed_outcome(self, target: str) -> list[str]:
         """Retrieves the best starting point for calculating the probability
         if a partital branch was already calculated on the path of the target calculation
         It will retrieve the key for the closest node used to continue calculating the branch
@@ -136,7 +136,7 @@ class ProbabilityCache:
             target (str): target item wanting to calculate
 
         Returns:
-            str: the key if it is found in the cache, or None if not found
+            list[str]: the outcome of of the most completed cached entry, or None if not found
         """
         key: list[str] = None
         test_key: str = None
@@ -148,4 +148,4 @@ class ProbabilityCache:
                 # Variable for cache entries which is in this format
                 key = test_key
                 break
-        return key
+        return list(key)
