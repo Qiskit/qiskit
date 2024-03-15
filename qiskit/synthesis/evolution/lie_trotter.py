@@ -93,7 +93,7 @@ class LieTrotter(ProductFormula):
         if self.insert_barriers:
             evolution_circuit.barrier()
 
-        return evolution_circuit.repeat(self.reps)
+        return evolution_circuit.repeat(self.reps).decompose()
 
     @property
     def settings(self) -> Dict[str, Any]:
