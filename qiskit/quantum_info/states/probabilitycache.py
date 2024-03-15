@@ -146,6 +146,6 @@ class ProbabilityCache:
             if test_key in self.cache_outcome:
                 # Must convert the key to a list as all the functions use the outcome
                 # Variable for cache entries which is in this format
-                key = test_key
+                key = list(test_key)
                 break
-        return list(key)
+        return key

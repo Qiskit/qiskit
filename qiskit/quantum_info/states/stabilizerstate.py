@@ -741,11 +741,15 @@ class StabilizerState(QuantumState):
 
         # Only use caching when cache object is available
         use_cache: bool = cache is not None and cache.is_state_cached(outcome)
+        outcome_key: list[str] = (
+            cache.retreive_most_completed_outcome(target) if (use_cache) else None
+        )
+        use_cache = use_cache and (outcome_key is not None)
         ret: StabilizerState = cache.retrieve_state(outcome) if use_cache else self.copy()
 
         if use_cache:
             # Update outcome and outcome probability from the cache
-            outcome = cache.retreive_most_completed_outcome(target)
+            outcome = outcome_key
             outcome_prob = cache.retrieve_outcome(outcome)
 
         # If no "X" in outcome no other measururements to perform
