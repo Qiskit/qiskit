@@ -305,14 +305,10 @@ class TestTranspile(QiskitTestCase):
                 circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
-<<<<<<< HEAD
-        new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=coupling_map)
-
-=======
         new_circuit = transpile(
-            circuit, basis_gates=basis_gates, coupling_map=MELBOURNE_CMAP, seed_transpiler=42
+            circuit, basis_gates=basis_gates, coupling_map=coupling_map, seed_transpiler=42
         )
->>>>>>> be0620856 (Seed all the transpile calls in test.python.compiler.test_transpiler (#11973))
+
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
         for instruction in new_circuit.data:
