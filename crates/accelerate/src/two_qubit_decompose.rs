@@ -20,7 +20,7 @@
 
 use approx::abs_diff_eq;
 use num_complex::{Complex, Complex64, ComplexFloat};
-use pyo3::exceptions::PyIndexError;
+use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
@@ -359,35 +359,42 @@ enum Specialization {
     fSimabmbEquiv,
 }
 
+#[pymethods]
 impl Specialization {
-    fn to_u8(self) -> u8 {
-        match self {
-            Specialization::General => 0,
-            Specialization::IdEquiv => 1,
-            Specialization::SWAPEquiv => 2,
-            Specialization::PartialSWAPEquiv => 3,
-            Specialization::PartialSWAPFlipEquiv => 4,
-            Specialization::ControlledEquiv => 5,
-            Specialization::MirrorControlledEquiv => 6,
-            Specialization::fSimaabEquiv => 7,
-            Specialization::fSimabbEquiv => 8,
-            Specialization::fSimabmbEquiv => 9,
-        }
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        // Ideally we'd use the string-only form of `__reduce__` for simplicity, but PyO3 enums
+        // don't produce Python singletons, and pickle doesn't like that.
+        let val: u8 = match self {
+            Self::General => 0,
+            Self::IdEquiv => 1,
+            Self::SWAPEquiv => 2,
+            Self::PartialSWAPEquiv => 3,
+            Self::PartialSWAPFlipEquiv => 4,
+            Self::ControlledEquiv => 5,
+            Self::MirrorControlledEquiv => 6,
+            Self::fSimaabEquiv => 7,
+            Self::fSimabbEquiv => 8,
+            Self::fSimabmbEquiv => 9,
+        };
+        Ok((py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
     }
 
-    fn from_u8(val: u8) -> Self {
+    #[staticmethod]
+    fn _from_u8(val: u8) -> PyResult<Self> {
         match val {
-            0 => Specialization::General,
-            1 => Specialization::IdEquiv,
-            2 => Specialization::SWAPEquiv,
-            3 => Specialization::PartialSWAPEquiv,
-            4 => Specialization::PartialSWAPFlipEquiv,
-            5 => Specialization::ControlledEquiv,
-            6 => Specialization::MirrorControlledEquiv,
-            7 => Specialization::fSimaabEquiv,
-            8 => Specialization::fSimabbEquiv,
-            9 => Specialization::fSimabmbEquiv,
-            _ => unreachable!("Invalid specialization value"),
+            0 => Ok(Self::General),
+            1 => Ok(Self::IdEquiv),
+            2 => Ok(Self::SWAPEquiv),
+            3 => Ok(Self::PartialSWAPEquiv),
+            4 => Ok(Self::PartialSWAPFlipEquiv),
+            5 => Ok(Self::ControlledEquiv),
+            6 => Ok(Self::MirrorControlledEquiv),
+            7 => Ok(Self::fSimaabEquiv),
+            8 => Ok(Self::fSimabbEquiv),
+            9 => Ok(Self::fSimabmbEquiv),
+            x => Err(PyValueError::new_err(format!(
+                "unknown specialization discriminant '{x}'"
+            ))),
         }
     }
 }
@@ -470,91 +477,61 @@ const IPX: [[Complex64; 2]; 2] = [
 
 #[pymethods]
 impl TwoQubitWeylDecomposition {
-    fn __getstate__(&self, py: Python) -> ([f64; 5], [PyObject; 5], u8, String, Option<f64>) {
-        let specialization = self.specialization.to_u8();
-        (
-            [
-                self.a,
-                self.b,
-                self.c,
-                self.global_phase,
-                self.calculated_fidelity,
-            ],
-            [
-                self.K1l.to_pyarray(py).into(),
-                self.K1r.to_pyarray(py).into(),
-                self.K2l.to_pyarray(py).into(),
-                self.K2r.to_pyarray(py).into(),
-                self.unitary_matrix.to_pyarray(py).into(),
-            ],
+    #[staticmethod]
+    fn _from_state(
+        angles: [f64; 4],
+        matrices: [PyReadonlyArray2<Complex64>; 5],
+        specialization: Specialization,
+        default_euler_basis: EulerBasis,
+        calculated_fidelity: f64,
+        requested_fidelity: Option<f64>,
+    ) -> Self {
+        let [a, b, c, global_phase] = angles;
+        Self {
+            a,
+            b,
+            c,
+            global_phase,
+            K1l: matrices[0].as_array().to_owned(),
+            K1r: matrices[1].as_array().to_owned(),
+            K2l: matrices[2].as_array().to_owned(),
+            K2r: matrices[3].as_array().to_owned(),
             specialization,
-            self.default_euler_basis.to_str(),
-            self.requested_fidelity,
-        )
+            default_euler_basis,
+            calculated_fidelity,
+            requested_fidelity,
+            unitary_matrix: matrices[4].as_array().to_owned(),
+        }
     }
 
-    fn __setstate__(
-        &mut self,
-        state: (
-            [f64; 5],
-            [PyReadonlyArray2<Complex64>; 5],
-            u8,
-            String,
-            Option<f64>,
-        ),
-    ) {
-        self.a = state.0[0];
-        self.b = state.0[1];
-        self.c = state.0[2];
-        self.global_phase = state.0[3];
-        self.calculated_fidelity = state.0[4];
-        self.K1l = state.1[0].as_array().to_owned();
-        self.K1r = state.1[1].as_array().to_owned();
-        self.K2l = state.1[2].as_array().to_owned();
-        self.K2r = state.1[3].as_array().to_owned();
-        self.unitary_matrix = state.1[4].as_array().to_owned();
-        self.default_euler_basis = EulerBasis::from_string(&state.3).unwrap();
-        self.requested_fidelity = state.4;
-        self.specialization = Specialization::from_u8(state.2);
-    }
-
-    fn __getnewargs__(&self, py: Python) -> (PyObject, Option<f64>, Option<Specialization>, bool) {
-        (
-            self.unitary_matrix.to_pyarray(py).into(),
-            self.requested_fidelity,
-            None,
-            true,
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((
+            py.get_type::<Self>().getattr("_from_state")?,
+            (
+                [self.a, self.b, self.c, self.global_phase],
+                [
+                    self.K1l.to_pyarray(py),
+                    self.K1r.to_pyarray(py),
+                    self.K2l.to_pyarray(py),
+                    self.K2r.to_pyarray(py),
+                    self.unitary_matrix.to_pyarray(py),
+                ],
+                self.specialization,
+                self.default_euler_basis,
+                self.calculated_fidelity,
+                self.requested_fidelity,
+            ),
         )
+            .into_py(py))
     }
 
     #[new]
-    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, _specialization=None, _pickle_context=false))]
+    #[pyo3(signature=(unitary_matrix, fidelity=DEFAULT_FIDELITY, _specialization=None))]
     fn new(
         unitary_matrix: PyReadonlyArray2<Complex64>,
         fidelity: Option<f64>,
         _specialization: Option<Specialization>,
-        _pickle_context: bool,
     ) -> PyResult<Self> {
-        // If we're in a pickle context just make the closest to an empty
-        // object as we can with minimal allocations and effort. All the
-        // data will be filled in during deserialization from __setstate__.
-        if _pickle_context {
-            return Ok(TwoQubitWeylDecomposition {
-                a: 0.,
-                b: 0.,
-                c: 0.,
-                global_phase: 0.,
-                K1l: Array2::zeros((0, 0)),
-                K2l: Array2::zeros((0, 0)),
-                K1r: Array2::zeros((0, 0)),
-                K2r: Array2::zeros((0, 0)),
-                specialization: Specialization::General,
-                default_euler_basis: EulerBasis::ZYZ,
-                requested_fidelity: fidelity,
-                calculated_fidelity: 0.,
-                unitary_matrix: Array2::zeros((0, 0)),
-            });
-        }
         let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let ipy: ArrayView2<Complex64> = aview2(&IPY);
         let ipx: ArrayView2<Complex64> = aview2(&IPX);
@@ -1066,7 +1043,7 @@ impl TwoQubitWeylDecomposition {
         atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let euler_basis: EulerBasis = match euler_basis {
-            Some(basis) => EulerBasis::from_string(basis)?,
+            Some(basis) => EulerBasis::from_str(basis)?,
             None => self.default_euler_basis,
         };
         let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
