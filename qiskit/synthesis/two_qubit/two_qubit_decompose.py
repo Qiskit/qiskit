@@ -244,7 +244,7 @@ class TwoQubitWeylDecomposition:
         bytes_in: bytes,
         *,
         requested_fidelity: float,
-        _specialization: two_qubit_decompose.Specialization | None,
+        _specialization: two_qubit_decompose.Specialization | None = None,
         **kwargs,
     ) -> "TwoQubitWeylDecomposition":
         """Decode bytes into :class:`.TwoQubitWeylDecomposition`."""
