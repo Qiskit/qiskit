@@ -16,7 +16,6 @@ N-Qubit Sparse Pauli Operator class.
 from __future__ import annotations
 from typing import TYPE_CHECKING, List
 
-from collections import defaultdict
 from collections.abc import Mapping, Sequence, Iterable
 from numbers import Number
 from copy import deepcopy
@@ -1000,22 +999,23 @@ class SparsePauliOp(LinearOp):
 
         return MatrixIterator(self)
 
-    def _create_graph(self, qubit_wise):
-        """Transform measurement operator grouping problem into graph coloring problem
+    def noncommutation_graph(self, qubit_wise: bool) -> rx.PyGraph:
+        """Create the non-commutation graph of this SparsePauliOp.
+
+        This transforms the measurement operator grouping problem into graph coloring problem. The
+        constructed graph contains one node for each Pauli. The nodes will be connecting for any two
+        Pauli terms that do _not_ commute.
 
         Args:
             qubit_wise (bool): whether the commutation rule is applied to the whole operator,
                 or on a per-qubit basis.
 
         Returns:
-            rustworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: the non-commutation graph with nodes for each Pauli and edges
+                indicating a non-commutation relation. Each node will hold the index of the Pauli
+                term it corresponds to in its data. The edges of the graph hold no data.
         """
-
-        edges = self.paulis._noncommutation_graph(qubit_wise)
-        graph = rx.PyGraph()
-        graph.add_nodes_from(range(self.size))
-        graph.add_edges_from_no_data(edges)
-        return graph
+        return self.paulis.noncommutation_graph(qubit_wise)
 
     def group_commuting(self, qubit_wise: bool = False) -> list[SparsePauliOp]:
         """Partition a SparsePauliOp into sets of commuting Pauli strings.
@@ -1039,13 +1039,7 @@ class SparsePauliOp(LinearOp):
             list[SparsePauliOp]: List of SparsePauliOp where each SparsePauliOp contains
                 commuting Pauli operators.
         """
-
-        graph = self._create_graph(qubit_wise)
-        # Keys in coloring_dict are nodes, values are colors
-        coloring_dict = rx.graph_greedy_color(graph)
-        groups = defaultdict(list)
-        for idx, color in coloring_dict.items():
-            groups[color].append(idx)
+        groups = self.paulis._commuting_groups(qubit_wise)
         return [self[group] for group in groups.values()]
 
     @property
@@ -1139,7 +1133,7 @@ class SparsePauliOp(LinearOp):
                 )
             n_qubits = num_qubits
         if layout is not None and any(x >= n_qubits for x in layout):
-            raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+            raise QiskitError("Provided layout contains indices outside the number of qubits.")
         if layout is None:
             layout = list(range(self.num_qubits))
         new_op = type(self)("I" * n_qubits)

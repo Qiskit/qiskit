@@ -138,7 +138,7 @@ class Parameter(ParameterExpression):
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
-            return self._uuid == other._uuid
+            return (self._uuid, self._name) == (other._uuid, other._name)
         elif isinstance(other, ParameterExpression):
             return super().__eq__(other)
         else:
