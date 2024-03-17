@@ -141,7 +141,7 @@ class EstimatorPub(ShapedMixin):
 
         if len(pub) > 2 and pub[2] is not None:
             values = pub[2]
-            if not isinstance(values, Mapping):
+            if not isinstance(values, (BindingsArray, Mapping)):
                 values = {tuple(circuit.parameters): values}
             parameter_values = BindingsArray.coerce(values)
         else:
