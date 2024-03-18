@@ -1103,7 +1103,6 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         }
         self.target.add_instruction(CXGate(), cx_props)
 
-
     def test_gate_inside_qubits_local_basis_gates(self):
         """
         Test gates placed on qubits which has that particular gate

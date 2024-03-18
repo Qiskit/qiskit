@@ -240,28 +240,27 @@ class BasisTranslator(TransformationPass):
 
         extra_instr_map = {}
         for qarg, transforms in qarg_local_basis_transforms.items():
-
-            test_var = _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
+            equiv_dag_data = _compose_transforms(transforms, qargs_local_source_basis[qarg], dag)
 
             if not self._qargs_with_non_global_operation == defaultdict(set):
-
                 for (
                     missing_ops_qarg,
                     qubit_target_basis,
                 ) in self._qargs_with_non_global_operation.items():
-                    if qarg.issuperset(frozenset(missing_ops_qarg)):
-                        for _, param_vec_dag_ckt in test_var.items():
+                    for gate_name_num_qubits, param_vec_dag_ckt in equiv_dag_data.items():
+                        gate_name, _ = gate_name_num_qubits
+                        if gate_name not in basic_instrs:
+                            focus_on_qubit = missing_ops_qarg[0]
                             _, dag_ckt = param_vec_dag_ckt
-                            _modify_gate_misplacement(
-                                self._equiv_lib,
-                                dag_ckt,
-                                missing_ops_qarg[0],
-                                qubit_target_basis,
-                                basic_instrs,
-                            )
+                            if any(focus_on_qubit == qubit._index for qubit in dag_ckt.qubits):
+                                _modify_gate_misplacement(
+                                    self._equiv_lib,
+                                    dag_ckt,
+                                    focus_on_qubit,
+                                    qubit_target_basis,
+                                )
 
-            test_dict = {qarg: test_var}
-            extra_instr_map.update(test_dict)
+            extra_instr_map.update({qarg: equiv_dag_data})
 
         compose_end_time = time.time()
         logger.info(
@@ -703,12 +702,11 @@ def _get_example_gates(source_dag):
 
 
 def _modify_gate_misplacement(
-    equiv_lib, dag_ckt: DAGCircuit, qubit_idx, qubit_target_basis, basic_instrs
+    equiv_lib,
+    dag_ckt: DAGCircuit,
+    qubit_idx,
+    qubit_target_basis,
 ) -> None:
-    qubit_target_basis = qubit_target_basis.union(set(basic_instrs))
-
-    if len(dag_ckt.qubits) < qubit_idx + 1:
-        return
 
     qubit = dag_ckt.qubits[qubit_idx]
 
