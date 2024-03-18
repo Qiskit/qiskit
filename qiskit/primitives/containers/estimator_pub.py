@@ -132,6 +132,15 @@ class EstimatorPub(ShapedMixin):
                     validate=False,  # Assume Pub is already validated
                 )
             return pub
+
+        if isinstance(pub, QuantumCircuit):
+            raise ValueError(
+                f"An invalid Estimator pub-like was given ({type(pub)}). "
+                "If you want to run a single pub-like, you need to wrap it with `[]` like "
+                "`estimator.run([(circuit, observables, param_values)])` "
+                "instead of `estimator.run((circuit, observables, param_values))`."
+            )
+
         if len(pub) not in [2, 3, 4]:
             raise ValueError(
                 f"The length of pub must be 2, 3 or 4, but length {len(pub)} is given."
