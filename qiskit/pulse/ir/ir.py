@@ -281,9 +281,10 @@ class SequenceIR:
         objects are still passed as reference for memory efficiency.
 
         .. warning::
-            If an :class:`.qiskit.pulse.Instruction` instance attached to the node of the internal graph is modified
-            via :meth:`.sequence` or :meth:`.elements`, it will also modify the data in the original object.
-            Although this is not an expected usage of ``SequenceIR``, 
+            If an :class:`.qiskit.pulse.Instruction` instance attached to the node of the
+            internal graph is modified via :meth:`.sequence` or :meth:`.elements`, it will
+            also modify the data in the original object.
+            Although this is not an expected usage of ``SequenceIR``,
             deepcopy is also available at the price of performance
             to protect these node data from any modification.
 
@@ -297,7 +298,8 @@ class SequenceIR:
 
         Returns: A copy of the object.
         """
-        copied = self.__class__(self.alignment)
+        copied = object.__new__(self.__class__)
+        copied._alignment = self.alignment
         copied._time_table = copy.copy(self._time_table)
         copied._sequence = copy.copy(self._sequence)
         for node_index in copied.sequence.node_indices():
