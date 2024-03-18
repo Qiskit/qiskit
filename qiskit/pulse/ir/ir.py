@@ -281,8 +281,11 @@ class SequenceIR:
         objects are still passed as reference for memory efficiency.
 
         .. warning::
-            If node data (not a nester IR object) is mutated via ``.sequence`` or ``.elements`` it will
-            affect the original IR object.
+            If an :class:`.qiskit.pulse.Instruction` instance attached to the node of the internal graph is modified
+            via :meth:`.sequence` or :meth:`.elements`, it will also modify the data in the original object.
+            Although this is not an expected usage of ``SequenceIR``, 
+            deepcopy is also available at the price of performance
+            to protect these node data from any modification.
 
         ``SequenceIR`` is poorly suited for both shallow and deep copy. A shallow copy
         will contain references to mutable properties like ``sequence`` and ``time_table``.
