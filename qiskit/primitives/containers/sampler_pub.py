@@ -18,10 +18,11 @@ Sampler Pub class
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Tuple, Union
 from numbers import Integral
+from typing import Tuple, Union
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import CircuitInstruction
 
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .shape import ShapedMixin
@@ -112,6 +113,13 @@ class SamplerPub(ShapedMixin):
 
         if isinstance(pub, QuantumCircuit):
             return cls(circuit=pub, shots=shots, validate=True)
+
+        if isinstance(pub, CircuitInstruction):
+            raise ValueError(
+                f"An invalid Sampler pub-like was given ({pub}). If you want to run a circuit, "
+                "you need to wrap a circuit with `[]` like `sampler.run([circuit])` "
+                "instead of `sampler.run(circuit)`."
+            )
 
         if len(pub) not in [1, 2, 3]:
             raise ValueError(

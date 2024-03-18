@@ -320,6 +320,9 @@ class TestStatevectorSampler(QiskitTestCase):
         with self.subTest("zero shots, pub"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([SamplerPub(qc1, shots=0)]).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Sampler pub-like was given"):
+                _ = sampler.run(qc1).result()
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
