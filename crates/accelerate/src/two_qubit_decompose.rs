@@ -1516,12 +1516,12 @@ fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex
 
 #[pymethods]
 impl TwoQubitBasisDecomposer {
-    fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, String, Option<bool>) {
+    fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, &str, Option<bool>) {
         (
             self.gate.clone(),
             self.basis_decomposer.unitary_matrix.to_pyarray(py).into(),
             self.basis_fidelity,
-            self.euler_basis.to_str(),
+            self.euler_basis.as_str(),
             self.pulse_optimize,
         )
     }
@@ -1537,7 +1537,7 @@ impl TwoQubitBasisDecomposer {
     ) -> PyResult<Self> {
         let ipz: ArrayView2<Complex64> = aview2(&IPZ);
         let basis_decomposer =
-            TwoQubitWeylDecomposition::new(gate_matrix, Some(DEFAULT_FIDELITY), None, false)?;
+            TwoQubitWeylDecomposition::new(gate_matrix, Some(DEFAULT_FIDELITY), None)?;
         let super_controlled = relative_eq!(basis_decomposer.a, PI4, max_relative = 1e-09)
             && relative_eq!(basis_decomposer.c, 0.0, max_relative = 1e-09);
 
@@ -1669,7 +1669,7 @@ impl TwoQubitBasisDecomposer {
         Ok(TwoQubitBasisDecomposer {
             gate,
             basis_fidelity,
-            euler_basis: EulerBasis::from_string(euler_basis)?,
+            euler_basis: EulerBasis::from_str(euler_basis)?,
             pulse_optimize,
             basis_decomposer,
             super_controlled,
@@ -1804,7 +1804,7 @@ impl TwoQubitBasisDecomposer {
             basis_fidelity.unwrap_or(self.basis_fidelity)
         };
         let target_decomposed =
-            TwoQubitWeylDecomposition::new(unitary, Some(DEFAULT_FIDELITY), None, false)?;
+            TwoQubitWeylDecomposition::new(unitary, Some(DEFAULT_FIDELITY), None)?;
         let traces = self.traces(&target_decomposed);
         let best_nbasis = traces
             .into_iter()
