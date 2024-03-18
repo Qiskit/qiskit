@@ -116,8 +116,8 @@ class SamplerPub(ShapedMixin):
 
         if isinstance(pub, CircuitInstruction):
             raise ValueError(
-                f"An invalid Sampler pub-like was given ({pub}). If you want to run a circuit, "
-                "you need to wrap a circuit with `[]` like `sampler.run([circuit])` "
+                f"An invalid Sampler pub-like was given ({pub}). If you want to run a single circuit, "
+                "you need to wrap the circuit with `[]` like `sampler.run([circuit])` "
                 "instead of `sampler.run(circuit)`."
             )
 
