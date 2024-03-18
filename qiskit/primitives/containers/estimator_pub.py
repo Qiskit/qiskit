@@ -136,7 +136,7 @@ class EstimatorPub(ShapedMixin):
         if isinstance(pub, QuantumCircuit):
             raise ValueError(
                 f"An invalid Estimator pub-like was given ({type(pub)}). "
-                "If you want to run a single pub-like, you need to wrap it with `[]` like "
+                "If you want to run a single pub, you need to wrap it with `[]` like "
                 "`estimator.run([(circuit, observables, param_values)])` "
                 "instead of `estimator.run((circuit, observables, param_values))`."
             )
