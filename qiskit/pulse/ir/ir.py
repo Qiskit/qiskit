@@ -240,12 +240,7 @@ class SequenceIR:
         if inplace:
             block = self
         else:
-            block = copy.deepcopy(self)
-            block._sequence[0] = SequenceIR._InNode
-            block._sequence[1] = SequenceIR._OutNode
-        # TODO : Consider replacing the alignment to "NullAlignment", as the original alignment
-        #  has no meaning.
-        # TODO : Create a dedicated half shallow copier.
+            block = self.copy()
 
         def edge_map(_x, _y, _node):
             if _y == _node:
@@ -279,6 +274,40 @@ class SequenceIR:
 
         return block
 
+    def copy(self) -> SequenceIR:
+        """Create a copy of ``SequenceIR``.
+
+        The returned copy can be safely mutated without affecting the original object, while immutable
+        objects are still passed as reference for memory efficiency.
+
+        .. warning::
+            If an :class:`.qiskit.pulse.Instruction` instance attached to the node of the
+            internal graph is modified via :meth:`.sequence` or :meth:`.elements`, it will
+            also modify the data in the original object.
+            Although this is not an expected usage of ``SequenceIR``,
+            deepcopy is also available at the price of performance
+            to protect these node data from any modification.
+
+        ``SequenceIR`` is poorly suited for both shallow and deep copy. A shallow copy
+        will contain references to mutable properties like ``sequence`` and ``time_table``.
+        A deep copy on the other hand will needlessly copy immutable objects like
+        :class:`.qiskit.pulse.Instruction`. This function returns a "semi-deep" copy -
+        A new object containing new objects for ``sequence`` and ``time_table``. However,
+        node data of type :class:`.qiskit.pulse.Instruction` will be passed as a reference.
+        Nested ``SequenceIR`` objects are copied using the same logic.
+
+        Returns: A copy of the object.
+        """
+        copied = object.__new__(self.__class__)
+        copied._alignment = self.alignment
+        copied._time_table = copy.copy(self._time_table)
+        copied._sequence = copy.copy(self._sequence)
+        for node_index in copied.sequence.node_indices():
+            if isinstance(nested := copied._sequence[node_index], SequenceIR):
+                copied._sequence[node_index] = nested.copy()
+
+        return copied
+
     def __eq__(self, other: SequenceIR):
         if other.alignment != self.alignment:
             return False
@@ -288,5 +317,17 @@ class SequenceIR:
         #  to be different, But then it's not straightforward to compare the time_table.
         #  It is reasonable to assume that blocks with the same alignment and the same sequence
         #  will result in the same time_table, but this decision should be made consciously.
+
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        copied = self.__class__(copy.deepcopy(self.alignment, memo=memo))
+        memo[id(self)] = copied
+        copied._time_table = copy.copy(self._time_table)  # Only int keys and values.
+        copied._sequence = copy.deepcopy(self._sequence, memo=memo)
+        # To ensure that copied object will be equal to the original.
+        copied._sequence[0] = self._InNode
+        copied._sequence[1] = self._OutNode
+        return copied
 
     # TODO : __repr__
