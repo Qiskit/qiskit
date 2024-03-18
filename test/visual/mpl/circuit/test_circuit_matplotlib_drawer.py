@@ -2218,9 +2218,49 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
+<<<<<<< HEAD
     def test_default_futurewarning(self):
         """Test using the default scheme emits a future warning."""
         qc = QuantumCircuit(1)
+=======
+    def test_control_flow_with_fold_minus_one(self):
+        """Test control flow works with fold=-1. Qiskit issue #12012"""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+        with circuit.if_test((creg[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "control_flow_fold_minus_one.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_annotated_operation(self):
+        """Test AnnotatedOperations and other non-Instructions."""
+        circuit = QuantumCircuit(3)
+        cliff = random_clifford(2)
+        circuit.append(cliff, [0, 1])
+        circuit.x(0)
+        circuit.h(1)
+        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
+        circuit.ccx(0, 1, 2)
+        op1 = AnnotatedOperation(
+            SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
+        )
+        circuit.append(op1, [0, 1, 2])
+        circuit.append(SXGate(), [1])
+        fname = "annotated.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname)
+>>>>>>> 43381ae1b (Fix mpl circuit drawer with fold=-1 hanging with ControlFlow ops (#12016))
 
         with self.assertWarnsRegex(
             FutureWarning, "To silence this warning, specify the current default explicitly"
