@@ -41,6 +41,7 @@ use ndarray::Zip;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
 
+use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
     angles_from_unitary, det_one_qubit, unitary_to_gate_sequence_inner, EulerBasis,
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
@@ -352,6 +353,79 @@ const HGATE: [[Complex64; 2]; 2] = [
         Complex64::new(-FRAC_1_SQRT_2, 0.),
     ],
 ];
+
+const CXGATE: [[Complex64; 4]; 4] = [
+    [
+        Complex64::new(1., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+    ],
+    [
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(1., 0.),
+    ],
+    [
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(1., 0.),
+        Complex64::new(0., 0.),
+    ],
+    [
+        Complex64::new(0., 0.),
+        Complex64::new(1., 0.),
+        Complex64::new(0., 0.),
+        Complex64::new(0., 0.),
+    ],
+];
+
+const SXGATE: [[Complex64; 2]; 2] = [
+    [Complex64::new(0.5, 0.5), Complex64::new(0.5, -0.5)],
+    [Complex64::new(0.5, -0.5), Complex64::new(0.5, 0.5)],
+];
+
+const XGATE: [[Complex64; 2]; 2] = [
+    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
+    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
+];
+
+fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
+    let identity = aview2(&ONE_QUBIT_IDENTITY);
+    let phase = Complex64::new(0., global_phase).exp();
+    let mut matrix = Array2::from_diag(&arr1(&[phase, phase, phase, phase]));
+    sequence
+        .iter()
+        .map(|inst| {
+            // This only gets called by get_sx_vz_3cx_efficient_euler()
+            // which only uses sx, x, rz, and cx gates for the circuit
+            // sequence. If we get a different gate this is getting called
+            // by something else and is invalid.
+            let gate_matrix = match inst.0.as_ref() {
+                "sx" => aview2(&SXGATE).to_owned(),
+                "rz" => rz_matrix(inst.1[0]),
+                "cx" => aview2(&CXGATE).to_owned(),
+                "x" => aview2(&XGATE).to_owned(),
+                _ => unreachable!("Undefined gate"),
+            };
+            (gate_matrix, &inst.2)
+        })
+        .for_each(|(op_matrix, q_list)| {
+            let result = match q_list.as_slice() {
+                [0] => Some(kron(&identity, &op_matrix)),
+                [1] => Some(kron(&op_matrix, &identity)),
+                [1, 0] => Some(change_basis(op_matrix.view())),
+                [] => Some(Array2::eye(4)),
+                _ => None,
+            };
+            matrix = match result {
+                Some(result) => result.dot(&matrix),
+                None => op_matrix.dot(&matrix),
+            }
+        });
+    matrix
+}
 
 const DEFAULT_FIDELITY: f64 = 1.0 - 1.0e-9;
 const C1_IM: Complex64 = Complex64::new(0.0, 1.0);
@@ -1285,6 +1359,225 @@ impl TwoQubitBasisDecomposer {
         ]
     }
 
+    /// Decomposition of SU(4) gate for device with SX, virtual RZ, and CNOT gates assuming
+    /// two CNOT gates are needed.
+    ///
+    /// This first decomposes each unitary from the KAK decomposition into ZXZ on the source
+    /// qubit of the CNOTs and XZX on the targets in order to commute operators to beginning and
+    /// end of decomposition. The beginning and ending single qubit gates are then
+    /// collapsed and re-decomposed with the single qubit decomposer. This last step could be avoided
+    /// if performance is a concern.
+    fn get_sx_vz_2cx_efficient_euler(
+        &self,
+        decomposition: &SmallVec<[Array2<Complex64>; 8]>,
+        target_decomposed: &TwoQubitWeylDecomposition,
+    ) -> Option<TwoQubitGateSequence> {
+        let mut gates = Vec::new();
+        let mut global_phase = target_decomposed.global_phase;
+        global_phase -= 2. * self.basis_decomposer.global_phase;
+        let euler_q0: Vec<[f64; 3]> = decomposition
+            .iter()
+            .step_by(2)
+            .map(|decomp| {
+                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
+                global_phase += euler_angles[3];
+                [euler_angles[2], euler_angles[0], euler_angles[1]]
+            })
+            .collect();
+        let euler_q1: Vec<[f64; 3]> = decomposition
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .map(|decomp| {
+                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
+                global_phase += euler_angles[3];
+                [euler_angles[2], euler_angles[0], euler_angles[1]]
+            })
+            .collect();
+        let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
+        euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0] + PI2).dot(&euler_matrix_q0);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
+        let mut euler_matrix_q1 = rz_matrix(euler_q1[0][1]).dot(&rx_matrix(euler_q1[0][0]));
+        euler_matrix_q1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]).dot(&euler_matrix_q1);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+        gates.push(("cx".to_string(), smallvec![], smallvec![0, 1]));
+        gates.push(("sx".to_string(), smallvec![], smallvec![0]));
+        gates.push((
+            "rz".to_string(),
+            smallvec![euler_q0[1][1] - PI],
+            smallvec![0],
+        ));
+        gates.push(("sx".to_string(), smallvec![], smallvec![0]));
+        gates.push(("rz".to_string(), smallvec![euler_q1[1][1]], smallvec![1]));
+        global_phase += PI2;
+        gates.push(("cx".to_string(), smallvec![], smallvec![0, 1]));
+        let mut euler_matrix_q0 =
+            rx_matrix(euler_q0[2][1]).dot(&rz_matrix(euler_q0[1][2] + euler_q0[2][0] + PI2));
+        euler_matrix_q0 = rz_matrix(euler_q0[2][2]).dot(&euler_matrix_q0);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
+        let mut euler_matrix_q1 =
+            rz_matrix(euler_q1[2][1]).dot(&rx_matrix(euler_q1[1][2] + euler_q1[2][0]));
+        euler_matrix_q1 = rx_matrix(euler_q1[2][2]).dot(&euler_matrix_q1);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+        Some(TwoQubitGateSequence {
+            gates,
+            global_phase,
+        })
+    }
+
+    /// Decomposition of SU(4) gate for device with SX, virtual RZ, and CNOT gates assuming
+    /// three CNOT gates are needed.
+    ///
+    /// This first decomposes each unitary from the KAK decomposition into ZXZ on the source
+    /// qubit of the CNOTs and XZX on the targets in order commute operators to beginning and
+    /// end of decomposition. Inserting Hadamards reverses the direction of the CNOTs and transforms
+    /// a variable Rx -> variable virtual Rz. The beginning and ending single qubit gates are then
+    /// collapsed and re-decomposed with the single qubit decomposer. This last step could be avoided
+    /// if performance is a concern.
+    fn get_sx_vz_3cx_efficient_euler(
+        &self,
+        decomposition: &SmallVec<[Array2<Complex64>; 8]>,
+        target_decomposed: &TwoQubitWeylDecomposition,
+    ) -> Option<TwoQubitGateSequence> {
+        let mut gates = Vec::new();
+        let mut global_phase = target_decomposed.global_phase;
+        global_phase -= 3. * self.basis_decomposer.global_phase;
+        global_phase = global_phase.rem_euclid(TWO_PI);
+        let atol = 1e-10; // absolute tolerance for floats
+                          // Decompose source unitaries to zxz
+        let euler_q0: Vec<[f64; 3]> = decomposition
+            .iter()
+            .step_by(2)
+            .map(|decomp| {
+                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
+                global_phase += euler_angles[3];
+                [euler_angles[2], euler_angles[0], euler_angles[1]]
+            })
+            .collect();
+        // Decompose target unitaries to xzx
+        let euler_q1: Vec<[f64; 3]> = decomposition
+            .iter()
+            .skip(1)
+            .step_by(2)
+            .map(|decomp| {
+                let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
+                global_phase += euler_angles[3];
+                [euler_angles[2], euler_angles[0], euler_angles[1]]
+            })
+            .collect();
+
+        let x12 = euler_q0[1][2] + euler_q0[2][0];
+        let x12_is_non_zero = !abs_diff_eq!(x12, 0., epsilon = atol);
+        let mut x12_is_old_mult = None;
+        let mut x12_phase = 0.;
+        let x12_is_pi_mult = abs_diff_eq!(x12.sin(), 0., epsilon = atol);
+        if x12_is_pi_mult {
+            x12_is_old_mult = Some(abs_diff_eq!(x12.cos(), -1., epsilon = atol));
+            x12_phase = PI * x12.cos();
+        }
+        let x02_add = x12 - euler_q0[1][0];
+        let x12_is_half_pi = abs_diff_eq!(x12, PI2, epsilon = atol);
+
+        let mut euler_matrix_q0 = rx_matrix(euler_q0[0][1]).dot(&rz_matrix(euler_q0[0][0]));
+        if x12_is_non_zero && x12_is_pi_mult {
+            euler_matrix_q0 = rz_matrix(euler_q0[0][2] - x02_add).dot(&euler_matrix_q0);
+        } else {
+            euler_matrix_q0 = rz_matrix(euler_q0[0][2] + euler_q0[1][0]).dot(&euler_matrix_q0);
+        }
+        euler_matrix_q0 = aview2(&HGATE).dot(&euler_matrix_q0);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
+
+        let rx_0 = rx_matrix(euler_q1[0][0]);
+        let rz = rz_matrix(euler_q1[0][1]);
+        let rx_1 = rx_matrix(euler_q1[0][2] + euler_q1[1][0]);
+        let mut euler_matrix_q1 = rz.dot(&rx_0);
+        euler_matrix_q1 = rx_1.dot(&euler_matrix_q1);
+        euler_matrix_q1 = aview2(&HGATE).dot(&euler_matrix_q1);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+
+        gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
+
+        if x12_is_pi_mult {
+            // even or odd multiple
+            if x12_is_non_zero {
+                global_phase += x12_phase;
+            }
+            if x12_is_non_zero && x12_is_old_mult.unwrap() {
+                gates.push(("rz".to_string(), smallvec![-euler_q0[1][1]], smallvec![0]));
+            } else {
+                gates.push(("rz".to_string(), smallvec![euler_q0[1][1]], smallvec![0]));
+                global_phase += PI;
+            }
+        }
+        if x12_is_half_pi {
+            gates.push(("sx".to_string(), smallvec![], smallvec![0]));
+            global_phase -= PI4;
+        } else if x12_is_non_zero && !x12_is_pi_mult {
+            if self.pulse_optimize.is_none() {
+                self.append_1q_sequence(&mut gates, &mut global_phase, rx_matrix(x12).view(), 0);
+            } else {
+                return None;
+            }
+        }
+        if abs_diff_eq!(euler_q1[1][1], PI2, epsilon = atol) {
+            gates.push(("sx".to_string(), smallvec![], smallvec![1]));
+            global_phase -= PI4
+        } else if self.pulse_optimize.is_none() {
+            self.append_1q_sequence(
+                &mut gates,
+                &mut global_phase,
+                rx_matrix(euler_q1[1][1]).view(),
+                1,
+            );
+        } else {
+            return None;
+        }
+        gates.push((
+            "rz".to_string(),
+            smallvec![euler_q1[1][2] + euler_q1[2][0]],
+            smallvec![1],
+        ));
+        gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
+        gates.push(("rz".to_string(), smallvec![euler_q0[2][1]], smallvec![0]));
+        if abs_diff_eq!(euler_q1[2][1], PI2, epsilon = atol) {
+            gates.push(("sx".to_string(), smallvec![], smallvec![1]));
+            global_phase -= PI4;
+        } else if self.pulse_optimize.is_none() {
+            self.append_1q_sequence(
+                &mut gates,
+                &mut global_phase,
+                rx_matrix(euler_q1[2][1]).view(),
+                1,
+            );
+        } else {
+            return None;
+        }
+        gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
+        let mut euler_matrix = rz_matrix(euler_q0[2][2] + euler_q0[3][0]).dot(&aview2(&HGATE));
+        euler_matrix = rx_matrix(euler_q0[3][1]).dot(&euler_matrix);
+        euler_matrix = rz_matrix(euler_q0[3][2]).dot(&euler_matrix);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 0);
+
+        let mut euler_matrix = rx_matrix(euler_q1[2][2] + euler_q1[3][0]).dot(&aview2(&HGATE));
+        euler_matrix = rz_matrix(euler_q1[3][1]).dot(&euler_matrix);
+        euler_matrix = rx_matrix(euler_q1[3][2]).dot(&euler_matrix);
+        self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 1);
+
+        let out_unitary = compute_unitary(&gates, global_phase);
+        // TODO: fix the sign problem to avoid correction here
+        if abs_diff_eq!(
+            target_decomposed.unitary_matrix[[0, 0]],
+            -out_unitary[[0, 0]],
+            epsilon = atol
+        ) {
+            global_phase += PI;
+        }
+        Some(TwoQubitGateSequence {
+            gates,
+            global_phase,
+        })
+    }
+
     fn append_1q_sequence(
         &self,
         gates: &mut TwoQubitSequenceVec,
@@ -1314,199 +1607,51 @@ impl TwoQubitBasisDecomposer {
         best_nbasis: u8,
         decomposition: &SmallVec<[Array2<Complex64>; 8]>,
         target_decomposed: &TwoQubitWeylDecomposition,
-    ) -> Option<TwoQubitGateSequence> {
+    ) -> PyResult<Option<TwoQubitGateSequence>> {
         if self.pulse_optimize.is_some()
             && (best_nbasis == 0 || best_nbasis == 1 || best_nbasis > 3)
         {
-            return None;
+            return Ok(None);
         }
         match self.euler_basis {
             EulerBasis::ZSX => (),
             EulerBasis::ZSXX => (),
-            _ => return None,
+            _ => {
+                if self.pulse_optimize.is_some() {
+                    import_exception!(qiskit, QiskitError);
+                    return Err(QiskitError::new_err(format!(
+                        "'pulse_optimize' currently only works with ZSX basis ({} used)",
+                        self.euler_basis.as_str()
+                    )));
+                } else {
+                    return Ok(None);
+                }
+            }
         }
         if self.gate != "cx" {
-            return None;
+            if self.pulse_optimize.is_some() {
+                import_exception!(qiskit, QiskitError);
+                return Err(QiskitError::new_err(
+                    "pulse_optimizer currently only works with CNOT entangling gate",
+                ));
+            } else {
+                return Ok(None);
+            }
         }
-        let mut gates = Vec::new();
-        let mut global_phase = target_decomposed.global_phase;
-        global_phase -= best_nbasis as f64 * self.basis_decomposer.global_phase;
-        if best_nbasis == 3 {
-            let atol = 1e-10; // absolute tolerance for floats
-            let euler_q0: Vec<[f64; 3]> = decomposition
-                .iter()
-                .step_by(2)
-                .map(|decomp| {
-                    let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
-                    global_phase += euler_angles[3];
-                    [euler_angles[1], euler_angles[2], euler_angles[0]]
-                })
-                .collect();
-            let euler_q1: Vec<[f64; 3]> = decomposition
-                .iter()
-                .skip(1)
-                .step_by(2)
-                .map(|decomp| {
-                    let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
-                    global_phase += euler_angles[3];
-                    [euler_angles[1], euler_angles[2], euler_angles[0]]
-                })
-                .collect();
-            let x12 = euler_q0[1][2] + euler_q0[2][0];
-            let x12_is_non_zero = !abs_diff_eq!(x12, PI4, epsilon = atol);
-            let mut x12_is_old_mult = None;
-            let mut x12_phase = 0.;
-            let x12_is_pi_mult = abs_diff_eq!(x12.sin(), 0., epsilon = atol);
-            if x12_is_pi_mult {
-                x12_is_old_mult = Some(abs_diff_eq!(x12.cos(), -1., epsilon = atol));
-                x12_phase = PI * x12.cos();
-            }
-            let x02_add = x12 - euler_q0[1][0];
-            let x12_is_half_pi = abs_diff_eq!(x12, PI2, epsilon = atol);
-
-            let mut euler_matrix_q0 = rz_matrix(euler_q0[0][0]).dot(&rx_matrix(euler_q0[0][1]));
-            if x12_is_non_zero && x12_is_pi_mult {
-                euler_matrix_q0 = euler_matrix_q0.dot(&rz_matrix(euler_q0[0][2] - x02_add));
-            } else {
-                euler_matrix_q0 = euler_matrix_q0.dot(&rz_matrix(euler_q0[0][2] + euler_q0[1][0]));
-            }
-            euler_matrix_q0 = euler_matrix_q0.dot(&aview2(&HGATE));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
-            let euler_matrix_q1 = rx_matrix(euler_q1[0][0])
-                .dot(&rz_matrix(euler_q1[0][1]))
-                .dot(&rx_matrix(euler_q1[0][2] + euler_q1[1][0]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
-            gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
-            if x12_is_pi_mult {
-                if x12_is_non_zero {
-                    global_phase += x12_phase;
-                }
-                if x12_is_non_zero && x12_is_old_mult.unwrap() {
-                    gates.push(("rz".to_string(), smallvec![-euler_q0[1][1]], smallvec![0]));
-                } else {
-                    gates.push(("rz".to_string(), smallvec![euler_q0[1][1]], smallvec![0]));
-                    global_phase += PI;
-                }
-            }
-            if x12_is_half_pi {
-                gates.push(("sx".to_string(), smallvec![], smallvec![0]));
-                global_phase -= PI4;
-            } else if x12_is_non_zero && !x12_is_pi_mult {
-                if self.pulse_optimize.is_none() {
-                    self.append_1q_sequence(
-                        &mut gates,
-                        &mut global_phase,
-                        rx_matrix(x12).view(),
-                        0,
-                    );
-                } else {
-                    return None;
-                }
-            }
-            if abs_diff_eq!(euler_q1[1][1], PI2, epsilon = atol) {
-                gates.push(("sx".to_string(), smallvec![], smallvec![1]));
-                global_phase -= PI4
-            } else if self.pulse_optimize.is_none() {
-                self.append_1q_sequence(
-                    &mut gates,
-                    &mut global_phase,
-                    rx_matrix(euler_q1[1][1]).view(),
-                    1,
-                );
-            } else {
-                return None;
-            }
-            gates.push((
-                "rz".to_string(),
-                smallvec![euler_q1[1][2] + euler_q1[2][0]],
-                smallvec![1],
-            ));
-            gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
-            gates.push(("rz".to_string(), smallvec![euler_q0[2][1]], smallvec![0]));
-            if abs_diff_eq!(euler_q1[2][1], PI2, epsilon = atol) {
-                gates.push(("sx".to_string(), smallvec![], smallvec![1]));
-                global_phase -= PI4;
-            } else if self.pulse_optimize.is_none() {
-                self.append_1q_sequence(
-                    &mut gates,
-                    &mut global_phase,
-                    rx_matrix(euler_q1[2][1]).view(),
-                    1,
-                );
-            } else {
-                return None;
-            }
-            gates.push(("cx".to_string(), smallvec![], smallvec![1, 0]));
-            let euler_matrix = aview2(&HGATE)
-                .dot(&rz_matrix(euler_q0[2][2] + euler_q0[3][0]))
-                .dot(&rx_matrix(euler_q0[3][1]))
-                .dot(&rz_matrix(euler_q0[3][2]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 0);
-            let euler_matrix = aview2(&HGATE)
-                .dot(&rx_matrix(euler_q1[2][2] + euler_q1[3][0]))
-                .dot(&rz_matrix(euler_q1[3][1]))
-                .dot(&rx_matrix(euler_q1[3][2]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix.view(), 1);
-            // TODO: fix the sign problem to avoid correction here
-            // if cmath.isclose(
-            //  target_decomposed.unitary_matrix[0, 0], -(Operator(qc).data[0,0]), abs_tol=atol
-            //  ):
-            //      qc.global_phase += math.pi
+        let res = if best_nbasis == 3 {
+            self.get_sx_vz_3cx_efficient_euler(decomposition, target_decomposed)
         } else if best_nbasis == 2 {
-            let euler_q0: Vec<[f64; 3]> = decomposition
-                .iter()
-                .step_by(2)
-                .map(|decomp| {
-                    let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::ZXZ);
-                    global_phase += euler_angles[3];
-                    [euler_angles[1], euler_angles[2], euler_angles[0]]
-                })
-                .collect();
-            let euler_q1: Vec<[f64; 3]> = decomposition
-                .iter()
-                .skip(1)
-                .step_by(2)
-                .map(|decomp| {
-                    let euler_angles = angles_from_unitary(decomp.view(), EulerBasis::XZX);
-                    global_phase += euler_angles[3];
-                    [euler_angles[1], euler_angles[2], euler_angles[0]]
-                })
-                .collect();
-            let euler_matrix_q0 = rz_matrix(euler_q0[0][0])
-                .dot(&rx_matrix(euler_q0[0][1]))
-                .dot(&rz_matrix(euler_q0[0][2] + euler_q0[1][0] + PI2));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
-            let euler_matrix_q1 = rx_matrix(euler_q1[0][0])
-                .dot(&rz_matrix(euler_q1[0][1]))
-                .dot(&rx_matrix(euler_q1[0][2] + euler_q1[1][0]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
-            gates.push(("cx".to_string(), smallvec![], smallvec![0, 1]));
-            gates.push(("sx".to_string(), smallvec![], smallvec![0]));
-            gates.push((
-                "rz".to_string(),
-                smallvec![euler_q0[1][1] - PI],
-                smallvec![0],
-            ));
-            gates.push(("sx".to_string(), smallvec![], smallvec![0]));
-            gates.push(("rz".to_string(), smallvec![euler_q1[1][1]], smallvec![1]));
-            global_phase += PI2;
-            gates.push(("cx".to_string(), smallvec![], smallvec![0, 1]));
-            let euler_matrix_q0 = rz_matrix(euler_q0[1][2] + euler_q0[2][0] + PI2)
-                .dot(&rx_matrix(euler_q0[2][1]))
-                .dot(&rz_matrix(euler_q0[2][2]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q0.view(), 0);
-            let euler_matrix_q1 = rx_matrix(euler_q1[1][2] + euler_q1[2][0])
-                .dot(&rz_matrix(euler_q1[2][1]))
-                .dot(&rx_matrix(euler_q1[2][2]));
-            self.append_1q_sequence(&mut gates, &mut global_phase, euler_matrix_q1.view(), 1);
+            self.get_sx_vz_2cx_efficient_euler(decomposition, target_decomposed)
         } else {
-            return None;
+            None
+        };
+        if self.pulse_optimize.is_some() && res.is_none() {
+            import_exception!(qiskit, QiskitError);
+            return Err(QiskitError::new_err(
+                "Failed to compute requested pulse optimal decomposition",
+            ));
         }
-
-        Some(TwoQubitGateSequence {
-            gates,
-            global_phase,
-        })
+        Ok(res)
     }
 }
 
@@ -1823,7 +1968,7 @@ impl TwoQubitBasisDecomposer {
         };
         let pulse_optimize = self.pulse_optimize.unwrap_or(true);
         let sequence = if pulse_optimize {
-            self.pulse_optimal_chooser(best_nbasis, &decomposition, &target_decomposed)
+            self.pulse_optimal_chooser(best_nbasis, &decomposition, &target_decomposed)?
         } else {
             None
         };
