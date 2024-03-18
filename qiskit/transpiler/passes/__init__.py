@@ -26,7 +26,6 @@ Layout Selection (Placement)
    SetLayout
    TrivialLayout
    DenseLayout
-   NoiseAdaptiveLayout
    SabreLayout
    CSPLayout
    VF2Layout
@@ -59,7 +58,6 @@ Basis Change
    TranslateParameterizedGates
    Unroll3qOrMore
    UnrollCustomDefinitions
-   Unroller
 
 Optimizations
 =============
@@ -84,13 +82,13 @@ Optimizations
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
    RemoveFinalReset
-   CrosstalkAdaptiveSchedule
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
    NormalizeRXAngle
+   OptimizeAnnotated
 
 Calibration
 =============
@@ -102,6 +100,8 @@ Calibration
    RZXCalibrationBuilder
    RZXCalibrationBuilderNoEcho
    RXCalibrationBuilder
+
+.. autofunction:: rzx_templates
 
 Scheduling
 =============
@@ -140,15 +140,17 @@ Circuit Analysis
 Synthesis
 =========
 
+The synthesis transpiler plugin documentation can be found in the
+:mod:`qiskit.transpiler.passes.synthesis.plugin` page.
+
 .. autosummary::
    :toctree: ../stubs/
 
    UnitarySynthesis
-   LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   HLSConfig
    SolovayKitaev
-   SolovayKitaevSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -178,13 +180,13 @@ Additional Passes
    GatesInBasis
    ConvertConditionsToIfOps
    UnrollForLoops
+   FilterOpNodes
 """
 
 # layout selection (placement)
 from .layout import SetLayout
 from .layout import TrivialLayout
 from .layout import DenseLayout
-from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
@@ -205,7 +207,6 @@ from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
-from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
@@ -227,7 +228,6 @@ from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
 from .optimization import RemoveFinalReset
 from .optimization import RemoveDiagonalGatesBeforeMeasure
-from .optimization import CrosstalkAdaptiveSchedule
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
@@ -237,6 +237,7 @@ from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
 from .optimization import NormalizeRXAngle
+from .optimization import OptimizeAnnotated
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -251,17 +252,19 @@ from .analysis import DAGLongestPath
 # synthesis
 from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
-from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import HLSConfig
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import AQCSynthesisPlugin
 
 # calibration
 from .calibration import PulseGates
 from .calibration import RZXCalibrationBuilder
 from .calibration import RZXCalibrationBuilderNoEcho
 from .calibration import RXCalibrationBuilder
+from .calibration.rzx_templates import rzx_templates
 
 # circuit scheduling
 from .scheduling import TimeUnitConversion
@@ -294,3 +297,4 @@ from .utils import ContainsInstruction
 from .utils import GatesInBasis
 from .utils import ConvertConditionsToIfOps
 from .utils import UnrollForLoops
+from .utils import FilterOpNodes

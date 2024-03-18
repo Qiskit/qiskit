@@ -26,7 +26,7 @@ from qiskit.synthesis.linear import (
     calc_inverse_matrix,
 )
 from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

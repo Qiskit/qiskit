@@ -231,9 +231,9 @@ def deprecate_arguments(
             msg_suffix = (
                 "will in the future be removed." if new_arg is None else f"replaced with {new_arg}."
             )
-            old_kwarg_to_msg[
-                old_arg
-            ] = f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            old_kwarg_to_msg[old_arg] = (
+                f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+            )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -356,9 +356,9 @@ def _write_deprecation_msg(
     removal_timeline: str,
 ) -> tuple[str, Type[DeprecationWarning] | Type[PendingDeprecationWarning]]:
     if pending:
-        category: Type[DeprecationWarning] | Type[
+        category: Type[DeprecationWarning] | Type[PendingDeprecationWarning] = (
             PendingDeprecationWarning
-        ] = PendingDeprecationWarning
+        )
         deprecation_status = "pending deprecation"
         removal_desc = f"marked deprecated in a future release, and then removed {removal_timeline}"
     else:

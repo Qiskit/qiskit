@@ -49,12 +49,13 @@ class U3Gate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
-                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
+                \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+                e^{i\phi}\sin\left(\rotationangle\right) &
+                e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -92,10 +93,19 @@ class U3Gate(Gate):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
 
-        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi)`)
+        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U3Gate` with inverse parameter values.
+
+        Returns:
+            U3Gate: inverse gate.
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -104,23 +114,32 @@ class U3Gate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-U3 gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CU3Gate(*self.params, label=label, ctrl_state=ctrl_state)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
     def _define(self):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -165,16 +184,16 @@ class CU3Gate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CU3(\theta, \phi, \lambda)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             U3(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0                   & 0 & 0 \\
-                0 & \cos(\th)           & 0 & -e^{i\lambda}\sin(\th) \\
+                0 & \cos(\rotationangle)           & 0 & -e^{i\lambda}\sin(\rotationangle) \\
                 0 & 0                   & 1 & 0 \\
-                0 & e^{i\phi}\sin(\th)  & 0 & e^{i(\phi+\lambda)}\cos(\th)
+                0 & e^{i\phi}\sin(\rotationangle)  & 0 & e^{i(\phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
 
     .. note::
@@ -193,14 +212,16 @@ class CU3Gate(ControlledGate):
 
         .. math::
 
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
+
             CU3(\theta, \phi, \lambda)\ q_1, q_0 =
                 |0\rangle\langle 0| \otimes I +
                 |1\rangle\langle 1| \otimes U3(\theta,\phi,\lambda) =
                 \begin{pmatrix}
                     1 & 0   & 0                  & 0 \\
                     0 & 1   & 0                  & 0 \\
-                    0 & 0   & \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                    0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                    0 & 0   & \cos(\rotationangle)          & -e^{i\lambda}\sin(\rotationangle) \\
+                    0 & 0   & e^{i\phi}\sin(\rotationangle) & e^{i(\phi+\lambda)}\cos(\rotationangle)
                 \end{pmatrix}
     """
 
@@ -265,10 +286,20 @@ class CU3Gate(ControlledGate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.
 
-        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
+        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CU3Gate` with inverse
+                parameter values.
+
+        Returns:
+            CU3Gate: inverse gate.
         """
         return CU3Gate(
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state

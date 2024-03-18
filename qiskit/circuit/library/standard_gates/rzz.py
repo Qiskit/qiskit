@@ -38,14 +38,14 @@ class RZZGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{ZZ}(\theta) = \exp\left(-i \th Z{\otimes}Z\right) =
+        R_{ZZ}(\theta) = \exp\left(-i \rotationangle Z{\otimes}Z\right) =
             \begin{pmatrix}
-                e^{-i \th} & 0 & 0 & 0 \\
-                0 & e^{i \th} & 0 & 0 \\
-                0 & 0 & e^{i \th} & 0 \\
-                0 & 0 & 0 & e^{-i \th}
+                e^{-i \rotationangle} & 0 & 0 & 0 \\
+                0 & e^{i \rotationangle} & 0 & 0 \\
+                0 & 0 & e^{i \rotationangle} & 0 \\
+                0 & 0 & 0 & e^{-i \rotationangle}
             \end{pmatrix}
 
     This is a direct sum of RZ rotations, so this gate is equivalent to a
@@ -116,8 +116,18 @@ class RZZGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RZZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZZGate` with an inverted parameter value.
+
+        Returns:
+            RZZGate: inverse gate.
+        """
         return RZZGate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -139,3 +149,8 @@ class RZZGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZZGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZZGate):
+            return self._compare_parameters(other)
+        return False

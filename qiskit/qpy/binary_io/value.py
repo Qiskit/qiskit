@@ -19,6 +19,11 @@ import struct
 import uuid
 
 import numpy as np
+import symengine
+from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+    load_basic,
+)
+
 
 from qiskit.circuit import CASE_DEFAULT, Clbit, ClassicalRegister
 from qiskit.circuit.classical import expr, types
@@ -26,12 +31,11 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.qpy import common, formats, exceptions, type_keys
-from qiskit.utils import optionals as _optional
 
 
 def _write_parameter(file_obj, obj):
-    name_bytes = obj._name.encode(common.ENCODE)
-    file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj._uuid.bytes))
+    name_bytes = obj.name.encode(common.ENCODE)
+    file_obj.write(struct.pack(formats.PARAMETER_PACK, len(name_bytes), obj.uuid.bytes))
     file_obj.write(name_bytes)
 
 
@@ -42,7 +46,7 @@ def _write_parameter_vec(file_obj, obj):
             formats.PARAMETER_VECTOR_ELEMENT_PACK,
             len(name_bytes),
             obj._vector._size,
-            obj._uuid.bytes,
+            obj.uuid.bytes,
             obj._index,
         )
     )
@@ -51,7 +55,6 @@ def _write_parameter_vec(file_obj, obj):
 
 def _write_parameter_expression(file_obj, obj, use_symengine):
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("write_parameter_expression")
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
@@ -212,7 +215,7 @@ def _read_parameter_vec(file_obj, vectors):
     if name not in vectors:
         vectors[name] = (ParameterVector(name, data.vector_size), set())
     vector = vectors[name][0]
-    if vector[data.index]._uuid != param_uuid:
+    if vector[data.index].uuid != param_uuid:
         vectors[name][1].add(data.index)
         vector._params[data.index] = ParameterVectorElement(vector, data.index, uuid=param_uuid)
     return vector[data.index]
@@ -224,13 +227,7 @@ def _read_parameter_expression(file_obj):
     )
     from sympy.parsing.sympy_parser import parse_expr
 
-    if _optional.HAS_SYMENGINE:
-        from symengine import sympify
-
-        expr_ = sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
-    else:
-        expr_ = parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE))
-
+    expr_ = symengine.sympify(parse_expr(file_obj.read(data.expr_size).decode(common.ENCODE)))
     symbol_map = {}
     for _ in range(data.map_elements):
         elem_data = formats.PARAM_EXPR_MAP_ELEM(
@@ -264,23 +261,14 @@ def _read_parameter_expression_v3(file_obj, vectors, use_symengine):
     data = formats.PARAMETER_EXPR(
         *struct.unpack(formats.PARAMETER_EXPR_PACK, file_obj.read(formats.PARAMETER_EXPR_SIZE))
     )
-    from sympy.parsing.sympy_parser import parse_expr
 
     payload = file_obj.read(data.expr_size)
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("read_parameter_expression_v3")
-        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-            load_basic,
-        )
-
         expr_ = load_basic(payload)
     else:
-        if _optional.HAS_SYMENGINE:
-            from symengine import sympify
+        from sympy.parsing.sympy_parser import parse_expr
 
-            expr_ = sympify(parse_expr(payload.decode(common.ENCODE)))
-        else:
-            expr_ = parse_expr(payload.decode(common.ENCODE))
+        expr_ = symengine.sympify(parse_expr(payload.decode(common.ENCODE)))
 
     symbol_map = {}
     for _ in range(data.map_elements):

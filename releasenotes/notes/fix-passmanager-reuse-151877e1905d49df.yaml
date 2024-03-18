@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    :meth:`.BasePassManager.run` will no longer leak the previous :class:`.PropertySet` into new
+    workflows when called more than once.  Previously, the same :class:`.PropertySet` as before
+    would be used to initialize follow-on runs, which could mean that invalid property information
+    was being given to tasks.  The behavior now matches that of Qiskit 0.44.  Fixed `#11784 <https://github.com/Qiskit/qiskit/issues/11784>`__.

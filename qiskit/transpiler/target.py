@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -44,7 +44,6 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.providers.exceptions import BackendPropertyError
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
-from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
@@ -242,12 +241,6 @@ class Target(Mapping):
         "concurrent_measurements",
     )
 
-    @deprecate_arg(
-        "aquire_alignment",
-        new_alias="acquire_alignment",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
     def __init__(
         self,
         description=None,
@@ -368,8 +361,9 @@ class Target(Mapping):
         supports.
 
         Args:
-            instruction (qiskit.circuit.Instruction): The operation object to add to the map. If it's
-                parameterized any value of the parameter can be set. Optionally for variable width
+            instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
+                The operation object to add to the map. If it's parameterized any value
+                of the parameter can be set. Optionally for variable width
                 instructions (such as control flow operations such as :class:`~.ForLoop` or
                 :class:`~MCXGate`) you can specify the class. If the class is specified than the
                 ``name`` argument must be specified. When a class is used the gate is treated as global
@@ -702,6 +696,9 @@ class Target(Mapping):
         Raises:
             KeyError: If ``qargs`` is not in target
         """
+        # if num_qubits == 0, we will return globally defined operations
+        if self.num_qubits == 0 or self.num_qubits is None:
+            qargs = None
         if qargs is not None and any(x not in range(0, self.num_qubits) for x in qargs):
             raise KeyError(f"{qargs} not in target.")
         res = self._qarg_gate_map.get(qargs, set())
@@ -784,6 +781,9 @@ class Target(Mapping):
                     return False
             return True
 
+        # Handle case where num_qubits is None by always checking globally supported operations
+        if self.num_qubits is None:
+            qargs = None
         # Case a list if passed in by mistake
         if qargs is not None:
             qargs = tuple(qargs)
@@ -1143,28 +1143,6 @@ class Target(Mapping):
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
 
-    @property
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self):
-        """Alias of deprecated name. This will be removed."""
-        return self.acquire_alignment
-
-    @aquire_alignment.setter
-    @deprecate_func(
-        additional_msg="Use the property ``acquire_alignment`` instead.",
-        since="0.24.0",
-        is_property=True,
-        package_name="qiskit-terra",
-    )
-    def aquire_alignment(self, new_value: int):
-        """Alias of deprecated name. This will be removed."""
-        self.acquire_alignment = new_value
-
     def __iter__(self):
         return iter(self._gate_map)
 
@@ -1477,7 +1455,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_length",
                             "unit": "s",
                             "value": props.duration,
@@ -1486,7 +1464,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     property_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "gate_error",
                             "unit": "",
                             "value": props.error,
@@ -1502,7 +1480,9 @@ def target_to_backend_properties(target: Target):
                         }
                     )
         else:
-            qubit_props: dict[int, Any] = {x: None for x in range(target.num_qubits)}
+            qubit_props: dict[int, Any] = {}
+            if target.num_qubits is not None:
+                qubit_props = {x: None for x in range(target.num_qubits)}
             for qargs, props in qargs_list.items():
                 if qargs is None:
                     continue
@@ -1511,7 +1491,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "error", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_error",
                             "unit": "",
                             "value": props.error,
@@ -1520,7 +1500,7 @@ def target_to_backend_properties(target: Target):
                 if getattr(props, "duration", None) is not None:
                     props_list.append(
                         {
-                            "date": datetime.datetime.utcnow(),
+                            "date": datetime.datetime.now(datetime.timezone.utc),
                             "name": "readout_length",
                             "unit": "s",
                             "value": props.duration,
