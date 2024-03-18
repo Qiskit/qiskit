@@ -1123,3 +1123,14 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
             # Just check for 1Q gates.
             if node.op.num_qubits == 1:
                 self.assertTrue(node.op.name in target_qarg_gate_map[(node.qargs[0]._index,)])
+
+    def test_raises_num_qubits_in_ckt_more_than_in_target(self):
+        """
+        Test if TranspilerError is raised when number of qubits in
+        the circuit exceeds the number of qubits available in the target.
+        """
+        qc = QuantumCircuit(3)
+        qc.h(qc.qregs[0])
+        bt_pass = BasisTranslator(std_eqlib, target_basis=None, target=self.target)
+        with self.assertRaisesRegex(TranspilerError, "circuit is more than the number of qubits"):
+            bt_pass(qc)

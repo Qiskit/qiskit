@@ -144,6 +144,16 @@ class BasisTranslator(TransformationPass):
         if self._target_basis is None and self._target is None:
             return dag
 
+        if dag is not None and self._target is not None:
+            # Sometimes target.num_qubits is set to None, to prevent transpiler to resize the cirucit.
+            if (target_num_qubits := self._target.num_qubits) is not None:
+                if dag.num_qubits() > target_num_qubits:
+                    raise TranspilerError(
+                        f"Number of qubits: {dag.num_qubits()} in the circuit "
+                        f"is more than the number of qubits: {self._target.num_qubits} "
+                        "in the target"
+                    )
+
         qarg_indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
 
         # Names of instructions assumed to supported by any backend.
