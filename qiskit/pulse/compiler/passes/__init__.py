@@ -15,3 +15,4 @@
 from .map_mixed_frames import MapMixedFrame
 from .set_sequence import SetSequence
 from .schedule import SetSchedule
+from .broadcast_instructions import BroadcastInstructions
