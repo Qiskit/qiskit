@@ -509,7 +509,6 @@ class TwoQubitBasisDecomposer:
                 stacklevel=2,
             )
         self.num_basis_gates = self._inner_decomposer.num_basis_gates
-        self.traces = self._inner_decomposer.traces
         self.decomp0 = staticmethod(self._inner_decomposer.decomp0)
         self.decomp1 = self._inner_decomposer.decomp1
         self.decomp2_supercontrolled = self._inner_decomposer.decomp2_supercontrolled
@@ -567,6 +566,13 @@ class TwoQubitBasisDecomposer:
                     raise QiskitError(f"Unknown gate {name}") from exc
 
         return circ
+
+    def traces(self, target):
+        r"""
+        Give the expected traces :math:`\Big\vert\text{Tr}(U \cdot U_\text{target}^{\dag})\Big\vert`
+        for a different number of basis gates.
+        """
+        return self._inner_decomposer.traces(target._inner_decomposition)
 
 
 class TwoQubitDecomposeUpToDiagonal:
