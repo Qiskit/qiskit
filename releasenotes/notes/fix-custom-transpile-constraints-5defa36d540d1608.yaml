@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    A bug in :func:`.transpile` has been fixed where custom `instruction_durations` and `dt` constraints
+    would be ignored when provided at the same time as a backend of type :class:`.BackendV2`. The behavior
+    after the fix is now independent of whether the provided backend is of type :class:`.BackendV1` or
+    type :class:`.BackendV2`.
