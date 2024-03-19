@@ -325,8 +325,14 @@ def transpile(  # pylint: disable=too-many-return-statements
             backend_properties = target_to_backend_properties(target)
     # If target is not specified and any hardware constraint object is
     # manually specified then do not use the target from the backend as
-    # it is invalidated by a custom basis gate list or a custom coupling map
-    elif basis_gates is not None or coupling_map is not None:
+    # it is invalidated by a custom basis gate list, custom coupling map,
+    # custom dt or custom instruction_durations
+    elif (
+        basis_gates is not None
+        or coupling_map is not None
+        or dt is not None
+        or instruction_durations is not None
+    ):
         _skip_target = True
     else:
         target = getattr(backend, "target", None)

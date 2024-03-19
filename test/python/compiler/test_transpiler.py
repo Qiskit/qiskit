@@ -74,10 +74,11 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.fake_provider import Fake20QV1, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap
+from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
@@ -85,7 +86,13 @@ from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarge
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
-from qiskit.transpiler.target import InstructionProperties, Target
+from qiskit.transpiler.target import (
+    InstructionProperties,
+    Target,
+    TimingConstraints,
+    InstructionDurations,
+)
+
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
@@ -1497,6 +1504,86 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
+
+    def test_scheduling_timing_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with both BackendV1 and BackendV2."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        # the original timing constraints are granularity = min_length = 16
+        timing_constraints = TimingConstraints(granularity=32, min_length=64)
+        error_msgs = {
+            65: "Pulse duration is not multiple of 32",
+            32: "Pulse gate duration is less than 64",
+        }
+
+        for backend, duration in zip([backend_v1, backend_v2], [65, 32]):
+            with self.subTest(backend=backend, duration=duration):
+                qc = QuantumCircuit(2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure_all()
+                qc.add_calibration(
+                    "h", [0], Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(0))), [0, 0]
+                )
+                qc.add_calibration(
+                    "cx",
+                    [0, 1],
+                    Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(1))),
+                    [0, 0],
+                )
+                with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
+                    _ = transpile(
+                        qc,
+                        backend=backend,
+                        timing_constraints=timing_constraints,
+                    )
+
+    def test_scheduling_instruction_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with BackendV1."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1, "dt")
+        qc.cx(0, 1)
+        # update durations
+        durations = InstructionDurations.from_backend(backend_v1)
+        durations.update([("cx", [0, 1], 1000, "dt")])
+
+        for backend in [backend_v1, backend_v2]:
+            with self.subTest(backend=backend):
+                scheduled = transpile(
+                    qc,
+                    backend=backend,
+                    scheduling_method="alap",
+                    instruction_durations=durations,
+                    layout_method="trivial",
+                )
+                self.assertEqual(scheduled.duration, 1500)
+
+    def test_scheduling_dt_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with BackendV1."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        original_dt = 2.2222222222222221e-10
+        original_duration = 3504
+
+        for backend in [backend_v1, backend_v2]:
+            with self.subTest(backend=backend):
+                # halve dt in sec = double duration in dt
+                scheduled = transpile(
+                    qc, backend=backend, scheduling_method="asap", dt=original_dt / 2
+                )
+                self.assertEqual(scheduled.duration, original_duration * 2)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
