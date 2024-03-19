@@ -2237,7 +2237,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, self.threshold)
+        self.assertGreaterEqual(ratio, 0.9999)
 
     def test_default_futurewarning(self):
         """Test using the default scheme emits a future warning."""
