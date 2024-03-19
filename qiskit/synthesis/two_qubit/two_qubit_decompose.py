@@ -515,11 +515,69 @@ class TwoQubitBasisDecomposer:
                 "Only know how to decompose properly for a supercontrolled basis gate.",
                 stacklevel=2,
             )
-        self.num_basis_gates = self._inner_decomposer.num_basis_gates
-        self.decomp0 = staticmethod(self._inner_decomposer.decomp0)
-        self.decomp1 = self._inner_decomposer.decomp1
-        self.decomp2_supercontrolled = self._inner_decomposer.decomp2_supercontrolled
-        self.decomp3_supercontrolled = self._inner_decomposer.decomp3_supercontrolled
+
+    def num_basis_gates(self, unitary):
+        """Computes the number of basis gates needed in
+        a decomposition of input unitary
+        """
+        return self._inner_decomposer.num_basis_gates(unitary)
+
+    @staticmethod
+    def decomp0(target):
+        r"""
+        Decompose target :math:`\sim U_d(x, y, z)` with :math:`0` uses of the basis gate.
+        Result :math:`U_r` has trace:
+
+        .. math::
+
+            \Big\vert\text{Tr}(U_r\cdot U_\text{target}^{\dag})\Big\vert =
+            4\Big\vert (\cos(x)\cos(y)\cos(z)+ j \sin(x)\sin(y)\sin(z)\Big\vert
+
+        which is optimal for all targets and bases
+        """
+
+        return two_qubit_decompose.TwoQubitBasisDecomposer.decomp0(target)
+
+    def decomp1(self, target):
+        r"""Decompose target :math:`\sim U_d(x, y, z)` with :math:`1` use of the basis gate
+        :math:`\sim U_d(a, b, c)`.
+        Result :math:`U_r` has trace:
+
+        .. math::
+
+            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^{\dag})\Big\vert =
+            4\Big\vert \cos(x-a)\cos(y-b)\cos(z-c) + j \sin(x-a)\sin(y-b)\sin(z-c)\Big\vert
+
+        which is optimal for all targets and bases with ``z==0`` or ``c==0``.
+        """
+        return self._inner_decomposer.decomp1(target)
+
+    def decomp2_supercontrolled(self, target):
+        r"""
+        Decompose target :math:`\sim U_d(x, y, z)` with :math:`2` uses of the basis gate.
+
+        For supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b, result :math:`U_r` has trace
+
+        .. math::
+
+            \Big\vert\text{Tr}(U_r \cdot U_\text{target}^\dag) \Big\vert = 4\cos(z)
+
+        which is the optimal approximation for basis of CNOT-class :math:`\sim U_d(\pi/4, 0, 0)`
+        or DCNOT-class :math:`\sim U_d(\pi/4, \pi/4, 0)` and any target. It may
+        be sub-optimal for :math:`b \neq 0` (i.e. there exists an exact decomposition for any target
+        using :math:`B \sim U_d(\pi/4, \pi/8, 0)`, but it may not be this decomposition).
+        This is an exact decomposition for supercontrolled basis and target :math:`\sim U_d(x, y, 0)`.
+        No guarantees for non-supercontrolled basis.
+        """
+        return self._inner_decomposer.decomp2_supercontrolled(target)
+
+    def decomp3_supercontrolled(self, target):
+        r"""
+        Decompose target with :math:`3` uses of the basis.
+        This is an exact decomposition for supercontrolled basis :math:`\sim U_d(\pi/4, b, 0)`, all b,
+        and any target. No guarantees for non-supercontrolled basis.
+        """
+        return self._inner_decomposer.decomp3_supercontrolled(target)
 
     def __call__(
         self,
