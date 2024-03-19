@@ -2218,11 +2218,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, 0.9999)
 
-<<<<<<< HEAD
-    def test_default_futurewarning(self):
-        """Test using the default scheme emits a future warning."""
-        qc = QuantumCircuit(1)
-=======
     def test_control_flow_with_fold_minus_one(self):
         """Test control flow works with fold=-1. Qiskit issue #12012"""
         qreg = QuantumRegister(2, "qr")
@@ -2260,8 +2255,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.append(SXGate(), [1])
         fname = "annotated.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
->>>>>>> 43381ae1b (Fix mpl circuit drawer with fold=-1 hanging with ControlFlow ops (#12016))
 
+    def test_default_futurewarning(self):
+        """Test using the default scheme emits a future warning."""
+        qc = QuantumCircuit(1)
         with self.assertWarnsRegex(
             FutureWarning, "To silence this warning, specify the current default explicitly"
         ):
