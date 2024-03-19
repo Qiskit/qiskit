@@ -18,7 +18,7 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import RemoveFinalReset, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestRemoveFinalReset(QiskitTestCase):
