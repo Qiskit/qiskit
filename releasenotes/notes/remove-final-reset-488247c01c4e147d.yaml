@@ -33,5 +33,3 @@ features:
        qc.measure(0, 0)
        qc.reset(range(3))
        RemoveFinalReset()(qc).draw("mpl")
-
-    This new pass is enabled at optimization levels 1 and higher.
