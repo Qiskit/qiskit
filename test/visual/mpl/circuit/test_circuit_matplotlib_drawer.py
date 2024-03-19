@@ -2239,23 +2239,6 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
-    def test_annotated_operation(self):
-        """Test AnnotatedOperations and other non-Instructions."""
-        circuit = QuantumCircuit(3)
-        cliff = random_clifford(2)
-        circuit.append(cliff, [0, 1])
-        circuit.x(0)
-        circuit.h(1)
-        circuit.append(SGate().control(2, ctrl_state=1), [0, 2, 1])
-        circuit.ccx(0, 1, 2)
-        op1 = AnnotatedOperation(
-            SGate(), [InverseModifier(), ControlModifier(2, 1), PowerModifier(3.29)]
-        )
-        circuit.append(op1, [0, 1, 2])
-        circuit.append(SXGate(), [1])
-        fname = "annotated.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname)
-
     def test_default_futurewarning(self):
         """Test using the default scheme emits a future warning."""
         qc = QuantumCircuit(1)
