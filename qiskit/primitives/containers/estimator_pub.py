@@ -217,8 +217,6 @@ estimator, if ``precision=None`` the estimator will determine the target precisi
     An Estimator Pub can also be initialized in the following formats which
     will be converted to the full Pub tuple:
 
-    * ``circuit
-    * ``(circuit,)``
     * ``(circuit, observables)``
-    * ``(circuit, observalbes, parameter_values)``
+    * ``(circuit, observables, parameter_values)``
 """

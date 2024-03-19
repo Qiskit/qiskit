@@ -156,10 +156,17 @@ class SamplerPub(ShapedMixin):
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters
         if num_parameters != self.circuit.num_parameters:
-            raise ValueError(
+            message = (
                 f"The number of values ({num_parameters}) does not match "
                 f"the number of parameters ({self.circuit.num_parameters}) for the circuit."
             )
+            if num_parameters == 0:
+                message += (
+                    " Note that if you want to run a single pub, you need to wrap it with `[]` like "
+                    "`sampler.run([(circuit, param_values)])` instead of "
+                    "`sampler.run((circuit, param_values))`."
+                )
+            raise ValueError(message)
 
 
 SamplerPubLike = Union[
@@ -180,7 +187,7 @@ if ``shots=None`` the number of run shots is determined by the sampler.
     A Sampler Pub can also be initialized in the following formats which
     will be converted to the full Pub tuple:
 
-    * ``circuit
+    * ``circuit``
     * ``(circuit,)``
     * ``(circuit, parameter_values)``
 """
