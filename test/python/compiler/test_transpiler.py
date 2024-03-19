@@ -925,6 +925,7 @@ class TestTranspile(QiskitTestCase):
         num_qubits = 5
         qc = QuantumCircuit(num_qubits)
         qc.reset(range(num_qubits))
+        qc.h(range(num_qubits))
 
         num_resets = transpile(qc, optimization_level=optimization_level).count_ops()["reset"]
         self.assertEqual(num_resets, num_qubits)
