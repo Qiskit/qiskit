@@ -71,17 +71,16 @@ class Flatten(TransformationPass):
 
         for ind in prog.sequence.node_indices():
             if isinstance(sub_block := prog.sequence.get_node_data(ind), SequenceIR):
-                sub_block.flatten(inplace=True)
+                self._flatten(sub_block)
                 initial_time = prog.time_table[ind]
                 nodes_mapping = prog.sequence.substitute_node_with_subgraph(
                     ind, sub_block.sequence, lambda x, y, _: edge_map(x, y, ind)
                 )
-                if initial_time is not None:
-                    for old_node in nodes_mapping.keys():
-                        if old_node not in (0, 1):
-                            prog.time_table[nodes_mapping[old_node]] = (
-                                initial_time + sub_block.time_table[old_node]
-                            )
+                for old_node in nodes_mapping.keys():
+                    if old_node not in (0, 1):
+                        prog.time_table[nodes_mapping[old_node]] = (
+                            initial_time + sub_block.time_table[old_node]
+                        )
 
                 del prog.time_table[ind]
                 prog.sequence.remove_node_retain_edges(nodes_mapping[0])

@@ -14,7 +14,6 @@
 import copy
 
 from test import QiskitTestCase
-from test.python.pulse.compiler_passes.utils import PulseIrTranspiler
 from rustworkx import is_isomorphic_node_match
 
 from qiskit.pulse import (
@@ -31,7 +30,6 @@ from qiskit.pulse.ir import (
 from qiskit.pulse.transforms import AlignLeft, AlignRight
 from qiskit.pulse.model import QubitFrame, Qubit, MixedFrame
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SetSchedule
 
 
 class TestSequenceIR(QiskitTestCase):
