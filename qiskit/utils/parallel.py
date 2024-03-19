@@ -43,10 +43,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-# The `parallel_map` function was module was original forked from QuTiP
-# at https://github.com/qutip/qutip/blob/v4.2.0/qutip/parallel.py#L190
-# the function has since diverged in Qiskit.
-
 """
 Routines for running Python functions in parallel using process pools
 from the multiprocessing library.

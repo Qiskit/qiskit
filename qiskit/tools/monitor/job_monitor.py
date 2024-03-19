@@ -28,7 +28,7 @@ def _text_checker(
         _interval_set (bool): Was interval time set by user?
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
-        By default this is sys.stdout.
+        By default, this is sys.stdout.
         line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to \\r.
 
@@ -45,7 +45,7 @@ def _text_checker(
         status = job.status()
         msg = status.value
 
-        if status.name == "QUEUED":
+        if status.name == "QUEUED" and hasattr(job, "queue_position"):
             msg += " (%s)" % job.queue_position()
             if job.queue_position() is None:
                 interval = 2
@@ -69,14 +69,14 @@ def _text_checker(
 
 
 def job_monitor(job, interval=None, quiet=False, output=sys.stdout, line_discipline="\r"):
-    """Monitor the status of a IBMQJob instance.
+    """Monitor the status of a :class:`~qiskit.providers.job.Job` instance.
 
     Args:
         job (BaseJob): Job to monitor.
         interval (int): Time interval between status queries.
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
-        By default this is sys.stdout.
+        By default, this is ``sys.stdout``.
         line_discipline (string): character emitted at start of a line of job monitor output,
         This defaults to \\r.
 

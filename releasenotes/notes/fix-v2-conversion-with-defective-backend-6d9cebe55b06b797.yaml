@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Update properties and configuration information of :class:`.FakeOpenPulse2Q` backend.
+    Updated properties and configuration information of the :class:`.FakeOpenPulse2Q` backend.
     Missing gate properties were added for some gates defined in the pulse
-    defaults so that the gates defined in the two locations were consistent.
+    defaults so that the gates defined in the two locations are consistent.
