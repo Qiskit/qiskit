@@ -36,6 +36,7 @@ from qiskit.pulse.compiler import MapMixedFrame, SetSequence, SetSchedule
 
 class TestSequenceIR(QiskitTestCase):
     """Test SequenceIR objects"""
+
     def test_ir_creation(self):
         """Test ir creation"""
         ir_example = SequenceIR(AlignLeft())
