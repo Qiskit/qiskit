@@ -2242,6 +2242,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_default_futurewarning(self):
         """Test using the default scheme emits a future warning."""
         qc = QuantumCircuit(1)
+
         with self.assertWarnsRegex(
             FutureWarning, "To silence this warning, specify the current default explicitly"
         ):
