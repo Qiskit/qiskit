@@ -147,9 +147,6 @@ class RealAmplitudes(TwoLocal):
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
-            skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
-                that are entangled with another qubit. If False, the single qubit gates are applied
-                to each qubit in the Ansatz. Defaults to False.
             skip_final_rotation_layer: If False, a rotation layer is added at the end of the
                 ansatz. If True, no rotation layer is added.
             parameter_prefix: The parameterized gates require a parameter to be defined, for which

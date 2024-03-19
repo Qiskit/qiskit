@@ -1,0 +1,6 @@
+---
+upgrade_circuits:
+  - |
+    The ``header`` and ``extension_lib`` data-only attributes from :class:`.QuantumCircuit` are
+    removed following their deprecation in Qiskit 0.45.  These were internal details of the OpenQASM
+    2 exporter which are no longer used.

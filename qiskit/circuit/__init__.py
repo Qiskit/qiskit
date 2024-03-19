@@ -71,8 +71,7 @@ with equal probability.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
-
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
    qc = QuantumCircuit(qr, cr)
@@ -82,7 +81,8 @@ with equal probability.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 
@@ -100,7 +100,7 @@ always be :math:`|1\\rangle`.
 .. plot::
    :include-source:
 
-   from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
    qr = QuantumRegister(1)
    cr = ClassicalRegister(1)
@@ -115,7 +115,8 @@ always be :math:`|1\\rangle`.
 
 .. code-block::
 
-   backend = BasicAer.get_backend('qasm_simulator')
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
    tqc = transpile(qc, backend)
    counts = backend.run(tqc).result().get_counts()
 
@@ -399,27 +400,4 @@ from .controlflow import (
     ContinueLoopOp,
 )
 
-
-_DEPRECATED_NAMES = {
-    "Int1": "qiskit.circuit.classicalfunction.types",
-    "Int2": "qiskit.circuit.classicalfunction.types",
-    "classical_function": "qiskit.circuit.classicalfunction",
-    "BooleanExpression": "qiskit.circuit.classicalfunction",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        import importlib
-        import warnings
-
-        module_name = _DEPRECATED_NAMES[name]
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
-            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
-            "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(importlib.import_module(module_name), name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

@@ -41,7 +41,7 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QFT(4)
        _generate_circuit_library_visualization(circuit)
 
@@ -51,7 +51,7 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QFT(4).inverse()
        _generate_circuit_library_visualization(circuit)
 
@@ -67,7 +67,7 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        circuit = QFT(5, approximation_degree=2)
        _generate_circuit_library_visualization(circuit)
 
@@ -203,8 +203,14 @@ class QFT(BlueprintCircuit):
         """
         return self._inverse
 
-    def inverse(self) -> "QFT":
+    def inverse(self, annotated: bool = False) -> "QFT":
         """Invert this circuit.
+
+        Args:
+            annotated: indicates whether the inverse gate can be implemented
+                as an annotated gate. The value of this argument is ignored as the
+                inverse of a QFT is an IQFT which is just another instance of
+                :class:`.QFT`.
 
         Returns:
             The inverted circuit.

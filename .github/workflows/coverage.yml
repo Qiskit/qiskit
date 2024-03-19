@@ -18,8 +18,8 @@ jobs:
       RUSTUP_TOOLCHAIN: stable
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         name: Install Python
         with:
           python-version: '3.8'
@@ -53,6 +53,7 @@ jobs:
         run: |
           set -e
           python -m pip install -c constraints.txt -r requirements-dev.txt -r requirements-optional.txt
+          python tools/report_numpy_state.py
           stestr run
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`

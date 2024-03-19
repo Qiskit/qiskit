@@ -20,7 +20,6 @@ import pathlib
 import pickle
 import shutil
 import tempfile
-import unittest
 
 import ddt
 
@@ -35,7 +34,7 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 
@@ -657,8 +656,6 @@ class TestGateDefinition(QiskitTestCase):
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
 
-    # See https://github.com/Qiskit/qiskit-terra/issues/8941
-    @unittest.expectedFailure
     def test_qpy_double_call_roundtrip(self):
         program = """
             include "qelib1.inc";

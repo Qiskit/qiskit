@@ -17,11 +17,11 @@ from math import pi
 import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm2.exceptions import QASM2Error as QasmError
 from qiskit.qasm2 import dumps
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
@@ -265,11 +265,6 @@ c3sqrtx q[0],q[1],q[2],q[3];"""
         self.assertEqual(qasm, expected)
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
-
-    def test_c3sxgate_qasm_deprecation_warning(self):
-        """Test deprecation warning for C3SXGate."""
-        with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-            C3SXGate().qasm()
 
     def test_cczgate_qasm(self):
         """Test that CCZ dumps definition as a non-qelib1 gate."""

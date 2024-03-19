@@ -108,8 +108,18 @@ class RYYGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse RYY gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RYY gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RYYGate` with an inverted parameter value.
+
+        Returns:
+            RYYGate: inverse gate.
+        """
         return RYYGate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -126,3 +136,8 @@ class RYYGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RYYGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RYYGate):
+            return self._compare_parameters(other)
+        return False
