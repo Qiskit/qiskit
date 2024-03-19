@@ -1718,11 +1718,11 @@ impl TwoQubitBasisDecomposer {
         const K12R_ARR: [[Complex64; 2]; 2] = [
             [
                 Complex64::new(0., FRAC_1_SQRT_2),
-                Complex64::new(FRAC_1_SQRT_2, 0.)
+                Complex64::new(FRAC_1_SQRT_2, 0.),
             ],
             [
                 Complex64::new(-FRAC_1_SQRT_2, 0.),
-                Complex64::new(0., -FRAC_1_SQRT_2)
+                Complex64::new(0., -FRAC_1_SQRT_2),
             ],
         ];
         let k12r = aview2(&K12R_ARR);
@@ -1750,11 +1750,11 @@ impl TwoQubitBasisDecomposer {
         const K22L_ARR: [[Complex64; 2]; 2] = [
             [
                 Complex64::new(FRAC_1_SQRT_2, 0.),
-                Complex64::new(-FRAC_1_SQRT_2, 0.)
+                Complex64::new(-FRAC_1_SQRT_2, 0.),
             ],
             [
                 Complex64::new(FRAC_1_SQRT_2, 0.),
-                Complex64::new(FRAC_1_SQRT_2, 0.)
+                Complex64::new(FRAC_1_SQRT_2, 0.),
             ],
         ];
         let k22l = aview2(&K22L_ARR);
