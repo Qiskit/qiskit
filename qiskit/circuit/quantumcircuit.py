@@ -4222,7 +4222,9 @@ class QuantumCircuit:
             target_qubit: The qubit(s) targeted by the gate.
             ancilla_qubits: The qubits used as the ancillae, if the mode requires them.
             mode: The choice of mode, explained further above.
-            ctrl_state: The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling on the '1' state.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Returns:
             A handle to the instructions created.
