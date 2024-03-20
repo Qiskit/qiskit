@@ -14,10 +14,111 @@
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
 
+from abc import ABC, abstractmethod
+
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
-from . import DAGOpNode, DAGCircuit, DAGDependency
+from . import DAGOpNode, DAGCircuit, DAGDependency, DAGDependencyV2
 from .exceptions import DAGCircuitError
+
+
+class Block(ABC):
+    """
+    Abstract block interface.
+    """
+
+    @abstractmethod
+    def append_node(self, node):
+        """
+        Attempts to append the given node to the block.
+        Returns ``True`` if succeeds and ``False`` if not.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_nodes(self):
+        """
+        Returns the list of nodes used in the block.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def reverse(self):
+        """
+        Returns the block with nodes in the reversed order.
+        To think: Maybe not every block can be reversed; should we also return ``None``?
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def size(self):
+        """
+        Returns the size of the block.
+
+        The size should measure how large the block is and does not necessarily need
+        to equal to the number of nodes in the block.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def split(self, split_blocks, split_layers):
+        """
+        Splits the block into sub-blocks. Returns a list of blocks.
+
+        The option ``split_blocks`` allows to split the block into sub-blocks over
+        disconnected qubit subsets.
+
+        The option ``split_layers`` allows to split the blocks into layers of
+        non-overlapping instructions (in other words, into depth-1 sub-blocks).
+        """
+        raise NotImplementedError
+
+
+class DefaultBlock(Block):
+    """Block class suitable for various simple collection strategies."""
+
+    def __init__(self, nodes=None):
+        self.nodes = [] if nodes is None else nodes
+
+    def append_node(self, node):
+        """Attempts to append the given node to the block."""
+        self.nodes.append(node)
+        return True
+
+    def get_nodes(self):
+        """Returns the list of nodes used in the block."""
+        return self.nodes
+
+    def reverse(self):
+        """Returns the block with nodes in the reversed order."""
+        return DefaultBlock(self.nodes[::-1])
+
+    def size(self):
+        """Returns the size of the block."""
+        return len(self.nodes)
+
+    def split(self, split_blocks, split_layers) -> list:
+        """Splits the block into sub-blocks."""
+
+        output_blocks = [self]
+
+        if split_layers:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = split_block_into_layers(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        if split_blocks:
+            tmp_blocks = []
+            for block in output_blocks:
+                split = BlockSplitter().run(block.get_nodes())
+                for nodes in split:
+                    tmp_blocks.append(DefaultBlock(nodes))
+            output_blocks = tmp_blocks
+
+        return output_blocks
 
 
 class BlockCollector:
@@ -54,9 +155,15 @@ class BlockCollector:
 
         if isinstance(dag, DAGCircuit):
             self.is_dag_dependency = False
+            self.is_v2 = False
 
         elif isinstance(dag, DAGDependency):
             self.is_dag_dependency = True
+            self.is_v2 = False
+
+        elif isinstance(dag, DAGDependencyV2):
+            self.is_dag_dependency = True
+            self.is_v2 = True
 
         else:
             raise DAGCircuitError("not a DAG.")
@@ -81,7 +188,7 @@ class BlockCollector:
 
     def _op_nodes(self):
         """Returns DAG nodes."""
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             return self.dag.op_nodes()
         else:
             return self.dag.get_nodes()
@@ -91,7 +198,7 @@ class BlockCollector:
         direction of collecting blocks, that is node's predecessors when collecting
         backwards are the direct successors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             if self._collect_from_back:
                 return [pred for pred in self.dag.successors(node) if isinstance(pred, DAGOpNode)]
             else:
@@ -113,7 +220,7 @@ class BlockCollector:
         direction of collecting blocks, that is node's successors when collecting
         backwards are the direct predecessors of a node in the DAG.
         """
-        if not self.is_dag_dependency:
+        if not self.is_dag_dependency or self.is_v2:
             if self._collect_from_back:
                 return [succ for succ in self.dag.predecessors(node) if isinstance(succ, DAGOpNode)]
             else:
@@ -134,7 +241,7 @@ class BlockCollector:
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn):
+    def collect_matching_block(self, filter_fn, block_class=DefaultBlock, output_nodes=True):
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -144,9 +251,10 @@ class BlockCollector:
         to become input and to be eligible for collecting into the current block.
         Returns the block of collected nodes.
         """
-        current_block = []
         unprocessed_pending_nodes = self._pending_nodes
         self._pending_nodes = []
+
+        current_block = block_class()
 
         # Iteratively process unprocessed_pending_nodes:
         # - any node that does not match filter_fn is added to pending_nodes
@@ -155,9 +263,8 @@ class BlockCollector:
         while unprocessed_pending_nodes:
             new_pending_nodes = []
             for node in unprocessed_pending_nodes:
-                if filter_fn(node):
-                    current_block.append(node)
-
+                added = filter_fn(node) and current_block.append_node(node)
+                if added:
                     # update the _in_degree of node's successors
                     for suc in self._direct_succs(node):
                         self._in_degree[suc] -= 1
@@ -167,7 +274,7 @@ class BlockCollector:
                     self._pending_nodes.append(node)
             unprocessed_pending_nodes = new_pending_nodes
 
-        return current_block
+        return current_block.get_nodes() if output_nodes else current_block
 
     def collect_all_matching_blocks(
         self,
@@ -176,6 +283,8 @@ class BlockCollector:
         min_block_size=2,
         split_layers=False,
         collect_from_back=False,
+        block_class=DefaultBlock,
+        output_nodes=True,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
         This iteratively finds the largest block that does not match filter_fn,
@@ -207,34 +316,34 @@ class BlockCollector:
         # Iteratively collect non-matching and matching blocks.
         matching_blocks = []
         while self._have_uncollected_nodes():
-            self.collect_matching_block(not_filter_fn)
-            matching_block = self.collect_matching_block(filter_fn)
-            if matching_block:
+            self.collect_matching_block(
+                filter_fn=not_filter_fn,
+                output_nodes=True,
+            )
+            matching_block = self.collect_matching_block(
+                filter_fn=filter_fn, block_class=block_class, output_nodes=False
+            )
+            if matching_block.size() >= min_block_size:
                 matching_blocks.append(matching_block)
 
-        # If the option split_layers is set, refine blocks by splitting them into layers
-        # of non-overlapping instructions (in other words, into depth-1 sub-blocks).
-        if split_layers:
+        if split_blocks or split_layers:
             tmp_blocks = []
             for block in matching_blocks:
-                tmp_blocks.extend(split_block_into_layers(block))
-            matching_blocks = tmp_blocks
-
-        # If the option split_blocks is set, refine blocks by splitting them into sub-blocks over
-        # disconnected qubit subsets.
-        if split_blocks:
-            tmp_blocks = []
-            for block in matching_blocks:
-                tmp_blocks.extend(BlockSplitter().run(block))
+                tmp_blocks.extend(block.split(split_blocks=split_blocks, split_layers=split_layers))
             matching_blocks = tmp_blocks
 
         # If we are collecting from the back, both the order of the blocks
         # and the order of nodes in each block should be reversed.
         if self._collect_from_back:
-            matching_blocks = [block[::-1] for block in matching_blocks[::-1]]
+            matching_blocks = [block.reverse() for block in matching_blocks[::-1]]
 
         # Keep only blocks with at least min_block_sizes.
-        matching_blocks = [block for block in matching_blocks if len(block) >= min_block_size]
+        matching_blocks = [
+            block for block in matching_blocks if len(block.get_nodes()) >= min_block_size
+        ]
+
+        if output_nodes:
+            return [block.get_nodes() for block in matching_blocks]
 
         return matching_blocks
 
@@ -326,7 +435,7 @@ class BlockCollapser:
     def __init__(self, dag):
         """
         Args:
-            dag (Union[DAGCircuit, DAGDependency]): The input DAG.
+            dag (Union[DAGCircuit, DAGDependency, DADDependencyV2]): The input DAG.
         """
 
         self.dag = dag
