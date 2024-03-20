@@ -17,6 +17,7 @@
 import unittest
 import logging
 import copy
+
 from test import combine
 import numpy as np
 from ddt import ddt
@@ -26,6 +27,7 @@ import scipy.linalg as la
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -735,6 +737,25 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_initial_layout_final_layout(self):
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(2, 1)
+        qc.cx(1, 2)
+        qc.cx(1, 0)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.h(2)
+        qc_transpiled = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[2, 3, 4, 0, 1],
+            optimization_level=1,
+            seed_transpiler=17,
+        )
+        self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
+
     def test_from_circuit_constructor_reverse_embedded_layout(self):
         """Test initialization from a circuit with an embedded reverse layout."""
         # Test tensor product of 1-qubit gates
@@ -817,7 +838,7 @@ class TestOperator(OperatorTestCase):
         circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
-            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}),
+            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 0, circuit.qubits[2]: 2}),
         )
         circuit.swap(0, 1)
         circuit.swap(1, 2)
@@ -839,7 +860,7 @@ class TestOperator(OperatorTestCase):
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
-        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0})
+        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 0, circuit.qubits[2]: 2})
         circuit.swap(0, 1)
         circuit.swap(1, 2)
         op = Operator.from_circuit(circuit, final_layout=final_layout)
