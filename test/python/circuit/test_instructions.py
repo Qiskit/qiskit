@@ -119,14 +119,10 @@ class TestInstructions(QiskitTestCase):
         )
 
         # Test that when names are the same but number of qubits differ we get False
-        self.assertFalse(
-            Instruction("u", 1, 0, []).soft_compare(Instruction("u", 2, 0, []))
-        )
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 2, 0, [])))
 
         # Test that when names are the same but number of clbits differ we get False
-        self.assertFalse(
-            Instruction("u", 1, 0, []).soft_compare(Instruction("u", 1, 1, []))
-        )
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 1, 1, [])))
 
         # Test cutoff precision.
         self.assertFalse(
@@ -138,7 +134,6 @@ class TestInstructions(QiskitTestCase):
             Instruction("v", 1, 0, [0.4 + 1.0e-20, phi]).soft_compare(
                 Instruction("v", 1, 0, [0.4, phi])
             )
-
         )
 
     def test_instructions_equal_with_parameter_expressions(self):
