@@ -969,22 +969,24 @@ class TestControlledGate(QiskitTestCase):
         ccx = CCXGate(ctrl_state=0)
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
-    
-    @data((4,[0, 1, 2], 3, "010"),(4,[2, 1, 3], 0, "010"))
+
+    @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, "010"))
     @unpack
-    def test_multi_control_x_ctrl_state_parameter(self, num_qubits, ctrl_qubits, target_qubit, ctrl_state):
+    def test_multi_control_x_ctrl_state_parameter(
+        self, num_qubits, ctrl_qubits, target_qubit, ctrl_state
+    ):
         """To check the consistency of parameters ctrl_state in MCX
         See issue: https://github.com/Qiskit/qiskit-terra/issues/12050
         """
         qc = QuantumCircuit(num_qubits)
         qc.mcx(ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
         operator_qc = Operator(qc)
-        
+
         qc1 = QuantumCircuit(num_qubits)
         gate = MCXGate(num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
-        qc1.append(gate, ctrl_qubits+[target_qubit])
+        qc1.append(gate, ctrl_qubits + [target_qubit])
         operator_qc1 = Operator(qc1)
-        
+
         self.assertEqual(operator_qc, operator_qc1)
 
     def test_open_control_composite_unrolling(self):
