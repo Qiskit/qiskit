@@ -236,13 +236,17 @@ class TestStatevectorEstimator(QiskitTestCase):
             est.run([(qc, op)], precision=-1).result()
         with self.assertRaises(ValueError):
             est.run([(qc, 1j * op)], precision=0.1).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Estimator pub-like was given"):
+                _ = est.run((qc, op)).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = StatevectorEstimator()
