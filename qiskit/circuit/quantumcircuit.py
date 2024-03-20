@@ -4238,14 +4238,14 @@ class QuantumCircuit:
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            "noancilla": MCXGrayCode(num_ctrl_qubits,ctrl_state=ctrl_state),
-            "recursion": MCXRecursive(num_ctrl_qubits,ctrl_state=ctrl_state),
-            "v-chain": MCXVChain(num_ctrl_qubits, False,ctrl_state=ctrl_state),
-            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True,ctrl_state=ctrl_state),
+            "noancilla": MCXGrayCode(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "recursion": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "v-chain": MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state),
+            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
             # outdated, previous names
-            "advanced": MCXRecursive(num_ctrl_qubits,ctrl_state=ctrl_state),
-            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False,ctrl_state=ctrl_state),
-            "basic-dirty-ancilla": MCXVChain(num_ctrl_qubits, dirty_ancillas=True,ctrl_state=ctrl_state),
+            "advanced": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False, ctrl_state=ctrl_state),
+            "basic-dirty-ancilla": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
         }
 
         # check ancilla input
