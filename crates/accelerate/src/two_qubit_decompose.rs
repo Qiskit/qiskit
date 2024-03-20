@@ -59,12 +59,12 @@ const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
-const ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
+static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
     [Complex64::new(1., 0.), Complex64::new(0., 0.)],
     [Complex64::new(0., 0.), Complex64::new(1., 0.)],
 ];
 
-const B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
+static B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     [
         Complex64::new(1.0, 0.),
         Complex64::new(0., 1.),
@@ -91,7 +91,7 @@ const B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     ],
 ];
 
-const B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
+static B_NON_NORMALIZED_DAGGER: [[Complex64; 4]; 4] = [
     [
         Complex64::new(0.5, 0.),
         Complex64::new(0., 0.),
@@ -343,7 +343,7 @@ fn rz_matrix(theta: f64) -> Array2<Complex64> {
     ]
 }
 
-const HGATE: [[Complex64; 2]; 2] = [
+static HGATE: [[Complex64; 2]; 2] = [
     [
         Complex64::new(FRAC_1_SQRT_2, 0.),
         Complex64::new(FRAC_1_SQRT_2, 0.),
@@ -354,7 +354,7 @@ const HGATE: [[Complex64; 2]; 2] = [
     ],
 ];
 
-const CXGATE: [[Complex64; 4]; 4] = [
+static CXGATE: [[Complex64; 4]; 4] = [
     [
         Complex64::new(1., 0.),
         Complex64::new(0., 0.),
@@ -381,12 +381,12 @@ const CXGATE: [[Complex64; 4]; 4] = [
     ],
 ];
 
-const SXGATE: [[Complex64; 2]; 2] = [
+static SXGATE: [[Complex64; 2]; 2] = [
     [Complex64::new(0.5, 0.5), Complex64::new(0.5, -0.5)],
     [Complex64::new(0.5, -0.5), Complex64::new(0.5, 0.5)],
 ];
 
-const XGATE: [[Complex64; 2]; 2] = [
+static XGATE: [[Complex64; 2]; 2] = [
     [Complex64::new(0., 0.), Complex64::new(1., 0.)],
     [Complex64::new(1., 0.), Complex64::new(0., 0.)],
 ];
@@ -553,15 +553,15 @@ impl TwoQubitWeylDecomposition {
     }
 }
 
-const IPZ: [[Complex64; 2]; 2] = [
+static IPZ: [[Complex64; 2]; 2] = [
     [C1_IM, Complex64::new(0., 0.)],
     [Complex64::new(0., 0.), Complex64::new(0., -1.)],
 ];
-const IPY: [[Complex64; 2]; 2] = [
+static IPY: [[Complex64; 2]; 2] = [
     [Complex64::new(0., 0.), Complex64::new(1., 0.)],
     [Complex64::new(-1., 0.), Complex64::new(0., 0.)],
 ];
-const IPX: [[Complex64; 2]; 2] = [
+static IPX: [[Complex64; 2]; 2] = [
     [Complex64::new(0., 0.), C1_IM],
     [C1_IM, Complex64::new(0., 0.)],
 ];
@@ -1655,6 +1655,22 @@ impl TwoQubitBasisDecomposer {
     }
 }
 
+static K12R_ARR: [[Complex64; 2]; 2] = [
+    [
+        Complex64::new(0., FRAC_1_SQRT_2),
+        Complex64::new(FRAC_1_SQRT_2, 0.),
+    ],
+    [
+        Complex64::new(-FRAC_1_SQRT_2, 0.),
+        Complex64::new(0., -FRAC_1_SQRT_2),
+    ],
+];
+
+static K12L_ARR: [[Complex64; 2]; 2] = [
+    [Complex64::new(0.5, 0.5), Complex64::new(0.5, 0.5)],
+    [Complex64::new(-0.5, 0.5), Complex64::new(0.5, -0.5)],
+];
+
 fn decomp0_inner(target: &TwoQubitWeylDecomposition) -> SmallVec<[Array2<Complex64>; 8]> {
     smallvec![target.K1r.dot(&target.K2r), target.K1l.dot(&target.K2l),]
 }
@@ -1710,21 +1726,7 @@ impl TwoQubitBasisDecomposer {
                 FRAC_1_SQRT_2 * (Complex64::new(0., -1.) * Complex64::new(0., b).exp())
             ],
         ];
-        const K12L_ARR: [[Complex64; 2]; 2] = [
-            [Complex64::new(0.5, 0.5), Complex64::new(0.5, 0.5)],
-            [Complex64::new(-0.5, 0.5), Complex64::new(0.5, -0.5)],
-        ];
         let k12l = aview2(&K12L_ARR);
-        const K12R_ARR: [[Complex64; 2]; 2] = [
-            [
-                Complex64::new(0., FRAC_1_SQRT_2),
-                Complex64::new(FRAC_1_SQRT_2, 0.),
-            ],
-            [
-                Complex64::new(-FRAC_1_SQRT_2, 0.),
-                Complex64::new(0., -FRAC_1_SQRT_2),
-            ],
-        ];
         let k12r = aview2(&K12R_ARR);
         let k32l_k21l = array![
             [
