@@ -11,17 +11,17 @@
 # that they have been altered from the originals.
 
 from __future__ import annotations
-
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
 
 import datetime
 import doctest
+import importlib
 import inspect
 import os
 import re
-import sys
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -165,13 +165,12 @@ plot_html_show_formats = False
 # Source code links
 # ----------------------------------------------------------------------------------
 
-
 def linkcode_resolve(domain, info):
     if domain != "py":
         return None
 
     module_name = info["module"]
-    module = sys.modules.get(module_name)
+    module = importlib.import_module(module_name)
     if module is None or "qiskit" not in module_name:
         return None
 
@@ -181,11 +180,7 @@ def linkcode_resolve(domain, info):
             obj = getattr(obj, part)
         except AttributeError:
             return None
-        is_valid_code_object = (
-            inspect.isclass(obj) or inspect.ismethod(obj) or inspect.isfunction(obj)
-        )
-        if not is_valid_code_object:
-            return None
+
     try:
         full_file_name = inspect.getsourcefile(obj)
     except TypeError:
