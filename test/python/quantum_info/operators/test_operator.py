@@ -747,6 +747,7 @@ class TestOperator(OperatorTestCase):
         qc.cx(1, 3)
         qc.cx(1, 4)
         qc.h(2)
+
         qc_transpiled = transpile(
             qc,
             coupling_map=CouplingMap.from_line(5),
@@ -754,6 +755,7 @@ class TestOperator(OperatorTestCase):
             optimization_level=1,
             seed_transpiler=17,
         )
+
         self.assertTrue(Operator.from_circuit(qc_transpiled).equiv(qc))
 
     def test_from_circuit_constructor_reverse_embedded_layout(self):

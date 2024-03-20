@@ -81,6 +81,9 @@ class Operator(LinearOp):
             a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
+            Note that two operators initialized via this method are only considered equivalent if they
+            match up to their canonical qubit order (or: permutation). See :meth:`.Operator.from_circuit`
+            to specify a different qubit permutation.
         """
         op_shape = None
         if isinstance(data, (list, np.ndarray)):
@@ -420,14 +423,13 @@ class Operator(LinearOp):
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
-        # If final layout is set permute output indices based on layout
+        # If final layout is set permute output indices based on that layout combined with initial layout
         if final_layout is not None:
             perm_pattern = [
                 layout.input_qubit_mapping[layout.initial_layout._p2v[final_layout._v2p[v]]]
                 for v in circuit.qubits
             ]
             perm_pattern = [perm_pattern[i] for i in layout.initial_layout.get_physical_bits()]
-
             op = op.apply_permutation(perm_pattern, front=False)
         return op
 
