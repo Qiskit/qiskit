@@ -39,11 +39,11 @@ class Flatten(TransformationPass):
     ) -> SequenceIR:
         """Run the pass."""
 
-        self._flatten(passmanager_ir)
+        self._flatten_recursive(passmanager_ir)
         return passmanager_ir
 
     # pylint: disable=cell-var-from-loop
-    def _flatten(self, prog: SequenceIR) -> SequenceIR:
+    def _flatten_recursive(self, prog: SequenceIR) -> SequenceIR:
         """Recursively flatten the SequenceIR.
 
         Returns:
@@ -52,8 +52,6 @@ class Flatten(TransformationPass):
         Raises:
             PulseCompilerError: If ``prog`` is not scheduled.
         """
-        # TODO : Verify that the block\sub blocks are sequenced correctly?
-
         # TODO : Consider replacing the alignment to "NullAlignment", as the original alignment
         #  has no meaning.
 
@@ -71,7 +69,7 @@ class Flatten(TransformationPass):
 
         for ind in prog.sequence.node_indices():
             if isinstance(sub_block := prog.sequence.get_node_data(ind), SequenceIR):
-                self._flatten(sub_block)
+                self._flatten_recursive(sub_block)
                 initial_time = prog.time_table[ind]
                 nodes_mapping = prog.sequence.substitute_node_with_subgraph(
                     ind, sub_block.sequence, lambda x, y, _: edge_map(x, y, ind)
