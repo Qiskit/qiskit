@@ -2228,7 +2228,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             circuit.cx(0, 1)
 
         fname = "control_flow_fold_minus_one.png"
-        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
+        self.circuit_drawer(circuit, output="mpl", style="iqp", filename=fname, fold=-1)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
