@@ -1,0 +1,5 @@
+---
+features_transpiler:
+  - |
+    Added support for utf-8 quantum gate names in :class:`.CommutationChecker`.
+    
