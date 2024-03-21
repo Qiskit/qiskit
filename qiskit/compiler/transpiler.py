@@ -328,7 +328,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     # it is invalidated by a custom basis gate list, custom coupling map,
     # custom dt or custom instruction_durations
     elif (
-        basis_gates is not None
+        basis_gates is not None  # pylint: disable=too-many-boolean-expressions
         or coupling_map is not None
         or dt is not None
         or instruction_durations is not None

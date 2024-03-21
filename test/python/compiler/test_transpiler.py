@@ -75,7 +75,7 @@ from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.backend_compat import BackendV2Converter
-from qiskit.providers.fake_provider import Fake5QV1, Fake20QV1, Fake27QPulseV1, GenericBackendV2
+from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
 from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
@@ -96,7 +96,7 @@ from qiskit.transpiler.target import (
 
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
-from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP, TOKYO_CMAP
+from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
 
 
 class CustomCX(Gate):
