@@ -64,24 +64,25 @@ class ApplyLayout(TransformationPass):
         new_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
+        elision_final_layout = self.property_set["elision_final_layout"]
         if post_layout is None:
             self.property_set["original_qubit_indices"] = {
                 bit: index for index, bit in enumerate(dag.qubits)
             }
             for qreg in dag.qregs.values():
                 self.property_set["layout"].add_register(qreg)
-            virtual_phsyical_map = layout.get_virtual_bits()
+            virtual_physical_map = layout.get_virtual_bits()
             for node in dag.topological_op_nodes():
-                qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
+                qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
-            if self.property_set["elision_final_layout"]:
-                elission_virtual_map = self.property_set["elision_final_layout"].get_virtual_bits()
+            if elision_final_layout:
+                elision_virtual_map = elision_final_layout.get_virtual_bits()
                 self.property_set["elision_final_layout"] = Layout(
                     {
-                        new_dag.qubits[virtual_phsyical_map[bit]]: virtual_phsyical_map[
+                        new_dag.qubits[virtual_physical_map[bit]]: virtual_physical_map[
                             dag.qubits[phys]
                         ]
-                        for bit, phys in elission_virtual_map.items()
+                        for bit, phys in elision_virtual_map.items()
                     }
                 )
         else:
@@ -112,7 +113,7 @@ class ApplyLayout(TransformationPass):
                 }
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
-            if (elision_final_layout := self.property_set["elision_final_layout"]) is not None:
+            if elision_final_layout is not None:
                 final_layout_mapping = {
                     new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
                     for old_virt, old_phys in elision_final_layout.get_virtual_bits().items()

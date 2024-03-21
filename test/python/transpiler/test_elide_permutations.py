@@ -196,7 +196,8 @@ class TestElidePermutations(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(res).equiv(expected))
 
     def test_unitary_equivalence_with_elide_and_routing(self):
-        """Test full transpile pipeline with pass preserves permutation for unitary equivalence."""
+        """Test full transpile pipeline with pass preserves permutation for unitary equivalence including
+        a larger example and a basis translation."""
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.swap(0, 2)
