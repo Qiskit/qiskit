@@ -425,11 +425,14 @@ class Operator(LinearOp):
         op._append_instruction(instruction, qargs=qargs)
         # If final layout is set permute output indices based on that layout combined with initial layout
         if final_layout is not None:
-            perm_pattern = [
-                layout.input_qubit_mapping[layout.initial_layout._p2v[final_layout._v2p[v]]]
-                for v in circuit.qubits
-            ]
-            perm_pattern = [perm_pattern[i] for i in layout.initial_layout.get_physical_bits()]
+            if layout is None:
+                perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
+            else:
+                perm_pattern = [
+                    layout.input_qubit_mapping[layout.initial_layout._p2v[final_layout._v2p[v]]]
+                    for v in circuit.qubits
+                ]
+                perm_pattern = [perm_pattern[i] for i in layout.initial_layout.get_physical_bits()]
             op = op.apply_permutation(perm_pattern, front=False)
         return op
 
