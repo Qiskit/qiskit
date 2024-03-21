@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 from __future__ import annotations
+
 # pylint: disable=invalid-name,missing-function-docstring
 
 """Sphinx documentation builder."""
@@ -170,8 +171,12 @@ def linkcode_resolve(domain, info):
         return None
 
     module_name = info["module"]
-    module = importlib.import_module(module_name)
-    if module is None or "qiskit" not in module_name:
+    if "qiskit" not in module_name:
+        return None
+     
+    try: 
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
         return None
 
     obj = module
