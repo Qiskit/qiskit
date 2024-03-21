@@ -69,6 +69,8 @@ class UnitaryGate(Gate):
         data: numpy.ndarray | Gate | BaseOperator,
         label: str | None = None,
         check_input: bool = True,
+        *,
+        num_qubits: int | None = None,
     ) -> None:
         """Create a gate from a numeric unitary matrix.
 
@@ -80,6 +82,7 @@ class UnitaryGate(Gate):
                 be skipped. This should only ever be used if you know the
                 input is unitary, setting this to ``False`` and passing in
                 a non-unitary matrix will result unexpected behavior and errors.
+            num_qubits: If given, the number of qubits in the matrix.  If not given, it is inferred.
 
         Raises:
             ValueError: If input data is not an N-qubit unitary operator.
@@ -96,7 +99,7 @@ class UnitaryGate(Gate):
         # Convert to numpy array in case not already an array
         data = numpy.asarray(data, dtype=complex)
         input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
+        num_qubits = num_qubits if num_qubits is not None else int(numpy.log2(input_dim))
         if check_input:
             # Check input is unitary
             if not is_unitary_matrix(data):
