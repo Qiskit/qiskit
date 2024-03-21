@@ -1,14 +1,10 @@
 ---
 prelude: >
-    Compatibility of pulse parameter assignment with `ParameterVector` class.
-features:
+
+features_pulse:
   - |
     The `ParameterManager` now supports the `ParameterVector` class. This enables
     the use of `ParameterVector` in pulse `Schedule`and `ScheduleBlock` objects when using their method
     `assign_parameters` to assign simultaneously a list of parameter values.
-  - |
-    An additional method `_unroll_param_dict`has been added to the `ParameterManager` class to unroll the
-    parameter dictionary into a list of parameter values. This method is used to convert the parameter dictionary
-    into a list of parameter values when using the `ParameterVector` class. This method is a replication of the
-    analogous method `_unroll_param_dict` in `QuantumCircuit` class.
+
 

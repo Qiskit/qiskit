@@ -52,7 +52,7 @@ and thus this parameter framework gives greater scalability to the pulse module.
 """
 from __future__ import annotations
 from copy import copy
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
@@ -362,7 +362,7 @@ class ParameterManager:
         self,
         pulse_program: Any,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | list[ParameterValueType]
+            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
         ],
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
@@ -397,7 +397,7 @@ class ParameterManager:
     def _unroll_param_dict(
         self,
         parameter_binds: Mapping[
-            Parameter | ParameterVector, ParameterValueType | list[ParameterValueType]
+            Parameter | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
         ],
     ) -> Mapping[Parameter, ParameterValueType]:
         """
@@ -412,7 +412,7 @@ class ParameterManager:
         out = {}
         for parameter, value in parameter_binds.items():
             if isinstance(parameter, ParameterVector):
-                if not isinstance(value, (list, tuple)):
+                if not isinstance(value, Sequence):
                     raise PulseError(
                         f"Parameter vector '{parameter.name}' has length {len(parameter)},"
                         f" but was assigned to a single value."
