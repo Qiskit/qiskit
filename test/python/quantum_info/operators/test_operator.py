@@ -738,7 +738,8 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(global_phase_equivalent)
 
     def test_from_circuit_initial_layout_final_layout(self):
-        """Test initialization from a circuit with a non-trivial initial_layout and final_layout."""
+        """Test initialization from a circuit with a non-trivial initial_layout and final_layout as given
+        by a transpiled circuit."""
         qc = QuantumCircuit(5)
         qc.h(0)
         qc.cx(2, 1)
