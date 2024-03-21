@@ -4,7 +4,7 @@ prelude: >
 features_pulse:
   - |
     The `ParameterManager` now supports the `ParameterVector` class. This enables
-    the use of `ParameterVector` in pulse `Schedule`and `ScheduleBlock` objects when using their method
+    the use of `ParameterVector` in pulse `Schedule` and `ScheduleBlock` objects when using their method
     `assign_parameters` to assign simultaneously a list of parameter values.
 
 
