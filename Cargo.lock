@@ -31,6 +31,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "approx"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
+dependencies = [
+ "num-complex",
+ "num-traits",
+]
+
+[[package]]
 name = "ariadne"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -793,6 +803,7 @@ version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
 dependencies = [
+ "approx",
  "matrixmultiply",
  "num-complex",
  "num-integer",
@@ -960,7 +971,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "redox_syscall",
- "smallvec 1.13.1",
+ "smallvec 1.13.2",
  "windows-targets 0.48.5",
 ]
 
@@ -1037,9 +1048,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.18.8"
+version = "0.18.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "091bad01115892393939669b38f88ff2b70838e969a7ac172a9d06d05345a732"
+checksum = "03457ac216146f43f921500bac4e892d5cd32b0479b929cbfc90f95cd6c599c2"
 dependencies = [
  "bytemuck",
  "libm",
@@ -1078,6 +1089,7 @@ dependencies = [
  "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
+ "smallvec 1.13.2",
  "unindent",
 ]
 
@@ -1149,6 +1161,7 @@ name = "qiskit_accelerate"
 version = "1.1.0"
 dependencies = [
  "ahash",
+ "approx",
  "faer",
  "faer-core",
  "hashbrown 0.14.3",
@@ -1165,7 +1178,7 @@ dependencies = [
  "rand_pcg 0.3.1",
  "rayon",
  "rustworkx-core",
- "smallvec 1.13.1",
+ "smallvec 1.13.2",
 ]
 
 [[package]]
@@ -1465,9 +1478,9 @@ dependencies = [
 
 [[package]]
 name = "rustworkx-core"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dc64577832a6bcfd10fa6d452c3b5fe7a4ca228375d236f65a1ab0db953ba34"
+checksum = "529027dfaa8125aa61bb7736ae9484f41e8544f448af96918c8da6b1def7f57b"
 dependencies = [
  "ahash",
  "fixedbitset",
@@ -1549,9 +1562,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.13.1"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6ecd384b10a64542d77071bd64bd7b231f4ed5940fba55e98c3de13824cf3d7"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "smol_str"
