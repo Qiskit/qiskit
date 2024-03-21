@@ -188,12 +188,12 @@ class TestElidePermutations(QiskitTestCase):
 
         # with no layout
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        self.assertTrue(Operator.from_circuit(res).equiv(expected))
         # With layout
         res = transpile(
             qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234
         )
-        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        self.assertTrue(Operator.from_circuit(res).equiv(expected))
 
     def test_unitary_equivalence_with_elide_and_routing(self):
         """Test full transpile pipeline with pass preserves permutation for unitary equivalence."""
@@ -223,7 +223,7 @@ class TestElidePermutations(QiskitTestCase):
 
         # with no layout
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        self.assertTrue(Operator.from_circuit(res).equiv(expected))
         # With layout
         res = transpile(
             qc,
@@ -232,7 +232,7 @@ class TestElidePermutations(QiskitTestCase):
             optimization_level=3,
             seed_transpiler=1234,
         )
-        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        self.assertTrue(Operator.from_circuit(res).equiv(expected))
 
     def test_permutation_in_middle(self):
         """Test permutation in middle of bell is elided."""
