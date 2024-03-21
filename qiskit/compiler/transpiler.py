@@ -332,6 +332,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         or coupling_map is not None
         or dt is not None
         or instruction_durations is not None
+        or backend_properties is not None
     ):
         _skip_target = True
     else:
