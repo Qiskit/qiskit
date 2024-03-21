@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,10 +15,10 @@
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMelbourne
+from qiskit.providers.fake_provider import Fake20QV1
 from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passmanager_config import PassManagerConfig
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPassManagerRun(QiskitTestCase):
@@ -83,12 +83,12 @@ class TestPassManagerRun(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[2], qr[3])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
+        coupling_map = Fake20QV1().configuration().coupling_map
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         pass_manager = level_1_pass_manager(
             PassManagerConfig.from_backend(
-                FakeMelbourne(),
+                Fake20QV1(),
                 initial_layout=Layout.from_qubit_list(initial_layout),
                 seed_transpiler=42,
             )
@@ -133,12 +133,12 @@ class TestPassManagerRun(QiskitTestCase):
         circuit2.cx(qr[0], qr[1])
         circuit2.cx(qr[2], qr[3])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
+        coupling_map = Fake20QV1().configuration().coupling_map
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         pass_manager = level_1_pass_manager(
             PassManagerConfig.from_backend(
-                FakeMelbourne(),
+                Fake20QV1(),
                 initial_layout=Layout.from_qubit_list(initial_layout),
                 seed_transpiler=42,
             )

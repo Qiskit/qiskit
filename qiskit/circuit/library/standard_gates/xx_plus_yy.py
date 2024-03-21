@@ -152,8 +152,19 @@ class XXPlusYYGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.XXPlusYYGate` with inverse
+                parameter values.
+
+        Returns:
+            XXPlusYYGate: inverse gate.
+        """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
     def __array__(self, dtype=complex):
@@ -178,3 +189,8 @@ class XXPlusYYGate(Gate):
         """Raise gate to a power."""
         theta, beta = self.params
         return XXPlusYYGate(exponent * theta, beta)
+
+    def __eq__(self, other):
+        if isinstance(other, XXPlusYYGate):
+            return self._compare_parameters(other)
+        return False

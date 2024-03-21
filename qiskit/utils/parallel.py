@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -129,22 +129,19 @@ def parallel_map(  # pylint: disable=dangerous-default-value
     Raises:
         QiskitError: If user interrupts via keyboard.
 
-    Events:
-        terra.parallel.start: The collection of parallel tasks are about to start.
-        terra.parallel.update: One of the parallel task has finished.
-        terra.parallel.finish: All the parallel tasks have finished.
-
     Examples:
 
         .. code-block:: python
 
             import time
-            from qiskit.tools.parallel import parallel_map
+            from qiskit.utils import parallel_map
             def func(_):
                     time.sleep(0.1)
                     return 0
             parallel_map(func, list(range(10)));
     """
+    if num_processes is None:
+        num_processes = CPU_COUNT
     if len(values) == 0:
         return []
     if len(values) == 1:

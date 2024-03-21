@@ -17,11 +17,10 @@ from __future__ import annotations
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Any
-
 from ddt import data, ddt, unpack
 
-from qiskit.primitives.base.base_result import BasePrimitiveResult
-from qiskit.test import QiskitTestCase
+from qiskit.primitives.base.base_result import _BasePrimitiveResult as BasePrimitiveResult
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 ################################################################################
@@ -52,33 +51,6 @@ class TestBasePrimitiveResult(QiskitTestCase):
     def test_post_init_value_error(self, field_1, field_2):
         """Tests post init value error."""
         self.assertRaises(ValueError, Result, *(field_1, field_2))
-
-    @data(0, 1, 2, 3)
-    def test_num_experiments(self, num_experiments):
-        """Tests {num_experiments} num_experiments."""
-        result = Result([0] * num_experiments, [1] * num_experiments)
-        self.assertEqual(num_experiments, result.num_experiments)
-
-    @data(0, 1, 2, 3)
-    def test_experiments(self, num_experiments):
-        """Test experiment data."""
-        field_1 = list(range(num_experiments))
-        field_2 = [i + 1 for i in range(num_experiments)]
-        experiments = Result(field_1, field_2).experiments
-        self.assertIsInstance(experiments, tuple)
-        for i, exp in enumerate(experiments):
-            self.assertEqual(exp, {"field_1": i, "field_2": i + 1})
-
-    @data(0, 1, 2, 3)
-    def test_decompose(self, num_experiments):
-        """Test decompose."""
-        field_1 = list(range(num_experiments))
-        field_2 = [i + 1 for i in range(num_experiments)]
-        result = Result(field_1, field_2)
-        for i, res in enumerate(result.decompose()):
-            self.assertIsInstance(res, Result)
-            f1, f2 = (i,), (i + 1,)
-            self.assertEqual(res, Result(f1, f2))
 
     def test_field_names(self):
         """Tests field names ("field_1", "field_2")."""

@@ -152,8 +152,18 @@ class RZXGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse RZX gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RZX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZXGate` with an inverted parameter value.
+
+         Returns:
+            RZXGate: inverse gate.
+        """
         return RZXGate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -172,3 +182,8 @@ class RZXGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZXGate):
+            return self._compare_parameters(other)
+        return False

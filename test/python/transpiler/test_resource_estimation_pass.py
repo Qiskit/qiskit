@@ -17,7 +17,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import ResourceEstimation
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestResourceEstimationPass(QiskitTestCase):

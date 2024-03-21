@@ -14,19 +14,19 @@
 """Tests for Stabilizerstate quantum state class."""
 
 import unittest
-from test import combine
 import logging
 from ddt import ddt, data, unpack
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
 
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.states import StabilizerState, Statevector
 from qiskit.circuit.library import IGate, XGate, HGate
 from qiskit.quantum_info.operators import Clifford, Pauli, Operator
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 logger = logging.getLogger(__name__)
@@ -303,7 +303,7 @@ class TestStabilizerState(QiskitTestCase):
                     value = res.measure()[0]
                     self.assertIn(value, ["000", "001"])
 
-    def test_probablities_dict_single_qubit(self):
+    def test_probabilities_dict_single_qubit(self):
         """Test probabilities and probabilities_dict methods of a single qubit"""
 
         num_qubits = 1
@@ -342,7 +342,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.5, 0.5])
                 self.assertTrue(np.allclose(probs, target))
 
-    def test_probablities_dict_two_qubits(self):
+    def test_probabilities_dict_two_qubits(self):
         """Test probabilities and probabilities_dict methods of two qubits"""
 
         num_qubits = 2
@@ -395,7 +395,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([1, 0])
                 self.assertTrue(np.allclose(probs, target))
 
-    def test_probablities_dict_qubits(self):
+    def test_probabilities_dict_qubits(self):
         """Test probabilities and probabilities_dict methods of a subsystem of qubits"""
 
         num_qubits = 3
@@ -459,7 +459,7 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
                 self.assertTrue(np.allclose(probs, target))
 
-    def test_probablities_dict_ghz(self):
+    def test_probabilities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
 
         num_qubits = 3

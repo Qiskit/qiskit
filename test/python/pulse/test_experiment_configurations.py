@@ -17,7 +17,7 @@ import numpy as np
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import LoConfig, LoRange, Kernel, Discriminator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLoRange(QiskitTestCase):

@@ -30,7 +30,6 @@ from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
-from qiskit.utils.deprecation import deprecate_func
 
 
 class ParametricPulseShapes(Enum):
@@ -65,14 +64,6 @@ class ParametricPulseShapes(Enum):
         """
         if isinstance(instance, library.SymbolicPulse):
             return cls(instance.pulse_type)
-        if isinstance(instance, library.parametric_pulses.Gaussian):
-            return ParametricPulseShapes.gaussian
-        if isinstance(instance, library.parametric_pulses.GaussianSquare):
-            return ParametricPulseShapes.gaussian_square
-        if isinstance(instance, library.parametric_pulses.Drag):
-            return ParametricPulseShapes.drag
-        if isinstance(instance, library.parametric_pulses.Constant):
-            return ParametricPulseShapes.constant
 
         raise QiskitError(f"'{instance}' is not valid pulse type.")
 
@@ -502,78 +493,6 @@ class InstructionToQobjConverter:
 
         return self._qobj_model(**command_dict)
 
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_acquire(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_bundled_acquires(self, shift, instructions_):
-        return self._convert_bundled_acquire(instructions_, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_set_frequency(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_shift_frequency(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_set_phase(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_shift_phase(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_delay(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_play(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_snapshot(self, shift, instruction):
-        return self._convert_instruction(instruction, shift)
-
 
 class QobjToInstructionConverter:
     """Converts Qobj data into Qiskit Pulse in-memory representation.
@@ -967,108 +886,3 @@ class QobjToInstructionConverter:
                 f"Instruction {instruction.name} on {msg} is not found "
                 "in Qiskit namespace. This instruction cannot be deserialized."
             )
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_acquire(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_acquire(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_set_phase(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_setp(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_shift_phase(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_fc(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_set_frequency(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_setf(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_shift_frequency(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_shiftf(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_delay(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_delay(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def bind_pulse(self, pulse):
-        if pulse.name not in self._pulse_library:
-            self._pulse_library[pulse.name] = pulse.samples
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_parametric(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_parametric_pulse(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
-
-    @deprecate_func(
-        additional_msg="Instead, call converter instance directory.",
-        since="0.23.0",
-        package_name="qiskit-terra",
-    )
-    def convert_snapshot(self, instruction):
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in self._convert_snapshot(instruction=instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule

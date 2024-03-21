@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,16 +13,16 @@
 """Test pulse builder context utilities."""
 
 from math import pi
-
 import numpy as np
 
 from qiskit import circuit, compiler, pulse
 from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeWashington
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
+from qiskit.pulse.exceptions import PulseError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBuilder(QiskitTestCase):
@@ -106,6 +106,29 @@ class TestBuilderBase(TestBuilder):
                 pulse.delay(20, d1)
 
         self.assertScheduleEqual(schedule, reference)
+
+    def test_default_alignment_alignmentkind_instance(self):
+        """Test default AlignmentKind instance"""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+
+        with pulse.build(default_alignment=pulse.transforms.AlignEquispaced(100)) as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        with pulse.build() as reference:
+            with pulse.align_equispaced(100):
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertScheduleEqual(schedule, reference)
+
+    def test_unknown_string_identifier(self):
+        """Test that unknown string identifier raises an error"""
+
+        with self.assertRaises(PulseError):
+            with pulse.build(default_alignment="unknown") as _:
+                pass
 
 
 class TestContexts(TestBuilder):
@@ -666,7 +689,7 @@ class TestMacros(TestBuilder):
 
         self.assertScheduleEqual(schedule, reference)
 
-        backend = FakeWashington()
+        backend = Fake127QPulseV1()
         num_qubits = backend.configuration().num_qubits
         with pulse.build(backend) as schedule:
             regs = pulse.measure_all()

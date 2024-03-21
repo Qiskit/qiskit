@@ -19,7 +19,6 @@ from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,
@@ -39,11 +38,10 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class OneQubitZeroParamGate(Gate):
@@ -1114,7 +1112,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         output = bt_pass(qc)
         # We need a second run of BasisTranslator to correct gates outside of
         # the target basis. This is a known isssue, see:
-        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
         output = bt_pass(output)
         expected = QuantumCircuit(2)
         expected.rz(pi, 1)
