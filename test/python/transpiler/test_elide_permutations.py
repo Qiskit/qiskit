@@ -14,11 +14,12 @@
 
 import unittest
 
+from test import QiskitTestCase
+
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.coupling import CouplingMap
