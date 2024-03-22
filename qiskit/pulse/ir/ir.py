@@ -197,12 +197,8 @@ class SequenceIR:
         except TypeError:
             return None
 
-    def draw(self, recursive: bool = False):
+    def draw(self):
         """Draw the graph of the SequenceIR"""
-        if recursive:
-            draw_sequence = self.flatten().sequence
-        else:
-            draw_sequence = self.sequence
 
         def _draw_nodes(n):
             if n is SequenceIR._InNode or n is SequenceIR._OutNode:
@@ -214,65 +210,9 @@ class SequenceIR:
             return {"label": f"{n.__class__.__name__}" + name}
 
         return graphviz_draw(
-            draw_sequence,
+            self.sequence,
             node_attr_fn=_draw_nodes,
         )
-
-    # pylint: disable=cell-var-from-loop
-    def flatten(self, inplace: bool = False) -> SequenceIR:
-        """Recursively flatten the SequenceIR.
-
-        The flattening process includes breaking up nested IRs until only instructions remain.
-        The flattened object will contain all instructions, timing information, and the
-        complete sequence graph. However, the alignment of nested IRs will be lost. Because of
-        this, flattening an unscheduled IR is not allowed.
-
-        Args:
-            inplace: If ``True`` flatten the object itself. If ``False`` return a flattened copy.
-
-        Returns:
-            A flattened ``SequenceIR`` object.
-
-        Raises:
-            PulseError: If the IR (or nested IRs) are not scheduled.
-        """
-        # TODO : Verify that the block\sub blocks are sequenced correctly.
-        if inplace:
-            block = self
-        else:
-            block = self.copy()
-
-        def edge_map(_x, _y, _node):
-            if _y == _node:
-                return 0
-            if _x == _node:
-                return 1
-            return None
-
-        if any(
-            block.time_table[x] is None for x in block.sequence.node_indices() if x not in (0, 1)
-        ):
-            raise PulseError("Can not flatten unscheduled IR")
-
-        for ind in block.sequence.node_indices():
-            if isinstance(sub_block := block.sequence.get_node_data(ind), SequenceIR):
-                sub_block.flatten(inplace=True)
-                initial_time = block.time_table[ind]
-                nodes_mapping = block._sequence.substitute_node_with_subgraph(
-                    ind, sub_block.sequence, lambda x, y, _: edge_map(x, y, ind)
-                )
-                if initial_time is not None:
-                    for old_node in nodes_mapping.keys():
-                        if old_node not in (0, 1):
-                            block._time_table[nodes_mapping[old_node]] = (
-                                initial_time + sub_block.time_table[old_node]
-                            )
-
-                del block._time_table[ind]
-                block._sequence.remove_node_retain_edges(nodes_mapping[0])
-                block._sequence.remove_node_retain_edges(nodes_mapping[1])
-
-        return block
 
     def copy(self) -> SequenceIR:
         """Create a copy of ``SequenceIR``.
