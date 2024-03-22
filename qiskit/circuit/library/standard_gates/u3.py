@@ -96,7 +96,16 @@ class U3Gate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U3 gate.
 
-        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi)`)
+        :math:`U3(\theta,\phi,\lambda)^{\dagger} =U3(-\theta,-\lambda,-\phi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U3Gate` with inverse parameter values.
+
+        Returns:
+            U3Gate: inverse gate.
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -110,10 +119,10 @@ class U3Gate(Gate):
         """Return a (multi-)controlled-U3 gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -280,7 +289,17 @@ class CU3Gate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU3 gate.
 
-        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda)`)
+        :math:`CU3(\theta,\phi,\lambda)^{\dagger} =CU3(-\theta,-\phi,-\lambda))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CU3Gate` with inverse
+                parameter values.
+
+        Returns:
+            CU3Gate: inverse gate.
         """
         return CU3Gate(
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state

@@ -132,6 +132,15 @@ class EstimatorPub(ShapedMixin):
                     validate=False,  # Assume Pub is already validated
                 )
             return pub
+
+        if isinstance(pub, QuantumCircuit):
+            raise ValueError(
+                f"An invalid Estimator pub-like was given ({type(pub)}). "
+                "If you want to run a single pub, you need to wrap it with `[]` like "
+                "`estimator.run([(circuit, observables, param_values)])` "
+                "instead of `estimator.run((circuit, observables, param_values))`."
+            )
+
         if len(pub) not in [2, 3, 4]:
             raise ValueError(
                 f"The length of pub must be 2, 3 or 4, but length {len(pub)} is given."
@@ -141,7 +150,7 @@ class EstimatorPub(ShapedMixin):
 
         if len(pub) > 2 and pub[2] is not None:
             values = pub[2]
-            if not isinstance(values, Mapping):
+            if not isinstance(values, (BindingsArray, Mapping)):
                 values = {tuple(circuit.parameters): values}
             parameter_values = BindingsArray.coerce(values)
         else:
@@ -208,8 +217,6 @@ estimator, if ``precision=None`` the estimator will determine the target precisi
     An Estimator Pub can also be initialized in the following formats which
     will be converted to the full Pub tuple:
 
-    * ``circuit
-    * ``(circuit,)``
     * ``(circuit, observables)``
-    * ``(circuit, observalbes, parameter_values)``
+    * ``(circuit, observables, parameter_values)``
 """

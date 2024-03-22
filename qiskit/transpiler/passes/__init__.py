@@ -81,6 +81,7 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
+   RemoveFinalReset
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
@@ -139,6 +140,9 @@ Circuit Analysis
 Synthesis
 =========
 
+The synthesis transpiler plugin documentation can be found in the
+:mod:`qiskit.transpiler.passes.synthesis.plugin` page.
+
 .. autosummary::
    :toctree: ../stubs/
 
@@ -147,8 +151,6 @@ Synthesis
    HighLevelSynthesis
    HLSConfig
    SolovayKitaev
-   SolovayKitaevSynthesis
-   AQCSynthesisPlugin
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -224,6 +226,7 @@ from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
+from .optimization import RemoveFinalReset
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization

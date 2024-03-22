@@ -61,7 +61,10 @@ _NOISE_DEFAULTS = {
 }
 
 # Fallback values for gates with unknown noise default ranges.
-_NOISE_DEFAULTS_FALLBACK = (1e-8, 9e-7, 1e-5, 5e-3)
+_NOISE_DEFAULTS_FALLBACK = {
+    "1-q": (3e-8, 6e-8, 9e-5, 1e-4),
+    "multi-q": (8e-8, 9e-7, 1e-5, 5e-3),
+}
 
 # Ranges to sample qubit properties from.
 _QUBIT_PROPERTIES = {
@@ -226,14 +229,18 @@ class GenericBackendV2(BackendV2):
         }
         setattr(self, "channels_map", channels_map)
 
-    def _get_noise_defaults(self, name: str) -> tuple:
+    def _get_noise_defaults(self, name: str, num_qubits: int) -> tuple:
         """Return noise default values/ranges for duration and error of supported
         instructions. There are two possible formats:
             - (min_duration, max_duration, min_error, max_error),
               if the defaults are ranges.
             - (duration, error), if the defaults are fixed values.
         """
-        return _NOISE_DEFAULTS.get(name, (1e-8, 9e-7, 1e-5, 5e-3))
+        if name in _NOISE_DEFAULTS:
+            return _NOISE_DEFAULTS[name]
+        if num_qubits == 1:
+            return _NOISE_DEFAULTS_FALLBACK["1-q"]
+        return _NOISE_DEFAULTS_FALLBACK["multi-q"]
 
     def _get_calibration_sequence(
         self, inst: str, num_qubits: int, qargs: tuple[int]
@@ -368,7 +375,7 @@ class GenericBackendV2(BackendV2):
                     f"in the standard qiskit circuit library."
                 )
             gate = self._supported_gates[name]
-            noise_params = self._get_noise_defaults(name)
+            noise_params = self._get_noise_defaults(name, gate.num_qubits)
             self._add_noisy_instruction_to_target(gate, noise_params, calibration_inst_map)
 
         if self._control_flow:

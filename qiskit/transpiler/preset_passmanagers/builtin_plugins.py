@@ -123,6 +123,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ]
                 )
             )
+            if optimization_level == 2:
+                init.append(CommutativeCancellation())
 
         elif optimization_level == 3:
             init = common.generate_unroll_3q(
@@ -153,6 +155,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ]
                 )
             )
+            init.append(CommutativeCancellation())
 
         else:
             return TranspilerError(f"Invalid optimization level {optimization_level}")
