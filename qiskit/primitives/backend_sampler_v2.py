@@ -186,7 +186,10 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
     for creg in circuit.cregs:
         name = creg.name
         num_bits = creg.size
-        start = circuit.find_bit(creg[0]).index
+        if num_bits != 0:
+            start = circuit.find_bit(creg[0]).index
+        else:
+            start = 0
         meas_info.append(
             _MeasureInfo(
                 creg_name=name,
