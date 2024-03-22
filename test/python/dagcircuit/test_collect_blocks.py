@@ -931,6 +931,44 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 1)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 2)
 
+    def test_collect_blocks_if_test(self):
+        """Test collecting and collapsing blocks with if_test."""
+
+        qc = QuantumCircuit(4, 3)
+        with qc.if_test((qc.clbits[0], 1)):
+            qc.cx(0, 1)
+        qc.cx(2, 3)
+        qc.cx(1, 2)
+        qc.cx(0, 1)
+        with qc.if_test((qc.clbits[1], 0)):
+            qc.cx(2, 3)
+
+        dag = circuit_to_dag(qc)
+
+        # Collect all if_test
+        blocks = BlockCollector(dag).collect_all_matching_blocks(
+            lambda node: node.op.name == "if_else", split_blocks=False, min_block_size=1
+        )
+
+        # We should have a single block consisting of all if_else nodes
+        self.assertEqual(len(blocks), 2)
+        self.assertEqual(len(blocks[0]), 1)
+
+        def _collapse_fn(circuit):
+            op = circuit_to_instruction(circuit)
+            op.name = "COLLAPSED"
+            return op
+
+        # Collapse block with measures into a single "COLLAPSED" block
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        collapsed_qc = dag_to_circuit(dag)
+
+        self.assertEqual(len(collapsed_qc.data), 5)
+        for i in [1, 4]:
+            self.assertEqual(collapsed_qc.data[i].operation.name, "COLLAPSED")
+            self.assertEqual(collapsed_qc.data[i].operation.definition.num_qubits, 2)
+            self.assertEqual(collapsed_qc.data[i].operation.definition.num_clbits, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

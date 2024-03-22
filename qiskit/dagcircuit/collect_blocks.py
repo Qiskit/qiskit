@@ -15,7 +15,7 @@
 into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
-from qiskit.circuit.controlflow import condition_resources
+from qiskit.circuit.controlflow import condition_resources, IfElseOp
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
@@ -374,7 +374,7 @@ class BlockCollapser:
             for node in block:
                 instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
                 cond = getattr(node.op, "condition", None)
-                if cond is not None:
+                if cond is not None and not isinstance(node.op, IfElseOp):
                     instructions.c_if(*cond)
 
             # Collapse this quantum circuit into an operation.

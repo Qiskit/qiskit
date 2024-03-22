@@ -16,6 +16,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.controlflow import IfElseOp
 
 
 def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
@@ -107,7 +108,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
             return out
 
         condition = getattr(op, "condition", None)
-        if condition:
+        if condition and not isinstance(op, IfElseOp):
             reg, val = condition
             if isinstance(reg, Clbit):
                 op = op.c_if(clbit_map[reg], val)
