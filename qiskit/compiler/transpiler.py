@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -72,8 +72,28 @@ def transpile(  # pylint: disable=too-many-return-statements
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     Transpilation is potentially done in parallel using multiprocessing when ``circuits``
-    is a list with > 1 :class:`~.QuantumCircuit` object depending on the local environment
+    is a list with > 1 :class:`~.QuantumCircuit` object, depending on the local environment
     and configuration.
+
+    The prioritization of transpilation target constraints works as follows: if a ``target``
+    input is provided, it will take priority over any ``backend`` input or loose constraints
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
+    from the list above, the loose constraint will take priority over the corresponding backend
+    constraint. This behavior is independent of whether the ``backend`` instance is of type
+    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below:
+
+    ============================ ========= ======================== =======================
+    priority?                    target    backend(V1)              backend(V2)
+    ============================ ========= ======================== =======================
+    **basis_gates**              target    basis_gates              basis_gates
+    **coupling_map**             target    coupling_map             coupling_map
+    **instruction_durations**    target    instruction_durations    instruction_durations
+    **inst_map**                 target    inst_map                 inst_map
+    **dt**                       target    dt                       dt
+    **timing_constraints**       target    timing_constraints       timing_constraints
+    **backend_properties**       target    backend_properties       backend_properties
+    ============================ ========= ======================== =======================
 
     Args:
         circuits: Circuit(s) to transpile
