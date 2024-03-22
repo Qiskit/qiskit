@@ -1,10 +1,7 @@
 ---
-prelude: >
-
 features_pulse:
   - |
-    The `ParameterManager` now supports the `ParameterVector` class. This enables
-    the use of `ParameterVector` in pulse `Schedule` and `ScheduleBlock` objects when using their method
-    `assign_parameters` to assign simultaneously a list of parameter values.
-
-
+    The ``assign_parameters`` methods of :class:`.Schedule` and :class:`.ScheduleBlock`
+    now support assigning a :class:`.ParameterVector` to a list of parameter values
+    simultaneously in addition to assigning individual :class:`.Parameter` instances to
+    individual values.
