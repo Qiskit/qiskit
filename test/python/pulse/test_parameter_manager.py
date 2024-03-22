@@ -510,10 +510,10 @@ class TestAssignFromProgram(QiskitTestCase):
         sched2 = sched.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
         self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
         self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
-        self.assertEqual(sched1.instructions[0][1].phase, 0.1)
+        self.assertEqual(sched1.instructions[1][1].phase, 0.1)
         self.assertEqual(sched2.instructions[0][1].pulse.amp, param)
         self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
-        self.assertEqual(sched2.instructions[0][1].phase, 0.1)
+        self.assertEqual(sched2.instructions[1][1].phase, 0.1)
 
 
 class TestScheduleTimeslots(QiskitTestCase):
