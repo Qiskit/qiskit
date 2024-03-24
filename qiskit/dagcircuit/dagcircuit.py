@@ -20,10 +20,13 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
+from __future__ import annotations
+
 from collections import OrderedDict, defaultdict, deque, namedtuple
+from collections.abc import Callable, Sequence, Generator, Iterable
 import copy
 import math
-from typing import Dict, Generator, Any, List
+from typing import Any
 
 import numpy as np
 import rustworkx as rx
@@ -35,6 +38,7 @@ from qiskit.circuit import (
     WhileLoopOp,
     SwitchCaseOp,
     _classical_resource_map,
+    Operation,
 )
 from qiskit.circuit.controlflow import condition_resources, node_resources, CONTROL_FLOW_OP_NAMES
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
@@ -45,7 +49,7 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.circuit.bit import Bit
-
+from qiskit.pulse import Schedule
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -97,18 +101,18 @@ class DAGCircuit:
         self.cregs = OrderedDict()
 
         # List of Qubit/Clbit wires that the DAG acts on.
-        self.qubits: List[Qubit] = []
-        self.clbits: List[Clbit] = []
+        self.qubits: list[Qubit] = []
+        self.clbits: list[Clbit] = []
 
         # Dictionary mapping of Qubit and Clbit instances to a tuple comprised of
         # 0) corresponding index in dag.{qubits,clbits} and
         # 1) a list of Register-int pairs for each Register containing the Bit and
         # its index within that register.
-        self._qubit_indices: Dict[Qubit, BitLocations] = {}
-        self._clbit_indices: Dict[Clbit, BitLocations] = {}
+        self._qubit_indices: dict[Qubit, BitLocations] = {}
+        self._clbit_indices: dict[Clbit, BitLocations] = {}
 
-        self._global_phase = 0
-        self._calibrations = defaultdict(dict)
+        self._global_phase: float | ParameterExpression = 0.0
+        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self._op_names = {}
 
@@ -133,7 +137,7 @@ class DAGCircuit:
         return self._global_phase
 
     @global_phase.setter
-    def global_phase(self, angle):
+    def global_phase(self, angle: float | ParameterExpression):
         """Set the global phase of the circuit.
 
         Args:
@@ -150,7 +154,7 @@ class DAGCircuit:
                 self._global_phase = angle % (2 * math.pi)
 
     @property
-    def calibrations(self):
+    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
@@ -159,7 +163,7 @@ class DAGCircuit:
         return dict(self._calibrations)
 
     @calibrations.setter
-    def calibrations(self, calibrations):
+    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
@@ -637,7 +641,14 @@ class DAGCircuit:
 
         return target_dag
 
-    def apply_operation_back(self, op, qargs=(), cargs=(), *, check=True):
+    def apply_operation_back(
+        self,
+        op: Operation,
+        qargs: Iterable[Qubit] = (),
+        cargs: Iterable[Clbit] = (),
+        *,
+        check: bool = True,
+    ) -> DAGOpNode:
         """Apply an operation to the output of the circuit.
 
         Args:
@@ -683,7 +694,14 @@ class DAGCircuit:
         )
         return node
 
-    def apply_operation_front(self, op, qargs=(), cargs=(), *, check=True):
+    def apply_operation_front(
+        self,
+        op: Operation,
+        qargs: Sequence[Qubit] = (),
+        cargs: Sequence[Clbit] = (),
+        *,
+        check: bool = True,
+    ) -> DAGOpNode:
         """Apply an operation to the input of the circuit.
 
         Args:
@@ -1075,7 +1093,7 @@ class DAGCircuit:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=key))
 
-    def topological_op_nodes(self, key=None) -> Generator[DAGOpNode, Any, Any]:
+    def topological_op_nodes(self, key: Callable | None = None) -> Generator[DAGOpNode, Any, Any]:
         """
         Yield op nodes in topological order.
 
@@ -1092,7 +1110,9 @@ class DAGCircuit:
         """
         return (nd for nd in self.topological_nodes(key) if isinstance(nd, DAGOpNode))
 
-    def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
+    def replace_block_with_op(
+        self, node_block: list[DAGOpNode], op: Operation, wire_pos_map, cycle_check=True
+    ):
         """Replace a block of nodes with a single node.
 
         This is used to consolidate a block of DAGOpNodes into a single
@@ -1381,7 +1401,7 @@ class DAGCircuit:
 
         return {k: self._multi_graph[v] for k, v in node_map.items()}
 
-    def substitute_node(self, node, op, inplace=False, propagate_condition=True):
+    def substitute_node(self, node: DAGOpNode, op, inplace: bool = False, propagate_condition=True):
         """Replace an DAGOpNode with a single operation. qargs, cargs and
         conditions for the new operation will be inferred from the node to be
         replaced. The new operation will be checked to match the shape of the
@@ -1471,7 +1491,7 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def separable_circuits(self, remove_idle_qubits=False) -> List["DAGCircuit"]:
+    def separable_circuits(self, remove_idle_qubits: bool = False) -> list["DAGCircuit"]:
         """Decompose the circuit into sets of qubits with no gates connecting them.
 
         Args:
@@ -1892,7 +1912,7 @@ class DAGCircuit:
         group_list = rx.collect_runs(self._multi_graph, filter_fn)
         return {tuple(x) for x in group_list}
 
-    def collect_1q_runs(self):
+    def collect_1q_runs(self) -> list[list[DAGOpNode]]:
         """Return a set of non-conditional runs of 1q "op" nodes."""
 
         def filter_fn(node):
