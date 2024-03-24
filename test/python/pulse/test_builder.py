@@ -21,6 +21,7 @@ from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.providers.fake_provider import FakeOpenPulse2Q, Fake127QPulseV1
 from qiskit.pulse import library, instructions
+from qiskit.pulse.exceptions import PulseError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -105,6 +106,29 @@ class TestBuilderBase(TestBuilder):
                 pulse.delay(20, d1)
 
         self.assertScheduleEqual(schedule, reference)
+
+    def test_default_alignment_alignmentkind_instance(self):
+        """Test default AlignmentKind instance"""
+        d0 = pulse.DriveChannel(0)
+        d1 = pulse.DriveChannel(0)
+
+        with pulse.build(default_alignment=pulse.transforms.AlignEquispaced(100)) as schedule:
+            pulse.delay(10, d0)
+            pulse.delay(20, d1)
+
+        with pulse.build() as reference:
+            with pulse.align_equispaced(100):
+                pulse.delay(10, d0)
+                pulse.delay(20, d1)
+
+        self.assertScheduleEqual(schedule, reference)
+
+    def test_unknown_string_identifier(self):
+        """Test that unknown string identifier raises an error"""
+
+        with self.assertRaises(PulseError):
+            with pulse.build(default_alignment="unknown") as _:
+                pass
 
 
 class TestContexts(TestBuilder):

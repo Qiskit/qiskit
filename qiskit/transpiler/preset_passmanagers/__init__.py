@@ -115,7 +115,7 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``, ``inst_map``,
-            ``couplig_map``, ``backend_properties``, ``instruction_durations``,
+            ``coupling_map``, ``backend_properties``, ``instruction_durations``,
             ``timing_constraints``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.

@@ -18,10 +18,11 @@ Sampler Pub class
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Tuple, Union
 from numbers import Integral
+from typing import Tuple, Union
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import CircuitInstruction
 
 from .bindings_array import BindingsArray, BindingsArrayLike
 from .shape import ShapedMixin
@@ -113,6 +114,14 @@ class SamplerPub(ShapedMixin):
         if isinstance(pub, QuantumCircuit):
             return cls(circuit=pub, shots=shots, validate=True)
 
+        if isinstance(pub, CircuitInstruction):
+            raise ValueError(
+                f"An invalid Sampler pub-like was given ({type(pub)}). "
+                "If you want to run a single circuit, "
+                "you need to wrap it with `[]` like `sampler.run([circuit])` "
+                "instead of `sampler.run(circuit)`."
+            )
+
         if len(pub) not in [1, 2, 3]:
             raise ValueError(
                 f"The length of pub must be 1, 2 or 3, but length {len(pub)} is given."
@@ -147,10 +156,17 @@ class SamplerPub(ShapedMixin):
         # Cross validate circuits and parameter values
         num_parameters = self.parameter_values.num_parameters
         if num_parameters != self.circuit.num_parameters:
-            raise ValueError(
+            message = (
                 f"The number of values ({num_parameters}) does not match "
                 f"the number of parameters ({self.circuit.num_parameters}) for the circuit."
             )
+            if num_parameters == 0:
+                message += (
+                    " Note that if you want to run a single pub, you need to wrap it with `[]` like "
+                    "`sampler.run([(circuit, param_values)])` instead of "
+                    "`sampler.run((circuit, param_values))`."
+                )
+            raise ValueError(message)
 
 
 SamplerPubLike = Union[
@@ -171,7 +187,7 @@ if ``shots=None`` the number of run shots is determined by the sampler.
     A Sampler Pub can also be initialized in the following formats which
     will be converted to the full Pub tuple:
 
-    * ``circuit
+    * ``circuit``
     * ``(circuit,)``
     * ``(circuit, parameter_values)``
 """
