@@ -131,7 +131,7 @@ class MplPlotter(BasePlotter):
                 self.ax.plot(xvals.repeat(len(offsets)), offsets, **data.styles)
 
             else:
-                VisualizationError(
+                raise VisualizationError(
                     "Data {name} is not supported by {plotter}"
                     "".format(name=data, plotter=self.__class__.__name__)
                 )

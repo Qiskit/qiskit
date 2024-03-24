@@ -37,7 +37,7 @@ from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 θ = Parameter("θ")
@@ -287,8 +287,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta: 3.14})).equiv(
+                Operator(result.assign_parameters({theta: 3.14}))
             )
         )
 
@@ -324,8 +324,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14})).equiv(
-                Operator(result.bind_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta: 3.14})).equiv(
+                Operator(result.assign_parameters({theta: 3.14}))
             )
         )
 
@@ -364,8 +364,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.bind_parameters({theta: 3.14, phi: 10})).equiv(
-                Operator(result.bind_parameters({theta: 3.14, phi: 10}))
+            Operator(qc.assign_parameters({theta: 3.14, phi: 10})).equiv(
+                Operator(result.assign_parameters({theta: 3.14, phi: 10}))
             )
         )
 
@@ -744,6 +744,20 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(test)
         self.assertEqual(result, expected)
+
+    def test_prefer_no_substitution_if_all_ideal(self):
+        """Test that gates are not substituted if all our ideal gates in basis."""
+        target = Target(num_qubits=1)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(error=0)})
+        target.add_instruction(
+            UGate(Parameter("a"), Parameter("b"), Parameter("c")),
+            {(0,): InstructionProperties(error=0)},
+        )
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        opt_pass = Optimize1qGatesDecomposition(target)
+        res = opt_pass(qc)
+        self.assertEqual(res, qc)
 
 
 if __name__ == "__main__":

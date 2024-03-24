@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Exception for errors raised by the pulse module."""
-from qiskit.exceptions import QiskitError
+"""Exception for errors raised by the QPY module."""
+
+from qiskit.exceptions import QiskitError, QiskitWarning
 
 
 class QpyError(QiskitError):
@@ -25,3 +26,8 @@ class QpyError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.message)
+
+
+class QPYLoadingDeprecatedFeatureWarning(QiskitWarning):
+    """Visible deprecation warning for QPY loading functions without
+    a stable point in the call stack."""

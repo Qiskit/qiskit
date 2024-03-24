@@ -17,7 +17,7 @@ QPY Type keys for several namespace.
 """
 
 from abc import abstractmethod
-from enum import Enum
+from enum import Enum, IntEnum
 
 import numpy as np
 
@@ -30,6 +30,8 @@ from qiskit.circuit import (
     Clbit,
     ClassicalRegister,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, Modifier
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -43,6 +45,7 @@ from qiskit.pulse.channels import (
     MemorySlot,
     RegisterSlot,
 )
+from qiskit.pulse.configuration import Discriminator, Kernel
 from qiskit.pulse.instructions import (
     Acquire,
     Play,
@@ -110,6 +113,8 @@ class Value(TypeKeyBase):
     PARAMETER_EXPRESSION = b"e"
     STRING = b"s"
     NULL = b"z"
+    EXPRESSION = b"x"
+    MODIFIER = b"m"
 
     @classmethod
     def assign(cls, obj):
@@ -135,6 +140,10 @@ class Value(TypeKeyBase):
             return cls.NULL
         if obj is CASE_DEFAULT:
             return cls.CASE_DEFAULT
+        if isinstance(obj, expr.Expr):
+            return cls.EXPRESSION
+        if isinstance(obj, Modifier):
+            return cls.MODIFIER
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -143,6 +152,18 @@ class Value(TypeKeyBase):
     @classmethod
     def retrieve(cls, type_key):
         raise NotImplementedError
+
+
+class Condition(IntEnum):
+    """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
+
+    # This class is deliberately raw integers and not in terms of ASCII characters for backwards
+    # compatiblity in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # have the enumeration values 0 and 1.
+
+    NONE = 0
+    TWO_TUPLE = 1
+    EXPRESSION = 2
 
 
 class Container(TypeKeyBase):
@@ -174,6 +195,7 @@ class CircuitInstruction(TypeKeyBase):
     GATE = b"g"
     PAULI_EVOL_GATE = b"p"
     CONTROLLED_GATE = b"c"
+    ANNOTATED_OPERATION = b"a"
 
     @classmethod
     def assign(cls, obj):
@@ -181,6 +203,8 @@ class CircuitInstruction(TypeKeyBase):
             return cls.PAULI_EVOL_GATE
         if isinstance(obj, ControlledGate):
             return cls.CONTROLLED_GATE
+        if isinstance(obj, AnnotatedOperation):
+            return cls.ANNOTATED_OPERATION
         if isinstance(obj, Gate):
             return cls.GATE
         if isinstance(obj, Instruction):
@@ -318,10 +342,8 @@ class ScheduleOperand(TypeKeyBase):
     WAVEFORM = b"w"
     SYMBOLIC_PULSE = b"s"
     CHANNEL = b"c"
-
-    # Discriminator and Acquire instance are not serialzied.
-    # Data format of these object is somewhat opaque and not defiend well.
-    # It's rarely used in the Qiskit experiements. Of course these can be added later.
+    KERNEL = b"k"
+    DISCRIMINATOR = b"d"
 
     # We need to have own string type definition for operands of schedule instruction.
     # Note that string type is already defined in the Value namespace,
@@ -339,6 +361,10 @@ class ScheduleOperand(TypeKeyBase):
             return cls.CHANNEL
         if isinstance(obj, str):
             return cls.OPERAND_STR
+        if isinstance(obj, Kernel):
+            return cls.KERNEL
+        if isinstance(obj, Discriminator):
+            return cls.DISCRIMINATOR
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -416,6 +442,109 @@ class Program(TypeKeyBase):
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
         )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class Expression(TypeKeyBase):
+    """Type keys for the ``EXPRESSION`` QPY item."""
+
+    VAR = b"x"
+    VALUE = b"v"
+    CAST = b"c"
+    UNARY = b"u"
+    BINARY = b"b"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, expr.Expr)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprType(TypeKeyBase):
+    """Type keys for the ``EXPR_TYPE`` QPY item."""
+
+    BOOL = b"b"
+    UINT = b"u"
+
+    @classmethod
+    def assign(cls, obj):
+        if (
+            isinstance(obj, types.Type)
+            and (key := getattr(cls, obj.__class__.__name__.upper(), None)) is not None
+        ):
+            return key
+        raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVar(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR`` QPY item."""
+
+    CLBIT = b"C"
+    REGISTER = b"R"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, Clbit):
+            return cls.CLBIT
+        if isinstance(obj, ClassicalRegister):
+            return cls.REGISTER
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprValue(TypeKeyBase):
+    """Type keys for the ``EXPR_VALUE`` QPY item."""
+
+    BOOL = b"b"
+    INT = b"i"
+
+    @classmethod
+    def assign(cls, obj):
+        if isinstance(obj, bool):
+            return cls.BOOL
+        if isinstance(obj, int):
+            return cls.INT
+        raise exceptions.QpyError(
+            f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
+        )
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class SymExprEncoding(TypeKeyBase):
+    """Type keys for the symbolic encoding field in the file header."""
+
+    SYMPY = b"p"
+    SYMENGINE = b"e"
+
+    @classmethod
+    def assign(cls, obj):
+        if obj:
+            return cls.SYMENGINE
+        else:
+            return cls.SYMPY
 
     @classmethod
     def retrieve(cls, type_key):

@@ -31,20 +31,23 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 
+from __future__ import annotations
+
 import copy
 from itertools import zip_longest
-from typing import List
+import math
+from typing import List, Type
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
-from .tools import pi_check
+
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier
+
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -94,15 +97,74 @@ class Instruction(Operation):
             self._label = label
         # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
         # when the instruction has a conditional ("if")
-        self.condition = None
+        self._condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-
         self._duration = duration
         self._unit = unit
 
         self.params = params  # must be at last (other properties may be required for validation)
+
+    @property
+    def base_class(self) -> Type[Instruction]:
+        """Get the base class of this instruction.  This is guaranteed to be in the inheritance tree
+        of ``self``.
+
+        The "base class" of an instruction is the lowest class in its inheritance tree that the
+        object should be considered entirely compatible with for _all_ circuit applications.  This
+        typically means that the subclass is defined purely to offer some sort of programmer
+        convenience over the base class, and the base class is the "true" class for a behavioural
+        perspective.  In particular, you should *not* override :attr:`base_class` if you are
+        defining a custom version of an instruction that will be implemented differently by
+        hardware, such as an alternative measurement strategy, or a version of a parametrised gate
+        with a particular set of parameters for the purposes of distinguishing it in a
+        :class:`.Target` from the full parametrised gate.
+
+        This is often exactly equivalent to ``type(obj)``, except in the case of singleton instances
+        of standard-library instructions.  These singleton instances are special subclasses of their
+        base class, and this property will return that base.  For example::
+
+            >>> isinstance(XGate(), XGate)
+            True
+            >>> type(XGate()) is XGate
+            False
+            >>> XGate().base_class is XGate
+            True
+
+        In general, you should not rely on the precise class of an instruction; within a given
+        circuit, it is expected that :attr:`Instruction.name` should be a more suitable
+        discriminator in most situations.
+        """
+        return type(self)
+
+    @property
+    def mutable(self) -> bool:
+        """Is this instance is a mutable unique instance or not.
+
+        If this attribute is ``False`` the gate instance is a shared singleton
+        and is not mutable.
+        """
+        return True
+
+    def to_mutable(self):
+        """Return a mutable copy of this gate.
+
+        This method will return a new mutable copy of this gate instance.
+        If a singleton instance is being used this will be a new unique
+        instance that can be mutated. If the instance is already mutable it
+        will be a deepcopy of that instance.
+        """
+        return self.copy()
+
+    @property
+    def condition(self):
+        """The classical condition on the instruction."""
+        return self._condition
+
+    @condition.setter
+    def condition(self, condition):
+        self._condition = condition
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -114,8 +176,9 @@ class Instruction(Operation):
         Returns:
             bool: are self and other equal.
         """
-        if (
-            type(self) is not type(other)
+        if (  # pylint: disable=too-many-boolean-expressions
+            not isinstance(other, Instruction)
+            or self.base_class is not other.base_class
             or self.name != other.name
             or self.num_qubits != other.num_qubits
             or self.num_clbits != other.num_clbits
@@ -153,7 +216,7 @@ class Instruction(Operation):
         return True
 
     def __repr__(self) -> str:
-        """Generates a representation of the Intruction object instance
+        """Generates a representation of the Instruction object instance
         Returns:
             str: A representation of the Instruction instance with the name,
                  number of qubits, classical bits and params( if any )
@@ -339,7 +402,13 @@ class Instruction(Operation):
             qiskit.circuit.Instruction: a new instruction with
                 sub-instructions reversed.
         """
-        if not self._definition:
+        # A single `Instruction` cannot really determine whether it is a "composite" instruction or
+        # not; it depends on greater context whether it needs to be decomposed.  The `_definition`
+        # not existing is flaky; all that means is that nobody has _yet_ asked for its definition;
+        # for efficiency, most gates define this on-the-fly.  The checks here are a very very
+        # approximate check for an "atomic" instruction, that are mostly just this way for
+        # historical consistency.
+        if not self._definition or not self.mutable:
             return self.copy()
 
         reverse_inst = self.copy(name=self.name + "_reverse")
@@ -349,22 +418,36 @@ class Instruction(Operation):
         reverse_inst.definition = reversed_definition
         return reverse_inst
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Invert this instruction.
 
-        If the instruction is composite (i.e. has a definition),
-        then its definition will be recursively inverted.
+        If `annotated` is `False`, the inverse instruction is implemented as
+        a fresh instruction with the recursively inverted definition.
+
+        If `annotated` is `True`, the inverse instruction is implemented as
+        :class:`.AnnotatedOperation`, and corresponds to the given instruction
+        annotated with the "inverse modifier".
 
         Special instructions inheriting from Instruction can
         implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+        In particular, they can choose how to handle the argument ``annotated``
+        which may include ignoring it and always returning a concrete gate class
+        if the inverse is defined as a standard gate.
+
+        Args:
+            annotated: if set to `True` the output inverse gate will be returned
+                as :class:`.AnnotatedOperation`.
 
         Returns:
-            qiskit.circuit.Instruction: a fresh instruction for the inverse
+            The inverse operation.
 
         Raises:
             CircuitError: if the instruction is not composite
                 and an inverse has not been implemented for it.
         """
+        if annotated:
+            return AnnotatedOperation(self, InverseModifier())
+
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
@@ -409,7 +492,7 @@ class Instruction(Operation):
             # Casting the conditional value as Boolean when
             # the classical condition is on a classical bit.
             val = bool(val)
-        self.condition = (classical, val)
+        self._condition = (classical, val)
         return self
 
     def copy(self, name=None):
@@ -429,37 +512,12 @@ class Instruction(Operation):
             cpy.name = name
         return cpy
 
-    def __deepcopy__(self, _memo=None):
+    def __deepcopy__(self, memo=None):
         cpy = copy.copy(self)
         cpy._params = copy.copy(self._params)
         if self._definition:
-            cpy._definition = copy.deepcopy(self._definition, _memo)
+            cpy._definition = copy.deepcopy(self._definition, memo)
         return cpy
-
-    def _qasmif(self, string):
-        """Print an if statement if needed."""
-        if self.condition is None:
-            return string
-        if not isinstance(self.condition[0], ClassicalRegister):
-            raise QasmError(
-                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
-            )
-        return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
-
-    def qasm(self):
-        """Return a default OpenQASM string for the instruction.
-
-        Derived instructions may override this to print in a
-        different format (e.g. measure q[0] -> c[0];).
-        """
-        name_param = self.name
-        if self.params:
-            name_param = "{}({})".format(
-                name_param,
-                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
-            )
-
-        return self._qasmif(name_param)
 
     def broadcast_arguments(self, qargs, cargs):
         """
@@ -501,7 +559,13 @@ class Instruction(Operation):
         )
 
     def repeat(self, n):
-        """Creates an instruction with `gate` repeated `n` amount of times.
+        """Creates an instruction with ``self`` repeated :math`n` times.
+
+        If this operation has a conditional, the output instruction will have the same conditional
+        and the inner repeated operations will be unconditional; instructions within a compound
+        definition cannot be conditioned on registers within Qiskit's data model.  This means that
+        it is not valid to apply a repeated instruction to a clbit that it both writes to and reads
+        from in its condition.
 
         Args:
             n (int): Number of times to repeat the instruction
@@ -518,33 +582,34 @@ class Instruction(Operation):
         n = int(n)
 
         instruction = self._return_repeat(n)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, "q")
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, "c")
-
         if instruction.definition is None:
             # pylint: disable=cyclic-import
             from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
-            qc = QuantumCircuit()
-            if qargs:
-                qc.add_register(qargs)
-            if cargs:
-                qc.add_register(cargs)
-            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            qc = QuantumCircuit(self.num_qubits, self.num_clbits)
+            qargs = tuple(qc.qubits)
+            cargs = tuple(qc.clbits)
+            base = self.copy()
+            if self.condition:
+                # Condition is handled on the outer instruction.
+                base = base.to_mutable()
+                base.condition = None
             for _ in [None] * n:
-                qc._append(circuit_instruction)
-        instruction.definition = qc
+                qc._append(CircuitInstruction(base, qargs, cargs))
+
+            instruction.definition = qc
+        if self.condition:
+            instruction = instruction.c_if(*self.condition)
         return instruction
 
     @property
     def condition_bits(self) -> List[Clbit]:
         """Get Clbits in condition."""
+        from qiskit.circuit.controlflow import condition_resources  # pylint: disable=cyclic-import
+
         if self.condition is None:
             return []
-        if isinstance(self.condition[0], Clbit):
-            return [self.condition[0]]
-        else:  # ClassicalRegister
-            return list(self.condition[0])
+        return list(condition_resources(self.condition).clbits)
 
     @property
     def name(self):
@@ -575,3 +640,13 @@ class Instruction(Operation):
     def num_clbits(self, num_clbits):
         """Set num_clbits."""
         self._num_clbits = num_clbits
+
+    def _compare_parameters(self, other):
+        for x, y in zip(self.params, other.params):
+            try:
+                if not math.isclose(x, y, rel_tol=0, abs_tol=1e-10):
+                    return False
+            except TypeError:
+                if x != y:
+                    return False
+        return True

@@ -13,7 +13,8 @@
 """Module for common pulse programming macros."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Union, TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -26,11 +27,11 @@ if TYPE_CHECKING:
 
 
 def measure(
-    qubits: List[int],
+    qubits: Sequence[int],
     backend=None,
-    inst_map: Optional[InstructionScheduleMap] = None,
-    meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
-    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    inst_map: InstructionScheduleMap | None = None,
+    meas_map: list[list[int]] | dict[int, list[int]] | None = None,
+    qubit_mem_slots: dict[int, int] | None = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -89,10 +90,10 @@ def measure(
 
 
 def _measure_v1(
-    qubits: List[int],
+    qubits: Sequence[int],
     inst_map: InstructionScheduleMap,
-    meas_map: Union[List[List[int]], Dict[int, List[int]]],
-    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    meas_map: list[list[int]] | dict[int, list[int]],
+    qubit_mem_slots: dict[int, int] | None = None,
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -150,10 +151,10 @@ def _measure_v1(
 
 
 def _measure_v2(
-    qubits: List[int],
+    qubits: Sequence[int],
     target: Target,
-    meas_map: Union[List[List[int]], Dict[int, List[int]]],
-    qubit_mem_slots: Dict[int, int],
+    meas_map: list[list[int]] | dict[int, list[int]],
+    qubit_mem_slots: dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
@@ -176,7 +177,7 @@ def _measure_v2(
     meas_group = set()
     for qubit in qubits:
         meas_group |= set(meas_map[qubit])
-    meas_group = sorted(list(meas_group))
+    meas_group = sorted(meas_group)
 
     meas_group_set = set(range(max(meas_group) + 1))
     unassigned_qubit_indices = sorted(set(meas_group) - qubit_mem_slots.keys())
@@ -225,7 +226,7 @@ def measure_all(backend) -> Schedule:
 
 
 def _schedule_remapping_memory_slot(
-    schedule: Schedule, qubit_mem_slots: Dict[int, int]
+    schedule: Schedule, qubit_mem_slots: dict[int, int]
 ) -> Schedule:
     """
     A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.

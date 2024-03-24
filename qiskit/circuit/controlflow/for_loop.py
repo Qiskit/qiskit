@@ -10,15 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing a ``for`` loop."
+"""Circuit operation representing a ``for`` loop."""
+
+from __future__ import annotations
 
 import warnings
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Union, TYPE_CHECKING
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from .control_flow import ControlFlowOp
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 class ForLoopOp(ControlFlowOp):
@@ -69,6 +73,9 @@ class ForLoopOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         indexset, loop_parameter, body = parameters
 
         if not isinstance(loop_parameter, (Parameter, type(None))):
@@ -108,7 +115,7 @@ class ForLoopOp(ControlFlowOp):
             )
 
         # Consume indexset into a tuple unless it was provided as a range.
-        # Preserve ranges so that they can be exported as OpenQASM3 ranges.
+        # Preserve ranges so that they can be exported as OpenQASM 3 ranges.
         indexset = indexset if isinstance(indexset, range) else tuple(indexset)
 
         self._params = [indexset, loop_parameter, body]
@@ -208,7 +215,7 @@ class ForLoopContext:
         scope = self._circuit._pop_scope()
         # Loops do not need to pass any further resources in, because this scope itself defines the
         # extent of ``break`` and ``continue`` statements.
-        body = scope.build(scope.qubits, scope.clbits)
+        body = scope.build(scope.qubits(), scope.clbits())
         # We always bind the loop parameter if the user gave it to us, even if it isn't actually
         # used, because they requested we do that by giving us a parameter.  However, if they asked
         # us to auto-generate a parameter, then we only add it if they actually used it, to avoid

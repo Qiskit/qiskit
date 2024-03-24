@@ -159,6 +159,7 @@ class DrawerCanvas:
                 "This circuit should be transpiled with scheduler though it consists of "
                 "instructions with explicit durations.",
                 DeprecationWarning,
+                stacklevel=3,
             )
 
             try:
@@ -187,8 +188,9 @@ class DrawerCanvas:
                         bit_position=bit_pos,
                     )
                     for gen in self.generator["gates"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(gate_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(gate_source, formatter=self.formatter):
                             self.add_data(datum)
                     if len(bits) > 1 and bit_pos == 0:
                         # Generate draw object for gate-gate link
@@ -197,23 +199,26 @@ class DrawerCanvas:
                             t0=line_pos, opname=instruction.operation.name, bits=bits
                         )
                         for gen in self.generator["gate_links"]:
-                            obj_generator = partial(gen, formatter=self.formatter)
-                            for datum in obj_generator(link_source):
+                            if getattr(gen, "accepts_program", False):
+                                gen = partial(gen, program=program)
+                            for datum in gen(link_source, formatter=self.formatter):
                                 self.add_data(datum)
                 if isinstance(instruction.operation, circuit.Barrier):
                     # Generate draw object for barrier
                     barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
                     for gen in self.generator["barriers"]:
-                        obj_generator = partial(gen, formatter=self.formatter)
-                        for datum in obj_generator(barrier_source):
+                        if getattr(gen, "accepts_program", False):
+                            gen = partial(gen, program=program)
+                        for datum in gen(barrier_source, formatter=self.formatter):
                             self.add_data(datum)
 
         self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
             for gen in self.generator["bits"]:
                 # Generate draw objects for bit
-                obj_generator = partial(gen, formatter=self.formatter)
-                for datum in obj_generator(bit):
+                if getattr(gen, "accepts_program", False):
+                    gen = partial(gen, program=program)
+                for datum in gen(bit, formatter=self.formatter):
                     self.add_data(datum)
 
         # update time range

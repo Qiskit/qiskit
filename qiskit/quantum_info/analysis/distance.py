@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """A collection of discrete probability metrics."""
+from __future__ import annotations
 import numpy as np
 
 
-def hellinger_distance(dist_p, dist_q):
+def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger distance between
     two counts distributions.
 
@@ -53,7 +54,7 @@ def hellinger_distance(dist_p, dist_q):
     return dist
 
 
-def hellinger_fidelity(dist_p, dist_q):
+def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
     """Computes the Hellinger fidelity between
     two counts distributions.
 
@@ -75,8 +76,9 @@ def hellinger_fidelity(dist_p, dist_q):
 
         .. code-block::
 
-            from qiskit import QuantumCircuit, execute, BasicAer
+            from qiskit import QuantumCircuit
             from qiskit.quantum_info.analysis import hellinger_fidelity
+            from qiskit.providers.basic_provider import BasicSimulator
 
             qc = QuantumCircuit(5, 5)
             qc.h(2)
@@ -86,9 +88,9 @@ def hellinger_fidelity(dist_p, dist_q):
             qc.cx(1, 0)
             qc.measure(range(5), range(5))
 
-            sim = BasicAer.get_backend('qasm_simulator')
-            res1 = execute(qc, sim).result()
-            res2 = execute(qc, sim).result()
+            sim = BasicSimulator()
+            res1 = sim.run(qc).result()
+            res2 = sim.run(qc).result()
 
             hellinger_fidelity(res1.get_counts(), res2.get_counts())
 

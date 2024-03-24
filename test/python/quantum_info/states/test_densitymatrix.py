@@ -25,7 +25,9 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
-from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 logger = logging.getLogger(__name__)
 
@@ -1191,6 +1193,8 @@ class TestDensityMatrix(QiskitTestCase):
         state2 = DensityMatrix.from_instruction(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
 
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
+    @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)

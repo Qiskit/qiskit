@@ -46,10 +46,10 @@ NOTE: These rules are _symmetric_, so that they may be applied in reverse.
 
 class Optimize1qGatesSimpleCommutation(TransformationPass):
     """
-    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and re-
-    synthesizing the results.  The commutation rules are stored in `commutation_table`.
+    Optimizes 1Q gate strings interrupted by 2Q gates by commuting the components and
+    resynthesizing the results.  The commutation rules are stored in ``commutation_table``.
 
-    NOTE: In addition to those mentioned in `commutation_table`, this pass has some limitations:
+    NOTE: In addition to those mentioned in ``commutation_table``, this pass has some limitations:
           + Does not handle multiple commutations in a row without intermediate progress.
           + Can only commute into positions where there are pre-existing runs.
           + Does not exhaustively test all the different ways commuting gates can be assigned to
@@ -58,7 +58,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             barriers.)
     """
 
-    # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
+    # NOTE: A run from dag.collect_1q_runs is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
     def __init__(self, basis=None, run_to_completion=False, target=None):
@@ -83,7 +83,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         Finds the run which abuts `run` from the front (or the rear if `front == False`), separated
         by a blocking node.
 
-        Returns a pair of the abutting multi-qubit gate and the run which it separates from this
+        Returns a pair of the abutting multiqubit gate and the run which it separates from this
         one. The next run can be the empty list `[]` if it is absent.
         """
         edge_node = run[0] if front else run[-1]
@@ -132,9 +132,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             if (
                 preindex is not None
                 and isinstance(blocker, DAGOpNode)
-                and type(blocker.op) in commutation_table
+                and blocker.op.base_class in commutation_table
             ):
-                commutation_rule = commutation_table[type(blocker.op)][preindex]
+                commutation_rule = commutation_table[blocker.op.base_class][preindex]
 
         if commutation_rule is not None:
             while run_clone:
@@ -194,7 +194,6 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         runs = dag.collect_1q_runs()
         did_work = False
 
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
             # identify the preceding blocking gates
             run_clone = copy(run)
@@ -218,7 +217,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            qubit = qubit_indices[run[0].qargs[0]]
+            qubit = dag.find_bit(run[0].qargs[0]).index
             new_preceding_run = self._resynthesize(preceding_run + commuted_preceding, qubit)
             new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run, qubit)
             new_run = self._resynthesize(run_clone, qubit)
@@ -229,7 +228,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 (preceding_run or []) + run + (succeeding_run or []),
                 new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
                 self._optimize1q._basis_gates,
-                qubit_indices[run[0].qargs[0]],
+                dag.find_bit(run[0].qargs[0]).index,
             ):
                 if preceding_run and new_preceding_run is not None:
                     self._replace_subdag(dag, preceding_run, new_preceding_run)

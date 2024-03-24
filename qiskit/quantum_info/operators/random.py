@@ -14,6 +14,8 @@
 Methods to create random operators.
 """
 
+from __future__ import annotations
+
 import numpy as np
 from numpy.random import default_rng
 
@@ -22,18 +24,12 @@ from qiskit.quantum_info.operators import Operator, Stinespring
 
 # pylint: disable=unused-import
 from .dihedral.random import random_cnotdihedral
-from .symplectic.random import (
-    random_clifford,
-    random_pauli,
-    random_pauli_list,
-    random_pauli_table,
-    random_stabilizer_table,
-)
+from .symplectic.random import random_clifford, random_pauli, random_pauli_list
 
 DEFAULT_RNG = default_rng()
 
 
-def random_unitary(dims, seed=None):
+def random_unitary(dims: int | tuple, seed: int | np.random.Generator | None = None):
     """Return a random unitary Operator.
 
     The operator is sampled from the unitary Haar measure.
@@ -60,7 +56,9 @@ def random_unitary(dims, seed=None):
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_hermitian(dims, traceless=False, seed=None):
+def random_hermitian(
+    dims: int | tuple, traceless: bool = False, seed: int | np.random.Generator | None = None
+):
     """Return a random hermitian Operator.
 
     The operator is sampled from Gaussian Unitary Ensemble.
@@ -104,7 +102,12 @@ def random_hermitian(dims, traceless=False, seed=None):
     return Operator(mat, input_dims=dims, output_dims=dims)
 
 
-def random_quantum_channel(input_dims=None, output_dims=None, rank=None, seed=None):
+def random_quantum_channel(
+    input_dims: int | tuple | None = None,
+    output_dims: int | tuple | None = None,
+    rank: int | None = None,
+    seed: int | np.random.Generator | None = None,
+):
     """Return a random CPTP quantum channel.
 
     This constructs the Stinespring operator for the quantum channel by

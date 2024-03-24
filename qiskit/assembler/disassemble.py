@@ -167,14 +167,8 @@ def _experiments_to_circuits(qobj):
                 pass
             if hasattr(circuit, name):
                 instr_method = getattr(circuit, name)
-                if i.name in ["snapshot"]:
-                    _inst = instr_method(
-                        i.label, snapshot_type=i.snapshot_type, qubits=qubits, params=params
-                    )
-                elif i.name == "initialize":
+                if i.name == "initialize":
                     _inst = instr_method(params, qubits)
-                elif i.name == "isometry":
-                    _inst = instr_method(*params, qubits, clbits)
                 elif i.name in ["mcx", "mcu1", "mcp"]:
                     _inst = instr_method(*params, qubits[:-1], qubits[-1], *clbits)
                 else:

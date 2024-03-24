@@ -14,7 +14,13 @@
 Mixin for gate operator interface.
 """
 
+import sys
 from abc import ABC, abstractmethod
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class AdjointMixin(ABC):
@@ -33,14 +39,14 @@ class AdjointMixin(ABC):
         - ``transpose(self)``
     """
 
-    def adjoint(self):
+    def adjoint(self) -> Self:
         """Return the adjoint of the CLASS."""
         return self.conjugate().transpose()
 
     @abstractmethod
-    def conjugate(self):
+    def conjugate(self) -> Self:
         """Return the conjugate of the CLASS."""
 
     @abstractmethod
-    def transpose(self):
+    def transpose(self) -> Self:
         """Return the transpose of the CLASS."""

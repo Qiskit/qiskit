@@ -10,20 +10,29 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"Circuit operation representing an ``if/else`` statement."
+"""Circuit operation representing an ``if/else`` statement."""
 
+from __future__ import annotations
 
-from typing import Optional, Tuple, Union, Iterable
+from typing import Optional, Union, Iterable, TYPE_CHECKING
 import itertools
 
-from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.classical import expr
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
 
 from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
-from .condition import validate_condition, condition_bits, condition_registers
 from .control_flow import ControlFlowOp
-from ._builder_utils import partition_registers, unify_circuit_resources
+from ._builder_utils import (
+    partition_registers,
+    unify_circuit_resources,
+    validate_condition,
+    condition_resources,
+)
+
+if TYPE_CHECKING:
+    from qiskit.circuit import QuantumCircuit
 
 
 # This is just an indication of what's actually meant to be the public API.
@@ -71,11 +80,14 @@ class IfElseOp(ControlFlowOp):
 
     def __init__(
         self,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         true_body: QuantumCircuit,
-        false_body: Optional[QuantumCircuit] = None,
-        label: Optional[str] = None,
+        false_body: QuantumCircuit | None = None,
+        label: str | None = None,
     ):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         # Type checking generally left to @params.setter, but required here for
         # finding num_qubits and num_clbits.
         if not isinstance(true_body, QuantumCircuit):
@@ -97,6 +109,9 @@ class IfElseOp(ControlFlowOp):
 
     @params.setter
     def params(self, parameters):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit import QuantumCircuit
+
         true_body, false_body = parameters
 
         if not isinstance(true_body, QuantumCircuit):
@@ -142,7 +157,7 @@ class IfElseOp(ControlFlowOp):
 
         Args:
             blocks: Iterable of circuits for "if" and "else" condition. If there is no "else"
-                circuit it may be set to None or ommited.
+                circuit it may be set to None or omitted.
 
         Returns:
             New IfElseOp with replaced blocks.
@@ -176,9 +191,9 @@ class IfElsePlaceholder(InstructionPlaceholder):
 
     def __init__(
         self,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         true_block: ControlFlowBuilderBlock,
-        false_block: Optional[ControlFlowBuilderBlock] = None,
+        false_block: ControlFlowBuilderBlock | None = None,
         *,
         label: Optional[str] = None,
     ):
@@ -220,8 +235,8 @@ class IfElsePlaceholder(InstructionPlaceholder):
         if self.__false_block is not None:
             raise CircuitError(f"false block is already set to {self.__false_block}")
         true_block = self.__true_block.copy()
-        true_bits = true_block.qubits | true_block.clbits
-        false_bits = false_block.qubits | false_block.clbits
+        true_bits = true_block.qubits() | true_block.clbits()
+        false_bits = false_block.qubits() | false_block.clbits()
         true_block.add_bits(false_bits - true_bits)
         false_block.add_bits(true_bits - false_bits)
         return type(self)(self.condition, true_block, false_block, label=self.label)
@@ -242,16 +257,16 @@ class IfElsePlaceholder(InstructionPlaceholder):
         if self.__false_block is None:
             qregs, cregs = partition_registers(self.__true_block.registers)
             return InstructionResources(
-                qubits=tuple(self.__true_block.qubits),
-                clbits=tuple(self.__true_block.clbits),
+                qubits=tuple(self.__true_block.qubits()),
+                clbits=tuple(self.__true_block.clbits()),
                 qregs=tuple(qregs),
                 cregs=tuple(cregs),
             )
         true_qregs, true_cregs = partition_registers(self.__true_block.registers)
         false_qregs, false_cregs = partition_registers(self.__false_block.registers)
         return InstructionResources(
-            qubits=tuple(self.__true_block.qubits | self.__false_block.qubits),
-            clbits=tuple(self.__true_block.clbits | self.__false_block.clbits),
+            qubits=tuple(self.__true_block.qubits() | self.__false_block.qubits()),
+            clbits=tuple(self.__true_block.clbits() | self.__false_block.clbits()),
             qregs=tuple(true_qregs) + tuple(false_qregs),
             cregs=tuple(true_cregs) + tuple(false_cregs),
         )
@@ -261,11 +276,11 @@ class IfElsePlaceholder(InstructionPlaceholder):
         return self.__resources
 
     def concrete_instruction(self, qubits, clbits):
-        current_qubits = self.__true_block.qubits
-        current_clbits = self.__true_block.clbits
+        current_qubits = self.__true_block.qubits()
+        current_clbits = self.__true_block.clbits()
         if self.__false_block is not None:
-            current_qubits = current_qubits | self.__false_block.qubits
-            current_clbits = current_clbits | self.__false_block.clbits
+            current_qubits = current_qubits | self.__false_block.qubits()
+            current_clbits = current_clbits | self.__false_block.clbits()
         all_bits = qubits | clbits
         current_bits = current_qubits | current_clbits
         if current_bits - all_bits:
@@ -327,10 +342,10 @@ class IfContext:
     def __init__(
         self,
         circuit: QuantumCircuit,
-        condition: Tuple[Union[ClassicalRegister, Clbit], int],
+        condition: tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr,
         *,
         in_loop: bool,
-        label: Optional[str] = None,
+        label: str | None = None,
     ):
         self._circuit = circuit
         self._condition = validate_condition(condition)
@@ -348,7 +363,7 @@ class IfContext:
         return self._circuit
 
     @property
-    def condition(self) -> Tuple[Union[ClassicalRegister, Clbit], int]:
+    def condition(self) -> tuple[ClassicalRegister, int] | tuple[Clbit, int] | expr.Expr:
         """Get the expression that this statement is conditioned on."""
         return self._condition
 
@@ -364,9 +379,10 @@ class IfContext:
         return self._in_loop
 
     def __enter__(self):
+        resources = condition_resources(self._condition)
         self._circuit._push_scope(
-            clbits=condition_bits(self._condition),
-            registers=condition_registers(self._condition),
+            clbits=resources.clbits,
+            registers=resources.cregs,
             allow_jumps=self._in_loop,
         )
         return ElseContext(self)
@@ -391,7 +407,7 @@ class IfContext:
         else:
             # If we're not in a loop, we don't need to be worried about passing in any outer-scope
             # resources because there can't be anything that will consume them.
-            true_body = true_block.build(true_block.qubits, true_block.clbits)
+            true_body = true_block.build(true_block.qubits(), true_block.clbits())
             self._appended_instructions = self._circuit.append(
                 IfElseOp(self._condition, true_body=true_body, false_body=None, label=self._label),
                 tuple(true_body.qubits),
@@ -441,7 +457,7 @@ class ElseContext:
             raise CircuitError("Cannot attach an 'else' to a broadcasted 'if' block.")
         appended = appended_instructions[0]
         instruction = circuit._peek_previous_instruction_in_scope()
-        if appended is not instruction:
+        if appended.operation is not instruction.operation:
             raise CircuitError(
                 "The 'if' block is not the most recent instruction in the circuit."
                 f" Expected to find: {appended!r}, but instead found: {instruction!r}."
@@ -486,7 +502,7 @@ class ElseContext:
             # pass it nothing extra (allows some fast path constructions), and add all necessary
             # bits onto the circuits at the end.
             true_body = self._if_instruction.operation.blocks[0]
-            false_body = false_block.build(false_block.qubits, false_block.clbits)
+            false_body = false_block.build(false_block.qubits(), false_block.clbits())
             true_body, false_body = unify_circuit_resources((true_body, false_body))
             circuit.append(
                 IfElseOp(

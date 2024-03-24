@@ -13,6 +13,7 @@
 """
 CNOTDihedral operator class.
 """
+from __future__ import annotations
 import itertools
 import numpy as np
 
@@ -100,7 +101,12 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
             npj Quantum Inf 2, 16012 (2016).
     """
 
-    def __init__(self, data=None, num_qubits=None, validate=True):
+    def __init__(
+        self,
+        data: CNOTDihedral | QuantumCircuit | Instruction | None = None,
+        num_qubits: int | None = None,
+        validate: bool = True,
+    ):
         """Initialize a CNOTDihedral operator object.
 
         Args:
@@ -322,6 +328,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)
@@ -359,11 +366,13 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: CNOTDihedral, qargs: list | None = None, front: bool = False
+    ) -> CNOTDihedral:
         if qargs is not None:
             raise NotImplementedError("compose method does not support qargs.")
         if self.num_qubits != other.num_qubits:
@@ -423,10 +432,10 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
         return result
 
-    def tensor(self, other):
+    def tensor(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=True)
 
-    def expand(self, other):
+    def expand(self, other: CNOTDihedral) -> CNOTDihedral:
         return self._tensor(other, reverse=False)
 
     def adjoint(self):

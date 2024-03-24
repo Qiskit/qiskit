@@ -12,11 +12,12 @@
 
 """Test cases for the experimental conditions for pulse."""
 import unittest
+import numpy as np
 
 from qiskit.pulse.channels import DriveChannel, MeasureChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse import LoConfig, LoRange
-from qiskit.test import QiskitTestCase
+from qiskit.pulse import LoConfig, LoRange, Kernel, Discriminator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestLoRange(QiskitTestCase):
@@ -91,6 +92,112 @@ class TestLoConfig(QiskitTestCase):
 
         with self.assertRaises(PulseError):
             lo_config.channel_lo(MeasureChannel(1))
+
+
+class TestKernel(QiskitTestCase):
+    """Test Kernel."""
+
+    def test_eq(self):
+        """Test if two kernels are equal."""
+        kernel_a = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        kernel_b = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        self.assertTrue(kernel_a == kernel_b)
+
+    def test_neq_name(self):
+        """Test if two kernels with different names are not equal."""
+        kernel_a = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        kernel_b = Kernel(
+            "kernel_test_2",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        self.assertFalse(kernel_a == kernel_b)
+
+    def test_neq_params(self):
+        """Test if two kernels with different parameters are not equal."""
+        kernel_a = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        kernel_b = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[1, 0],
+        )
+        self.assertFalse(kernel_a == kernel_b)
+
+    def test_neq_nested_params(self):
+        """Test if two kernels with different nested parameters are not equal."""
+        kernel_a = Kernel(
+            "kernel_test",
+            kernel={"real": np.zeros(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        kernel_b = Kernel(
+            "kernel_test",
+            kernel={"real": np.ones(10), "imag": np.zeros(10)},
+            bias=[0, 0],
+        )
+        self.assertFalse(kernel_a == kernel_b)
+
+
+class TestDiscriminator(QiskitTestCase):
+    """Test Discriminator."""
+
+    def test_eq(self):
+        """Test if two discriminators are equal."""
+        discriminator_a = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            params=[1, 0],
+        )
+        discriminator_b = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            params=[1, 0],
+        )
+        self.assertTrue(discriminator_a == discriminator_b)
+
+    def test_neq_name(self):
+        """Test if two discriminators with different names are not equal."""
+        discriminator_a = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            params=[1, 0],
+        )
+        discriminator_b = Discriminator(
+            "discriminator_test_2",
+            discriminator_type="linear",
+            params=[1, 0],
+        )
+        self.assertFalse(discriminator_a == discriminator_b)
+
+    def test_neq_params(self):
+        """Test if two discriminators with different parameters are not equal."""
+        discriminator_a = Discriminator(
+            "discriminator_test",
+            discriminator_type="linear",
+            params=[1, 0],
+        )
+        discriminator_b = Discriminator(
+            "discriminator_test",
+            discriminator_type="non-linear",
+            params=[0, 0],
+        )
+        self.assertFalse(discriminator_a == discriminator_b)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,7 @@ import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
+from .parameter import Parameter
 from .parameterexpression import ParameterExpression
 
 Key = namedtuple("Key", ["name", "num_qubits"])
@@ -44,11 +45,12 @@ class EquivalenceLibrary:
         if base is None:
             self._graph = rx.PyDiGraph()
             self._key_to_node_index = {}
-            self._rule_count = 0
+            # Some unique identifier for rules.
+            self._rule_id = 0
         else:
             self._graph = base._graph.copy()
             self._key_to_node_index = copy.deepcopy(base._key_to_node_index)
-            self._rule_count = base._rule_count
+            self._rule_id = base._rule_id
 
     @property
     def graph(self) -> rx.PyDiGraph:
@@ -103,12 +105,12 @@ class EquivalenceLibrary:
             (
                 self._set_default_node(source),
                 target,
-                EdgeData(index=self._rule_count, num_gates=len(sources), rule=equiv, source=source),
+                EdgeData(index=self._rule_id, num_gates=len(sources), rule=equiv, source=source),
             )
             for source in sources
         ]
         self._graph.add_edges_from(edges)
-        self._rule_count += 1
+        self._rule_id += 1
 
     def has_entry(self, gate):
         """Check if a library contains any decompositions for gate.
@@ -141,10 +143,15 @@ class EquivalenceLibrary:
             _raise_if_shape_mismatch(gate, equiv)
             _raise_if_param_mismatch(gate.params, equiv.parameters)
 
-        key = Key(name=gate.name, num_qubits=gate.num_qubits)
-        equivs = [Equivalence(params=gate.params.copy(), circuit=equiv.copy()) for equiv in entry]
-
-        self._graph[self._set_default_node(key)] = NodeData(key=key, equivs=equivs)
+        node_index = self._set_default_node(Key(name=gate.name, num_qubits=gate.num_qubits))
+        # Remove previous equivalences of this node, leaving in place any later equivalences that
+        # were added that use `gate`.
+        self._graph[node_index].equivs.clear()
+        for parent, child, _ in self._graph.in_edges(node_index):
+            # `child` should always be ourselves, but there might be parallel edges.
+            self._graph.remove_edge(parent, child)
+        for equivalence in entry:
+            self.add_equivalence(gate, equivalence)
 
     def get_entry(self, gate):
         """Gets the set of QuantumCircuits circuits from the library which
@@ -284,7 +291,7 @@ def _raise_if_shape_mismatch(gate, circuit):
 
 def _rebind_equiv(equiv, query_params):
     equiv_params, equiv_circuit = equiv
-    param_map = dict(zip(equiv_params, query_params))
-    equiv = equiv_circuit.assign_parameters(param_map, inplace=False)
+    param_map = {x: y for x, y in zip(equiv_params, query_params) if isinstance(x, Parameter)}
+    equiv = equiv_circuit.assign_parameters(param_map, inplace=False, flat_input=True)
 
     return equiv

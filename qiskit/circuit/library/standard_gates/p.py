@@ -75,9 +75,11 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta: ParameterValueType, label: str | None = None):
+    def __init__(
+        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
+    ):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label)
+        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -94,31 +96,48 @@ class PhaseGate(Gate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-Phase gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
-        elif ctrl_state is None and num_ctrl_qubits > 1:
+            gate.base_gate.label = self.label
+        elif not annotated and ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
+            gate.base_gate.label = self.label
         else:
-            return super().control(
-                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
             )
-        gate.base_gate.label = self.label
         return gate
 
-    def inverse(self):
-        r"""Return inverted Phase gate (:math:`Phase(\lambda)^{\dagger} = Phase(-\lambda)`)"""
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted Phase gate (:math:`Phase(\lambda)^{\dagger} = Phase(-\lambda)`)
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always another :class:`.PGate` with an inverse parameter value.
+
+        Returns:
+            PGate: inverse gate.
+        """
         return PhaseGate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -130,6 +149,11 @@ class PhaseGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return PhaseGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, PhaseGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class CPhaseGate(ControlledGate):
@@ -177,6 +201,10 @@ class CPhaseGate(ControlledGate):
         theta: ParameterValueType,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
     ):
         """Create new CPhase gate."""
         super().__init__(
@@ -186,7 +214,9 @@ class CPhaseGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=PhaseGate(theta),
+            base_gate=PhaseGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -219,25 +249,34 @@ class CPhaseGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
+        if not annotated and ctrl_state is None:
             gate = MCPhaseGate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + 1, label=label)
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CPhase gate (:math:`CPhase(\lambda)^{\dagger} = CPhase(-\lambda)`)"""
         return CPhaseGate(-self.params[0], ctrl_state=self.ctrl_state)
 
@@ -254,6 +293,11 @@ class CPhaseGate(ControlledGate):
         """Raise gate to a power."""
         (theta,) = self.params
         return CPhaseGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, CPhaseGate):
+            return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
+        return False
 
 
 class MCPhaseGate(ControlledGate):
@@ -284,7 +328,16 @@ class MCPhaseGate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam: ParameterValueType, num_ctrl_qubits: int, label: str | None = None):
+    def __init__(
+        self,
+        lam: ParameterValueType,
+        num_ctrl_qubits: int,
+        label: str | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
         """Create new MCPhase gate."""
         super().__init__(
             "mcphase",
@@ -292,7 +345,9 @@ class MCPhaseGate(ControlledGate):
             [lam],
             num_ctrl_qubits=num_ctrl_qubits,
             label=label,
-            base_gate=PhaseGate(lam),
+            base_gate=PhaseGate(lam, label=_base_label),
+            duration=duration,
+            unit=unit,
         )
 
     def _define(self):
@@ -320,26 +375,37 @@ class MCPhaseGate(ControlledGate):
         num_ctrl_qubits: int = 1,
         label: str | None = None,
         ctrl_state: str | int | None = None,
+        annotated: bool = False,
     ):
         """Controlled version of this gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if ctrl_state is None:
+        if not annotated and ctrl_state is None:
             gate = MCPhaseGate(
-                self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits, label=label
+                self.params[0],
+                num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+                label=label,
             )
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)

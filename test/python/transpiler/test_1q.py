@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 
 """Tests preset pass managers with 1Q backend"""
-from test import combine
+
 from ddt import ddt
 
 from qiskit import QuantumCircuit
 from qiskit.compiler import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import Fake1Q
 from qiskit.transpiler import TranspilerError
+from test import combine  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def emptycircuit():

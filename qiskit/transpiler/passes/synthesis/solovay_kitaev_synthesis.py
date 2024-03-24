@@ -9,8 +9,16 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
-A Solovay-Kitaev synthesis plugin to Qiskit's transpiler.
+=======================================================================================================
+Solovay-Kitaev Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis`)
+=======================================================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SolovayKitaevSynthesis
 """
 
 from __future__ import annotations
@@ -204,7 +212,7 @@ class SolovayKitaevSynthesis(UnitarySynthesisPlugin):
         defaults to ``["h", "t", "tdg"]``.
 
     depth (int):
-        The gate-depth of the the basic approximations. All possible, unique combinations of the
+        The gate-depth of the basic approximations. All possible, unique combinations of the
         basis gates up to length ``depth`` are considered. If None, defaults to 10.
 
     recursion_degree (int):

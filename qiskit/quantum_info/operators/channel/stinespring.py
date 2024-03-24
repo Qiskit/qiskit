@@ -13,6 +13,7 @@
 Stinespring representation of a Quantum Channel.
 """
 
+from __future__ import annotations
 import copy
 from numbers import Number
 import numpy as np
@@ -28,6 +29,7 @@ from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_stinespring
 from qiskit.quantum_info.operators.mixins import generate_apidocs
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class Stinespring(QuantumChannel):
@@ -59,7 +61,12 @@ class Stinespring(QuantumChannel):
            `arXiv:1111.6950 [quant-ph] <https://arxiv.org/abs/1111.6950>`_
     """
 
-    def __init__(self, data, input_dims=None, output_dims=None):
+    def __init__(
+        self,
+        data: QuantumCircuit | Instruction | BaseOperator | np.ndarray,
+        input_dims: int | tuple | None = None,
+        output_dims: int | tuple | None = None,
+    ):
         """Initialize a quantum channel Stinespring operator.
 
         Args:
@@ -186,7 +193,9 @@ class Stinespring(QuantumChannel):
         ret._data = (stine[0], stine[1])
         return ret
 
-    def compose(self, other, qargs=None, front=False):
+    def compose(
+        self, other: Stinespring, qargs: list | None = None, front: bool = False
+    ) -> Stinespring:
         if qargs is None:
             qargs = getattr(other, "qargs", None)
         if qargs is not None:
@@ -195,12 +204,12 @@ class Stinespring(QuantumChannel):
         # superoperator to avoid unnecessary representation conversions
         return Stinespring(Kraus(self).compose(other, front=front))
 
-    def tensor(self, other):
+    def tensor(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(self, other)
 
-    def expand(self, other):
+    def expand(self, other: Stinespring) -> Stinespring:
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
         return self._tensor(other, self)

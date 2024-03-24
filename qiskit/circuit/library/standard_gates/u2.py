@@ -87,10 +87,16 @@ class U2Gate(Gate):
     """
 
     def __init__(
-        self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None
+        self,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
     ):
         """Create new U2 gate."""
-        super().__init__("u2", 1, [phi, lam], label=label)
+        super().__init__("u2", 1, [phi, lam], label=label, duration=duration, unit=unit)
 
     def _define(self):
         # pylint: disable=cyclic-import
@@ -105,10 +111,19 @@ class U2Gate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U2 gate.
 
-        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi)`)
+        :math:`U2(\phi, \lambda)^{\dagger} =U2(-\lambda-\pi, -\phi+\pi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.U2Gate` with inverse parameter values.
+
+        Returns:
+            U2Gate: inverse gate.
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 

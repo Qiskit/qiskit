@@ -57,194 +57,196 @@ defined as:
 Supplementary Information
 =========================
 
-.. dropdown:: Quantum Circuit with conditionals
-   :animate: fade-in-slide-down
+Quantum Circuit with conditionals
+---------------------------------
 
-   When building a quantum circuit, there can be interest in applying a certain gate only
-   if a classical register has a specific value. This can be done with the
-   :meth:`InstructionSet.c_if` method.
+When building a quantum circuit, there can be interest in applying a certain gate only
+if a classical register has a specific value. This can be done with the
+:meth:`InstructionSet.c_if` method.
 
-   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
-   (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
-   with equal probability.
+In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
+(:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
+with equal probability.
 
-   .. plot::
-      :include-source:
+.. plot::
+   :include-source:
 
-      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   qr = QuantumRegister(1)
+   cr = ClassicalRegister(1)
+   qc = QuantumCircuit(qr, cr)
+   qc.h(0)
+   qc.measure(0, 0)
+   qc.draw('mpl')
 
-      qr = QuantumRegister(1)
-      cr = ClassicalRegister(1)
-      qc = QuantumCircuit(qr, cr)
-      qc.h(0)
-      qc.measure(0, 0)
-      qc.draw('mpl')
+.. code-block::
 
-   .. code-block::
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
+   tqc = transpile(qc, backend)
+   counts = backend.run(tqc).result().get_counts()
 
-      backend = BasicAer.get_backend('qasm_simulator')
-      tqc = transpile(qc, backend)
-      counts = backend.run(tqc).result().get_counts()
+   print(counts)
 
-      print(counts)
+.. parsed-literal::
 
-   .. parsed-literal::
+   {'0': 524, '1': 500}
 
-      {'0': 524, '1': 500}
+Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
+That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
+if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
+always be :math:`|1\\rangle`.
 
-   Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
-   That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
-   if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
-   always be :math:`|1\\rangle`.
+.. plot::
+   :include-source:
 
-   .. plot::
-      :include-source:
+   from qiskit import transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
 
-      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+   qr = QuantumRegister(1)
+   cr = ClassicalRegister(1)
+   qc = QuantumCircuit(qr, cr)
+   qc.h(0)
+   qc.measure(0, 0)
 
-      qr = QuantumRegister(1)
-      cr = ClassicalRegister(1)
-      qc = QuantumCircuit(qr, cr)
-      qc.h(0)
-      qc.measure(0, 0)
+   qc.x(0).c_if(cr, 0)
+   qc.measure(0, 0)
 
-      qc.x(0).c_if(cr, 0)
-      qc.measure(0, 0)
+   qc.draw('mpl')
 
-      qc.draw('mpl')
+.. code-block::
 
-   .. code-block::
+   from qiskit.providers.basic_provider import BasicSimulator
+   backend = BasicSimulator()
+   tqc = transpile(qc, backend)
+   counts = backend.run(tqc).result().get_counts()
 
-      backend = BasicAer.get_backend('qasm_simulator')
-      tqc = transpile(qc, backend)
-      counts = backend.run(tqc).result().get_counts()
+   print(counts)
 
-      print(counts)
+.. parsed-literal::
 
-   .. parsed-literal::
+   {'1': 1024}
 
-      {'1': 1024}
 
-.. dropdown:: Quantum Circuit Properties
-   :animate: fade-in-slide-down
+Quantum Circuit Properties
+--------------------------
 
-   When constructing quantum circuits, there are several properties that help quantify
-   the "size" of the circuits, and their ability to be run on a noisy quantum device.
-   Some of these, like number of qubits, are straightforward to understand, while others
-   like depth and number of tensor components require a bit more explanation.  Here we will
-   explain all of these properties, and, in preparation for understanding how circuits change
-   when run on actual devices, highlight the conditions under which they change.
+When constructing quantum circuits, there are several properties that help quantify
+the "size" of the circuits, and their ability to be run on a noisy quantum device.
+Some of these, like number of qubits, are straightforward to understand, while others
+like depth and number of tensor components require a bit more explanation.  Here we will
+explain all of these properties, and, in preparation for understanding how circuits change
+when run on actual devices, highlight the conditions under which they change.
 
-   Consider the following circuit:
+Consider the following circuit:
 
-   .. plot::
-      :include-source:
+.. plot::
+   :include-source:
 
-      from qiskit import QuantumCircuit
-      qc = QuantumCircuit(12)
-      for idx in range(5):
-         qc.h(idx)
-         qc.cx(idx, idx+5)
+   from qiskit import QuantumCircuit
+   qc = QuantumCircuit(12)
+   for idx in range(5):
+      qc.h(idx)
+      qc.cx(idx, idx+5)
 
-      qc.cx(1, 7)
-      qc.x(8)
-      qc.cx(1, 9)
-      qc.x(7)
-      qc.cx(1, 11)
-      qc.swap(6, 11)
-      qc.swap(6, 9)
-      qc.swap(6, 10)
-      qc.x(6)
-      qc.draw('mpl')
+   qc.cx(1, 7)
+   qc.x(8)
+   qc.cx(1, 9)
+   qc.x(7)
+   qc.cx(1, 11)
+   qc.swap(6, 11)
+   qc.swap(6, 9)
+   qc.swap(6, 10)
+   qc.x(6)
+   qc.draw('mpl')
 
-   From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
-   Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
-   can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
-   circuit is equal to the **width** of the circuit:
+From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
+Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
+can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
+circuit is equal to the **width** of the circuit:
 
-   .. code-block::
+.. code-block::
 
-      qc.width()
+   qc.width()
 
-   .. parsed-literal::
+.. parsed-literal::
 
-      12
+   12
 
-   We can also just get the number of qubits directly:
+We can also just get the number of qubits directly:
 
-   .. code-block::
+.. code-block::
 
-      qc.num_qubits
+   qc.num_qubits
 
-   .. parsed-literal::
+.. parsed-literal::
 
-      12
+   12
 
-   .. important::
+.. important::
 
-      For a quantum circuit composed from just qubits, the circuit width is equal
-      to the number of qubits. This is the definition used in quantum computing. However,
-      for more complicated circuits with classical registers, and classically controlled gates,
-      this equivalence breaks down. As such, from now on we will not refer to the number of
-      qubits in a quantum circuit as the width.
+   For a quantum circuit composed from just qubits, the circuit width is equal
+   to the number of qubits. This is the definition used in quantum computing. However,
+   for more complicated circuits with classical registers, and classically controlled gates,
+   this equivalence breaks down. As such, from now on we will not refer to the number of
+   qubits in a quantum circuit as the width.
 
 
-   It is also straightforward to get the number and type of the gates in a circuit using
-   :meth:`QuantumCircuit.count_ops`:
+It is also straightforward to get the number and type of the gates in a circuit using
+:meth:`QuantumCircuit.count_ops`:
 
-   .. code-block::
+.. code-block::
 
-      qc.count_ops()
+   qc.count_ops()
 
-   .. parsed-literal::
+.. parsed-literal::
 
-      OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
+   OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
 
-   We can also get just the raw count of operations by computing the circuits
-   :meth:`QuantumCircuit.size`:
+We can also get just the raw count of operations by computing the circuits
+:meth:`QuantumCircuit.size`:
 
-   .. code-block::
+.. code-block::
 
-      qc.size()
+   qc.size()
 
-   .. parsed-literal::
+.. parsed-literal::
 
-      19
+   19
 
-   A particularly important circuit property is known as the circuit **depth**.  The depth
-   of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-   parallel, it takes to complete the computation defined by the circuit.  Because quantum
-   gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-   time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-   is one important quantity used to measure if a quantum circuit can be run on a device.
+A particularly important circuit property is known as the circuit **depth**.  The depth
+of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
+parallel, it takes to complete the computation defined by the circuit.  Because quantum
+gates take time to implement, the depth of a circuit roughly corresponds to the amount of
+time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
+is one important quantity used to measure if a quantum circuit can be run on a device.
 
-   The depth of a quantum circuit has a mathematical definition as the longest path in a
-   directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-   experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-   with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-   graphically:
+The depth of a quantum circuit has a mathematical definition as the longest path in a
+directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
+experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
+with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
+graphically:
 
-   .. image:: /source_images/depth.gif
+.. image:: /source_images/depth.gif
 
 
-   .. raw:: html
+.. raw:: html
 
-      <br><br>
+   <br><br>
 
 
-   We can verify our graphical result using :meth:`QuantumCircuit.depth`:
+We can verify our graphical result using :meth:`QuantumCircuit.depth`:
 
-   .. code-block::
+.. code-block::
 
-      qc.depth()
+   qc.depth()
 
-   .. parsed-literal::
+.. parsed-literal::
 
-      9
+   9
 
-   .. raw:: html
+.. raw:: html
 
-      <br>
+   <br>
 
 Quantum Circuit API
 ===================
@@ -279,6 +281,7 @@ Gates and Instructions
    InstructionSet
    Operation
    EquivalenceLibrary
+   Store
 
 Control Flow Operations
 -----------------------
@@ -296,9 +299,41 @@ Control Flow Operations
 
 The :class:`.SwitchCaseOp` also understands a special value:
 
-.. py:data: CASE_DEFAULT
-    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
-    always match, if it is tried.
+.. py:data:: CASE_DEFAULT
+
+   A special object that represents the "default" case of a switch statement.  If you use this as a
+   case target, it must be the last case, and will match anything that wasn't already matched.  For
+   example::
+
+       from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+       from qiskit.circuit import SwitchCaseOp, CASE_DEFAULT
+
+       body0 = QuantumCircuit(2, 2)
+       body0.x(0)
+       body1 = QuantumCircuit(2, 2)
+       body1.z(0)
+       body2 = QuantumCircuit(2, 2)
+       body2.cx(0, 1)
+
+       qr, cr = QuantumRegister(2), ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+       qc.switch(cr, [(0, body0), (1, body1), (CASE_DEFAULT, body2)], qr, cr)
+
+   When using the builder interface of :meth:`.QuantumCircuit.switch`, this can also be accessed as
+   the ``DEFAULT`` attribute of the bound case-builder object, such as::
+
+       from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+       qr, cr = QuantumRegister(2), ClassicalRegister(2)
+       qc = QuantumCircuit(qr, cr)
+       with qc.switch(cr) as case:
+           with case(0):
+               qc.x(0)
+           with case(1):
+               qc.z(0)
+           with case(case.DEFAULT):
+               qc.cx(0, 1)
+
 
 Parametric Quantum Circuits
 ---------------------------
@@ -313,11 +348,21 @@ Parametric Quantum Circuits
 Random Circuits
 ---------------
 
-.. autosummary::
-   :toctree: ../stubs/
+.. currentmodule:: qiskit.circuit.random
+.. autofunction:: random_circuit
+.. currentmodule:: qiskit.circuit
 
-   random.random_circuit
+Exceptions
+----------
+
+Almost all circuit functions and methods will raise a :exc:`CircuitError` when encountering an error
+that is particular to usage of Qiskit (as opposed to regular typing or indexing problems, which will
+typically raise the corresponding standard Python error).
+
+.. autoexception:: CircuitError
 """
+
+from .exceptions import CircuitError
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
@@ -325,6 +370,7 @@ from .gate import Gate
 
 # pylint: disable=cyclic-import
 from .controlledgate import ControlledGate
+from . import singleton
 from .instruction import Instruction
 from .instructionset import InstructionSet
 from .operation import Operation
@@ -332,6 +378,7 @@ from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
+from .store import Store
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
@@ -353,27 +400,4 @@ from .controlflow import (
     ContinueLoopOp,
 )
 
-
-_DEPRECATED_NAMES = {
-    "Int1": "qiskit.circuit.classicalfunction.types",
-    "Int2": "qiskit.circuit.classicalfunction.types",
-    "classical_function": "qiskit.circuit.classicalfunction",
-    "BooleanExpression": "qiskit.circuit.classicalfunction",
-}
-
-
-def __getattr__(name):
-    if name in _DEPRECATED_NAMES:
-        import importlib
-        import warnings
-
-        module_name = _DEPRECATED_NAMES[name]
-        warnings.warn(
-            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
-            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
-            "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return getattr(importlib.import_module(module_name), name)
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+from .annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier

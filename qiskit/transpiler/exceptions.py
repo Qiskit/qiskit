@@ -49,3 +49,11 @@ class LayoutError(QiskitError):
     def __str__(self):
         """Return the message."""
         return repr(self.msg)
+
+
+class CircuitTooWideForTarget(TranspilerError):
+    """Error raised if the circuit is too wide for the target."""
+
+
+class InvalidLayoutError(TranspilerError):
+    """Error raised when a user provided layout is invalid."""

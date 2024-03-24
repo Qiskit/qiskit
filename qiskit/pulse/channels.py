@@ -49,11 +49,13 @@ All channels are children of the same abstract base class:
 
 .. autoclass:: Channel
 """
+from __future__ import annotations
 from abc import ABCMeta
-from typing import Any, Set, Union
+from typing import Any
 
 import numpy as np
 
+from qiskit.circuit import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 
@@ -75,7 +77,7 @@ class Channel(metaclass=ABCMeta):
     for the ``prefix`` class attribute.
     """
 
-    prefix = None  # type: Optional[str]
+    prefix: str | None = None
     """A shorthand string prefix for characterizing the channel type."""
 
     # pylint: disable=unused-argument
@@ -96,10 +98,9 @@ class Channel(metaclass=ABCMeta):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = hash((self.__class__.__name__, self._index))
 
     @property
-    def index(self) -> Union[int, ParameterExpression]:
+    def index(self) -> int | ParameterExpression:
         """Return the index of this channel. The index is a label for a control signal line
         typically mapped trivially to a qubit index. For instance, ``DriveChannel(0)`` labels
         the signal line driving the qubit labeled with index 0.
@@ -121,11 +122,11 @@ class Channel(metaclass=ABCMeta):
             if index.is_integer():
                 index = int(index)
 
-        if not isinstance(index, (int, np.integer)) and index < 0:
+        if not isinstance(index, (int, np.integer)) or index < 0:
             raise PulseError("Channel index must be a nonnegative integer")
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set[Parameter]:
         """Parameters which determine the channel index."""
         if isinstance(self.index, ParameterExpression):
             return self.index.parameters
@@ -143,7 +144,7 @@ class Channel(metaclass=ABCMeta):
     def __repr__(self):
         return f"{self.__class__.__name__}({self._index})"
 
-    def __eq__(self, other: "Channel") -> bool:
+    def __eq__(self, other: object) -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
         and the same index.
 
@@ -153,10 +154,12 @@ class Channel(metaclass=ABCMeta):
         Returns:
             True iff equal.
         """
+        if not isinstance(other, Channel):
+            return NotImplemented
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
-        return self._hash
+        return hash((type(self), self._index))
 
 
 class PulseChannel(Channel, metaclass=ABCMeta):

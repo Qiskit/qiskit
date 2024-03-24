@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,13 +22,16 @@ from qiskit.transpiler import CouplingMap, PassManager, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.transpiler.passes.utils import CheckMap
 from qiskit.circuit.random import random_circuit
-from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
+from qiskit.circuit.classical import expr
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP, RUESCHLIKON_CMAP
 
 
 @ddt
@@ -369,33 +372,7 @@ class TestStochasticSwap(QiskitTestCase):
         """Circuit not remapped if matches topology.
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        coupling = CouplingMap(
-            [
-                [1, 0],
-                [1, 2],
-                [2, 3],
-                [3, 4],
-                [3, 14],
-                [5, 4],
-                [6, 5],
-                [6, 7],
-                [6, 11],
-                [7, 10],
-                [8, 7],
-                [9, 8],
-                [9, 10],
-                [11, 10],
-                [12, 5],
-                [12, 11],
-                [12, 13],
-                [13, 4],
-                [13, 14],
-                [15, 0],
-                [15, 0],
-                [15, 2],
-                [15, 14],
-            ]
-        )
+        coupling = CouplingMap(RUESCHLIKON_CMAP)
         qr = QuantumRegister(16, "q")
         cr = ClassicalRegister(16, "c")
         circ = QuantumCircuit(qr, cr)
@@ -882,6 +859,44 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         expected.measure(qreg, creg[[2, 4, 0, 3, 1]])
         self.assertEqual(dag_to_circuit(cdag), expected)
 
+    def test_if_expr(self):
+        """Test simple if conditional with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        body = QuantumCircuit(4)
+        body.cx(0, 1)
+        body.cx(0, 2)
+        body.cx(0, 3)
+        qc = QuantumCircuit(4, 2)
+        qc.if_test(expr.logic_and(qc.clbits[0], qc.clbits[1]), body, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = StochasticSwap(coupling, seed=58).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+    def test_if_else_expr(self):
+        """Test simple if/else conditional with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        true = QuantumCircuit(4)
+        true.cx(0, 1)
+        true.cx(0, 2)
+        true.cx(0, 3)
+        false = QuantumCircuit(4)
+        false.cx(3, 0)
+        false.cx(3, 1)
+        false.cx(3, 2)
+        qc = QuantumCircuit(4, 2)
+        qc.if_else(expr.logic_and(qc.clbits[0], qc.clbits[1]), true, false, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = StochasticSwap(coupling, seed=58).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
     def test_no_layout_change(self):
         """test controlflow with no layout change needed"""
         num_qubits = 5
@@ -996,6 +1011,23 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         expected.measure(qreg, creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
+    def test_while_loop_expr(self):
+        """Test simple while loop with an `Expr` condition."""
+        coupling = CouplingMap.from_line(4)
+
+        body = QuantumCircuit(4)
+        body.cx(0, 1)
+        body.cx(0, 2)
+        body.cx(0, 3)
+        qc = QuantumCircuit(4, 2)
+        qc.while_loop(expr.logic_and(qc.clbits[0], qc.clbits[1]), body, [0, 1, 2, 3], [])
+
+        dag = circuit_to_dag(qc)
+        cdag = StochasticSwap(coupling, seed=58).run(dag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
     def test_switch_single_case(self):
         """Test routing of 'switch' with just a single case."""
         qreg = QuantumRegister(5, "q")
@@ -1107,6 +1139,89 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         case0.swap(0, 1)
         case0.cx(2, 1)
         expected.switch(creg, [(labels, case0)], qreg[[0, 1, 2]], creg)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    def test_switch_nonexhaustive_expr(self):
+        """Test routing of 'switch' with an `Expr` target and several but nonexhaustive cases."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(3, "c")
+
+        qc = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.cx(3, 1)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.cx(4, 2)
+        qc.switch(expr.bit_or(creg, 5), [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = StochasticSwap(coupling, seed=58)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg, creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        case0.swap(0, 1)
+        case1 = QuantumCircuit(qreg, creg[:])
+        case1.cx(1, 2)
+        case1.cx(2, 3)
+        case1.swap(1, 2)
+        case1.cx(3, 2)
+        case1.swap(1, 2)
+        case2 = QuantumCircuit(qreg, creg[:])
+        case2.cx(2, 3)
+        case2.cx(3, 4)
+        case2.swap(3, 4)
+        case2.cx(3, 2)
+        case2.swap(3, 4)
+        expected.switch(expr.bit_or(creg, 5), [(0, case0), ((1, 2), case1), (3, case2)], qreg, creg)
+
+        self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+    @data((0, 1, 2, 3), (CASE_DEFAULT,))
+    def test_switch_exhaustive_expr(self, labels):
+        """Test routing of 'switch' with exhaustive cases on an `Expr` target; we should not require
+        restoring the layout afterwards."""
+        qreg = QuantumRegister(5, "q")
+        creg = ClassicalRegister(2, "c")
+
+        qc = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.cx(2, 0)
+        qc.switch(expr.bit_or(creg, 3), [(labels, case0)], qreg[[0, 1, 2]], creg)
+
+        coupling = CouplingMap.from_line(len(qreg))
+        pass_ = StochasticSwap(coupling, seed=58)
+        test = pass_(qc)
+
+        check = CheckMap(coupling)
+        check(test)
+        self.assertTrue(check.property_set["is_swap_mapped"])
+
+        expected = QuantumCircuit(qreg, creg)
+        case0 = QuantumCircuit(qreg[[0, 1, 2]], creg[:])
+        case0.cx(0, 1)
+        case0.cx(1, 2)
+        case0.swap(0, 1)
+        case0.cx(2, 1)
+        expected.switch(expr.bit_or(creg, 3), [(labels, case0)], qreg[[0, 1, 2]], creg)
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
@@ -1331,7 +1446,7 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = FakeMumbai()
+        cls.backend = Fake27QPulseV1()
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
         cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
@@ -1392,7 +1507,10 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="stochastic",
             layout_method="dense",
             seed_transpiler=12342,
-            target=FakeMumbaiV2().target,
+            target=GenericBackendV2(
+                num_qubits=27,
+                coupling_map=MUMBAI_CMAP,
+            ).target,
         )
         self.assert_valid_circuit(tqc)
 

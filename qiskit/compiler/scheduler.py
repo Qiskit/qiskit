@@ -25,7 +25,7 @@ from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def schedule(
 
     schedule_config = ScheduleConfig(inst_map=inst_map, meas_map=meas_map, dt=dt)
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method))
+    schedules = parallel_map(schedule_circuit, circuits, (schedule_config, method, backend))
     end_time = time()
     _log_schedule_time(start_time, end_time)
     if arg_circuits_list:

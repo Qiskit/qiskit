@@ -20,6 +20,7 @@ References:
         Open access: arXiv:1111.6950 [quant-ph]
 """
 
+from __future__ import annotations
 from .superop import SuperOp
 from .choi import Choi
 from .kraus import Kraus

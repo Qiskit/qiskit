@@ -31,8 +31,6 @@ Operators
    SparsePauliOp
    CNOTDihedral
    PauliList
-   PauliTable
-   StabilizerTable
    pauli_basis
 
 .. _quantum_info_states:
@@ -62,19 +60,16 @@ Channels
 Measures
 ========
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   average_gate_fidelity
-   process_fidelity
-   gate_error
-   diamond_norm
-   state_fidelity
-   purity
-   concurrence
-   entropy
-   entanglement_of_formation
-   mutual_information
+.. autofunction:: average_gate_fidelity
+.. autofunction:: process_fidelity
+.. autofunction:: gate_error
+.. autofunction:: diamond_norm
+.. autofunction:: state_fidelity
+.. autofunction:: purity
+.. autofunction:: concurrence
+.. autofunction:: entropy
+.. autofunction:: entanglement_of_formation
+.. autofunction:: mutual_information
 
 Utility Functions
 =================
@@ -82,64 +77,50 @@ Utility Functions
 .. autosummary::
    :toctree: ../stubs/
 
-   partial_trace
-   shannon_entropy
-   commutator
-   anti_commutator
-   double_commutator
+   Quaternion
+
+.. autofunction:: partial_trace
+.. autofunction:: schmidt_decomposition
+.. autofunction:: shannon_entropy
+.. autofunction:: commutator
+.. autofunction:: anti_commutator
+.. autofunction:: double_commutator
 
 Random
 ======
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   random_statevector
-   random_density_matrix
-   random_unitary
-   random_hermitian
-   random_pauli
-   random_clifford
-   random_quantum_channel
-   random_cnotdihedral
-   random_pauli_table
-   random_pauli_list
-   random_stabilizer_table
+.. autofunction:: random_statevector
+.. autofunction:: random_density_matrix
+.. autofunction:: random_unitary
+.. autofunction:: random_hermitian
+.. autofunction:: random_pauli
+.. autofunction:: random_clifford
+.. autofunction:: random_quantum_channel
+.. autofunction:: random_cnotdihedral
+.. autofunction:: random_pauli_list
 
 Analysis
 =========
 
+.. autofunction:: hellinger_distance
+.. autofunction:: hellinger_fidelity
+
 .. autosummary::
    :toctree: ../stubs/
 
-   hellinger_distance
-   hellinger_fidelity
    Z2Symmetries
 
-Synthesis
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   OneQubitEulerDecomposer
-   TwoQubitBasisDecomposer
-   two_qubit_cnot_decompose
-   Quaternion
-   decompose_clifford
-   XXDecomposer
 """
 
+from __future__ import annotations
 from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
     Operator,
     Pauli,
     PauliList,
-    PauliTable,
     ScalarOp,
     SparsePauliOp,
-    StabilizerTable,
     anti_commutator,
     commutator,
     double_commutator,
@@ -155,9 +136,7 @@ from .random import (
     random_hermitian,
     random_pauli,
     random_pauli_list,
-    random_pauli_table,
     random_quantum_channel,
-    random_stabilizer_table,
     random_statevector,
     random_unitary,
 )
@@ -171,14 +150,9 @@ from .states import (
     mutual_information,
     partial_trace,
     purity,
+    schmidt_decomposition,
     shannon_entropy,
     state_fidelity,
+    negativity,
 )
-from .synthesis import (
-    OneQubitEulerDecomposer,
-    Quaternion,
-    TwoQubitBasisDecomposer,
-    XXDecomposer,
-    decompose_clifford,
-    two_qubit_cnot_decompose,
-)
+from .quaternion import Quaternion

@@ -18,7 +18,8 @@ import os
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
-from qiskit.transpiler.passes import GateDirection, Unroller
+from qiskit.passmanager.flow_controllers import ConditionalController, DoWhileController
+from qiskit.transpiler.passes import GateDirection, BasisTranslator
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
@@ -28,9 +29,16 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.utils import optionals
 
+from qiskit.circuit.library.standard_gates.equivalence_library import (
+    StandardEquivalenceLibrary as std_eqlib,
+)
+
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
+@unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
+@unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
+@unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
@@ -45,16 +53,19 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         # Create a pass manager with a variety of passes and flow control structures
         self.pass_manager = PassManager()
         self.pass_manager.append(SetLayout(layout))
-        self.pass_manager.append(TrivialLayout(coupling_map), condition=lambda x: True)
+        self.pass_manager.append(
+            ConditionalController(TrivialLayout(coupling_map), condition=lambda x: True)
+        )
         self.pass_manager.append(FullAncillaAllocation(coupling_map))
         self.pass_manager.append(EnlargeWithAncilla())
-        self.pass_manager.append(Unroller(basis_gates))
+        self.pass_manager.append(BasisTranslator(std_eqlib, basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
-        self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
+        self.pass_manager.append(
+            DoWhileController(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
+        )
         self.pass_manager.append(GateDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
-    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
         filename = "current_standard.dot"
@@ -67,7 +78,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         finally:
             os.remove(filename)
 
-    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values

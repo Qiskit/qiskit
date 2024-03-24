@@ -17,26 +17,10 @@ Base register reference object.
 """
 
 from __future__ import annotations
-import re
 import itertools
-import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
-
-
-class _NameFormat:
-    REGEX = re.compile("[a-z][a-zA-Z0-9_]*")
-
-    def __get__(self, obj, objtype=None):
-        warnings.warn(
-            "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
-            " future release. There is no longer a restriction on the names of registers, so the"
-            " attribute has no meaning any more.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.REGEX
 
 
 class Register:
@@ -49,11 +33,6 @@ class Register:
     """
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
-
-    # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
-    # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
-    # restriction has been relaxed, so this is no longer necessary.
-    name_format = _NameFormat()
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -143,8 +122,8 @@ class Register:
             self._bits = [self.bit_type(self, idx) for idx in range(size)]
 
             # Since the hash of Bits created by the line above will depend upon
-            # the the hash of self, which is not guaranteed to have been initialized
-            # first on deepcopying or on pickling, so defer populating _bit_indices
+            # the hash of self, which is not guaranteed to have been initialized
+            # first on deep-copying or on pickling, so defer populating _bit_indices
             # until first access.
             self._bit_indices = None
 

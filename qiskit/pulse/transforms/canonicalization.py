@@ -10,10 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Basic rescheduling functions which take schedule or instructions and return new schedules."""
-
+from __future__ import annotations
+import typing
 import warnings
 from collections import defaultdict
-from typing import List, Optional, Iterable, Union, Type
+from collections.abc import Iterable
+from typing import Type
 
 import numpy as np
 
@@ -24,6 +26,9 @@ from qiskit.pulse.exceptions import UnassignedDurationError
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock, ScheduleComponent
+
+if typing.TYPE_CHECKING:
+    from qiskit.pulse.library import Pulse  # pylint: disable=cyclic-import
 
 
 def block_to_schedule(block: ScheduleBlock) -> Schedule:
@@ -77,7 +82,7 @@ def block_to_schedule(block: ScheduleBlock) -> Schedule:
     return block.alignment_context.align(schedule)
 
 
-def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
+def compress_pulses(schedules: list[Schedule]) -> list[Schedule]:
     """Optimization pass to replace identical pulses.
 
     Args:
@@ -86,7 +91,7 @@ def compress_pulses(schedules: List[Schedule]) -> List[Schedule]:
     Returns:
         Compressed schedules.
     """
-    existing_pulses = []
+    existing_pulses: list[Pulse] = []
     new_schedules = []
 
     for schedule in schedules:
@@ -134,7 +139,7 @@ def flatten(program: Schedule) -> Schedule:
         raise PulseError(f"Invalid input program {program.__class__.__name__} is specified.")
 
 
-def inline_subroutines(program: Union[Schedule, ScheduleBlock]) -> Union[Schedule, ScheduleBlock]:
+def inline_subroutines(program: Schedule | ScheduleBlock) -> Schedule | ScheduleBlock:
     """Recursively remove call instructions and inline the respective subroutine instructions.
 
     Assigned parameter values, which are stored in the parameter table, are also applied.
@@ -166,16 +171,7 @@ def _inline_schedule(schedule: Schedule) -> Schedule:
     for t0, inst in schedule.children:
         # note that schedule.instructions unintentionally flatten the nested schedule.
         # this should be performed by another transformer node.
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            # convert into schedule if block is given
-            if isinstance(subroutine, ScheduleBlock):
-                subroutine = block_to_schedule(subroutine)
-            # recursively inline the program
-            inline_schedule = _inline_schedule(subroutine)
-            ret_schedule.insert(t0, inline_schedule, inplace=True)
-        elif isinstance(inst, Schedule):
+        if isinstance(inst, Schedule):
             # recursively inline the program
             inline_schedule = _inline_schedule(inst)
             ret_schedule.insert(t0, inline_schedule, inplace=True)
@@ -191,19 +187,7 @@ def _inline_block(block: ScheduleBlock) -> ScheduleBlock:
     """
     ret_block = ScheduleBlock.initialize_from(block)
     for inst in block.blocks:
-        if isinstance(inst, instructions.Call):
-            # bind parameter
-            subroutine = inst.assigned_subroutine()
-            if isinstance(subroutine, Schedule):
-                raise PulseError(
-                    f"A subroutine {subroutine.name} is a pulse Schedule. "
-                    "This program cannot be inserted into ScheduleBlock because "
-                    "t0 associated with instruction will be lost."
-                )
-            # recursively inline the program
-            inline_block = _inline_block(subroutine)
-            ret_block.append(inline_block, inplace=True)
-        elif isinstance(inst, ScheduleBlock):
+        if isinstance(inst, ScheduleBlock):
             # recursively inline the program
             inline_block = _inline_block(inst)
             ret_block.append(inline_block, inplace=True)
@@ -242,12 +226,12 @@ def remove_trivial_barriers(schedule: Schedule) -> Schedule:
 
 def align_measures(
     schedules: Iterable[ScheduleComponent],
-    inst_map: Optional[InstructionScheduleMap] = None,
+    inst_map: InstructionScheduleMap | None = None,
     cal_gate: str = "u3",
-    max_calibration_duration: Optional[int] = None,
-    align_time: Optional[int] = None,
-    align_all: Optional[bool] = True,
-) -> List[Schedule]:
+    max_calibration_duration: int | None = None,
+    align_time: int | None = None,
+    align_all: bool | None = True,
+) -> list[Schedule]:
     """Return new schedules where measurements occur at the same physical time.
 
     This transformation will align the first :class:`.Acquire` on
@@ -320,7 +304,7 @@ def align_measures(
         acquire_times = []
         for schedule in schedules:
             visited_channels = set()
-            qubit_first_acquire_times = defaultdict(lambda: None)
+            qubit_first_acquire_times: dict[int, int] = defaultdict(lambda: None)
 
             for time, inst in schedule.instructions:
                 if isinstance(inst, instructions.Acquire) and inst.channel not in visited_channels:
@@ -397,7 +381,7 @@ def align_measures(
     return new_schedules
 
 
-def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+def add_implicit_acquires(schedule: ScheduleComponent, meas_map: list[list[int]]) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -451,10 +435,10 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
 
 def pad(
     schedule: Schedule,
-    channels: Optional[Iterable[chans.Channel]] = None,
-    until: Optional[int] = None,
+    channels: Iterable[chans.Channel] | None = None,
+    until: int | None = None,
     inplace: bool = False,
-    pad_with: Optional[Type[instructions.Instruction]] = None,
+    pad_with: Type[instructions.Instruction] | None = None,
 ) -> Schedule:
     """Pad the input Schedule with ``Delay``s on all unoccupied timeslots until
     ``schedule.duration`` or ``until`` if not ``None``.

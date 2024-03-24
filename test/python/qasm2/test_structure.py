@@ -12,6 +12,7 @@
 
 # pylint: disable=missing-module-docstring,missing-class-docstring,missing-function-docstring
 
+import copy
 import io
 import math
 import os
@@ -19,7 +20,6 @@ import pathlib
 import pickle
 import shutil
 import tempfile
-import unittest
 
 import ddt
 
@@ -34,14 +34,26 @@ from qiskit.circuit import (
     Qubit,
     library as lib,
 )
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from . import gate_builder
 
 
-class TestEmpty(QiskitTestCase):
+@ddt.ddt
+class TestWhitespace(QiskitTestCase):
     def test_allows_empty(self):
         self.assertEqual(qiskit.qasm2.loads(""), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ", "\n\t", "\r\n\t")
+    def test_empty_except_comment(self, terminator):
+        program = "// final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit())
+
+    @ddt.data("", "\n", "\r\n", "\n  ")
+    def test_final_comment(self, terminator):
+        # This is similar to the empty-circuit test, except that we also have an instruction.
+        program = "qreg q[2]; // final comment" + terminator
+        self.assertEqual(qiskit.qasm2.loads(program), QuantumCircuit(QuantumRegister(2, "q")))
 
 
 class TestVersion(QiskitTestCase):
@@ -644,8 +656,6 @@ class TestGateDefinition(QiskitTestCase):
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
 
-    # See https://github.com/Qiskit/qiskit-terra/issues/8941
-    @unittest.expectedFailure
     def test_qpy_double_call_roundtrip(self):
         program = """
             include "qelib1.inc";
@@ -683,6 +693,32 @@ class TestGateDefinition(QiskitTestCase):
             fptr.seek(0)
             loaded = qpy.load(fptr)[0]
         self.assertEqual(loaded, qc)
+
+    def test_deepcopy_conditioned_defined_gate(self):
+        program = """
+            include "qelib1.inc";
+            gate my_gate a {
+                x a;
+            }
+            qreg q[1];
+            creg c[1];
+            if (c == 1) my_gate q[0];
+        """
+        parsed = qiskit.qasm2.loads(program)
+        my_gate = parsed.data[0].operation
+
+        self.assertEqual(my_gate.name, "my_gate")
+        self.assertEqual(my_gate.condition, (parsed.cregs[0], 1))
+
+        copied = copy.deepcopy(parsed)
+        copied_gate = copied.data[0].operation
+        self.assertEqual(copied_gate.name, "my_gate")
+        self.assertEqual(copied_gate.condition, (copied.cregs[0], 1))
+
+        pickled = pickle.loads(pickle.dumps(parsed))
+        pickled_gate = pickled.data[0].operation
+        self.assertEqual(pickled_gate.name, "my_gate")
+        self.assertEqual(pickled_gate.condition, (pickled.cregs[0], 1))
 
 
 class TestOpaque(QiskitTestCase):

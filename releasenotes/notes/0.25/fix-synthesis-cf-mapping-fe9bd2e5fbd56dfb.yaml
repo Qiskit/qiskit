@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with :class:`.UnitarySynthesis` when using the ``target``
+    parameter where circuits with control flow were not properly mapped
+    to the target.

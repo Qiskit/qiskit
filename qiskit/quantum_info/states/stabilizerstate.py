@@ -14,13 +14,19 @@
 Stabilizer state class.
 """
 
+from __future__ import annotations
+
+from collections.abc import Collection
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
+from qiskit.circuit import QuantumCircuit, Instruction
 
 
 class StabilizerState(QuantumState):
@@ -54,13 +60,28 @@ class StabilizerState(QuantumState):
         {'00': 0.5, '11': 0.5}
         1
 
+    Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
+    returns a state stabilized by the list
+
+    .. code-block:: python
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)
+
+
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    def __init__(self, data, validate=True):
+    def __init__(
+        self,
+        data: StabilizerState | Clifford | Pauli | QuantumCircuit | Instruction,
+        validate: bool = True,
+    ):
         """Initialize a StabilizerState object.
 
         Args:
@@ -84,11 +105,41 @@ class StabilizerState(QuantumState):
         # Initialize
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
+    @classmethod
+    def from_stabilizer_list(
+        cls,
+        stabilizers: Collection[str],
+        allow_redundant: bool = False,
+        allow_underconstrained: bool = False,
+    ) -> StabilizerState:
+        """Create a stabilizer state from the collection of stabilizers.
+
+        Args:
+            stabilizers (Collection[str]): list of stabilizer strings
+            allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                can be products of the others)
+            allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                the stabilizers do not specify a unique state)
+
+        Return:
+            StabilizerState: a state stabilized by stabilizers.
+        """
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
+
+        circuit = synth_circuit_from_stabilizers(
+            stabilizers,
+            allow_redundant=allow_redundant,
+            allow_underconstrained=allow_underconstrained,
+        )
+        return cls(circuit)
+
     def __eq__(self, other):
         return (self._data.stab == other._data.stab).all()
 
     def __repr__(self):
-        return f"StabilizerState({self._data.stabilizer})"
+        return f"StabilizerState({self._data.to_labels(mode='S')})"
 
     @property
     def clifford(self):
@@ -105,12 +156,12 @@ class StabilizerState(QuantumState):
     def _multiply(self, other):
         raise NotImplementedError(f"{type(self)} does not support scalar multiplication")
 
-    def trace(self):
+    def trace(self) -> float:
         """Return the trace of the stabilizer state as a density matrix,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the trace (should equal 1).
+            float: the trace (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -119,12 +170,12 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def purity(self):
+    def purity(self) -> float:
         """Return the purity of the quantum state,
         which equals to 1, since it is always a pure state.
 
         Returns:
-            double: the purity (should equal 1).
+            float: the purity (should equal 1).
 
         Raises:
             QiskitError: if input is not a StabilizerState.
@@ -133,7 +184,7 @@ class StabilizerState(QuantumState):
             raise QiskitError("StabilizerState is not a valid quantum state.")
         return 1.0
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert state to matrix operator class"""
         return Clifford(self.clifford).to_operator()
 
@@ -143,8 +194,8 @@ class StabilizerState(QuantumState):
         ret._data = ret._data.conjugate()
         return ret
 
-    def tensor(self, other):
-        """Return the tensor product stabilzier state self ⊗ other.
+    def tensor(self, other: StabilizerState) -> StabilizerState:
+        """Return the tensor product stabilizer state self ⊗ other.
 
         Args:
             other (StabilizerState): a stabilizer state object.
@@ -161,8 +212,8 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.tensor(other.clifford)
         return ret
 
-    def expand(self, other):
-        """Return the tensor product stabilzier state other ⊗ self.
+    def expand(self, other: StabilizerState) -> StabilizerState:
+        """Return the tensor product stabilizer state other ⊗ self.
 
         Args:
             other (StabilizerState): a stabilizer state object.
@@ -179,7 +230,9 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.expand(other.clifford)
         return ret
 
-    def evolve(self, other, qargs=None):
+    def evolve(
+        self, other: Clifford | QuantumCircuit | Instruction, qargs: list | None = None
+    ) -> StabilizerState:
         """Evolve a stabilizer state by a Clifford operator.
 
         Args:
@@ -201,7 +254,7 @@ class StabilizerState(QuantumState):
         ret._data = self.clifford.compose(other.clifford, qargs=qargs)
         return ret
 
-    def expectation_value(self, oper, qargs=None):
+    def expectation_value(self, oper: Pauli, qargs: None | list = None) -> complex:
         """Compute the expectation value of a Pauli operator.
 
         Args:
@@ -266,7 +319,7 @@ class StabilizerState(QuantumState):
 
         return pauli_phase
 
-    def equiv(self, other):
+    def equiv(self, other: StabilizerState) -> bool:
         """Return True if the two generating sets generate the same stabilizer group.
 
         Args:
@@ -307,7 +360,7 @@ class StabilizerState(QuantumState):
 
         return True
 
-    def probabilities(self, qargs=None, decimals=None):
+    def probabilities(self, qargs: None | list = None, decimals: None | int = None) -> np.ndarray:
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -333,7 +386,7 @@ class StabilizerState(QuantumState):
 
         return probs
 
-    def probabilities_dict(self, qargs=None, decimals=None):
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -362,7 +415,7 @@ class StabilizerState(QuantumState):
         outcome_prob = 1.0
         probs = {}  # probabilities dictionary
 
-        self._get_probablities(qubits, outcome, outcome_prob, probs)
+        self._get_probabilities(qubits, outcome, outcome_prob, probs)
 
         if decimals is not None:
             for key, value in probs.items():
@@ -370,7 +423,7 @@ class StabilizerState(QuantumState):
 
         return probs
 
-    def reset(self, qargs=None):
+    def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
 
         Args:
@@ -407,7 +460,7 @@ class StabilizerState(QuantumState):
 
         return ret
 
-    def measure(self, qargs=None):
+    def measure(self, qargs: list | None = None) -> tuple:
         """Measure subsystems and return outcome and post-measure state.
 
         Note that this function uses the QuantumStates internal random
@@ -437,7 +490,7 @@ class StabilizerState(QuantumState):
 
         return outcome, ret
 
-    def sample_memory(self, shots, qargs=None):
+    def sample_memory(self, shots: int, qargs: None | list = None) -> np.ndarray:
         """Sample a list of qubit measurement outcomes in the computational basis.
 
         Args:
@@ -591,7 +644,7 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
+    def _get_probabilities(self, qubits, outcome, outcome_prob, probs):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
@@ -626,4 +679,4 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
+            stab_cpy._get_probabilities(qubits, new_outcome, 0.5 * outcome_prob, probs)

@@ -64,9 +64,9 @@ just for Terra's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
-to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way, before
-Aer could update its :class:`~qiskit.providers.aer.aerbackend.AerBackend` class
-to use version 34 they'd need to deprecate the old signature prior to switching
+to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way. Before
+Aer could update its :class:`~qiskit_aer.AerSimulator` class
+to be based on version 34 they'd need to deprecate the old signature prior to switching
 over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
 need to ensure there is a sufficient amount of time for Aer to complete its
 deprecation cycle prior to removing version 33 (ie making version 34
@@ -125,13 +125,11 @@ Job Status
 Exceptions
 ----------
 
-.. autosummary::
-   :toctree: ../stubs/
-
-   QiskitBackendNotFoundError
-   BackendPropertyError
-   JobError
-   JobTimeoutError
+.. autoexception:: QiskitBackendNotFoundError
+.. autoexception:: BackendPropertyError
+.. autoexception:: JobError
+.. autoexception:: JobTimeoutError
+.. autoexception:: BackendConfigurationError
 
 ======================
 Writing a New Provider
@@ -146,8 +144,8 @@ can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
-APIs, such as :func:`~qiskit.execute_function.execute` and higher level algorithms in
-:mod:`qiskit.algorithms`, to get results from executing circuits on devices in a standard
+APIs to get results from
+executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
@@ -464,13 +462,12 @@ is used to actually submit circuits to a device or simulator. The run method
 handles submitting the circuits to the backend to be executed and returning a
 :class:`~qiskit.providers.Job` object. Depending on the type of backend this
 typically involves serializing the circuit object into the API format used by a
-backend. For example, on IBMQ backends from the ``qiskit-ibmq-provider``
+backend. For example, on IBM backends from the ``qiskit-ibm-provider``
 package this involves converting from a quantum circuit and options into a
-`qobj <https://arxiv.org/abs/1809.03452>`__ JSON payload and submitting
-that to the IBM Quantum API. Since every backend interface is different (and
-in the case of the local simulators serialization may not be needed) it is
-expected that the backend's :obj:`~qiskit.providers.BackendV2.run` method will
-handle this conversion.
+:mod:`.qpy` payload embedded in JSON and submitting that to the IBM Quantum
+API. Since every backend interface is different (and in the case of the local
+simulators serialization may not be needed) it is expected that the backend's
+:obj:`~qiskit.providers.BackendV2.run` method will handle this conversion.
 
 An example run method would be something like::
 
@@ -628,7 +625,7 @@ post-processing, batching, caching, error mitigation, etc. The concept of
 the :mod:`qiskit.primitives` module is to explicitly enable this as the
 primitive objects are higher level abstractions to produce processed higher
 level outputs (such as probability distributions and expectation values)
-that abstract away the mechanics of getting the best result efficienctly, to
+that abstract away the mechanics of getting the best result efficiently, to
 concentrate on higher level applications using these outputs.
 
 For example, if your backends were well suited to leverage
@@ -637,7 +634,7 @@ mitigation to improve the quality of the results, you could implement a
 provider-specific :class:`~.Sampler` implementation that leverages the
 ``M3Mitigation`` class internally to run the circuits and return
 quasi-probabilities directly from mthree in the result. Doing this would
-enable algorithms from :mod:`qiskit.algorithms` to get the best results with
+enable algorithms to get the best results with
 mitigation applied directly from your backends. You can refer to the
 documentation in :mod:`qiskit.primitives` on how to write custom
 implementations. Also the built-in implementations: :class:`~.Sampler`,
@@ -737,13 +734,13 @@ with :obj:`~BackendV2`:
      -
    * - ``backend.properties().readout_error(0)``
      - ``backend.target["measure"][(0,)].error``
-     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the error rate for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout error. However a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
    * - ``backend.properties().readout_length(0)``
      - ``backend.target["measure"][(0,)].duration``
-     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.Measure`
+     - In :obj:`~BackendV2` the duration for the :class:`~qiskit.circuit.library.Measure`
        operation on a given qubit is used to model the readout length. However, a
        :obj:`~BackendV2` can implement multiple measurement types and list them
        separately in a :class:`~qiskit.transpiler.Target`.
@@ -751,8 +748,6 @@ with :obj:`~BackendV2`:
 There is also a :class:`~.BackendV2Converter` class available that enables you
 to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
-
-import pkgutil
 
 # Providers interface
 from qiskit.providers.provider import Provider
@@ -775,9 +770,3 @@ from qiskit.providers.exceptions import (
     BackendConfigurationError,
 )
 from qiskit.providers.jobstatus import JobStatus
-
-
-# Allow extending this namespace.
-# TODO: Remove when we drop support for importing qiskit-aer < 0.11.0 and the
-# qiskit-ibmq-provider package is retired/archived.
-__path__ = pkgutil.extend_path(__path__, __name__)

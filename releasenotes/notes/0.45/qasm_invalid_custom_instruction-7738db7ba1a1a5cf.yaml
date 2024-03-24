@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Qiskit can represent custom instructions that act on zero qubits, or on a non-zero number of
+    classical bits.  These cannot be exported to OpenQASM 2, but previously :meth:`.QuantumCircuit.qasm`
+    would try, and output invalid OpenQASM 2.  Instead, a :exc:`.QASM2ExportError` will now correctly
+    be raised.  See `#7351 <https://github.com/Qiskit/qiskit-terra/issues/7351>`__ and
+    `#10435 <https://github.com/Qiskit/qiskit-terra/issues/10435>`__.
