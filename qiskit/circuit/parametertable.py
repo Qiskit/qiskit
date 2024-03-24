@@ -12,15 +12,20 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
+import operator
+import typing
 from collections.abc import MappingView, MutableMapping, MutableSet
 
 
 class ParameterReferences(MutableSet):
     """A set of instruction parameter slot references.
     Items are expected in the form ``(instruction, param_index)``. Membership
-    testing is overriden such that items that are otherwise value-wise equal
+    testing is overridden such that items that are otherwise value-wise equal
     are still considered distinct if their ``instruction``\\ s are referentially
     distinct.
+
+    In the case of the special value :attr:`.ParameterTable.GLOBAL_PHASE` for ``instruction``, the
+    ``param_index`` should be ``None``.
     """
 
     def _instance_key(self, ref):
@@ -83,6 +88,24 @@ class ParameterTable(MutableMapping):
 
     __slots__ = ["_table", "_keys", "_names"]
 
+    class _GlobalPhaseSentinel:
+        __slots__ = ()
+
+        def __copy__(self):
+            return self
+
+        def __deepcopy__(self, memo=None):
+            return self
+
+        def __reduce__(self):
+            return (operator.attrgetter("GLOBAL_PHASE"), (ParameterTable,))
+
+        def __repr__(self):
+            return "<global-phase sentinel>"
+
+    GLOBAL_PHASE = _GlobalPhaseSentinel()
+    """Tracking object to indicate that a reference refers to the global phase of a circuit."""
+
     def __init__(self, mapping=None):
         """Create a new instance, initialized with ``mapping`` if provided.
 
@@ -102,7 +125,7 @@ class ParameterTable(MutableMapping):
             self._table = {}
 
         self._keys = set(self._table)
-        self._names = {x.name for x in self._table}
+        self._names = {x.name: x for x in self._table}
 
     def __getitem__(self, key):
         return self._table[key]
@@ -127,7 +150,7 @@ class ParameterTable(MutableMapping):
 
         self._table[parameter] = refs
         self._keys.add(parameter)
-        self._names.add(parameter.name)
+        self._names[parameter.name] = parameter
 
     def get_keys(self):
         """Return a set of all keys in the parameter table
@@ -143,12 +166,34 @@ class ParameterTable(MutableMapping):
         Returns:
             set: A set of all the names in the parameter table
         """
-        return self._names
+        return self._names.keys()
+
+    def parameter_from_name(self, name: str, default: typing.Any = None):
+        """Get a :class:`.Parameter` with references in this table by its string name.
+
+        If the parameter is not present, return the ``default`` value.
+
+        Args:
+            name: The name of the :class:`.Parameter`
+            default: The object that should be returned if the parameter is missing.
+        """
+        return self._names.get(name, default)
+
+    def discard_references(self, expression, key):
+        """Remove all references to parameters contained within ``expression`` at the given table
+        ``key``.  This also discards parameter entries from the table if they have no further
+        references.  No action is taken if the object is not tracked."""
+        for parameter in expression.parameters:
+            if (refs := self._table.get(parameter)) is not None:
+                if len(refs) == 1:
+                    del self[parameter]
+                else:
+                    refs.discard(key)
 
     def __delitem__(self, key):
         del self._table[key]
         self._keys.discard(key)
-        self._names.discard(key.name)
+        del self._names[key.name]
 
     def __iter__(self):
         return iter(self._table)

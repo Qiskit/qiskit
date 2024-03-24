@@ -19,7 +19,6 @@ from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,
@@ -39,11 +38,10 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class OneQubitZeroParamGate(Gate):
@@ -514,6 +512,37 @@ class TestUnrollerCompatability(QiskitTestCase):
         for node in op_nodes:
             self.assertIn(node.name, ["h", "t", "tdg", "cx"])
 
+    def test_basic_unroll_min_qubits(self):
+        """Test decompose a single H into u2."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["u2"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["u2"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 1)
+        self.assertEqual(op_nodes[0].name, "h")
+
+    def test_unroll_toffoli_min_qubits(self):
+        """Test unroll toffoli on multi regs to h, t, tdg, cx."""
+        qr1 = QuantumRegister(2, "qr1")
+        qr2 = QuantumRegister(1, "qr2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.ccx(qr1[0], qr1[1], qr2[0])
+        circuit.sx(qr1[0])
+        dag = circuit_to_dag(circuit)
+        pass_ = UnrollCustomDefinitions(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        dag = pass_.run(dag)
+        pass_ = BasisTranslator(std_eqlib, ["h", "t", "tdg", "cx"], min_qubits=3)
+        unrolled_dag = pass_.run(dag)
+        op_nodes = unrolled_dag.op_nodes()
+        self.assertEqual(len(op_nodes), 16)
+        for node in op_nodes:
+            self.assertIn(node.name, ["h", "t", "tdg", "cx", "sx"])
+
     def test_unroll_1q_chain_conditional(self):
         """Test unroll chain of 1-qubit gates interrupted by conditional."""
 
@@ -613,7 +642,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         circuit.cy(qr[1], qr[2])
         circuit.cz(qr[2], qr[0])
         circuit.h(qr[1])
-        circuit.i(qr[0])
+        circuit.id(qr[0])
         circuit.rx(0.1, qr[0])
         circuit.ry(0.2, qr[1])
         circuit.rz(0.3, qr[2])
@@ -711,7 +740,7 @@ class TestUnrollerCompatability(QiskitTestCase):
         ref_circuit.append(U3Gate(0, 0, pi / 2), [qr[2]])
         ref_circuit.cx(qr[2], qr[0])
         ref_circuit.append(U3Gate(pi / 2, 0, pi), [qr[0]])
-        ref_circuit.i(qr[0])
+        ref_circuit.id(qr[0])
         ref_circuit.append(U3Gate(0.1, -pi / 2, pi / 2), [qr[0]])
         ref_circuit.cx(qr[1], qr[0])
         ref_circuit.append(U3Gate(0, 0, 0.6), [qr[0]])
@@ -897,22 +926,19 @@ class TestBasisExamples(QiskitTestCase):
         in_dag = circuit_to_dag(bell)
         out_dag = BasisTranslator(std_eqlib, ["ecr", "u"]).run(in_dag)
 
-        #         ┌────────────┐   ┌─────────────┐┌──────┐┌──────────┐
-        # q_0: ───┤ U(π/2,0,π) ├───┤ U(0,0,-π/2) ├┤0     ├┤ U(π,0,π) ├
-        #      ┌──┴────────────┴──┐└─────────────┘│  Ecr │└──────────┘
-        # q_1: ┤ U(-π/2,-π/2,π/2) ├───────────────┤1     ├────────────
-        #      └──────────────────┘               └──────┘
-
         qr = QuantumRegister(2, "q")
         expected = QuantumCircuit(2)
         expected.u(pi / 2, 0, pi, qr[0])
         expected.u(0, 0, -pi / 2, qr[0])
-        expected.u(-pi / 2, -pi / 2, pi / 2, qr[1])
+        expected.u(pi, 0, 0, qr[0])
+        expected.u(pi / 2, -pi / 2, pi / 2, qr[1])
         expected.ecr(0, 1)
-        expected.u(pi, 0, pi, qr[0])
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out_dag, expected_dag)
+        self.assertEqual(
+            Operator.from_circuit(bell), Operator.from_circuit(dag_to_circuit(out_dag))
+        )
 
     def test_cx_bell_to_cp(self):
         """Verify we can translate a CX bell to CP,U."""
@@ -1086,7 +1112,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         output = bt_pass(qc)
         # We need a second run of BasisTranslator to correct gates outside of
         # the target basis. This is a known isssue, see:
-        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
         output = bt_pass(output)
         expected = QuantumCircuit(2)
         expected.rz(pi, 1)

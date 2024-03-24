@@ -62,7 +62,7 @@ class Permutation(QuantumCircuit):
             .. plot::
 
                from qiskit.circuit.library import Permutation
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               from qiskit.visualization.library import _generate_circuit_library_visualization
                A = [2,4,3,0,1]
                circuit = Permutation(5, A)
                _generate_circuit_library_visualization(circuit.decompose())
@@ -130,7 +130,7 @@ class PermutationGate(Gate):
 
                 from qiskit.circuit.quantumcircuit import QuantumCircuit
                 from qiskit.circuit.library import PermutationGate
-                from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+                from qiskit.visualization.library import _generate_circuit_library_visualization
                 A = [2,4,3,0,1]
                 permutation = PermutationGate(A)
                 circuit = QuantumCircuit(5)
@@ -171,7 +171,7 @@ class PermutationGate(Gate):
         """Returns the permutation pattern defining this permutation."""
         return self.params[0]
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Returns the inverse of the permutation."""
 
         # pylint: disable=cyclic-import

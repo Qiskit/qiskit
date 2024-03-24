@@ -24,7 +24,7 @@ class PhaseEstimation(QuantumCircuit):
 
     In the Quantum Phase Estimation (QPE) algorithm [1, 2, 3], the Phase Estimation circuit is used
     to estimate the phase :math:`\phi` of an eigenvalue :math:`e^{2\pi i\phi}` of a unitary operator
-    :math:`U`, provided with the corresponding eigenstate :math:`|psi\rangle`.
+    :math:`U`, provided with the corresponding eigenstate :math:`|\psi\rangle`.
     That is
 
     .. math::
@@ -44,7 +44,8 @@ class PhaseEstimation(QuantumCircuit):
          Cambridge University Press, New York, NY, USA.
 
     [3]: Qiskit
-        `textbook <https://qiskit.org/textbook/ch-algorithms/quantum-phase-estimation.html>`_
+        `textbook <https://github.com/Qiskit/textbook/blob/main/notebooks/ch-algorithms/
+        quantum-phase-estimation.ipynb>`_
 
     """
 
@@ -73,7 +74,7 @@ class PhaseEstimation(QuantumCircuit):
 
                from qiskit.circuit import QuantumCircuit
                from qiskit.circuit.library import PhaseEstimation
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               from qiskit.visualization.library import _generate_circuit_library_visualization
                unitary = QuantumCircuit(2)
                unitary.x(0)
                unitary.y(1)

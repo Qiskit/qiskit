@@ -25,6 +25,8 @@ if _optionals.HAS_CONSTRAINT:
     class CustomSolver(RecursiveBacktrackingSolver):
         """A wrap to RecursiveBacktrackingSolver to support ``call_limit``"""
 
+        # pylint: disable=invalid-name
+
         def __init__(self, call_limit=None, time_limit=None):
             self.call_limit = call_limit
             self.time_limit = time_limit

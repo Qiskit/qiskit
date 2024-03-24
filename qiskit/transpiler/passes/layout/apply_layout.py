@@ -36,7 +36,7 @@ class ApplyLayout(TransformationPass):
     """
 
     def run(self, dag):
-        """Run the ApplyLayout pass on `dag`.
+        """Run the ApplyLayout pass on ``dag``.
 
         Args:
             dag (DAGCircuit): DAG to map.
@@ -45,7 +45,7 @@ class ApplyLayout(TransformationPass):
             DAGCircuit: A mapped DAG (with physical qubits).
 
         Raises:
-            TranspilerError: if no layout is found in `property_set` or no full physical qubits.
+            TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
         layout = self.property_set["layout"]
         if not layout:
@@ -74,10 +74,10 @@ class ApplyLayout(TransformationPass):
             virtual_phsyical_map = layout.get_virtual_bits()
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
         else:
             # First build a new layout object going from:
-            # old virtual -> old phsyical -> new virtual -> new physical
+            # old virtual -> old physical -> new virtual -> new physical
             # to:
             # old virtual -> new physical
             full_layout = Layout()
@@ -94,7 +94,7 @@ class ApplyLayout(TransformationPass):
             # Apply new layout to the circuit
             for node in dag.topological_op_nodes():
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
-                new_dag.apply_operation_back(node.op, qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
             self.property_set["layout"] = full_layout
             if (final_layout := self.property_set["final_layout"]) is not None:
                 final_layout_mapping = {

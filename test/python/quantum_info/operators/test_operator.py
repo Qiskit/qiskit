@@ -26,13 +26,13 @@ import scipy.linalg as la
 from qiskit import QiskitError
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.library import HGate, CHGate, CXGate, QFT
-from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
 from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
 from qiskit.circuit.library import Permutation, PermutationGate
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 logger = logging.getLogger(__name__)
 
@@ -498,6 +498,18 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op.power(4), Operator(-1 * np.eye(2)))
         self.assertEqual(op.power(8), Operator(np.eye(2)))
 
+    def test_floating_point_power(self):
+        """Test handling floating-point powers."""
+        circuit = QuantumCircuit(2)
+        circuit.crz(np.pi, 0, 1)
+        op = Operator(circuit)
+
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.crz(np.pi / 4, 0, 1)
+        expected_op = Operator(expected_circuit)
+
+        self.assertEqual(op.power(0.25), expected_op)
+
     def test_expand(self):
         """Test expand method."""
         mat1 = self.UX
@@ -680,6 +692,18 @@ class TestOperator(OperatorTestCase):
         state1 = Operator(circ1)
         state2 = Operator(circ2)
         self.assertEqual(state1.reverse_qargs(), state2)
+
+    def test_drawings(self):
+        """Test draw method"""
+        qc1 = QFT(5)
+        op = Operator.from_circuit(qc1)
+        with self.subTest(msg="str(operator)"):
+            str(op)
+        for drawtype in ["repr", "text", "latex_source"]:
+            with self.subTest(msg=f"draw('{drawtype}')"):
+                op.draw(drawtype)
+        with self.subTest(msg=" draw('latex')"):
+            op.draw("latex")
 
     def test_from_circuit_constructor_no_layout(self):
         """Test initialization from a circuit using the from_circuit constructor."""

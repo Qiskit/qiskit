@@ -15,8 +15,8 @@
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
 from qiskit.pulse.library import continuous
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestContinuousPulses(QiskitTestCase):
@@ -30,7 +30,7 @@ class TestContinuousPulses(QiskitTestCase):
 
         constant_arr = continuous.constant(times, amp=amp)
 
-        self.assertEqual(constant_arr.dtype, np.complex_)
+        self.assertEqual(constant_arr.dtype, np.complex128)
         np.testing.assert_equal(constant_arr, amp)
         self.assertEqual(len(constant_arr), samples)
 
@@ -39,7 +39,7 @@ class TestContinuousPulses(QiskitTestCase):
         times = np.linspace(0, 10, 50)
         zero_arr = continuous.zero(times)
 
-        self.assertEqual(zero_arr.dtype, np.complex_)
+        self.assertEqual(zero_arr.dtype, np.complex128)
         np.testing.assert_equal(zero_arr, 0.0)
         self.assertEqual(len(zero_arr), 50)
 
@@ -53,7 +53,7 @@ class TestContinuousPulses(QiskitTestCase):
         # with new phase
         square_arr_phased = continuous.square(times, amp=amp, freq=freq, phase=np.pi / 2)
 
-        self.assertEqual(square_arr.dtype, np.complex_)
+        self.assertEqual(square_arr.dtype, np.complex128)
 
         self.assertAlmostEqual(square_arr[0], amp)
         # test constant
@@ -74,7 +74,7 @@ class TestContinuousPulses(QiskitTestCase):
         # with new phase
         sawtooth_arr_phased = continuous.sawtooth(times, amp=amp, freq=freq, phase=np.pi / 2)
 
-        self.assertEqual(sawtooth_arr.dtype, np.complex_)
+        self.assertEqual(sawtooth_arr.dtype, np.complex128)
 
         self.assertAlmostEqual(sawtooth_arr[0], 0.0)
         # test slope
@@ -97,7 +97,7 @@ class TestContinuousPulses(QiskitTestCase):
         # with new phase
         triangle_arr_phased = continuous.triangle(times, amp=amp, freq=freq, phase=np.pi / 2)
 
-        self.assertEqual(triangle_arr.dtype, np.complex_)
+        self.assertEqual(triangle_arr.dtype, np.complex128)
 
         self.assertAlmostEqual(triangle_arr[0], 0.0)
         # test slope
@@ -121,7 +121,7 @@ class TestContinuousPulses(QiskitTestCase):
         # with new phase
         cos_arr_phased = continuous.cos(times, amp=amp, freq=freq, phase=np.pi / 2)
 
-        self.assertEqual(cos_arr.dtype, np.complex_)
+        self.assertEqual(cos_arr.dtype, np.complex128)
 
         # Assert starts at 1
         self.assertAlmostEqual(cos_arr[0], amp)
@@ -144,7 +144,7 @@ class TestContinuousPulses(QiskitTestCase):
         # with new phase
         sin_arr_phased = continuous.sin(times, amp=0.5, freq=1 / 5, phase=np.pi / 2)
 
-        self.assertEqual(sin_arr.dtype, np.complex_)
+        self.assertEqual(sin_arr.dtype, np.complex128)
 
         # Assert starts at 1
         self.assertAlmostEqual(sin_arr[0], 0.0)
@@ -173,7 +173,7 @@ class TestContinuousPulses(QiskitTestCase):
             rescale_amp=True,
         )
 
-        self.assertEqual(gaussian_arr.dtype, np.complex_)
+        self.assertEqual(gaussian_arr.dtype, np.complex128)
 
         center_time = np.argmax(gaussian_arr)
         self.assertAlmostEqual(times[center_time], center)
@@ -196,7 +196,7 @@ class TestContinuousPulses(QiskitTestCase):
         gaussian_deriv_arr = continuous.gaussian_deriv(times, amp, center, sigma)
         gaussian_arr = gaussian_deriv_arr * deriv_prefactor
 
-        self.assertEqual(gaussian_deriv_arr.dtype, np.complex_)
+        self.assertEqual(gaussian_deriv_arr.dtype, np.complex128)
 
         self.assertAlmostEqual(
             continuous.gaussian_deriv(np.array([0]), amp, center, sigma)[0], 0, places=5
@@ -215,7 +215,7 @@ class TestContinuousPulses(QiskitTestCase):
         sech_arr = continuous.sech(times, amp, center, sigma)
         sech_arr_zeroed = continuous.sech(np.array([-1, center, duration + 1]), amp, center, sigma)
 
-        self.assertEqual(sech_arr.dtype, np.complex_)
+        self.assertEqual(sech_arr.dtype, np.complex128)
 
         center_time = np.argmax(sech_arr)
         self.assertAlmostEqual(times[center_time], center)
@@ -234,7 +234,7 @@ class TestContinuousPulses(QiskitTestCase):
 
         sech_deriv_arr = continuous.sech_deriv(times, amp, center, sigma)
 
-        self.assertEqual(sech_deriv_arr.dtype, np.complex_)
+        self.assertEqual(sech_deriv_arr.dtype, np.complex128)
 
         self.assertAlmostEqual(
             continuous.sech_deriv(np.array([0]), amp, center, sigma)[0], 0, places=3
@@ -249,7 +249,7 @@ class TestContinuousPulses(QiskitTestCase):
         times, dt = np.linspace(0, 20, 2001, retstep=True)
         gaussian_square_arr = continuous.gaussian_square(times, amp, center, width, sigma)
 
-        self.assertEqual(gaussian_square_arr.dtype, np.complex_)
+        self.assertEqual(gaussian_square_arr.dtype, np.complex128)
 
         self.assertEqual(gaussian_square_arr[1000], amp)
         # test half gaussian rise/fall
@@ -302,6 +302,6 @@ class TestContinuousPulses(QiskitTestCase):
             times, amp, center, sigma, beta=beta, zeroed_width=2 * (center + 1), rescale_amp=True
         )
 
-        self.assertEqual(drag_arr.dtype, np.complex_)
+        self.assertEqual(drag_arr.dtype, np.complex128)
 
         np.testing.assert_equal(drag_arr, gaussian_arr)

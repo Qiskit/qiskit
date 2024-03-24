@@ -145,7 +145,7 @@ class Exporter:
             basis_gates: the basic defined gate set of the backend.
             disable_constants: if ``True``, always emit floating-point constants for numeric
                 parameter values.  If ``False`` (the default), then values close to multiples of
-                QASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
+                OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
                 constants instead, potentially improving accuracy in the output.
             alias_classical_registers: If ``True``, then bits may be contained in more than one
                 register.  If so, the registers will be emitted using "alias" definitions, which
@@ -176,13 +176,13 @@ class Exporter:
         self.experimental = experimental
 
     def dumps(self, circuit):
-        """Convert the circuit to QASM 3, returning the result as a string."""
+        """Convert the circuit to OpenQASM 3, returning the result as a string."""
         with io.StringIO() as stream:
             self.dump(circuit, stream)
             return stream.getvalue()
 
     def dump(self, circuit, stream):
-        """Convert the circuit to QASM 3, dumping the result to a file or text stream."""
+        """Convert the circuit to OpenQASM 3, dumping the result to a file or text stream."""
         builder = QASM3Builder(
             circuit,
             includeslist=self.includes,
@@ -249,7 +249,7 @@ class GlobalNamespace:
                 pass
 
     def __setitem__(self, name_str, instruction):
-        self._data[name_str] = type(instruction)
+        self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
 
     def __getitem__(self, key):
@@ -435,7 +435,7 @@ class QASM3Builder:
 
     def build_header(self):
         """Builds a Header"""
-        version = ast.Version("3")
+        version = ast.Version("3.0")
         includes = self.build_includes()
         return ast.Header(version, includes)
 
@@ -833,14 +833,6 @@ class QASM3Builder:
 
     def build_switch_statement(self, instruction: CircuitInstruction) -> Iterable[ast.Statement]:
         """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
-        if ExperimentalFeatures.SWITCH_CASE_V1 not in self.experimental:
-            raise QASM3ExporterError(
-                "'switch' statements are not stabilized in OpenQASM 3 yet."
-                " To enable experimental support, set the flag"
-                " 'ExperimentalFeatures.SWITCH_CASE_V1' in the 'experimental' keyword"
-                " argument of the exporter."
-            )
-
         real_target = self.build_expression(expr.lift(instruction.operation.target))
         global_scope = self.global_scope()
         target = self._reserve_variable_name(
@@ -850,21 +842,48 @@ class QASM3Builder:
             ast.ClassicalDeclaration(ast.IntType(), target, None)
         )
 
-        def case(values, case_block):
-            values = [
-                ast.DefaultCase() if v is CASE_DEFAULT else self.build_integer(v) for v in values
+        if ExperimentalFeatures.SWITCH_CASE_V1 in self.experimental:
+            # In this case, defaults can be folded in with other cases (useless as that is).
+
+            def case(values, case_block):
+                values = [
+                    ast.DefaultCase() if v is CASE_DEFAULT else self.build_integer(v)
+                    for v in values
+                ]
+                self.push_scope(case_block, instruction.qubits, instruction.clbits)
+                case_body = self.build_program_block(case_block.data)
+                self.pop_scope()
+                return values, case_body
+
+            return [
+                ast.AssignmentStatement(target, real_target),
+                ast.SwitchStatementPreview(
+                    target,
+                    (
+                        case(values, block)
+                        for values, block in instruction.operation.cases_specifier()
+                    ),
+                ),
             ]
-            self.push_scope(case_block, instruction.qubits, instruction.clbits)
-            case_body = self.build_program_block(case_block.data)
+
+        # Handle the stabilised syntax.
+        cases = []
+        default = None
+        for values, block in instruction.operation.cases_specifier():
+            self.push_scope(block, instruction.qubits, instruction.clbits)
+            case_body = self.build_program_block(block.data)
             self.pop_scope()
-            return values, case_body
+            if CASE_DEFAULT in values:
+                # Even if it's mixed in with other cases, we can skip them and only output the
+                # `default` since that's valid and execution will be the same; the evaluation of
+                # case labels can't have side effects.
+                default = case_body
+                continue
+            cases.append(([self.build_integer(value) for value in values], case_body))
 
         return [
             ast.AssignmentStatement(target, real_target),
-            ast.SwitchStatement(
-                target,
-                (case(values, block) for values, block in instruction.operation.cases_specifier()),
-            ),
+            ast.SwitchStatement(target, cases, default=default),
         ]
 
     def build_while_loop(self, instruction: CircuitInstruction) -> ast.WhileLoopStatement:
@@ -888,7 +907,7 @@ class QASM3Builder:
         else:
             loop_parameter_ast = self._register_variable(loop_parameter, scope)
         if isinstance(indexset, range):
-            # QASM 3 uses inclusive ranges on both ends, unlike Python.
+            # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
             indexset_ast = ast.Range(
                 start=self.build_integer(indexset.start),
                 end=self.build_integer(indexset.stop - 1),
@@ -899,7 +918,7 @@ class QASM3Builder:
                 indexset_ast = ast.IndexSet([self.build_integer(value) for value in indexset])
             except QASM3ExporterError:
                 raise QASM3ExporterError(
-                    "The values in QASM 3 'for' loops must all be integers, but received"
+                    "The values in OpenQASM 3 'for' loops must all be integers, but received"
                     f" '{indexset}'."
                 ) from None
         body_ast = self.build_program_block(loop_circuit)

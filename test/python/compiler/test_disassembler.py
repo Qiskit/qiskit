@@ -24,11 +24,11 @@ from qiskit.assembler.run_config import RunConfig
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
 
-from qiskit.circuit.library import RXGate
+from qiskit.circuit.library import RXGate, Isometry
 from qiskit.pulse.transforms import target_qobj_transform
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def _parametric_to_waveforms(schedule):
@@ -141,7 +141,7 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         """Test disassembling a circuit with an isometry."""
         q = QuantumRegister(2, name="q")
         circ = QuantumCircuit(q, name="circ")
-        circ.iso(qi.random_unitary(4).data, circ.qubits, [])
+        circ.append(Isometry(qi.random_unitary(4).data, 0, 0), circ.qubits)
         qobj = assemble(circ)
         circuits, run_config_out, header = disassemble(qobj)
         run_config_out = RunConfig(**run_config_out)

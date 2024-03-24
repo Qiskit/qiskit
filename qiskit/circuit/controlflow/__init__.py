@@ -22,3 +22,6 @@ from .if_else import IfElseOp
 from .while_loop import WhileLoopOp
 from .for_loop import ForLoopOp
 from .switch_case import SwitchCaseOp, CASE_DEFAULT
+
+
+CONTROL_FLOW_OP_NAMES = frozenset(("for_loop", "while_loop", "if_else", "switch_case"))

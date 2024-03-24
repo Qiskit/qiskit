@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,7 +17,7 @@ import math
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
-from qiskit.quantum_info.synthesis import one_qubit_decompose
+from qiskit.synthesis.one_qubit import one_qubit_decompose
 from qiskit._accelerate import euler_one_qubit_decomposer
 from qiskit.circuit.library.standard_gates import (
     UGate,
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 # When expanding the list of supported gates this needs to updated in
 # lockstep with the VALID_BASES constant in src/euler_one_qubit_decomposer.rs
-# and the global variables in qiskit/quantum_info/synthesis/one_qubit_decompose.py
+# and the global variables in one_qubit_decompose.py
 NAME_MAP = {
     "u": UGate,
     "u1": U1Gate,
@@ -59,9 +59,9 @@ NAME_MAP = {
 class Optimize1qGatesDecomposition(TransformationPass):
     """Optimize chains of single-qubit gates by combining them into a single gate.
 
-    The decision to replace the original chain with a new resynthesis depends on:
+    The decision to replace the original chain with a new re-synthesis depends on:
      - whether the original chain was out of basis: replace
-     - whether the original chain was in basis but resynthesis is lower error: replace
+     - whether the original chain was in basis but re-synthesis is lower error: replace
      - whether the original chain contains a pulse gate: do not replace
      - whether the original chain amounts to identity: replace with null
 
@@ -94,7 +94,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         self.error_map = self._build_error_map()
 
     def _build_error_map(self):
-        if self._target is not None:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is not None and self._target.num_qubits is not None:
             error_map = euler_one_qubit_decomposer.OneQubitGateErrorMap(self._target.num_qubits)
             for qubit in range(self._target.num_qubits):
                 gate_error = {}
@@ -110,15 +111,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _resynthesize_run(self, matrix, qubit=None):
         """
-        Resynthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
+        Re-synthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
 
-        When multiple synthesis options are available, it prefers the one with lowest
+        When multiple synthesis options are available, it prefers the one with the lowest
         error when the circuit is applied to `qubit`.
         """
-        if self._target:
+        # include path for when target exists but target.num_qubits is None (BasicSimulator)
+        if self._target is not None and self._target.num_qubits is not None:
             if qubit is not None:
                 qubits_tuple = (qubit,)
             else:
@@ -128,9 +130,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
             else:
                 available_1q_basis = set(self._target.operation_names_for_qargs(qubits_tuple))
                 decomposers = _possible_decomposers(available_1q_basis)
-                self._local_decomposers_cache[qubits_tuple] = decomposers
         else:
             decomposers = self._global_decomposers
+
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
             matrix,
             decomposers,
@@ -140,13 +142,13 @@ class Optimize1qGatesDecomposition(TransformationPass):
         return best_synth_circuit
 
     def _gate_sequence_to_dag(self, best_synth_circuit):
-        qubits = [Qubit()]
+        qubits = (Qubit(),)
         out_dag = DAGCircuit()
         out_dag.add_qubits(qubits)
         out_dag.global_phase = best_synth_circuit.global_phase
 
         for gate_name, angles in best_synth_circuit:
-            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits)
+            out_dag.apply_operation_back(NAME_MAP[gate_name](*angles), qubits, check=False)
         return out_dag
 
     def _substitution_checks(self, dag, old_run, new_circ, basis, qubit):
@@ -173,10 +175,16 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
         #    then we _try_ to decompose, using the results if we see improvement.
+        new_error = 0.0
+        old_error = 0.0
+        if not uncalibrated_and_not_basis_p:
+            new_error = self._error(new_circ, qubit)
+            old_error = self._error(old_run, qubit)
+
         return (
             uncalibrated_and_not_basis_p
-            or (uncalibrated_p and self._error(new_circ, qubit) < self._error(old_run, qubit))
-            or math.isclose(self._error(new_circ, qubit)[0], 0)
+            or (uncalibrated_p and new_error < old_error)
+            or (math.isclose(new_error[0], 0) and not math.isclose(old_error[0], 0))
         )
 
     @control_flow.trivial_recurse

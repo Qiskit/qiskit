@@ -26,8 +26,6 @@ from qiskit.circuit import (
     Clbit,
 )
 
-from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
-
 from . import (
     HGate,
     CHGate,
@@ -73,6 +71,7 @@ from . import (
     ECRGate,
     ZGate,
     CZGate,
+    IGate,
     CCZGate,
     XXPlusYYGate,
     XXMinusYYGate,
@@ -80,6 +79,38 @@ from . import (
 
 
 _sel = StandardEquivalenceLibrary = EquivalenceLibrary()
+
+
+def _cnot_rxx_decompose(plus_ry: bool = True, plus_rxx: bool = True):
+    """Decomposition of CNOT gate.
+
+    NOTE: this differs to CNOT by a global phase.
+    The matrix returned is given by exp(1j * pi/4) * CNOT
+
+    Args:
+        plus_ry (bool): positive initial RY rotation
+        plus_rxx (bool): positive RXX rotation.
+
+    Returns:
+        QuantumCircuit: The decomposed circuit for CNOT gate (up to
+        global phase).
+    """
+    # Convert boolean args to +/- 1 signs
+    if plus_ry:
+        sgn_ry = 1
+    else:
+        sgn_ry = -1
+    if plus_rxx:
+        sgn_rxx = 1
+    else:
+        sgn_rxx = -1
+    circuit = QuantumCircuit(2, global_phase=-sgn_ry * sgn_rxx * pi / 4)
+    circuit.append(RYGate(sgn_ry * pi / 2), [0])
+    circuit.append(RXXGate(sgn_rxx * pi / 2), [0, 1])
+    circuit.append(RXGate(-sgn_rxx * pi / 2), [0])
+    circuit.append(RXGate(-sgn_rxx * sgn_ry * pi / 2), [1])
+    circuit.append(RYGate(-sgn_ry * pi / 2), [0])
+    return circuit
 
 
 # Import existing gate definitions
@@ -169,6 +200,27 @@ phi = Parameter("phi")
 def_r = QuantumCircuit(q)
 def_r.append(U3Gate(theta, phi - pi / 2, -phi + pi / 2), [q[0]])
 _sel.add_equivalence(RGate(theta, phi), def_r)
+
+# IGate
+q = QuantumRegister(1, "q")
+def_id = QuantumCircuit(q)
+def_id.append(UGate(0, 0, 0), [q[0]])
+_sel.add_equivalence(IGate(), def_id)
+
+q = QuantumRegister(1, "q")
+def_id_rx = QuantumCircuit(q)
+def_id_rx.append(RXGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_rx)
+
+q = QuantumRegister(1, "q")
+def_id_ry = QuantumCircuit(q)
+def_id_ry.append(RYGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_ry)
+
+q = QuantumRegister(1, "q")
+def_id_rz = QuantumCircuit(q)
+def_id_rz.append(RZGate(0), [q[0]])
+_sel.add_equivalence(IGate(), def_id_rz)
 
 # RCCXGate
 #
@@ -1188,6 +1240,7 @@ phi = Parameter("phi")
 lam = Parameter("lam")
 cu3_to_cu = QuantumCircuit(q)
 cu3_to_cu.cu(theta, phi, lam, 0, 0, 1)
+_sel.add_equivalence(CU3Gate(theta, phi, lam), cu3_to_cu)
 
 # XGate
 #
@@ -1227,9 +1280,9 @@ _sel.add_equivalence(XGate(), def_x)
 
 # CXGate
 
-for plus_ry in [False, True]:
-    for plus_rxx in [False, True]:
-        cx_to_rxx = cnot_rxx_decompose(plus_ry, plus_rxx)
+for pos_ry in [False, True]:
+    for pos_rxx in [False, True]:
+        cx_to_rxx = _cnot_rxx_decompose(pos_ry, pos_rxx)
         _sel.add_equivalence(CXGate(), cx_to_rxx)
 
 # CXGate

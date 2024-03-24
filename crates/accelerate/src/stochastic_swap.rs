@@ -33,20 +33,21 @@ use rand_pcg::Pcg64Mcg;
 
 use crate::edge_collections::EdgeCollection;
 use crate::getenv_use_multiple_threads;
-use crate::nlayout::NLayout;
+use crate::nlayout::{NLayout, PhysicalQubit, VirtualQubit};
 
 #[inline]
 fn compute_cost(
     dist: &ArrayView2<f64>,
     layout: &NLayout,
-    gates: &[usize],
+    gates: &[VirtualQubit],
     num_gates: usize,
 ) -> f64 {
     (0..num_gates)
-        .map(|kk| {
-            let ii = layout.logic_to_phys[gates[2 * kk]];
-            let jj = layout.logic_to_phys[gates[2 * kk + 1]];
-            dist[[ii, jj]]
+        .map(|gate| {
+            dist[[
+                gates[2 * gate].to_phys(layout).index(),
+                gates[2 * gate + 1].to_phys(layout).index(),
+            ]]
         })
         .sum()
 }
@@ -79,11 +80,11 @@ fn compute_random_scaling(
 fn swap_trial(
     num_qubits: usize,
     int_layout: &NLayout,
-    int_qubit_subset: &[usize],
-    gates: &[usize],
+    int_qubit_subset: &[VirtualQubit],
+    gates: &[VirtualQubit],
     cdist: ArrayView2<f64>,
     cdist2: ArrayView2<f64>,
-    edges: &[usize],
+    edges: &[PhysicalQubit],
     seed: u64,
     trial_num: u64,
     locked_best_possible: Option<&RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>>>,
@@ -112,10 +113,10 @@ fn swap_trial(
     let mut new_cost: f64;
     let mut dist: f64;
 
-    let mut optimal_start: usize = std::usize::MAX;
-    let mut optimal_end: usize = std::usize::MAX;
-    let mut optimal_start_qubit = std::usize::MAX;
-    let mut optimal_end_qubit = std::usize::MAX;
+    let mut optimal_start = PhysicalQubit::new(std::u32::MAX);
+    let mut optimal_end = PhysicalQubit::new(std::u32::MAX);
+    let mut optimal_start_qubit = VirtualQubit::new(std::u32::MAX);
+    let mut optimal_end_qubit = VirtualQubit::new(std::u32::MAX);
 
     let mut scale = Array2::zeros((num_qubits, num_qubits));
 
@@ -128,7 +129,7 @@ fn swap_trial(
 
     compute_random_scaling(&mut scale, &cdist2, &rand_arr, num_qubits);
 
-    let input_qubit_set: HashSet<usize> = int_qubit_subset.iter().copied().collect();
+    let input_qubit_set = int_qubit_subset.iter().copied().collect::<HashSet<_>>();
 
     while depth_step < depth_max {
         let mut qubit_set = input_qubit_set.clone();
@@ -139,11 +140,11 @@ fn swap_trial(
             for idx in 0..num_edges {
                 let start_edge = edges[2 * idx];
                 let end_edge = edges[2 * idx + 1];
-                let start_qubit = trial_layout.phys_to_logic[start_edge];
-                let end_qubit = trial_layout.phys_to_logic[end_edge];
+                let start_qubit = start_edge.to_virt(&trial_layout);
+                let end_qubit = end_edge.to_virt(&trial_layout);
                 if qubit_set.contains(&start_qubit) && qubit_set.contains(&end_qubit) {
                     // Try this edge to reduce cost
-                    trial_layout.swap(start_edge, end_edge);
+                    trial_layout.swap_physical(start_edge, end_edge);
                     // compute objective function
                     new_cost = compute_cost(&scale.view(), &trial_layout, gates, num_gates);
                     // record progress if we succeed
@@ -156,7 +157,7 @@ fn swap_trial(
                         optimal_start_qubit = start_qubit;
                         optimal_end_qubit = end_qubit;
                     }
-                    trial_layout.swap(start_edge, end_edge);
+                    trial_layout.swap_physical(start_edge, end_edge);
                 }
             }
             // After going over all edges
@@ -242,11 +243,11 @@ pub fn swap_trials(
     num_trials: u64,
     num_qubits: usize,
     int_layout: &NLayout,
-    int_qubit_subset: PyReadonlyArray1<usize>,
-    int_gates: PyReadonlyArray1<usize>,
+    int_qubit_subset: PyReadonlyArray1<VirtualQubit>,
+    int_gates: PyReadonlyArray1<VirtualQubit>,
     cdist: PyReadonlyArray2<f64>,
     cdist2: PyReadonlyArray2<f64>,
-    edges: PyReadonlyArray1<usize>,
+    edges: PyReadonlyArray1<PhysicalQubit>,
     seed: Option<u64>,
 ) -> PyResult<(Option<EdgeCollection>, Option<NLayout>, usize)> {
     let int_qubit_subset_arr = int_qubit_subset.as_slice()?;

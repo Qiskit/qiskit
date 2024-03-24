@@ -16,7 +16,6 @@ N-qubit Pauli Operator Class
 from __future__ import annotations
 
 import re
-import warnings
 from typing import Literal, TYPE_CHECKING
 
 import numpy as np
@@ -84,7 +83,7 @@ class Pauli(BasePauli):
     Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
     character. For example ``'XYZ'`` represents
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
-    ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
+    ``'Y'`` on qubit-1, and ``'X'`` on qubit-2.
 
     The string representation can be converted to a ``Pauli`` using the
     class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
@@ -97,7 +96,7 @@ class Pauli(BasePauli):
         returned string for large numbers of qubits while :meth:`to_label`
         will return the full string with no truncation. The default
         truncation length is 50 characters. The default value can be
-        changed by setting the class `__truncate__` attribute to an integer
+        changed by setting the class ``__truncate__`` attribute to an integer
         value. If set to ``0`` no truncation will be performed.
 
     **Array Representation**
@@ -111,13 +110,15 @@ class Pauli(BasePauli):
 
         P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
-    The :math:`k`th qubit corresponds to the :math:`k`th entry in the
+    The :math:`k`-th qubit corresponds to the :math:`k`-th entry in the
     :math:`z` and :math:`x` arrays
 
     .. math::
 
+        \begin{aligned}
         P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+        \end{aligned}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
 
@@ -150,15 +151,14 @@ class Pauli(BasePauli):
         print('P[:] =', repr(P[:]))
         print('P[::-1] =, repr(P[::-1]))
     """
+
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
     _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
     _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
-    def __init__(
-        self, data: str | tuple | Pauli | ScalarOp | None = None, x=None, *, z=None, label=None
-    ):
+    def __init__(self, data: str | tuple | Pauli | ScalarOp | QuantumCircuit | None = None):
         """Initialize the Pauli.
 
         When using the symplectic array input data both z and x arguments must
@@ -192,27 +192,6 @@ class Pauli(BasePauli):
             base_z, base_x, base_phase = self._from_scalar_op(data)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             base_z, base_x, base_phase = self._from_circuit(data)
-        elif x is not None:
-            if z is None:
-                # Using old Pauli initialization with positional args instead of kwargs
-                z = data
-            warnings.warn(
-                "Passing 'z' and 'x' arrays separately to 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Use a tuple instead, such as 'Pauli((z, x[, phase]))'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_array(z, x)
-        elif label is not None:
-            warnings.warn(
-                "The 'label' keyword argument of 'Pauli' is deprecated as of"
-                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
-                " Pass the label positionally instead, such as 'Pauli(\"XYZ\")'.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            base_z, base_x, base_phase = self._from_label(label)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
@@ -358,6 +337,8 @@ class Pauli(BasePauli):
         """
         if isinstance(qubits, (int, np.integer)):
             qubits = [qubits]
+        if len(qubits) == 0:
+            return Pauli((self._z, self._x, self.phase))
         if max(qubits) > self.num_qubits - 1:
             raise QiskitError(
                 "Qubit index is larger than the number of qubits "
@@ -712,7 +693,7 @@ class Pauli(BasePauli):
             if not isinstance(inner.operation, (Barrier, Delay)):
                 next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in inner.qubits]
+                    qargs = [instr.find_bit(tup).index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
 

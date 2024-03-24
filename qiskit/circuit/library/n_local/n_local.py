@@ -71,16 +71,20 @@ class NLocal(BlueprintCircuit):
     def __init__(
         self,
         num_qubits: int | None = None,
-        rotation_blocks: QuantumCircuit
-        | list[QuantumCircuit]
-        | qiskit.circuit.Instruction
-        | list[qiskit.circuit.Instruction]
-        | None = None,
-        entanglement_blocks: QuantumCircuit
-        | list[QuantumCircuit]
-        | qiskit.circuit.Instruction
-        | list[qiskit.circuit.Instruction]
-        | None = None,
+        rotation_blocks: (
+            QuantumCircuit
+            | list[QuantumCircuit]
+            | qiskit.circuit.Instruction
+            | list[qiskit.circuit.Instruction]
+            | None
+        ) = None,
+        entanglement_blocks: (
+            QuantumCircuit
+            | list[QuantumCircuit]
+            | qiskit.circuit.Instruction
+            | list[qiskit.circuit.Instruction]
+            | None
+        ) = None,
         entanglement: list[int] | list[list[int]] | None = None,
         reps: int = 1,
         insert_barriers: bool = False,
@@ -285,9 +289,17 @@ class NLocal(BlueprintCircuit):
     @property
     def entanglement(
         self,
-    ) -> str | list[str] | list[list[str]] | list[int] | list[list[int]] | list[
-        list[list[int]]
-    ] | list[list[list[list[int]]]] | Callable[[int], str] | Callable[[int], list[list[int]]]:
+    ) -> (
+        str
+        | list[str]
+        | list[list[str]]
+        | list[int]
+        | list[list[int]]
+        | list[list[list[int]]]
+        | list[list[list[list[int]]]]
+        | Callable[[int], str]
+        | Callable[[int], list[list[int]]]
+    ):
         """Get the entanglement strategy.
 
         Returns:
@@ -299,16 +311,18 @@ class NLocal(BlueprintCircuit):
     @entanglement.setter
     def entanglement(
         self,
-        entanglement: str
-        | list[str]
-        | list[list[str]]
-        | list[int]
-        | list[list[int]]
-        | list[list[list[int]]]
-        | list[list[list[list[int]]]]
-        | Callable[[int], str]
-        | Callable[[int], list[list[int]]]
-        | None,
+        entanglement: (
+            str
+            | list[str]
+            | list[list[str]]
+            | list[int]
+            | list[list[int]]
+            | list[list[list[int]]]
+            | list[list[list[list[int]]]]
+            | Callable[[int], str]
+            | Callable[[int], list[list[int]]]
+            | None
+        ),
     ) -> None:
         """Set the entanglement strategy.
 
@@ -780,8 +794,9 @@ class NLocal(BlueprintCircuit):
 
     def assign_parameters(
         self,
-        parameters: Mapping[Parameter, ParameterExpression | float]
-        | Sequence[ParameterExpression | float],
+        parameters: (
+            Mapping[Parameter, ParameterExpression | float] | Sequence[ParameterExpression | float]
+        ),
         inplace: bool = False,
         **kwargs,
     ) -> QuantumCircuit | None:
@@ -961,7 +976,7 @@ class NLocal(BlueprintCircuit):
 
     # pylint: disable=unused-argument
     def _parameter_generator(self, rep: int, block: int, indices: list[int]) -> Parameter | None:
-        """If certain blocks should use certain parameters this method can be overriden."""
+        """If certain blocks should use certain parameters this method can be overridden."""
         return None
 
 

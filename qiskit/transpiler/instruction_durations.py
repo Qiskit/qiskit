@@ -16,18 +16,11 @@ from typing import Optional, List, Tuple, Union, Iterable
 
 import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
-from qiskit.circuit import Instruction, Qubit, ParameterExpression
+from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
-
-
-def _is_deprecated_qubits_argument(qubits: Union[int, list[int], Qubit, list[Qubit]]) -> bool:
-    if isinstance(qubits, (int, Qubit)):
-        qubits = [qubits]
-    return isinstance(qubits[0], Qubit)
 
 
 class InstructionDurations:
@@ -101,7 +94,7 @@ class InstructionDurations:
         except AttributeError:
             dt = None
 
-        return InstructionDurations(instruction_durations, dt=dt)
+        return cls(instruction_durations, dt=dt)
 
     def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
@@ -130,7 +123,6 @@ class InstructionDurations:
             )
         else:
             for i, items in enumerate(inst_durations):
-
                 if not isinstance(items[-1], str):
                     items = (*items, "dt")  # set default unit
 
@@ -170,19 +162,10 @@ class InstructionDurations:
 
         return self
 
-    @deprecate_arg(
-        "qubits",
-        deprecation_description=(
-            "Using a Qubit or List[Qubit] for the ``qubits`` argument to InstructionDurations.get()"
-        ),
-        additional_msg="Instead, use an integer for the qubit index.",
-        since="0.19.0",
-        predicate=_is_deprecated_qubits_argument,
-    )
     def get(
         self,
         inst: str | qiskit.circuit.Instruction,
-        qubits: int | list[int] | Qubit | list[Qubit] | list[int | Qubit],
+        qubits: int | list[int],
         unit: str = "dt",
         parameters: list[float] | None = None,
     ) -> float:
@@ -192,7 +175,7 @@ class InstructionDurations:
 
         Args:
             inst: An instruction or its name to be queried.
-            qubits: Qubits or its indices that the instruction acts on.
+            qubits: Qubit indices that the instruction acts on.
             unit: The unit of duration to be returned. It must be 's' or 'dt'.
             parameters: The value of the parameters of the desired instruction.
 
@@ -212,11 +195,8 @@ class InstructionDurations:
         else:
             inst_name = inst
 
-        if isinstance(qubits, (int, Qubit)):
+        if isinstance(qubits, int):
             qubits = [qubits]
-
-        if isinstance(qubits[0], Qubit):
-            qubits = [q.index for q in qubits]
 
         try:
             return self._get(inst_name, qubits, unit, parameters)

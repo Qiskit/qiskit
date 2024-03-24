@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,13 +24,15 @@ from qiskit.circuit.classical import expr
 from qiskit.circuit.random import random_circuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.providers.fake_provider import FakeMumbai, FakeMumbaiV2
+from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout, CheckMap
 from qiskit.transpiler import CouplingMap, Layout, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.test import QiskitTestCase
-from qiskit.test._canonical import canonicalize_control_flow
 from qiskit.utils import optionals
+from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import MUMBAI_CMAP
 
 
 def looping_circuit(uphill_swaps=1, additional_local_minimum_gates=0):
@@ -123,6 +125,29 @@ class TestSabreSwap(QiskitTestCase):
         qc.cx(1, 0)
         qc.cx(4, 3)  # F
         qc.cx(0, 4)
+
+        passmanager = PassManager(SabreSwap(coupling, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
+    def test_2q_barriers_not_routed(self):
+        """Test that a 2q barrier is not routed."""
+        coupling = CouplingMap.from_line(5)
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.barrier(0, 1)
+        qc.barrier(0, 2)
+        qc.barrier(0, 3)
+        qc.barrier(2, 3)
+        qc.h(0)
+        qc.barrier(1, 2)
+        qc.barrier(1, 0)
+        qc.barrier(1, 3)
+        qc.barrier(1, 4)
+        qc.barrier(4, 3)
+        qc.barrier(0, 4)
 
         passmanager = PassManager(SabreSwap(coupling, "basic"))
         new_qc = passmanager.run(qc)
@@ -230,18 +255,9 @@ class TestSabreSwap(QiskitTestCase):
         coupling_map = CouplingMap.from_line(qc.num_qubits)
         routing_pass = PassManager(SabreSwap(coupling_map, method))
 
-        n_swap_gates = 0
-
-        def leak_number_of_swaps(cls, *args, **kwargs):
-            nonlocal n_swap_gates
-            n_swap_gates += 1
-            if n_swap_gates > 1_000:
-                raise Exception("SabreSwap seems to be stuck in a loop")
-            # pylint: disable=bad-super-call
-            return super(SwapGate, cls).__new__(cls, *args, **kwargs)
-
-        with unittest.mock.patch.object(SwapGate, "__new__", leak_number_of_swaps):
-            routed = routing_pass.run(qc)
+        # Since all the logic happens in Rust space these days, the best we'll really see here is
+        # the test hanging.
+        routed = routing_pass.run(qc)
 
         routed_ops = routed.count_ops()
         del routed_ops["swap"]
@@ -260,7 +276,7 @@ class TestSabreSwap(QiskitTestCase):
         if not optionals.HAS_AER:
             return
 
-        from qiskit import Aer
+        from qiskit_aer import Aer
 
         sim = Aer.get_backend("aer_simulator")
         in_results = sim.run(qc, shots=4096).result().get_counts()
@@ -692,9 +708,9 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg[[0]])
+        true_body = QuantumCircuit(qreg[:], creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg[[0]])
+        false_body = QuantumCircuit(qreg[:], creg[[0]])
         false_body.cx(0, 4)
         qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.h(3)
@@ -724,11 +740,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         efalse_body.swap(2, 3)
 
         expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
-        expected.h(3)
         expected.swap(1, 2)
+        expected.h(3)
         expected.cx(3, 2)
         expected.barrier()
-        expected.measure(qreg, creg[[1, 2, 0, 3, 4]])
+        expected.measure(qreg[[2, 0, 1, 3, 4]], creg)
         self.assertEqual(dag_to_circuit(cdag), expected)
 
     def test_if_expr(self):
@@ -1310,7 +1326,8 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend = FakeMumbai()
+        cls.backend = Fake27QPulseV1()
+        cls.backend.configuration().coupling_map = MUMBAI_CMAP
         cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
         cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
@@ -1371,7 +1388,7 @@ class TestSabreSwapRandomCircuitValidOutput(QiskitTestCase):
             routing_method="sabre",
             layout_method="sabre",
             seed_transpiler=12342,
-            target=FakeMumbaiV2().target,
+            target=GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP).target,
         )
         self.assert_valid_circuit(tqc)
 

@@ -21,7 +21,7 @@ import scipy.linalg
 from ddt import data, ddt, unpack
 
 from qiskit.circuit import Gate, QuantumCircuit
-from qiskit.extensions import (
+from qiskit.circuit.library import (
     CPhaseGate,
     CSdgGate,
     CSGate,
@@ -47,7 +47,7 @@ from qiskit.extensions import (
     iSwapGate,
 )
 from qiskit.quantum_info.operators import Operator
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt

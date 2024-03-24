@@ -107,12 +107,17 @@ def split_barriers(dag: DAGCircuit):
         num_qubits = len(node.qargs)
         if num_qubits == 1:
             continue
-        barrier_uuid = uuid.uuid4()
+        if node.op.label:
+            barrier_uuid = f"{node.op.label}_uuid={uuid.uuid4()}"
+        else:
+            barrier_uuid = f"_none_uuid={uuid.uuid4()}"
         split_dag = DAGCircuit()
         split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
         for i in range(num_qubits):
             split_dag.apply_operation_back(
-                Barrier(1, label=barrier_uuid), qargs=[split_dag.qubits[i]]
+                Barrier(1, label=barrier_uuid),
+                qargs=(split_dag.qubits[i],),
+                check=False,
             )
         dag.substitute_node_with_dag(node, split_dag)
 
@@ -122,10 +127,13 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     uuid_map: dict[uuid.UUID, DAGOpNode] = {}
     for node in dag.op_nodes(Barrier):
-        if isinstance(node.op.label, uuid.UUID):
-            barrier_uuid = node.op.label
+        if node.op.label:
+            if "_uuid=" in node.op.label:
+                barrier_uuid = node.op.label
+            else:
+                continue
             if barrier_uuid in uuid_map:
-                other_node = uuid_map[node.op.label]
+                other_node = uuid_map[barrier_uuid]
                 num_qubits = len(other_node.qargs) + len(node.qargs)
                 new_op = Barrier(num_qubits, label=barrier_uuid)
                 new_node = dag.replace_block_with_op([node, other_node], new_op, qubit_indices)
@@ -134,8 +142,11 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 uuid_map[barrier_uuid] = node
     if not retain_uuid:
         for node in dag.op_nodes(Barrier):
-            if isinstance(node.op.label, uuid.UUID):
+            if isinstance(node.op.label, str) and node.op.label.startswith("_none_uuid="):
                 node.op.label = None
+            elif isinstance(node.op.label, str) and "_uuid=" in node.op.label:
+                original_label = "_uuid=".join(node.op.label.split("_uuid=")[:-1])
+                node.op.label = original_label
 
 
 def require_layout_isolated_to_component(
@@ -164,7 +175,12 @@ def require_layout_isolated_to_component(
                 component_index = i
                 break
         if dag.find_bit(inst.qargs[1]).index not in component_sets[component_index]:
-            raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
+            raise TranspilerError(
+                "The circuit has an invalid layout as two qubits need to interact in disconnected "
+                "components of the coupling map. The physical qubit "
+                f"{dag.find_bit(inst.qargs[1]).index} needs to interact with the "
+                f"qubit {dag.find_bit(inst.qargs[0]).index} and they belong to different components"
+            )
 
 
 def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
@@ -186,7 +202,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
         new_dag.global_phase = 0
         for node in dag.topological_op_nodes():
             if dag_qubits.issuperset(node.qargs):
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
         idle_clbits = []
         for bit, node in new_dag.input_map.items():
             succ_node = next(new_dag.successors(node))
@@ -195,4 +211,7 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
         new_dag.remove_clbits(*idle_clbits)
         combine_barriers(new_dag)
         decomposed_dags.append(new_dag)
+    # Reverse split barriers on input dag to avoid leaking out internal transformations as
+    # part of splitting
+    combine_barriers(dag, retain_uuid=False)
     return decomposed_dags

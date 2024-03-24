@@ -18,11 +18,11 @@ import re
 import unittest
 import itertools as it
 from functools import lru_cache
-
 import numpy as np
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit
+from qiskit.circuit import Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library import (
     IGate,
@@ -38,10 +38,10 @@ from qiskit.circuit.library import (
     SwapGate,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
-from qiskit.test import QiskitTestCase
-
 from qiskit.quantum_info.random import random_clifford, random_pauli
 from qiskit.quantum_info.operators import Pauli, Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 LABEL_REGEX = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
 PHASE_MAP = {"": 0, "-i": 1, "-": 2, "i": 3}
@@ -223,6 +223,8 @@ class TestPauliProperties(QiskitTestCase):
     def test_delete(self):
         """Test delete method"""
         pauli = Pauli("IXYZ")
+        pauli = pauli.delete([])
+        self.assertEqual(str(pauli), "IXYZ")
         pauli = pauli.delete([0, 2])
         self.assertEqual(str(pauli), "IY")
 
@@ -483,6 +485,15 @@ class TestPauli(QiskitTestCase):
         expected.phase = phase
         test = Pauli(label)
         self.assertEqual(expected, test)
+
+    def test_circuit_with_bit(self):
+        """Test new-style Bit support when converting from QuantumCircuit"""
+        circ = QuantumCircuit([Qubit()])
+        circ.x(0)
+        value = Pauli(circ)
+        target = Pauli("X")
+
+        self.assertEqual(value, target)
 
 
 if __name__ == "__main__":

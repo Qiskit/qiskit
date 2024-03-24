@@ -1,0 +1,43 @@
+name: Documentation
+on:
+  push:
+    branches:
+      - main
+    tags:
+      # Only match non-prerelease tags.
+      - '[0-9]+.[0-9]+.[0-9]'
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.repository_owner == 'Qiskit'
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # We need to fetch the whole history so 'reno' can do its job and we can inspect tags.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          # Sync with 'documentationPythonVersion' in 'azure-pipelines.yml'.
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: tools/install_ubuntu_docs_dependencies.sh
+
+      - name: Build documentation
+        run: tox run -e docs
+
+      - name: Store built documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qiskit-docs
+          path: |
+            ./docs/_build/html/*
+            !**/.doctrees
+            !**/.buildinfo
+          if-no-files-found: error

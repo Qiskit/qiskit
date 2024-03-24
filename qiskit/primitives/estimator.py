@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from typing import Any
-import typing
 
 import numpy as np
 
@@ -34,9 +33,6 @@ from .utils import (
     bound_circuit_to_instruction,
     init_observable,
 )
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 
 class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
@@ -64,6 +60,9 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             QiskitError: if some classical bits are not used for measurements.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
         self._circuit_ids = {}
         self._observable_ids = {}
 
@@ -96,7 +95,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             bound_circuits.append(
                 self._circuits[i]
                 if len(value) == 0
-                else self._circuits[i].bind_parameters(dict(zip(self._parameters[i], value)))
+                else self._circuits[i].assign_parameters(dict(zip(self._parameters[i], value)))
             )
         sorted_observables = [self._observables[i] for i in observables]
         expectation_values = []
@@ -116,8 +115,8 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                 variance = sq_exp_val - expectation_value**2
                 variance = max(variance, 0)
-                standard_deviation = np.sqrt(variance / shots)
-                expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
+                standard_error = np.sqrt(variance / shots)
+                expectation_value_with_error = rng.normal(expectation_value, standard_error)
                 expectation_values.append(expectation_value_with_error)
                 metadatum["variance"] = variance
                 metadatum["shots"] = shots
@@ -127,7 +126,7 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ):
@@ -155,5 +154,5 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
-        job.submit()
+        job._submit()
         return job

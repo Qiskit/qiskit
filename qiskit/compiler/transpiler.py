@@ -28,7 +28,7 @@ from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
 from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
@@ -67,6 +67,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     init_method: Optional[str] = None,
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
+    num_processes: Optional[int] = None,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
@@ -130,7 +131,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
-        layout_method: Name of layout selection pass ('trivial', 'dense', 'noise_adaptive', 'sabre').
+        layout_method: Name of layout selection pass ('trivial', 'dense', 'sabre').
             This can also be the external plugin name to use for the ``layout`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
@@ -231,7 +232,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         target: A backend transpiler target. Normally this is specified as part of
@@ -257,6 +258,11 @@ def transpile(  # pylint: disable=too-many-return-statements
             to support custom compilation target-specific passes/plugins which support
             backend-specific compilation techniques. If you'd prefer that these defaults were
             not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
+            environment variable. If set to ``None`` the system default or local user configuration
+            will be used.
 
     Returns:
         The transpiled circuit(s).
@@ -300,6 +306,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         )
 
     _skip_target = False
+    _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
     # If a target is specified have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
@@ -335,7 +342,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
 
-    if inst_map is not None and inst_map.has_custom_gate() and target is not None:
+    if _given_inst_map and inst_map.has_custom_gate() and target is not None:
         # Do not mutate backend target
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
@@ -380,7 +387,7 @@ def transpile(  # pylint: disable=too-many-return-statements
                     optimization_method=optimization_method,
                     _skip_target=_skip_target,
                 )
-                out_circuits.append(pm.run(circuit, callback=callback))
+                out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
             for name, circ in zip(output_name, out_circuits):
                 circ.name = name
                 end_time = time()
@@ -445,7 +452,7 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
         if max_qubits is not None and (num_qubits > max_qubits):
-            raise TranspilerError(
+            raise CircuitTooWideForTarget(
                 f"Number of qubits ({num_qubits}) in {circuit.name} "
                 f"is greater than maximum ({max_qubits}) in the coupling_map"
             )
@@ -502,10 +509,10 @@ def _parse_initial_layout(initial_layout):
         return initial_layout
     if isinstance(initial_layout, dict):
         return Layout(initial_layout)
+    initial_layout = list(initial_layout)
     if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
         return Layout.from_qubit_list(initial_layout)
-    else:
-        return initial_layout
+    return initial_layout
 
 
 def _parse_instruction_durations(backend, inst_durations, dt, circuit):

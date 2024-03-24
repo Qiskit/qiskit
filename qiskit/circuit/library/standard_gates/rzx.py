@@ -43,14 +43,14 @@ class RZXGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         R_{ZX}(\theta)\ q_0, q_1 = \exp\left(-i \frac{\theta}{2} X{\otimes}Z\right) =
             \begin{pmatrix}
-                \cos\left(\th\right)   & 0          & -i\sin\left(\th\right)  & 0          \\
-                0           & \cos\left(\th\right)  & 0            & i\sin\left(\th\right) \\
-                -i\sin\left(\th\right) & 0          & \cos\left(\th\right)    & 0          \\
-                0           & i\sin\left(\th\right) & 0            & \cos\left(\th\right)
+                \cos\left(\rotationangle\right) & 0 & -i\sin\left(\rotationangle\right) & 0 \\
+                0 & \cos\left(\rotationangle\right) & 0 & i\sin\left(\rotationangle\right) \\
+                -i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right) & 0 \\
+                0 & i\sin\left(\rotationangle\right) & 0 & \cos\left(\rotationangle\right)
             \end{pmatrix}
 
     .. note::
@@ -71,14 +71,14 @@ class RZXGate(Gate):
 
         .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
             R_{ZX}(\theta)\ q_1, q_0 = exp(-i \frac{\theta}{2} Z{\otimes}X) =
                 \begin{pmatrix}
-                    \cos(\th)   & -i\sin(\th) & 0           & 0          \\
-                    -i\sin(\th) & \cos(\th)   & 0           & 0          \\
-                    0           & 0           & \cos(\th)   & i\sin(\th) \\
-                    0           & 0           & i\sin(\th)  & \cos(\th)
+                    \cos(\rotationangle)   & -i\sin(\rotationangle) & 0           & 0          \\
+                    -i\sin(\rotationangle) & \cos(\rotationangle)   & 0           & 0          \\
+                    0           & 0           & \cos(\rotationangle)   & i\sin(\rotationangle) \\
+                    0           & 0           & i\sin(\rotationangle)  & \cos(\rotationangle)
                 \end{pmatrix}
 
         This is a direct sum of RX rotations, so this gate is equivalent to a
@@ -117,9 +117,11 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(
+        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+    ):
         """Create new RZX gate."""
-        super().__init__("rzx", 2, [theta], label=label)
+        super().__init__("rzx", 2, [theta], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """
@@ -150,8 +152,18 @@ class RZXGate(Gate):
 
         self.definition = qc
 
-    def inverse(self):
-        """Return inverse RZX gate (i.e. with the negative rotation angle)."""
+    def inverse(self, annotated: bool = False):
+        """Return inverse RZX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZXGate` with an inverted parameter value.
+
+         Returns:
+            RZXGate: inverse gate.
+        """
         return RZXGate(-self.params[0])
 
     def __array__(self, dtype=None):
@@ -170,3 +182,8 @@ class RZXGate(Gate):
         """Raise gate to a power."""
         (theta,) = self.params
         return RZXGate(exponent * theta)
+
+    def __eq__(self, other):
+        if isinstance(other, RZXGate):
+            return self._compare_parameters(other)
+        return False

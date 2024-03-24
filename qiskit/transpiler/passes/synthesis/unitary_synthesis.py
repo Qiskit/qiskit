@@ -10,7 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Synthesize UnitaryGates."""
+"""
+=========================================================================================
+Unitary Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.unitary_synthesis`)
+=========================================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DefaultUnitarySynthesis
+"""
+
 from __future__ import annotations
 from math import pi, inf, isclose
 from typing import Any
@@ -24,9 +34,9 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
 )
@@ -152,7 +162,7 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                if isinstance(target_op, type(inst.operation)) and (
+                if isinstance(target_op, inst.operation.base_class) and (
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))
@@ -312,7 +322,7 @@ class UnitarySynthesis(TransformationPass):
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises :class:`~TranspileError`. If set to None, no
+                determined, raises :class:`.TranspilerError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
@@ -331,6 +341,11 @@ class UnitarySynthesis(TransformationPass):
             target: The optional :class:`~.Target` for the target device the pass
                 is compiling for. If specified this will supersede the values
                 set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
+
+        Raises:
+            TranspilerError: if ``method`` was specified but is not found in the
+                installed plugins list. The list of installed plugins can be queried with
+                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
@@ -358,6 +373,9 @@ class UnitarySynthesis(TransformationPass):
 
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
+            raise TranspilerError(f"Specified method '{self.method}' not found in plugin list")
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the UnitarySynthesis pass on ``dag``.
 
@@ -366,19 +384,13 @@ class UnitarySynthesis(TransformationPass):
 
         Returns:
             Output dag with UnitaryGates synthesized to target basis.
-
-        Raises:
-            TranspilerError: if ``method`` was specified for the class and is not
-                found in the installed plugins list. The list of installed
-                plugins can be queried with
-                :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method != "default" and self.method not in self.plugins.ext_plugins:
-            raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
-        # Return fast if we have no synth gates (ie user specified an empty
-        # list or the synth gates are all in the basis
-        if not self._synth_gates:
+
+        # If there aren't any gates to synthesize in the circuit we can skip all the iteration
+        # and just return.
+        if not set(self._synth_gates).intersection(dag.count_ops()):
             return dag
+
         if self.plugins:
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
@@ -782,9 +794,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     error = 0.0
                 basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
-            embodiment = XXEmbodiments[type(v)]
+            embodiment = XXEmbodiments[v.base_class]
             if len(embodiment.parameters) == 1:
-                embodiments[strength] = embodiment.bind_parameters([strength])
+                embodiments[strength] = embodiment.assign_parameters([strength])
             else:
                 embodiments[strength] = embodiment
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
@@ -802,7 +814,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                         basis_fidelity=basis_2q_fidelity,
                         pulse_optimize=True,
                     )
-                    embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
+                    embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
                 else:
                     pi2_decomposer = None
                 decomposer = XXDecomposer(
@@ -864,7 +876,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 default=None,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 
