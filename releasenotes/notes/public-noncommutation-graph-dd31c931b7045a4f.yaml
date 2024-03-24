@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Adds the :meth:`.PauliList.noncommutation_graph` and
     :meth:`.SparsePauliOp.noncommutation_graph` methods, exposing the

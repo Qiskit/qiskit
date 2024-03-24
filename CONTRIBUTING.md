@@ -332,7 +332,14 @@ deprecations:
     :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples. 
+You can also look at other release notes for other examples.
+
+For the ``features``, ``deprecations``, and ``upgrade`` sections there are a
+list of subsections available which are used to provide more structure to the
+release notes organization. If you're adding a feature, making an API change,
+or deprecating an API you should pick the subsection that matches that note.
+For example if you're adding a new feature to the transpiler, you should put
+it under the ``upgrade_transpiler`` section.
 
 Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
 In fact, you can use any restructured text feature in them (code sections, tables,
