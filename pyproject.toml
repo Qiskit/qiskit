@@ -170,6 +170,7 @@ select = [
   "F631",  # assert-tuple
   "F632",  # is-literal
   "F634",  # if-tuple
+  "F823",  # undefined-local
   "G",     # flake8-logging-format
   "T10",   # category: flake8-debugger
 ]
