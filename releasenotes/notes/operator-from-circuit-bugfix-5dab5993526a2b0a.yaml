@@ -1,12 +1,7 @@
 ---
-features_quantum_info:
+fixes:
   - |
-    Added a new test case to check the initialization of :class:`.Operator` via :meth:`.Operator.from_circuit`
-    when both an initial layout and a final layout is specified in the `_layout` attribute of a :class:`.QuantumCircuit` object.
+    Fixed an issue with the :meth:`.Operator.from_circuit` constructor method where it would incorrectly
+    interpret the final layout permutation resulting in an invalid `Operator` being constructed.
     Previously, the final layout was processed without regards for the initial layout, i.e. the
-    initialization was incorrect for all quantum circuits that have a non-trivial initial layout. In
-    addition, this behavior was fixed in :meth:`.Operator.from_circuit`, i.e. an :class:`.Operator` can
-    now be correctly initialized from a quantum circuit with arbitrary initial and final layouts.
-    Lastly, the documentation of the constructor of :class:`.Operator` was adapted to hint to :meth:`.Operator.from_circuit`
-    when e.g. the equivalency of two operators should be determined with non-canonical qubit permutations
-    specified via initial and final layouts.
+    initialization was incorrect for all quantum circuits that have a non-trivial initial layout.
