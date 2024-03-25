@@ -656,6 +656,21 @@ class TestBackendSamplerV2(QiskitTestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].data), 0)
 
+    @combine(backend=BACKENDS)
+    def test_empty_creg(self, backend):
+        """Test that the sampler works if provided a classical register with no bits."""
+        # Test case for issue #12043
+        q = QuantumRegister(1, "q")
+        c1 = ClassicalRegister(0, "c1")
+        c2 = ClassicalRegister(1, "c2")
+        qc = QuantumCircuit(q, c1, c2)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        sampler = BackendSamplerV2(backend=backend, options=self._options)
+        result = sampler.run([qc], shots=self._shots).result()
+        self.assertEqual(result[0].data.c1.array.shape, (self._shots, 0))
+
 
 if __name__ == "__main__":
     unittest.main()
