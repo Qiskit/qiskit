@@ -411,6 +411,7 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(op2, [1], [], op3, [1], []))
 
     def test_utf8_gate_names(self):
+        """Check compatibility of non-ascii quantum gate names."""
         g0 = RXXGate(1.234).to_mutable()
         g0.name = "すみません"
 
