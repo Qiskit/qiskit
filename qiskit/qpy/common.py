@@ -14,6 +14,7 @@
 """
 Common functions across several serialization and deserialization modules.
 """
+from __future__ import annotations
 
 import io
 import struct
