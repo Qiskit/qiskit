@@ -81,7 +81,10 @@ def transpile(  # pylint: disable=too-many-return-statements
     ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
     from the list above, the loose constraint will take priority over the corresponding backend
     constraint. This behavior is independent of whether the ``backend`` instance is of type
-    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below:
+    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    in the table summarizes the potential user-provided constraints, and each cell shows whether
+    the priority is assigned to that specific constraint input or another input
+    (`target`/`backend(V1)`/`backend(V2)`).
 
     ============================ ========= ======================== =======================
     User Provided                target    backend(V1)              backend(V2)
