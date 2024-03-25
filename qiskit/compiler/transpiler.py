@@ -84,7 +84,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below:
 
     ============================ ========= ======================== =======================
-    priority?                    target    backend(V1)              backend(V2)
+    User Provided                target    backend(V1)              backend(V2)
     ============================ ========= ======================== =======================
     **basis_gates**              target    basis_gates              basis_gates
     **coupling_map**             target    coupling_map             coupling_map
