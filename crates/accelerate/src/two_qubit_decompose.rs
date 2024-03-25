@@ -1995,7 +1995,13 @@ impl TwoQubitBasisDecomposer {
                 )
             })
             .collect();
-        let mut gates = Vec::new();
+        // Worst case length is 5x 1q gates for each 1q decomposition + 1x 2q gate
+        // We might overallocate a bit if the euler basis is different but
+        // the worst case is just 16 extra elements with just a String and 2 smallvecs
+        // each. This is only transient though as the circuit sequences aren't long lived
+        // and are just used to create a QuantumCircuit or DAGCircuit when we return to
+        // Python space.
+        let mut gates = Vec::with_capacity(21);
         let mut global_phase = target_decomposed.global_phase;
         global_phase -= best_nbasis as f64 * self.basis_decomposer.global_phase;
         if best_nbasis == 2 {
