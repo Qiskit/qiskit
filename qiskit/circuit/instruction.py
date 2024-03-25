@@ -241,8 +241,8 @@ class Instruction(Operation):
         """
         if (
             self.name != other.name
-            or other.num_qubits != other.num_qubits
-            or other.num_clbits != other.num_clbits
+            or self.num_qubits != other.num_qubits
+            or self.num_clbits != other.num_clbits
             or len(self.params) != len(other.params)
         ):
             return False
