@@ -32,6 +32,52 @@ class TestElidePermutations(QiskitTestCase):
         super().setUp()
         self.swap_pass = ElidePermutations()
 
+    def check_equivalence(self, qc, tqc):
+        """
+        This is a temporary function that checks that the original circuit
+        qc is equivalent to the transpiled circuit tqc, while taking
+        initial and final layouts into account.
+        """
+
+        # Unfortunately, we cannot do much when the original and the transpiled circuits
+        # have different numbers of qubits, since Operator-based comparison does not
+        # work in this case.
+        if qc.num_qubits != tqc.num_qubits:
+            return
+
+        # This should work with the correct fix to Operator.from_circuit().
+        # self.assertTrue(Operator.from_circuit(transpiled_qc).equiv(Operator(qc)))
+
+        # For now do the slow but correct-by-construction checking
+        from qiskit.transpiler import Layout
+
+        def _layout_to_perm_pattern(layout, qubits):
+            # Map layout object to permutation
+            perm = [0] * len(qubits)
+            for i, q in enumerate(qubits):
+                pos = layout._v2p[q]
+                perm[pos] = i
+            return perm
+
+        t_qubits = tqc.qubits
+
+        if (t_initial_layout := tqc.layout.initial_layout) is None:
+            t_initial_layout = Layout(dict(enumerate(t_qubits)))
+        t_initial_perm = _layout_to_perm_pattern(t_initial_layout, t_qubits)
+
+        if (t_final_layout := tqc.layout.final_layout) is None:
+            t_final_layout = Layout(dict(enumerate(t_qubits)))
+        t_final_perm = _layout_to_perm_pattern(t_final_layout, t_qubits)
+
+        # Add layouts to qc
+        qc_with_layouts = QuantumCircuit(qc.num_qubits)
+        qc_with_layouts.append(PermutationGate(t_initial_perm).inverse(), t_qubits)
+        qc_with_layouts.append(qc, t_qubits)
+        qc_with_layouts.append(PermutationGate(t_initial_perm), t_qubits)
+        qc_with_layouts.append(PermutationGate(t_final_perm), t_qubits)
+
+        self.assertTrue(Operator(qc_with_layouts).equiv(Operator(tqc)))
+
     def test_no_swap(self):
         """Test no swap means no transform."""
         qc = QuantumCircuit(2)
@@ -186,14 +232,15 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
-        # with no layout
+        # Without coupling map
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(expected))
-        # With layout
+        self.check_equivalence(qc, res)
+
+        # With coupling map
         res = transpile(
             qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234
         )
-        self.assertTrue(Operator.from_circuit(res).equiv(expected))
+        self.check_equivalence(qc, res)
 
     def test_unitary_equivalence_with_elide_and_routing(self):
         """Test full transpile pipeline with pass preserves permutation for unitary equivalence including
@@ -222,10 +269,12 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
-        # with no layout
+        # without coupling map
         res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(expected))
-        # With layout
+        # self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+        self.check_equivalence(qc, res)
+
+        # With coupling map
         res = transpile(
             qc,
             coupling_map=CouplingMap.from_line(5),
@@ -233,7 +282,48 @@ class TestElidePermutations(QiskitTestCase):
             optimization_level=3,
             seed_transpiler=1234,
         )
-        self.assertTrue(Operator.from_circuit(res).equiv(expected))
+        # self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+        self.check_equivalence(qc, res)
+
+        # Without coupling map but with initial layout
+        res = transpile(
+            qc,
+            initial_layout=[4, 2, 1, 3, 0],
+            basis_gates=["u", "cz"],
+            optimization_level=3,
+            seed_transpiler=1234,
+        )
+        self.check_equivalence(qc, res)
+
+        # With coupling map and with initial layout
+        res = transpile(
+            qc,
+            coupling_map=CouplingMap.from_line(5),
+            initial_layout=[4, 2, 1, 3, 0],
+            basis_gates=["u", "cz"],
+            optimization_level=3,
+            seed_transpiler=1234,
+        )
+        self.check_equivalence(qc, res)
+
+        # With coupling map over more qubits
+        res = transpile(
+            qc,
+            optimization_level=3,
+            seed_transpiler=42,
+            coupling_map=CouplingMap.from_line(8),
+        )
+        self.check_equivalence(qc, res)
+
+        # With coupling map over more qubits and initial layout
+        res = transpile(
+            qc,
+            initial_layout=[4, 2, 7, 3, 6],
+            optimization_level=3,
+            seed_transpiler=42,
+            coupling_map=CouplingMap.from_line(8),
+        )
+        self.check_equivalence(qc, res)
 
     def test_permutation_in_middle(self):
         """Test permutation in middle of bell is elided."""

@@ -157,8 +157,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
-            if pass_manager_config.initial_layout is None:
-                init.append(ElidePermutations())
+            init.append(ElidePermutations())
         else:
             return TranspilerError(f"Invalid optimization level {optimization_level}")
         return init

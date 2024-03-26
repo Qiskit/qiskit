@@ -154,17 +154,11 @@ class BasePass(GenericPass, metaclass=MetaPass):
         elif result is None:
             result_circuit = circuit.copy()
 
-        layout = self.property_set["layout"]
-        if not layout:
-            layout = self.property_set["original_layout"]
-        final_layout = self.property_set["final_layout"]
-        if not final_layout:
-            final_layout = self.property_set["elision_final_layout"]
-        if layout:
+        if self.property_set["layout"]:
             result_circuit._layout = TranspileLayout(
-                initial_layout=layout,
+                initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=final_layout,
+                final_layout=self.property_set["final_layout"],
                 _input_qubit_count=len(circuit.qubits),
                 _output_qubit_list=result_circuit.qubits,
             )

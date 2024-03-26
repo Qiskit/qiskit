@@ -368,6 +368,53 @@ class Layout:
             out.add_register(qreg)
         return out
 
+    def compose(self, other: Layout, qubits: List[Qubit]) -> Layout:
+        """Compose this layout with another layout.
+
+        If this layout represents a mapping from the P-qubits to the positions of the Q-qubits,
+        and the ``other layout`` represents a mapping from the Q-qubits to the positions of
+        the R-qubits, then the composed layout represents a mapping from the P-qubits to the
+        positions of the R-qubits.
+
+        Args:
+            other: The existing :class:`.Layout` to compose this :class:`.Layout` with.
+            qubits: A list of :class:`.Qubit` objects over which ``other`` is defined,
+                used to establish the correspondence between the positions of the ``other``
+                qubits and the actual qubits.
+
+        Returns:
+            A new layout object the represents this layout composed with the ``other`` layout.
+        """
+        other_v2p = other.get_virtual_bits()
+        return Layout({virt: other_v2p[qubits[phys]] for virt, phys in self._v2p.items()})
+
+    def inverse(self, source_qubits: List[Qubit], target_qubits: List[Qubit]):
+        """Finds the inverse of this layout.
+
+        This is possible since a layout is a bijective mapping, however the input
+        and the output qubits may be different (in particular, this layout may be
+        the mapping from the extended-with-ancillas virtual qubits to physical qubits).
+        Thus, if this layout represents a mapping from the P-qubits to the positions
+        of the Q-qubits, the inverse layout represents a mapping from the Q-qubits
+        to the positions of the P-qubits.
+
+        Args:
+            source_qubits: A list of :class:`.Qubit` objects representing the domain
+                of the layout.
+            target_qubits: A list of :class:`.Qubit` objects representing the image
+                of the layout.
+
+        Returns:
+            A new layout object the represents the inverse of this layout.
+        """
+        source_qubit_to_position = {q: p for p, q in enumerate(source_qubits)}
+        return Layout(
+            {
+                target_qubits[pos_phys]: source_qubit_to_position[virt]
+                for virt, pos_phys in self._v2p.items()
+            }
+        )
+
 
 @dataclass
 class TranspileLayout:
