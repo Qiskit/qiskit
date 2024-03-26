@@ -584,6 +584,7 @@ def generate_scheduling(
             InstructionDurationCheck(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
+                target=target,
             )
         )
         scheduling.append(
@@ -591,6 +592,7 @@ def generate_scheduling(
                 ConstrainedReschedule(
                     acquire_alignment=timing_constraints.acquire_alignment,
                     pulse_alignment=timing_constraints.pulse_alignment,
+                    target=target,
                 ),
                 condition=_require_alignment,
             )
@@ -599,6 +601,7 @@ def generate_scheduling(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,
                 min_length=timing_constraints.min_length,
+                target=target,
             )
         )
     if scheduling_method:
