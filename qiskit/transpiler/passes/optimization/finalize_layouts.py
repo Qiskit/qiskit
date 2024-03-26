@@ -69,9 +69,7 @@ class FinalizeLayouts(AnalysisPass):
 
         # ToDo: this can possibly be made simpler
         new_final_layout = t_initial_layout_inv
-        new_final_layout = new_final_layout.compose(
-            virtual_permutation_layout_inv, original_qubits
-        )
+        new_final_layout = new_final_layout.compose(virtual_permutation_layout_inv, original_qubits)
         new_final_layout = new_final_layout.compose(t_initial_layout, original_qubits)
         new_final_layout = new_final_layout.compose(t_final_layout, t_qubits)
 
