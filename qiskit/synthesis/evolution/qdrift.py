@@ -83,8 +83,6 @@ class QDrift(ProductFormula):
             size=(num_gates,),
             p=weights / lambd,
         )
-        # Update the coefficients of sampled_ops
-        self.sampled_ops = [(op, evolution_time) for op, coeff in self.sampled_ops]
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -94,7 +92,7 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
         evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
+            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
             time=evolution_time,
             synthesis=lie_trotter,
         ).definition

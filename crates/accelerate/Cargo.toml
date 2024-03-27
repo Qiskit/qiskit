@@ -15,7 +15,7 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rayon = "1.9"
+rayon = "1.10"
 numpy = "0.20.0"
 rand = "0.8"
 rand_pcg = "0.3"
