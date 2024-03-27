@@ -75,6 +75,12 @@ class Instruction(ABC):
         raise NotImplementedError
 
     @property
+    @abstractmethod
+    def inst_targets(self) -> tuple[Channel | MixedFrame | Frame | PulseTarget, ...]:
+        """Returns the objects targeted by the instruction."""
+        raise NotImplementedError
+
+    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction."""
         return 0
@@ -319,6 +325,11 @@ class FrameUpdate(Instruction, ABC):
     def inst_target(self) -> MixedFrame | Frame | PulseChannel:
         """Return the frame or mixed frame targeted by this instruction."""
         return self.operands[1]
+
+    @property
+    def inst_targets(self) -> tuple[PulseChannel | MixedFrame | Frame]:
+        """Returns the frame or mixed frame targeted by the instruction."""
+        return (self.inst_target,)
 
     @property
     def channels(self) -> Tuple[Channel]:

@@ -94,6 +94,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq.duration, 10)
         self.assertEqual(acq.channel, None)
         self.assertEqual(acq.qubit, Qubit(1))
+        self.assertEqual(acq.inst_targets, (Qubit(1), channels.MemorySlot(0)))
         self.assertEqual(acq.discriminator.name, "linear_discriminator")
         self.assertEqual(acq.discriminator.params, discriminator_opts)
         self.assertEqual(acq.kernel.name, "boxcar")
@@ -173,6 +174,7 @@ class TestDelay(QiskitTestCase):
             ref = target or mixed_frame
 
         self.assertEqual(delay.inst_target, ref)
+        self.assertEqual(delay.inst_targets, (ref,))
         self.assertEqual(delay.operands, (10, ref))
 
     @named_data(
@@ -269,6 +271,7 @@ class TestSetFrequency(QiskitTestCase):
         self.assertEqual(set_freq.frequency, 4.5e9)
         self.assertEqual(set_freq.channel, channels.DriveChannel(1))
         self.assertEqual(set_freq.inst_target, channels.DriveChannel(1))
+        self.assertEqual(set_freq.inst_targets, (channels.DriveChannel(1),))
         self.assertEqual(set_freq.operands, (4.5e9, channels.DriveChannel(1)))
         self.assertEqual(
             set_freq,
@@ -297,6 +300,7 @@ class TestSetFrequency(QiskitTestCase):
         else:
             ref = frame or mixed_frame
         self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.inst_targets, (ref,))
         self.assertEqual(set_freq.operands, (4.5e9, ref))
 
     @named_data(*_invalid_frame_input_combinations)
@@ -361,6 +365,7 @@ class TestShiftFrequency(QiskitTestCase):
         self.assertEqual(shift_freq.frequency, 4.5e9)
         self.assertEqual(shift_freq.channel, channels.DriveChannel(1))
         self.assertEqual(shift_freq.inst_target, channels.DriveChannel(1))
+        self.assertEqual(shift_freq.inst_targets, (channels.DriveChannel(1),))
         self.assertEqual(shift_freq.operands, (4.5e9, channels.DriveChannel(1)))
         self.assertEqual(
             shift_freq,
@@ -391,6 +396,7 @@ class TestShiftFrequency(QiskitTestCase):
         else:
             ref = frame or mixed_frame
         self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.inst_targets, (ref,))
         self.assertEqual(set_freq.operands, (4.5e9, ref))
 
     @named_data(*_invalid_frame_input_combinations)
@@ -454,6 +460,7 @@ class TestSetPhase(QiskitTestCase):
         self.assertEqual(set_phase.phase, 1.57)
         self.assertEqual(set_phase.channel, channels.DriveChannel(0))
         self.assertEqual(set_phase.inst_target, channels.DriveChannel(0))
+        self.assertEqual(set_phase.inst_targets, (channels.DriveChannel(0),))
         self.assertEqual(set_phase.operands, (1.57, channels.DriveChannel(0)))
         self.assertEqual(
             set_phase, instructions.SetPhase(1.57, channel=channels.DriveChannel(0), name="test")
@@ -480,6 +487,7 @@ class TestSetPhase(QiskitTestCase):
         else:
             ref = frame or mixed_frame
         self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.inst_targets, (ref,))
         self.assertEqual(set_freq.operands, (1.5, ref))
 
     @named_data(*_invalid_frame_input_combinations)
@@ -543,6 +551,7 @@ class TestShiftPhase(QiskitTestCase):
         self.assertEqual(shift_phase.phase, 1.57)
         self.assertEqual(shift_phase.channel, channels.DriveChannel(0))
         self.assertEqual(shift_phase.inst_target, channels.DriveChannel(0))
+        self.assertEqual(shift_phase.inst_targets, (channels.DriveChannel(0),))
         self.assertEqual(shift_phase.operands, (1.57, channels.DriveChannel(0)))
         self.assertEqual(
             shift_phase,
@@ -571,6 +580,7 @@ class TestShiftPhase(QiskitTestCase):
         else:
             ref = frame or mixed_frame
         self.assertEqual(set_freq.inst_target, ref)
+        self.assertEqual(set_freq.inst_targets, (ref,))
         self.assertEqual(set_freq.operands, (1.5, ref))
 
     @named_data(*_invalid_frame_input_combinations)
@@ -654,6 +664,7 @@ class TestPlay(QiskitTestCase):
         self.assertEqual(play.duration, self.duration)
         self.assertEqual(play.channel, channels.DriveChannel(1))
         self.assertEqual(play.inst_target, channels.DriveChannel(1))
+        self.assertEqual(play.inst_targets, (channels.DriveChannel(1),))
         self.assertEqual(
             repr(play),
             "Play(Waveform(array([1.+0.j, 1.+0.j, 1.+0.j, 1.+0.j]), name='test'),"
@@ -674,6 +685,7 @@ class TestPlay(QiskitTestCase):
         self.assertEqual(play.duration, self.duration)
         self.assertEqual(play.pulse, self.pulse_op)
         self.assertEqual(play.inst_target, MixedFrame(Qubit(0), QubitFrame(1)))
+        self.assertEqual(play.inst_targets, (MixedFrame(Qubit(0), QubitFrame(1)),))
         self.assertEqual(play.channel, None)
 
     def test_play_non_pulse_ch_raises(self):

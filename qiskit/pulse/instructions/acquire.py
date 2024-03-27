@@ -113,6 +113,11 @@ class Acquire(Instruction):
         return self.operands[1]
 
     @property
+    def inst_targets(self) -> tuple[AcquireChannel | model.Qubit | MemorySlot | RegisterSlot, ...]:
+        """Returns the objects targeted by the instruction."""
+        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+
+    @property
     def channels(self) -> tuple[AcquireChannel | MemorySlot | RegisterSlot, ...]:
         """Returns the channels that this schedule uses."""
         return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)

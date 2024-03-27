@@ -62,6 +62,11 @@ class RelativeBarrier(Directive):
         """Returns the channels that this schedule uses."""
         return self.operands
 
+    @property
+    def inst_targets(self):
+        """Returns the objects targeted by the instruction."""
+        raise NotImplementedError
+
     def __eq__(self, other: object) -> bool:
         """Verify two barriers are equivalent."""
         return isinstance(other, type(self)) and set(self.channels) == set(other.channels)
@@ -147,6 +152,11 @@ class TimeBlockade(Directive):
     def channels(self) -> tuple[chans.Channel]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)
+
+    @property
+    def inst_targets(self):
+        """Returns the objects targeted by the instruction."""
+        raise NotImplementedError
 
     @property
     def duration(self) -> int:
