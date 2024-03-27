@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Test SetSequence"""
-import unittest
 from test import QiskitTestCase
 from ddt import ddt, named_data, unpack
 
@@ -71,24 +70,24 @@ class TestSetSequenceParallelAlignment(QiskitTestCase):
         with self.assertRaises(PulseCompilerError):
             pm.run(ir_example)
 
-    # TODO: Take care of this weird edge case
-    @unittest.expectedFailure
     @named_data(*ddt_named_data)
     @unpack
-    def test_instruction_not_in_mapping(self, alignment):
-        """test with an instruction which is not in the mapping"""
+    def test_instruction_no_corresponding_mixed_frame(self, alignment):
+        """test with an instruction which has no corresponding mixed frame"""
 
         ir_example = SequenceIR(alignment)
         ir_example.append(Play(Constant(100, 0.1), mixed_frame=MixedFrame(Qubit(0), QubitFrame(1))))
         ir_example.append(Delay(100, target=Qubit(5)))
+        ir_example.append(Delay(100, target=Qubit(5)))
 
         ir_example = self._pm.run(ir_example)
         edge_list = ir_example.sequence.edge_list()
-        self.assertEqual(len(edge_list), 4)
+        self.assertEqual(len(edge_list), 5)
         self.assertTrue((0, 2) in edge_list)
         self.assertTrue((0, 3) in edge_list)
+        self.assertTrue((3, 4) in edge_list)
         self.assertTrue((2, 1) in edge_list)
-        self.assertTrue((3, 1) in edge_list)
+        self.assertTrue((4, 1) in edge_list)
 
     @named_data(*ddt_named_data)
     @unpack
