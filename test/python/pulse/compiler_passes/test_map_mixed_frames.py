@@ -66,9 +66,11 @@ class TestMapMixedFrames(QiskitTestCase):
         mapping_pass = MapMixedFrame()
         mapping_pass.run(ir_example)
         mapping = mapping_pass.property_set["mixed_frames_mapping"]
-        self.assertEqual(len(mapping), 2)
+        self.assertEqual(len(mapping), 4)
         self.assertEqual(mapping[Qubit(0)], {mf})
         self.assertEqual(mapping[QubitFrame(1)], {mf})
+        self.assertEqual(mapping[QubitFrame(2)], {QubitFrame(2)})
+        self.assertEqual(mapping[Qubit(2)], {Qubit(2)})
 
     def test_with_sub_blocks(self):
         """test with sub blocks"""

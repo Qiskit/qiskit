@@ -47,10 +47,20 @@ class MapMixedFrame(AnalysisPass):
         """Run ``MapMixedFrame`` pass"""
         mixed_frames_mapping = defaultdict(set)
 
-        for inst_target in passmanager_ir.inst_targets:
+        inst_targets = passmanager_ir.inst_targets
+
+        for inst_target in inst_targets:
             if isinstance(inst_target, MixedFrame):
                 mixed_frames_mapping[inst_target.frame].add(inst_target)
                 mixed_frames_mapping[inst_target.pulse_target].add(inst_target)
+
+        # Accounting for inst_targets which have no corresponding mixed frames.
+        for inst_target in inst_targets:
+            if not isinstance(inst_target, MixedFrame) and not (
+                mapping := mixed_frames_mapping[inst_target]
+            ):
+                mapping.add(inst_target)
+
         self.property_set["mixed_frames_mapping"] = mixed_frames_mapping
 
     def __hash__(self):
