@@ -841,7 +841,7 @@ class TestOperator(OperatorTestCase):
         circuit._layout = TranspileLayout(
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
-            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 0, circuit.qubits[2]: 2}),
+            Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1}),
         )
         circuit.swap(0, 1)
         circuit.swap(1, 2)
@@ -863,7 +863,7 @@ class TestOperator(OperatorTestCase):
             Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
             {qubit: index for index, qubit in enumerate(circuit.qubits)},
         )
-        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 0, circuit.qubits[2]: 2})
+        final_layout = Layout({circuit.qubits[0]: 2, circuit.qubits[1]: 0, circuit.qubits[2]: 1})
         circuit.swap(0, 1)
         circuit.swap(1, 2)
         op = Operator.from_circuit(circuit, final_layout=final_layout)
@@ -990,7 +990,7 @@ class TestOperator(OperatorTestCase):
         circuit.h(0)
         circuit.cx(0, 1)
         layout = Layout()
-        with self.assertRaises(IndexError):
+        with self.assertRaises(KeyError):
             Operator.from_circuit(circuit, layout=layout)
 
     def test_compose_scalar(self):
@@ -1101,6 +1101,27 @@ class TestOperator(OperatorTestCase):
         tqc = transpile(circuit, initial_layout=init_layout)
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_from_circuit_into_larger_map(self):
+        """Test from_circuit method when the number of physical
+        qubits is larger than the number of original virtual qubits."""
+
+        # original circuit on 3 qubits
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        # transpile into 5-qubits
+        tqc = transpile(qc, coupling_map=CouplingMap.from_line(5), initial_layout=[0, 2, 4])
+
+        # qc expanded with ancilla qubits
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+
+        self.assertEqual(Operator.from_circuit(tqc), Operator(expected))
 
     def test_apply_permutation_back(self):
         """Test applying permutation to the operator,
