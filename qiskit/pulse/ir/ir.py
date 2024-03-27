@@ -66,10 +66,7 @@ class SequenceIR:
         """Recursively return a set of all Instruction.inst_target in the SequenceIR"""
         inst_targets = set()
         for elm in self.elements():
-            if isinstance(elm, SequenceIR):
-                inst_targets |= elm.inst_targets
-            else:
-                inst_targets.add(elm.inst_target)
+            inst_targets = inst_targets.union(elm.inst_targets)
         return inst_targets
 
     @property

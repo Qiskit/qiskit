@@ -107,6 +107,11 @@ class Play(Instruction):
         return self.operands[1]
 
     @property
+    def inst_targets(self) -> tuple[PulseChannel | MixedFrame]:
+        """Returns the mixed frame targeted by the instruction."""
+        return (self.inst_target,)
+
+    @property
     def channels(self) -> Tuple[PulseChannel | None]:
         """Returns the channels that this schedule uses."""
         return (self.channel,)

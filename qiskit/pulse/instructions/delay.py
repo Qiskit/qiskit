@@ -93,6 +93,11 @@ class Delay(Instruction):
         return self.operands[1]
 
     @property
+    def inst_targets(self) -> tuple[Channel | MixedFrame | PulseTarget]:
+        """Returns the object targeted by the instruction."""
+        return (self.inst_target,)
+
+    @property
     def channel(self) -> Channel | None:
         """Return the :py:class:`~qiskit.pulse.channels.Channel` that this instruction is
         scheduled on.

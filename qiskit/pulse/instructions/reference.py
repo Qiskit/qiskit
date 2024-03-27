@@ -87,6 +87,11 @@ class Reference(instruction.Instruction):
         raise UnassignedReferenceError(f"Subroutine is not assigned to {self.ref_keys}.")
 
     @property
+    def inst_targets(self):
+        """Returns the objects targeted by the instruction."""
+        raise NotImplementedError
+
+    @property
     def parameters(self) -> set:
         """Parameters which determine the instruction behavior."""
         return set()

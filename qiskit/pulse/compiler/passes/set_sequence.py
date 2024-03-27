@@ -95,11 +95,8 @@ class SetSequence(TransformationPass):
 
             if isinstance(node, SequenceIR):
                 self._sequence_instructions(node.alignment, node.sequence)
-                inst_targets = node.inst_targets
-            else:
-                inst_targets = [node.inst_target]
 
-            for inst_target in inst_targets:
+            for inst_target in node.inst_targets:
                 if isinstance(inst_target, MixedFrame):
                     node_mixed_frames.add(inst_target)
                 else:

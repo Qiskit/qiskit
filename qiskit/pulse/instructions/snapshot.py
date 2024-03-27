@@ -69,6 +69,11 @@ class Snapshot(Instruction):
         return (self.channel,)
 
     @property
+    def inst_targets(self):
+        """Returns the objects targeted by the instruction."""
+        raise NotImplementedError
+
+    @property
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
