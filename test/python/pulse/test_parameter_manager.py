@@ -515,6 +515,42 @@ class TestAssignFromProgram(QiskitTestCase):
         self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
         self.assertEqual(sched2.instructions[1][1].phase, 0.1)
 
+    def test_pulse_assignment_with_parameter_names(self):
+        """Test pulse assignment with parameter names."""
+        sigma = Parameter("sigma")
+        amp = Parameter("amp")
+        param_vec = ParameterVector("param_vec", 2)
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=sigma, amp=amp)
+        waveform2 = pulse.library.Gaussian(duration=128, sigma=40, amp=amp)
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.Play(waveform2, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        block.assign_parameters({"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=True)
+
+        self.assertEqual(block.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block.blocks[1].pulse.amp, 0.2)
+        self.assertEqual(block.blocks[2].phase, 3.14)
+        self.assertEqual(block.blocks[3].phase, 1.57)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.Play(waveform2, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
+
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[2][1].phase, 3.14)
+        self.assertEqual(sched1.instructions[3][1].phase, 1.57)
+
 
 class TestScheduleTimeslots(QiskitTestCase):
     """Test for edge cases of timing overlap on parametrized channels.
