@@ -372,7 +372,7 @@ class Layout:
         """Compose this layout with another layout.
 
         If this layout represents a mapping from the P-qubits to the positions of the Q-qubits,
-        and the ``other layout`` represents a mapping from the Q-qubits to the positions of
+        and the other layout represents a mapping from the Q-qubits to the positions of
         the R-qubits, then the composed layout represents a mapping from the P-qubits to the
         positions of the R-qubits.
 
@@ -391,7 +391,7 @@ class Layout:
     def inverse(self, source_qubits: List[Qubit], target_qubits: List[Qubit]):
         """Finds the inverse of this layout.
 
-        This is possible since a layout is a bijective mapping, however the input
+        This is possible when the layout is a bijective mapping, however the input
         and the output qubits may be different (in particular, this layout may be
         the mapping from the extended-with-ancillas virtual qubits to physical qubits).
         Thus, if this layout represents a mapping from the P-qubits to the positions
@@ -414,6 +414,29 @@ class Layout:
                 for virt, pos_phys in self._v2p.items()
             }
         )
+
+    def to_permutation(self, qubits: List[Qubit]):
+        """Creates a permutation corresponding to this layout.
+
+        This is possible when the layout is a bijective mapping with the same
+        source and target qubits (for instance, a "final_layout" corresponds
+        to a permutation of the physical circuit qubits). If this layout is
+        a mapping from qubits to their new positions, the resulting permutation
+        describes which qubits occupy the positions 0, 1, 2, etc. after
+        applying the permutation.
+
+        For example, suppose that the list of qubits is ``[qr_0, qr_1, qr_2]``,
+        and the layout maps ``qr_0`` to ``2``, ``qr_1`` to ``0``, and
+        ``qr_2`` to ``1``. In terms of positions in ``qubits``, this maps ``0``
+        to ``2``, ``1`` to ``0`` and ``2`` to ``1``, with the corresponding
+        permutation being ``[1, 2, 0]``.
+        """
+
+        perm = [None] * len(qubits)
+        for i, q in enumerate(qubits):
+            pos = self._v2p[q]
+            perm[pos] = i
+        return perm
 
 
 @dataclass

@@ -74,10 +74,11 @@ from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode, DAGOutNode
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV2
-from qiskit.providers.fake_provider import Fake20QV1, GenericBackendV2
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.fake_provider import Fake20QV1, Fake27QPulseV1, GenericBackendV2
 from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.providers.options import Options
-from qiskit.pulse import InstructionScheduleMap
+from qiskit.pulse import InstructionScheduleMap, Schedule, Play, Gaussian, DriveChannel
 from qiskit.quantum_info import Operator, random_unitary
 from qiskit.utils import parallel
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TransformationPass
@@ -85,7 +86,14 @@ from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarge
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection, VF2PostLayout
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager, level_0_pass_manager
-from qiskit.transpiler.target import InstructionProperties, Target
+from qiskit.transpiler.target import (
+    InstructionProperties,
+    Target,
+    TimingConstraints,
+    InstructionDurations,
+    target_to_backend_properties,
+)
+
 from test import QiskitTestCase, combine, slow_test  # pylint: disable=wrong-import-order
 
 from ..legacy_cmaps import MELBOURNE_CMAP, RUESCHLIKON_CMAP
@@ -1498,6 +1506,142 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertIn("delay", out[0].count_ops())
         self.assertIn("delay", out[1].count_ops())
+
+    def test_scheduling_timing_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with both BackendV1 and BackendV2."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        # the original timing constraints are granularity = min_length = 16
+        timing_constraints = TimingConstraints(granularity=32, min_length=64)
+        error_msgs = {
+            65: "Pulse duration is not multiple of 32",
+            32: "Pulse gate duration is less than 64",
+        }
+
+        for backend, duration in zip([backend_v1, backend_v2], [65, 32]):
+            with self.subTest(backend=backend, duration=duration):
+                qc = QuantumCircuit(2)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.measure_all()
+                qc.add_calibration(
+                    "h", [0], Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(0))), [0, 0]
+                )
+                qc.add_calibration(
+                    "cx",
+                    [0, 1],
+                    Schedule(Play(Gaussian(duration, 0.2, 4), DriveChannel(1))),
+                    [0, 0],
+                )
+                with self.assertRaisesRegex(TranspilerError, error_msgs[duration]):
+                    _ = transpile(
+                        qc,
+                        backend=backend,
+                        timing_constraints=timing_constraints,
+                    )
+
+    def test_scheduling_instruction_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with both BackendV1 and BackendV2."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1, "dt")
+        qc.cx(0, 1)
+        # update durations
+        durations = InstructionDurations.from_backend(backend_v1)
+        durations.update([("cx", [0, 1], 1000, "dt")])
+
+        for backend in [backend_v1, backend_v2]:
+            with self.subTest(backend=backend):
+                scheduled = transpile(
+                    qc,
+                    backend=backend,
+                    scheduling_method="alap",
+                    instruction_durations=durations,
+                    layout_method="trivial",
+                )
+                self.assertEqual(scheduled.duration, 1500)
+
+    def test_scheduling_dt_constraints(self):
+        """Test that scheduling-related loose transpile constraints
+        work with both BackendV1 and BackendV2."""
+
+        backend_v1 = Fake27QPulseV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.measure(0, 0)
+        original_dt = 2.2222222222222221e-10
+        original_duration = 3504
+
+        for backend in [backend_v1, backend_v2]:
+            with self.subTest(backend=backend):
+                # halve dt in sec = double duration in dt
+                scheduled = transpile(
+                    qc, backend=backend, scheduling_method="asap", dt=original_dt / 2
+                )
+                self.assertEqual(scheduled.duration, original_duration * 2)
+
+    def test_backend_props_constraints(self):
+        """Test that loose transpile constraints
+        work with both BackendV1 and BackendV2."""
+
+        backend_v1 = Fake20QV1()
+        backend_v2 = BackendV2Converter(backend_v1)
+        qr1 = QuantumRegister(3, "qr1")
+        qr2 = QuantumRegister(2, "qr2")
+        qc = QuantumCircuit(qr1, qr2)
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
+        qc.cx(qr2[0], qr2[1])
+
+        # generate a fake backend with same number of qubits
+        # but different backend properties
+        fake_backend = GenericBackendV2(num_qubits=20, seed=42)
+        custom_backend_properties = target_to_backend_properties(fake_backend.target)
+
+        # expected layout for custom_backend_properties
+        # (different from expected layout for Fake20QV1)
+        vf2_layout = {
+            18: Qubit(QuantumRegister(3, "qr1"), 1),
+            13: Qubit(QuantumRegister(3, "qr1"), 2),
+            19: Qubit(QuantumRegister(3, "qr1"), 0),
+            14: Qubit(QuantumRegister(2, "qr2"), 0),
+            9: Qubit(QuantumRegister(2, "qr2"), 1),
+            0: Qubit(QuantumRegister(15, "ancilla"), 0),
+            1: Qubit(QuantumRegister(15, "ancilla"), 1),
+            2: Qubit(QuantumRegister(15, "ancilla"), 2),
+            3: Qubit(QuantumRegister(15, "ancilla"), 3),
+            4: Qubit(QuantumRegister(15, "ancilla"), 4),
+            5: Qubit(QuantumRegister(15, "ancilla"), 5),
+            6: Qubit(QuantumRegister(15, "ancilla"), 6),
+            7: Qubit(QuantumRegister(15, "ancilla"), 7),
+            8: Qubit(QuantumRegister(15, "ancilla"), 8),
+            10: Qubit(QuantumRegister(15, "ancilla"), 9),
+            11: Qubit(QuantumRegister(15, "ancilla"), 10),
+            12: Qubit(QuantumRegister(15, "ancilla"), 11),
+            15: Qubit(QuantumRegister(15, "ancilla"), 12),
+            16: Qubit(QuantumRegister(15, "ancilla"), 13),
+            17: Qubit(QuantumRegister(15, "ancilla"), 14),
+        }
+
+        for backend in [backend_v1, backend_v2]:
+            with self.subTest(backend=backend):
+                result = transpile(
+                    qc,
+                    backend=backend,
+                    backend_properties=custom_backend_properties,
+                    optimization_level=2,
+                    seed_transpiler=42,
+                )
+
+                self.assertEqual(result._layout.initial_layout._p2v, vf2_layout)
 
     @data(1, 2, 3)
     def test_no_infinite_loop(self, optimization_level):
