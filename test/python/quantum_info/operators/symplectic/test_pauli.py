@@ -36,6 +36,7 @@ from qiskit.circuit.library import (
     CZGate,
     CYGate,
     SwapGate,
+    ECRGate,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
 from qiskit.quantum_info.random import random_clifford, random_pauli
@@ -404,7 +405,11 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
-    @data(*it.product((CXGate(), CYGate(), CZGate(), SwapGate()), pauli_group_labels(2, False)))
+    @data(
+        *it.product(
+            (CXGate(), CYGate(), CZGate(), SwapGate(), ECRGate()), pauli_group_labels(2, False)
+        )
+    )
     @unpack
     def test_evolve_clifford2(self, gate, label):
         """Test evolve method for 2-qubit Clifford gates."""
@@ -433,6 +438,7 @@ class TestPauli(QiskitTestCase):
                 CYGate(),
                 CZGate(),
                 SwapGate(),
+                ECRGate(),
             ),
             [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
         )
