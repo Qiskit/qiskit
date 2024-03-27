@@ -54,7 +54,7 @@ from __future__ import annotations
 from copy import copy
 from typing import Any, Mapping, Sequence
 
-from qiskit.circuit import ParameterVector
+from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
@@ -362,7 +362,8 @@ class ParameterManager:
         self,
         pulse_program: Any,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
@@ -397,7 +398,7 @@ class ParameterManager:
     def _unroll_param_dict(
         self,
         parameter_binds: Mapping[
-            Parameter | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            Parameter | ParameterVector | str, ParameterValueType | Sequence[ParameterValueType]
         ],
     ) -> Mapping[Parameter, ParameterValueType]:
         """
@@ -415,7 +416,7 @@ class ParameterManager:
                 if not isinstance(value, Sequence):
                     raise PulseError(
                         f"Parameter vector '{parameter.name}' has length {len(parameter)},"
-                        f" but was assigned to a single value."
+                        f" but was assigned to {value}."
                     )
                 if len(parameter) != len(value):
                     raise PulseError(
@@ -424,7 +425,24 @@ class ParameterManager:
                     )
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
-                out[self.get_parameters(parameter)] = value
+                for param in self.parameters:
+                    if param.name == parameter:
+                        out[param] = value
+                    elif (
+                        isinstance(param, ParameterVectorElement) and param.vector.name == parameter
+                    ):
+                        if not isinstance(value, Sequence):
+                            raise PulseError(
+                                f"ParameterVector '{param.vector.name}' has length {len(param.vector)},"
+                                f" but was assigned to a single value."
+                            )
+                        if len(param.vector) != len(value):
+                            raise PulseError(
+                                f"ParameterVector '{param.vector.name}' has length {len(param.vector)},"
+                                f" but was assigned to {len(value)} values."
+                            )
+                        out[param] = value[param.index]
+
             else:
                 out[parameter] = value
         return out
