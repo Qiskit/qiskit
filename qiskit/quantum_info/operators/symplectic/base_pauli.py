@@ -546,23 +546,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             gate = circuit
 
-        # Basis Clifford Gates
-        basis_1q = {
-            "i": _evolve_i,
-            "id": _evolve_i,
-            "iden": _evolve_i,
-            "x": _evolve_x,
-            "y": _evolve_y,
-            "z": _evolve_z,
-            "h": _evolve_h,
-            "s": _evolve_s,
-            "sdg": _evolve_sdg,
-            "sinv": _evolve_sdg,
-        }
-        basis_2q = {"cx": _evolve_cx, "cz": _evolve_cz, "cy": _evolve_cy, "swap": _evolve_swap}
-
-        # Non-Clifford gates
-        non_clifford = ["t", "tdg", "ccx", "ccz"]
 
         if isinstance(gate, str):
             # Check if gate is a valid Clifford basis gate string
@@ -715,6 +698,42 @@ def _evolve_swap(base_pauli, q1, q2):
     return base_pauli
 
 
+def _evolve_ecr(base_pauli, q1, q2):
+    """Update P -> ECR.P.ECR"""
+    base_pauli = _evolve_s(base_pauli, q1)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_s(base_pauli, q2)
+    base_pauli = _evolve_h(base_pauli, q2)
+    base_pauli = _evolve_cx(base_pauli, q1, q2)
+    base_pauli = _evolve_x(base_pauli, q1)
+    return base_pauli
+
+
 def _count_y(x, z, dtype=None):
     """Count the number of I Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
+
+
+# Basis Clifford Gates
+basis_1q = {
+    "i": _evolve_i,
+    "id": _evolve_i,
+    "iden": _evolve_i,
+    "x": _evolve_x,
+    "y": _evolve_y,
+    "z": _evolve_z,
+    "h": _evolve_h,
+    "s": _evolve_s,
+    "sdg": _evolve_sdg,
+    "sinv": _evolve_sdg,
+}
+basis_2q = {
+    "cx": _evolve_cx,
+    "cz": _evolve_cz,
+    "cy": _evolve_cy,
+    "swap": _evolve_swap,
+    "ecr": _evolve_ecr,
+}
+
+# Non-Clifford gates
+non_clifford = ["t", "tdg", "ccx", "ccz"]
