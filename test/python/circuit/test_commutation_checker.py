@@ -39,6 +39,7 @@ from qiskit.circuit.library import (
     Reset,
     LinearFunction,
     SGate,
+    RXXGate,
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -408,6 +409,16 @@ class TestCommutationChecker(QiskitTestCase):
         self.assertTrue(scc.commute(op1, [0, 1], [], op2, [1], []))
         self.assertTrue(scc.commute(op1, [0, 1], [], op3, [1], []))
         self.assertTrue(scc.commute(op2, [1], [], op3, [1], []))
+
+    def test_utf8_gate_names(self):
+        """Check compatibility of non-ascii quantum gate names."""
+        g0 = RXXGate(1.234).to_mutable()
+        g0.name = "すみません"
+
+        g1 = RXXGate(2.234).to_mutable()
+        g1.name = "ok_0"
+
+        self.assertTrue(scc.commute(g0, [0, 1], [], g1, [1, 0], []))
 
     def test_annotated_operations_no_commute(self):
         """Check non-commutativity involving annotated operations."""
