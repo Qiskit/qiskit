@@ -23,8 +23,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
-from .ucrz import UCRZGate
-
 _EPS = 1e-10
 
 
@@ -66,14 +64,13 @@ class Diagonal(QuantumCircuit):
     Diagonal gates are represented and simulated more efficiently than a dense
     :math:`2^n \times 2^n` unitary matrix.
 
-    The reference implementation is via the method described in
-    Theorem 7 of [1]. The code is based on Emanuel Malvetti's semester thesis
-    at ETH in 2018, supervised by Raban Iten and Prof. Renato Renner.
+    The code is based on the algorithm described in [1].
 
     **Reference:**
 
-    [1] Shende et al., Synthesis of Quantum Logic Circuits, 2009
-    `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
+    [1] Zhang et al., Automatic Depth-Optimized Quantum Circuit Synthesis for Diagonal
+    Unitary Matrices with Asymptotically Optimal Gate Count, 2022
+    `arXiv:2212.01002 <https://arxiv.org/abs/2212.01002>`_
     """
 
     def __init__(self, diag: Sequence[complex]) -> None:
@@ -89,26 +86,50 @@ class Diagonal(QuantumCircuit):
         self._check_input(diag)
         num_qubits = int(np.log2(len(diag)))
 
-        circuit = QuantumCircuit(num_qubits, name="Diagonal")
+        gate_list = [[] for _ in range(2**num_qubits)]
 
         # Since the diagonal is a unitary, all its entries have absolute value
         # one and the diagonal is fully specified by the phases of its entries.
-        diag_phases = [cmath.phase(z) for z in diag]
-        n = len(diag)
-        while n >= 2:
-            angles_rz = []
-            for i in range(0, n, 2):
-                diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
-                angles_rz.append(rz_angle)
-            num_act_qubits = int(np.log2(n))
-            ctrl_qubits = list(range(num_qubits - num_act_qubits + 1, num_qubits))
-            target_qubit = num_qubits - num_act_qubits
+        diag_phases = np.array([cmath.phase(z) for z in diag])
 
-            ucrz = UCRZGate(angles_rz)
-            circuit.append(ucrz, [target_qubit] + ctrl_qubits)
+        angles_rz = _fwht(diag_phases) / np.sqrt(2 ** (num_qubits - 2))
 
-            n //= 2
-        circuit.global_phase += diag_phases[0]
+        if num_qubits == 1:
+            gate_list[0].append(["rz", -angles_rz[1], 0])
+
+        else:
+            for i in range(1, num_qubits):
+                gate_list[0].append(["rz", -angles_rz[2 ** (num_qubits - i)], i - 1])
+
+            cc_set = [0]
+            gray_code = [0, 1]
+            for p in range(2, num_qubits + 1):
+                cc_set[2 ** (p - 2) - 1] = p - 1
+                cc_set.extend(cc_set)
+                if p < num_qubits:
+                    gate_list[2**p].append(["cx", 0, p - 1])
+                    for i in range(2, 2 ** (p - 1) + 1):
+                        j = ((gray_code[i - 1] << 1) + 1) << (num_qubits - p)
+                        gate_list[2**p + 2 * i - 3].append(["rz", -angles_rz[j], p - 1])
+                        gate_list[2**p + 2 * i - 2].append(["cx", cc_set[i - 1] - 1, p - 1])
+                    gray_code = [x << 1 for x in gray_code] + [
+                        (x << 1) + 1 for x in gray_code[::-1]
+                    ]
+
+            for i in range(1, 2 ** (num_qubits - 1) + 1):
+                j = (gray_code[i - 1] << 1) + 1
+                gate_list[2 * i - 2].append(["rz", -angles_rz[j], num_qubits - 1])
+                gate_list[2 * i - 1].append(["cx", cc_set[i - 1] - 1, num_qubits - 1])
+
+        circuit = QuantumCircuit(num_qubits, name="Diagonal")
+        circuit.global_phase += angles_rz[0] / 2
+
+        for seq in gate_list:
+            for gate in seq:
+                if gate[0] == "rz":
+                    circuit.rz(gate[1], num_qubits - 1 - gate[2])
+                elif gate[0] == "cx":
+                    circuit.cx(num_qubits - 1 - gate[1], num_qubits - 1 - gate[2])
 
         super().__init__(num_qubits, name="Diagonal")
         self.append(circuit.to_gate(), self.qubits)
@@ -123,6 +144,19 @@ class Diagonal(QuantumCircuit):
             raise CircuitError("The number of diagonal entries is not a positive power of 2.")
         if not np.allclose(np.abs(diag), 1, atol=_EPS):
             raise CircuitError("A diagonal element does not have absolute value one.")
+
+
+def _fwht(a: np.ndarray) -> np.ndarray:
+    """Fast Walsh-Hadamard Transform of array a."""
+    step = 1
+    n = len(a)
+    while step < n:
+        for i in range(0, n, step * 2):
+            for j in range(i, i + step):
+                a[j], a[j + step] = a[j] + a[j + step], a[j] - a[j + step]
+        a /= np.sqrt(2)
+        step *= 2
+    return a
 
 
 class DiagonalGate(Gate):
@@ -152,13 +186,3 @@ class DiagonalGate(Gate):
     def inverse(self, annotated: bool = False):
         """Return the inverse of the diagonal gate."""
         return DiagonalGate([np.conj(entry) for entry in self.params])
-
-
-def _extract_rz(phi1, phi2):
-    """
-    Extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
-    is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2).
-    """
-    phase = (phi1 + phi2) / 2.0
-    z_angle = phi2 - phi1
-    return phase, z_angle
