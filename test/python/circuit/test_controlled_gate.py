@@ -987,7 +987,7 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertEqual(operator_qc, operator_qc1)
 
-    @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 2))
+    @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 0))
     @unpack
     def test_multi_control_p_ctrl_state_parameter(
         self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
