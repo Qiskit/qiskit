@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added `ctrl_state` parameter to :func:`QuantumCircuit.mcp()`.
+    Added ``ctrl_state`` parameter to :func:`QuantumCircuit.mcp()`.
 
 
     The :func:`QuantumCircuit.mcp()` function in the quantum circuit library has
