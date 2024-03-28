@@ -3453,6 +3453,7 @@ class QuantumCircuit:
         lam: ParameterValueType,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
+        ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCPhaseGate`.
 
@@ -3462,6 +3463,9 @@ class QuantumCircuit:
             lam: The angle of the rotation.
             control_qubits: The qubits used as the controls.
             target_qubit: The qubit(s) targeted by the gate.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Returns:
             A handle to the instructions created.
@@ -3470,7 +3474,9 @@ class QuantumCircuit:
 
         num_ctrl_qubits = len(control_qubits)
         return self.append(
-            MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], []
+            MCPhaseGate(lam, num_ctrl_qubits, ctrl_state=ctrl_state),
+            control_qubits[:] + [target_qubit],
+            [],
         )
 
     def r(
