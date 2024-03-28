@@ -85,7 +85,7 @@ class QuantumVolume(QuantumCircuit):
             # stays in the output name, so effectively stores a way of regenerating the circuit.
             # This is just best-effort only, for backwards compatibility, and isn't critical (if
             # someone needs full reproducibility, they should be manually controlling the seeding).
-            seed = rng.bit_generator.seed_seq.entropy
+            seed = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
 
         super().__init__(
             num_qubits, name="quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
