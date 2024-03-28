@@ -145,6 +145,29 @@ class TestParameters(QiskitTestCase):
         qc.rx(param_a, 0)
         self.assertRaises(CircuitError, qc.rx, param_a_again, 0)
 
+    def test_append_copies_parametric(self):
+        """Test that `QuantumCircuit.append` copies instructions when they contain compile
+        parameters and expressions."""
+        param = Parameter("a")
+        expr = param * 2
+        gate_param = RZGate(param)
+        gate_expr = RZGate(expr)
+
+        qc = QuantumCircuit(1)
+        qc.append(gate_param, [0], copy=True)
+        self.assertIsNot(qc.data[-1].operation, gate_param)
+        self.assertEqual(qc.data[-1].operation, gate_param)
+
+        qc.append(gate_param, [0], copy=False)
+        self.assertIs(qc.data[-1].operation, gate_param)
+
+        qc.append(gate_expr, [0], copy=True)
+        self.assertIsNot(qc.data[-1].operation, gate_expr)
+        self.assertEqual(qc.data[-1].operation, gate_expr)
+
+        qc.append(gate_expr, [0], copy=False)
+        self.assertIs(qc.data[-1].operation, gate_expr)
+
     def test_parameters_property(self):
         """Test instantiating gate with variable parameters"""
         from qiskit.circuit.library.standard_gates.rx import RXGate
