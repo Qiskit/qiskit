@@ -1166,13 +1166,17 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
-        """The standard definition used the Gray code implementation."""
+        """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
+        q_controls = list(range(self.num_ctrl_qubits))
+        q_target = self.num_ctrl_qubits
+        qc.h(q_target)
+        qc.mcp(numpy.pi, q_controls, q_target)
+        qc.h(q_target)
         self.definition = qc
 
     @property
