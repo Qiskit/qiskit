@@ -25,10 +25,16 @@ from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters.
+    """A compile-time symbolic parameter.
 
-    A parameter is a variable value that is not required to be fixed
-    at circuit definition.
+    The value of a :class:`Parameter` must be entirely determined before a circuit begins execution.
+    Typically this will mean that you should supply values for all :class:`Parameter`\\ s in a
+    circuit using :meth:`.QuantumCircuit.assign_parameters`, though certain hardware vendors may
+    allow you to give them a circuit in terms of these parameters, provided you also pass the values
+    separately.
+
+    This is the atom of :class:`.ParameterExpression`, and is itself an expression.  The numeric
+    value of a parameter need not be fixed while the circuit is being defined.
 
     Examples:
 
@@ -62,11 +68,10 @@ class Parameter(ParameterExpression):
     def __init__(
         self, name: str, *, uuid: UUID | None = None
     ):  # pylint: disable=super-init-not-called
-        """Create a new named :class:`Parameter`.
-
+        """
         Args:
             name: name of the ``Parameter``, used for visual representation. This can
-                be any unicode string, e.g. "ϕ".
+                be any Unicode string, e.g. "ϕ".
             uuid: For advanced usage only.  Override the UUID of this parameter, in order to make it
                 compare equal to some other parameter object.  By default, two parameters with the
                 same name do not compare equal to help catch shadowing bugs when two circuits

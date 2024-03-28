@@ -22,7 +22,10 @@ class Measure(SingletonInstruction):
     """Quantum measurement in the computational basis."""
 
     def __init__(self, label=None, *, duration=None, unit="dt"):
-        """Create new measurement instruction."""
+        """
+        Args:
+            label: optional string label for this instruction.
+        """
         super().__init__("measure", 1, 1, [], label=label, duration=duration, unit=unit)
 
     _singleton_lookup_key = stdlib_singleton_key()
