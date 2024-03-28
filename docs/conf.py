@@ -18,6 +18,11 @@ from __future__ import annotations
 
 import datetime
 import doctest
+import importlib
+import inspect
+import os
+import re
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -39,7 +44,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     # This is used by qiskit/documentation to generate links to github.com.
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
@@ -155,3 +160,47 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+
+
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
+
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    module_name = info["module"]
+    if "qiskit" not in module_name:
+        return None
+     
+    try: 
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        return None
+
+    obj = module
+    for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
+
+    try:
+        full_file_name = inspect.getsourcefile(obj)
+    except TypeError:
+        return None
+    if full_file_name is None:
+        return None
+    file_name = full_file_name.split("/qiskit/")[-1]
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except (OSError, TypeError):
+        linespec = ""
+    else:
+        ending_lineno = lineno + len(source) - 1
+        linespec = f"#L{lineno}-L{ending_lineno}"
+
+    github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/qiskit/{file_name}{linespec}"
