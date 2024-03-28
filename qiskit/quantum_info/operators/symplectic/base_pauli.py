@@ -546,7 +546,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
             if isinstance(gate, str):
                 # Check if gate is a valid Clifford basis gate string
-                if gate not in basis_1q and gate not in basis_2q:
+                if gate not in _basis_1q and gate not in _basis_2q:
                     raise QiskitError(f"Invalid Clifford gate name string {gate}")
                 name = gate
             else:
@@ -554,16 +554,16 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                 name = gate.name
 
             # Apply gate if it is a Clifford basis gate
-            if name in non_clifford:
+            if name in _non_clifford:
                 raise QiskitError(f"Cannot update Pauli with non-Clifford gate {name}")
-            if name in basis_1q:
+            if name in _basis_1q:
                 if len(qargs) != 1:
                     raise QiskitError("Invalid qubits for 1-qubit gate.")
-                return basis_1q[name](self, qargs[0])
-            if name in basis_2q:
+                return _basis_1q[name](self, qargs[0])
+            if name in _basis_2q:
                 if len(qargs) != 2:
                     raise QiskitError("Invalid qubits for 2-qubit gate.")
-                return basis_2q[name](self, qargs[0], qargs[1])
+                return _basis_2q[name](self, qargs[0], qargs[1])
 
             # If not a Clifford basis gate we try to unroll the gate and
             # raise an exception if unrolling reaches a non-Clifford gate.
@@ -707,7 +707,7 @@ def _count_y(x, z, dtype=None):
 
 
 # Basis Clifford Gates
-basis_1q = {
+_basis_1q = {
     "i": _evolve_i,
     "id": _evolve_i,
     "iden": _evolve_i,
@@ -719,7 +719,7 @@ basis_1q = {
     "sdg": _evolve_sdg,
     "sinv": _evolve_sdg,
 }
-basis_2q = {
+_basis_2q = {
     "cx": _evolve_cx,
     "cz": _evolve_cz,
     "cy": _evolve_cy,
@@ -728,4 +728,4 @@ basis_2q = {
 }
 
 # Non-Clifford gates
-non_clifford = ["t", "tdg", "ccx", "ccz"]
+_non_clifford = ["t", "tdg", "ccx", "ccz"]
