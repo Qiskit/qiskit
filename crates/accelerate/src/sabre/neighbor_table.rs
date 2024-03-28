@@ -31,7 +31,7 @@ use crate::nlayout::PhysicalQubit;
 ///
 /// and used solely to represent neighbors of each node in qiskit-terra's rust
 /// module.
-#[pyclass(module = "qiskit._accelerate.sabre_swap")]
+#[pyclass(module = "qiskit._accelerate.sabre")]
 #[derive(Clone, Debug)]
 pub struct NeighborTable {
     // The choice of 4 `PhysicalQubit`s in the stack-allocated region is because a) this causes the
@@ -49,6 +49,10 @@ impl NeighborTable {
                 .iter()
                 .map(move |v| (NodeIndex::new(u), NodeIndex::new(v.index())))
         }))
+    }
+
+    pub fn num_qubits(&self) -> usize {
+        self.neighbors.len()
     }
 }
 
