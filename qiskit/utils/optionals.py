@@ -307,8 +307,12 @@ HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(
     ("dot", "-V"),
-    name="graphviz",
-    install="'brew install graphviz' if on Mac, or by downloding it from their website",
+    name="Graphviz",
+    msg=(
+        "To install, follow the instructions at https://graphviz.org/download/."
+        " Qiskit needs the Graphviz binaries, which the 'graphviz' package on pip does not install."
+        " You must install the actual Graphviz software"
+    ),
 )
 HAS_PDFLATEX = _LazySubprocessTester(
     ("pdflatex", "-version"),
