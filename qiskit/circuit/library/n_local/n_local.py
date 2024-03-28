@@ -905,6 +905,9 @@ class NLocal(BlueprintCircuit):
                 and (simple_block := _stdlib_gate_from_simple_block(block)) is not None
             ):
                 for indices in entangler_map:
+                    # It's actually nontrivially faster to use a listcomp and pass that to `tuple`
+                    # than to pass a generator expression directly.
+                    # pylint: disable=consider-using-generator
                     instr = CircuitInstruction(
                         simple_block.gate(*itertools.islice(param_iter, simple_block.num_params)),
                         tuple([target_qubits[i] for i in indices]),
