@@ -87,8 +87,10 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   ElidePermutations
    NormalizeRXAngle
    OptimizeAnnotated
+   FinalizeLayouts
 
 Calibration
 =============
@@ -236,8 +238,10 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import FinalizeLayouts
 
 # circuit analysis
 from .analysis import ResourceEstimation
