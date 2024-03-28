@@ -86,17 +86,17 @@ Here is an example of how an estimator is used.
     estimator = Estimator()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    job = estimator.run([(psi1, hamiltonian1, [theta1])])
+    job = estimator.run([(psi1, H1, [theta1])])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
     #              <psi1(theta3)|H3|psi1(theta3)>],
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
         [
-            (psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), 
-            (psi2, hamiltonian2, theta2)
+            (psi1, [H1, H3], [theta1, theta3]), 
+            (psi2, H2, theta2)
         ],
         precision=0.01
     )
@@ -153,12 +153,12 @@ Here is an example of how a sampler is used.
     # collect 128 shots from the Bell circuit
     job = sampler.run([bell], shots=128)
     job_result = job.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # run a sampler job on the parameterized circuits
-    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)]
+    job2 = sampler.run([(pqc, theta1), (pqc2, theta2)])
     job_result = job2.result()
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
 
 Overview of EstimatorV1
@@ -214,7 +214,7 @@ Here is an example of how the estimator is used.
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
     job = estimator.run([psi1], [H1], [theta1])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)>,
     #             <psi2(theta2)|H2|psi2(theta2)>,
