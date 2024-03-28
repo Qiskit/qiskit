@@ -808,10 +808,23 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if basis_2q_fidelity:
             for basis_1q in available_1q_basis:
                 if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
+                    # If we're going to use the pulse optimal decomposition
+                    # in TwoQubitBasisDecomposer we need to compute the basis
+                    # fidelity to use for the decomposition. Either use the
+                    # cx error rate if approximation degree is None, or
+                    # the approximation degree value if it's a float
+                    if approximation_degree is None:
+                        props = target["cx"].get(qubits_tuple)
+                        if props is not None:
+                            fidelity = 1.0 - getattr(props, "error", 0.0)
+                        else:
+                            fidelity = 1.0
+                    else:
+                        fidelity = approximation_degree
                     pi2_decomposer = TwoQubitBasisDecomposer(
                         pi2_basis,
                         euler_basis=basis_1q,
-                        basis_fidelity=basis_2q_fidelity,
+                        basis_fidelity=fidelity,
                         pulse_optimize=True,
                     )
                     embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
