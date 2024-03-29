@@ -71,74 +71,73 @@ class PulseTarget(Protocol):
         """Return the unique frame identifier of the Qiskit pulse frame.
 
         Args:
-            frame: Qiskit pulse Frame object to inquire.
+            frame: Qiskit pulse frame to inquire.
 
         Returns:
             A unique frame identifier.
+
+        Raises:
+            NotExistingComponent: When the frame identifier is not found.
         """
         raise NotExistingComponent(
             f"This hardware doesn't proivde any resource implementing {frame}."
         )
-
-    def get_port_identifier(
+    
+    def get_generic_port_identifier(
         self,
-        logical_element: model.LogicalElement,
+        signal_entry: model.SignalEntry,        
     ) -> str:
-        """Return the unique port identifier of the Qiskit pulse logical element.
+        """Return the unique port identifier of the Qiskit pulse signal entry
+        for generic operations.
 
         Args:
-            logical_element: Qiskit pulse LogicalElement object to inquire.
+            signal_entry: Qiskit pulse mixed frame to inquire.
 
         Returns:
             A unique port identifier.
+
+        Raises:
+            NotExistingComponent: When the frame identifier is not found.
         """
         raise NotExistingComponent(
-            f"This hardware doesn't proivde any resource implementing {logical_element}."
+            f"This hardware doesn't proivde any resource implementing {signal_entry}."
         )
 
-    def is_mixed_frame_available(
+    def get_measure_port_identifier(
         self,
-        mixed_frame: model.MixedFrame,
-    ) -> bool:
-        """Check if given mixed frame is implementable on the hardware.
+        signal_entry: model.SignalEntry,        
+    ) -> str:
+        """Return the unique port identifier of the Qiskit pulse signal entry
+        for measurement operations.
 
         Args:
-            mixed_frame: Qiskit pulse MixedFrame object to test.
+            signal_entry: Qiskit pulse mixed frame to inquire.
 
         Returns:
-            True if given mixed frame is implementable.
-        """
-        return False
+            A unique port identifier.
 
-    def filter_mixed_frames(
+        Raises:
+            NotExistingComponent: When the frame identifier is not found.
+        """  
+        raise NotExistingComponent(
+            f"This hardware doesn't proivde any resource implementing {signal_entry}."
+        )
+
+    def reserved_mixed_frames(
         self,
         *,
         frame: model.Frame | None = None,
-        logical_element: model.LogicalElement | None = None,
+        signal_entry: model.SignalEntry | None = None,        
     ) -> list[model.MixedFrame]:
-        """Filter available mixed frames on the hardware.
-
+        """Return a list of mixed frames reserved for the backend gate calibrations.
+        
         Args:
             frame: Qiskit pulse Frame object to include.
-            logical_element: Qiskit pulse LogicalElement object to include.
+            signal_entry: Qiskit pulse SignalEntry object to include.
 
         Returns:
-            A list of Qiskit pulse MixedFrame objects that include given frame and logical element.
-        """
-        return []
-
-    def extra_frames(
-        self,
-        logical_element: model.LogicalElement,
-    ) -> list[model.GenericFrame]:
-        """Get a list of string identifier of unused frames 
-        tied to the given Qiskit pulse logical element.
-
-        Args:
-            logical_element: Qiskit pulse LogicalElement object to inquire.
-
-        Returns:
-            A list of unique frame identifier.
+            A list of Qiskit pulse mixed frame objects that 
+            include given frame and logical element.
         """
         return []
 
@@ -150,9 +149,8 @@ class QiskitPulseTarget(PulseTarget):
         self,
         qubit_frames: dict[int, str] | None = None,
         meas_frames: dict[int, str] | None = None,
-        qubit_ports: dict[int, str] | None = None,
-        coupler_ports: dict[tuple[int, ...], str] | None = None,
-        mixed_frames: dict[str, list[str]] | None = None,
+        tx_ports: dict[str, dict] | None = None,
+        rx_ports: dict[str, dict] | None = None,
     ) -> None:
         """Create new Qiskit pulse target.
 
@@ -165,16 +163,11 @@ class QiskitPulseTarget(PulseTarget):
                 the Qiskit :class:`.MeasurementFrame` object index.
                 This frame must track the rotating frame
                 of the measurement stimulus signal.
-            qubit_ports: A dictioanry of hardware port identifier keyed on
-                the Qiskit :class:`~qiskit.pulse.model.Qubit` object index.
-                This port must be used to drive qubit regardless of frames.
-            coupler_ports: A dictionary of hardware port identifier keyed on
-                the Qiskit :class:`.Port` object index.
-                This port must be used to drive multi-qubit interactions.
-            mixed_frams: A dictionary of avilable mixed frame resources keyed on
-                the unique identifier of the port. Values are list of frame identifiers
-                available for this port to form a mixed frame.
-
+            tx_ports: A list of dictionary representing a spec of transmission ports. 
+                The spec dictionary must contain "qubits", "op_type", "num_frames",
+                "reserved_frames" keyes.
+            rx_ports: A list of dictionary representing a spec of receiver ports.
+                The spec dictionary must contain ...
         """
         self._qubit_frames = qubit_frames
         self._qubit_frames_inv = dict(zip(qubit_frames.values(), qubit_frames.keys()))
@@ -182,140 +175,82 @@ class QiskitPulseTarget(PulseTarget):
         self._meas_frames = meas_frames
         self._meas_frames_inv = dict(zip(meas_frames.values(), meas_frames.keys()))
 
-        self._qubit_ports = qubit_ports
-        self._qubit_ports_inv = dict(zip(qubit_ports.values(), qubit_ports.keys()))
-
-        self._coupler_ports = coupler_ports
-        self._coupler_ports_inv = dict(zip(coupler_ports.values(), coupler_ports.keys()))
-
-        self._mixed_frames = mixed_frames
-
-    def is_mixed_frame_available(
-        self,
-        mixed_frame: model.MixedFrame,
-    ) -> bool:
-        if not isinstance(mixed_frame, model.MixedFrame):
-            raise TypeError(f"{mixed_frame} is not a MixedFrame object.")
-        try:
-            p_uid = self.get_port_identifier(mixed_frame.pulse_target)
-            f_uid = self.get_frame_identifier(mixed_frame.frame)
-        except NotExistingComponent:
-            return False
-        try:
-            return f_uid in self._mixed_frames[p_uid]
-        except KeyError:
-            return False
+        # Use table-like data format, if we can add to dependency.
+        # In realistic provider implementation use of schema is recommended.
+        self._tx_ports = tx_ports
 
     def get_frame_identifier(
         self,
         frame: model.Frame,
     ) -> str:
+        if isinstance(frame, model.GenericFrame):
+            return frame.name
         if isinstance(frame, model.QubitFrame):
             try:
                 return self._qubit_frames[frame.index]
             except KeyError as ex:
                 raise NotExistingComponent(
-                    "This hardware doesn't provide any frame for "
-                    f"QubitFrame of index {frame.index}."
+                    "This control system doesn't provide any frame for "
+                    f"implementing QubitFrame of index {frame.index}."
                 ) from ex
         if isinstance(frame, model.MeasurementFrame):
             try:
                 return self._meas_frames[frame.index]
             except KeyError as ex:
                 raise NotExistingComponent(
-                    "This hardware doesn't provide any frame for "
-                    f"MeasurementFrame of index {frame.index}."
+                    "This control system doesn't provide any frame for "
+                    f"implementing MeasurementFrame of index {frame.index}."
                 ) from ex
         raise TypeError(
-            f"Input frame type {frame.__class__.__name__} cannot "
-            "be directly mapped to hardware elements."
+            f"{self.__class__.__name__} doesn't recognize the frame object of type "
+            f"{frame.__class__.__name__}. If you are using a custom subclass, "
+            "you must also define PulseTarget class supporting this type."
         )
 
-    def get_port_identifier(
+    def get_generic_port_identifier(
         self,
-        logical_element: model.LogicalElement,
+        signal_entry: model.SignalEntry,        
     ) -> str:
-        if isinstance(logical_element, model.Qubit):
-            try:
-                return self._qubit_ports[logical_element.qubit_index]
-            except KeyError as ex:
-                raise NotExistingComponent(
-                    "This hardware doesn't provide any port for "
-                    f"Qubit of index {logical_element.qubit_index}."
-                ) from ex
-        if isinstance(logical_element, model.Coupler):
-            try:
-                return self._coupler_ports[logical_element.index]
-            except KeyError as ex:
-                raise NotExistingComponent(
-                    "This hardware doesn't provide any port for " 
-                    f"Coupler of index {logical_element.index}."
-                ) from ex
-        raise TypeError(
-            f"Input logical element type {logical_element.__class__.__name__} cannot "
-            "be directly mapped to hardware elements."
-        )
+        return self._get_port_common(signal_entry, "generic")
 
-    def filter_mixed_frames(
+    def get_measure_port_identifier(
+        self,
+        signal_entry: model.SignalEntry,        
+    ) -> str:
+        return self._get_port_common(signal_entry, "measure")
+
+    def _get_port_common(
+        self,
+        signal_entry: model.SignalEntry,
+        op_type: str,
+    ) -> str:
+        if isinstance(signal_entry, model.Port):
+            if signal_entry.name not in self._tx_ports:
+                raise NotExistingComponent(
+                    f"Port identifier {signal_entry.name} is not defined in this system. "
+                    "Hardware may not implement this port."
+                )
+            return signal_entry.name        
+        if isinstance(signal_entry, model.LogicalElement):
+            qubit_index = list(signal_entry.index)
+            for port_uid, data in self._tx_ports.items():
+                if data["qubits"] == qubit_index and data["op_type"] == op_type:
+                    return port_uid
+            else:
+                raise NotExistingComponent(
+                    "This control system doesn't provide any port for "
+                    f"implementing LogicalElement {signal_entry}."
+                )
+        raise TypeError(
+            f"{self.__class__.__name__} doesn't recognize the signal entry object of type "
+            f"{signal_entry.__class__.__name__}. If you are using a custom subclass, "
+            "you must also define PulseTarget class supporting this type."
+        )        
+
+    def reserved_mixed_frames(
         self,
         *,
         frame: model.Frame | None = None,
-        logical_element: model.LogicalElement | None = None,
+        signal_entry: model.SignalEntry | None = None,        
     ) -> list[model.MixedFrame]:
-        try:
-            if logical_element is not None:
-                p_uid = self.get_port_identifier(logical_element)
-            else:
-                p_uid = None
-            if frame is not None:
-                f_uid = self.get_frame_identifier(frame)
-            else:
-                f_uid = None
-        except NotExistingComponent:
-            return []
-
-        matched = []
-        for port_name, frame_names in self._mixed_frames.items():
-            if p_uid is not None and p_uid != port_name:
-                continue
-            for frame_name in frame_names:
-                if f_uid is not None and f_uid != frame_name:
-                    continue
-                matched.append(
-                    model.MixedFrame(
-                        pulse_target=self._port_uid_to_obj(port_name),
-                        frame=self._frame_uid_to_obj(frame_name),
-                    )
-                )
-        return matched
-
-    def extra_frames(
-        self,
-        logical_element: model.LogicalElement,
-    ) -> list[model.GenericFrame]:
-        p_uid = self.get_port_identifier(logical_element)
-        try:
-            frames = self._mixed_frames[p_uid]
-        except KeyError as ex:
-            raise NotExistingComponent(
-                f"This hardware doesn't provide any mixed frame for the port {logical_element}."
-            ) from ex
-        out = []
-        for frame in frames:
-            if frame not in self._qubit_frames_inv and frame not in self._meas_frames_inv:
-                out.append(model.GenericFrame(frame))
-        return out
-
-    def _port_uid_to_obj(self, port_uid: str) -> model.LogicalElement:
-        if (index := self._qubit_ports_inv.get(port_uid, None)) is not None:
-            return model.Qubit(index)
-        if (index := self._coupler_ports.get(port_uid, None)) is not None:
-            return model.Coupler(index)
-        return model.Port(port_uid)
-
-    def _frame_uid_to_obj(self, frame_uid: str) -> model.Frame:
-        if (index := self._qubit_frames_inv.get(frame_uid, None)) is not None:
-            return model.QubitFrame(index)
-        if (index := self._meas_frames_inv.get(frame_uid, None)) is not None:
-            return model.MeasurementFrame(index)
-        return model.GenericFrame(frame_uid)
+        # TODO implement this

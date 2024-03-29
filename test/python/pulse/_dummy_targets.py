@@ -24,13 +24,31 @@ TWOQ_CROSSRES_TARGET = QiskitPulseTarget(
         0: "M0",
         1: "M1",
     },
-    qubit_ports={
-        0: "Port0",
-        1: "Port1",
-    },
-    mixed_frames={
-        "Port0": ["Q0", "Q1", "M0"],
-        "Port1": ["Q1", "Q0", "M1"],
+    tx_ports={
+        "Q_channel-0": {
+            "qubits": [0],
+            "op_type": "generic",
+            "num_frames": 3, 
+            "reserved_frames": ["Q0", "Q1"],
+        },
+        "Q_channel-1": {
+            "qubits": [1],
+            "op_type": "generic",
+            "num_frames": 3, 
+            "reserved_frames": ["Q1"],
+        },
+        "R_channel-0": {
+            "qubits": [0],
+            "op_type": "measure",
+            "num_frames": 1, 
+            "reserved_frames": ["M0"],
+        },
+        "R_channel-1": {
+            "qubits": [1],
+            "op_type": "measure",
+            "num_frames": 1, 
+            "reserved_frames": ["M1"],
+        },
     },
 )
 """Pedagogical target for two qubit device control with cross resonance."""
