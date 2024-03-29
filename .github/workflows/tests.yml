@@ -15,6 +15,7 @@ jobs:
     name: macOS-arm64-tests-Python-${{ matrix.python-version }}
     runs-on: macOS-14
     strategy:
+      fail-fast: false
       matrix:
         # Normally we test min and max version but we can't run python 3.8 or
         # 3.9 on arm64 until actions/setup-python#808 is resolved
