@@ -19,6 +19,8 @@ from qiskit.pulse.compiler.target import QiskitPulseTarget
 from qiskit.pulse.exceptions import NotExistingComponent
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
+# TODO update test
+
 
 @ddt
 class TestPulseTarget(QiskitTestCase):
