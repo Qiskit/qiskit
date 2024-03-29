@@ -39,3 +39,30 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: wheels-${{ matrix.os }}
+  build_wheels_macos_arm:
+    name: Build wheels on macOS arm
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-11]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: '3.10'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.17.0
+        env:
+          CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+          CIBW_BUILD: cp38-macosx_universal2 cp38-macosx_arm64
+          CIBW_ARCHS_MACOS: arm64 universal2
+          CIBW_ENVIRONMENT: >-
+            CARGO_BUILD_TARGET="aarch64-apple-darwin"
+            PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+      - uses: actions/upload-artifact@v4
+        with:
+          path: ./wheelhouse/*.whl
+          name: wheels-${{ matrix.os }}-arm
