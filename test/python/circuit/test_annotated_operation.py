@@ -27,7 +27,7 @@ from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestAnnotatedOperationlass(QiskitTestCase):
+class TestAnnotatedOperationClass(QiskitTestCase):
     """Testing qiskit.circuit.AnnotatedOperation"""
 
     def test_create_gate_with_modifier(self):

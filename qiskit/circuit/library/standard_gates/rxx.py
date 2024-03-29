@@ -132,7 +132,7 @@ class RXXGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
+    def power(self, exponent: float, annotated: bool = False):
         """Raise gate to a power."""
         (theta,) = self.params
         return RXXGate(exponent * theta)

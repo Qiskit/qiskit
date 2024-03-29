@@ -19,7 +19,7 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier
+from qiskit.circuit import Gate, Instruction, Measure, Parameter, Barrier, AnnotatedOperation
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.classicalregister import Clbit
@@ -1012,6 +1012,21 @@ class TestCircuitOperations(QiskitTestCase):
 
         with self.subTest("negative power"):
             self.assertEqual(qc.power(-2).data[0].operation, gate.power(-2))
+
+        with self.subTest("integer circuit power via annotation"):
+            power_qc = qc.power(4, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(4))
+
+        with self.subTest("float circuit power via annotation"):
+            power_qc = qc.power(1.5, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(1.5))
+
+        with self.subTest("negative circuit power via annotation"):
+            power_qc = qc.power(-2, annotated=True)
+            self.assertIsInstance(power_qc[0].operation, AnnotatedOperation)
+            self.assertEqual(Operator(power_qc), Operator(qc).power(-2))
 
     def test_power_parameterized_circuit(self):
         """Test taking a parameterized circuit to a power."""

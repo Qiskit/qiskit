@@ -92,7 +92,7 @@ class TGate(SingletonGate):
         """
         return TdgGate()
 
-    def power(self, exponent: float):
+    def power(self, exponent: float, annotated: bool = False):
         """Raise gate to a power."""
         return PhaseGate(0.25 * numpy.pi * exponent)
 
@@ -168,7 +168,7 @@ class TdgGate(SingletonGate):
         """
         return TGate()
 
-    def power(self, exponent: float):
+    def power(self, exponent: float, annotated: bool = False):
         """Raise gate to a power."""
         return PhaseGate(-0.25 * numpy.pi * exponent)
 

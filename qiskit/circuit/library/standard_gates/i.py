@@ -65,7 +65,7 @@ class IGate(SingletonGate):
         ."""
         return IGate()  # self-inverse
 
-    def power(self, exponent: float):
+    def power(self, exponent: float, annotated: bool = False):
         """Raise gate to a power."""
         return IGate()
 
