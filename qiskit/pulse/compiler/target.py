@@ -20,7 +20,7 @@ from qiskit.pulse.exceptions import NotExistingComponent
 
 
 class PulseTarget(Protocol):
-    """Protocol of feeding hardware configuration to the Qiskit pulse compiler.
+    """Protocol of feeding the Qiskit pulse compiler with hardware configurations.
 
     This class defines interfaces for the Qiskit pulse compiler to receive
     necessary information to lower the input pulse programs.
@@ -28,25 +28,38 @@ class PulseTarget(Protocol):
     Because the system configuration is usually vendor dependent, we don't enforce
     the use of any Qiskit abstract class to give such vendors
     more flexibility to choose the most convenient data structure to
-    represent their own device.
+    represent their own devices.
 
     The collection of interfaces is designed to provide all necessary information
-    to convert the Qiskit pulse model into a vendor specific target bianry.
-
+    to gurantee the builtin Qiskit pulse compiler passes can convert
+    the Qiskit pulse program representation into a vendor specific target binary.
     Qiskit pulse uses an abstract model to represent hardware components, such as
     :class:`.QubitFrame` and :class:`qiskit.pulse.model.Qubit`.
     These components might be, not limited to, a software abstraction of
     a numerically controlled oscillator tracking the rotating frame of qubit,
-    and a microwave or laser port connected with a particular qubit.
+    and a microwave or laser element connected with a particular qubit.
 
-    This abstraction allows quantum physics experimentalists to use
-    similar semantics with the ciruict quantum electrodynamics theory,
-    while the compiler needs to lower those components down to the actual hardware resouces.
+    This abstraction allows quantum physics experimentalists to adopt
+    similar semantics to the familiar ciruict quantum electrodynamics theory
+    without concerning about the detailed setup of the hardware device,
+    while the Qiskit compiler needs to lower those components down to the actual equipment.
 
-    We make a native assumption that such hardware devices provide unique string identifier
-    for each component that it equips, and there are limited number of
-    such physical resources. We also assume a frame is tie to ports on the hardware,
-    namely, frames don't exist standalone and always form a mixed frame with a port in pair.
+    Here we make native assumptions. A provider of this taregt must design
+    its data structure to meet following rules otherwise the compiled program may cause
+    faulty behavior. The hardware devices, or pulse controller, 
+    must distinghish every hardware ports and frames with unique string identifiers, and 
+    frames are tied to ports. In other words, frames don't exist standalone and 
+    always can form a mixed frame with a port in pair.
+    
+    In addition, Qiskit provides special preset frame types, 
+    :class:`.QubitFrame` and :class:`.MeasurementFrame`, and the backend must provide 
+    special string identifiers for these frame objects. 
+    If there is any architecture specific frames, a vendor can also define custom 
+    frame subclasses to extend the target model to align with their hardware devices.
+    If the backend defines any calibration for its basis gates, 
+    we assume the same string identifier is used within the calibration so that
+    a user provided inline calibration (pulse gates) can work seamlessly 
+    with the backend calibrated gate sets.
 
     See :class:`.QiskitPulseTarget` for the reference implementation.
     """
@@ -55,13 +68,13 @@ class PulseTarget(Protocol):
         self,
         frame: model.Frame,
     ) -> str:
-        """Return the unique string identifier of the frame.
+        """Return the unique frame identifier of the Qiskit pulse frame.
 
         Args:
             frame: Qiskit pulse Frame object to inquire.
 
         Returns:
-            A unique identifier of given frame.
+            A unique frame identifier.
         """
         raise NotExistingComponent(
             f"This hardware doesn't proivde any resource implementing {frame}."
@@ -69,18 +82,18 @@ class PulseTarget(Protocol):
 
     def get_port_identifier(
         self,
-        port: model.LogicalElement,
+        logical_element: model.LogicalElement,
     ) -> str:
-        """Return the unique string identifier of the hardware port.
+        """Return the unique port identifier of the Qiskit pulse logical element.
 
         Args:
-            port: Qiskit pulse LogicalElement object to inquire.
+            logical_element: Qiskit pulse LogicalElement object to inquire.
 
         Returns:
-            A unique identifier of given port.
+            A unique port identifier.
         """
         raise NotExistingComponent(
-            f"This hardware doesn't proivde any resource implementing {port}."
+            f"This hardware doesn't proivde any resource implementing {logical_element}."
         )
 
     def is_mixed_frame_available(
@@ -101,30 +114,31 @@ class PulseTarget(Protocol):
         self,
         *,
         frame: model.Frame | None = None,
-        port: model.LogicalElement | None = None,
+        logical_element: model.LogicalElement | None = None,
     ) -> list[model.MixedFrame]:
         """Filter available mixed frames on the hardware.
 
         Args:
             frame: Qiskit pulse Frame object to include.
-            port: Qiskit pulse LogicalElement object to include.
+            logical_element: Qiskit pulse LogicalElement object to include.
 
         Returns:
-            A list of Qiskit pulse MixedFrame objects that include given frame and port.
+            A list of Qiskit pulse MixedFrame objects that include given frame and logical element.
         """
         return []
 
     def extra_frames(
         self,
-        port: model.LogicalElement,
+        logical_element: model.LogicalElement,
     ) -> list[model.GenericFrame]:
-        """Get a list of string identifier of unused frames tied to the given port.
+        """Get a list of string identifier of unused frames 
+        tied to the given Qiskit pulse logical element.
 
         Args:
-            port: Qiskit pulse LogicalElement object to inquire.
+            logical_element: Qiskit pulse LogicalElement object to inquire.
 
         Returns:
-            A list of unique identifier of unsed frames.
+            A list of unique frame identifier.
         """
         return []
 
@@ -219,25 +233,26 @@ class QiskitPulseTarget(PulseTarget):
 
     def get_port_identifier(
         self,
-        port: model.LogicalElement,
+        logical_element: model.LogicalElement,
     ) -> str:
-        if isinstance(port, model.Qubit):
+        if isinstance(logical_element, model.Qubit):
             try:
-                return self._qubit_ports[port.qubit_index]
+                return self._qubit_ports[logical_element.qubit_index]
             except KeyError as ex:
                 raise NotExistingComponent(
                     "This hardware doesn't provide any port for "
-                    f"Qubit of index {port.qubit_index}."
+                    f"Qubit of index {logical_element.qubit_index}."
                 ) from ex
-        if isinstance(port, model.Coupler):
+        if isinstance(logical_element, model.Coupler):
             try:
-                return self._coupler_ports[port.index]
+                return self._coupler_ports[logical_element.index]
             except KeyError as ex:
                 raise NotExistingComponent(
-                    "This hardware doesn't provide any port for " f"Coupler of index {port.index}."
+                    "This hardware doesn't provide any port for " 
+                    f"Coupler of index {logical_element.index}."
                 ) from ex
         raise TypeError(
-            f"Input port type {port.__class__.__name__} cannot "
+            f"Input logical element type {logical_element.__class__.__name__} cannot "
             "be directly mapped to hardware elements."
         )
 
@@ -245,11 +260,11 @@ class QiskitPulseTarget(PulseTarget):
         self,
         *,
         frame: model.Frame | None = None,
-        port: model.LogicalElement | None = None,
+        logical_element: model.LogicalElement | None = None,
     ) -> list[model.MixedFrame]:
         try:
-            if port is not None:
-                p_uid = self.get_port_identifier(port)
+            if logical_element is not None:
+                p_uid = self.get_port_identifier(logical_element)
             else:
                 p_uid = None
             if frame is not None:
@@ -276,14 +291,14 @@ class QiskitPulseTarget(PulseTarget):
 
     def extra_frames(
         self,
-        port: model.LogicalElement,
+        logical_element: model.LogicalElement,
     ) -> list[model.GenericFrame]:
-        p_uid = self.get_port_identifier(port)
+        p_uid = self.get_port_identifier(logical_element)
         try:
             frames = self._mixed_frames[p_uid]
         except KeyError as ex:
             raise NotExistingComponent(
-                f"This hardware doesn't provide any mixed frame for the port {port}."
+                f"This hardware doesn't provide any mixed frame for the port {logical_element}."
             ) from ex
         out = []
         for frame in frames:
