@@ -1,0 +1,46 @@
+---
+name: Tests
+on:
+  push:
+    branches: [ main, 'stable/*' ]
+  pull_request:
+    branches: [ main, 'stable/*' ]
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    if: github.repository_owner == 'Qiskit'
+    name: python${{ matrix.python-version }}-${{ matrix.platform.python-architecture }} ${{ matrix.platform.os }}
+    runs-on: ${{ matrix.platform.os }}
+    strategy:
+      matrix:
+        # Normally we test min and max version but we can't run python 3.8 or
+        # 3.9 on arm64 until actions/setup-python#808 is resolved
+        python-version: [3.10, "3.12"]
+        platform:
+          os: "macOS-14"
+          python-architecture: "arm64"
+          rust-target: "aarch64-apple-darwin"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: ${{ matrix.platform.python-architecture }}
+      - name: 'Install dependencies'
+        run: |
+          python -m pip install -U -r requirements.txt -c constraints.txt
+          python -m pip install -U -r requirements-dev.txt -c constraints.txt
+          python -m pip install -c constraints.txt -e .
+      - name: 'Install optionals'
+        run: |
+          python -m pip install -r requirements-optional.txt -c constraints.txt
+        if: matrix.python-version == "3.10"
+      - name: 'Run tests'
+        run: stestr run
+
+
+
