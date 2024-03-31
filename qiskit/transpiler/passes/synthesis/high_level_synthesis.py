@@ -566,13 +566,13 @@ class HighLevelSynthesis(TransformationPass):
                     # returned.
                     best_decomposition = decomposition
                     break
-                else:
-                    # In the "run everything" mode we update the best decomposition
-                    # discovered
-                    current_score = self.hls_config.plugin_evaluation_fn(decomposition)
-                    if current_score < best_score:
-                        best_decomposition = decomposition
-                        best_score = current_score
+
+                # In the "run everything" mode we update the best decomposition
+                # discovered
+                current_score = self.hls_config.plugin_evaluation_fn(decomposition)
+                if current_score < best_score:
+                    best_decomposition = decomposition
+                    best_score = current_score
 
         return best_decomposition
 

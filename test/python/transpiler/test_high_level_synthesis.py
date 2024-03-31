@@ -594,7 +594,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
         qc.append(linear_function, [0, 1, 2, 3, 4, 5, 6])
 
         with self.subTest("sequential"):
-            # In the default "run sequential" mode, we stop as soon as a plugin in the list returns a circuit.
+            # In the default "run sequential" mode, we stop as soon as a plugin
+            # in the list returns a circuit.
             # For this specific example the default options lead to a suboptimal circuit.
             hls_config = HLSConfig(linear_function=[("pmh", {}), ("pmh", {"use_inverted": True})])
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
