@@ -107,8 +107,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         "scheduling", scheduling_method, pass_manager_config, optimization_level=3
     )
 
-    post_optimization = common.generate_post_op_passmanager()
-
     return StagedPassManager(
         pre_init=pre_init,
         init=init,
@@ -117,6 +115,5 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         translation=translation,
         pre_optimization=pre_optimization,
         optimization=optimization,
-        post_optimization=post_optimization,
         scheduling=sched,
     )

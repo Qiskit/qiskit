@@ -48,7 +48,6 @@ from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
-from qiskit.transpiler.passes import FinalizeLayouts
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
@@ -155,13 +154,6 @@ def generate_control_flow_options_check(
     out.append(
         ConditionalController(Error(backend_control.message), condition=backend_control.condition)
     )
-    return out
-
-
-def generate_post_op_passmanager():
-    """Generates a post-optimization pass manager."""
-    out = PassManager()
-    out.append(FinalizeLayouts())
     return out
 
 

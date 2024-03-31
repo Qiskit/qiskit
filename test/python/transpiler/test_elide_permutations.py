@@ -14,19 +14,21 @@
 
 import unittest
 
-from test import QiskitTestCase
-
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit.library.generalized_gates import PermutationGate
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes.optimization.finalize_layouts import FinalizeLayouts
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestElidePermutations(QiskitTestCase):
-    """Test swap elision logical optimization pass."""
+    """Test elide permutations logical optimization pass."""
 
     def setUp(self):
         super().setUp()
@@ -107,6 +109,23 @@ class TestElidePermutations(QiskitTestCase):
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
 
+    def test_multiple_swaps(self):
+        """Test quantum circuit with multiple swaps."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.h(1)
+
+        expected = QuantumCircuit(3)
+        expected.h(0)
+        expected.cx(2, 1)
+        expected.h(2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
     def test_swap_before_measure(self):
         """Test swap before measure is elided."""
         qc = QuantumCircuit(3, 3)
@@ -167,114 +186,6 @@ class TestElidePermutations(QiskitTestCase):
         qc.cx(0, 1)
         res = self.swap_pass(qc)
         self.assertEqual(res, qc)
-
-    def test_unitary_equivalence_pass_manager(self):
-        """Test full transpile pipeline with pass preserves permutation for unitary equivalence."""
-        qc = QuantumCircuit(3)
-        qc.h(0)
-        qc.swap(0, 2)
-        qc.cx(0, 1)
-        qc.swap(1, 0)
-        qc.h(1)
-
-        expected = QuantumCircuit(3)
-        expected.h(0)
-        expected.cx(2, 1)
-        expected.h(2)
-
-        # First assert the pass works as expected
-        res = self.swap_pass(qc)
-        self.assertEqual(res, expected)
-
-        # Without coupling map
-        res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-        # With coupling map
-        res = transpile(
-            qc, coupling_map=CouplingMap.from_line(3), optimization_level=3, seed_transpiler=1234
-        )
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-    def test_unitary_equivalence_with_elide_and_routing(self):
-        """Test full transpile pipeline with pass preserves permutation for unitary equivalence including
-        a larger example and a basis translation."""
-        qc = QuantumCircuit(5)
-        qc.h(0)
-        qc.swap(0, 2)
-        qc.cx(0, 1)
-        qc.swap(1, 0)
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        qc.cx(0, 3)
-        qc.cx(0, 4)
-        qc.h(1)
-
-        expected = QuantumCircuit(5)
-        expected.h(0)
-        expected.cx(2, 1)
-        expected.cx(1, 2)
-        expected.cx(1, 0)
-        expected.cx(1, 3)
-        expected.cx(1, 4)
-        expected.h(2)
-
-        # First assert the pass works as expected
-        res = self.swap_pass(qc)
-        self.assertEqual(res, expected)
-
-        # without coupling map
-        res = transpile(qc, optimization_level=3, seed_transpiler=42)
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-        # With coupling map
-        res = transpile(
-            qc,
-            coupling_map=CouplingMap.from_line(5),
-            basis_gates=["u", "cz"],
-            optimization_level=3,
-            seed_transpiler=1234,
-        )
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-        # Without coupling map but with initial layout
-        res = transpile(
-            qc,
-            initial_layout=[4, 2, 1, 3, 0],
-            basis_gates=["u", "cz"],
-            optimization_level=3,
-            seed_transpiler=1234,
-        )
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-        # With coupling map and with initial layout
-        res = transpile(
-            qc,
-            coupling_map=CouplingMap.from_line(5),
-            initial_layout=[4, 2, 1, 3, 0],
-            basis_gates=["u", "cz"],
-            optimization_level=3,
-            seed_transpiler=1234,
-        )
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
-
-        # With coupling map over more qubits
-        _ = transpile(
-            qc,
-            optimization_level=3,
-            seed_transpiler=42,
-            coupling_map=CouplingMap.from_line(8),
-        )
-
-        # With coupling map over more qubits and initial layout
-        _ = transpile(
-            qc,
-            initial_layout=[4, 2, 7, 3, 6],
-            optimization_level=3,
-            seed_transpiler=42,
-            coupling_map=CouplingMap.from_line(8),
-        )
-        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
     def test_permutation_in_middle(self):
         """Test permutation in middle of bell is elided."""
@@ -385,6 +296,141 @@ class TestElidePermutations(QiskitTestCase):
 
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
+
+
+def callback_func(pass_, dag, time, property_set, count):
+    from qiskit.converters import dag_to_circuit
+
+    print(f"{count}: {pass_.name()} in {time}")
+    # dag_drawer(dag)\n",
+    # print(property_set)\n",
+    circuit = dag_to_circuit(dag)
+    # print(circuit)
+    print(f"ops: {circuit.count_ops()}")
+    print(f"dep: {circuit.depth()}")
+
+
+class TestElidePermutationsInTranspileFlow(QiskitTestCase):
+    """
+    Test elide permutations in the full transpile pipeline, especially that
+    "layout" and "final_layout" attributes are updated correctly
+    as to preserve unitary equivalence.
+    """
+
+    # ToDo: update the tests when ElidePermutations is merged into transpiler flow.
+
+    def test_unitary_equivalence(self):
+        """Test unitary equivalence of the original and transpiled circuits."""
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.h(1)
+
+        with self.subTest("no coupling map"):
+            spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+        with self.subTest("with coupling map"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3, seed_transpiler=42, coupling_map=CouplingMap.from_line(3)
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+    def test_unitary_equivalence_routing_and_basis_translation(self):
+        """Test on a larger example that includes routing and basis translation."""
+
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.h(1)
+
+        with self.subTest("no coupling map"):
+            spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+        with self.subTest("with coupling map"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=1234,
+                coupling_map=CouplingMap.from_line(5),
+                basis_gates=["u", "cz"],
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+        with self.subTest("no coupling map but with initial layout"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=1234,
+                initial_layout=[4, 2, 1, 3, 0],
+                basis_gates=["u", "cz"],
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+        with self.subTest("coupling map and initial layout"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=1234,
+                initial_layout=[4, 2, 1, 3, 0],
+                basis_gates=["u", "cz"],
+                coupling_map=CouplingMap.from_line(5),
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+
+        with self.subTest("larger coupling map"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=42,
+                coupling_map=CouplingMap.from_line(8),
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+
+            qc_with_ancillas = QuantumCircuit(8)
+            qc_with_ancillas.append(qc, [0, 1, 2, 3, 4])
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc_with_ancillas)))
+
+        with self.subTest("larger coupling map and initial layout"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=42,
+                initial_layout=[4, 2, 7, 3, 6],
+                coupling_map=CouplingMap.from_line(8),
+            )
+            spm.init += ElidePermutations()
+            spm.post_optimization = PassManager([FinalizeLayouts()])
+            res = spm.run(qc)
+
+            qc_with_ancillas = QuantumCircuit(8)
+            qc_with_ancillas.append(qc, [0, 1, 2, 3, 4])
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc_with_ancillas)))
 
 
 if __name__ == "__main__":
