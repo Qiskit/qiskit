@@ -1744,61 +1744,24 @@ class TestTranspile(QiskitTestCase):
         circuit.barrier()
         circuit.iswap(0, 1)
 
-        expected = QuantumCircuit(2)
-        expected.append(random_unitary(4, seed=1), [0, 1])
-        expected.barrier()
-        expected.cx(0, 1)
-        expected.barrier()
-        expected.iswap(1, 0)
-
         res = transpile(
             circuit,
             basis_gates=["u", "ecr"],
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        if optimization_level != 3:
-            self.assertEqual(res.count_ops()["ecr"], 9)
-            self.assertTrue(Operator(res).equiv(circuit))
-        else:
-            # Swap gets optimized away in opt level 3
-            self.assertEqual(res.count_ops()["ecr"], 6)
-            # ToDo: remove this comment when from_circuit is fixed
-            # self.assertTrue(Operator.from_circuit(res).equiv(expected))
+        self.assertEqual(res.count_ops()["ecr"], 9)
+        self.assertTrue(Operator(res).equiv(circuit))
 
-    # def test_optimize_ecr_basis_no_elide_swap(self):
-    #     """Test highest optimization level can optimize over ECR."""
-    #     circuit = QuantumCircuit(2)
-    #     circuit.swap(1, 0)
-    #     circuit.iswap(0, 1)
-    #
-    #     res = transpile(
-    #         circuit,
-    #         basis_gates=["u", "ecr"],
-    #         initial_layout=[0, 1],
-    #         optimization_level=3,
-    #         seed_transpiler=42,
-    #     )
-    #     self.assertEqual(res.count_ops()["ecr"], 1)
-    #     self.assertTrue(Operator(res).equiv(circuit))
-
-    def test_optimize_ecr_basis_with_elide_swap(self):
+    def test_optimize_ecr_basis(self):
         """Test highest optimization level can optimize over ECR."""
         circuit = QuantumCircuit(2)
         circuit.swap(1, 0)
         circuit.iswap(0, 1)
 
-        expected = QuantumCircuit(2)
-        expected.iswap(1, 0)
-
         res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=3, seed_transpiler=42)
-        # an iswap gate is equivalent to (swap, CZ) up to single-qubit rotations. Normally, the swap gate
-        # in the circuit would cancel with the swap gate of the (swap, CZ), leaving a single CZ gate that
-        # can be realized via one ECR gate. However, with the introduction of ElideSwap, the swap gate
-        # cancellation can not occur anymore, thus requiring two ECR gates for the iswap gate. I agree
-        # this is confusing but it appears to check out. :-)
-        self.assertEqual(res.count_ops()["ecr"], 2)
-        self.assertTrue(Operator(res).equiv(expected))
+        self.assertEqual(res.count_ops()["ecr"], 1)
+        self.assertTrue(Operator(res).equiv(circuit))
 
     def test_approximation_degree_invalid(self):
         """Test invalid approximation degree raises."""
