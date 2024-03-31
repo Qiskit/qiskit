@@ -1095,7 +1095,7 @@ class MCXGate(ControlledGate):
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
-        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
+        # the C3XGate and C4XGate are handled in the gate definition.
         explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
@@ -1166,14 +1166,25 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
-        """The standard definition used the Gray code implementation."""
+        """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
-        self.definition = qc
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            qc.h(q_target)
+            qc.mcp(numpy.pi, q_controls, q_target)
+            qc.h(q_target)
+            self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
