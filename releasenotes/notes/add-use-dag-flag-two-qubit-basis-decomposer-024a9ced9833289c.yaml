@@ -1,0 +1,8 @@
+---
+features_synthesis:
+  - |
+    Added a new argument, ``use_dag``, to the constructor for the
+    :class:`.TwoQubitBasisDecomposer`. This argument is used to control whether
+    a :class:`.DAGCircuit` is returned when calling a
+    :class:`.TwoQubitBasisDecomposer` instead of the default
+    :class:`.QuantumCircuit`.

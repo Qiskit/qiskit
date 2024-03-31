@@ -29,14 +29,27 @@ import math
 import io
 import base64
 import warnings
-from typing import Optional, Type
+from typing import Optional, Type, TYPE_CHECKING
 
 import logging
 
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, U3Gate, U2Gate, U1Gate
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    U3Gate,
+    U2Gate,
+    U1Gate,
+    UGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SXGate,
+    XGate,
+    RGate,
+)
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.synthesis.one_qubit.one_qubit_decompose import (
@@ -46,7 +59,26 @@ from qiskit.synthesis.one_qubit.one_qubit_decompose import (
 from qiskit.utils.deprecation import deprecate_func
 from qiskit._accelerate import two_qubit_decompose
 
+if TYPE_CHECKING:
+    from qiskit.dagcircuit.dagcircuit import DAGCircuit
+
 logger = logging.getLogger(__name__)
+
+
+GATE_NAME_MAP = {
+    "cx": CXGate,
+    "rx": RXGate,
+    "sx": SXGate,
+    "x": XGate,
+    "rz": RZGate,
+    "u": UGate,
+    "p": PhaseGate,
+    "u1": U1Gate,
+    "u2": U2Gate,
+    "u3": U3Gate,
+    "ry": RYGate,
+    "r": RGate,
+}
 
 
 def decompose_two_qubit_product_gate(special_unitary_matrix: np.ndarray):
@@ -480,6 +512,8 @@ class TwoQubitBasisDecomposer:
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a :class:`QuantumCircuit`
+            when this class is called.
 
     .. automethod:: __call__
     """
@@ -490,10 +524,12 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: float = 1.0,
         euler_basis: str = "U",
         pulse_optimize: bool | None = None,
+        use_dag: bool = False,
     ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
+        self.use_dag = use_dag
         # Use cx as gate name for pulse optimal decomposition detection
         # otherwise use USER_GATE as a unique key to support custom gates
         # including parameterized gates like UnitaryGate.
@@ -587,7 +623,7 @@ class TwoQubitBasisDecomposer:
         approximate: bool = True,
         *,
         _num_basis_uses: int | None = None,
-    ) -> QuantumCircuit:
+    ) -> QuantumCircuit | DAGCircuit:
         r"""Decompose a two-qubit ``unitary`` over fixed basis and :math:`SU(2)` using the best
         approximation given that each basis application has a finite ``basis_fidelity``.
 
@@ -612,26 +648,40 @@ class TwoQubitBasisDecomposer:
             _num_basis_uses=_num_basis_uses,
         )
         q = QuantumRegister(2)
-        circ = QuantumCircuit(q, global_phase=sequence.global_phase)
-        for name, params, qubits in sequence:
-            try:
-                getattr(circ, name)(*params, *qubits)
-            except AttributeError as exc:
-                if name == "USER_GATE":
-                    circ.append(self.gate, qubits)
-                elif name == "u3":
-                    gate = U3Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u2":
-                    gate = U2Gate(*params)
-                    circ.append(gate, qubits)
-                elif name == "u1":
-                    gate = U1Gate(*params)
-                    circ.append(gate, qubits)
-                else:
-                    raise QiskitError(f"Unknown gate {name}") from exc
+        if self.use_dag:
+            from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
-        return circ
+            dag = DAGCircuit()
+            dag.global_phase = sequence.global_phase
+            dag.add_qreg(q)
+            for name, params, qubits in sequence:
+                if name == "USER_GATE":
+                    dag.apply_operation_back(self.gate, tuple(q[x] for x in qubits), check=False)
+                else:
+                    gate = GATE_NAME_MAP[name](*params)
+                    dag.apply_operation_back(gate, tuple(q[x] for x in qubits), check=False)
+            return dag
+        else:
+            circ = QuantumCircuit(q, global_phase=sequence.global_phase)
+            for name, params, qubits in sequence:
+                try:
+                    getattr(circ, name)(*params, *qubits)
+                except AttributeError as exc:
+                    if name == "USER_GATE":
+                        circ.append(self.gate, qubits)
+                    elif name == "u3":
+                        gate = U3Gate(*params)
+                        circ.append(gate, qubits)
+                    elif name == "u2":
+                        gate = U2Gate(*params)
+                        circ.append(gate, qubits)
+                    elif name == "u1":
+                        gate = U1Gate(*params)
+                        circ.append(gate, qubits)
+                    else:
+                        raise QiskitError(f"Unknown gate {name}") from exc
+
+            return circ
 
     def traces(self, target):
         r"""
