@@ -750,6 +750,19 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
     @data(1, 2, 3, 4)
+    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits):
+        """Test the creating a MCX gate with small number of controls (with no ancillas)
+        yields the expected number of cx gates."""
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(MCXGate(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        from qiskit import transpile
+
+        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = cqc.count_ops()["cx"]
+        expected = {1: 1, 2: 6, 3: 14, 4: 36}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @data(1, 2, 3, 4)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
