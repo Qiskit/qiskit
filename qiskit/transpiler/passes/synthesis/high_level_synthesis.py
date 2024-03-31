@@ -266,9 +266,6 @@ class HLSConfig:
         self.methods[hls_name] = hls_methods
 
 
-# ToDo: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
-
-
 class HighLevelSynthesis(TransformationPass):
     """Synthesize higher-level objects and unroll custom definitions.
 
