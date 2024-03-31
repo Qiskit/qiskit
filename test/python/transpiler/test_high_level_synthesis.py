@@ -65,6 +65,7 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
+
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
 # higher-level objects written by a user.
 # For OpA we define two synthesis methods:
@@ -624,11 +625,8 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
         qc = QuantumCircuit(7)
         qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
 
-        depth_fn = lambda qc: qc.depth()
-
         with self.subTest("size_fn"):
             # We want to minimize the "size" (aka the number of gates) in the circuit
-            size_fn = lambda qc: qc.size()
             hls_config = HLSConfig(
                 linear_function=[
                     ("pmh", {}),
@@ -637,7 +635,7 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
                     ("pmh", {"use_inverted": True, "use_transposed": True}),
                 ],
                 plugin_selection="all",
-                plugin_evaluation_fn=size_fn,
+                plugin_evaluation_fn=lambda qc: qc.size(),
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
@@ -654,7 +652,7 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
                     ("pmh", {"use_inverted": True, "use_transposed": True}),
                 ],
                 plugin_selection="all",
-                plugin_evaluation_fn=depth_fn,
+                plugin_evaluation_fn=lambda qc: qc.depth(),
             )
             qct = HighLevelSynthesis(hls_config=hls_config)(qc)
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))

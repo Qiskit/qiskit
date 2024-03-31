@@ -247,7 +247,7 @@ class HLSConfig:
                 according to ``plugin_evaluation_fn`` will be chosen.
             plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
                 quantum circuit; a smaller value means a better circuit. If ``None``, the
-                quality of the circuit is the number of instruction it contains.
+                quality of the circuit its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
