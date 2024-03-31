@@ -356,20 +356,32 @@ class MCPhaseGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
-        q = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(q, name=self.name)
+        qr = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(qr, name=self.name)
 
         if self.num_ctrl_qubits == 0:
             qc.p(self.params[0], 0)
         if self.num_ctrl_qubits == 1:
             qc.cp(self.params[0], 0, 1)
         else:
-            from .u3 import _gray_code_chain
+            lam = self.params[0]
+            if type(lam) in [float, int]:
+                q_controls = list(range(self.num_ctrl_qubits))
+                q_target = self.num_ctrl_qubits
+                new_target = q_target
+                for k in range(self.num_ctrl_qubits):
+                    qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=True)
+                    new_target = q_controls.pop()
+                qc.p(lam / (2**self.num_ctrl_qubits), new_target)
+            else:  # in this case type(lam) is ParameterValueType
+                from .u3 import _gray_code_chain
 
-            scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
-            bottom_gate = CPhaseGate(scaled_lam)
-            for operation, qubits, clbits in _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate):
-                qc._append(operation, qubits, clbits)
+                scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
+                bottom_gate = CPhaseGate(scaled_lam)
+                for operation, qubits, clbits in _gray_code_chain(
+                    qr, self.num_ctrl_qubits, bottom_gate
+                ):
+                    qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def control(
@@ -409,5 +421,5 @@ class MCPhaseGate(ControlledGate):
         return gate
 
     def inverse(self, annotated: bool = False):
-        r"""Return inverted MCU1 gate (:math:`MCU1(\lambda)^{\dagger} = MCU1(-\lambda)`)"""
+        r"""Return inverted MCPhase gate (:math:`MCPhase(\lambda)^{\dagger} = MCPhase(-\lambda)`)"""
         return MCPhaseGate(-self.params[0], self.num_ctrl_qubits)
