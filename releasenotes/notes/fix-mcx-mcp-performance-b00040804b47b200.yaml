@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Improve the decomposition of the gates :class:`.MCXGate` and :class:`.MCPhaseGate`
+    without using ancilla qubits, so that the number of :class:`.CXGate` will grow
+    quadratically in the number of qubits and not exponentially.
