@@ -45,4 +45,3 @@ features:
     which is designed to run after the :ref:`routing_stage` and update the
     ``final_layout`` property set based on ``layout`` and
     ``virtual_permutation_layout``.
-q

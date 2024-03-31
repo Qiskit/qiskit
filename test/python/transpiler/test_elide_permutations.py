@@ -15,7 +15,6 @@
 import unittest
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.compiler.transpiler import transpile
 from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization.finalize_layouts import FinalizeLayouts
@@ -296,18 +295,6 @@ class TestElidePermutations(QiskitTestCase):
 
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
-
-
-def callback_func(pass_, dag, time, property_set, count):
-    from qiskit.converters import dag_to_circuit
-
-    print(f"{count}: {pass_.name()} in {time}")
-    # dag_drawer(dag)\n",
-    # print(property_set)\n",
-    circuit = dag_to_circuit(dag)
-    # print(circuit)
-    print(f"ops: {circuit.count_ops()}")
-    print(f"dep: {circuit.depth()}")
 
 
 class TestElidePermutationsInTranspileFlow(QiskitTestCase):
