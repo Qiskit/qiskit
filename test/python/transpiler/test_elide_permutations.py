@@ -357,6 +357,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
         qc.cx(0, 2)
         qc.cx(0, 3)
         qc.cx(0, 4)
+        qc.append(PermutationGate([0, 2, 1]), [0, 1, 2])
         qc.h(1)
 
         with self.subTest("no coupling map"):
