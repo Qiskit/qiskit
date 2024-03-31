@@ -513,10 +513,10 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the PMHSynthesisLinearFunction plugin for synthesizing linear functions."""
 
     @staticmethod
-    def construct_linear_circuit(nq):
+    def construct_linear_circuit(num_qubits: int):
         """Construct linear circuit."""
-        qc = QuantumCircuit(nq)
-        for i in range(1, nq):
+        qc = QuantumCircuit(num_qubits)
+        for i in range(1, num_qubits):
             qc.cx(i - 1, i)
         return qc
 
@@ -591,18 +591,10 @@ class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
     """Tests for the KMSSynthesisLinearFunction plugin for synthesizing linear functions."""
 
     @staticmethod
-    def construct_linear_circuit(nq):
+    def construct_linear_circuit(num_qubits: int):
         """Construct linear circuit."""
-        qc = QuantumCircuit(nq)
-        for i in range(1, nq):
-            qc.cx(i - 1, i)
-        return qc
-
-    @staticmethod
-    def construct_reverse_linear_circuit(nq):
-        """Construct reverse linear circuit."""
-        qc = QuantumCircuit(nq)
-        for i in reversed(range(1, nq)):
+        qc = QuantumCircuit(num_qubits)
+        for i in range(1, num_qubits):
             qc.cx(i - 1, i)
         return qc
 
