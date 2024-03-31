@@ -371,7 +371,7 @@ class MCPhaseGate(ControlledGate):
                     qc.mcrz(lam / (2**k), q_controls, new_target, use_basis_gates=True)
                     new_target = q_controls.pop()
                 qc.p(lam / (2**self.num_ctrl_qubits), new_target)
-            else:
+            else:  # in this case type(lam) is ParameterValueType
                 from .u3 import _gray_code_chain
 
                 scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
