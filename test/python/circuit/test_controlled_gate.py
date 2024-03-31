@@ -987,6 +987,41 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertEqual(operator_qc, operator_qc1)
 
+    @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 0))
+    @unpack
+    def test_multi_control_p_ctrl_state_parameter(
+        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
+    ):
+        """To check the consistency of parameters ctrl_state in MCP"""
+        qc = QuantumCircuit(num_qubits)
+        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+        operator_qc = Operator(qc)
+
+        qc1 = QuantumCircuit(num_qubits)
+        gate = MCPhaseGate(lam, num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
+        qc1.append(gate, ctrl_qubits + [target_qubit])
+        operator_qc1 = Operator(qc1)
+
+        self.assertEqual(operator_qc, operator_qc1)
+
+    @data((4, 0.2, [0, 1, 2], 3, "000"), (3, 0.6, [0, 1], 2, 1))
+    @unpack
+    def test_open_control_mcphase_ctrl_state_parameter(
+        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
+    ):
+        """To check the consistency of parameters ctrl_state in MCPhaseGate"""
+        qc = QuantumCircuit(num_qubits)
+        num_controls = len(ctrl_qubits)
+        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+
+        # obtain unitary for circuit
+        simulated = Operator(qc).data
+        simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
+        base = PhaseGate(lam).to_matrix()
+        expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
+
+        self.assertTrue(matrix_equal(simulated, expected))
+
     def test_open_control_composite_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""
         # create composite gate
