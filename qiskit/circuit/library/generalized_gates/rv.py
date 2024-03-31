@@ -18,7 +18,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class RVGate(Gate):
-    r"""Rotation around arbitrary rotation axis :math:`v` where :math:`|v|` is
+    r"""Rotation around arbitrary rotation axis :math:`\vec{v}` where :math:`\|\vec{v}\|_2` is
     angle of rotation in radians.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
@@ -36,14 +36,17 @@ class RVGate(Gate):
 
     .. math::
 
-        \newcommand{\rotationangle}{|\vec{v}|}
-        \newcommand{\sinc}{\text{sinc}}
-            R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma}} =
+        \newcommand{\rotationangle}{\frac{\|\vec{v}\|_2}{2}}
+            R(\vec{v}) = e^{-i \vec{v}\cdot\vec{\sigma} / 2} =
                 \begin{pmatrix}
-                    \cos\left(\rotationangle\right) -i v_z \sinc\left(\rotationangle\right)
-                    & -(i v_x + v_y) \sinc\left(\rotationangle\right) \\
-                    -(i v_x - v_y) \sinc\left(\rotationangle\right)
-                    & \cos\left(\rotationangle\right) + i v_z \sinc\left(\rotationangle\right)
+                    \cos\left(\rotationangle\right)
+                    -i \frac{v_z}{\|\vec{v}\|_2} \sin\left(\rotationangle\right)
+                    & -(i \frac{v_x}{\|\vec{v}\|_2}
+                    + \frac{v_y}{\|\vec{v}\|_2}) \sin\left(\rotationangle\right) \\
+                    -(i \frac{v_x}{\|\vec{v}\|_2}
+                    - \frac{v_y}{\|\vec{v}\|_2}) \sin\left(\rotationangle\right)
+                    & \cos\left(\rotationangle\right)
+                    + i \frac{v_z}{\|\vec{v}\|_2} \sin\left(\rotationangle\right)
                 \end{pmatrix}
     """
 
