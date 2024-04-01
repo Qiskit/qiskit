@@ -468,6 +468,13 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
 
+    @data("s", "h")
+    def test_evolve_with_misleading_name(self, frame):
+        """Test evolve by circuit contents, not by name (fixed bug)."""
+        circ = QuantumCircuit(2, name="cx")
+        p = Pauli("IX")
+        self.assertEqual(p, p.evolve(circ, frame=frame))
+
     def test_barrier_delay_sim(self):
         """Test barrier and delay instructions can be simulated"""
         target_circ = QuantumCircuit(2)
