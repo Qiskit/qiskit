@@ -90,7 +90,7 @@ pub fn score_layout(
             .filter_map(edge_filter_map)
             .product()
     };
-    fidelity *= if bit_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
+    fidelity *= if bit_list.len()? < PARALLEL_THRESHOLD || !run_in_parallel {
         bit_counts
             .iter()
             .enumerate()

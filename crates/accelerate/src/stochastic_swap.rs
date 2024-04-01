@@ -255,7 +255,7 @@ pub fn swap_trials(
     let cdist_arr = cdist.as_array();
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
-    let num_gates: usize = int_gates.len() / 2;
+    let num_gates: usize = int_gates.len()? / 2;
     let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
     let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
         RwLock::new(&mut best_possible);

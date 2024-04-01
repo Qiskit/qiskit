@@ -19,7 +19,7 @@ use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, PyUntypedArrayMethods};
 
 /// Find the unique elements of an array.
 ///

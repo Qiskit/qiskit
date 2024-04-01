@@ -57,8 +57,8 @@ macro_rules! qubit_newtype {
         unsafe impl numpy::Element for $id {
             const IS_COPY: bool = true;
 
-            fn get_dtype(py: Python<'_>) -> &numpy::PyArrayDescr {
-                u32::get_dtype(py)
+            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype_bound(py)
             }
         }
     };
