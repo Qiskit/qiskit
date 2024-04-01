@@ -27,6 +27,8 @@ from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
+from qiskit.quantum_info import Operator
+from qiskit.visualization import circuit_drawer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -413,3 +415,130 @@ class StatePreparation(Gate):
             circuit.append(CXGate(), [msb, lsb])
 
         return circuit
+class Generalized_Uniform_Superposition_Gate(Gate):
+    """
+    Generates a generalized uniform superposition state, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $ (where 1< M <= 2^n), 
+    using n qubits, following the Shukla-Vedula algorithm [SV24].
+
+    Note: The Shukla-Vedula algorithm [SV24] provides an efficient approach for creation of a generalized uniform superposition 
+    state of the form, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ 
+    gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
+    in existing literature.
+    
+    Args:
+        M (int): 
+            A positive integer M (> 1) representing the number of computational basis states with an amplitude of 1/sqrt(M) 
+            in the uniform superposition state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $). Note that the remaining 
+            (2^n - M) computational basis states have zero amplitudes. Here M need not be an integer power of 2.
+            
+        num_qubits (int): 
+            A positive integer representing the number of qubits used.
+
+    Returns:
+        cirq.Circuit: A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. 
+
+    References:
+        [SV24] 
+            A. Shukla and P. Vedula, “An efficient quantum algorithm for preparation of uniform quantum superposition states,” 
+            Quantum Information Processing, 23(38): pp. 1-32 (2024).
+    """
+
+    def __init__(self, M, num_qubits):
+        """
+        Initializes Generalized_Uniform_Superposition_Gate.
+
+        Args:
+            M (int): The number of computational basis states with amplitude 1/sqrt(M).
+            num_qubits (int): The number of qubits used.
+        """
+        super().__init__('USup', num_qubits, [])
+        assert isinstance(M, int) and M > 1, "M must be a positive integer greater than 1."
+        assert isinstance(num_qubits, int) and num_qubits >= np.log2(M), "num_qubits must be an integer greater than or equal to log2(M)."
+        self.M = M
+        self._num_qubits = num_qubits
+
+    def _define(self):
+        """
+        Defines the gate operation.
+
+        Returns:
+            QuantumCircuit: The quantum circuit implementing the gate.
+        """
+        qreg = QuantumRegister(self.num_qubits(), 'q')
+        qc = QuantumCircuit(self.num_qubits())
+        
+        
+        M = self.M
+        num_qubits = self.num_qubits()
+        
+
+        if (M & (M-1)) == 0: # if M is an integer power of 2
+            m = int(np.log2(M))
+            qc.h(qreg[0:m])
+            return qc  
+    
+        N = [int(x) for x in list(np.binary_repr(M))][::-1] 
+        k = len(N)
+        L = [index for (index,item) in enumerate(N) if item==1] # Locations of '1's
+    
+        qc.x(qreg[L[1:k]])
+        Mcurrent = 2**(L[0])
+        theta = -2*np.arccos(np.sqrt(Mcurrent/M))
+        
+
+        if L[0]>0:   #if M is even
+            qc.h(qreg[0:L[0]])
+        qc.ry(theta, qreg[L[1]])
+        qc.ch(qreg[L[1]], qreg[L[0]:L[1]], ctrl_state='0')
+            
+
+        for m in range(1,len(L)-1):
+            theta = -2*np.arccos(np.sqrt(2**L[m]/ (M-Mcurrent)))
+            qc.cry(theta, qreg[L[m]], qreg[L[m+1]], ctrl_state='0')
+            qc.ch(qreg[L[m+1]], qreg[L[m]:L[m+1]], ctrl_state='0')
+            Mcurrent = Mcurrent + 2**(L[m])
+        
+        return qc
+        
+
+    def num_qubits(self):
+        """Returns the number of qubits used by the gate."""
+        return self._num_qubits
+
+    def __repr__(self):
+        """Returns a string representation of the gate."""
+        return f"Generalized_Uniform_Superposition_Gate(M={self.M}, num_qubits={self._num_qubits})"
+
+    def broadcast_arguments(self, qargs, cargs):
+        """Validates and handles the arguments."""
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+
+        if self.num_qubits() != len(flat_qargs):
+            raise CircuitError(
+                f"Generalized_Uniform_Superposition_Gate expects {self.num_qubits()} qubits, but {len(flat_qargs)} were provided."
+            )
+        yield flat_qargs, []
+
+    def validate_parameter(self, parameter):
+        """Validates the gate parameter."""
+        # Validation logic goes here
+        pass
+
+    def inverse(self):
+        """Returns the inverse of the gate."""
+        # Inverse logic goes here
+        pass
+
+    def decompose(self, qubits):
+        qc = self._define()
+        return qc
+
+    def to_instruction(self):
+        qc = self._define()
+        return qc.to_instruction()
+
+    def to_unitary(self):
+        instruction = self.to_instruction()
+        qc = QuantumCircuit(self.num_qubits())
+        qc.append(instruction, list(range(self.num_qubits())))
+        return np.array(Operator(qc).data)
