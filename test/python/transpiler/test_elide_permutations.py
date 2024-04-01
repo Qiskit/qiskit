@@ -16,8 +16,6 @@ import unittest
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PermutationGate
-from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes.optimization.finalize_layouts import FinalizeLayouts
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
@@ -318,8 +316,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
 
         with self.subTest("no coupling map"):
             spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -327,8 +323,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
             spm = generate_preset_pass_manager(
                 optimization_level=3, seed_transpiler=42, coupling_map=CouplingMap.from_line(3)
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -349,8 +343,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
 
         with self.subTest("no coupling map"):
             spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -361,8 +353,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 coupling_map=CouplingMap.from_line(5),
                 basis_gates=["u", "cz"],
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -373,8 +363,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 initial_layout=[4, 2, 1, 3, 0],
                 basis_gates=["u", "cz"],
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -386,8 +374,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 basis_gates=["u", "cz"],
                 coupling_map=CouplingMap.from_line(5),
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -397,8 +383,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 seed_transpiler=42,
                 coupling_map=CouplingMap.from_line(8),
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
 
             qc_with_ancillas = QuantumCircuit(8)
@@ -412,8 +396,6 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 initial_layout=[4, 2, 7, 3, 6],
                 coupling_map=CouplingMap.from_line(8),
             )
-            spm.init += ElidePermutations()
-            spm.post_optimization = PassManager([FinalizeLayouts()])
             res = spm.run(qc)
 
             qc_with_ancillas = QuantumCircuit(8)
