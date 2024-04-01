@@ -217,9 +217,9 @@ pub fn best_subset(
     let cols: Vec<usize> = new_cmap.iter().map(|edge| edge[1]).collect();
 
     Ok((
-        rows.to_pyarray(py).into(),
-        cols.to_pyarray(py).into(),
-        best_map.to_pyarray(py).into(),
+        rows.to_pyarray_bound(py).into(),
+        cols.to_pyarray_bound(py).into(),
+        best_map.to_pyarray_bound(py).into(),
     ))
 }
 

@@ -601,11 +601,11 @@ impl TwoQubitWeylDecomposition {
             (
                 [self.a, self.b, self.c, self.global_phase],
                 [
-                    self.K1l.to_pyarray(py),
-                    self.K1r.to_pyarray(py),
-                    self.K2l.to_pyarray(py),
-                    self.K2r.to_pyarray(py),
-                    self.unitary_matrix.to_pyarray(py),
+                    self.K1l.to_pyarray_bound(py),
+                    self.K1r.to_pyarray_bound(py),
+                    self.K2l.to_pyarray_bound(py),
+                    self.K2r.to_pyarray_bound(py),
+                    self.unitary_matrix.to_pyarray_bound(py),
                 ],
                 self.specialization,
                 self.default_euler_basis,
@@ -1100,30 +1100,30 @@ impl TwoQubitWeylDecomposition {
     #[allow(non_snake_case)]
     #[getter]
     fn K1l(&self, py: Python) -> PyObject {
-        self.K1l.to_pyarray(py).into()
+        self.K1l.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K1r(&self, py: Python) -> PyObject {
-        self.K1r.to_pyarray(py).into()
+        self.K1r.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2l(&self, py: Python) -> PyObject {
-        self.K2l.to_pyarray(py).into()
+        self.K2l.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2r(&self, py: Python) -> PyObject {
-        self.K2r.to_pyarray(py).into()
+        self.K2r.to_pyarray_bound(py).into()
     }
 
     #[getter]
     fn unitary_matrix(&self, py: Python) -> PyObject {
-        self.unitary_matrix.to_pyarray(py).into()
+        self.unitary_matrix.to_pyarray_bound(py).into()
     }
 
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
@@ -1680,7 +1680,10 @@ impl TwoQubitBasisDecomposer {
     fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, &str, Option<bool>) {
         (
             self.gate.clone(),
-            self.basis_decomposer.unitary_matrix.to_pyarray(py).into(),
+            self.basis_decomposer
+                .unitary_matrix
+                .to_pyarray_bound(py)
+                .into(),
             self.basis_fidelity,
             self.euler_basis.as_str(),
             self.pulse_optimize,
@@ -1878,7 +1881,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 2]> {
         decomp0_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1895,7 +1898,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 4]> {
         self.decomp1_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1920,7 +1923,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1935,7 +1938,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 

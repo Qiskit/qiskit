@@ -58,8 +58,8 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
         }
     }
     (
-        indices.into_pyarray(py).into(),
-        inverses.into_pyarray(py).into(),
+        indices.into_pyarray_bound(py).into(),
+        inverses.into_pyarray_bound(py).into(),
     )
 }
 
@@ -163,9 +163,9 @@ pub fn decompose_dense(
         let x = unsafe { x.assume_init() };
         let phases = unsafe { phases.assume_init() };
         Ok(ZXPaulis {
-            z: z.into_pyarray(py).into(),
-            x: x.into_pyarray(py).into(),
-            phases: phases.into_pyarray(py).into(),
+            z: z.into_pyarray_bound(py).into(),
+            x: x.into_pyarray_bound(py).into(),
+            phases: phases.into_pyarray_bound(py).into(),
             coeffs: PyArray1::from_vec(py, coeffs).into(),
         })
     }

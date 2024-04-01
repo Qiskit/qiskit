@@ -108,7 +108,7 @@ pub fn sabre_layout_and_routing(
         PyArray::from_vec(py, res.1).into(),
         (
             res.2.map,
-            res.2.node_order.into_pyarray(py).into(),
+            res.2.node_order.into_pyarray_bound(py).into(),
             res.2.node_block_results,
         ),
     )

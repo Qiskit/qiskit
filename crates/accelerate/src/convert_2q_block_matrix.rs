@@ -57,7 +57,7 @@ pub fn blocks_to_matrix(
             None => op_matrix.dot(&matrix),
         };
     }
-    Ok(matrix.into_pyarray(py).to_owned())
+    Ok(matrix.into_pyarray_bound(py).unbind())
 }
 
 /// Switches the order of qubits in a two qubit operation.
