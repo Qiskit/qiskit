@@ -120,10 +120,10 @@ pub fn decompose_dense(
     }
     if coeffs.is_empty() {
         Ok(ZXPaulis {
-            z: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            x: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            phases: PyArray1::zeros(py, [0], false).into(),
-            coeffs: PyArray1::zeros(py, [0], false).into(),
+            z: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            x: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            phases: PyArray1::zeros_bound(py, [0], false).into(),
+            coeffs: PyArray1::zeros_bound(py, [0], false).into(),
         })
     } else {
         // Constructing several arrays of different shapes at once is rather awkward in iterator
@@ -166,7 +166,7 @@ pub fn decompose_dense(
             z: z.into_pyarray_bound(py).into(),
             x: x.into_pyarray_bound(py).into(),
             phases: phases.into_pyarray_bound(py).into(),
-            coeffs: PyArray1::from_vec(py, coeffs).into(),
+            coeffs: PyArray1::from_vec_bound(py, coeffs).into(),
         })
     }
 }

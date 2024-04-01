@@ -245,7 +245,7 @@ pub fn build_swap_map(
         res.map,
         res.node_order.into_pyarray_bound(py).into(),
         res.node_block_results,
-        PyArray::from_iter(
+        PyArray::from_iter_bound(
             py,
             (0..num_qubits).map(|phys| {
                 PhysicalQubit::new(phys)
