@@ -596,7 +596,11 @@ impl EulerBasis {
 #[pymethods]
 impl EulerBasis {
     fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py(py)
+        (
+            py.get_type_bound::<Self>(),
+            (PyString::new_bound(py, self.as_str()),),
+        )
+            .into_py(py)
     }
 
     #[new]
@@ -875,7 +879,7 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 }
 
 #[pymodule]
-pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;
     m.add_wrapped(wrap_pyfunction!(params_xzx))?;

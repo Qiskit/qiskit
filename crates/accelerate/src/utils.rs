@@ -25,7 +25,7 @@ pub enum SliceOrInt<'a> {
     // The order here defines the order the variants are tried in the FromPyObject` derivation.
     // `Int` is _much_ more common, so that should be first.
     Int(isize),
-    Slice(&'a PySlice),
+    Slice(Bound<'a, PySlice>),
 }
 
 /// Return indices that sort partially ordered data.

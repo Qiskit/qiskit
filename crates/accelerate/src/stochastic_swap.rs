@@ -25,7 +25,6 @@ use rayon::prelude::*;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use rand::prelude::*;
 use rand_distr::{Distribution, Normal};

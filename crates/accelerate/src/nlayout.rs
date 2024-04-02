@@ -139,7 +139,7 @@ impl NLayout {
     ///
     #[pyo3(text_signature = "(self, /)")]
     fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(py, self.iter_virtual()).into()
+        PyList::new_bound(py, self.iter_virtual()).into()
     }
 
     /// Get physical bit from virtual bit
@@ -217,7 +217,7 @@ impl NLayout {
 }
 
 #[pymodule]
-pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
 }

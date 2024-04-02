@@ -75,7 +75,7 @@ pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
 }
 
 #[pymodule]
-pub fn convert_2q_block_matrix(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn convert_2q_block_matrix(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(blocks_to_matrix))?;
     Ok(())
 }

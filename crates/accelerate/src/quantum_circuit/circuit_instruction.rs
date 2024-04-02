@@ -147,9 +147,9 @@ impl CircuitInstruction {
 
     pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
         Ok((
-            self.operation.as_ref(py),
-            self.qubits.as_ref(py),
-            self.clbits.as_ref(py),
+            self.operation.bind(py),
+            self.qubits.bind(py),
+            self.clbits.bind(py),
         )
             .into_py(py))
     }
@@ -180,9 +180,9 @@ impl CircuitInstruction {
         PyTuple::new_bound(
             py,
             [
-                self.operation.as_ref(py),
-                self.qubits.as_ref(py).to_list(),
-                self.clbits.as_ref(py).to_list(),
+                self.operation.bind(py),
+                &self.qubits.bind(py).to_list(),
+                &self.clbits.bind(py).to_list(),
             ],
         )
         .into_py(py)
@@ -193,7 +193,7 @@ impl CircuitInstruction {
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok(self._legacy_format(py).as_ref(py).iter()?.into_py(py))
+        Ok(self._legacy_format(py).bind(py).iter()?.into_py(py))
     }
 
     pub fn __len__(&self) -> usize {

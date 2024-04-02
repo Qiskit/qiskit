@@ -14,7 +14,6 @@ use std::env;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
-use pyo3::Python;
 
 mod convert_2q_block_matrix;
 mod dense_layout;
