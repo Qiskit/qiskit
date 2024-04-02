@@ -1439,6 +1439,20 @@ class MCXVChain(MCXGate):
         relative_phase: bool = False,
         action_only: bool = False,
     ):
+        """
+        Args:
+            dirty_ancillas: when set to ``True``, the method applies an optimized multicontrolled-X gate
+                up to a relative phase using dirty ancillary qubits with the properties of lemmas 7 and 8
+                from arXiv:1501.06911, with at most 8*k - 6 CNOT gates.
+                For k within the range {1, ..., ceil(n/2)}. And for n representing the total number of qubits.
+
+            relative_phase: when set to ``True``, the method applies the optimized multicontrolled-X gate up to a
+                relative phase, in a way that, by lemma 7 of arXiv:1501.06911, the relative
+                phases of the ``action part`` cancel out with the phases of the ``reset part``.
+
+            action_only: when set to ``True``, the method applies only the action part of lemma 8 from arXiv:1501.06911.
+
+        """
         super().__init__(
             num_ctrl_qubits,
             label=label,
@@ -1526,6 +1540,8 @@ class MCXVChain(MCXGate):
 
                                 qc.ccx(controls[0], controls[1], targets[i])
                         else:
+                            # implements an optimized toffoli operation
+                            # up to a diagonal gate, akin to lemma 6 of arXiv:1501.06911
                             qc.h(targets[i])
                             qc.t(targets[i])
                             qc.cx(q_controls[self.num_ctrl_qubits - i - 2], targets[i])
