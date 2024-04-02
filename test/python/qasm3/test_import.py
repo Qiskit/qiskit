@@ -80,6 +80,21 @@ class TestOldQASM3Import(QiskitTestCase):
         expected.measure(1, 1)
         self.assertEqual(parsed, expected)
 
+    def test_global_phase_import(self):
+        program = """
+            OPENQASM 3.0;
+            bit b;
+            gphase(1.0);
+            // Phases inside blocks should also be understood.
+            if (b) {
+              gphase(1.5);
+            }
+        """
+        expected = QuantumCircuit([Clbit()], global_phase=1.0)
+        with expected.if_test((expected.clbits[0], True)):
+            expected.global_phase = 1.5
+        self.assertEqual(qasm3.loads(program), expected)
+
 
 class TestQASM3Import(QiskitTestCase):
     @classmethod

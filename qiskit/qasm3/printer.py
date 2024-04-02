@@ -381,8 +381,10 @@ class BasicPrinter:
         self.visit(node.quantumGateName)
         if node.parameters:
             self._visit_sequence(node.parameters, start="(", end=")", separator=", ")
-        self.stream.write(" ")
-        self._visit_sequence(node.indexIdentifierList, separator=", ")
+        if node.indexIdentifierList:
+            # `gphase` has no qubit arguments.
+            self.stream.write(" ")
+            self._visit_sequence(node.indexIdentifierList, separator=", ")
         self._end_statement()
 
     def _visit_QuantumBarrier(self, node: ast.QuantumBarrier) -> None:

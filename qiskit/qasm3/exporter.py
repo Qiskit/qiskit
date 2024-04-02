@@ -549,6 +549,7 @@ class QASM3Builder:
         self.build_classical_declarations()
         context = self.global_scope(assert_=True).circuit
         quantum_declarations = self.build_quantum_declarations()
+        global_phase = self.build_global_phase(context.global_phase)
         quantum_instructions = self.build_quantum_instructions(context.data)
 
         return [
@@ -560,6 +561,7 @@ class QASM3Builder:
                 definitions,
                 self._global_classical_declarations,
                 quantum_declarations,
+                global_phase,
                 quantum_instructions,
             )
             for statement in source
@@ -820,14 +822,14 @@ class QASM3Builder:
 
         true_circuit = instruction.operation.blocks[0]
         self.push_scope(true_circuit, instruction.qubits, instruction.clbits)
-        true_body = self.build_program_block(true_circuit.data)
+        true_body = self.build_program_block(true_circuit)
         self.pop_scope()
         if len(instruction.operation.blocks) == 1:
             return ast.BranchingStatement(condition, true_body, None)
 
         false_circuit = instruction.operation.blocks[1]
         self.push_scope(false_circuit, instruction.qubits, instruction.clbits)
-        false_body = self.build_program_block(false_circuit.data)
+        false_body = self.build_program_block(false_circuit)
         self.pop_scope()
         return ast.BranchingStatement(condition, true_body, false_body)
 
@@ -851,7 +853,7 @@ class QASM3Builder:
                     for v in values
                 ]
                 self.push_scope(case_block, instruction.qubits, instruction.clbits)
-                case_body = self.build_program_block(case_block.data)
+                case_body = self.build_program_block(case_block)
                 self.pop_scope()
                 return values, case_body
 
@@ -871,7 +873,7 @@ class QASM3Builder:
         default = None
         for values, block in instruction.operation.cases_specifier():
             self.push_scope(block, instruction.qubits, instruction.clbits)
-            case_body = self.build_program_block(block.data)
+            case_body = self.build_program_block(block)
             self.pop_scope()
             if CASE_DEFAULT in values:
                 # Even if it's mixed in with other cases, we can skip them and only output the
@@ -891,7 +893,7 @@ class QASM3Builder:
         condition = self.build_expression(_lift_condition(instruction.operation.condition))
         loop_circuit = instruction.operation.blocks[0]
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
-        loop_body = self.build_program_block(loop_circuit.data)
+        loop_body = self.build_program_block(loop_circuit)
         self.pop_scope()
         return ast.WhileLoopStatement(condition, loop_body)
 
@@ -961,9 +963,11 @@ class QASM3Builder:
             raise QASM3ExporterError(f"'{value}' is not an integer")  # pragma: no cover
         return ast.IntegerLiteral(int(value))
 
-    def build_program_block(self, instructions):
+    def build_program_block(self, circuit):
         """Builds a ProgramBlock"""
-        return ast.ProgramBlock(self.build_quantum_instructions(instructions))
+        global_phase = self.build_global_phase(circuit.global_phase)
+        instructions = self.build_quantum_instructions(circuit.data)
+        return ast.ProgramBlock(global_phase + instructions)
 
     def _rebind_scoped_parameters(self, expression):
         """If the input is a :class:`.ParameterExpression`, rebind any internal
@@ -979,6 +983,18 @@ class QASM3Builder:
                 for param in expression.parameters
             }
         )
+
+    def build_global_phase(self, phase):
+        """Build a global-phase instruction, if necesary."""
+        if phase == 0.0:
+            return []
+        if self.disable_constants:
+            param = ast.StringifyAndPray(self._rebind_scoped_parameters(phase))
+        else:
+            param = ast.StringifyAndPray(
+                pi_check(self._rebind_scoped_parameters(phase), output="qasm")
+            )
+        return [ast.QuantumGateCall(ast.Identifier("gphase"), [], [param])]
 
     def build_gate_call(self, instruction: CircuitInstruction):
         """Builds a QuantumGateCall"""
