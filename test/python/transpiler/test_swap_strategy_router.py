@@ -16,7 +16,7 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
-from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.library import PauliEvolutionGate, CXGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
@@ -25,7 +25,7 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes.routing.commuting_2q_gate_routing.commuting_2q_block import (
     Commuting2qBlock,
@@ -524,7 +524,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
                 Decompose(),  # double decompose gets to CX
                 Decompose(),
-                CXCancellation(),
+                InverseCancellation([CXGate()]),
             ]
         )
 

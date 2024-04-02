@@ -13,8 +13,8 @@
 """
 .. currentmodule:: qiskit.utils.optionals
 
-Qiskit has several features that are enabled only
-if certain *optional* dependencies are satisfied.  This module is a collection of objects that can
+Qiskit has several features that are enabled only if certain *optional* dependencies
+are satisfied. This module, :mod:`qiskit.utils.optionals`, has a collection of objects that can
 be used to test if certain functionality is available, and optionally raise
 :class:`.MissingOptionalLibraryError` if the functionality is not available.
 
@@ -52,7 +52,7 @@ External Python Libraries
     :widths: 25 75
 
     * - .. py:data:: HAS_CONSTRAINT
-      - `python-constraint <https://github.com/python-constraint/python-constraint>__ is a
+      - `python-constraint <https://github.com/python-constraint/python-constraint>`__ is a
         constraint satisfaction problem solver, used in the :class:`~.CSPLayout` transpiler pass.
 
     * - .. py:data:: HAS_CPLEX
@@ -307,8 +307,12 @@ HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(
     ("dot", "-V"),
-    name="graphviz",
-    install="'brew install graphviz' if on Mac, or by downloding it from their website",
+    name="Graphviz",
+    msg=(
+        "To install, follow the instructions at https://graphviz.org/download/."
+        " Qiskit needs the Graphviz binaries, which the 'graphviz' package on pip does not install."
+        " You must install the actual Graphviz software"
+    ),
 )
 HAS_PDFLATEX = _LazySubprocessTester(
     ("pdflatex", "-version"),

@@ -12,10 +12,13 @@
 
 
 """Objects to represent the information at a node in the DAGCircuit."""
+from __future__ import annotations
 
 import itertools
+import typing
 import uuid
-from typing import Iterable
+from collections.abc import Iterable
+
 
 from qiskit.circuit import (
     Qubit,
@@ -27,11 +30,16 @@ from qiskit.circuit import (
     SwitchCaseOp,
     ForLoopOp,
     Parameter,
+    Operation,
+    QuantumCircuit,
 )
 from qiskit.circuit.classical import expr
 
+if typing.TYPE_CHECKING:
+    from qiskit.dagcircuit import DAGCircuit
 
-def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2):
+
+def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2) -> bool:
     if cond1 is cond2 is None:
         return True
     elif None in (cond1, cond2):
@@ -49,7 +57,7 @@ def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2):
     return False
 
 
-def _circuit_to_dag(circuit, node_qargs, node_cargs, bit_indices):
+def _circuit_to_dag(circuit: QuantumCircuit, node_qargs, node_cargs, bit_indices) -> DAGCircuit:
     """Get a :class:`.DAGCircuit` of the given :class:`.QuantumCircuit`.  The bits in the output
     will be ordered in a canonical order based on their indices in the outer DAG, as defined by the
     ``bit_indices`` mapping and the ``node_{q,c}args`` arguments."""
@@ -252,7 +260,9 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None):
+    def __init__(
+        self, op: Operation, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), dag=None
+    ):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
