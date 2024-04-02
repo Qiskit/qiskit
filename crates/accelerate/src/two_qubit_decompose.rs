@@ -28,6 +28,7 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
+use std::ops::Deref;
 
 use faer::IntoFaerComplex;
 use faer::IntoNdarray;
@@ -40,6 +41,7 @@ use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
+use pyo3::pybacked::PyBackedStr;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
@@ -1129,12 +1131,12 @@ impl TwoQubitWeylDecomposition {
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
     fn circuit(
         &self,
-        euler_basis: Option<&str>,
+        euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let euler_basis: EulerBasis = match euler_basis {
-            Some(basis) => EulerBasis::from_str(basis)?,
+            Some(basis) => EulerBasis::from_str(basis.deref())?,
             None => self.default_euler_basis,
         };
         let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
