@@ -22,16 +22,12 @@ use std::path::{Path, PathBuf};
 use hashbrown::HashMap;
 
 use pyo3::prelude::*;
-use pyo3::types::{PyModule, PyTuple};
+use pyo3::types::PyModule;
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
 use pyo3::pybacked::PyBackedStr;
 
 use crate::error::QASM3ImporterError;
-
-/// The name of a Python attribute to define on the given module where the default implementation
-/// of the ``stdgates.inc`` custom instructions is located.
-const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
 
 /// Load an OpenQASM 3 program from a string into a :class:`.QuantumCircuit`.
 ///
@@ -58,16 +54,15 @@ const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
 ///         In the case of a parsing error, most of the error messages are printed to the terminal
 ///         and formatted, for better legibility.
 #[pyfunction]
-#[pyo3(pass_module, signature = (source, /, *, custom_gates=None, include_path=None))]
+#[pyo3(signature = (source, /, *, custom_gates=None, include_path=None))]
 pub fn loads(
-    module: &Bound<PyModule>,
     py: Python,
     source: String,
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
     let default_include_path = || -> PyResult<Vec<OsString>> {
-        let filename: PyBackedStr = module.filename()?.try_into()?;
+        let filename: PyBackedStr = py.import_bound("qiskit")?.filename()?.try_into()?;
         Ok(vec![Path::new(filename.deref())
             .parent()
             .unwrap()
@@ -87,8 +82,9 @@ pub fn loads(
             .into_iter()
             .map(|gate| (gate.name().to_owned(), gate))
             .collect(),
-        None => module
-            .getattr(STDGATES_INC_CUSTOM_GATES_ATTR)?
+        None => py
+            .import_bound("qiskit.qasm3")?
+            .getattr("STDGATES_INC_GATES")?
             .iter()?
             .map(|obj| {
                 let gate = obj?.extract::<circuit::PyGate>()?;
@@ -129,11 +125,9 @@ pub fn loads(
 ///         and formatted, for better legibility.
 #[pyfunction]
 #[pyo3(
-    pass_module,
     signature = (pathlike_or_filelike, /, *, custom_gates=None, include_path=None),
 )]
 pub fn load(
-    module: &Bound<PyModule>,
     py: Python,
     pathlike_or_filelike: &Bound<PyAny>,
     custom_gates: Option<Vec<circuit::PyGate>>,
@@ -154,73 +148,15 @@ pub fn load(
             QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
         })?
     };
-    loads(module, py, source, custom_gates, include_path)
-}
-
-/// Create a suitable sequence for use with the ``custom_gates`` of :func:`load` and :func:`loads`,
-/// as a Python object on the Python heap, so we can re-use it, and potentially expose it has a
-/// data attribute to users.
-fn stdgates_inc_gates(py: Python) -> PyResult<Bound<PyTuple>> {
-    let library = PyModule::import_bound(py, "qiskit.circuit.library")?;
-    let stdlib_gate = |qiskit_class, name, num_params, num_qubits| -> PyResult<Py<PyAny>> {
-        Ok(circuit::PyGate::new(
-            py,
-            library.getattr(qiskit_class)?,
-            name,
-            num_params,
-            num_qubits,
-        )
-        .into_py(py))
-    };
-    Ok(PyTuple::new_bound(
-        py,
-        vec![
-            stdlib_gate("PhaseGate", "p", 1, 1)?,
-            stdlib_gate("XGate", "x", 0, 1)?,
-            stdlib_gate("YGate", "y", 0, 1)?,
-            stdlib_gate("ZGate", "z", 0, 1)?,
-            stdlib_gate("HGate", "h", 0, 1)?,
-            stdlib_gate("SGate", "s", 0, 1)?,
-            stdlib_gate("SdgGate", "sdg", 0, 1)?,
-            stdlib_gate("TGate", "t", 0, 1)?,
-            stdlib_gate("TdgGate", "tdg", 0, 1)?,
-            stdlib_gate("SXGate", "sx", 0, 1)?,
-            stdlib_gate("RXGate", "rx", 1, 1)?,
-            stdlib_gate("RYGate", "ry", 1, 1)?,
-            stdlib_gate("RZGate", "rz", 1, 1)?,
-            stdlib_gate("CXGate", "cx", 0, 2)?,
-            stdlib_gate("CYGate", "cy", 0, 2)?,
-            stdlib_gate("CZGate", "cz", 0, 2)?,
-            stdlib_gate("CPhaseGate", "cp", 1, 2)?,
-            stdlib_gate("CRXGate", "crx", 1, 2)?,
-            stdlib_gate("CRYGate", "cry", 1, 2)?,
-            stdlib_gate("CRZGate", "crz", 1, 2)?,
-            stdlib_gate("CHGate", "ch", 0, 2)?,
-            stdlib_gate("SwapGate", "swap", 0, 2)?,
-            stdlib_gate("CCXGate", "ccx", 0, 3)?,
-            stdlib_gate("CSwapGate", "cswap", 0, 3)?,
-            stdlib_gate("CUGate", "cu", 4, 2)?,
-            stdlib_gate("CXGate", "CX", 0, 2)?,
-            stdlib_gate("PhaseGate", "phase", 1, 1)?,
-            stdlib_gate("CPhaseGate", "cphase", 1, 2)?,
-            stdlib_gate("IGate", "id", 0, 1)?,
-            stdlib_gate("U1Gate", "u1", 1, 1)?,
-            stdlib_gate("U2Gate", "u2", 2, 1)?,
-            stdlib_gate("U3Gate", "u3", 3, 1)?,
-        ],
-    ))
+    loads(py, source, custom_gates, include_path)
 }
 
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 #[pymodule]
-fn _qasm3(module: &Bound<PyModule>) -> PyResult<()> {
+pub fn qasm3(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
     module.add_function(wrap_pyfunction!(load, module)?)?;
     module.add_class::<circuit::PyGate>()?;
-    module.add(
-        STDGATES_INC_CUSTOM_GATES_ATTR,
-        stdgates_inc_gates(module.py())?,
-    )?;
     Ok(())
 }

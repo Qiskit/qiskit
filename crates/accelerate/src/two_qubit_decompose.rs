@@ -22,7 +22,6 @@ use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
 use pyo3::exceptions::{PyIndexError, PyValueError};
-use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
@@ -49,10 +48,13 @@ use crate::euler_one_qubit_decomposer::{
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
 use crate::utils;
+use crate::QiskitError;
 
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
+
+use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
@@ -203,7 +205,6 @@ fn decompose_two_qubit_product_gate(
         det_r = det_one_qubit(r.view());
     }
     if det_r.abs() < 0.1 {
-        import_exception!(qiskit, QiskitError);
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1",
         ));
@@ -216,7 +217,6 @@ fn decompose_two_qubit_product_gate(
     let mut l = temp.slice(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
     if det_l.abs() < 0.9 {
-        import_exception!(qiskit, QiskitError);
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9",
         ));
@@ -695,7 +695,6 @@ impl TwoQubitWeylDecomposition {
             }
         }
         if !found {
-            import_exception!(qiskit, QiskitError);
             return Err(QiskitError::new_err(format!(
                 "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
             )));
@@ -1086,7 +1085,6 @@ impl TwoQubitWeylDecomposition {
         specialized.calculated_fidelity = tr.trace_to_fid();
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
-                import_exception!(qiskit, QiskitError);
                 return Err(QiskitError::new_err(format!(
                     "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
                     specialized.specialization,
@@ -1240,9 +1238,9 @@ impl TwoQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: utils::SliceOrInt) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, idx: SliceOrInt) -> PyResult<PyObject> {
         match idx {
-            utils::SliceOrInt::Slice(slc) => {
+            SliceOrInt::Slice(slc) => {
                 let len = self.gates.len().try_into().unwrap();
                 let indices = slc.indices(len)?;
                 let mut out_vec: TwoQubitSequenceVec = Vec::new();
@@ -1269,7 +1267,7 @@ impl TwoQubitGateSequence {
                 }
                 Ok(out_vec.into_py(py))
             }
-            utils::SliceOrInt::Int(idx) => {
+            SliceOrInt::Int(idx) => {
                 let len = self.gates.len() as isize;
                 if idx >= len || idx < -len {
                     Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
@@ -1620,7 +1618,6 @@ impl TwoQubitBasisDecomposer {
             EulerBasis::ZSXX => (),
             _ => {
                 if self.pulse_optimize.is_some() {
-                    import_exception!(qiskit, QiskitError);
                     return Err(QiskitError::new_err(format!(
                         "'pulse_optimize' currently only works with ZSX basis ({} used)",
                         self.euler_basis.as_str()
@@ -1632,7 +1629,6 @@ impl TwoQubitBasisDecomposer {
         }
         if self.gate != "cx" {
             if self.pulse_optimize.is_some() {
-                import_exception!(qiskit, QiskitError);
                 return Err(QiskitError::new_err(
                     "pulse_optimizer currently only works with CNOT entangling gate",
                 ));
@@ -1648,7 +1644,6 @@ impl TwoQubitBasisDecomposer {
             None
         };
         if self.pulse_optimize.is_some() && res.is_none() {
-            import_exception!(qiskit, QiskitError);
             return Err(QiskitError::new_err(
                 "Failed to compute requested pulse optimal decomposition",
             ));

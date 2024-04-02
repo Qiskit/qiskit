@@ -13,7 +13,7 @@
 """Test operations on circuit.data."""
 import ddt
 
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import (
     ClassicalRegister,
     QuantumCircuit,

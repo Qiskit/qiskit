@@ -24,7 +24,7 @@ import itertools
 import typing
 from typing import Collection, Iterable, FrozenSet, Tuple, Union, Optional, Sequence
 
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError

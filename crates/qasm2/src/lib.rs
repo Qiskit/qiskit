@@ -124,7 +124,7 @@ fn bytecode_from_file(
 /// output.  The principal entry points for Python are :func:`bytecode_from_string` and
 /// :func:`bytecode_from_file`, which produce iterables of :class:`Bytecode` objects.
 #[pymodule]
-fn _qasm2(module: &Bound<'_, PyModule>) -> PyResult<()> {
+pub fn qasm2(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::OpCode>()?;
     module.add_class::<bytecode::UnaryOpCode>()?;
     module.add_class::<bytecode::BinaryOpCode>()?;
@@ -136,10 +136,6 @@ fn _qasm2(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_class::<bytecode::ExprCustom>()?;
     module.add_class::<CustomInstruction>()?;
     module.add_class::<CustomClassical>()?;
-    module.add(
-        "QASM2ParseError",
-        module.py().get_type_bound::<error::QASM2ParseError>(),
-    )?;
     module.add_function(wrap_pyfunction!(bytecode_from_string, module)?)?;
     module.add_function(wrap_pyfunction!(bytecode_from_file, module)?)?;
     Ok(())

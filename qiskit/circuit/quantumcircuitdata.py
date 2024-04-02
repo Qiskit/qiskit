@@ -15,14 +15,14 @@ QuantumCircuit.data while maintaining the interface of a python list."""
 
 from collections.abc import MutableSequence
 
-import qiskit._accelerate.quantum_circuit
+import qiskit._accelerate.circuit
 
 from .exceptions import CircuitError
 from .instruction import Instruction
 from .operation import Operation
 
 
-CircuitInstruction = qiskit._accelerate.quantum_circuit.CircuitInstruction
+CircuitInstruction = qiskit._accelerate.circuit.CircuitInstruction
 
 
 class QuantumCircuitData(MutableSequence):

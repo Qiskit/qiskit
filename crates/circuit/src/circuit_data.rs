@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
-use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
-use crate::utils::SliceOrInt;
+use crate::circuit_instruction::CircuitInstruction;
+use crate::intern_context::{BitType, IndexType, InternContext};
+use crate::SliceOrInt;
+
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -130,7 +131,7 @@ impl Eq for BitAsKey {}
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-#[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     /// The packed instruction listing.

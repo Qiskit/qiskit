@@ -36,7 +36,7 @@ from typing import (
     overload,
 )
 import numpy as np
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction

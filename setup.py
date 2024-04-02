@@ -34,22 +34,10 @@ setup(
     rust_extensions=[
         RustExtension(
             "qiskit._accelerate",
-            "crates/accelerate/Cargo.toml",
+            "crates/pyext/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-        ),
-        RustExtension(
-            "qiskit._qasm2",
-            "crates/qasm2/Cargo.toml",
-            binding=Binding.PyO3,
-            debug=rust_debug,
-        ),
-        RustExtension(
-            "qiskit._qasm3",
-            "crates/qasm3/Cargo.toml",
-            binding=Binding.PyO3,
-            debug=rust_debug,
-        ),
+        )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp38"}},
 )

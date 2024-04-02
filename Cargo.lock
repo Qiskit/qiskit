@@ -1139,25 +1139,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "qiskit-qasm2"
+name = "qiskit"
 version = "1.1.0"
 dependencies = [
- "hashbrown 0.14.3",
  "pyo3",
+ "qiskit-accelerate",
+ "qiskit-circuit",
+ "qiskit-qasm2",
+ "qiskit-qasm3",
 ]
 
 [[package]]
-name = "qiskit-qasm3"
-version = "1.1.0"
-dependencies = [
- "hashbrown 0.14.3",
- "indexmap 2.2.6",
- "oq3_semantics",
- "pyo3",
-]
-
-[[package]]
-name = "qiskit_accelerate"
+name = "qiskit-accelerate"
 version = "1.1.0"
 dependencies = [
  "ahash",
@@ -1173,12 +1166,40 @@ dependencies = [
  "numpy",
  "pulp",
  "pyo3",
+ "qiskit-circuit",
  "rand 0.8.5",
  "rand_distr",
  "rand_pcg 0.3.1",
  "rayon",
  "rustworkx-core",
  "smallvec 1.13.2",
+]
+
+[[package]]
+name = "qiskit-circuit"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "pyo3",
+]
+
+[[package]]
+name = "qiskit-qasm2"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "pyo3",
+ "qiskit-circuit",
+]
+
+[[package]]
+name = "qiskit-qasm3"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "indexmap 2.2.6",
+ "oq3_semantics",
+ "pyo3",
 ]
 
 [[package]]

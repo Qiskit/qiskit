@@ -30,7 +30,7 @@ use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
 use pyo3::pybacked::PyBackedStr;
 
-use crate::utils::SliceOrInt;
+use qiskit_circuit::SliceOrInt;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 

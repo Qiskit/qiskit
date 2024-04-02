@@ -223,14 +223,51 @@ available on this module, if you wish to build on top of it:
 import functools
 import warnings
 
-from qiskit import _qasm3
+from qiskit._accelerate import qasm3 as _qasm3
+from qiskit.circuit import library
 from qiskit.exceptions import ExperimentalWarning
 from qiskit.utils import optionals as _optionals
 
 from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
-from .._qasm3 import CustomGate, STDGATES_INC_GATES
+from .._accelerate.qasm3 import CustomGate
+
+
+STDGATES_INC_GATES = (
+    CustomGate(library.PhaseGate, "p", 1, 1),
+    CustomGate(library.XGate, "x", 0, 1),
+    CustomGate(library.YGate, "y", 0, 1),
+    CustomGate(library.ZGate, "z", 0, 1),
+    CustomGate(library.HGate, "h", 0, 1),
+    CustomGate(library.SGate, "s", 0, 1),
+    CustomGate(library.SdgGate, "sdg", 0, 1),
+    CustomGate(library.TGate, "t", 0, 1),
+    CustomGate(library.TdgGate, "tdg", 0, 1),
+    CustomGate(library.SXGate, "sx", 0, 1),
+    CustomGate(library.RXGate, "rx", 1, 1),
+    CustomGate(library.RYGate, "ry", 1, 1),
+    CustomGate(library.RZGate, "rz", 1, 1),
+    CustomGate(library.CXGate, "cx", 0, 2),
+    CustomGate(library.CYGate, "cy", 0, 2),
+    CustomGate(library.CZGate, "cz", 0, 2),
+    CustomGate(library.CPhaseGate, "cp", 1, 2),
+    CustomGate(library.CRXGate, "crx", 1, 2),
+    CustomGate(library.CRYGate, "cry", 1, 2),
+    CustomGate(library.CRZGate, "crz", 1, 2),
+    CustomGate(library.CHGate, "ch", 0, 2),
+    CustomGate(library.SwapGate, "swap", 0, 2),
+    CustomGate(library.CCXGate, "ccx", 0, 3),
+    CustomGate(library.CSwapGate, "cswap", 0, 3),
+    CustomGate(library.CUGate, "cu", 4, 2),
+    CustomGate(library.CXGate, "CX", 0, 2),
+    CustomGate(library.PhaseGate, "phase", 1, 1),
+    CustomGate(library.CPhaseGate, "cphase", 1, 2),
+    CustomGate(library.IGate, "id", 0, 1),
+    CustomGate(library.U1Gate, "u1", 1, 1),
+    CustomGate(library.U2Gate, "u2", 2, 1),
+    CustomGate(library.U3Gate, "u3", 3, 1),
+)
 
 
 def dumps(circuit, **kwargs) -> str:
