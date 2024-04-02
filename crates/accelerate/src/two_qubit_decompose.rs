@@ -469,7 +469,7 @@ impl Specialization {
             Self::fSimabbEquiv => 8,
             Self::fSimabmbEquiv => 9,
         };
-        Ok((py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
+        Ok((py.get_type_bound::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
     }
 
     #[staticmethod]
@@ -599,7 +599,7 @@ impl TwoQubitWeylDecomposition {
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
         Ok((
-            py.get_type::<Self>().getattr("_from_state")?,
+            py.get_type_bound::<Self>().getattr("_from_state")?,
             (
                 [self.a, self.b, self.c, self.global_phase],
                 [
@@ -2051,7 +2051,7 @@ impl TwoQubitBasisDecomposer {
 }
 
 #[pymodule]
-pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;

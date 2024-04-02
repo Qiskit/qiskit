@@ -60,7 +60,7 @@ const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
 #[pyfunction]
 #[pyo3(pass_module, signature = (source, /, *, custom_gates=None, include_path=None))]
 pub fn loads(
-    module: Bound<PyModule>,
+    module: &Bound<PyModule>,
     py: Python,
     source: String,
     custom_gates: Option<Vec<circuit::PyGate>>,
@@ -133,9 +133,9 @@ pub fn loads(
     signature = (pathlike_or_filelike, /, *, custom_gates=None, include_path=None),
 )]
 pub fn load(
-    module: Bound<PyModule>,
+    module: &Bound<PyModule>,
     py: Python,
-    pathlike_or_filelike: Bound<PyAny>,
+    pathlike_or_filelike: &Bound<PyAny>,
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {

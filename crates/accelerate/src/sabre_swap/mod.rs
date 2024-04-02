@@ -760,7 +760,7 @@ fn choose_best_swap(
 }
 
 #[pymodule]
-pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sabre_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
     m.add_class::<NeighborTable>()?;

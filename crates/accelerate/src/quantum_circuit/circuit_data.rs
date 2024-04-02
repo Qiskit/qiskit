@@ -12,7 +12,6 @@
 
 use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
 use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
-use crate::quantum_circuit::py_ext;
 use crate::utils::SliceOrInt;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
@@ -70,10 +69,10 @@ impl PartialEq for BitAsKey {
         self.bit.is(&other.bit)
             || Python::with_gil(|py| {
                 self.bit
-                    .as_ref(py)
+                    .bind(py)
                     .repr()
                     .unwrap()
-                    .eq(other.bit.as_ref(py).repr().unwrap())
+                    .eq(other.bit.bind(py).repr().unwrap())
                     .unwrap()
             })
     }
@@ -172,8 +171,8 @@ impl CircuitData {
             clbits_native: Vec::new(),
             qubit_indices_native: HashMap::new(),
             clbit_indices_native: HashMap::new(),
-            qubits: PyList::empty(py).into_py(py),
-            clbits: PyList::empty(py).into_py(py),
+            qubits: PyList::empty_bound(py).unbind(),
+            clbits: PyList::empty_bound(py).unbind(),
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
@@ -860,22 +859,24 @@ impl CircuitData {
             py,
             CircuitInstruction {
                 operation: inst.op.clone_ref(py),
-                qubits: py_ext::tuple_new(
+                qubits: PyTuple::new_bound(
                     py,
                     self.intern_context
                         .lookup(inst.qubits_id)
                         .iter()
                         .map(|i| self.qubits_native[*i as usize].clone_ref(py))
-                        .collect(),
-                ),
-                clbits: py_ext::tuple_new(
+                        .collect::<Vec<_>>(),
+                )
+                .unbind(),
+                clbits: PyTuple::new_bound(
                     py,
                     self.intern_context
                         .lookup(inst.clbits_id)
                         .iter()
                         .map(|i| self.clbits_native[*i as usize].clone_ref(py))
-                        .collect(),
-                ),
+                        .collect::<Vec<_>>(),
+                )
+                .unbind(),
             },
         )
     }

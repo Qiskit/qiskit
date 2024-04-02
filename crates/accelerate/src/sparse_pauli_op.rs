@@ -258,7 +258,7 @@ fn decompose_dense_inner(
 }
 
 #[pymodule]
-pub fn sparse_pauli_op(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     m.add_wrapped(wrap_pyfunction!(decompose_dense))?;
     m.add_class::<ZXPaulis>()?;

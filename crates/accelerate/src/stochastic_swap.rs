@@ -337,7 +337,7 @@ pub fn swap_trials(
 }
 
 #[pymodule]
-pub fn stochastic_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn stochastic_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(swap_trials))?;
     m.add_class::<EdgeCollection>()?;
     Ok(())

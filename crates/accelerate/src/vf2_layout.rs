@@ -107,7 +107,7 @@ pub fn score_layout(
 }
 
 #[pymodule]
-pub fn vf2_layout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn vf2_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(score_layout))?;
     m.add_class::<EdgeList>()?;
     Ok(())
