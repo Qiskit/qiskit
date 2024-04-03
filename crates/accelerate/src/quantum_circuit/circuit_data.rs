@@ -673,16 +673,8 @@ impl CircuitData {
             return Ok(());
         }
 
-        let mut itr = itr.iter()?;
-        loop {
-            match itr.next() {
-                None => {
-                    break;
-                }
-                Some(v) => {
-                    self.append(py, v?.extract()?)?;
-                }
-            }
+        for v in itr.iter()? {
+            self.append(py, v?.extract()?)?;
         }
         Ok(())
     }
