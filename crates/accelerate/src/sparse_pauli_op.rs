@@ -19,7 +19,7 @@ use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray2, PyUntypedArrayMethods};
 
 /// Find the unique elements of an array.
 ///
@@ -58,8 +58,8 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
         }
     }
     (
-        indices.into_pyarray(py).into(),
-        inverses.into_pyarray(py).into(),
+        indices.into_pyarray_bound(py).into(),
+        inverses.into_pyarray_bound(py).into(),
     )
 }
 
@@ -120,10 +120,10 @@ pub fn decompose_dense(
     }
     if coeffs.is_empty() {
         Ok(ZXPaulis {
-            z: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            x: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            phases: PyArray1::zeros(py, [0], false).into(),
-            coeffs: PyArray1::zeros(py, [0], false).into(),
+            z: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            x: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            phases: PyArray1::zeros_bound(py, [0], false).into(),
+            coeffs: PyArray1::zeros_bound(py, [0], false).into(),
         })
     } else {
         // Constructing several arrays of different shapes at once is rather awkward in iterator
@@ -163,10 +163,10 @@ pub fn decompose_dense(
         let x = unsafe { x.assume_init() };
         let phases = unsafe { phases.assume_init() };
         Ok(ZXPaulis {
-            z: z.into_pyarray(py).into(),
-            x: x.into_pyarray(py).into(),
-            phases: phases.into_pyarray(py).into(),
-            coeffs: PyArray1::from_vec(py, coeffs).into(),
+            z: z.into_pyarray_bound(py).into(),
+            x: x.into_pyarray_bound(py).into(),
+            phases: phases.into_pyarray_bound(py).into(),
+            coeffs: PyArray1::from_vec_bound(py, coeffs).into(),
         })
     }
 }
@@ -258,7 +258,7 @@ fn decompose_dense_inner(
 }
 
 #[pymodule]
-pub fn sparse_pauli_op(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     m.add_wrapped(wrap_pyfunction!(decompose_dense))?;
     m.add_class::<ZXPaulis>()?;

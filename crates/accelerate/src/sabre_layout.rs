@@ -105,10 +105,10 @@ pub fn sabre_layout_and_routing(
     };
     (
         res.0,
-        PyArray::from_vec(py, res.1).into(),
+        PyArray::from_vec_bound(py, res.1).into(),
         (
             res.2.map,
-            res.2.node_order.into_pyarray(py).into(),
+            res.2.node_order.into_pyarray_bound(py).into(),
             res.2.node_block_results,
         ),
     )
@@ -216,7 +216,7 @@ fn layout_trial(
 }
 
 #[pymodule]
-pub fn sabre_layout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sabre_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(sabre_layout_and_routing))?;
     Ok(())
 }
