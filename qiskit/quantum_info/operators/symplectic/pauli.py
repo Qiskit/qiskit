@@ -714,7 +714,6 @@ class Pauli(BasePauli):
                 specified will be applied without any expansion. If layout is
                 None, the operator will be expanded to the given number of qubits.
 
-
         Returns:
             A new :class:`.Pauli` with the provided layout applied
         """
