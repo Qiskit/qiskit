@@ -41,7 +41,15 @@ class DataBin(metaclass=DataBinMeta):
     :class:`make_dataclass`.
     """
 
-    _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
+    _RESTRICTED_NAMES = (
+        "_RESTRICTED_NAMES",
+        "_SHAPE",
+        "_FIELDS",
+        "_FIELD_TYPES",
+        "keys",
+        "values",
+        "items",
+    )
     _SHAPE: tuple[int, ...] | None = None
     _FIELDS: tuple[str, ...] = ()
     """The fields allowed in this data bin."""
@@ -70,9 +78,14 @@ class DataBin(metaclass=DataBinMeta):
         """Return an iterable of field names."""
         return iter(self)
 
+    def values(self) -> Iterable[Any]:
+        """Return an iterable of values."""
+        for key in self._FIELDS:
+            yield getattr(self, key)
+
     def items(self) -> Iterable[tuple[str, Any]]:
         """Return an iterable of field names and values"""
-        for key in self:
+        for key in self._FIELDS:
             yield key, getattr(self, key)
 
 

@@ -90,6 +90,15 @@ class DataBinTestCase(QiskitTestCase):
             key = next(iterator)
             self.assertEqual(key, "beta")
 
+        with self.subTest("values"):
+            iterator = data_bin.values()
+            val = next(iterator)
+            self.assertIsInstance(val, int)
+            self.assertEqual(val, 10)
+            val = next(iterator)
+            self.assertIsInstance(val, dict)
+            self.assertEqual(val, {1: 2})
+
         with self.subTest("items"):
             iterator = data_bin.items()
             key, val = next(iterator)
@@ -115,5 +124,5 @@ class DataBinTestCase(QiskitTestCase):
             self.assertEqual(val, {1: 2})
 
         with self.subTest("error"):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(KeyError):
                 _ = data_bin["gamma"]
