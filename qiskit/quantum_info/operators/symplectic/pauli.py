@@ -734,10 +734,10 @@ class Pauli(BasePauli):
                     f"applied to a {n_qubits} qubit operator"
                 )
             n_qubits = num_qubits
-        if layout is not None and any(x >= n_qubits for x in layout):
-            raise QiskitError("Provided layout contains indices outside the number of qubits.")
         if layout is None:
             layout = list(range(self.num_qubits))
+        elif any(x >= n_qubits for x in layout):
+            raise QiskitError("Provided layout contains indices outside the number of qubits.")
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
 
