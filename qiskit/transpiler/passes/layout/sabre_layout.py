@@ -43,7 +43,7 @@ from qiskit._accelerate.sabre_swap import (
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SabreLayout(TransformationPass):
     This method exploits the reversibility of quantum circuits, and tries to
     include global circuit information in the choice of initial_layout.
 
-    By default this pass will run both layout and routing and will transform the
+    By default, this pass will run both layout and routing and will transform the
     circuit so that the layout is applied to the input dag (meaning that the output
     circuit will have ancilla qubits allocated for unused qubits on the coupling map
     and the qubits will be reordered to match the mapped physical qubits) and then
@@ -152,7 +152,7 @@ class SabreLayout(TransformationPass):
                 will be raised if both are used.
             skip_routing (bool): If this is set ``True`` and ``routing_pass`` is not used
                 then routing will not be applied to the output circuit.  Only the layout
-                will be returned in the property set. This is a tradeoff to run custom
+                will be set in the property set. This is a tradeoff to run custom
                 routing with multiple layout trials, as using this option will cause
                 SabreLayout to run the routing stage internally but not use that result.
 
@@ -279,6 +279,10 @@ class SabreLayout(TransformationPass):
             }
         )
 
+        # Add the existing registers to the layout
+        for qreg in dag.qregs.values():
+            self.property_set["layout"].add_register(qreg)
+
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
         # We also skip routing here if there is more than one connected
@@ -308,7 +312,7 @@ class SabreLayout(TransformationPass):
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
-        self.property_set["final_layout"] = Layout(
+        final_layout = Layout(
             {
                 mapped_dag.qubits[
                     component.coupling_map.graph[initial]
@@ -317,6 +321,12 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            self.property_set["final_layout"] = final_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout
@@ -436,7 +446,7 @@ class SabreLayout(TransformationPass):
 
         The routing passes internally start with a trivial layout, as the
         layout gets applied to the circuit prior to running them. So the
-        "final_layout" they report must be amended to account for the actual
+        ``"final_layout"`` they report must be amended to account for the actual
         initial_layout that was selected.
         """
         trivial_layout = Layout.generate_trivial_layout(*qregs)

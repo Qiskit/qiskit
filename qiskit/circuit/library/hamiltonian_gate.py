@@ -27,7 +27,6 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.utils.deprecation import deprecate_func
 
 from .generalized_gates.unitary import UnitaryGate
 
@@ -53,7 +52,7 @@ class HamiltonianGate(Gate):
         Args:
             data: A hermitian operator.
             time: Time evolution parameter.
-            label: Unitary name for backend [Default: None].
+            label: Unitary name for backend [Default: ``None``].
 
         Raises:
             ValueError: if input data is not an N-qubit unitary operator.
@@ -105,7 +104,7 @@ class HamiltonianGate(Gate):
                 "unbound t parameter {}".format(self.params[1])
             ) from ex
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""
         return self.adjoint()
 
@@ -127,13 +126,6 @@ class HamiltonianGate(Gate):
         qc = QuantumCircuit(q, name=self.name)
         qc._append(UnitaryGate(self.to_matrix()), q[:], [])
         self.definition = qc
-
-    @deprecate_func(
-        since="0.25.0",
-    )
-    def qasm(self):
-        """Raise an error, as QASM is not defined for the HamiltonianGate."""
-        raise CircuitError("HamiltonianGate has no OpenQASM 2 definition.")
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""

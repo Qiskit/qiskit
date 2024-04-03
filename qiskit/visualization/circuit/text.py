@@ -26,6 +26,7 @@ from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, Swit
 from qiskit.circuit.classical import expr
 from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
+from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
@@ -735,28 +736,7 @@ class TextDrawing:
             raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
         self._wire_map = {}
-
-        def check_clbit_in_inst(circuit, cregbundle):
-            if cregbundle is False:
-                return False
-            for inst in circuit.data:
-                if isinstance(inst.operation, ControlFlowOp):
-                    for block in inst.operation.blocks:
-                        if check_clbit_in_inst(block, cregbundle) is False:
-                            return False
-                elif inst.clbits and not isinstance(inst.operation, Measure):
-                    if cregbundle is not False:
-                        warn(
-                            "Cregbundle set to False since an instruction needs to refer"
-                            " to individual classical wire",
-                            RuntimeWarning,
-                            3,
-                        )
-                    return False
-
-            return True
-
-        self.cregbundle = check_clbit_in_inst(circuit, cregbundle)
+        self.cregbundle = cregbundle
 
         if encoding:
             self.encoding = encoding
@@ -994,7 +974,7 @@ class TextDrawing:
     def special_label(node):
         """Some instructions have special labels"""
         labels = {IGate: "I", SXGate: "√X", SXdgGate: "√Xdg"}
-        node_type = node.base_class
+        node_type = getattr(node, "base_class", None)
         return labels.get(node_type, None)
 
     @staticmethod
@@ -1068,7 +1048,7 @@ class TextDrawing:
             node.layer_width = longest
 
     @staticmethod
-    def controlled_wires(node, wire_map):
+    def controlled_wires(node, wire_map, ctrl_text, conditional, mod_control):
         """
         Analyzes the node in the layer and checks if the controlled arguments are in
         the box or out of the box.
@@ -1076,6 +1056,10 @@ class TextDrawing:
         Args:
             node (DAGNode): node to analyse
             wire_map (dict): map of qubits/clbits to position
+            ctrl_text (str): text for a control label
+            conditional (bool): is this a node with a condition
+            mod_control (ControlModifier): an instance of a modifier for an
+                AnnotatedOperation
 
         Returns:
             Tuple(list, list, list):
@@ -1085,10 +1069,11 @@ class TextDrawing:
               - the rest of the arguments
         """
         op = node.op
-        num_ctrl_qubits = op.num_ctrl_qubits
+        num_ctrl_qubits = mod_control.num_ctrl_qubits if mod_control else op.num_ctrl_qubits
         ctrl_qubits = node.qargs[:num_ctrl_qubits]
         args_qubits = node.qargs[num_ctrl_qubits:]
-        ctrl_state = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
+        ctrl_state = mod_control.ctrl_state if mod_control else op.ctrl_state
+        ctrl_state = f"{ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
 
         in_box = []
         top_box = []
@@ -1103,26 +1088,20 @@ class TextDrawing:
                 bot_box.append(ctrl_qubit)
             else:
                 in_box.append(ctrl_qubit)
-        return (top_box, bot_box, in_box, args_qubits)
 
-    def _set_ctrl_state(self, node, conditional, ctrl_text, bottom):
-        """Takes the ctrl_state from node.op and appends Bullet or OpenBullet
-        to gates depending on whether the bit in ctrl_state is 1 or 0. Returns gates"""
-        op = node.op
         gates = []
-        num_ctrl_qubits = op.num_ctrl_qubits
-        ctrl_qubits = node.qargs[:num_ctrl_qubits]
-        cstate = f"{op.ctrl_state:b}".rjust(num_ctrl_qubits, "0")[::-1]
         for i in range(len(ctrl_qubits)):
             # For sidetext gate alignment, need to set every Bullet with
             # conditional on if there's a condition.
             if getattr(op, "condition", None) is not None:
                 conditional = True
-            if cstate[i] == "1":
-                gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bottom))
+            if ctrl_state[i] == "1":
+                gates.append(Bullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box)))
             else:
-                gates.append(OpenBullet(conditional=conditional, label=ctrl_text, bottom=bottom))
-        return gates
+                gates.append(
+                    OpenBullet(conditional=conditional, label=ctrl_text, bottom=bool(bot_box))
+                )
+        return (gates, top_box, bot_box, in_box, args_qubits)
 
     def _node_to_gate(self, node, layer, gate_wire_map):
         """Convert a dag op node into its corresponding Gate object, and establish
@@ -1153,6 +1132,15 @@ class TextDrawing:
                 if actual_index not in [i for i, j in current_cons]:
                     layer.set_qubit(node.qargs[i], gate)
                     current_cons.append((actual_index, gate))
+
+        # AnnotatedOperation with ControlModifier
+        mod_control = None
+        if getattr(op, "modifiers", None):
+            canonical_modifiers = _canonicalize_modifiers(op.modifiers)
+            for modifier in canonical_modifiers:
+                if isinstance(modifier, ControlModifier):
+                    mod_control = modifier
+                    break
 
         if isinstance(op, Measure):
             gate = MeasureFrom()
@@ -1195,11 +1183,29 @@ class TextDrawing:
             # unitary gate
             layer.set_qubit(node.qargs[0], BoxOnQuWire(gate_text, conditional=conditional))
 
-        elif isinstance(op, ControlledGate):
-            params_array = TextDrawing.controlled_wires(node, gate_wire_map)
-            controlled_top, controlled_bot, controlled_edge, rest = params_array
-            gates = self._set_ctrl_state(node, conditional, ctrl_text, bool(controlled_bot))
-            if base_gate.name == "z":
+        elif isinstance(op, ControlledGate) or mod_control:
+            controls_array = TextDrawing.controlled_wires(
+                node, gate_wire_map, ctrl_text, conditional, mod_control
+            )
+            gates, controlled_top, controlled_bot, controlled_edge, rest = controls_array
+            if mod_control:
+                if len(rest) == 1:
+                    gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+                else:
+                    top_connect = "┴" if controlled_top else None
+                    bot_connect = "┬" if controlled_bot else None
+                    indexes = layer.set_qu_multibox(
+                        rest,
+                        gate_text,
+                        conditional=conditional,
+                        controlled_edge=controlled_edge,
+                        top_connect=top_connect,
+                        bot_connect=bot_connect,
+                    )
+                    for index in range(min(indexes), max(indexes) + 1):
+                        # Dummy element to connect the multibox with the bullets
+                        current_cons.append((index, DrawElement("")))
+            elif base_gate.name == "z":
                 # cz
                 gates.append(Bullet(conditional=conditional))
             elif base_gate.name in ["u1", "p"]:
@@ -1230,6 +1236,7 @@ class TextDrawing:
                     current_cons.append((index, DrawElement("")))
             else:
                 gates.append(BoxOnQuWire(gate_text, conditional=conditional))
+
             add_connected_gate(node, gates, layer, current_cons, gate_wire_map)
 
         elif len(node.qargs) >= 2 and not node.cargs:

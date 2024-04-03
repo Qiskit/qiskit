@@ -83,7 +83,7 @@ class Pauli(BasePauli):
     Pauli character, and qubit-:math:`(n-1)` to the left-most Pauli
     character. For example ``'XYZ'`` represents
     :math:`X\otimes Y \otimes Z` with ``'Z'`` on qubit-0,
-    ``'Y'`` on qubit-1, and ``'X'`` on qubit-3.
+    ``'Y'`` on qubit-1, and ``'X'`` on qubit-2.
 
     The string representation can be converted to a ``Pauli`` using the
     class initialization (``Pauli('-iXYZ')``). A ``Pauli`` object can be
@@ -110,13 +110,15 @@ class Pauli(BasePauli):
 
         P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
-    The :math:`k`th qubit corresponds to the :math:`k`th entry in the
+    The :math:`k`-th qubit corresponds to the :math:`k`-th entry in the
     :math:`z` and :math:`x` arrays
 
     .. math::
 
+        \begin{aligned}
         P &= P_{n-1} \otimes ... \otimes P_{0} \\
         P_k &= (-i)^{z[k] * x[k]} Z^{z[k]}\cdot X^{x[k]}
+        \end{aligned}
 
     where ``z[k] = P.z[k]``, ``x[k] = P.x[k]`` respectively.
 
@@ -149,6 +151,7 @@ class Pauli(BasePauli):
         print('P[:] =', repr(P[:]))
         print('P[::-1] =, repr(P[::-1]))
     """
+
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 

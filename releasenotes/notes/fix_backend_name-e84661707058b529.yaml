@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in the :class:`.QuantumInstance` class where it was assuming
-    all ``AerSimulator`` backends were always :class:`.BackendV1`. This would cause
-    combatibility issues with the 0.13.0 release of ``qiskit-aer`` which is starting to
-    use :class:`.BackendV2` for `AerSimulator`` backends.

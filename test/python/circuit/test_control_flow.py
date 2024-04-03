@@ -16,7 +16,6 @@ import math
 
 from ddt import ddt, data, unpack, idata
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
 from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT, condition_resources, node_resources
@@ -32,6 +31,7 @@ from qiskit.circuit.controlflow import (
     BreakLoopOp,
     SwitchCaseOp,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 CONDITION_PARAMETRISATION = (
@@ -510,6 +510,49 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "cases after the default are unreachable"):
             SwitchCaseOp(creg, [(CASE_DEFAULT, case1), (1, case2)])
 
+    def test_if_else_rejects_input_vars(self):
+        """Bodies must not contain input variables."""
+        cond = (Clbit(), False)
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        bad_body = QuantumCircuit(inputs=[a])
+        good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
+
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            IfElseOp(cond, bad_body, None)
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            IfElseOp(cond, bad_body, good_body)
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            IfElseOp(cond, good_body, bad_body)
+
+    def test_while_rejects_input_vars(self):
+        """Bodies must not contain input variables."""
+        cond = (Clbit(), False)
+        a = expr.Var.new("a", types.Bool())
+        bad_body = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            WhileLoopOp(cond, bad_body)
+
+    def test_for_rejects_input_vars(self):
+        """Bodies must not contain input variables."""
+        a = expr.Var.new("a", types.Bool())
+        bad_body = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            ForLoopOp(range(3), None, bad_body)
+
+    def test_switch_rejects_input_vars(self):
+        """Bodies must not contain input variables."""
+        target = ClassicalRegister(3, "cr")
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        bad_body = QuantumCircuit(inputs=[a])
+        good_body = QuantumCircuit(captures=[a], declarations=[(b, expr.lift(False))])
+
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            SwitchCaseOp(target, [(0, bad_body)])
+        with self.assertRaisesRegex(CircuitError, "cannot contain input variables"):
+            SwitchCaseOp(target, [(0, good_body), (1, bad_body)])
+
 
 @ddt
 class TestAddingControlFlowOperations(QiskitTestCase):
@@ -874,3 +917,148 @@ class TestAddingControlFlowOperations(QiskitTestCase):
             )
 
             self.assertEqual(assigned, expected)
+
+    def test_can_add_op_with_captures_of_inputs(self):
+        """Test circuit methods can capture input variables."""
+        outer = QuantumCircuit(1, 1)
+        a = outer.add_input("a", types.Bool())
+
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+        outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "while_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.for_loop(range(3), None, inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "for_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "switch_case")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+    def test_can_add_op_with_captures_of_captures(self):
+        """Test circuit methods can capture captured variables."""
+        outer = QuantumCircuit(1, 1)
+        a = expr.Var.new("a", types.Bool())
+        outer.add_capture(a)
+
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+        outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "while_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.for_loop(range(3), None, inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "for_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "switch_case")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+    def test_can_add_op_with_captures_of_locals(self):
+        """Test circuit methods can capture declared variables."""
+        outer = QuantumCircuit(1, 1)
+        a = outer.add_var("a", expr.lift(True))
+
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "if_else")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+        outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "while_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.for_loop(range(3), None, inner.copy(), [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "for_loop")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+
+        outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
+        added = outer.data[-1].operation
+        self.assertEqual(added.name, "switch_case")
+        self.assertEqual(set(added.blocks[0].iter_captured_vars()), {a})
+        self.assertEqual(set(added.blocks[1].iter_captured_vars()), {a})
+
+    def test_cannot_capture_unknown_variables_methods(self):
+        """Control-flow operations should not be able to capture variables that don't exist in the
+        outer circuit."""
+        outer = QuantumCircuit(1, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.if_test((outer.clbits[0], False), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.if_else((outer.clbits[0], False), inner.copy(), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.while_loop((outer.clbits[0], False), inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.for_loop(range(3), None, inner.copy(), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.switch(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())], [0], [0])
+
+    def test_cannot_capture_unknown_variables_append(self):
+        """Control-flow operations should not be able to capture variables that don't exist in the
+        outer circuit."""
+        outer = QuantumCircuit(1, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        inner = QuantumCircuit(1, 1, captures=[a])
+
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(IfElseOp((outer.clbits[0], False), inner.copy(), None), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(IfElseOp((outer.clbits[0], False), inner.copy(), inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(WhileLoopOp((outer.clbits[0], False), inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(ForLoopOp(range(3), None, inner.copy()), [0], [0])
+        with self.assertRaisesRegex(CircuitError, "not in this circuit"):
+            outer.append(
+                SwitchCaseOp(outer.clbits[0], [(False, inner.copy()), (True, inner.copy())]),
+                [0],
+                [0],
+            )

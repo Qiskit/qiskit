@@ -14,9 +14,6 @@
 """Tests for Clifford class."""
 
 import unittest
-
-from test import combine
-
 import numpy as np
 from ddt import ddt
 
@@ -67,7 +64,8 @@ from qiskit.synthesis.clifford import (
     synth_clifford_greedy,
 )
 from qiskit.synthesis.linear import random_invertible_binary_matrix
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 class VGate(Gate):
@@ -1044,7 +1042,8 @@ class TestCliffordOperators(QiskitTestCase):
         # An error may be thrown if visualization code calls op.condition instead
         # of getattr(op, "condition", None)
         clifford = random_clifford(3, seed=0)
-        print(clifford)
+        _ = str(clifford)
+        _ = repr(clifford)
 
     @combine(num_qubits=[1, 2, 3, 4])
     def test_from_matrix_round_trip(self, num_qubits):

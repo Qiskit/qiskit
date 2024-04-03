@@ -45,7 +45,7 @@ class CircuitConstructionBench:
         build_circuit(width, gates)
 
     def time_circuit_extend(self, _, __):
-        self.empty_circuit.extend(self.sample_circuit)
+        self.empty_circuit.compose(self.sample_circuit, inplace=True)
 
     def time_circuit_copy(self, _, __):
         self.sample_circuit.copy()
@@ -61,7 +61,7 @@ def build_parameterized_circuit(width, gates, param_count):
     while len(qc) < gates:
         for k in range(width):
             param = next(param_iter)
-            qc.u2(0, param, qr[k])
+            qc.r(0, param, qr[k])
         for k in range(width - 1):
             param = next(param_iter)
             qc.crx(param, qr[k], qr[k + 1])

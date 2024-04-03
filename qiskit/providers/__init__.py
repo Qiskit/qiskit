@@ -144,8 +144,8 @@ can be compiled to something that is optimized and can execute on the
 backend. It also provides the :meth:`~qiskit.providers.BackendV2.run` method which can
 run the :class:`~qiskit.circuit.QuantumCircuit` objects and/or
 :class:`~qiskit.pulse.Schedule` objects. This enables users and other Qiskit
-APIs, such as :func:`~qiskit.execute_function.execute` and higher level algorithms in
-:mod:`qiskit.algorithms`, to get results from executing circuits on devices in a standard
+APIs to get results from
+executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
@@ -462,13 +462,12 @@ is used to actually submit circuits to a device or simulator. The run method
 handles submitting the circuits to the backend to be executed and returning a
 :class:`~qiskit.providers.Job` object. Depending on the type of backend this
 typically involves serializing the circuit object into the API format used by a
-backend. For example, on IBMQ backends from the ``qiskit-ibmq-provider``
+backend. For example, on IBM backends from the ``qiskit-ibm-provider``
 package this involves converting from a quantum circuit and options into a
-`qobj <https://arxiv.org/abs/1809.03452>`__ JSON payload and submitting
-that to the IBM Quantum API. Since every backend interface is different (and
-in the case of the local simulators serialization may not be needed) it is
-expected that the backend's :obj:`~qiskit.providers.BackendV2.run` method will
-handle this conversion.
+:mod:`.qpy` payload embedded in JSON and submitting that to the IBM Quantum
+API. Since every backend interface is different (and in the case of the local
+simulators serialization may not be needed) it is expected that the backend's
+:obj:`~qiskit.providers.BackendV2.run` method will handle this conversion.
 
 An example run method would be something like::
 
@@ -635,7 +634,7 @@ mitigation to improve the quality of the results, you could implement a
 provider-specific :class:`~.Sampler` implementation that leverages the
 ``M3Mitigation`` class internally to run the circuits and return
 quasi-probabilities directly from mthree in the result. Doing this would
-enable algorithms from :mod:`qiskit.algorithms` to get the best results with
+enable algorithms to get the best results with
 mitigation applied directly from your backends. You can refer to the
 documentation in :mod:`qiskit.primitives` on how to write custom
 implementations. Also the built-in implementations: :class:`~.Sampler`,
@@ -750,8 +749,6 @@ There is also a :class:`~.BackendV2Converter` class available that enables you
 to wrap a :class:`~.BackendV1` object with a :class:`~.BackendV2` interface.
 """
 
-import pkgutil
-
 # Providers interface
 from qiskit.providers.provider import Provider
 from qiskit.providers.provider import ProviderV1
@@ -773,8 +770,3 @@ from qiskit.providers.exceptions import (
     BackendConfigurationError,
 )
 from qiskit.providers.jobstatus import JobStatus
-
-
-# Support for the deprecated extending this namespace.
-# Remove this after 0.46.0 release
-__path__ = pkgutil.extend_path(__path__, __name__)

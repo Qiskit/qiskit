@@ -14,11 +14,11 @@
 import unittest
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.circuit.library import EfficientSU2, UnitaryOverlap
 from qiskit.quantum_info import Statevector
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestUnitaryOverlap(QiskitTestCase):
@@ -81,6 +81,15 @@ class TestUnitaryOverlap(QiskitTestCase):
 
         overlap = UnitaryOverlap(unitary1, unitary2)
         self.assertEqual(overlap.num_parameters, unitary1.num_parameters)
+
+    def test_barrier(self):
+        """Test that barriers on input circuits are well handled"""
+        unitary1 = EfficientSU2(1, reps=0)
+        unitary1.barrier()
+        unitary2 = EfficientSU2(1, reps=1)
+        unitary2.barrier()
+        overlap = UnitaryOverlap(unitary1, unitary2)
+        self.assertEqual(overlap.num_parameters, unitary1.num_parameters + unitary2.num_parameters)
 
     def test_measurements(self):
         """Test that exception is thrown for measurements"""

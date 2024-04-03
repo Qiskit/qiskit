@@ -61,6 +61,8 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
             QiskitError: if some classical bits are not used for measurements.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
         self._qargs_list = []
         self._circuit_ids = {}
 
@@ -134,7 +136,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._qargs_list.append(qargs)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job
 
     @staticmethod

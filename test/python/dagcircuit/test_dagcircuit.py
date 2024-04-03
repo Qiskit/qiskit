@@ -18,7 +18,6 @@ from collections import Counter
 import unittest
 
 from ddt import ddt, data
-
 import rustworkx as rx
 from numpy import pi
 
@@ -43,7 +42,7 @@ from qiskit.circuit import (
 from qiskit.circuit.classical import expr
 from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def raise_if_dagcircuit_invalid(dag):
@@ -486,18 +485,6 @@ class TestDagApplyOperation(QiskitTestCase):
         self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
-
-    def test_apply_operation_rejects_none(self):
-        """Test that the ``apply_operation_*`` methods warn when given ``None``."""
-        noop = Instruction("noop", 0, 0, [])
-        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
-            self.dag.apply_operation_back(noop, None, ())
-        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
-            self.dag.apply_operation_back(noop, (), None)
-        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
-            self.dag.apply_operation_front(noop, None, ())
-        with self.assertWarnsRegex(DeprecationWarning, "Passing 'None'"):
-            self.dag.apply_operation_front(noop, (), None)
 
     def test_edges(self):
         """Test that DAGCircuit.edges() behaves as expected with ops."""

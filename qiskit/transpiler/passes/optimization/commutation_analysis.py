@@ -14,28 +14,28 @@
 
 from collections import defaultdict
 
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutationAnalysis(AnalysisPass):
     """Analysis pass to find commutation relations between DAG nodes.
 
-    Property_set['commutation_set'] is a dictionary that describes
+    ``property_set['commutation_set']`` is a dictionary that describes
     the commutation relations on a given wire, all the gates on a wire
     are grouped into a set of gates that commute.
     """
 
     def __init__(self):
         super().__init__()
-        self.comm_checker = CommutationChecker()
+        self.comm_checker = scc
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
 
         Run the pass on the DAG, and write the discovered commutation relations
-        into the property_set.
+        into the ``property_set``.
         """
         # Initiate the commutation set
         self.property_set["commutation_set"] = defaultdict(list)
@@ -52,7 +52,7 @@ class CommutationAnalysis(AnalysisPass):
 
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
-            for (_, _, edge_wire) in dag.edges(node):
+            for _, _, edge_wire in dag.edges(node):
                 self.property_set["commutation_set"][(node, edge_wire)] = -1
 
         # Construct the commutation set

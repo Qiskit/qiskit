@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Map a DAGCircuit onto a `coupling_map` adding swap gates."""
+"""Map a DAGCircuit onto a ``coupling_map`` adding swap gates."""
 
 import itertools
 import logging
@@ -72,7 +72,7 @@ class StochasticSwap(TransformationPass):
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
-            fake_run (bool): if true, it only pretend to do routing, i.e., no
+            fake_run (bool): if true, it will only pretend to do routing, i.e., no
                 swap is effectively added.
             initial_layout (Layout): starting layout at beginning of pass.
         """
@@ -375,8 +375,13 @@ class StochasticSwap(TransformationPass):
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = layout
+        else:
+            self.property_set["final_layout"] = layout.compose(
+                self.property_set["final_layout"], circuit_graph.qubits
+            )
 
-        self.property_set["final_layout"] = layout
         if self.fake_run:
             return circuit_graph
         return dagcircuit_output

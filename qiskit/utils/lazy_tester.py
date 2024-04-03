@@ -13,14 +13,16 @@
 """Lazy testers for optional features."""
 
 import abc
+import collections
 import contextlib
 import functools
 import importlib
 import subprocess
 import typing
+import warnings
 from typing import Union, Iterable, Dict, Optional, Callable, Type
 
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.exceptions import MissingOptionalLibraryError, OptionalDependencyImportWarning
 from .classtools import wrap_method
 
 
@@ -117,12 +119,10 @@ class LazyDependencyManager(abc.ABC):
         return self._bool
 
     @typing.overload
-    def require_in_call(self, feature_or_callable: Callable) -> Callable:
-        ...
+    def require_in_call(self, feature_or_callable: Callable) -> Callable: ...
 
     @typing.overload
-    def require_in_call(self, feature_or_callable: str) -> Callable[[Callable], Callable]:
-        ...
+    def require_in_call(self, feature_or_callable: str) -> Callable[[Callable], Callable]: ...
 
     def require_in_call(self, feature_or_callable):
         """Create a decorator for callables that requires that the dependency is available when the
@@ -167,12 +167,10 @@ class LazyDependencyManager(abc.ABC):
         return out
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: Type) -> Type:
-        ...
+    def require_in_instance(self, feature_or_class: Type) -> Type: ...
 
     @typing.overload
-    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]:
-        ...
+    def require_in_instance(self, feature_or_class: str) -> Callable[[Type], Type]: ...
 
     def require_in_instance(self, feature_or_class):
         """A class decorator that requires the dependency is available when the class is
@@ -284,12 +282,43 @@ class LazyImportTester(LazyDependencyManager):
         super().__init__(name=name, callback=callback, install=install, msg=msg)
 
     def _is_available(self):
-        try:
-            for module, names in self._modules.items():
+        failed_modules = {}
+        failed_names = collections.defaultdict(list)
+        for module, names in self._modules.items():
+            try:
                 imported = importlib.import_module(module)
-                for name in names:
-                    getattr(imported, name)
-        except (ImportError, AttributeError):
+            except ModuleNotFoundError as exc:
+                failed_parts = exc.name.split(".")
+                target_parts = module.split(".")
+                if failed_parts == target_parts[: len(failed_parts)]:
+                    # If the module that wasn't found is the one we were explicitly searching for
+                    # (or one of its parents), then it's just not installed.
+                    return False
+                # Otherwise, we _did_ find the module, it just didn't import, which is a problem.
+                failed_modules[module] = exc
+                continue
+            except ImportError as exc:
+                failed_modules[module] = exc
+                continue
+            for name in names:
+                try:
+                    _ = getattr(imported, name)
+                except AttributeError:
+                    failed_names[module].append(name)
+        if failed_modules or failed_names:
+            package_description = f"'{self._name}'" if self._name else "optional packages"
+            message = (
+                f"While trying to import {package_description},"
+                " some components were located but raised other errors during import."
+                " You might have an incompatible version installed."
+                " Qiskit will continue as if the optional is not available."
+            )
+            for module, exc in failed_modules.items():
+                message += "".join(f"\n - module '{module}' failed to import with: {exc!r}")
+            for module, names in failed_names.items():
+                attributes = f"attribute '{names[0]}'" if len(names) == 1 else f"attributes {names}"
+                message += "".join(f"\n - '{module}' imported, but {attributes} couldn't be found")
+            warnings.warn(message, category=OptionalDependencyImportWarning)
             return False
         return True
 

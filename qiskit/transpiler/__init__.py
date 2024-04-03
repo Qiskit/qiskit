@@ -88,14 +88,14 @@ function to easily generate one. For example:
 .. code-block:: python
 
     from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-    from qiskit.providers.fake_provider import FakeLagosV2
+    from qiskit.providers.fake_provider import GenericBackendV2
 
-    backend = FakeLagosV2()
+    backend = GenericBackendV2(num_qubits=5)
     pass_manager = generate_preset_pass_manager(3, backend)
 
 which will generate a :class:`~.StagedPassManager` object for optimization level 3
-targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
-by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
+targeting the :class:`~.GenericBackendV2` backend (equivalent to what is used internally
+by :func:`~.transpile` with ``backend=GenericBackendV2(5)`` and ``optimization_level=3``).
 You can use this just like you would any other :class:`~.PassManager`. However,
 because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
 replace stages of the pipeline. For example, if you wanted to run a custom scheduling
@@ -105,28 +105,35 @@ also add initial logical optimization prior to routing, you would do something l
 
 .. code-block:: python
 
-    from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+    import numpy as np
+    from qiskit.circuit.library import HGate, PhaseGate, RXGate, TdgGate, TGate, XGate
     from qiskit.transpiler import PassManager
-    from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
-    from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+    from qiskit.transpiler.passes import (
+        ALAPScheduleAnalysis,
+        CXCancellation,
+        InverseCancellation,
+        PadDynamicalDecoupling,
+    )
 
-    backend_durations = backend.target.durations()
     dd_sequence = [XGate(), XGate()]
-    scheduling_pm = PassManager([
-        ALAPScheduleAnalysis(backend_durations),
-        PadDynamicalDecoupling(backend_durations, dd_sequence),
-    ])
+    scheduling_pm = PassManager(
+        [
+            ALAPScheduleAnalysis(target=backend.target),
+            PadDynamicalDecoupling(target=backend.target, dd_sequence=dd_sequence),
+        ]
+    )
     inverse_gate_list = [
         HGate(),
         (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
         (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
         (TGate(), TdgGate()),
-
-    ])
-    logical_opt = PassManager([
-        CXCancellation(),
-        InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
-    ])
+    ]
+    logical_opt = PassManager(
+        [
+            CXCancellation(),
+            InverseCancellation(inverse_gate_list),
+        ]
+    )
 
 
     # Add pre-layout stage to run extra logical optimization
@@ -134,26 +141,26 @@ also add initial logical optimization prior to routing, you would do something l
     # Set scheduling stage to custom pass manager
     pass_manager.scheduling = scheduling_pm
 
-
-Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
-``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
-and for the ``scheduling`` stage our custom :class:`~.PassManager`
-``scheduling_pm`` will be used.
+Now, when the staged pass manager is run via the :meth:`~.StagedPassManager.run` method,
+the ``logical_opt`` pass manager will be called before the ``layout`` stage, and the
+``scheduling_pm`` pass manager will be used for the ``scheduling`` stage instead of the default.
 
 Custom Pass Managers
 ====================
 
 In addition to modifying preset pass managers, it is also possible to construct a pass
 manager to build an entirely custom pipeline for transforming input
-circuits. You can leverage the :class:`~.StagedPassManager` class directly to do
+circuits. You can use the :class:`~.StagedPassManager` class directly to do
 this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
-instance. For example::
+instance. For example, the following code creates a new :class:`~.StagedPassManager`
+that has 2 stages, ``init`` and ``translation``.::
 
     from qiskit.transpiler.passes import (
         UnitarySynthesis,
         Collect2qBlocks,
         ConsolidateBlocks,
         UnitarySynthesis,
+        Unroll3qOrMore,
     )
     from qiskit.transpiler import PassManager, StagedPassManager
 
@@ -171,13 +178,11 @@ instance. For example::
         stages=["init", "translation"], init=init, translation=translate
     )
 
-will create a new :class:`~.StagedPassManager` that has 2 stages ``init`` and ``translation``.
-There is no limit on the number of stages you can put in a custom :class:`~.StagedPassManager`
-instance.
+There is no limit on the number of stages you can put in a :class:`~.StagedPassManager`.
 
-The :ref:`stage_generators` functions may be useful for the construction of custom pass managers.
-They generate stages which provide common functionality used in many pass managers.
-For example, :func:`~.generate_embed_passmanager` can be used to generate a stage
+The :ref:`stage_generators` may be useful for the construction of custom :class:`~.StagedPassManager`s.
+They generate pass managers which provide common functionality used in many stages.
+For example, :func:`~.generate_embed_passmanager` generates a :class:`~.PassManager`
 to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
@@ -513,8 +518,8 @@ and non-gate operations. The allowed instructions for a given backend can be fou
 
 .. code-block::
 
-   from qiskit.providers.fake_provider import FakeVigoV2
-   backend = FakeVigoV2()
+   from qiskit.providers.fake_provider import GenericBackendV2
+   backend = GenericBackendV2(5)
 
    print(backend.target)
 
@@ -526,9 +531,9 @@ For example, to run a simple phase estimation circuit:
 
    import numpy as np
    from qiskit import QuantumCircuit
-   from qiskit.providers.fake_provider import FakeVigoV2
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakeVigoV2()
+   backend = GenericBackendV2(5)
 
    qc = QuantumCircuit(2, 1)
 
@@ -540,20 +545,20 @@ For example, to run a simple phase estimation circuit:
    qc.draw(output='mpl')
 
 We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, none of which are
-in our device's basis gate set, and thus must be translated.  This translation is taken
-care of for us in the :func:`qiskit.execute` function. However, we can
+in our device's basis gate set, and thus must be translated.
+We can
 transpile the circuit to show what it will look like in the native gate set of
-the target IBM Quantum device (the :class:`~.FakeVigoV2` backend is a fake backend that
-models the historical IBM Vigo 5 qubit device for test purposes):
+the target IBM Quantum device (the :class:`~.GenericBackendV2` class generates
+a fake backend with a specified number of qubits for test purposes):
 
 .. plot::
    :include-source:
 
    from qiskit import transpile
    from qiskit import QuantumCircuit
-   from qiskit.providers.fake_provider import FakeVigoV2
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakeVigoV2()
+   backend = GenericBackendV2(5)
 
    qc = QuantumCircuit(2, 1)
 
@@ -588,8 +593,8 @@ It is important to highlight two special cases:
 
    .. code-block::
 
-      from qiskit.providers.fake_provider import FakeVigoV2
-      backend = FakeVigoV2()
+      from qiskit.providers.fake_provider import GenericBackendV2
+      backend = GenericBackendV2(5)
 
       print(backend.operation_names)
 
@@ -694,8 +699,8 @@ and we can view this layout selection graphically using
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.visualization import plot_circuit_layout
-   from qiskit.providers.fake_provider import FakeVigo
-   backend = FakeVigo()
+   from qiskit.providers.fake_provider import Fake5QV1
+   backend = Fake5QV1()
 
    ghz = QuantumCircuit(3, 3)
    ghz.h(0)
@@ -712,8 +717,8 @@ and we can view this layout selection graphically using
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.providers.fake_provider import FakeVigo
-      backend = FakeVigo()
+      from qiskit.providers.fake_provider import Fake5QV1
+      backend = Fake5QV1()
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
@@ -731,8 +736,8 @@ and we can view this layout selection graphically using
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.providers.fake_provider import FakeVigo
-      backend = FakeVigo()
+      from qiskit.providers.fake_provider import Fake5QV1
+      backend = Fake5QV1()
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
@@ -754,8 +759,8 @@ corresponding value is the label for the physical qubit to map onto:
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.visualization import plot_circuit_layout
-   from qiskit.providers.fake_provider import FakeVigo
-   backend = FakeVigo()
+   from qiskit.providers.fake_provider import Fake5QV1
+   backend = Fake5QV1()
 
    ghz = QuantumCircuit(3, 3)
    ghz.h(0)
@@ -788,8 +793,8 @@ In fact it is in a class of problems called NP-hard, and is thus prohibitively e
 to compute for all but the smallest quantum devices and input circuits.  To get around this,
 by default Qiskit uses a stochastic heuristic algorithm called :class:`~.SabreSwap` to compute
 a good, but not necessarily optimal swap mapping.  The use of a stochastic method means the
-circuits generated by :func:`~.transpile` (or :func:`.execute` that calls :func:`~.transpile`
-internally) are not guaranteed to be the same over repeated runs.  Indeed, running the same
+circuits generated by :func:`~.transpile`
+are not guaranteed to be the same over repeated runs.  Indeed, running the same
 circuit repeatedly will in general result in a distribution of circuit depths and gate counts
 at the output.
 
@@ -810,8 +815,8 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeAuckland
-   backend = FakeAuckland()
+   from qiskit.providers.fake_provider import GenericBackendV2
+   backend = GenericBackendV2(16)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
@@ -877,8 +882,8 @@ setting the optimization level higher:
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeAuckland
-   backend = FakeAuckland()
+   from qiskit.providers.fake_provider import GenericBackendV2
+   backend = GenericBackendV2(16)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
@@ -890,8 +895,8 @@ setting the optimization level higher:
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeAuckland
-   backend = FakeAuckland()
+   from qiskit.providers.fake_provider import GenericBackendV2
+   backend = GenericBackendV2(16)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
@@ -946,9 +951,9 @@ we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
    :include-source:
 
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeBoeblingen
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakeBoeblingen()
+   backend = GenericBackendV2(5)
 
    ghz = QuantumCircuit(5)
    ghz.h(0)
@@ -966,9 +971,9 @@ also look at it with the :func:`.timeline.draw` function:
    from qiskit.visualization.timeline import draw as timeline_draw
 
    from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeBoeblingen
+   from qiskit.providers.fake_provider import GenericBackendV2
 
-   backend = FakeBoeblingen()
+   backend = GenericBackendV2(5)
 
    ghz = QuantumCircuit(5)
    ghz.h(0)
@@ -1054,7 +1059,7 @@ modeled as follows:
     C ░░░░░░░░░░░░░░░░▒▒░
 
 However, the :class:`.QuantumCircuit` representation is not accurate enough to represent
-this model. In the circuit representation, the corresponding :class:`.Qubit` is occupied
+this model. In the circuit representation, the corresponding :class:`.circuit.Qubit` is occupied
 by the stimulus microwave signal during the first half of the interval,
 and the :class:`.Clbit` is only occupied at the very end of the interval.
 
@@ -1226,15 +1231,6 @@ Scheduling
 
    InstructionDurations
 
-Fenced Objects
---------------
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   FencedPropertySet
-   FencedDAGCircuit
-
 Abstract Passes
 ---------------
 
@@ -1251,20 +1247,28 @@ Exceptions
 .. autoexception:: TranspilerAccessError
 .. autoexception:: CouplingError
 .. autoexception:: LayoutError
+.. autoexception:: CircuitTooWideForTarget
+.. autoexception:: InvalidLayoutError
+
 """
 
 # For backward compatibility
 from qiskit.passmanager import (
-    FlowController,
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager.compilation_status import PropertySet
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
-from .propertyset import PropertySet  # pylint: disable=no-name-in-module
-from .exceptions import TranspilerError, TranspilerAccessError, CouplingError, LayoutError
-from .fencedobjs import FencedDAGCircuit, FencedPropertySet
+from .exceptions import (
+    TranspilerError,
+    TranspilerAccessError,
+    CouplingError,
+    LayoutError,
+    CircuitTooWideForTarget,
+    InvalidLayoutError,
+)
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout, TranspileLayout

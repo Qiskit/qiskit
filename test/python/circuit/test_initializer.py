@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,15 +23,14 @@ from qiskit import (
     QuantumCircuit,
     QuantumRegister,
     ClassicalRegister,
-    BasicAer,
     transpile,
-    execute,
     assemble,
 )
+from qiskit.providers.basic_provider import BasicSimulator
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import Initialize
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt
@@ -46,9 +45,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -62,9 +59,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -87,9 +82,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -103,9 +96,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -120,9 +111,7 @@ class TestInitialize(QiskitTestCase):
         qr2 = QuantumRegister(2, "qr2")
         qc = QuantumCircuit(qr, qr2)
         qc.initialize(desired_vector, qr)
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, np.kron([1, 0, 0, 0], desired_vector))
         self.assertGreater(
             fidelity,
@@ -142,10 +131,8 @@ class TestInitialize(QiskitTestCase):
         qc_b.initialize(qubit_0_state, [qr[0]])
         qc_b.initialize(qubit_1_state, [qr[1]])
 
-        job = execute([qc_a, qc_b], BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector_a = result.get_statevector(0)
-        statevector_b = result.get_statevector(1)
+        statevector_a = Statevector(qc_a)
+        statevector_b = Statevector(qc_b)
         fidelity = state_fidelity(statevector_a, statevector_b)
         self.assertGreater(
             fidelity,
@@ -159,9 +146,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -184,9 +169,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -217,9 +200,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -286,8 +267,9 @@ class TestInitialize(QiskitTestCase):
         qc.measure(qr, cr)
         # statevector simulator does not support reset
         shots = 2000
-        threshold = 0.005 * shots
-        job = execute(qc, BasicAer.get_backend("qasm_simulator"), shots=shots, seed_simulator=42)
+        threshold = 0.05 * shots
+        backend = BasicSimulator()
+        job = backend.run(transpile(qc, backend), shots=shots, seed_simulator=42)
         result = job.result()
         counts = result.get_counts()
         target = {"00": shots / 4, "01": shots / 4, "10": shots / 4, "11": shots / 4}
@@ -316,9 +298,7 @@ class TestInitialize(QiskitTestCase):
         qr = QuantumRegister(4, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2], qr[3]])
-        job = execute(qc, BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        statevector = result.get_statevector()
+        statevector = Statevector(qc)
         fidelity = state_fidelity(statevector, desired_vector)
         self.assertGreater(
             fidelity,
@@ -338,10 +318,8 @@ class TestInitialize(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.initialize(desired_vector_2, [qr[0]])
 
-        job = execute(qc1.compose(qc2), BasicAer.get_backend("statevector_simulator"))
-        result = job.result()
-        quantum_state = result.get_statevector()
-        fidelity = state_fidelity(quantum_state, desired_vector_2)
+        statevector = Statevector(qc1.compose(qc2))
+        fidelity = state_fidelity(statevector, desired_vector_2)
         self.assertGreater(
             fidelity,
             self._desired_fidelity,

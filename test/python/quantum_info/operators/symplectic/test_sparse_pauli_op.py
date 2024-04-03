@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,20 +14,21 @@
 
 import itertools as it
 import unittest
-from test import combine
-
 import numpy as np
+import rustworkx as rx
 from ddt import ddt
 
 from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.library import EfficientSU2
 from qiskit.primitives import BackendEstimator
-from qiskit.providers.fake_provider import FakeNairobiV2
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.compiler.transpiler import transpile
+from qiskit.utils import optionals
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):
@@ -937,6 +938,42 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             self.assertTrue(spp_op1.equiv(spp_op2))
 
     @combine(parameterized=[True, False], qubit_wise=[True, False])
+    def test_noncommutation_graph(self, parameterized, qubit_wise):
+        """Test noncommutation graph"""
+
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "iYX", "ZX", "-iZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        if parameterized:
+            coeffs = np.array(ParameterVector("a", len(input_labels)))
+        else:
+            coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
+        graph = sparse_pauli_list.noncommutation_graph(qubit_wise)
+
+        expected = rx.PyGraph()
+        expected.add_nodes_from(range(len(input_labels)))
+        edges = [
+            (ia, ib)
+            for (ia, a), (ib, b) in it.combinations(enumerate(input_labels), 2)
+            if not commutes(Pauli(a), Pauli(b), qubit_wise)
+        ]
+        expected.add_edges_from_no_data(edges)
+
+        self.assertTrue(rx.is_isomorphic(graph, expected))
+
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_group_commuting(self, parameterized, qubit_wise):
         """Test general grouping commuting operators"""
 
@@ -1033,7 +1070,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test the apply_layout method with a transpiler layout."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=7)
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
         permuted_op = op.apply_layout(transpiled_psi.layout)
         identity_op = SparsePauliOp("I" * 7)
@@ -1048,7 +1085,7 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         """Test using the apply_layout method with an estimator workflow."""
         psi = EfficientSU2(4, reps=4, entanglement="circular")
         op = SparsePauliOp.from_list([("IIII", 1), ("IZZZ", 2), ("XXXI", 3)])
-        backend = FakeNairobiV2()
+        backend = GenericBackendV2(num_qubits=7, seed=0)
         backend.set_options(seed_simulator=123)
         estimator = BackendEstimator(backend=backend, skip_transpilation=True)
         thetas = list(range(len(psi.parameters)))
@@ -1056,7 +1093,10 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         permuted_op = op.apply_layout(transpiled_psi.layout)
         job = estimator.run(transpiled_psi, permuted_op, thetas)
         res = job.result().values
-        np.testing.assert_allclose(res, [1.35351562], rtol=0.5, atol=0.2)
+        if optionals.HAS_AER:
+            np.testing.assert_allclose(res, [1.419922], rtol=0.5, atol=0.2)
+        else:
+            np.testing.assert_allclose(res, [1.660156], rtol=0.5, atol=0.2)
 
     def test_apply_layout_invalid_qubits_list(self):
         """Test that apply_layout with an invalid qubit count raises."""
@@ -1087,6 +1127,25 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("YI", 2), ("XI", 1)])
         res = op.apply_layout([4, 0], 5)
         self.assertEqual(SparsePauliOp.from_list([("IIIIY", 2), ("IIIIX", 1)]), res)
+
+    def test_apply_layout_null_layout_no_num_qubits(self):
+        """Test apply_layout with a null layout"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None)
+        self.assertEqual(op, res)
+
+    def test_apply_layout_null_layout_and_num_qubits(self):
+        """Test apply_layout with a null layout a num_qubits provided"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        res = op.apply_layout(layout=None, num_qubits=5)
+        # this should expand the operator
+        self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIIZ", 2), ("IIIXI", 3)]), res)
+
+    def test_apply_layout_null_layout_invalid_num_qubits(self):
+        """Test apply_layout with a null layout and num_qubits smaller than capable"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=None, num_qubits=1)
 
 
 if __name__ == "__main__":

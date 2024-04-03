@@ -15,7 +15,6 @@ Expectation value class
 
 from __future__ import annotations
 
-import typing
 from collections.abc import Sequence
 from itertools import accumulate
 
@@ -40,9 +39,6 @@ from qiskit.transpiler.passes import (
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key, _observable_key, init_observable
-
-if typing.TYPE_CHECKING:
-    from qiskit.opflow import PauliSumOp
 
 
 def _run_circuits(
@@ -98,8 +94,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     (or :class:`~.BackendV1`) object in the :class:`~.BaseEstimator` API. It
     facilitates using backends that do not provide a native
     :class:`~.BaseEstimator` implementation in places that work with
-    :class:`~.BaseEstimator`, such as algorithms in :mod:`qiskit.algorithms`
-    including :class:`~.qiskit.algorithms.minimum_eigensolvers.VQE`. However,
+    :class:`~.BaseEstimator`. However,
     if you're using a provider that has a native implementation of
     :class:`~.BaseEstimator`, it is a better choice to leverage that native
     implementation as it will likely include additional optimizations and be
@@ -129,6 +124,9 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 will be directly executed when this object is called.
         """
         super().__init__(options=options)
+        self._circuits = []
+        self._parameters = []
+        self._observables = []
 
         self._abelian_grouping = abelian_grouping
 
@@ -198,25 +196,18 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             # 1. transpile a common circuit
             if self._skip_transpilation:
                 transpiled_circuit = common_circuit.copy()
-                perm_pattern = list(range(common_circuit.num_qubits))
+                final_index_layout = list(range(common_circuit.num_qubits))
             else:
                 transpiled_circuit = transpile(
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
                 if transpiled_circuit.layout is not None:
-                    layout = transpiled_circuit.layout
-                    virtual_bit_map = layout.initial_layout.get_virtual_bits()
-                    perm_pattern = [virtual_bit_map[v] for v in common_circuit.qubits]
-                    if layout.final_layout is not None:
-                        final_mapping = dict(
-                            enumerate(layout.final_layout.get_virtual_bits().values())
-                        )
-                        perm_pattern = [final_mapping[i] for i in perm_pattern]
+                    final_index_layout = transpiled_circuit.layout.final_index_layout()
                 else:
-                    perm_pattern = list(range(transpiled_circuit.num_qubits))
+                    final_index_layout = list(range(transpiled_circuit.num_qubits))
 
             # 2. transpile diff circuits
-            passmanager = _passmanager_for_measurement_circuits(perm_pattern, self.backend)
+            passmanager = _passmanager_for_measurement_circuits(final_index_layout, self.backend)
             diff_circuits = passmanager.run(diff_circuits)
             # 3. combine
             transpiled_circuits = []
@@ -257,9 +248,11 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
             dict(zip(self._parameters[i], value)) for i, value in zip(circuits, parameter_values)
         ]
         bound_circuits = [
-            transpiled_circuits[circuit_index]
-            if len(p) == 0
-            else transpiled_circuits[circuit_index].assign_parameters(p)
+            (
+                transpiled_circuits[circuit_index]
+                if len(p) == 0
+                else transpiled_circuits[circuit_index].assign_parameters(p)
+            )
             for i, (p, n) in enumerate(zip(parameter_dicts, num_observables))
             for circuit_index in range(accum[i], accum[i] + n)
         ]
@@ -273,7 +266,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[BaseOperator, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ):
@@ -300,7 +293,7 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
-        job.submit()
+        job._submit()
         return job
 
     @staticmethod
@@ -420,14 +413,12 @@ def _paulis2inds(paulis: PauliList) -> list[int]:
     # Treat Z, X, Y the same
     nonid = paulis.z | paulis.x
 
-    inds = [0] * paulis.size
     # bits are packed into uint8 in little endian
     # e.g., i-th bit corresponds to coefficient 2^i
     packed_vals = np.packbits(nonid, axis=1, bitorder="little")
-    for i, vals in enumerate(packed_vals):
-        for j, val in enumerate(vals):
-            inds[i] += val.item() * (1 << (8 * j))
-    return inds
+    power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))
+    inds = packed_vals @ power_uint8
+    return inds.tolist()
 
 
 def _parity(integer: int) -> int:
