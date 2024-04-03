@@ -57,7 +57,7 @@ class DataBin(metaclass=DataBinMeta):
 
     def __getitem__(self, key: str) -> Any:
         if not hasattr(self, key):
-            raise ValueError(f"Key ({key}) does not exist in this data bin.")
+            raise KeyError(f"Key ({key}) does not exist in this data bin.")
         return getattr(self, key)
 
     def __contains__(self, key: str) -> bool:
