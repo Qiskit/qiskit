@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import make_dataclass
+from typing import Any
 
 
 class DataBinMeta(type):
@@ -54,10 +55,30 @@ class DataBin(metaclass=DataBinMeta):
         vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
         return f"{type(self)}({', '.join(vals)})"
 
+    def __getitem__(self, key: str) -> Any:
+        if not hasattr(self, key):
+            raise ValueError(f"Key ({key}) does not exist in this data bin.")
+        return getattr(self, key)
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key)
+
+    def __iter__(self) -> Iterable[str]:
+        return iter(self._FIELDS)
+
+    def keys(self) -> Iterable[str]:
+        """Return an iterable of field names."""
+        return iter(self)
+
+    def items(self) -> Iterable[tuple[str, Any]]:
+        """Return an iterable of field names and values"""
+        for key in self:
+            yield key, getattr(self, key)
+
 
 def make_data_bin(
     fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
-) -> DataBinMeta:
+) -> type[DataBin]:
     """Return a new subclass of :class:`~DataBin` with the provided fields and shape.
 
     .. code-block:: python
