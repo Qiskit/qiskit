@@ -42,7 +42,6 @@ class Gate(Instruction):
             params: A list of parameters.
             label: An optional label for the gate.
         """
-        self.definition = None
         super().__init__(name, num_qubits, 0, params, label=label, duration=duration, unit=unit)
 
     # Set higher priority than Numpy array and matrix classes
