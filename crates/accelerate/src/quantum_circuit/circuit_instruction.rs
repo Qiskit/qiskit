@@ -176,7 +176,7 @@ impl CircuitInstruction {
     // the interface to behave exactly like the old 3-tuple `(inst, qargs, cargs)` if it's treated
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
-    pub fn _legacy_format(&self, py: Python<'_>) -> PyObject {
+    pub fn _legacy_format<'py>(&self, py: Python<'py>) -> Bound<'py, PyTuple> {
         PyTuple::new_bound(
             py,
             [
@@ -185,15 +185,14 @@ impl CircuitInstruction {
                 &self.clbits.bind(py).to_list(),
             ],
         )
-        .into_py(py)
     }
 
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
-        Ok(self._legacy_format(py).bind(py).get_item(key)?.into_py(py))
+        Ok(self._legacy_format(py).as_any().get_item(key)?.into_py(py))
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok(self._legacy_format(py).bind(py).iter()?.into_py(py))
+        Ok(self._legacy_format(py).as_any().iter()?.into_py(py))
     }
 
     pub fn __len__(&self) -> usize {
@@ -229,7 +228,7 @@ impl CircuitInstruction {
             }
 
             if other.is_instance_of::<PyTuple>() {
-                return Ok(Some(self_._legacy_format(py).bind(py).eq(other)?));
+                return Ok(Some(self_._legacy_format(py).eq(other)?));
             }
 
             Ok(None)
