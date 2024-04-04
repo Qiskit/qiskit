@@ -45,5 +45,4 @@ pub fn getenv_use_multiple_threads() -> bool {
     !parallel_context || force_threads
 }
 
-// This involves an import.
 import_exception!(qiskit.exceptions, QiskitError);
