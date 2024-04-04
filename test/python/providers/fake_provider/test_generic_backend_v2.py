@@ -124,7 +124,6 @@ class TestGenericBackendV2(QiskitTestCase):
             "x": (2.997e-08, 5.994e-08),
             "measure": (6.99966e-07, 1.500054e-06),
             "sdg": (2.997e-08, 5.994e-08),
-            "sdg": (2.997e-08, 5.994e-08),
             "rxx": (7.992e-08, 8.99988e-07),
         }
         for _ in range(20):
