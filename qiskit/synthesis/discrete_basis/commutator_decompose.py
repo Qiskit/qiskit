@@ -92,7 +92,7 @@ def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     lhs = math.sin(angle / 2)
 
     def objective(phi):
-        sin_sq = math.sin(phi[0] / 2) ** 2
+        sin_sq = math.sin(phi.item() / 2) ** 2
         return 2 * sin_sq * math.sqrt(1 - sin_sq**2) - lhs
 
     decomposition_angle = fsolve(objective, angle)[0]
