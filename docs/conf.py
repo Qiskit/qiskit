@@ -21,7 +21,7 @@ import doctest
 import importlib
 import inspect
 import os
-import re
+from pathlib import Path
 
 
 project = "Qiskit"
@@ -166,6 +166,9 @@ plot_html_show_formats = False
 # Source code links
 # ----------------------------------------------------------------------------------
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def linkcode_resolve(domain, info):
     if domain != "py":
         return None
@@ -173,7 +176,7 @@ def linkcode_resolve(domain, info):
     module_name = info["module"]
     if "qiskit" not in module_name:
         return None
-     
+
     try: 
         module = importlib.import_module(module_name)
     except ModuleNotFoundError:
@@ -192,7 +195,10 @@ def linkcode_resolve(domain, info):
         return None
     if full_file_name is None:
         return None
-    file_name = full_file_name.split("/qiskit/")[-1]
+    try:
+        file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT / "qiskit")
+    except ValueError:
+        return None
 
     try:
         source, lineno = inspect.getsourcelines(obj)
