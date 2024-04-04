@@ -264,7 +264,7 @@ impl Token {
     /// If the token is a real number, this method can be called to evaluate its value.  Panics if
     /// the token is not a real number.
     pub fn real(&self, context: &TokenContext) -> f64 {
-        if self.ttype != TokenType::Real {
+        if !(self.ttype == TokenType::Real || self.ttype == TokenType::Integer) {
             panic!()
         }
         context.text[self.index].parse().unwrap()
