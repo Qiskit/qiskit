@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes adding all supported gates in ``TwoLocal`` circuits. Refer to
+    `#12002 <https://github.com/Qiskit/qiskit/issues/12002>` for more
+    details.
+features_circuits:
+  - |
+    All of the gates in the ``standard_gates`` library are now supported
+    as valid sting gates for ``TwoLocal`` circuits.
