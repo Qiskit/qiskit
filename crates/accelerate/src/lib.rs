@@ -31,6 +31,7 @@ mod sabre_swap;
 mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
+mod target;
 mod two_qubit_decompose;
 mod utils;
 mod vf2_layout;
@@ -64,6 +65,7 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     m.add_wrapped(wrap_pymodule!(two_qubit_decompose::two_qubit_decompose))?;
+    m.add_wrapped(wrap_pymodule!(target::target))?;
     m.add_wrapped(wrap_pymodule!(utils::utils))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
