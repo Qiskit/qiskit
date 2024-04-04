@@ -27,7 +27,7 @@ Pure-Rust FFI with itself over dynamic-library boundaries (like a Python C exten
 If we had more than one Python C extension, it would be very hard to interact between the code in them.
 This would be a particular problem for defining the circuit object and using it in other places, which is something we absolutely need to do.
 
-## Notes about writing Python/Rust interoperation
+## Developer notes
 
 ### Beware of initialisation order
 
@@ -37,3 +37,28 @@ This is because, unlike pure-Python modules, the initialisation of `_accelerate`
 
 In general, this should not be too onerous a requirement, but if you violate it, you might see Rust panics on import, and PyO3 should wrap that up into an exception.
 You might be able to track down the Rust source of the import cycle by running the import with the environment variable `RUST_BACKTRACE=full`.
+
+
+### Tests
+
+Most of our functionality is tested through the Python-space tests of the `qiskit` Python package, since the Rust implementations are (to begin with) just private implementation details.
+However, where it's more useful, Rust crates can also include Rust-space tests within themselves.
+
+Each of the Rust crates disables `doctest` because our documentation tends to be written in Sphinx's rST rather than Markdown, so `rustdoc` has a habit of thinking various random bits of syntax are codeblocks.
+We can revisit that if we start writing crates that we intend to publish.
+
+#### Running the tests
+
+You need to make sure that the tests can build in standalone mode, i.e. that they link in `libpython`.
+By default, we activate PyO3's `extension-module` feature in `crates/pyext`, so you have to run with the tests with that disabled:
+
+```bash
+cargo test --no-default-features
+```
+
+On Linux, you might find that the dynamic linker still can't find `libpython`.
+If so, you can extend the environment variable `LD_LIBRARY_PATH` to include it:
+
+```bash
+export LD_LIBRARY_PATH="$(python -c 'import sys; print(sys.base_prefix)')/lib:$LD_LIBRARY_PATH"
+```
