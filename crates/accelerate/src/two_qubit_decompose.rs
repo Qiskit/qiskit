@@ -1134,7 +1134,7 @@ impl TwoQubitWeylDecomposition {
         atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let euler_basis: EulerBasis = match euler_basis {
-            Some(basis) => EulerBasis::from_str(basis.deref())?,
+            Some(basis) => EulerBasis::__new__(basis.deref())?,
             None => self.default_euler_basis,
         };
         let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
@@ -1820,7 +1820,7 @@ impl TwoQubitBasisDecomposer {
         Ok(TwoQubitBasisDecomposer {
             gate,
             basis_fidelity,
-            euler_basis: EulerBasis::from_str(euler_basis)?,
+            euler_basis: EulerBasis::__new__(euler_basis)?,
             pulse_optimize,
             basis_decomposer,
             super_controlled,
