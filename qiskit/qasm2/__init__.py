@@ -526,6 +526,8 @@ import os
 from pathlib import Path
 from typing import Iterable, Union, Optional, Literal
 
+# pylint: disable=c-extension-no-member
+from qiskit._accelerate import qasm2 as _qasm2
 from qiskit.circuit import QuantumCircuit
 from . import parse as _parse
 from .exceptions import QASM2Error, QASM2ParseError, QASM2ExportError
@@ -536,9 +538,6 @@ from .parse import (
     LEGACY_CUSTOM_CLASSICAL,
 )
 from .export import dump, dumps
-
-# pylint: disable=c-extension-no-member
-from qiskit._accelerate import qasm2 as _qasm2
 
 
 LEGACY_INCLUDE_PATH = (
