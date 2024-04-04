@@ -82,30 +82,32 @@ class DataBinTestCase(QiskitTestCase):
             self.assertEqual(key, "alpha")
             key = next(iterator)
             self.assertEqual(key, "beta")
+            with self.assertRaises(StopIteration):
+                _ = next(iterator)
 
         with self.subTest("keys"):
-            iterator = data_bin.keys()
-            key = next(iterator)
+            lst = data_bin.keys()
+            key = lst[0]
             self.assertEqual(key, "alpha")
-            key = next(iterator)
+            key = lst[1]
             self.assertEqual(key, "beta")
 
         with self.subTest("values"):
-            iterator = data_bin.values()
-            val = next(iterator)
+            lst = data_bin.values()
+            val = lst[0]
             self.assertIsInstance(val, int)
             self.assertEqual(val, 10)
-            val = next(iterator)
+            val = lst[1]
             self.assertIsInstance(val, dict)
             self.assertEqual(val, {1: 2})
 
         with self.subTest("items"):
-            iterator = data_bin.items()
-            key, val = next(iterator)
+            lst = data_bin.items()
+            key, val = lst[0]
             self.assertEqual(key, "alpha")
             self.assertIsInstance(val, int)
             self.assertEqual(val, 10)
-            key, val = next(iterator)
+            key, val = lst[1]
             self.assertEqual(key, "beta")
             self.assertIsInstance(val, dict)
             self.assertEqual(val, {1: 2})

@@ -41,7 +41,7 @@ class DataBin(metaclass=DataBinMeta):
     :class:`make_dataclass`.
     """
 
-    _RESTRICTED_NAMES = (
+    _RESTRICTED_NAMES = {
         "_RESTRICTED_NAMES",
         "_SHAPE",
         "_FIELDS",
@@ -49,7 +49,7 @@ class DataBin(metaclass=DataBinMeta):
         "keys",
         "values",
         "items",
-    )
+    }
     _SHAPE: tuple[int, ...] | None = None
     _FIELDS: tuple[str, ...] = ()
     """The fields allowed in this data bin."""
@@ -74,19 +74,17 @@ class DataBin(metaclass=DataBinMeta):
     def __iter__(self) -> Iterable[str]:
         return iter(self._FIELDS)
 
-    def keys(self) -> Iterable[str]:
-        """Return an iterable of field names."""
-        return iter(self)
+    def keys(self) -> list[str]:
+        """Return a list of field names."""
+        return self._FIELDS
 
-    def values(self) -> Iterable[Any]:
-        """Return an iterable of values."""
-        for key in self._FIELDS:
-            yield getattr(self, key)
+    def values(self) -> list[Any]:
+        """Return a list of values."""
+        return [getattr(self, key) for key in self._FIELDS]
 
-    def items(self) -> Iterable[tuple[str, Any]]:
-        """Return an iterable of field names and values"""
-        for key in self._FIELDS:
-            yield key, getattr(self, key)
+    def items(self) -> list[tuple[str, Any]]:
+        """Return a list of field names and values"""
+        return [(key, getattr(self, key)) for key in self._FIELDS]
 
 
 def make_data_bin(
