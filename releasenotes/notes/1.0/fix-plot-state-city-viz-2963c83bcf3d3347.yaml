@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Adjusted zoom, font size, and margins of :func:`.plot_state_city` to fit the plot better for more figure
+    sizes.
+  - |
+    Corrected the Z-ordering behavior of bars and the zero-amplitude plane in :func:`.plot_state_city`.
+  - |
+    Corrected display of negative real value bars in :func:`.plot_state_city`.

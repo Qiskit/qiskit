@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in the :class:`.SabreSwap` and :class:`.SabreLayout`
-    transpiler passes where it would incorrectly treat 2 qubit
-    :class:`.Barrier` instructions as an instruction that needs to be
-    routed according the transpiler :class:`.Target`. When this occured the
-    output was still correct but would potentially include unecessary
-    :class:`.SwapGate` instructions.

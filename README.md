@@ -110,7 +110,6 @@ Qiskit also provides a lower-level abstract interface for describing quantum bac
 ``qiskit.providers``, defines an abstract `BackendV2` class that providers can implement to represent their
 hardware or simulators to Qiskit. The backend class includes a common interface for executing circuits on the backends; however, in this interface each provider may perform different types of pre- and post-processing and return outcomes that are vendor-defined. Some examples of published provider packages that interface with real hardware are:
 
-* https://github.com/Qiskit/qiskit-ibm-provider
 * https://github.com/qiskit-community/qiskit-ionq
 * https://github.com/qiskit-community/qiskit-aqt-provider
 * https://github.com/qiskit-community/qiskit-braket-provider
@@ -127,7 +126,7 @@ on how to get access and use these systems.
 If you'd like to contribute to Qiskit, please take a look at our
 [contribution guidelines](CONTRIBUTING.md). By participating, you are expected to uphold our [code of conduct](CODE_OF_CONDUCT.md).
 
-We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
+We use [GitHub issues](https://github.com/Qiskit/qiskit/issues) for tracking requests and bugs. Please
 [join the Qiskit Slack community](https://qisk.it/join-slack) for discussion, comments, and questions.
 For questions related to running or using Qiskit, [Stack Overflow has a `qiskit`](https://stackoverflow.com/questions/tagged/qiskit).
 For questions on quantum computing with Qiskit, use the `qiskit` tag in the [Quantum Computing Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit) (please, read first the [guidelines on how to ask](https://quantumcomputing.stackexchange.com/help/how-to-ask) in that forum).
@@ -135,7 +134,7 @@ For questions on quantum computing with Qiskit, use the `qiskit` tag in the [Qua
 
 ## Authors and Citation
 
-Qiskit is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
+Qiskit is the work of [many people](https://github.com/Qiskit/qiskit/graphs/contributors) who contribute
 to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](CITATION.bib).
 
 ## Changelog and Release Notes
@@ -147,7 +146,7 @@ find the page for the `0.46.0` release here:
 <https://github.com/Qiskit/qiskit/releases/tag/0.46.0>
 
 The changelog for the current release can be found in the releases tab:
-[![Releases](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=flat&label=)](https://github.com/Qiskit/qiskit/releases)
+[![Releases](https://img.shields.io/github/release/Qiskit/qiskit.svg?style=flat&label=)](https://github.com/Qiskit/qiskit/releases)
 The changelog provides a quick overview of notable changes for a given
 release.
 
