@@ -562,9 +562,31 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
 
         self.assertEqual(pm_.run(circ), expected)
 
+    def test_layout(self):
+        """Test that circuit layout permutations are properly tracked in the pass property
+        set and returned with the routed circuit."""
+
+        # We use the same scenario as the QAOA test above
+        mixer = QuantumCircuit(4)
+        for idx in range(4):
+            mixer.ry(-idx, idx)
+
+        op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+        circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
+
+        expected_initial_layout = Layout.generate_trivial_layout(*circ.qregs)
+        expected_final_index_layout = [3, 1, 2, 0]
+        expected_final_layout = Layout.from_intlist(expected_final_index_layout, *circ.qregs)
+
+        swapped = self.pm_.run(circ.decompose())
+
+        self.assertEqual(swapped.layout.initial_layout, expected_initial_layout)
+        self.assertEqual(swapped.layout.final_layout, expected_final_layout)
+        self.assertEqual(swapped.layout.final_index_layout(), expected_final_index_layout)
+
 
 class TestSwapRouterExceptions(QiskitTestCase):
-    """Test that exceptions are properly raises."""
+    """Test that exceptions are properly raised."""
 
     def setUp(self):
         """Setup useful variables."""

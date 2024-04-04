@@ -164,6 +164,10 @@ class Commuting2qGateRouter(TransformationPass):
 
         current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
+        self.property_set["layout"] = current_layout.copy()
+        self.property_set["original_qubit_indices"] = {
+            bit: index for index, bit in enumerate(dag.qubits)
+        }
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
 
@@ -182,6 +186,8 @@ class Commuting2qGateRouter(TransformationPass):
                 accumulator.apply_operation_back(node.op, node.qargs, node.cargs)
 
         self._compose_non_swap_nodes(accumulator, current_layout, new_dag)
+
+        self.property_set["final_layout"] = current_layout
 
         return new_dag
 
