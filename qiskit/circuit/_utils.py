@@ -13,6 +13,7 @@
 This module contains utility functions for circuits.
 """
 
+import math
 import numpy
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
@@ -56,7 +57,7 @@ def _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state=None):
     Raises:
         QiskitError: unrecognized mode or invalid ctrl_state
     """
-    num_target = int(numpy.log2(base_mat.shape[0]))
+    num_target = int(math.log2(base_mat.shape[0]))
     ctrl_dim = 2**num_ctrl_qubits
     ctrl_grnd = numpy.repeat([[1], [0]], [1, ctrl_dim - 1])
     if ctrl_state is None:
