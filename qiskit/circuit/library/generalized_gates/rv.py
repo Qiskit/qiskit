@@ -12,6 +12,7 @@
 
 """Rotation around an arbitrary axis on the Bloch sphere."""
 
+import math
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -82,12 +83,12 @@ class RVGate(Gate):
     def to_matrix(self):
         """Return a numpy.array for the R(v) gate."""
         v = numpy.asarray(self.params, dtype=float)
-        angle = numpy.sqrt(v.dot(v))
+        angle = math.sqrt(v.dot(v))
         if angle == 0:
             return numpy.array([[1, 0], [0, 1]])
         nx, ny, nz = v / angle
-        sin = numpy.sin(angle / 2)
-        cos = numpy.cos(angle / 2)
+        sin = math.sin(angle / 2)
+        cos = math.cos(angle / 2)
         return numpy.array(
             [
                 [cos - 1j * nz * sin, (-ny - 1j * nx) * sin],
