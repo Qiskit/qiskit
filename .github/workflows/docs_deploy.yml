@@ -31,11 +31,10 @@ jobs:
 
       - name: Determine GitHub branch name
         run: |
-          # PR workflows set the branch they're merging into.
-          if [ -n "$GITHUB_BASE_REF" ]; then
-            BRANCH_NAME="$GITHUB_BASE_REF"
-          # Tags like 1.0.0 and 1.0.0rc1 should point to their stable branch.
-          elif [[ $GITHUB_REF_NAME =~ ^([0-9]+\.[0-9]+) ]]; then
+          # Tags like 1.0.0 and 1.0.0rc1 should point to their stable branch. We do this
+          # to reduce the diff in the qiskit/documentation repository between generating
+          # the API docs from a tag release versus a workflow_dispatch.
+          if [[ $GITHUB_REF_NAME =~ ^([0-9]+\.[0-9]+) ]]; then
             BRANCH_NAME="stable/${BASH_REMATCH[1]}"
           else
               BRANCH_NAME="$GITHUB_REF_NAME"
