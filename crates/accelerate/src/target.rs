@@ -21,14 +21,23 @@ use pyo3::{
 #[pyclass(mapping, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct Target {
+    #[pyo3(get, set)]
     pub description: String,
+    #[pyo3(get)]
     pub num_qubits: usize,
+    #[pyo3(get)]
     pub dt: f32,
+    #[pyo3(get)]
     pub granularity: i32,
+    #[pyo3(get)]
     pub min_length: usize,
+    #[pyo3(get)]
     pub pulse_alignment: i32,
+    #[pyo3(get)]
     pub acquire_alignment: i32,
+    #[pyo3(get)]
     pub qubit_properties: Vec<PyObject>,
+    #[pyo3(get)]
     pub concurrent_measurements: Vec<HashSet<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
     gate_map: HashMap<String, PyObject>,
@@ -76,6 +85,15 @@ impl Target {
             qarg_gate_map: HashMap::new(),
         }
     }
+
+    // num_qubits: num_qubits.unwrap_or(0),
+    // dt: dt.unwrap_or(0.0),
+    // granularity: granularity.unwrap_or(1),
+    // min_length: min_length.unwrap_or(1),
+    // pulse_alignment: pulse_alignment.unwrap_or(1),
+    // acquire_alignment: acquire_alignment.unwrap_or(0),
+    // qubit_properties: qubit_properties.unwrap_or(Vec::new()),
+    // concurrent_measurements: concurrent_measurements.unwrap_or(Vec::new()),
     #[pyo3(text_signature = "(/, instruction, properties=None, name=None")]
     fn add_instruction(
         &mut self,
@@ -105,14 +123,17 @@ impl Target {
         if instruction_name.is_empty() {
             instruction_name = match instruction.getattr(py, "name") {
                 Ok(i_name) => match i_name.extract::<String>(py) {
-                    Ok(i_name) => i_name,
+                    Ok(i_name) => {
+                        // TODO: Figure out how to identify whether a class is received or not
+                        // if !properties.is_empty() {
+                        //     panic!("An instruction added globally by class can't have properties set.");
+                        // };
+                        i_name
+                    },
                     Err(e) => panic!("The provided instruction does not have a valid 'name' attribute: {:?}", e)
                 },
                 Err(e) => panic!("A name must be specified when defining a supported global operation by class: {:?}", e)
             };
-            if properties.is_empty() {
-                panic!("An instruction added globally by class can't have properties set.");
-            }
         }
         if self.gate_map.contains_key(&instruction_name) {
             panic!(
