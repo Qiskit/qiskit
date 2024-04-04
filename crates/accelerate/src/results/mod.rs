@@ -17,7 +17,7 @@ use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
 #[pymodule]
-pub fn results(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn results(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_counts))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_distribution))?;
     m.add_wrapped(wrap_pyfunction!(marginalization::marginal_memory))?;

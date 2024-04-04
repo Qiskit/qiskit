@@ -12,10 +12,13 @@
 
 """DAGDependency class for representing non-commutativity in a circuit.
 """
+from __future__ import annotations
 
 import math
 import heapq
+import typing
 from collections import OrderedDict, defaultdict
+from collections.abc import Iterator
 
 import rustworkx as rx
 
@@ -25,6 +28,10 @@ from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
+from qiskit.pulse import Schedule
+
+if typing.TYPE_CHECKING:
+    from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 # ToDo: DagDependency needs to be refactored:
@@ -106,8 +113,8 @@ class DAGDependency:
         self.qubits = []
         self.clbits = []
 
-        self._global_phase = 0
-        self._calibrations = defaultdict(dict)
+        self._global_phase: float | ParameterExpression = 0.0
+        self._calibrations: dict[str, dict[tuple, Schedule]] = defaultdict(dict)
 
         self.duration = None
         self.unit = "dt"
@@ -120,7 +127,7 @@ class DAGDependency:
         return self._global_phase
 
     @global_phase.setter
-    def global_phase(self, angle):
+    def global_phase(self, angle: float | ParameterExpression):
         """Set the global phase of the circuit.
 
         Args:
@@ -139,7 +146,7 @@ class DAGDependency:
                 self._global_phase = angle % (2 * math.pi)
 
     @property
-    def calibrations(self):
+    def calibrations(self) -> dict[str, dict[tuple, Schedule]]:
         """Return calibration dictionary.
 
         The custom pulse definition of a given gate is of the form
@@ -148,7 +155,7 @@ class DAGDependency:
         return dict(self._calibrations)
 
     @calibrations.setter
-    def calibrations(self, calibrations):
+    def calibrations(self, calibrations: dict[str, dict[tuple, Schedule]]):
         """Set the circuit calibration data from a dictionary of calibration definition.
 
         Args:
@@ -219,7 +226,7 @@ class DAGDependency:
             if creg[j] not in existing_clbits:
                 self.clbits.append(creg[j])
 
-    def _add_multi_graph_node(self, node):
+    def _add_multi_graph_node(self, node: DAGDepNode) -> int:
         """
         Args:
             node (DAGDepNode): considered node.
@@ -231,14 +238,14 @@ class DAGDependency:
         node.node_id = node_id
         return node_id
 
-    def get_nodes(self):
+    def get_nodes(self) -> Iterator[DAGDepNode]:
         """
         Returns:
             generator(dict): iterator over all the nodes.
         """
         return iter(self._multi_graph.nodes())
 
-    def get_node(self, node_id):
+    def get_node(self, node_id: int) -> DAGDepNode:
         """
         Args:
             node_id (int): label of considered node.
@@ -248,7 +255,7 @@ class DAGDependency:
         """
         return self._multi_graph.get_node_data(node_id)
 
-    def _add_multi_graph_edge(self, src_id, dest_id, data):
+    def _add_multi_graph_edge(self, src_id: int, dest_id: int, data):
         """
         Function to add an edge from given data (dict) between two nodes.
 
@@ -311,7 +318,7 @@ class DAGDependency:
         """
         return self._multi_graph.out_edges(node_id)
 
-    def direct_successors(self, node_id):
+    def direct_successors(self, node_id: int) -> list[int]:
         """
         Direct successors id of a given node as sorted list.
 
@@ -335,7 +342,7 @@ class DAGDependency:
         """
         return sorted(self._multi_graph.adj_direction(node_id, True).keys())
 
-    def successors(self, node_id):
+    def successors(self, node_id: int) -> list[int]:
         """
         Successors id of a given node as sorted list.
 
@@ -347,7 +354,7 @@ class DAGDependency:
         """
         return self._multi_graph.get_node_data(node_id).successors
 
-    def predecessors(self, node_id):
+    def predecessors(self, node_id: int) -> list[int]:
         """
         Predecessors id of a given node as sorted list.
 

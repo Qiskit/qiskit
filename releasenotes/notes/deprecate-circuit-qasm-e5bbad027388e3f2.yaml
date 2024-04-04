@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Removed the ``Instruction.qasm`` method, which was deprecated in Qiskit 0.45.0.
-    Use :func:`qiskit.qasm2.dump` with a complete :class:`.QuantumCircuit` instead.

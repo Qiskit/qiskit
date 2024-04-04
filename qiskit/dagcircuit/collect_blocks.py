@@ -13,10 +13,14 @@
 
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
+from __future__ import annotations
+
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Callable
+from qiskit.dagcircuit import DAGDepNode
+from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister, Bit
 
-from qiskit.circuit import QuantumCircuit, CircuitInstruction, ClassicalRegister
 from qiskit.circuit.controlflow import condition_resources
 from . import DAGOpNode, DAGCircuit, DAGDependency, DAGDependencyV2
 from .exceptions import DAGCircuitError
@@ -139,7 +143,7 @@ class BlockCollector:
     see https://github.com/Qiskit/qiskit-terra/issues/5775.
     """
 
-    def __init__(self, dag):
+    def __init__(self, dag: DAGCircuit | DAGDependency):
         """
         Args:
             dag (Union[DAGCircuit, DAGDependency]): The input DAG.
@@ -149,8 +153,8 @@ class BlockCollector:
         """
 
         self.dag = dag
-        self._pending_nodes = None
-        self._in_degree = None
+        self._pending_nodes: list[DAGOpNode | DAGDepNode] | None = None
+        self._in_degree: dict[DAGOpNode | DAGDepNode, int] | None = None
         self._collect_from_back = False
 
         if isinstance(dag, DAGCircuit):
@@ -186,7 +190,7 @@ class BlockCollector:
             if deg == 0:
                 self._pending_nodes.append(node)
 
-    def _op_nodes(self):
+    def _op_nodes(self) -> Iterable[DAGOpNode | DAGDepNode]:
         """Returns DAG nodes."""
         if not self.is_dag_dependency or self.is_v2:
             return self.dag.op_nodes()
@@ -240,6 +244,7 @@ class BlockCollector:
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
+
 
     def collect_matching_block(self, filter_fn, block_class=DefaultBlock, output_nodes=True):
         """Iteratively collects the largest block of input nodes (that is, nodes with
@@ -314,7 +319,7 @@ class BlockCollector:
         self._setup_in_degrees()
 
         # Iteratively collect non-matching and matching blocks.
-        matching_blocks = []
+        matching_blocks: list[list[DAGOpNode | DAGDepNode]] = []
         while self._have_uncollected_nodes():
             self.collect_matching_block(
                 filter_fn=not_filter_fn,
@@ -399,12 +404,12 @@ class BlockSplitter:
         return blocks
 
 
-def split_block_into_layers(block):
+def split_block_into_layers(block: list[DAGOpNode | DAGDepNode]):
     """Splits a block of nodes into sub-blocks of non-overlapping instructions
     (or, in other words, into depth-1 sub-blocks).
     """
-    bit_depths = {}
-    layers = []
+    bit_depths: dict[Bit, int] = {}
+    layers: list[list[DAGOpNode | DAGDepNode]] = []
 
     for node in block:
         cur_bits = set(node.qargs)
