@@ -76,7 +76,7 @@ def plot_histogram(
     sort="asc",
     target_string=None,
     legend=None,
-    bar_labels=False,
+    bar_labels=True,
     title=None,
     ax=None,
     filename=None,
