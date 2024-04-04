@@ -799,7 +799,7 @@ circuit repeatedly will in general result in a distribution of circuit depths an
 at the output.
 
 In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
-`initial_layout`:
+``initial_layout`` in a heavy hex coupling map:
 
 .. plot::
 
@@ -816,18 +816,22 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
    from qiskit.providers.fake_provider import GenericBackendV2
-   backend = GenericBackendV2(16)
+   from qiskit.transpiler import CouplingMap
+
+   coupling_map = CouplingMap.from_heavy_hex(3)
+   backend = GenericBackendV2(coupling_map.size(), coupling_map=coupling_map)
 
    ghz = QuantumCircuit(15)
    ghz.h(0)
    ghz.cx(0, range(1, 15))
 
    depths = []
-   for _ in range(100):
+   for i in range(100):
        depths.append(
            transpile(
                ghz,
                backend,
+               seed_transpiler=i,
                layout_method='trivial'  # Fixed layout mapped in circuit order
            ).depth()
        )
