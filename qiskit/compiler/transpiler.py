@@ -34,7 +34,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations, Instru
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target, target_to_backend_properties, InstructionProperties
+from qiskit.transpiler.target import Target, target_to_backend_properties
 
 logger = logging.getLogger(__name__)
 
