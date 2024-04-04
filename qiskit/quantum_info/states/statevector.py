@@ -15,6 +15,7 @@ Statevector quantum state class.
 """
 from __future__ import annotations
 import copy
+import math
 import re
 from numbers import Number
 
@@ -702,7 +703,7 @@ class Statevector(QuantumState, TolerancesMixin):
         state = Statevector(data)
         if xy_states:
             # Apply hadamards to all qubits in X eigenstates
-            x_mat = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+            x_mat = np.array([[1, 1], [1, -1]], dtype=complex) / math.sqrt(2)
             # Apply S.H to qubits in Y eigenstates
             y_mat = np.dot(np.diag([1, 1j]), x_mat)
             for qubit, char in enumerate(reversed(label)):

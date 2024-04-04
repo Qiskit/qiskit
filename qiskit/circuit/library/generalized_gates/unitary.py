@@ -13,6 +13,7 @@
 """Arbitrary unitary circuit instruction."""
 
 from __future__ import annotations
+import math
 
 import typing
 import numpy
@@ -96,7 +97,7 @@ class UnitaryGate(Gate):
         # Convert to numpy array in case not already an array
         data = numpy.asarray(data, dtype=complex)
         input_dim, output_dim = data.shape
-        num_qubits = int(numpy.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if check_input:
             # Check input is unitary
             if not is_unitary_matrix(data):

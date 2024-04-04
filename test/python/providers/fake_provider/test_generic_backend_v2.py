@@ -117,19 +117,20 @@ class TestGenericBackendV2(QiskitTestCase):
 
         basis_gates = ["cx", "id", "rz", "sx", "x", "sdg", "rxx"]
         expected_durations = {
-            "cx": (8e-8, 9e-7),
-            "id": (3e-8, 6e-8),
+            "cx": (7.992e-08, 8.99988e-07),
+            "id": (2.997e-08, 5.994e-08),
             "rz": (0.0, 0.0),
-            "sx": (3e-8, 6e-8),
-            "x": (3e-8, 6e-8),
-            "measure": (7e-7, 1.5e-6),
-            "sdg": (3e-8, 6e-8),
-            "rxx": (8e-8, 9e-7),
+            "sx": (2.997e-08, 5.994e-08),
+            "x": (2.997e-08, 5.994e-08),
+            "measure": (6.99966e-07, 1.500054e-06),
+            "sdg": (2.997e-08, 5.994e-08),
+            "rxx": (7.992e-08, 8.99988e-07),
         }
-        target = GenericBackendV2(num_qubits=2, basis_gates=basis_gates).target
-        for inst in target:
-            for qargs in target.qargs_for_operation_name(inst):
-                duration = target[inst][qargs].duration
-                if inst not in ["delay", "reset"]:
-                    self.assertGreaterEqual(duration, expected_durations[inst][0])
-                    self.assertLessEqual(duration, expected_durations[inst][1])
+        for _ in range(20):
+            target = GenericBackendV2(num_qubits=2, basis_gates=basis_gates).target
+            for inst in target:
+                for qargs in target.qargs_for_operation_name(inst):
+                    duration = target[inst][qargs].duration
+                    if inst not in ["delay", "reset"]:
+                        self.assertGreaterEqual(duration, expected_durations[inst][0])
+                        self.assertLessEqual(duration, expected_durations[inst][1])

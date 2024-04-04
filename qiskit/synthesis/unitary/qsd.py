@@ -15,6 +15,7 @@ Quantum Shannon Decomposition.
 Method is described in arXiv:quant-ph/0406176.
 """
 from __future__ import annotations
+import math
 from typing import Callable
 import scipy
 import numpy as np
@@ -93,7 +94,7 @@ def qs_decomposition(
     """
     #  _depth (int): Internal use parameter to track recursion depth.
     dim = mat.shape[0]
-    nqubits = int(np.log2(dim))
+    nqubits = int(math.log2(dim))
     if np.allclose(np.identity(dim), mat):
         return QuantumCircuit(nqubits)
     if dim == 2:
@@ -185,7 +186,7 @@ def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
         QuantumCircuit: decomposed circuit
     """
     dim = um0.shape[0] + um1.shape[0]  # these should be same dimension
-    nqubits = int(np.log2(dim))
+    nqubits = int(math.log2(dim))
     um0um1 = um0 @ um1.T.conjugate()
     if is_hermitian_matrix(um0um1):
         eigvals, vmat = scipy.linalg.eigh(um0um1)
