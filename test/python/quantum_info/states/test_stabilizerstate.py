@@ -44,7 +44,7 @@ class TestStabilizerState(QiskitTestCase):
     def _probabilities_bitstring_verify(
         self,
         stab: StabilizerState,
-        target: dict[str, float],
+        target: dict,
         qargs: None | list = None,
         decimals: None | int = None,
         almost_equal: bool = False,
@@ -63,7 +63,7 @@ class TestStabilizerState(QiskitTestCase):
         """
         # Iterate through each key to retireve the targeted bitstring
         for bitstring in target:
-            single_bitstring_outcome: dict[str, float] = stab.probabilities_dict_from_bitstring(
+            single_bitstring_outcome: dict = stab.probabilities_dict_from_bitstring(
                 qargs, decimals, bitstring
             )
             # Check if a single outcome result is equal to the single expected result in the dict

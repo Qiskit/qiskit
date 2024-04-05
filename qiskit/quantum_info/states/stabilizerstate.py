@@ -419,9 +419,11 @@ class StabilizerState(QuantumState):
         else:
             qubits = qargs
 
-        # Probabilities dictionary to return with the measured values
-        probs: dict[str, float] = {}
-        self._get_probabilities(qubits, (["X"] * len(qubits)), 1.0, probs, outcome_bitstring)
+        outcome = ["X"] * len(qubits)
+        outcome_prob = 1.0
+        probs: dict[str, float] = {} # Probabilities dict to return with the measured values
+
+        self._get_probabilities(qubits, outcome, outcome_prob, probs, outcome_bitstring)
 
         if decimals is not None:
             for key, value in probs.items():
@@ -697,35 +699,33 @@ class StabilizerState(QuantumState):
 
         ret: StabilizerState = self.copy()
 
-        # If no "X" in outcome no other measururements to perform
-        if "X" in outcome:
-            # Find outcomes for each qubit
-            for i in range(len(qubits)):
-                if outcome[i] == "X":
-                    # Retrieve the qubit for the current measurement
-                    qubit = qubits[(len(qubits) - i - 1)]
-                    # Determine if the probabilitiy is deterministic
-                    if not any(ret.clifford.stab_x[:, qubit]):
-                        single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
-                        if outcome_bitstring is None or (
-                            int(outcome_bitstring[i : i + 1]) == single_qubit_outcome
-                        ):
-                            # No Target, or using Target and the single_qubit_outcome
-                            # equals the desired target value, use current outcome_prob
-                            outcome[i] = str(single_qubit_outcome)
-                        else:
-                            # If the single_qubit_outcome does not equal the target
-                            # then we know that the probability will be 0
-                            outcome[i] = str(outcome_bitstring[i : i + 1])
-                            outcome_prob = 0
+        # Find outcomes for each qubit
+        for i in range(len(qubits)):
+            if outcome[i] == "X":
+                # Retrieve the qubit for the current measurement
+                qubit = qubits[(len(qubits) - i - 1)]
+                # Determine if the probabilitiy is deterministic
+                if not any(ret.clifford.stab_x[:, qubit]):
+                    single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
+                    if outcome_bitstring is None or (
+                        int(outcome_bitstring[i : i + 1]) == single_qubit_outcome
+                    ):
+                        # No Target, or using Target and the single_qubit_outcome
+                        # equals the desired target value, use current outcome_prob
+                        outcome[i] = str(single_qubit_outcome)
                     else:
-                        qubit_for_branching = i
+                        # If the single_qubit_outcome does not equal the target
+                        # then we know that the probability will be 0
+                        outcome[i] = str(outcome_bitstring[i : i + 1])
+                        outcome_prob = 0
+                else:
+                    qubit_for_branching = i
 
         if qubit_for_branching == -1:
             str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
-
+        
         for single_qubit_outcome in (
             range(0, 2)
             if (outcome_bitstring is None)
