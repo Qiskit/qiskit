@@ -15,9 +15,9 @@ Statevector Sampler class
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass
 from typing import Iterable
-import warnings
 
 import numpy as np
 from numpy.typing import NDArray
@@ -28,15 +28,9 @@ from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
 from .base.validation import _has_measure
-from .containers import (
-    BitArray,
-    PrimitiveResult,
-    PubResult,
-    SamplerPubLike,
-    make_data_bin,
-)
-from .containers.sampler_pub import SamplerPub
+from .containers import BitArray, PrimitiveResult, SamplerPubLike, SamplerPubResult, make_data_bin
 from .containers.bit_array import _min_num_bytes
+from .containers.sampler_pub import SamplerPub
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
@@ -154,7 +148,7 @@ class StatevectorSampler(BaseSamplerV2):
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
             shots = self._default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
@@ -169,11 +163,11 @@ class StatevectorSampler(BaseSamplerV2):
         job._submit()
         return job
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
         results = [self._run_pub(pub) for pub in pubs]
         return PrimitiveResult(results)
 
-    def _run_pub(self, pub: SamplerPub) -> PubResult:
+    def _run_pub(self, pub: SamplerPub) -> SamplerPubResult:
         circuit, qargs, meas_info = _preprocess_circuit(pub.circuit)
         bound_circuits = pub.parameter_values.bind_all(circuit)
         arrays = {
@@ -202,7 +196,7 @@ class StatevectorSampler(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={"shots": pub.shots})
+        return SamplerPubResult(data_bin, metadata={"shots": pub.shots})
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):

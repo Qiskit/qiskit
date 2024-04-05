@@ -27,8 +27,8 @@ from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
     PrimitiveResult,
-    PubResult,
     SamplerPubLike,
+    SamplerPubResult,
     make_data_bin,
 )
 from qiskit.primitives.containers.bit_array import _min_num_bytes
@@ -123,7 +123,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
             shots = self._options.default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
@@ -141,11 +141,11 @@ class BackendSamplerV2(BaseSamplerV2):
                     UserWarning,
                 )
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
         results = [self._run_pub(pub) for pub in pubs]
         return PrimitiveResult(results)
 
-    def _run_pub(self, pub: SamplerPub) -> PubResult:
+    def _run_pub(self, pub: SamplerPub) -> SamplerPubResult:
         meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
         bound_circuits = pub.parameter_values.bind_all(pub.circuit)
         arrays = {
@@ -177,7 +177,7 @@ class BackendSamplerV2(BaseSamplerV2):
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
         data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={})
+        return SamplerPubResult(data_bin, metadata={})
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
