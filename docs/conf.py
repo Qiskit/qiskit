@@ -196,7 +196,7 @@ def linkcode_resolve(domain, info):
     if full_file_name is None:
         return None
     try:
-        file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT / "qiskit")
+        file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
     except ValueError:
         return None
 
@@ -209,4 +209,4 @@ def linkcode_resolve(domain, info):
         linespec = f"#L{lineno}-L{ending_lineno}"
 
     github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
-    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/qiskit/{file_name}{linespec}"
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/{file_name}{linespec}"
