@@ -76,7 +76,7 @@ class DataBin(metaclass=DataBinMeta):
 
     def keys(self) -> list[str]:
         """Return a list of field names."""
-        return self._FIELDS
+        return list(self._FIELDS)
 
     def values(self) -> list[Any]:
         """Return a list of values."""
