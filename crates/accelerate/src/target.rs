@@ -13,11 +13,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::{
-    prelude::*,
-    pyclass,
-    types::{PyDict, PyTuple},
-};
+use pyo3::{prelude::*, pyclass, types::PyDict};
 
 #[pyclass(mapping, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
@@ -164,14 +160,6 @@ impl Target {
         // Obtain nested qarg hashmap
         let mut qargs_val: HashMap<isize, PyObject> = HashMap::new();
         for (qarg, values) in properties {
-            // Obtain source qargs
-            let qarg = match qarg.downcast::<PyTuple>() {
-                Ok(tuple) => tuple,
-                Err(e) => panic!(
-                    "Failed to downcast q_args from the provided properties: {:?}.",
-                    e
-                ),
-            };
             // Obtain qarg hash for mapping
             let qarg_hash = match qarg.hash() {
                 Ok(vec) => vec,
@@ -190,7 +178,6 @@ impl Target {
             };
             // Store qargs hash value.
             self.qarg_hash_table.insert(qarg_hash, qarg.clone());
-            println!("{:?}: {:?}", qarg, qarg_hash);
             if !qarg.is_empty() && qarg.len() != instruction_num_qubits {
                 panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg)
             }
