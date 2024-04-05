@@ -1,0 +1,16 @@
+---
+features_transpiler:
+  - |
+    The ``optimization_level`` argument for the :func:`.generate_preset_pass_manager` function is
+    now optional. If it's not specified it will default to using optimization level 2. As the argument
+    is now optional, the first positional argument has been expanded to enable passing a :class:`.Target`
+    or a :class:`.BackendV2` as the first argument for more convenient construction. For example::
+
+      from qiskit.transpiler.preset_passmanager import generate_preset_pass_manager
+      from qiskit.providers.fake_provider import GenericBackendV2
+
+      backend = GenericBackendV2(100)
+
+      generate_preset_pass_manager(backend.Target)
+
+    will construct a default pass manager for the 100 qubit :class`.GenericBackendV2` instance.
