@@ -94,11 +94,11 @@ impl Target {
         &mut self,
         py: Python<'_>,
         instruction: PyObject,
-        properties: Option<&PyDict>,
+        properties: Option<Bound<PyDict>>,
         name: Option<String>,
     ) {
         // Unwrap properties
-        let properties: &PyDict = properties.unwrap_or(PyDict::new(py));
+        let properties: Bound<PyDict> = properties.unwrap_or(PyDict::new_bound(py));
         // Unwrap instruction name
         let mut instruction_name: String = match name {
             Some(name) => name,
@@ -215,7 +215,9 @@ impl Target {
 
     #[getter]
     fn instructions(&self) -> PyResult<Vec<(PyObject, Vec<usize>)>> {
+        // Get list of instructions.
         let mut instruction_list: Vec<(PyObject, Vec<usize>)> = vec![];
+        // Add all operations and dehash qargs.
         for op in self.gate_map.keys() {
             for qarg in self.gate_map[op].keys() {
                 let instruction_pair = (
@@ -225,12 +227,13 @@ impl Target {
                 instruction_list.push(instruction_pair);
             }
         }
+        // Return results.
         Ok(instruction_list)
     }
 }
 
 #[pymodule]
-pub fn target(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Target>()?;
     Ok(())
 }
