@@ -17,13 +17,13 @@ Providers Interface (:mod:`qiskit.providers`)
 
 .. currentmodule:: qiskit.providers
 
-This module contains the classes used to build external providers for Terra. A
-provider is anything that provides an external service to Terra. The typical
+This module contains the classes used to build external providers for Qiskit. A
+provider is anything that provides an external service to Qiskit. The typical
 example of this is a Backend provider which provides
 :class:`~qiskit.providers.Backend` objects which can be used for executing
 :class:`~qiskit.circuit.QuantumCircuit` and/or :class:`~qiskit.pulse.Schedule`
 objects. This module contains the abstract classes which are used to define the
-interface between a provider and terra.
+interface between a provider and Qiskit.
 
 Version Support
 ===============
@@ -36,17 +36,17 @@ backwards compatible between versions.
 Version Changes
 ----------------
 
-Each minor version release of qiskit-terra **may** increment the version of any
-providers interface a single version number. It will be an aggregate of all
+Each minor version release of ``qiskit`` **may** increment the version of any
+backend interface a single version number. It will be an aggregate of all
 the interface changes for that release on that interface.
 
 Version Support Policy
 ----------------------
 
 To enable providers to have time to adjust to changes in this interface
-Terra will support multiple versions of each class at once. Given the
+Qiskit will support multiple versions of each class at once. Given the
 nature of one version per release the version deprecation policy is a bit
-more conservative than the standard deprecation policy. Terra will support a
+more conservative than the standard deprecation policy. Qiskit will support a
 provider interface version for a minimum of 3 minor releases or the first
 release after 6 months from the release that introduced a version, whichever is
 longer, prior to a potential deprecation. After that the standard deprecation
@@ -57,17 +57,17 @@ the release of 0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after
 0.19.0 we release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to
 still be supported and can't be removed until the deprecation policy completes.
 
-It's worth pointing out that Terra's version support policy doesn't mean
+It's worth pointing out that Qiskit's version support policy doesn't mean
 providers themselves will have the same support story, they can (and arguably
 should) update to newer versions as soon as they can, the support window is
-just for Terra's supported versions. Part of this lengthy window prior to
+just for Qiskit's supported versions. Part of this lengthy window prior to
 deprecation is to give providers enough time to do their own deprecation of a
 potential end user impacting change in a user facing part of the interface
 prior to bumping their version. For example, let's say we changed the signature
 to ``Backend.run()`` in ``BackendV34`` in a backwards incompatible way. Before
 Aer could update its :class:`~qiskit_aer.AerSimulator` class
 to be based on version 34 they'd need to deprecate the old signature prior to switching
-over. The changeover for Aer is not guaranteed to be lockstep with Terra so we
+over. The changeover for Aer is not guaranteed to be lockstep with Qiskit, so we
 need to ensure there is a sufficient amount of time for Aer to complete its
 deprecation cycle prior to removing version 33 (ie making version 34
 mandatory/the minimum version).
@@ -131,12 +131,13 @@ Exceptions
 .. autoexception:: JobTimeoutError
 .. autoexception:: BackendConfigurationError
 
-======================
-Writing a New Provider
-======================
+=====================
+Writing a New Backend
+=====================
 
 If you have a quantum device or simulator that you would like to integrate with
-Qiskit you will need to write a provider. A provider will provide Terra with a
+Qiskit you will need to write a backend. A provider is a collection of backends
+and will provide Qiskit with a
 method to get available :class:`~qiskit.providers.BackendV2` objects. The
 :class:`~qiskit.providers.BackendV2` object provides both information describing
 a backend and its operation for the :mod:`~qiskit.transpiler` so that circuits
@@ -149,8 +150,7 @@ executing circuits on devices in a standard
 fashion regardless of how the backend is implemented. At a high level the basic
 steps for writing a provider are:
 
- * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
-   access to the backend(s).
+ * Implement a ``Provider`` class that handles access to the backend(s).
  * Implement a :class:`~qiskit.providers.BackendV2` subclass and its
    :meth:`~qiskit.providers.BackendV2.run` method.
 
@@ -173,12 +173,11 @@ of a provider object. The provider object will then provide a list of backends,
 and methods to filter and acquire backends (using the provided credentials if
 required). An example provider class looks like::
 
-    from qiskit.providers import ProviderV1 as Provider
     from qiskit.providers.providerutils import filter_backends
 
     from .backend import MyBackend
 
-    class MyProvider(Provider):
+    class MyProvider:
 
         def __init__(self, token=None):
             super().__init__()
