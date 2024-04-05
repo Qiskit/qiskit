@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
+from qiskit.utils import deprecate_func
 
 
 class Provider:
@@ -28,12 +29,25 @@ class Provider:
 
     version = 0
 
+    @deprecate_func(
+        since=1.1,
+        additional_msg="The full ABC Provider and ProviderV1 is deprecated and it is going to"
+        " be removed in 2.0. Just remove it as a super class.",
+    )
+    def __init__(self):
+        pass
+
 
 class ProviderV1(Provider, ABC):
     """Base class for a Backend Provider."""
 
     version = 1
 
+    @deprecate_func(
+        since=1.1,
+        additional_msg="The full ABC Provider and ProviderV1 is deprecated and it is going to"
+        " be removed in 2.0. Just remove it as a super class.",
+    )
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
 
