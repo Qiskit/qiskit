@@ -2,7 +2,7 @@
 
 All the crates in here are called `qiskit-*`, and are stored in directories that omit the `qiskit-`.
 
-This crate structure currently serves the purpose of building only a single Python extension module, which still separating out some of the Rust code into separate logical chunks.
+This crate structure currently serves the purpose of building only a single Python extension module, which still separates out some of the Rust code into separate logical chunks.
 The intention is that (much) longer term, we might be wanting to expose more of Qiskit functionality directly for other languages to interact with without going through Python.
 
 * `qiskit-pyext` is the only crate that actually builds a Python C extension library.
