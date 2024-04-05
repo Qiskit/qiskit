@@ -133,7 +133,7 @@ class CircuitScopeInterface(abc.ABC):
 
     @abc.abstractmethod
     def use_var(self, var: expr.Var):
-        """Called for every standalone classical runtime variable being used by some circuit
+        """Called for every standalone classical real-time variable being used by some circuit
         instruction.
 
         The given variable is guaranteed to be a stand-alone variable; bit-like resource-wrapping
