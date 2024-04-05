@@ -144,7 +144,7 @@ class QuantumCircuit:
             circuit. This gets stored as free-form data in a dict in the
             :attr:`~qiskit.circuit.QuantumCircuit.metadata` attribute. It will
             not be directly used in the circuit.
-        inputs: any variables to declare as ``input`` runtime variables for this circuit.  These
+        inputs: any variables to declare as ``input`` real-time variables for this circuit.  These
             should already be existing :class:`.expr.Var` nodes that you build from somewhere else;
             if you need to create the inputs as well, use :meth:`QuantumCircuit.add_input`.  The
             variables given in this argument will be passed directly to :meth:`add_input`.  A
@@ -1171,14 +1171,14 @@ class QuantumCircuit:
 
     @property
     def num_vars(self) -> int:
-        """The number of runtime classical variables in the circuit.
+        """The number of real-time classical variables in the circuit.
 
         This is the length of the :meth:`iter_vars` iterable."""
         return self.num_input_vars + self.num_captured_vars + self.num_declared_vars
 
     @property
     def num_input_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as circuit inputs.
+        """The number of real-time classical variables in the circuit marked as circuit inputs.
 
         This is the length of the :meth:`iter_input_vars` iterable.  If this is non-zero,
         :attr:`num_captured_vars` must be zero."""
@@ -1186,7 +1186,7 @@ class QuantumCircuit:
 
     @property
     def num_captured_vars(self) -> int:
-        """The number of runtime classical variables in the circuit marked as captured from an
+        """The number of real-time classical variables in the circuit marked as captured from an
         enclosing scope.
 
         This is the length of the :meth:`iter_captured_vars` iterable.  If this is non-zero,
@@ -1195,14 +1195,14 @@ class QuantumCircuit:
 
     @property
     def num_declared_vars(self) -> int:
-        """The number of runtime classical variables in the circuit that are declared by this
+        """The number of real-time classical variables in the circuit that are declared by this
         circuit scope, excluding inputs or captures.
 
         This is the length of the :meth:`iter_declared_vars` iterable."""
         return len(self._vars_local)
 
     def iter_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables in scope within this circuit.
+        """Get an iterable over all real-time classical variables in scope within this circuit.
 
         This method will iterate over all variables in scope.  For more fine-grained iterators, see
         :meth:`iter_declared_vars`, :meth:`iter_input_vars` and :meth:`iter_captured_vars`."""
@@ -1214,7 +1214,7 @@ class QuantumCircuit:
         )
 
     def iter_declared_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared with automatic
+        """Get an iterable over all real-time classical variables that are declared with automatic
         storage duration in this scope.  This excludes input variables (see :meth:`iter_input_vars`)
         and captured variables (see :meth:`iter_captured_vars`)."""
         if self._control_flow_scopes:
@@ -1222,15 +1222,15 @@ class QuantumCircuit:
         return self._vars_local.values()
 
     def iter_input_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are declared as inputs to this
-        circuit scope.  This excludes locally declared variables (see :meth:`iter_declared_vars`)
-        and captured variables (see :meth:`iter_captured_vars`)."""
+        """Get an iterable over all real-time classical variables that are declared as inputs to
+        this circuit scope.  This excludes locally declared variables (see
+        :meth:`iter_declared_vars`) and captured variables (see :meth:`iter_captured_vars`)."""
         if self._control_flow_scopes:
             return ()
         return self._vars_input.values()
 
     def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
-        """Get an iterable over all runtime classical variables that are captured by this circuit
+        """Get an iterable over all real-time classical variables that are captured by this circuit
         scope from a containing scope.  This excludes input variables (see :meth:`iter_input_vars`)
         and locally declared variables (see :meth:`iter_declared_vars`)."""
         if self._control_flow_scopes:
@@ -1730,8 +1730,8 @@ class QuantumCircuit:
                     qc.cx(0, i)
                 qc.measure(range(8), cr2)
 
-                # Now when we add the variable, it is initialized using the runtime state of the two
-                # classical registers we measured into above.
+                # Now when we add the variable, it is initialized using the real-time state of the
+                # two classical registers we measured into above.
                 qc.add_var(my_var, expr.bit_and(cr1, cr2))
         """
         # Validate the initialiser first to catch cases where the variable to be declared is being
@@ -2619,7 +2619,7 @@ class QuantumCircuit:
         return self.append(Reset(), [qubit], [])
 
     def store(self, lvalue: typing.Any, rvalue: typing.Any, /) -> InstructionSet:
-        """Store the result of the given runtime classical expression ``rvalue`` in the memory
+        """Store the result of the given real-time classical expression ``rvalue`` in the memory
         location defined by ``lvalue``.
 
         Typically ``lvalue`` will be a :class:`~.expr.Var` node and ``rvalue`` will be some
@@ -2631,7 +2631,7 @@ class QuantumCircuit:
                 a :class:`~.expr.Var` node, but you can also write to :class:`.Clbit` or
                 :class:`.ClassicalRegister` memory locations if your hardware supports it.  The
                 memory location must already be present in the circuit.
-            rvalue: a runtime classical expression whose result should be written into the given
+            rvalue: a real-time classical expression whose result should be written into the given
                 memory location.
 
         .. seealso::
@@ -5023,11 +5023,11 @@ class QuantumCircuit:
                 qc.z(2)
 
         Args:
-            condition (Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be evaluated at
-                circuit runtime which, if true, will trigger the evaluation of ``true_body``. Can be
-                specified as either a tuple of a ``ClassicalRegister`` to be tested for equality
-                with a given ``int``, or as a tuple of a ``Clbit`` to be compared to either a
-                ``bool`` or an ``int``.
+            condition (Tuple[Union[ClassicalRegister, Clbit], int]): A condition to be evaluated in
+                real time during circuit execution, which, if true, will trigger the evaluation of
+                ``true_body``. Can be specified as either a tuple of a ``ClassicalRegister`` to be
+                tested for equality with a given ``int``, or as a tuple of a ``Clbit`` to be
+                compared to either a ``bool`` or an ``int``.
             true_body (Optional[QuantumCircuit]): The circuit body to be run if ``condition`` is
                 true.
             qubits (Optional[Sequence[QubitSpecifier]]): The circuit qubits over which the if/else
@@ -5099,7 +5099,7 @@ class QuantumCircuit:
                     qc.x(0)
 
         Args:
-            condition: A condition to be evaluated at circuit runtime which,
+            condition: A condition to be evaluated in real time at circuit execution, which,
                 if true, will trigger the evaluation of ``true_body``. Can be
                 specified as either a tuple of a ``ClassicalRegister`` to be
                 tested for equality with a given ``int``, or as a tuple of a

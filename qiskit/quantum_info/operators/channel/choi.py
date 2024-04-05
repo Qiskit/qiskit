@@ -17,6 +17,7 @@ Choi-matrix representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -103,7 +104,7 @@ class Choi(QuantumChannel):
             if output_dims:
                 output_dim = np.prod(output_dims)
             if output_dims is None and input_dims is None:
-                output_dim = int(np.sqrt(dim_l))
+                output_dim = int(math.sqrt(dim_l))
                 input_dim = dim_l // output_dim
             elif input_dims is None:
                 input_dim = dim_l // output_dim
