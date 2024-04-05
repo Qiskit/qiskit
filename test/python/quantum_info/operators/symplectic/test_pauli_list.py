@@ -2036,6 +2036,7 @@ class TestPauliListMethods(QiskitTestCase):
             CYGate(),
             CZGate(),
             SwapGate(),
+            ECRGate(),
         )
         dtypes = [
             int,
