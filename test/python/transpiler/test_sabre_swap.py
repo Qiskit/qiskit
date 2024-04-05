@@ -271,11 +271,10 @@ class TestSabreSwap(QiskitTestCase):
         # `couplings <= coupling_map`.
         self.assertEqual(couplings - set(coupling_map.get_edges()), set())
 
-        with self.assertWarns(DeprecationWarning):
-            # Assert that the same keys are produced by a simulation - this is a test that the inserted
-            # swaps route the qubits correctly.
-            if not optionals.HAS_AER:
-                return
+        # Assert that the same keys are produced by a simulation - this is a test that the inserted
+        # swaps route the qubits correctly.
+        if not optionals.HAS_AER:
+            return
 
         from qiskit_aer import Aer
 
