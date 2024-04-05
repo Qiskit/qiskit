@@ -421,7 +421,7 @@ class StabilizerState(QuantumState):
 
         outcome = ["X"] * len(qubits)
         outcome_prob = 1.0
-        probs: dict[str, float] = {} # Probabilities dict to return with the measured values
+        probs: dict[str, float] = {}  # Probabilities dict to return with the measured values
 
         self._get_probabilities(qubits, outcome, outcome_prob, probs, outcome_bitstring)
 
@@ -725,7 +725,7 @@ class StabilizerState(QuantumState):
             str_outcome = "".join(outcome)
             probs[str_outcome] = outcome_prob
             return
-        
+
         for single_qubit_outcome in (
             range(0, 2)
             if (outcome_bitstring is None)

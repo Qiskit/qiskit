@@ -45,8 +45,8 @@ class TestStabilizerState(QiskitTestCase):
         self,
         stab: StabilizerState,
         target: dict,
-        qargs: None | list = None,
-        decimals: None | int = None,
+        qargs = None,
+        decimals = None,
         almost_equal: bool = False,
     ):
         """Verify measuring each possible targeted bitstring independently for the correct result using the passed in targets
