@@ -64,27 +64,27 @@ class DataBin(metaclass=DataBinMeta):
         return f"{type(self)}({', '.join(vals)})"
 
     def __getitem__(self, key: str) -> Any:
-        if not hasattr(self, key):
+        if key not in self._FIELDS:
             raise KeyError(f"Key ({key}) does not exist in this data bin.")
         return getattr(self, key)
 
     def __contains__(self, key: str) -> bool:
-        return hasattr(self, key)
+        return key in self._FIELDS
 
     def __iter__(self) -> Iterable[str]:
         return iter(self._FIELDS)
 
-    def keys(self) -> list[str]:
+    def keys(self) -> tuple[str, ...]:
         """Return a list of field names."""
-        return list(self._FIELDS)
+        return tuple(self._FIELDS)
 
-    def values(self) -> list[Any]:
+    def values(self) -> tuple:
         """Return a list of values."""
-        return [getattr(self, key) for key in self._FIELDS]
+        return tuple(getattr(self, key) for key in self._FIELDS)
 
-    def items(self) -> list[tuple[str, Any]]:
+    def items(self) -> tuple[tuple[str, Any], ...]:
         """Return a list of field names and values"""
-        return [(key, getattr(self, key)) for key in self._FIELDS]
+        return tuple((key, getattr(self, key)) for key in self._FIELDS)
 
 
 def make_data_bin(
@@ -106,7 +106,7 @@ def make_data_bin(
     Returns:
         A new class.
     """
-    field_names, field_types = zip(*fields) if fields else ([], [])
+    field_names, field_types = zip(*fields) if fields else ((), ())
     for name in field_names:
         if name in DataBin._RESTRICTED_NAMES:
             raise ValueError(f"'{name}' is a restricted name for a DataBin.")
