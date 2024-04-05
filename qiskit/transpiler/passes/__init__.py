@@ -81,6 +81,7 @@ Optimizations
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
+   RemoveFinalReset
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
@@ -225,6 +226,7 @@ from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
 from .optimization import RemoveResetInZeroState
+from .optimization import RemoveFinalReset
 from .optimization import RemoveDiagonalGatesBeforeMeasure
 from .optimization import HoareOptimizer
 from .optimization import TemplateOptimization

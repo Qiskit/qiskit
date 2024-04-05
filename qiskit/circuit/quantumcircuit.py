@@ -3453,6 +3453,7 @@ class QuantumCircuit:
         lam: ParameterValueType,
         control_qubits: Sequence[QubitSpecifier],
         target_qubit: QubitSpecifier,
+        ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCPhaseGate`.
 
@@ -3462,6 +3463,9 @@ class QuantumCircuit:
             lam: The angle of the rotation.
             control_qubits: The qubits used as the controls.
             target_qubit: The qubit(s) targeted by the gate.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Returns:
             A handle to the instructions created.
@@ -3470,7 +3474,9 @@ class QuantumCircuit:
 
         num_ctrl_qubits = len(control_qubits)
         return self.append(
-            MCPhaseGate(lam, num_ctrl_qubits), control_qubits[:] + [target_qubit], []
+            MCPhaseGate(lam, num_ctrl_qubits, ctrl_state=ctrl_state),
+            control_qubits[:] + [target_qubit],
+            [],
         )
 
     def r(
@@ -4203,6 +4209,7 @@ class QuantumCircuit:
         target_qubit: QubitSpecifier,
         ancilla_qubits: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
         mode: str = "noancilla",
+        ctrl_state: str | int | None = None,
     ) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.MCXGate`.
 
@@ -4221,6 +4228,9 @@ class QuantumCircuit:
             target_qubit: The qubit(s) targeted by the gate.
             ancilla_qubits: The qubits used as the ancillae, if the mode requires them.
             mode: The choice of mode, explained further above.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Returns:
             A handle to the instructions created.
@@ -4234,14 +4244,16 @@ class QuantumCircuit:
         num_ctrl_qubits = len(control_qubits)
 
         available_implementations = {
-            "noancilla": MCXGrayCode(num_ctrl_qubits),
-            "recursion": MCXRecursive(num_ctrl_qubits),
-            "v-chain": MCXVChain(num_ctrl_qubits, False),
-            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+            "noancilla": MCXGrayCode(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "recursion": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "v-chain": MCXVChain(num_ctrl_qubits, False, ctrl_state=ctrl_state),
+            "v-chain-dirty": MCXVChain(num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state),
             # outdated, previous names
-            "advanced": MCXRecursive(num_ctrl_qubits),
-            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False),
-            "basic-dirty-ancilla": MCXVChain(num_ctrl_qubits, dirty_ancillas=True),
+            "advanced": MCXRecursive(num_ctrl_qubits, ctrl_state=ctrl_state),
+            "basic": MCXVChain(num_ctrl_qubits, dirty_ancillas=False, ctrl_state=ctrl_state),
+            "basic-dirty-ancilla": MCXVChain(
+                num_ctrl_qubits, dirty_ancillas=True, ctrl_state=ctrl_state
+            ),
         }
 
         # check ancilla input

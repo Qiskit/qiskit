@@ -20,7 +20,7 @@ from .time_unit_conversion import TimeUnitConversion
 from .padding import PadDelay, PadDynamicalDecoupling
 from .alignments import InstructionDurationCheck, ValidatePulseGates, ConstrainedReschedule
 
-# For backward compability
+# For backward compatibility
 from . import alignments as instruction_alignments
 
 # TODO Deprecated pass. Will be removed after deprecation period.

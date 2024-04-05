@@ -48,22 +48,22 @@ from qiskit.utils import optionals as _optionals
 #   if the defaults are ranges.
 # - (duration, error), if the defaults are fixed values.
 _NOISE_DEFAULTS = {
-    "cx": (8e-8, 9e-7, 1e-5, 5e-3),
-    "ecr": (8e-8, 9e-7, 1e-5, 5e-3),
-    "cz": (8e-8, 9e-7, 1e-5, 5e-3),
-    "id": (3e-8, 6e-8, 9e-5, 1e-4),
+    "cx": (7.992e-08, 8.99988e-07, 1e-5, 5e-3),
+    "ecr": (7.992e-08, 8.99988e-07, 1e-5, 5e-3),
+    "cz": (7.992e-08, 8.99988e-07, 1e-5, 5e-3),
+    "id": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
     "rz": (0.0, 0.0),
-    "sx": (3e-8, 6e-8, 9e-5, 1e-4),
-    "x": (3e-8, 6e-8, 9e-5, 1e-4),
-    "measure": (7e-7, 1.5e-6, 1e-5, 5e-3),
+    "sx": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
+    "x": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
+    "measure": (6.99966e-07, 1.500054e-06, 1e-5, 5e-3),
     "delay": (None, None),
     "reset": (None, None),
 }
 
 # Fallback values for gates with unknown noise default ranges.
 _NOISE_DEFAULTS_FALLBACK = {
-    "1-q": (3e-8, 6e-8, 9e-5, 1e-4),
-    "multi-q": (8e-8, 9e-7, 1e-5, 5e-3),
+    "1-q": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
+    "multi-q": (7.992e-08, 8.99988e-07, 5e-3),
 }
 
 # Ranges to sample qubit properties from.
@@ -424,6 +424,12 @@ class GenericBackendV2(BackendV2):
                 )
             else:
                 calibration_entry = None
+            if duration is not None and len(noise_params) > 2:
+                # Ensure exact conversion of duration from seconds to dt
+                dt = _QUBIT_PROPERTIES["dt"]
+                rounded_duration = round(duration / dt) * dt
+                # Clamp rounded duration to be between min and max values
+                duration = max(noise_params[0], min(rounded_duration, noise_params[1]))
             props.update({qargs: InstructionProperties(duration, error, calibration_entry)})
         self._target.add_instruction(instruction, props)
 
