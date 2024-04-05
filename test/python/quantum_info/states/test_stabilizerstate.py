@@ -41,8 +41,15 @@ class TestStabilizerState(QiskitTestCase):
     shots = 1000
     threshold = 0.1 * shots
 
-    def _probabilities_bitstring_verify(self, stab: StabilizerState, target: dict[str, float], qargs: None | list = None, decimals: None | int = None, almost_equal: bool = False):
-        '''Verify measuring each possible targeted bitstring independently for the correct result using the passed in targets
+    def _probabilities_bitstring_verify(
+        self,
+        stab: StabilizerState,
+        target: dict[str, float],
+        qargs: None | list = None,
+        decimals: None | int = None,
+        almost_equal: bool = False,
+    ):
+        """Verify measuring each possible targeted bitstring independently for the correct result using the passed in targets
 
         Args:
             stab (StabilizerState): stabilizerstate to perform measurements
@@ -53,16 +60,18 @@ class TestStabilizerState(QiskitTestCase):
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
             almost_equal (bool, optional): utilize assertDictAlmostEqual when True, or assertEqual when false. Defaults to False.
-        '''
-        #Iterate through each key to retireve the targeted bitstring 
+        """
+        # Iterate through each key to retireve the targeted bitstring
         for bitstring in target:
-            single_bitstring_outcome: dict[str, float] = stab.probabilities_dict_from_bitstring(qargs, decimals, bitstring)
-            #Check if a single outcome result is equal to the single expected result in the dict
-            #Some checks require using almost equal. Build a dict with a single pre-measured value to check against
-            if(almost_equal):
-                self.assertDictAlmostEqual(single_bitstring_outcome, {bitstring:target[bitstring]})
+            single_bitstring_outcome: dict[str, float] = stab.probabilities_dict_from_bitstring(
+                qargs, decimals, bitstring
+            )
+            # Check if a single outcome result is equal to the single expected result in the dict
+            # Some checks require using almost equal. Build a dict with a single pre-measured value to check against
+            if almost_equal:
+                self.assertDictAlmostEqual(single_bitstring_outcome, {bitstring: target[bitstring]})
             else:
-                self.assertEqual(single_bitstring_outcome, {bitstring:target[bitstring]})
+                self.assertEqual(single_bitstring_outcome, {bitstring: target[bitstring]})
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_init_clifford(self, num_qubits):
@@ -396,7 +405,7 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(qargs)
                 target = np.array([0.5, 0.5, 0, 0])
                 self.assertTrue(np.allclose(probs, target))
-        
+
         qargs: list = [1, 0]
         for _ in range(self.samples):
             with self.subTest(msg="P([1, 0])"):
@@ -1019,18 +1028,24 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         # [XX, -ZZ] and [XX, YY] both generate the stabilizer group {II, XX, YY, -ZZ}
         self.assertTrue(cliff1.equiv(cliff2))
         self.assertEqual(cliff1.probabilities_dict(), cliff2.probabilities_dict())
-        
+
         targets: list[str] = cliff1.probabilities_dict().keys()
         for bitstring in targets:
-            self.assertEqual(cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring), cliff2.probabilities_dict_from_bitstring(outcome_bitstring=bitstring))
+            self.assertEqual(
+                cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
+                cliff2.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
+            )
 
         # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
         self.assertTrue(cliff3.equiv(cliff4))
         self.assertEqual(cliff3.probabilities_dict(), cliff4.probabilities_dict())
-        
+
         targets: list[str] = cliff3.probabilities_dict().keys()
         for bitstring in targets:
-            self.assertEqual(cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring), cliff2.probabilities_dict_from_bitstring(outcome_bitstring=bitstring))
+            self.assertEqual(
+                cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
+                cliff2.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
+            )
 
         self.assertFalse(cliff1.equiv(cliff3))
         self.assertFalse(cliff2.equiv(cliff4))

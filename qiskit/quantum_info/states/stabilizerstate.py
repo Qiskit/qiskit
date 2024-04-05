@@ -390,7 +390,7 @@ class StabilizerState(QuantumState):
         self,
         qargs: None | list = None,
         decimals: None | int = None,
-        outcome_bitstring: None | str = None
+        outcome_bitstring: None | str = None,
     ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
@@ -407,8 +407,8 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            outcome_bitstring (None or str): a target str to measure 
-                    probabilities for, None if no bitstrings to target 
+            outcome_bitstring (None or str): a target str to measure
+                    probabilities for, None if no bitstrings to target
                     measurements for, retrieve all measurements
 
         Returns:
@@ -429,7 +429,9 @@ class StabilizerState(QuantumState):
 
         return probs
 
-    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict[str, float]:
+    def probabilities_dict(
+        self, qargs: None | list = None, decimals: None | int = None
+    ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -678,7 +680,7 @@ class StabilizerState(QuantumState):
         outcome: list[str],
         outcome_prob: float,
         probs: dict[str, float],
-        outcome_bitstring: str = None
+        outcome_bitstring: str = None,
     ):
         """Recursive helper function for calculating the probabilities
 
@@ -705,7 +707,9 @@ class StabilizerState(QuantumState):
                     # Determine if the probabilitiy is deterministic
                     if not any(ret.clifford.stab_x[:, qubit]):
                         single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
-                        if outcome_bitstring is None or (int(outcome_bitstring[i : i + 1]) == single_qubit_outcome):
+                        if outcome_bitstring is None or (
+                            int(outcome_bitstring[i : i + 1]) == single_qubit_outcome
+                        ):
                             # No Target, or using Target and the single_qubit_outcome
                             # equals the desired target value, use current outcome_prob
                             outcome[i] = str(single_qubit_outcome)
@@ -723,7 +727,9 @@ class StabilizerState(QuantumState):
             return
 
         for single_qubit_outcome in (
-            range(0, 2) if (outcome_bitstring is None) else [int(outcome_bitstring[qubit_for_branching])]
+            range(0, 2)
+            if (outcome_bitstring is None)
+            else [int(outcome_bitstring[qubit_for_branching])]
         ):
             new_outcome = outcome.copy()
             new_outcome[qubit_for_branching] = str(single_qubit_outcome)
