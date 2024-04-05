@@ -22,7 +22,8 @@ class TestBasicProviderBackends(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.provider = BasicProvider()
+        with self.assertWarns(DeprecationWarning):
+            self.provider = BasicProvider()
         self.backend_name = "basic_simulator"
 
     def test_backends(self):
@@ -32,9 +33,11 @@ class TestBasicProviderBackends(QiskitTestCase):
 
     def test_get_backend(self):
         """Test getting a backend from the provider."""
-        backend = self.provider.get_backend(name=self.backend_name)
+        with self.assertWarns(DeprecationWarning):
+            backend = self.provider.get_backend(name=self.backend_name)
         self.assertEqual(backend.name, self.backend_name)
 
     def test_aliases_fail(self):
         """Test a failing backend lookup."""
-        self.assertRaises(QiskitBackendNotFoundError, BasicProvider().get_backend, "bad_name")
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitBackendNotFoundError, BasicProvider().get_backend, "bad_name")
