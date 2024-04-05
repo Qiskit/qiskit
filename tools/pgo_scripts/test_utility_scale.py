@@ -16,10 +16,10 @@
 
 import os
 
-from qiskit import QuantumCircuit
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
+from qiskit import qasm2
 
 QASM_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -55,15 +55,28 @@ def _main():
     cz_pm = generate_preset_pass_manager(2, cz_backend)
     ecr_pm = generate_preset_pass_manager(2, ecr_backend)
     cx_pm = generate_preset_pass_manager(2, cx_backend)
-
-    qft_circ = QuantumCircuit.from_qasm_file(os.path.join(QASM_DIR, "qft_N100.qasm"))
+    qft_circ = qasm2.load(
+        os.path.join(QASM_DIR, "qft_N100.qasm"),
+        include_path=qasm2.LEGACY_INCLUDE_PATH,
+        custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+        custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+        strict=False,
+    )
     qft_circ.name = "qft_N100"
-    square_heisenberg_circ = QuantumCircuit.from_qasm_file(
-        os.path.join(QASM_DIR, "square_heisenberg_N100.qasm")
+    square_heisenberg_circ = qasm2.load(
+        os.path.join(QASM_DIR, "square_heisenberg_N100.qasm"),
+        include_path=qasm2.LEGACY_INCLUDE_PATH,
+        custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+        custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+        strict=False,
     )
     square_heisenberg_circ.name = "square_heisenberg_N100"
-    qaoa_circ = QuantumCircuit.from_qasm_file(
-        os.path.join(QASM_DIR, "qaoa_barabasi_albert_N100_3reps.qasm")
+    qaoa_circ = qasm2.load(
+        os.path.join(QASM_DIR, "qaoa_barabasi_albert_N100_3reps.qasm"),
+        include_path=qasm2.LEGACY_INCLUDE_PATH,
+        custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+        custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+        strict=False,
     )
     qaoa_circ.name = "qaoa_barabasi_albert_N100_3reps"
     # Uncomment when this is fast enough to run during release builds

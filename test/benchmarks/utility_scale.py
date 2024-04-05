@@ -19,6 +19,7 @@ from qiskit import QuantumCircuit
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.transpiler import CouplingMap
+from qiskit import qasm2
 
 
 class UtilityScaleBenchmarks:
@@ -41,13 +42,31 @@ class UtilityScaleBenchmarks:
         self.qaoa_qc = QuantumCircuit.from_qasm_file(self.qaoa_qasm)
 
     def time_parse_qft_n100(self, _):
-        QuantumCircuit.from_qasm_file(self.qft_qasm)
+        qasm2.load(
+            self.qft_qasm,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     def time_parse_square_heisenberg_n100(self, _):
-        QuantumCircuit.from_qasm_file(self.square_heisenberg_qasm)
+        qasm2.load(
+            self.square_heisenberg_qasm,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     def time_parse_qaoa_n100(self, _):
-        QuantumCircuit.from_qasm_file(self.qaoa_qasm)
+        qasm2.load(
+            self.qaoa_qasm,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     def time_qft(self, _):
         self.pm.run(self.qft_qc)
