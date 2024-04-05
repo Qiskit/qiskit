@@ -21,6 +21,7 @@ import doctest
 import importlib
 import inspect
 import os
+import re
 from pathlib import Path
 
 
@@ -196,7 +197,8 @@ def linkcode_resolve(domain, info):
     if full_file_name is None:
         return None
     try:
-        file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
+        relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
     except ValueError:
         return None
 
