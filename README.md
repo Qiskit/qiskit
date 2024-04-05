@@ -20,8 +20,8 @@ For more details on how to use Qiskit, refer to the documentation located here:
 
 ## Installation
 
-| ⚠️  Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).| 
-|---- |
+> [!WARNING]
+> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
