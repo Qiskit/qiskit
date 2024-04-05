@@ -16,23 +16,25 @@
 
 import unittest
 
+from qiskit import QuantumRegister
+from qiskit.circuit.library import QFT
+from qiskit.converters import circuit_to_dagdependency_v2, dagdependency_to_circuit, circuit_to_dag, \
+    dag_to_circuit
+from qiskit.qasm2 import dumps
+from qiskit.quantum_info import Operator
+from qiskit.transpiler.passes import VF2Layout, ApplyLayout, SabreSwap, SabreLayout
+from qiskit.transpiler.passes.optimization.finalize_layouts import FinalizeLayouts
+from test import QiskitTestCase
+
 import ddt
 
-from qiskit.circuit.library import PermutationGate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters import (
-    circuit_to_dag,
-    dag_to_circuit,
-    circuit_to_dagdependency_v2,
-    dagdependency_to_circuit,
-)
-from qiskit.quantum_info import Operator
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.utils.optionals import HAS_AER
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -46,7 +48,18 @@ class TestStarPreRouting(QiskitTestCase):
         dag = circuit_to_dag(qc)
         new_dag = StarPreRouting().run(dag)
         new_qc = dag_to_circuit(new_dag)
-        print(Operator(qc) == Operator(new_qc))
+
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.cx(0, 2)
+        expected.swap(0, 2)
+        expected.cx(2,3)
+        expected.swap(2,3)
+        expected.cx(3,4)
+        #expected.swap(3,4)
+
+        self.assertTrue(Operator(expected).equiv(Operator(new_qc)))
 
     def test_simple_ghz_dagdependency(self):
         qc = QuantumCircuit(5)
@@ -55,7 +68,18 @@ class TestStarPreRouting(QiskitTestCase):
         dag = circuit_to_dagdependency_v2(qc)
         new_dag = StarPreRouting().run(dag)
         new_qc = dagdependency_to_circuit(new_dag)
-        print(Operator(qc) == Operator(new_qc))
+
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 3)
+        expected.cx(0, 4)
+        expected.swap(0, 3)
+        expected.cx(3,2)
+        expected.swap(3,2)
+        expected.cx(2,1)
+        #expected.swap(2,1)
+
+        self.assertTrue(Operator(expected).equiv(Operator(new_qc)))
 
     def test_double_ghz_dagcircuit(self):
         qc = QuantumCircuit(10)
@@ -63,10 +87,14 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(0, range(1, 5))
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
-        dag = circuit_to_dag(qc)
-        new_dag = StarPreRouting().run(dag)
-        new_qc = dag_to_circuit(new_dag)
-        print(Operator(qc) == Operator(new_qc))
+
+        pm = PassManager()
+        pm.append(StarPreRouting())
+        pm.append(FinalizeLayouts())
+        new_qc = pm.run(qc)
+
+
+        self.assertTrue(Operator.from_circuit(new_qc).equiv(Operator(qc)))
 
     def test_double_ghz_dagdependency(self):
         qc = QuantumCircuit(10)
@@ -74,34 +102,75 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(0, range(1, 5))
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
-        dag = circuit_to_dagdependency_v2(qc)
-        new_dag = StarPreRouting().run(dag)
-        new_qc = dagdependency_to_circuit(new_dag)
-        print(Operator(qc) == Operator(new_qc))
+        pm = PassManager()
+        pm.append(StarPreRouting())
+        pm.append(FinalizeLayouts())
+        new_qc = pm.run(qc)
+
+        self.assertTrue(Operator(qc).equiv(Operator.from_circuit(new_qc)))
 
     def test_mixed_double_ghz_dagdeoendency(self):
         """Shows off the power of using commutation analysis."""
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
         qc.cx(0, 2)
+
         qc.cx(3, 1)
         qc.cx(3, 2)
+
         qc.cx(0, 1)
         qc.cx(0, 2)
+
         qc.cx(3, 1)
         qc.cx(3, 2)
+
         qc.cx(0, 1)
         qc.cx(0, 2)
+
         qc.cx(3, 1)
         qc.cx(3, 2)
+
         qc.cx(0, 1)
         qc.cx(0, 2)
+
         qc.cx(3, 1)
         qc.cx(3, 2)
         dag = circuit_to_dagdependency_v2(qc)
         new_dag = StarPreRouting().run(dag)
         new_qc = dagdependency_to_circuit(new_dag)
-        print(Operator(qc) == Operator(new_qc))
+
+        # sadly, this is not cancelled yet
+        expected = QuantumCircuit(4)
+        expected.cx(0, 1)
+        expected.cx(0, 2)
+        expected.swap(0, 2)
+        expected.cx(2, 1)
+        expected.swap(2, 1)
+        expected.cx(1, 0)
+        expected.swap(1, 0)
+        expected.cx(0, 2)
+        expected.swap(0, 2)
+        expected.cx(2, 1)
+        expected.swap(2, 1)
+        expected.cx(1, 0)
+        expected.swap(1, 0)
+        expected.cx(0, 2)
+        expected.cx(3, 1)
+        expected.cx(3, 2)
+        expected.swap(3, 2)
+        expected.cx(2, 1)
+        expected.swap(2, 1)
+        expected.cx(1, 3)
+        expected.swap(1, 3)
+        expected.cx(3, 2)
+        expected.swap(3, 2)
+        expected.cx(2, 1)
+        expected.swap(2, 1)
+        expected.cx(1, 3)
+        expected.swap(1, 3)
+        expected.cx(3, 2)
+
+        self.assertTrue(Operator(expected).equiv(Operator(new_qc)))
 
     def test_double_ghz(self):
         qc = QuantumCircuit(10)
@@ -110,8 +179,11 @@ class TestStarPreRouting(QiskitTestCase):
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
         qc.measure_all()
-        result = StarPreRouting()(qc)
-        expected = QuantumCircuit(10)
+        spr = StarPreRouting()
+        result = spr(qc)
+        cr = ClassicalRegister(10, "meas")
+        qr = QuantumRegister(10, "q")
+        expected = QuantumCircuit(qr, cr)
         expected.h(0)
         expected.h(9)
         expected.cx(0, 1)
@@ -120,16 +192,21 @@ class TestStarPreRouting(QiskitTestCase):
         expected.cx(2, 3)
         expected.swap(2, 3)
         expected.cx(3, 4)
-        expected.swap(3, 4)
+        #expected.swap(3, 4)
         expected.cx(9, 8)
         expected.cx(9, 7)
         expected.swap(9, 7)
         expected.cx(7, 6)
         expected.swap(7, 6)
         expected.cx(6, 5)
-        expected.swap(6, 5)
-        expected.measure_all()
-        expected.append(PermutationGate([4, 1, 0, 2, 3, 6, 7, 9, 8, 5]), range(10))
+        #expected.swap(6, 5)
+
+        expected.barrier()
+
+        final_layout = spr.property_set["elision_final_layout"]
+        for i, q in enumerate(expected.qubits):
+            expected.measure(final_layout._v2p[q], i)
+
         self.assertEqual(expected, result)
 
     def test_linear_ghz_no_change(self):
@@ -170,20 +247,53 @@ class TestStarPreRouting(QiskitTestCase):
         result = StarPreRouting()(qc)
 
         expected = QuantumCircuit(num_qubits, num_qubits - 1)
-        expected.x(num_qubits - 1)
-        expected.h(qc.qubits)
-        expected.cx(0, num_qubits - 1)
-        expected.cx(1, num_qubits - 1)
-        expected.swap(1, num_qubits - 1)
-        for i in range(1, num_qubits - 2):
-            expected.cx(i + 1, i)
-            expected.swap(i + 1, i)
+        expected.h(0)
+        expected.h(1)
+        expected.h(2)
+        expected.h(3)
+        expected.h(4)
+        expected.h(5)
+        expected.h(6)
+        expected.h(7)
+        expected.h(8)
+        expected.x(9)
+        expected.h(9)
+        expected.cx(0, 9)
+        expected.cx(1, 9)
+        expected.swap(1, 9)
+        expected.cx(2, 1)
+        expected.swap(2, 1)
+        expected.cx(3, 2)
+        expected.swap(3, 2)
+        expected.cx(4, 3)
+        expected.swap(4, 3)
+        expected.cx(5, 4)
+        expected.swap(5, 4)
+        expected.cx(6, 5)
+        expected.swap(6, 5)
+        expected.cx(7, 6)
+        expected.swap(7, 6)
+        expected.cx(8, 7)
         expected.barrier()
-        expected.h(qc.qubits[:-1])
-        for i in range(num_qubits - 1):
-            expected.measure(i, i)
-        pattern = [0] + [num_qubits - 1] + list(range(1, num_qubits - 1))
-        expected.append(PermutationGate(pattern), range(num_qubits))
+        expected.h(0)
+        expected.h(1)
+        expected.h(2)
+        expected.h(3)
+        expected.h(4)
+        expected.h(5)
+        expected.h(6)
+        expected.h(8)
+        expected.h(9)
+        expected.measure(0, 0)
+        expected.measure(9, 1)
+        expected.measure(1, 2)
+        expected.measure(2, 3)
+        expected.measure(3, 4)
+        expected.measure(4, 5)
+        expected.measure(5, 6)
+        expected.measure(6, 7)
+        expected.measure(8, 8)
+
         self.assertEqual(result, expected)
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
@@ -222,10 +332,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.h(qc.qubits[:-1])
         for i in range(num_qubits - 1):
             qc.measure(i, i)
-        print("")
-        print(qc)
+
         result = StarPreRouting()(qc)
-        print(result)
 
         expected = QuantumCircuit(num_qubits, num_qubits - 1)
         expected.x(num_qubits - 1)
@@ -237,11 +345,12 @@ class TestStarPreRouting(QiskitTestCase):
             expected.cx(i + 1, i)
             expected.swap(i + 1, i)
         expected.h(qc.qubits[:-2])
-        expected.h(num_qubits - 1)
-        for i in range(num_qubits - 1):
-            expected.measure(i, i)
-        pattern = [0] + [num_qubits - 1] + list(range(1, num_qubits - 1))
-        expected.append(PermutationGate(pattern), range(num_qubits))
+        expected.h(qc.qubits[-1])
+        expected.measure(0, 0)
+        expected.measure(num_qubits - 1, 1)
+        for i in range(1, num_qubits - 2):
+            expected.measure(i, i + 1)
+
         self.assertEqual(result, expected)
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
@@ -268,3 +377,177 @@ class TestStarPreRouting(QiskitTestCase):
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
         self.assertEqual(counts_before, counts_after)
+
+    def test_hadamard_ordering(self):
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.cx(0, 2)
+        qc.h(0)
+        qc.cx(0, 3)
+        qc.h(0)
+        qc.cx(0, 4)
+        result = StarPreRouting()(qc)
+        expected = QuantumCircuit(5)
+        expected.h(0)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.cx(0, 2)
+        expected.swap(0, 2)
+        expected.h(2)
+        expected.cx(2, 3)
+        expected.swap(2, 3)
+        expected.h(3)
+        expected.cx(3, 4)
+        #expected.swap(3, 4)
+        self.assertEqual(expected, result)
+
+    def test_count_1_stars_starting_center(self):
+        qc = QuantumCircuit(6)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        spr = StarPreRouting()
+        _ = spr(qc)
+        self.assertEqual(len(spr.blocks), 1)
+        self.assertEqual(len(spr.blocks[0].nodes), 5)
+
+    def test_count_1_stars_starting_branch(self):
+        qc = QuantumCircuit(6)
+        qc.cx(1, 0)
+        qc.cx(2, 0)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        spr = StarPreRouting()
+        _ = spr(qc)
+        self.assertEqual(len(spr.blocks), 1)
+        self.assertEqual(len(spr.blocks[0].nodes), 5)
+
+    def test_count_2_stars(self):
+        qc = QuantumCircuit(6)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+
+        qc.cx(1, 2)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.cx(1, 5)
+        spr = StarPreRouting()
+        _ = spr(qc)
+        self.assertEqual(len(spr.blocks), 2)
+        self.assertEqual(len(spr.blocks[0].nodes), 5)
+        self.assertEqual(len(spr.blocks[1].nodes), 4)
+
+    def test_count_3_stars(self):
+        qc = QuantumCircuit(6)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+
+        qc.cx(1, 2)
+        qc.cx(1, 3)
+        qc.cx(1, 4)
+        qc.cx(1, 5)
+
+        qc.cx(2, 3)
+        qc.cx(2, 4)
+        qc.cx(2, 5)
+        spr = StarPreRouting()
+        _ = spr(qc)
+        self.assertEqual(len(spr.blocks), 3)
+        self.assertEqual(len(spr.blocks[0].nodes), 5)
+        self.assertEqual(len(spr.blocks[1].nodes), 4)
+        self.assertEqual(len(spr.blocks[2].nodes), 3)
+
+    def test_count_70_qft_stars(self):
+        qft_module = QFT(10, do_swaps=False).decompose()
+        qftqc = QuantumCircuit(100)
+        for i in range(10):
+            qftqc.compose(qft_module, qubits=range(i * 10, (i + 1) * 10), inplace=True)
+        spr = StarPreRouting()
+        _ = spr(qftqc)
+
+        self.assertEqual(len(spr.blocks), 70)
+        star_len_list = [len([n for n in b.nodes if len(n.qargs) > 1]) for b in spr.blocks]
+        expected_star_size = {3, 4, 5, 6, 7, 8, 9}
+        self.assertEqual(set(star_len_list), expected_star_size)
+        for i in expected_star_size:
+            self.assertEqual(star_len_list.count(i), 10)
+
+    def test_count_50_qft_stars(self):
+        qft_module = QFT(10, do_swaps=False).decompose()
+        qftqc = QuantumCircuit(10)
+        for i in range(10):
+            qftqc.compose(qft_module, qubits=range(10), inplace=True)
+        spr = StarPreRouting()
+        _ = spr(qftqc)
+
+        self.assertEqual(len(spr.blocks), 50)
+        star_len_list = [len([n for n in b.nodes if len(n.qargs) > 1]) for b in spr.blocks]
+        expected_star_size = {9}
+        self.assertEqual(set(star_len_list), expected_star_size)
+
+    def test_two_star_routing(self):
+        qc = QuantumCircuit(4)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+
+        qc.cx(2, 3)
+        qc.cx(2, 1)
+
+        spr = StarPreRouting()
+        res = spr(qc)
+
+        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+
+    def test_detect_two_opposite_stars_barrier(self):
+        qc = QuantumCircuit(6)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.barrier()
+        qc.cx(5, 1)
+        qc.cx(5, 2)
+        qc.cx(5, 3)
+        qc.cx(5, 4)
+
+        spr = StarPreRouting()
+        _ = spr(qc)
+
+        self.assertEqual(len(spr.blocks), 2)
+        self.assertEqual(len(spr.blocks[0].nodes), 4)
+        self.assertEqual(len(spr.blocks[1].nodes), 4)
+
+    def test_routing_after_star_prerouting(self):
+        nq = 6
+        qc = QFT(nq, do_swaps=False, insert_barriers=True).decompose()
+        cm = CouplingMap.from_line(nq)
+
+        pm_preroute = PassManager()
+        pm_preroute.append(StarPreRouting(add_permutation=False))
+        pm_preroute.append(VF2Layout(coupling_map=cm, seed=17))
+        pm_preroute.append(ApplyLayout())
+        pm_preroute.append(SabreSwap(coupling_map=cm, seed=17))
+        pm_preroute.append(FinalizeLayouts())
+
+        pm_sabre = PassManager()
+        pm_sabre.append(SabreLayout(coupling_map=cm, seed=17))
+        pm_sabre.append(FinalizeLayouts())
+
+        res_sabre = pm_sabre.run(qc)
+        res_star = pm_sabre.run(qc)
+
+        self.assertTrue(Operator.from_circuit(res_sabre), qc)
+        self.assertTrue(Operator.from_circuit(res_star), qc)
+        self.assertTrue(Operator.from_circuit(res_star), Operator.from_circuit(res_sabre))
+

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Search for star connectivity patterns and replace them with."""
-
+from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library import SwapGate, PermutationGate
 from qiskit.dagcircuit.collect_blocks import BlockCollector, DefaultBlock
@@ -27,7 +27,7 @@ class StarBlock(DefaultBlock):
 
     def append_node(self, node):
         """
-        If node can be added to block while keeping the block star-shaped, adds node to block and
+        If node can be added to block while keeping the block star-shaped, and
         return True. Otherwise, does not add node to block and returns False.
         """
 
@@ -123,43 +123,52 @@ class StarPreRouting(TransformationPass):
     ):
         """StarPreRouting"""
         self.add_permutation = add_permutation
+        self.blocks = None
         super().__init__()
 
     def run(self, dag):
 
         # Extract StarBlocks from DAGCircuit / DAGDependency / DAGDependencyV2
         block_collector = BlockCollector(dag)
-        blocks = block_collector.collect_all_matching_blocks(
-            filter_fn=filter_fn,
-            split_layers=False,
-            split_blocks=False,
-            output_nodes=False,
-            min_block_size=3,
-            block_class=StarBlock,
-        )
+        self.blocks = block_collector.collect_all_matching_blocks(filter_fn=filter_fn,
+                                                                  split_layers=False, split_blocks=False,
+                                                                  output_nodes=False, min_block_size=2,
+                                                                  block_class=StarBlock, )
 
-        if not blocks:
+        if not self.blocks:
             return dag
 
         # Create a new DAGCircuit / DAGDependency / DAGDependencyV2, replacing each
         # star block by a linear sequence of gates
         node_to_block_id = {}
-        for i, block in enumerate(blocks):
+        for i, block in enumerate(self.blocks):
             for node in block.get_nodes():
                 node_to_block_id[node] = i
 
         new_dag = dag.copy_empty_like()
         processed_block_ids = set()
-        qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
+        #qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
+        qubit_mapping = list(range(len(dag.qubits)))
 
-        for node in dag.topological_op_nodes():
+        def _apply_mapping(qargs, qubit_mapping, qubits):
+            return tuple(qubits[qubit_mapping[dag.find_bit(qubit).index]] for qubit in qargs)
+
+        is_first_star = True
+        topological_nodes = list(dag.topological_op_nodes())
+        last_2q_gate = [op for op in reversed(topological_nodes) if ((len(op.qargs) > 1) and (op.name != "barrier"))]
+        if len(last_2q_gate) > 0:
+            last_2q_gate = last_2q_gate[0]
+        else:
+            last_2q_gate = None
+
+        for node in topological_nodes:
             block_id = node_to_block_id.get(node, None)
             if block_id is not None:
                 if block_id not in processed_block_ids:
                     processed_block_ids.add(block_id)
-
+                    is_last_block = len(self.blocks) == len(processed_block_ids)
                     # process the whole block
-                    block = blocks[block_id]
+                    block = self.blocks[block_id]
                     sequence = block.nodes
                     center_node = block.center
 
@@ -181,7 +190,7 @@ class StarPreRouting(TransformationPass):
                                 inner_node.cargs,
                             )
                             continue
-                        if swap_source is None:
+                        if is_first_star and swap_source is None:
                             swap_source = center_node
                             new_dag.apply_operation_back(
                                 inner_node.op,
@@ -190,33 +199,55 @@ class StarPreRouting(TransformationPass):
                             )
                             prev = inner_node.qargs
                             continue
+                        # place 2q-gate and subsequent swap gate
                         new_dag.apply_operation_back(
                             inner_node.op,
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                             inner_node.cargs,
                         )
-                        new_dag.apply_operation_back(
-                            SwapGate(),
-                            _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
-                            inner_node.cargs,
-                        )
-                        # Swap mapping
-                        pos_0 = qubit_mapping[inner_node.qargs[0]]
-                        pos_1 = qubit_mapping[inner_node.qargs[1]]
-                        qubit_mapping[inner_node.qargs[0]] = pos_1
-                        qubit_mapping[inner_node.qargs[1]] = pos_0
-                        prev = inner_node.qargs
+                        if not inner_node is last_2q_gate:
+                            new_dag.apply_operation_back(
+                                SwapGate(),
+                                _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
+                                inner_node.cargs,
+                            )
+                            # Swap mapping
+                            index_0 = dag.find_bit(inner_node.qargs[0]).index
+                            index_1 = dag.find_bit(inner_node.qargs[1]).index
+                            qubit_mapping[index_1], qubit_mapping[index_0] = (
+                                qubit_mapping[index_0],
+                                qubit_mapping[index_1],
+                            )
 
+                        prev = inner_node.qargs
+                is_first_star = False
             else:
                 # the node is not part of a block
-                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-
+                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs, qubit_mapping, dag.qubits), node.cargs)
+        """
         if self.add_permutation:
             pattern = [qubit_mapping[i] for i in dag.qubits]
             new_dag.apply_operation_back(PermutationGate(pattern), dag.qubits)
+        """
 
+        # copied from ElidePermutations
+        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
+        self.property_set["original_layout"] = Layout(input_qubit_mapping)
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = input_qubit_mapping
+        # ToDo: check if this exists; then compose
+        self.property_set["virtual_permutation_layout"] = Layout(
+            {dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)}
+        )
+
+        self.property_set["stars"] = self.blocks
+        self.property_set['star_dag'] = new_dag
         return new_dag
 
 
+
+
+"""
 def _apply_mapping(qargs, mapping, qubits):
     return tuple(qubits[mapping[x]] for x in qargs)
+"""
