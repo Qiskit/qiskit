@@ -15,6 +15,82 @@
 use hashbrown::{HashMap, HashSet};
 use pyo3::{prelude::*, pyclass, types::PyDict};
 
+pub fn is_instance(py: Python<'_>, object: &PyObject, class_names: HashSet<String>) -> bool {
+    // Get type name
+    let type_name: Option<String> = match object.getattr(py, "__class__").ok() {
+        Some(class) => class
+            .getattr(py, "__name__")
+            .ok()
+            .map(|name| name.extract::<String>(py).ok().unwrap_or("".to_string())),
+        None => None,
+    };
+    // Check if it matches any option
+    match type_name {
+        Some(class_name) => class_names.contains(&class_name),
+        None => false,
+    }
+}
+
+pub fn is_class(py: Python<'_>, object: &PyObject) -> bool {
+    // If item is a Class, it must have __name__ property.
+    object.getattr(py, "__name__").is_ok()
+}
+
+#[pyclass(module = "qiskit._accelerate.target")]
+#[derive(Clone, Debug)]
+pub struct InstructionProperties {
+    #[pyo3(get)]
+    pub duration: Option<f32>,
+    #[pyo3(get)]
+    pub error: Option<f32>,
+    pub calibration: Option<PyObject>,
+    calibration_: Option<PyObject>,
+}
+
+#[pymethods]
+impl InstructionProperties {
+    #[new]
+    #[pyo3(text_signature = "(/, duration: float | None = None,
+        error: float | None = None,
+        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
+    pub fn new(duration: Option<f32>, error: Option<f32>, calibration: Option<PyObject>) -> Self {
+        InstructionProperties {
+            calibration,
+            error,
+            duration,
+            calibration_: Option::<PyObject>::None,
+        }
+    }
+
+    #[getter]
+    pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
+        match &self.calibration_ {
+            Some(calibration) => calibration.getattr(py, "get_schedule()").ok(),
+            None => None,
+        }
+    }
+
+    #[setter]
+    pub fn set_calibration(&mut self, py: Python<'_>, calibration: PyObject) {
+        // Test instance checker
+        println!(
+            "{:?}",
+            is_instance(
+                py,
+                &calibration,
+                HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])
+            )
+        );
+        // if is_instance(py, &calibration, HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])) {
+        //     // TODO: Somehow use ScheduleDef()
+        //     let new_entry = Some(calibration);
+        // } else {
+        //     let new_entry = Some(calibration);
+        // }
+        self.calibration_ = Some(calibration);
+    }
+}
+
 #[pyclass(mapping, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct Target {
@@ -93,8 +169,6 @@ impl Target {
         properties: Option<Bound<PyDict>>,
         name: Option<String>,
     ) {
-        // Unwrap properties
-        let properties: Bound<PyDict> = properties.unwrap_or(PyDict::new_bound(py));
         // Unwrap instruction name
         let mut instruction_name: String = match name {
             Some(name) => name,
@@ -114,22 +188,31 @@ impl Target {
                 e
             ),
         };
+        let is_class: bool = is_class(py, &instruction);
         // Cont. unwrap instruction name
-        if instruction_name.is_empty() {
-            instruction_name = match instruction.getattr(py, "name") {
-                Ok(i_name) => match i_name.extract::<String>(py) {
-                    Ok(i_name) => {
-                        // TODO: Figure out how to identify whether a class is received or not
-                        // if !properties.is_empty() {
-                        //     panic!("An instruction added globally by class can't have properties set.");
-                        // };
-                        i_name
+        if !is_class {
+            if instruction_name.is_empty() {
+                instruction_name = match instruction.getattr(py, "name") {
+                    Ok(i_name) => match i_name.extract::<String>(py) {
+                        Ok(i_name) => i_name,
+                        Err(e) => panic!("The provided instruction does not have a valid 'name' attribute: {:?}", e)
                     },
-                    Err(e) => panic!("The provided instruction does not have a valid 'name' attribute: {:?}", e)
-                },
-                Err(e) => panic!("A name must be specified when defining a supported global operation by class: {:?}", e)
-            };
+                    Err(e) => panic!("A name must be specified when defining a supported global operation by class: {:?}", e)
+                };
+            }
+        } else {
+            if instruction_name.is_empty() {
+                panic!(
+                    "A name must be specified when defining a supported global operation by class."
+                );
+            }
+            if properties.is_none() {
+                panic!("An instruction added globally by class can't have properties set.");
+            }
         }
+
+        // Unwrap properties
+        let properties: Bound<PyDict> = properties.unwrap_or(PyDict::new_bound(py));
         // Check if instruction exists
         if self.gate_map.contains_key(&instruction_name) {
             panic!(
@@ -140,61 +223,63 @@ impl Target {
         // Add to gate name map
         self.gate_name_map
             .insert(instruction_name.clone(), instruction);
-        // TODO: Introduce a similar case to is_class
 
-        // If no properties
-        if properties.is_empty() {
-            if self.global_operations.contains_key(&instruction_num_qubits) {
-                self.global_operations
-                    .get_mut(&instruction_num_qubits)
-                    .unwrap()
-                    .insert(instruction_name.clone());
-            } else {
-                self.global_operations.insert(
-                    instruction_num_qubits,
-                    HashSet::from([instruction_name.clone()]),
-                );
-            }
-        }
-
-        // Obtain nested qarg hashmap
+        // TEMPORARY: Build qargs with hashed qargs.
         let mut qargs_val: HashMap<isize, PyObject> = HashMap::new();
-        for (qarg, values) in properties {
-            // Obtain qarg hash for mapping
-            let qarg_hash = match qarg.hash() {
-                Ok(vec) => vec,
-                Err(e) => panic!(
-                    "Failed to hash q_args from the provided properties: {:?}.",
-                    e
-                ),
-            };
-            // Obtain values of qargs
-            let qarg = match qarg.extract::<Vec<usize>>() {
-                Ok(vec) => vec,
-                Err(e) => panic!(
-                    "Failed to extract q_args from the provided properties: {:?}.",
-                    e
-                ),
-            };
-            // Store qargs hash value.
-            self.qarg_hash_table.insert(qarg_hash, qarg.clone());
-            if !qarg.is_empty() && qarg.len() != instruction_num_qubits {
-                panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg)
+        if !is_class {
+            // If no properties
+            if properties.is_empty() {
+                if self.global_operations.contains_key(&instruction_num_qubits) {
+                    self.global_operations
+                        .get_mut(&instruction_num_qubits)
+                        .unwrap()
+                        .insert(instruction_name.clone());
+                } else {
+                    self.global_operations.insert(
+                        instruction_num_qubits,
+                        HashSet::from([instruction_name.clone()]),
+                    );
+                }
             }
-            if !qarg.is_empty() {
-                self.num_qubits = self
-                    .num_qubits
-                    .max(qarg.iter().cloned().fold(0, usize::max) + 1)
-            }
-            qargs_val.insert(qarg_hash, values.to_object(py));
-            if self.qarg_gate_map.contains_key(&qarg_hash) {
-                self.qarg_gate_map
-                    .get_mut(&qarg_hash)
-                    .unwrap()
-                    .insert(instruction_name.clone());
-            } else {
-                self.qarg_gate_map
-                    .insert(qarg_hash, HashSet::from([instruction_name.clone()]));
+
+            // Obtain nested qarg hashmap
+            for (qarg, values) in properties {
+                // Obtain qarg hash for mapping
+                let qarg_hash = match qarg.hash() {
+                    Ok(vec) => vec,
+                    Err(e) => panic!(
+                        "Failed to hash q_args from the provided properties: {:?}.",
+                        e
+                    ),
+                };
+                // Obtain values of qargs
+                let qarg = match qarg.extract::<Vec<usize>>() {
+                    Ok(vec) => vec,
+                    Err(e) => panic!(
+                        "Failed to extract q_args from the provided properties: {:?}.",
+                        e
+                    ),
+                };
+                // Store qargs hash value.
+                self.qarg_hash_table.insert(qarg_hash, qarg.clone());
+                if !qarg.is_empty() && qarg.len() != instruction_num_qubits {
+                    panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg)
+                }
+                if !qarg.is_empty() {
+                    self.num_qubits = self
+                        .num_qubits
+                        .max(qarg.iter().cloned().fold(0, usize::max) + 1)
+                }
+                qargs_val.insert(qarg_hash, values.to_object(py));
+                if self.qarg_gate_map.contains_key(&qarg_hash) {
+                    self.qarg_gate_map
+                        .get_mut(&qarg_hash)
+                        .unwrap()
+                        .insert(instruction_name.clone());
+                } else {
+                    self.qarg_gate_map
+                        .insert(qarg_hash, HashSet::from([instruction_name.clone()]));
+                }
             }
         }
         self.gate_map.insert(instruction_name, qargs_val);
@@ -221,6 +306,7 @@ impl Target {
 
 #[pymodule]
 pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
     Ok(())
 }
