@@ -27,7 +27,6 @@ from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.quantum_info.states.probabilitycache import ProbabilityCache
 
 
 class StabilizerState(QuantumState):
@@ -387,12 +386,11 @@ class StabilizerState(QuantumState):
 
         return probs
 
-    def probabilities_dict_from_bitstrings(
+    def probabilities_dict_from_bitstring(
         self,
         qargs: None | list = None,
         decimals: None | int = None,
-        targets: dict[str, any] | list[str] | str | None = None,
-        use_caching: bool = True,
+        outcome_bitstring: None | str = None
     ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
@@ -409,13 +407,9 @@ class StabilizerState(QuantumState):
                     if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            targets (dict[str, any] or list[str] or str or None): a target list or dict of items to
-                    measure probabilities for, or a specific single target str, None if no targets used
-            use_caching (bool): enable the use of caching when calculating multiple targets. True will
-                    enable caching only if more then one target is being measured, otherwise there will
-                    be no performance benefit. If not using target, caching will not be enabled as there
-                    will not be a performance benefit from enabling. False will not use caching and when
-                    measuring multiple targets, may repeat previous measurements
+            outcome_bitstring (None or str): a target str to measure 
+                    probabilities for, None if no bitstrings to target 
+                    measurements for, retrieve all measurements
 
         Returns:
             dict[str, float]: The measurement probabilities in dict (ket) form.
@@ -425,62 +419,17 @@ class StabilizerState(QuantumState):
         else:
             qubits = qargs
 
-        # If no target is provided, insert None into a list to indicate not to target measurements
-        # for any particular targets. When a str is passed in for a single target, insert into a
-        # list for processing, when a list[str] are passed in, iterate through all the str to
-        # find the probabilities of only the targets, if dict passed in, use the keys as the target
-        # values to perform measurements for
-        if targets is None:
-            targets = [None]
-        elif isinstance(targets, str):
-            targets = [targets]
-        elif isinstance(targets, dict):
-            targets = list(targets.keys())
-
         # Probabilities dictionary to return with the measured values
         probs: dict[str, float] = {}
+        self._get_probabilities(qubits, (["X"] * len(qubits)), 1.0, probs, outcome_bitstring)
 
-        # Check if all the requirements to use caching are met to use performance improvement
-        cache: ProbabilityCache = (
-            ProbabilityCache() if ((len(targets) > 1) and use_caching) else None
-        )
-
-        # Iterate through the target or targets to find probabilities
-        for target in targets:
-            # Order is important here for performance and getting correct data to hand to probabilities
-            # helper. If caching isn't used then extra overhead cache retrieval functions are not called
-            outcome_key: list[str] = (
-                cache.retrieve_closest_outcome(target) if (cache is not None) else None
-            )
-            use_cache: bool = (cache is not None) and cache.is_state_cached(outcome_key)
-            outcome: list[str] = outcome_key if (use_cache) else (["X"] * len(qubits))
-            ret: StabilizerState = cache.retrieve_state(outcome) if use_cache else self
-            outcome_prob: float = cache.retrieve_outcome(outcome) if (use_cache) else 1.0
-
-            ret._get_probabilities(qubits, outcome, outcome_prob, probs, target, cache)
-
-        # Round to the number of decimal places if a decimal is provided
-        self._round_decimals(probs, decimals)
-
-        return probs
-
-    @staticmethod
-    def _round_decimals(probs: dict[str, float], decimals: int | None) -> dict[str, float]:
-        """Helper function that rounds all floats in the dict to the decimal place provided
-
-        Args:
-            probs (dict[str, float]): dictionary to iterate through and round all float values for
-            decimals (int or None): number of decimal places to round to, if None then do not round
-
-        Returns:
-            dict[str, float]: provided dict with rounded values
-        """
         if decimals is not None:
             for key, value in probs.items():
                 probs[key] = round(value, decimals)
+
         return probs
 
-    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict:
+    def probabilities_dict(self, qargs: None | list = None, decimals: None | int = None) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -500,9 +449,7 @@ class StabilizerState(QuantumState):
         Returns:
             dict: The measurement probabilities in dict (key) form.
         """
-        return self.probabilities_dict_from_bitstrings(
-            qargs, decimals, targets=None, use_caching=False
-        )
+        return self.probabilities_dict_from_bitstring(qargs, decimals)
 
     def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
@@ -731,8 +678,7 @@ class StabilizerState(QuantumState):
         outcome: list[str],
         outcome_prob: float,
         probs: dict[str, float],
-        target: str = None,
-        cache: ProbabilityCache = None,
+        outcome_bitstring: str = None
     ):
         """Recursive helper function for calculating the probabilities
 
@@ -742,10 +688,8 @@ class StabilizerState(QuantumState):
             outcome_prob (float): probabilitiy of the outcome
             ret (StabilizerState): stabilizer state performing the calculations
             probs (dict[str, float]): holds the outcomes and probabilitiy results
-            target (str): target outcome to measure which reduces measurements, None
+            outcome_bitstring (str): target outcome to measure which reduces measurements, None
                 if not targetting a specific target
-            cache (ProbabilityCache): caching object to hold states and outcome probabilities
-                for calculating future outcomes
         """
         qubit_for_branching: int = -1
 
@@ -761,21 +705,17 @@ class StabilizerState(QuantumState):
                     # Determine if the probabilitiy is deterministic
                     if not any(ret.clifford.stab_x[:, qubit]):
                         single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
-                        if target is None or int(target[i : i + 1]) == single_qubit_outcome:
+                        if outcome_bitstring is None or (int(outcome_bitstring[i : i + 1]) == single_qubit_outcome):
                             # No Target, or using Target and the single_qubit_outcome
                             # equals the desired target value, use current outcome_prob
                             outcome[i] = str(single_qubit_outcome)
                         else:
                             # If the single_qubit_outcome does not equal the target
                             # then we know that the probability will be 0
-                            outcome[i] = str(target[i : i + 1])
+                            outcome[i] = str(outcome_bitstring[i : i + 1])
                             outcome_prob = 0
                     else:
                         qubit_for_branching = i
-
-        if cache is not None:
-            # Insert current probability and state into the cache when cache object available
-            cache.insert(outcome, outcome_prob, ret)
 
         if qubit_for_branching == -1:
             str_outcome = "".join(outcome)
@@ -783,7 +723,7 @@ class StabilizerState(QuantumState):
             return
 
         for single_qubit_outcome in (
-            range(0, 2) if (target is None) else [int(target[qubit_for_branching])]
+            range(0, 2) if (outcome_bitstring is None) else [int(outcome_bitstring[qubit_for_branching])]
         ):
             new_outcome = outcome.copy()
             new_outcome[qubit_for_branching] = str(single_qubit_outcome)
@@ -793,5 +733,5 @@ class StabilizerState(QuantumState):
                 qubits[(len(qubits) - qubit_for_branching - 1)], single_qubit_outcome
             )
             stab_cpy._get_probabilities(
-                qubits, new_outcome, (0.5 * outcome_prob), probs, target, cache
+                qubits, new_outcome, (0.5 * outcome_prob), probs, outcome_bitstring
             )

@@ -151,7 +151,7 @@ class TwoQubitWeylDecomposition:
     requested_fidelity: Optional[float]  # None means no automatic specialization
     calculated_fidelity: float  # Fidelity after specialization
 
-    _specializations = two_qubit_decompose.Specialization
+#    _specializations = two_qubit_decompose.Specialization
 
     def __init__(
         self,
