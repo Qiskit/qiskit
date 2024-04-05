@@ -87,7 +87,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     pass_manager_config.unitary_synthesis_plugin_config,
                     pass_manager_config.hls_config,
                 )
-        elif optimization_level in {1, 2}:
+        elif optimization_level == 1:
             init = PassManager()
             if (
                 pass_manager_config.initial_layout
@@ -123,10 +123,8 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                     ]
                 )
             )
-            if optimization_level == 2:
-                init.append(CommutativeCancellation())
 
-        elif optimization_level == 3:
+        elif optimization_level in {2, 3}:
             init = common.generate_unroll_3q(
                 pass_manager_config.target,
                 pass_manager_config.basis_gates,
@@ -543,18 +541,7 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         ]
                     ),
                 ]
-            elif optimization_level == 2:
-                # Steps for optimization level 2
-                _opt = [
-                    Optimize1qGatesDecomposition(
-                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
-                    ),
-                    CommutativeCancellation(
-                        basis_gates=pass_manager_config.basis_gates,
-                        target=pass_manager_config.target,
-                    ),
-                ]
-            elif optimization_level == 3:
+            elif optimization_level in {2, 3}:
                 # Steps for optimization level 3
                 _opt = [
                     Collect2qBlocks(),
@@ -596,13 +583,13 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ConditionalController(unroll, condition=_unroll_condition),
             ]
 
-            if optimization_level == 3:
+            if optimization_level in {2, 3}:
                 optimization.append(_minimum_point_check)
             else:
                 optimization.append(_depth_check + _size_check)
             opt_loop = (
                 _opt + _unroll_if_out_of_basis + _minimum_point_check
-                if optimization_level == 3
+                if optimization_level in {2, 3}
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
@@ -746,10 +733,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=pass_manager_config.seed_transpiler,
-                call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
+                call_limit=int(5e4),  # Set call limit to ~10s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
-                max_trials=25000,  # Limits layout scoring to < 10s on ~400 qubit devices
+                max_trials=2500,  # Limits layout scoring to < 10s on ~400 qubit devices
             )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
@@ -758,8 +745,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 coupling_map,
                 max_iterations=2,
                 seed=pass_manager_config.seed_transpiler,
-                swap_trials=10,
-                layout_trials=10,
+                swap_trials=20,
+                layout_trials=20,
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
@@ -911,8 +898,8 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
                 coupling_map,
                 max_iterations=2,
                 seed=pass_manager_config.seed_transpiler,
-                swap_trials=10,
-                layout_trials=10,
+                swap_trials=20,
+                layout_trials=20,
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
