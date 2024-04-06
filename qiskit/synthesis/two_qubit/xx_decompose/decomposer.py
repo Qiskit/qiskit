@@ -230,6 +230,7 @@ class XXDecomposer:
         unitary: Operator | np.ndarray,
         basis_fidelity: dict | float | None = None,
         approximate: bool = True,
+        use_dag: bool = False,
     ) -> QuantumCircuit:
         r"""
         Fashions a circuit which (perhaps approximately) models the special unitary operation
@@ -246,6 +247,8 @@ class XXDecomposer:
                 interpreted as ``{pi: f, pi/2: f/2, pi/3: f/3}``.
                 If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
         Returns:
             QuantumCircuit: Synthesized circuit.
@@ -279,7 +282,7 @@ class XXDecomposer:
             and self.backup_optimizer is not None
         ):
             pi2_fidelity = 1 - strength_to_infidelity[np.pi / 2]
-            return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity)
+            return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity, use_dag=use_dag)
 
         # change to positive canonical coordinates
         if weyl_decomposition.c >= -EPSILON:
@@ -314,5 +317,8 @@ class XXDecomposer:
         circ.append(UnitaryGate(weyl_decomposition.K1l), [1])
 
         circ = self._decomposer1q(circ)
+        if use_dag:
+            from qiskit.converters import circuit_to_dag
 
+            return circuit_to_dag(circ, copy_operations=False)
         return circ

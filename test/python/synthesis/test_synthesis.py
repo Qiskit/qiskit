@@ -1263,9 +1263,9 @@ class TestTwoQubitDecompose(CheckDecompositions):
         (euler_basis, oneq_gates) = euler_bases
         (kak_gate, kak_gate_name) = kak_gates
         with self.subTest(euler_basis=euler_basis, kak_gate=kak_gate):
-            decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis, use_dag=True)
+            decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
             unitary = random_unitary(4, seed=seed)
-            self.assertIsInstance(decomposer(unitary), DAGCircuit)
+            self.assertIsInstance(decomposer(unitary, use_dag=True), DAGCircuit)
             self.check_exact_decomposition(unitary.data, decomposer)
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])

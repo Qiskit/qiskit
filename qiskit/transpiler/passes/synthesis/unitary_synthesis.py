@@ -131,7 +131,6 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
             basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
             pulse_optimize=pulse_optimize,
-            use_dag=True,
         )
         decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
@@ -140,7 +139,6 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
             basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
             pulse_optimize=pulse_optimize,
-            use_dag=True,
         )
     return decomposer2q
 
@@ -793,7 +791,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 supercontrolled_basis[basis_2q],
                 euler_basis=basis_1q,
                 basis_fidelity=basis_2q_fidelity,
-                use_dag=True,
             )
             decomposers.append(decomposer)
 
@@ -923,35 +920,27 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
     def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
         approximate = not approximation_degree == 1.0
-        synth_circ = decomposer2q(su4_mat, approximate=approximate)
+        synth_circ = decomposer2q(su4_mat, approximate=approximate, use_dag=True)
         if not preferred_direction:
             return synth_circ
         synth_direction = None
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        if isinstance(synth_circ, DAGCircuit):
-            for inst in synth_circ.topological_op_nodes():
-                if inst.op.num_qubits == 2:
-                    synth_direction = [synth_circ.find_bit(q).index for q in inst.qargs]
-        else:
-            for inst in synth_circ:
-                if inst.operation.num_qubits == 2:
-                    synth_direction = [synth_circ.find_bit(q).index for q in inst.qubits]
+        for inst in synth_circ.topological_op_nodes():
+            if inst.op.num_qubits == 2:
+                synth_direction = [synth_circ.find_bit(q).index for q in inst.qargs]
         if synth_direction is not None and synth_direction != preferred_direction:
             su4_mat_mm = su4_mat.copy()
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
-            synth_circ = decomposer2q(su4_mat_mm, approximate=approximate)
-            if isinstance(synth_circ, DAGCircuit):
-                out_dag = DAGCircuit()
-                out_dag.global_phase = synth_circ.global_phase
-                out_dag.add_qubits(list(reversed(synth_circ.qubits)))
-                flip_bits = out_dag.qubits[::-1]
-                for node in synth_circ.topological_op_nodes():
-                    qubits = tuple(flip_bits[synth_circ.find_bit(x).index] for x in node.qargs)
-                    out_dag.apply_operation_back(node.op, qubits, check=False)
-                return out_dag
-            else:
-                return synth_circ.reverse_bits()
+            synth_circ = decomposer2q(su4_mat_mm, approximate=approximate, use_dag=True)
+            out_dag = DAGCircuit()
+            out_dag.global_phase = synth_circ.global_phase
+            out_dag.add_qubits(list(reversed(synth_circ.qubits)))
+            flip_bits = out_dag.qubits[::-1]
+            for node in synth_circ.topological_op_nodes():
+                qubits = tuple(flip_bits[synth_circ.find_bit(x).index] for x in node.qargs)
+                out_dag.apply_operation_back(node.op, qubits, check=False)
+            return out_dag
         return synth_circ

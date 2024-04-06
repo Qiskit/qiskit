@@ -512,8 +512,7 @@ class TwoQubitBasisDecomposer:
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
             If ``False``, don't attempt optimization. If ``None``, attempt optimization but don't raise
             if unknown.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a :class:`QuantumCircuit`
-            when this class is called.
+
 
     .. automethod:: __call__
     """
@@ -524,12 +523,10 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: float = 1.0,
         euler_basis: str = "U",
         pulse_optimize: bool | None = None,
-        use_dag: bool = False,
     ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
-        self.use_dag = use_dag
         # Use cx as gate name for pulse optimal decomposition detection
         # otherwise use USER_GATE as a unique key to support custom gates
         # including parameterized gates like UnitaryGate.
@@ -621,6 +618,7 @@ class TwoQubitBasisDecomposer:
         unitary: Operator | np.ndarray,
         basis_fidelity: float | None = None,
         approximate: bool = True,
+        use_dag: bool = False,
         *,
         _num_basis_uses: int | None = None,
     ) -> QuantumCircuit | DAGCircuit:
@@ -632,6 +630,8 @@ class TwoQubitBasisDecomposer:
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides ``basis_fidelity`` given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
 
         Returns:
@@ -648,7 +648,7 @@ class TwoQubitBasisDecomposer:
             _num_basis_uses=_num_basis_uses,
         )
         q = QuantumRegister(2)
-        if self.use_dag:
+        if use_dag:
             from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
             dag = DAGCircuit()
