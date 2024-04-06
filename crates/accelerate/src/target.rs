@@ -65,29 +65,35 @@ impl InstructionProperties {
     #[getter]
     pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
         match &self.calibration_ {
-            Some(calibration) => calibration.getattr(py, "get_schedule()").ok(),
+            Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
             None => None,
         }
     }
 
     #[setter]
     pub fn set_calibration(&mut self, py: Python<'_>, calibration: PyObject) {
-        // Test instance checker
-        println!(
-            "{:?}",
-            is_instance(
-                py,
-                &calibration,
-                HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])
-            )
-        );
-        // if is_instance(py, &calibration, HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])) {
-        //     // TODO: Somehow use ScheduleDef()
-        //     let new_entry = Some(calibration);
-        // } else {
-        //     let new_entry = Some(calibration);
-        // }
-        self.calibration_ = Some(calibration);
+        // Conditional new entry
+        let new_entry = if is_instance(py, &calibration, HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])) {
+            // Import calibration_entries module
+            let module = match py.import_bound("qiskit.pulse.calibration_entries") {
+                Ok(module) => module,
+                Err(e) => panic!("Could not find the module qiskit.pulse.calibration_entries: {:?}", e),
+            };
+            // Import SchedDef class object
+            let sched_def = match module.call_method0("ScheduleDef") {
+                Ok(sched) => sched.to_object(py),
+                Err(e) => panic!("Failed to import the 'ScheduleDef' class: {:?}", e),
+            };
+            
+            // Send arguments for the define call.
+            let args = (&calibration, true);
+            // Peform the function call.
+            sched_def.call_method1(py, "define", args).ok();
+            sched_def
+        } else {
+            calibration
+        };
+        self.calibration_ = Some(new_entry);
     }
 }
 
@@ -253,12 +259,9 @@ impl Target {
                     ),
                 };
                 // Obtain values of qargs
-                let qarg = match qarg.extract::<Vec<usize>>() {
-                    Ok(vec) => vec,
-                    Err(e) => panic!(
-                        "Failed to extract q_args from the provided properties: {:?}.",
-                        e
-                    ),
+                let qarg = match qarg.extract::<Vec<usize>>().ok() {
+                    Some(vec) => vec,
+                    None => vec![],
                 };
                 // Store qargs hash value.
                 self.qarg_hash_table.insert(qarg_hash, qarg.clone());
