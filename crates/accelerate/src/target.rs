@@ -73,18 +73,25 @@ impl InstructionProperties {
     #[setter]
     pub fn set_calibration(&mut self, py: Python<'_>, calibration: PyObject) {
         // Conditional new entry
-        let new_entry = if is_instance(py, &calibration, HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()])) {
+        let new_entry = if is_instance(
+            py,
+            &calibration,
+            HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()]),
+        ) {
             // Import calibration_entries module
             let module = match py.import_bound("qiskit.pulse.calibration_entries") {
                 Ok(module) => module,
-                Err(e) => panic!("Could not find the module qiskit.pulse.calibration_entries: {:?}", e),
+                Err(e) => panic!(
+                    "Could not find the module qiskit.pulse.calibration_entries: {:?}",
+                    e
+                ),
             };
             // Import SchedDef class object
             let sched_def = match module.call_method0("ScheduleDef") {
                 Ok(sched) => sched.to_object(py),
                 Err(e) => panic!("Failed to import the 'ScheduleDef' class: {:?}", e),
             };
-            
+
             // Send arguments for the define call.
             let args = (&calibration, true);
             // Peform the function call.
@@ -124,6 +131,8 @@ pub struct Target {
     global_operations: HashMap<usize, HashSet<String>>,
     qarg_gate_map: HashMap<isize, HashSet<String>>,
     qarg_hash_table: HashMap<isize, Vec<usize>>,
+    instructions_durations: Option<PyObject>,
+    instruction_schedule_map: Option<PyObject>,
 }
 
 #[pymethods]
@@ -164,6 +173,8 @@ impl Target {
             global_operations: HashMap::new(),
             qarg_gate_map: HashMap::new(),
             qarg_hash_table: HashMap::new(),
+            instructions_durations: Option::None,
+            instruction_schedule_map: Option::None,
         }
     }
 
@@ -286,6 +297,52 @@ impl Target {
             }
         }
         self.gate_map.insert(instruction_name, qargs_val);
+    }
+
+    #[pyo3(text_signature = "(/, instruction, qargs, properties)")]
+    fn update_instruction_properties(
+        &mut self,
+        _py: Python<'_>,
+        instruction: String,
+        qargs: Bound<PyAny>,
+        properties: PyObject,
+    ) {
+        /* Update the property object for an instruction qarg pair already in the Target
+
+        Args:
+            instruction (str): The instruction name to update
+            qargs (tuple): The qargs to update the properties of
+            properties (InstructionProperties): The properties to set for this instruction
+        Raises:
+            KeyError: If ``instruction`` or ``qarg`` are not in the target */
+        
+        // For debugging
+        // println!(
+        //     "Before - {:?}: {:?}",
+        //     instruction, self.gate_map[&instruction]
+        // );
+        if !self.gate_map.contains_key(&instruction) {
+            panic!(
+                "Provided instruction : '{:?}' not in this Target.",
+                &instruction
+            );
+        };
+        if !self.gate_map[&instruction].contains_key(&qargs.hash().ok().unwrap()) {
+            panic!(
+                "Provided qarg {:?} not in this Target for {:?}.",
+                &qargs, &instruction
+            );
+        }
+        self.gate_map.get_mut(&instruction).map(|q_vals| {
+            *q_vals.get_mut(&qargs.hash().ok().unwrap()).unwrap() = properties;
+            Some(())
+        });
+        self.instructions_durations = Option::None;
+        self.instruction_schedule_map = Option::None;
+        // println!(
+        //     "After - {:?}: {:?}",
+        //     instruction, self.gate_map[&instruction]
+        // );
     }
 
     #[getter]
