@@ -14,6 +14,7 @@ Readout mitigation data handling utils
 """
 
 import logging
+import math
 from typing import Optional, List, Tuple, Dict
 import numpy as np
 
@@ -55,7 +56,7 @@ def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tup
             "(%f). Setting standard deviation of result to 0.",
             variance,
         )
-    calc_stddev = np.sqrt(variance) if variance > 0 else 0.0
+    calc_stddev = math.sqrt(variance) if variance > 0 else 0.0
     return [expval, calc_stddev]
 
 
@@ -63,7 +64,7 @@ def stddev(probs, shots):
     """Calculate stddev dict"""
     ret = {}
     for key, prob in probs.items():
-        std_err = np.sqrt(prob * (1 - prob) / shots)
+        std_err = math.sqrt(prob * (1 - prob) / shots)
         ret[key] = std_err
     return ret
 

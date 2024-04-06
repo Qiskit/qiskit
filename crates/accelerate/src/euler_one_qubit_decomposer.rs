@@ -18,6 +18,7 @@ use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
+use std::ops::Deref;
 
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
@@ -27,6 +28,7 @@ use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
+use pyo3::pybacked::PyBackedStr;
 
 use crate::utils::SliceOrInt;
 
@@ -594,7 +596,11 @@ impl EulerBasis {
 #[pymethods]
 impl EulerBasis {
     fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py(py)
+        (
+            py.get_type_bound::<Self>(),
+            (PyString::new_bound(py, self.as_str()),),
+        )
+            .into_py(py)
     }
 
     #[new]
@@ -700,7 +706,7 @@ pub fn compute_error_list(
 #[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
-    target_basis_list: Vec<&str>,
+    target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
@@ -708,7 +714,7 @@ pub fn unitary_to_gate_sequence(
 ) -> PyResult<Option<OneQubitGateSequence>> {
     let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
     for basis in target_basis_list {
-        let basis_enum = EulerBasis::from_str(basis)?;
+        let basis_enum = EulerBasis::from_str(basis.deref())?;
         target_basis_vec.push(basis_enum)
     }
     let unitary_mat = unitary.as_array();
@@ -873,7 +879,7 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 }
 
 #[pymodule]
-pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;
     m.add_wrapped(wrap_pyfunction!(params_xzx))?;

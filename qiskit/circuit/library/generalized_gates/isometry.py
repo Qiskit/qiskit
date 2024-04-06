@@ -22,6 +22,7 @@ Generic isometries from m to n qubits.
 from __future__ import annotations
 
 import itertools
+import math
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
@@ -93,8 +94,8 @@ class Isometry(Instruction):
         self._epsilon = epsilon
 
         # Check if the isometry has the right dimension and if the columns are orthonormal
-        n = np.log2(isometry.shape[0])
-        m = np.log2(isometry.shape[1])
+        n = math.log2(isometry.shape[0])
+        m = math.log2(isometry.shape[1])
         if not n.is_integer() or n < 0:
             raise QiskitError(
                 "The number of rows of the isometry is not a non negative power of 2."
@@ -150,7 +151,7 @@ class Isometry(Instruction):
         # to keep a copyof the input isometry)
         remaining_isometry = self.iso_data.astype(complex)  # note: "astype" does copy the isometry
         diag = []
-        m = int(np.log2((self.iso_data).shape[1]))
+        m = int(math.log2(self.iso_data.shape[1]))
         # Decompose the column with index column_index and attache the gate to the circuit object.
         # Return the isometry that is left to decompose, where the columns up to index column_index
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
@@ -170,7 +171,7 @@ class Isometry(Instruction):
         """
         Decomposes the column with index column_index.
         """
-        n = int(np.log2(self.iso_data.shape[0]))
+        n = int(math.log2(self.iso_data.shape[0]))
         for s in range(n):
             self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
 
@@ -185,7 +186,7 @@ class Isometry(Instruction):
         # (note that we remove columns of the isometry during the procedure for efficiency)
         k_prime = 0
         v = remaining_isometry
-        n = int(np.log2(self.iso_data.shape[0]))
+        n = int(math.log2(self.iso_data.shape[0]))
 
         # MCG to set one entry to zero (preparation for disentangling with UCGate):
         index1 = 2 * _a(k, s + 1) * 2**s + _b(k, s + 1)
@@ -237,7 +238,7 @@ class Isometry(Instruction):
     # The qubit with label n-s-1 is disentangled into the basis state k_s(k,s).
     def _find_squs_for_disentangling(self, v, k, s):
         k_prime = 0
-        n = int(np.log2(self.iso_data.shape[0]))
+        n = int(math.log2(self.iso_data.shape[0]))
         if _b(k, s + 1) == 0:
             i_start = _a(k, s + 1)
         else:
@@ -264,7 +265,7 @@ class Isometry(Instruction):
             q_ancillas_zero,
             q_ancillas_dirty,
         ) = self._define_qubit_role(q)
-        n = int(np.log2(self.iso_data.shape[0]))
+        n = int(math.log2(self.iso_data.shape[0]))
         qubits = q_input + q_ancillas_for_output
         # Note that we have to reverse the control labels, since controls are provided by
         # increasing qubit number toa UCGate by convention
@@ -286,7 +287,7 @@ class Isometry(Instruction):
             q_ancillas_zero,
             q_ancillas_dirty,
         ) = self._define_qubit_role(q)
-        n = int(np.log2(self.iso_data.shape[0]))
+        n = int(math.log2(self.iso_data.shape[0]))
         qubits = q_input + q_ancillas_for_output
         control_qubits = _reverse_qubit_oder(_get_qubits_by_label(control_labels, qubits, n))
         target_qubit = _get_qubits_by_label([target_label], qubits, n)[0]
@@ -307,8 +308,8 @@ class Isometry(Instruction):
 
     def _define_qubit_role(self, q):
 
-        n = int(np.log2(self.iso_data.shape[0]))
-        m = int(np.log2(self.iso_data.shape[1]))
+        n = int(math.log2(self.iso_data.shape[0]))
+        m = int(math.log2(self.iso_data.shape[1]))
 
         # Define the role of the qubits
         q_input = q[:m]
@@ -372,7 +373,7 @@ def _reverse_qubit_state(state, basis_state, epsilon):
 def _apply_ucg(m, k, single_qubit_gates):
     # ToDo: Improve efficiency by parallelizing the gate application. A generalized version of
     # ToDo: this method should be implemented by the state vector simulator in Qiskit AER.
-    num_qubits = int(np.log2(m.shape[0]))
+    num_qubits = int(math.log2(m.shape[0]))
     num_col = m.shape[1]
     spacing = 2 ** (num_qubits - k - 1)
     for j in range(2 ** (num_qubits - 1)):
@@ -395,7 +396,7 @@ def _apply_ucg(m, k, single_qubit_gates):
 def _apply_diagonal_gate(m, action_qubit_labels, diag):
     # ToDo: Improve efficiency by parallelizing the gate application. A generalized version of
     # ToDo: this method should be implemented by the state vector simulator in Qiskit AER.
-    num_qubits = int(np.log2(m.shape[0]))
+    num_qubits = int(math.log2(m.shape[0]))
     num_cols = m.shape[1]
     basis_states = list(itertools.product([0, 1], repeat=num_qubits))
     for state in basis_states:
@@ -436,7 +437,7 @@ def _apply_diagonal_gate_to_diag(m_diagonal, action_qubit_labels, diag, num_qubi
 
 def _apply_multi_controlled_gate(m, control_labels, target_label, gate):
     # ToDo: This method should be integrated into the state vector simulator in Qiskit AER.
-    num_qubits = int(np.log2(m.shape[0]))
+    num_qubits = int(math.log2(m.shape[0]))
     num_cols = m.shape[1]
     control_labels.sort()
     free_qubits = num_qubits - len(control_labels) - 1

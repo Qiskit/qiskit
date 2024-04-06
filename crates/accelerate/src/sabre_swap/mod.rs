@@ -75,7 +75,7 @@ pub struct SabreResult {
 impl SabreResult {
     #[getter]
     fn node_order(&self, py: Python) -> PyObject {
-        self.node_order.to_pyarray(py).into()
+        self.node_order.to_pyarray_bound(py).into()
     }
 }
 
@@ -102,7 +102,7 @@ impl NodeBlockResults {
                 .iter()
                 .map(|x| x.clone().into_py(py))
                 .collect::<Vec<_>>()
-                .into_pyarray(py)
+                .into_pyarray_bound(py)
                 .into()),
             None => Err(PyIndexError::new_err(format!(
                 "Node index {object} has no block results",
@@ -131,7 +131,7 @@ impl BlockResult {
             .iter()
             .map(|x| x.into_py(py))
             .collect::<Vec<_>>()
-            .into_pyarray(py)
+            .into_pyarray_bound(py)
             .into()
     }
 }
@@ -243,9 +243,9 @@ pub fn build_swap_map(
     );
     (
         res.map,
-        res.node_order.into_pyarray(py).into(),
+        res.node_order.into_pyarray_bound(py).into(),
         res.node_block_results,
-        PyArray::from_iter(
+        PyArray::from_iter_bound(
             py,
             (0..num_qubits).map(|phys| {
                 PhysicalQubit::new(phys)
@@ -760,7 +760,7 @@ fn choose_best_swap(
 }
 
 #[pymodule]
-pub fn sabre_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sabre_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(build_swap_map))?;
     m.add_class::<Heuristic>()?;
     m.add_class::<NeighborTable>()?;
