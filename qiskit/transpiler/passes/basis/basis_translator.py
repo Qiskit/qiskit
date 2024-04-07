@@ -248,8 +248,8 @@ class BasisTranslator(TransformationPass):
         replace_start_time = time.time()
 
         def apply_translation(dag, wire_map):
-            dag_updated = False
-            for node in dag.op_nodes():
+            out_dag = dag.copy_empty_like()
+            for node in dag.topological_op_nodes():
                 node_qargs = tuple(wire_map[bit] for bit in node.qargs)
                 qubit_set = frozenset(node_qargs)
                 if node.name in target_basis or len(node.qargs) < self._min_qubits:
@@ -257,45 +257,44 @@ class BasisTranslator(TransformationPass):
                         flow_blocks = []
                         for block in node.op.blocks:
                             dag_block = circuit_to_dag(block)
-                            dag_updated = apply_translation(
+                            updated_dag = apply_translation(
                                 dag_block,
                                 {
                                     inner: wire_map[outer]
                                     for inner, outer in zip(block.qubits, node.qargs)
                                 },
                             )
-                            if dag_updated:
-                                flow_circ_block = dag_to_circuit(dag_block)
-                            else:
-                                flow_circ_block = block
+                            flow_circ_block = dag_to_circuit(updated_dag)
                             flow_blocks.append(flow_circ_block)
                         node.op = node.op.replace_blocks(flow_blocks)
+                    out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
                     continue
                 if (
                     node_qargs in self._qargs_with_non_global_operation
                     and node.name in self._qargs_with_non_global_operation[node_qargs]
                 ):
+                    out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
                     continue
 
                 if dag.has_calibration_for(node):
+                    out_dag.apply_operation_back(node.op, node.qargs, node.cargs, check=False)
                     continue
                 if qubit_set in extra_instr_map:
-                    self._replace_node(dag, node, extra_instr_map[qubit_set])
+                    self._replace_node(out_dag, node, extra_instr_map[qubit_set])
                 elif (node.op.name, node.op.num_qubits) in instr_map:
-                    self._replace_node(dag, node, instr_map)
+                    self._replace_node(out_dag, node, instr_map)
                 else:
                     raise TranspilerError(f"BasisTranslator did not map {node.name}.")
-                dag_updated = True
-            return dag_updated
+            return out_dag
 
-        apply_translation(dag, qarg_indices)
+        out_dag = apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
             replace_end_time - replace_start_time,
         )
 
-        return dag
+        return out_dag
 
     def _replace_node(self, dag, node, instr_map):
         target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
@@ -308,7 +307,6 @@ class BasisTranslator(TransformationPass):
             )
         if node.op.params:
             parameter_map = dict(zip(target_params, node.op.params))
-            bound_target_dag = target_dag.copy_empty_like()
             for inner_node in target_dag.topological_op_nodes():
                 if any(isinstance(x, ParameterExpression) for x in inner_node.op.params):
                     new_op = inner_node.op.copy()
@@ -330,7 +328,12 @@ class BasisTranslator(TransformationPass):
                     new_op.params = new_params
                 else:
                     new_op = inner_node.op
-                bound_target_dag.apply_operation_back(new_op, inner_node.qargs, inner_node.cargs)
+                dag.apply_operation_back(
+                    new_op,
+                    tuple(node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs),
+                    tuple(node.cargs[target_dag.find_bit(x).index] for x in inner_node.cargs),
+                    check=False,
+                )
             if isinstance(target_dag.global_phase, ParameterExpression):
                 old_phase = target_dag.global_phase
                 bind_dict = {x: parameter_map[x] for x in old_phase.parameters}
@@ -345,24 +348,23 @@ class BasisTranslator(TransformationPass):
                     new_phase = new_phase.numeric()
                     if isinstance(new_phase, complex):
                         raise TranspilerError(f"Global phase must be real, but got '{new_phase}'")
-                bound_target_dag.global_phase = new_phase
+                dag.global_phase += new_phase
         else:
-            bound_target_dag = target_dag
-
-        if len(bound_target_dag.op_nodes()) == 1 and len(
-            bound_target_dag.op_nodes()[0].qargs
-        ) == len(node.qargs):
-            dag_op = bound_target_dag.op_nodes()[0].op
-            # dag_op may be the same instance as other ops in the dag,
-            # so if there is a condition, need to copy
-            if getattr(node.op, "condition", None):
-                dag_op = dag_op.copy()
-            dag.substitute_node(node, dag_op, inplace=True)
-
-            if bound_target_dag.global_phase:
-                dag.global_phase += bound_target_dag.global_phase
-        else:
-            dag.substitute_node_with_dag(node, bound_target_dag)
+            for inner_node in target_dag.topological_op_nodes():
+                new_op = inner_node.op
+                # dag_op may be the same instance as other ops in the dag,
+                # so if there is a condition, need to copy
+                if getattr(node.op, "condition", None):
+                    new_op = new_op.to_mutable()
+                    new_op.condition = node.op.condition
+                dag.apply_operation_back(
+                    new_op,
+                    tuple(node.qargs[target_dag.find_bit(x).index] for x in inner_node.qargs),
+                    tuple(node.cargs[target_dag.find_bit(x).index] for x in inner_node.cargs),
+                    check=False,
+                )
+            if target_dag.global_phase:
+                dag.global_phase += target_dag.global_phase
 
     @singledispatchmethod
     def _extract_basis(self, circuit):
