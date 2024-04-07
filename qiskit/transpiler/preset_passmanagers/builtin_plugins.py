@@ -733,10 +733,10 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             choose_layout_0 = VF2Layout(
                 coupling_map=pass_manager_config.coupling_map,
                 seed=pass_manager_config.seed_transpiler,
-                call_limit=int(5e4),  # Set call limit to ~10s with rustworkx 0.10.2
+                call_limit=int(5e6),  # Set call limit to ~10s with rustworkx 0.10.2
                 properties=pass_manager_config.backend_properties,
                 target=pass_manager_config.target,
-                max_trials=2500,  # Limits layout scoring to < 10s on ~400 qubit devices
+                max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
             )
             layout.append(
                 ConditionalController(choose_layout_0, condition=_choose_layout_condition)
