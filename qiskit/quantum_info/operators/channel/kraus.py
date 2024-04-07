@@ -16,6 +16,7 @@ Kraus representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 from numbers import Number
 import numpy as np
 
@@ -315,7 +316,7 @@ class Kraus(QuantumChannel):
             return ret
         # If the number is real we can update the Kraus operators
         # directly
-        val = np.sqrt(other)
+        val = math.sqrt(other)
         kraus_r = None
         kraus_l = [val * k for k in self._data[0]]
         if self._data[1] is not None:

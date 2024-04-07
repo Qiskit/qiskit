@@ -430,9 +430,9 @@ pub fn sabre_routing(
     );
     (
         res.map,
-        res.node_order.into_pyarray(py).into(),
+        res.node_order.into_pyarray_bound(py).into(),
         res.node_block_results,
-        PyArray::from_iter(
+        PyArray::from_iter_bound(
             py,
             (0u32..neighbor_table.num_qubits().try_into().unwrap()).map(|phys| {
                 PhysicalQubit::new(phys)

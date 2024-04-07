@@ -52,7 +52,7 @@ pub struct SabreResult {
 impl SabreResult {
     #[getter]
     fn node_order(&self, py: Python) -> PyObject {
-        self.node_order.to_pyarray(py).into()
+        self.node_order.to_pyarray_bound(py).into()
     }
 }
 
@@ -79,7 +79,7 @@ impl NodeBlockResults {
                 .iter()
                 .map(|x| x.clone().into_py(py))
                 .collect::<Vec<_>>()
-                .into_pyarray(py)
+                .into_pyarray_bound(py)
                 .into()),
             None => Err(PyIndexError::new_err(format!(
                 "Node index {object} has no block results",
@@ -108,13 +108,13 @@ impl BlockResult {
             .iter()
             .map(|x| x.into_py(py))
             .collect::<Vec<_>>()
-            .into_pyarray(py)
+            .into_pyarray_bound(py)
             .into()
     }
 }
 
 #[pymodule]
-pub fn sabre(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sabre(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(route::sabre_routing))?;
     m.add_wrapped(wrap_pyfunction!(layout::sabre_layout_and_routing))?;
     m.add_class::<Heuristic>()?;
