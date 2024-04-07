@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    The method :meth:`qiskit.quantum_info.Statevector.to_dict` has a `decimals` keyword to round the results, which was not effective because of a typo. This fix resolves the apparent typo located in :method:`QuantumState._vector_to_dict()`. 
+    The method :meth:`.Statevector.to_dict` will now respect its ``decimals`` keyword argument, which it previously ignored.  
