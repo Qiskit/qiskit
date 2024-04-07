@@ -48,6 +48,7 @@
 
 __all__ = ["Bloch"]
 
+import math
 import os
 import numpy as np
 import matplotlib
@@ -648,9 +649,7 @@ class Bloch:
                 )
 
             elif self.point_style[k] == "m":
-                pnt_colors = np.array(
-                    self.point_color * int(np.ceil(num / float(len(self.point_color))))
-                )
+                pnt_colors = np.array(self.point_color * math.ceil(num / len(self.point_color)))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
