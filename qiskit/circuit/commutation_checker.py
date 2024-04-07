@@ -313,7 +313,7 @@ def _persistent_id(op_name: str) -> int:
     Return:
         The integer id of the input string.
     """
-    return int.from_bytes(bytes(op_name, encoding="ascii"), byteorder="big", signed=True)
+    return int.from_bytes(bytes(op_name, encoding="utf-8"), byteorder="big", signed=True)
 
 
 def _order_operations(

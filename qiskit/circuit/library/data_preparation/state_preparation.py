@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 """Prepare a quantum state from the state where all qubits are 0."""
 
+import cmath
 from typing import Union, Optional
 
 import math
@@ -339,20 +340,20 @@ class StatePreparation(Gate):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = abs(a_complex)
-        final_r = np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2)
+        final_r = math.sqrt(mag_a**2 + abs(b_complex) ** 2)
         if final_r < _EPS:
             theta = 0
             phi = 0
             final_r = 0
             final_t = 0
         else:
-            theta = 2 * np.arccos(mag_a / final_r)
-            a_arg = np.angle(a_complex)
-            b_arg = np.angle(b_complex)
+            theta = 2 * math.acos(mag_a / final_r)
+            a_arg = cmath.phase(a_complex)
+            b_arg = cmath.phase(b_complex)
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * np.exp(1.0j * final_t / 2), theta, phi
+        return final_r * cmath.exp(1.0j * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles, last_cnot=True):
         """
