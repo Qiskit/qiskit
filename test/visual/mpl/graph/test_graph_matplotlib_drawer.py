@@ -75,14 +75,11 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             plot_coupling_map, str(self), RESULT_DIR
         )
 
-        with self.assertWarns(DeprecationWarning):
-            self.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
-            self.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
-            self.backend_16_rueschlikon = GenericBackendV2(
-                num_qubits=16, coupling_map=RUESCHLIKON_CMAP
-            )
-            self.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
-            self.backend_65_manhattan = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+        self.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+        self.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        self.backend_16_rueschlikon = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+        self.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
+        self.backend_65_manhattan = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
