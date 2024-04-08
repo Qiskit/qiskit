@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"The Qiskit Terra setup file."
+"The Qiskit setup file."
 
 import os
 from setuptools import setup
@@ -41,6 +41,12 @@ setup(
         RustExtension(
             "qiskit._qasm2",
             "crates/qasm2/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
+        ),
+        RustExtension(
+            "qiskit._qasm3",
+            "crates/qasm3/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
         ),

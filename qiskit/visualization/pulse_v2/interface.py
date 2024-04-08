@@ -310,16 +310,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, backend=FakeBoeblingen())
+            draw(sched, backend=GenericBackendV2(5))
 
         Drawing with the stylesheet suited for publication.
 
@@ -328,16 +328,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, style=IQXSimple(), backend=FakeBoeblingen())
+            draw(sched, style=IQXSimple(), backend=GenericBackendV2(5))
 
         Drawing with the stylesheet suited for program debugging.
 
@@ -346,16 +346,16 @@ def draw(
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeBoeblingen
+            from qiskit.providers.fake_provider import GenericBackendV2
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
-            sched = schedule(qc, FakeBoeblingen())
+            qc = transpile(qc, GenericBackendV2(5), layout_method='trivial')
+            sched = schedule(qc, GenericBackendV2(5))
 
-            draw(sched, style=IQXDebugging(), backend=FakeBoeblingen())
+            draw(sched, style=IQXDebugging(), backend=GenericBackendV2(5))
 
         You can partially customize a preset stylesheet when initializing it.
 
@@ -368,7 +368,7 @@ def draw(
             }
             style = IQXStandard(**my_style)
             # draw
-            draw(sched, style=style, backend=FakeBoeblingen())
+            draw(sched, style=style, backend=GenericBackendV2(5))
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.

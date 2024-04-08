@@ -63,12 +63,20 @@ load external plugins via corresponding entry points.
        :func:`~.generate_embed_passmanager`.
    * - ``routing``
      - ``qiskit.transpiler.routing``
-     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``, ``toqm``
+     - ``basic``, ``stochastic``, ``lookahead``, ``sabre``
      - The output from this stage is expected to have the circuit match the
        connectivity constraints of the target backend. This does not necessarily
        need to match the directionality of the edges in the target as a later
        stage typically will adjust directional gates to match that constraint
-       (but there is no penalty for doing that in the ``routing`` stage).
+       (but there is no penalty for doing that in the ``routing`` stage). The output
+       of this stage is also expected to have the ``final_layout`` property set field
+       set with a :class:`~.Layout` object that maps the :class:`.Qubit` to the
+       output final position of that qubit in the circuit. If there is an
+       existing ``final_layout`` entry in the property set (such as might be set
+       by an optimization pass that introduces a permutation) it is expected
+       that the final layout will be the composition of the two layouts (this
+       can be computed using :meth:`.DAGCircuit.compose`, for example:
+       ``second_final_layout.compose(first_final_layout, dag.qubits)``).
    * - ``translation``
      - ``qiskit.transpiler.translation``
      - ``translator``, ``synthesis``, ``unroller``

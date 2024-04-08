@@ -10,7 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Synthesize UnitaryGates."""
+"""
+=========================================================================================
+Unitary Synthesis Plugin (in :mod:`qiskit.transpiler.passes.synthesis.unitary_synthesis`)
+=========================================================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DefaultUnitarySynthesis
+"""
+
 from __future__ import annotations
 from math import pi, inf, isclose
 from typing import Any
@@ -24,9 +34,9 @@ from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
-from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
     TwoQubitWeylDecomposition,
 )
@@ -798,10 +808,23 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if basis_2q_fidelity:
             for basis_1q in available_1q_basis:
                 if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
+                    # If we're going to use the pulse optimal decomposition
+                    # in TwoQubitBasisDecomposer we need to compute the basis
+                    # fidelity to use for the decomposition. Either use the
+                    # cx error rate if approximation degree is None, or
+                    # the approximation degree value if it's a float
+                    if approximation_degree is None:
+                        props = target["cx"].get(qubits_tuple)
+                        if props is not None:
+                            fidelity = 1.0 - getattr(props, "error", 0.0)
+                        else:
+                            fidelity = 1.0
+                    else:
+                        fidelity = approximation_degree
                     pi2_decomposer = TwoQubitBasisDecomposer(
                         pi2_basis,
                         euler_basis=basis_1q,
-                        basis_fidelity=basis_2q_fidelity,
+                        basis_fidelity=fidelity,
                         pulse_optimize=True,
                     )
                     embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})
@@ -866,7 +889,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 default=None,
             )
         else:
-            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+            from qiskit.synthesis.unitary.qsd import (  # pylint: disable=cyclic-import
                 qs_decomposition,
             )
 

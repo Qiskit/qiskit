@@ -37,6 +37,7 @@ from qiskit.circuit import (
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.classical import expr
 from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
+from qiskit.circuit.library import Initialize
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -48,7 +49,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 
-from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
 
@@ -1544,7 +1544,7 @@ class MatplotlibDrawer:
         while end_x > 0.0:
             x_shift = fold_level * self._fold
             y_shift = fold_level * (glob_data["n_lines"] + 1)
-            end_x = xpos + box_width - x_shift
+            end_x = xpos + box_width - x_shift if self._fold > 0 else 0.0
 
             if isinstance(node.op, IfElseOp):
                 flow_text = "  If"

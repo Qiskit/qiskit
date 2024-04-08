@@ -14,7 +14,6 @@ use std::env;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
-use pyo3::Python;
 
 mod convert_2q_block_matrix;
 mod dense_layout;
@@ -34,6 +33,8 @@ mod sparse_pauli_op;
 mod stochastic_swap;
 #[cfg(test)]
 mod test;
+mod two_qubit_decompose;
+mod utils;
 mod vf2_layout;
 
 #[inline]
@@ -50,7 +51,7 @@ pub fn getenv_use_multiple_threads() -> bool {
 }
 
 #[pymodule]
-fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(nlayout::nlayout))?;
     m.add_wrapped(wrap_pymodule!(stochastic_swap::stochastic_swap))?;
     m.add_wrapped(wrap_pymodule!(sabre_swap::sabre_swap))?;
@@ -64,6 +65,8 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
     m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
+    m.add_wrapped(wrap_pymodule!(two_qubit_decompose::two_qubit_decompose))?;
+    m.add_wrapped(wrap_pymodule!(utils::utils))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
     ))?;

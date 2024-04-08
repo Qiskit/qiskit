@@ -104,22 +104,22 @@ impl NeighborTable {
     }
 
     fn __getstate__(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(
+        PyList::new_bound(
             py,
             self.neighbors
                 .iter()
-                .map(|v| PyList::new(py, v.iter()).to_object(py)),
+                .map(|v| PyList::new_bound(py, v.iter()).to_object(py)),
         )
         .into()
     }
 
-    fn __setstate__(&mut self, state: &PyList) -> PyResult<()> {
+    fn __setstate__(&mut self, state: &Bound<PyList>) -> PyResult<()> {
         self.neighbors = state
             .iter()
             .map(|v| {
                 v.downcast::<PyList>()?
                     .iter()
-                    .map(PyAny::extract)
+                    .map(|b| b.extract())
                     .collect::<PyResult<_>>()
             })
             .collect::<PyResult<_>>()?;

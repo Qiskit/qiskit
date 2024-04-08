@@ -13,8 +13,8 @@
 """Tests for layouts of timeline drawer."""
 
 import qiskit
-from qiskit.test import QiskitTestCase
 from qiskit.visualization.timeline import layouts
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestBitArrange(QiskitTestCase):

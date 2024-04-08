@@ -52,8 +52,9 @@ and thus this parameter framework gives greater scalability to the pulse module.
 """
 from __future__ import annotations
 from copy import copy
-from typing import Any
+from typing import Any, Mapping, Sequence
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
@@ -161,24 +162,6 @@ class ParameterSetter(NodeVisitor):
         return node
 
     # Mid layer: Assign parameters to instructions
-
-    def visit_Call(self, node: instructions.Call):
-        """Assign parameters to ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps program, i.e. parametrized schedule,
-            and bound parameters until execution. The parameter assignment operation doesn't
-            immediately override its operand data.
-        """
-        if node.is_parameterized():
-            new_table = copy(node.arguments)
-
-            for parameter, value in new_table.items():
-                if isinstance(value, ParameterExpression):
-                    new_table[parameter] = self._assign_parameter_expression(value)
-            node.arguments = new_table
-
-        return node
 
     def visit_Instruction(self, node: instructions.Instruction):
         """Assign parameters to general pulse instruction.
@@ -300,14 +283,6 @@ class ParameterGetter(NodeVisitor):
 
     # Mid layer: Get parameters from instructions
 
-    def visit_Call(self, node: instructions.Call):
-        """Get parameters from ``Call`` instruction.
-
-        .. note:: ``Call`` instruction has a special parameter handling logic.
-            This instruction separately keeps parameters and program.
-        """
-        self.parameters |= node.parameters
-
     def visit_Instruction(self, node: instructions.Instruction):
         """Get parameters from general pulse instruction.
 
@@ -386,7 +361,9 @@ class ParameterManager:
     def assign_parameters(
         self,
         pulse_program: Any,
-        value_dict: dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+        ],
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
 
@@ -398,7 +375,10 @@ class ParameterManager:
         Returns:
             Updated program data.
         """
-        valid_map = {k: value_dict[k] for k in value_dict.keys() & self._parameters}
+        unrolled_value_dict = self._unroll_param_dict(value_dict)
+        valid_map = {
+            k: unrolled_value_dict[k] for k in unrolled_value_dict.keys() & self._parameters
+        }
         if valid_map:
             visitor = ParameterSetter(param_map=valid_map)
             return visitor.visit(pulse_program)
@@ -413,3 +393,38 @@ class ParameterManager:
         visitor = ParameterGetter()
         visitor.visit(new_node)
         self._parameters |= visitor.parameters
+
+    def _unroll_param_dict(
+        self,
+        parameter_binds: Mapping[
+            Parameter | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+        ],
+    ) -> Mapping[Parameter, ParameterValueType]:
+        """
+        Unroll parameter dictionary to a map from parameter to value.
+
+        Args:
+            parameter_binds: A dictionary from parameter to value or a list of values.
+
+        Returns:
+            A dictionary from parameter to value.
+        """
+        out = {}
+        for parameter, value in parameter_binds.items():
+            if isinstance(parameter, ParameterVector):
+                if not isinstance(value, Sequence):
+                    raise PulseError(
+                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+                        f" but was assigned to a single value."
+                    )
+                if len(parameter) != len(value):
+                    raise PulseError(
+                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+                        f" but was assigned to {len(value)} values."
+                    )
+                out.update(zip(parameter, value))
+            elif isinstance(parameter, str):
+                out[self.get_parameters(parameter)] = value
+            else:
+                out[parameter] = value
+        return out

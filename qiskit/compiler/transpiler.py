@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -67,12 +67,36 @@ def transpile(  # pylint: disable=too-many-return-statements
     init_method: Optional[str] = None,
     optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
+    num_processes: Optional[int] = None,
 ) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     Transpilation is potentially done in parallel using multiprocessing when ``circuits``
-    is a list with > 1 :class:`~.QuantumCircuit` object depending on the local environment
+    is a list with > 1 :class:`~.QuantumCircuit` object, depending on the local environment
     and configuration.
+
+    The prioritization of transpilation target constraints works as follows: if a ``target``
+    input is provided, it will take priority over any ``backend`` input or loose constraints
+    (``basis_gates``, ``inst_map``, ``coupling_map``, ``backend_properties``, ``instruction_durations``,
+    ``dt`` or ``timing_constraints``). If a ``backend`` is provided together with any loose constraint
+    from the list above, the loose constraint will take priority over the corresponding backend
+    constraint. This behavior is independent of whether the ``backend`` instance is of type
+    :class:`.BackendV1` or :class:`.BackendV2`, as summarized in the table below. The first column
+    in the table summarizes the potential user-provided constraints, and each cell shows whether
+    the priority is assigned to that specific constraint input or another input
+    (`target`/`backend(V1)`/`backend(V2)`).
+
+    ============================ ========= ======================== =======================
+    User Provided                target    backend(V1)              backend(V2)
+    ============================ ========= ======================== =======================
+    **basis_gates**              target    basis_gates              basis_gates
+    **coupling_map**             target    coupling_map             coupling_map
+    **instruction_durations**    target    instruction_durations    instruction_durations
+    **inst_map**                 target    inst_map                 inst_map
+    **dt**                       target    dt                       dt
+    **timing_constraints**       target    timing_constraints       timing_constraints
+    **backend_properties**       target    backend_properties       backend_properties
+    ============================ ========= ======================== =======================
 
     Args:
         circuits: Circuit(s) to transpile
@@ -231,7 +255,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         target: A backend transpiler target. Normally this is specified as part of
@@ -257,6 +281,11 @@ def transpile(  # pylint: disable=too-many-return-statements
             to support custom compilation target-specific passes/plugins which support
             backend-specific compilation techniques. If you'd prefer that these defaults were
             not used this option is used to disable those backend-specific defaults.
+        num_processes: The maximum number of parallel processes to launch for this call to
+            transpile if parallel execution is enabled. This argument overrides
+            ``num_processes`` in the user configuration file, and the ``QISKIT_NUM_PROCS``
+            environment variable. If set to ``None`` the system default or local user configuration
+            will be used.
 
     Returns:
         The transpiled circuit(s).
@@ -319,8 +348,16 @@ def transpile(  # pylint: disable=too-many-return-statements
             backend_properties = target_to_backend_properties(target)
     # If target is not specified and any hardware constraint object is
     # manually specified then do not use the target from the backend as
-    # it is invalidated by a custom basis gate list or a custom coupling map
-    elif basis_gates is not None or coupling_map is not None:
+    # it is invalidated by a custom basis gate list, custom coupling map,
+    # custom dt or custom instruction_durations
+    elif (
+        basis_gates is not None  # pylint: disable=too-many-boolean-expressions
+        or coupling_map is not None
+        or dt is not None
+        or instruction_durations is not None
+        or backend_properties is not None
+        or timing_constraints is not None
+    ):
         _skip_target = True
     else:
         target = getattr(backend, "target", None)
@@ -340,15 +377,6 @@ def transpile(  # pylint: disable=too-many-return-statements
         # Do not mutate backend target
         target = copy.deepcopy(target)
         target.update_from_instruction_schedule_map(inst_map)
-
-    if translation_method == "unroller":
-        warnings.warn(
-            "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
-            "will be removed in a future release. Instead you should use the default "
-            "'translator' method or another plugin.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     if not ignore_backend_supplied_default_methods:
         if scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
@@ -390,7 +418,7 @@ def transpile(  # pylint: disable=too-many-return-statements
                     optimization_method=optimization_method,
                     _skip_target=_skip_target,
                 )
-                out_circuits.append(pm.run(circuit, callback=callback))
+                out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
             for name, circ in zip(output_name, out_circuits):
                 circ.name = name
                 end_time = time()

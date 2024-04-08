@@ -16,11 +16,13 @@ use pyo3::types::PyTuple;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
+use numpy::prelude::*;
+use numpy::{PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2, PyUntypedArrayMethods};
+
 use hashbrown::HashMap;
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis};
 use num_complex::Complex64;
 use num_traits::Zero;
-use numpy::{IntoPyArray, PyArray1, PyArray2, PyReadonlyArray1, PyReadonlyArray2};
 use rayon::prelude::*;
 
 use crate::rayon_ext::*;
@@ -62,8 +64,8 @@ pub fn unordered_unique(py: Python, array: PyReadonlyArray2<u16>) -> (PyObject, 
         }
     }
     (
-        indices.into_pyarray(py).into(),
-        inverses.into_pyarray(py).into(),
+        indices.into_pyarray_bound(py).into(),
+        inverses.into_pyarray_bound(py).into(),
     )
 }
 
@@ -134,10 +136,10 @@ pub struct ZXPaulis {
 impl ZXPaulis {
     #[new]
     fn __new__(
-        x: &PyArray2<bool>,
-        z: &PyArray2<bool>,
-        phases: &PyArray1<u8>,
-        coeffs: &PyArray1<Complex64>,
+        x: &Bound<PyArray2<bool>>,
+        z: &Bound<PyArray2<bool>>,
+        phases: &Bound<PyArray1<u8>>,
+        coeffs: &Bound<PyArray1<Complex64>>,
     ) -> PyResult<Self> {
         let (num_ops, num_qubits) = match x.shape() {
             &[num_ops, num_qubits] => (num_ops, num_qubits),
@@ -160,10 +162,10 @@ impl ZXPaulis {
         }
 
         Ok(Self {
-            x: x.to_owned(),
-            z: z.to_owned(),
-            phases: phases.to_owned(),
-            coeffs: coeffs.to_owned(),
+            x: x.to_owned().unbind(),
+            z: z.to_owned().unbind(),
+            phases: phases.to_owned().unbind(),
+            coeffs: coeffs.to_owned().unbind(),
         })
     }
 }
@@ -177,10 +179,10 @@ impl ZXPaulis {
         'a: 'py,
     {
         Some(ZXPaulisReadonly {
-            x: self.x.as_ref(py).try_readonly().ok()?,
-            z: self.z.as_ref(py).try_readonly().ok()?,
-            phases: self.phases.as_ref(py).try_readonly().ok()?,
-            coeffs: self.coeffs.as_ref(py).try_readonly().ok()?,
+            x: self.x.bind(py).try_readonly().ok()?,
+            z: self.z.bind(py).try_readonly().ok()?,
+            phases: self.phases.bind(py).try_readonly().ok()?,
+            coeffs: self.coeffs.bind(py).try_readonly().ok()?,
         })
     }
 }
@@ -357,10 +359,10 @@ pub fn decompose_dense(
     }
     if coeffs.is_empty() {
         Ok(ZXPaulis {
-            z: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            x: PyArray2::zeros(py, [0, num_qubits], false).into(),
-            phases: PyArray1::zeros(py, [0], false).into(),
-            coeffs: PyArray1::zeros(py, [0], false).into(),
+            z: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            x: PyArray2::zeros_bound(py, [0, num_qubits], false).into(),
+            phases: PyArray1::zeros_bound(py, [0], false).into(),
+            coeffs: PyArray1::zeros_bound(py, [0], false).into(),
         })
     } else {
         // Constructing several arrays of different shapes at once is rather awkward in iterator
@@ -400,10 +402,10 @@ pub fn decompose_dense(
         let x = unsafe { x.assume_init() };
         let phases = unsafe { phases.assume_init() };
         Ok(ZXPaulis {
-            z: z.into_pyarray(py).into(),
-            x: x.into_pyarray(py).into(),
-            phases: phases.into_pyarray(py).into(),
-            coeffs: PyArray1::from_vec(py, coeffs).into(),
+            z: z.into_pyarray_bound(py).into(),
+            x: x.into_pyarray_bound(py).into(),
+            phases: phases.into_pyarray_bound(py).into(),
+            coeffs: PyArray1::from_vec_bound(py, coeffs).into(),
         })
     }
 }
@@ -497,11 +499,11 @@ fn decompose_dense_inner(
 /// Convert the given [ZXPaulis] object to a dense 2D Numpy matrix.
 #[pyfunction]
 #[pyo3(signature = (/, paulis, force_serial=false))]
-pub fn to_matrix_dense(
-    py: Python,
+pub fn to_matrix_dense<'py>(
+    py: Python<'py>,
     paulis: &ZXPaulis,
     force_serial: bool,
-) -> PyResult<Py<PyArray2<Complex64>>> {
+) -> PyResult<Bound<'py, PyArray2<Complex64>>> {
     let paulis_readonly = paulis
         .try_readonly(py)
         .ok_or_else(|| PyRuntimeError::new_err("could not produce a safe view onto the data"))?;
@@ -510,9 +512,7 @@ pub fn to_matrix_dense(
     let side = 1usize << paulis.num_qubits();
     let parallel = !force_serial && crate::getenv_use_multiple_threads();
     let out = to_matrix_dense_inner(&paulis, parallel);
-    Ok(PyArray1::from_vec(py, out)
-        .reshape([side, side])?
-        .to_owned())
+    PyArray1::from_vec_bound(py, out).reshape([side, side])
 }
 
 /// Inner worker of the Python-exposed [to_matrix_dense].  This is separate primarily to allow
@@ -590,9 +590,9 @@ pub fn to_matrix_sparse(
     {
         let (values, indices, indptr) = csr_data;
         (
-            PyArray1::from_vec(py, values).to_owned(),
-            PyArray1::from_vec(py, indices).to_owned(),
-            PyArray1::from_vec(py, indptr).to_owned(),
+            PyArray1::from_vec_bound(py, values),
+            PyArray1::from_vec_bound(py, indices),
+            PyArray1::from_vec_bound(py, indptr),
         )
             .into_py(py)
     }
@@ -820,7 +820,7 @@ impl_to_matrix_sparse!(
 );
 
 #[pymodule]
-pub fn sparse_pauli_op(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn sparse_pauli_op(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(unordered_unique))?;
     m.add_wrapped(wrap_pyfunction!(decompose_dense))?;
     m.add_wrapped(wrap_pyfunction!(to_matrix_dense))?;

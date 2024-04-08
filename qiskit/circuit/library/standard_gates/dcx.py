@@ -69,3 +69,6 @@ class DCXGate(SingletonGate):
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, DCXGate)

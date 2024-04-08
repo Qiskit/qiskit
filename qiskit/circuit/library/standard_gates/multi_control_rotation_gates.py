@@ -14,6 +14,7 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
+import math
 from typing import Optional, Union, Tuple, List
 import numpy as np
 
@@ -123,6 +124,9 @@ def _mcsu2_real_diagonal(
     if not is_unitary_matrix(unitary):
         raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
 
+    if not np.isclose(1.0, np.linalg.det(unitary)):
+        raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
+
     is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
     is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
         unitary[1, 0].imag, 0.0
@@ -141,18 +145,20 @@ def _mcsu2_real_diagonal(
     if np.isclose(z, -1):
         s_op = [[1.0, 0.0], [0.0, 1.0j]]
     else:
-        alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-        alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (
+            2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+        )
         alpha = alpha_r + 1.0j * alpha_i
-        beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
 
         # S gate definition
         s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
     s_gate = UnitaryGate(s_op)
 
-    k_1 = int(np.ceil(num_controls / 2.0))
-    k_2 = int(np.floor(num_controls / 2.0))
+    k_1 = math.ceil(num_controls / 2.0)
+    k_2 = math.floor(num_controls / 2.0)
 
     ctrl_state_k_1 = None
     ctrl_state_k_2 = None
