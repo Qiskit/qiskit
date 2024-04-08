@@ -12,9 +12,15 @@
 
 #![allow(clippy::too_many_arguments)]
 
+use std::{
+    borrow::Borrow,
+    hash::{Hash, Hasher},
+};
+
 use hashbrown::{HashMap, HashSet};
 use pyo3::{prelude::*, pyclass, types::PyDict};
 
+// TEMPORARY: until I can wrap around Python class
 pub fn is_instance(py: Python<'_>, object: &PyObject, class_names: HashSet<String>) -> bool {
     // Get type name
     let type_name: Option<String> = match object.getattr(py, "__class__").ok() {
@@ -31,12 +37,62 @@ pub fn is_instance(py: Python<'_>, object: &PyObject, class_names: HashSet<Strin
     }
 }
 
+// TEMPORARY: until I can wrap python class.
 pub fn is_class(py: Python<'_>, object: &PyObject) -> bool {
     // If item is a Class, it must have __name__ property.
     object.getattr(py, "__name__").is_ok()
 }
 
-#[pyclass(module = "qiskit._accelerate.target")]
+// TEMPORARY: Helper function to import class or method from function.
+pub fn import_from_module<'a>(py: Python<'a>, module: &str, method: &str) -> Bound<'a, PyAny> {
+    match py.import_bound(module) {
+        Ok(py_mod) => match py_mod.getattr(method) {
+            Ok(obj) => obj,
+            Err(e) => panic!(
+                "Could not find '{:?} in module '{:?}': {:?}.",
+                method.to_string(),
+                module.to_string(),
+                e
+            ),
+        },
+        Err(e) => panic!("Could not find module '{:?}': {:?}", &module, e),
+    }
+}
+
+#[derive(Eq, PartialEq, Clone, Debug)]
+struct Qargs {
+    pub qargs: Vec<u32>,
+}
+
+impl Hash for Qargs {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for qarg in self.qargs.iter() {
+            qarg.hash(state);
+        }
+    }
+}
+
+// TEMPORARY: Helper function to import class or method from function.
+pub fn import_from_module_call<'a>(
+    py: Python<'a>,
+    module: &str,
+    method: &str,
+    args: Option<()>,
+) -> Bound<'a, PyAny> {
+    let result = import_from_module(py, module, method);
+    match args {
+        Some(arg) => match result.call1(arg) {
+            Ok(res) => res,
+            Err(e) => panic!("Could not call on method '{:?}': {:?}", method, e),
+        },
+        None => match result.call0() {
+            Ok(res) => res,
+            Err(e) => panic!("Could not call on method '{:?}': {:?}", method, e),
+        },
+    }
+}
+
+#[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
     #[pyo3(get)]
@@ -78,7 +134,7 @@ impl InstructionProperties {
             &calibration,
             HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()]),
         ) {
-            // Import calibration_entries module
+            // TEMPORARY: Import calibration_entries module
             let module = match py.import_bound("qiskit.pulse.calibration_entries") {
                 Ok(module) => module,
                 Err(e) => panic!(
@@ -86,13 +142,13 @@ impl InstructionProperties {
                     e
                 ),
             };
-            // Import SchedDef class object
+            // TEMPORARY: Import SchedDef class object
             let sched_def = match module.call_method0("ScheduleDef") {
                 Ok(sched) => sched.to_object(py),
                 Err(e) => panic!("Failed to import the 'ScheduleDef' class: {:?}", e),
             };
 
-            // Send arguments for the define call.
+            // TEMPORARY: Send arguments for the define call.
             let args = (&calibration, true);
             // Peform the function call.
             sched_def.call_method1(py, "define", args).ok();
@@ -104,7 +160,7 @@ impl InstructionProperties {
     }
 }
 
-#[pyclass(mapping, module = "qiskit._accelerate.target")]
+#[pyclass(mapping, module = "qiskit._accelerate.target.Target")]
 #[derive(Clone, Debug)]
 pub struct Target {
     #[pyo3(get, set)]
@@ -112,7 +168,7 @@ pub struct Target {
     #[pyo3(get)]
     pub num_qubits: usize,
     #[pyo3(get)]
-    pub dt: f32,
+    pub dt: Option<f32>,
     #[pyo3(get)]
     pub granularity: i32,
     #[pyo3(get)]
@@ -126,11 +182,10 @@ pub struct Target {
     #[pyo3(get)]
     pub concurrent_measurements: Vec<HashSet<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
-    gate_map: HashMap<String, HashMap<isize, PyObject>>,
+    gate_map: HashMap<String, HashMap<Qargs, PyObject>>,
     gate_name_map: HashMap<String, PyObject>,
     global_operations: HashMap<usize, HashSet<String>>,
-    qarg_gate_map: HashMap<isize, HashSet<String>>,
-    qarg_hash_table: HashMap<isize, Vec<usize>>,
+    qarg_gate_map: HashMap<Qargs, HashSet<String>>,
     instructions_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
 }
@@ -161,7 +216,7 @@ impl Target {
         Target {
             description: description.unwrap_or("".to_string()),
             num_qubits: num_qubits.unwrap_or(0),
-            dt: dt.unwrap_or(0.0),
+            dt: dt,
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
             pulse_alignment: pulse_alignment.unwrap_or(1),
@@ -172,7 +227,6 @@ impl Target {
             gate_name_map: HashMap::new(),
             global_operations: HashMap::new(),
             qarg_gate_map: HashMap::new(),
-            qarg_hash_table: HashMap::new(),
             instructions_durations: Option::None,
             instruction_schedule_map: Option::None,
         }
@@ -242,7 +296,7 @@ impl Target {
             .insert(instruction_name.clone(), instruction);
 
         // TEMPORARY: Build qargs with hashed qargs.
-        let mut qargs_val: HashMap<isize, PyObject> = HashMap::new();
+        let mut qargs_val: HashMap<Qargs, PyObject> = HashMap::new();
         if !is_class {
             // If no properties
             if properties.is_empty() {
@@ -261,38 +315,38 @@ impl Target {
 
             // Obtain nested qarg hashmap
             for (qarg, values) in properties {
-                // Obtain qarg hash for mapping
-                let qarg_hash = match qarg.hash() {
-                    Ok(vec) => vec,
-                    Err(e) => panic!(
-                        "Failed to hash q_args from the provided properties: {:?}.",
-                        e
-                    ),
-                };
+                // // Obtain qarg hash for mapping
+                // let qarg_hash = match qarg.hash() {
+                //     Ok(vec) => vec,
+                //     Err(e) => panic!(
+                //         "Failed to hash q_args from the provided properties: {:?}.",
+                //         e
+                //     ),
+                // };
                 // Obtain values of qargs
-                let qarg = match qarg.extract::<Vec<usize>>().ok() {
-                    Some(vec) => vec,
-                    None => vec![],
+                let qarg = match qarg.extract::<Vec<u32>>().ok() {
+                    Some(vec) => Qargs { qargs: vec },
+                    None => Qargs { qargs: vec![] },
                 };
                 // Store qargs hash value.
-                self.qarg_hash_table.insert(qarg_hash, qarg.clone());
-                if !qarg.is_empty() && qarg.len() != instruction_num_qubits {
-                    panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg)
+                // self.qarg_hash_table.insert(qarg_hash, qarg.clone());
+                if !qarg.qargs.is_empty() && qarg.qargs.len() != instruction_num_qubits {
+                    panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg.qargs)
                 }
-                if !qarg.is_empty() {
+                if !qarg.qargs.is_empty() {
                     self.num_qubits = self
                         .num_qubits
-                        .max(qarg.iter().cloned().fold(0, usize::max) + 1)
+                        .max(qarg.qargs.iter().cloned().fold(0, u32::max) as usize + 1)
                 }
-                qargs_val.insert(qarg_hash, values.to_object(py));
-                if self.qarg_gate_map.contains_key(&qarg_hash) {
+                qargs_val.insert(qarg.clone(), values.to_object(py));
+                if self.qarg_gate_map.contains_key(&qarg) {
                     self.qarg_gate_map
-                        .get_mut(&qarg_hash)
+                        .get_mut(&qarg)
                         .unwrap()
                         .insert(instruction_name.clone());
                 } else {
                     self.qarg_gate_map
-                        .insert(qarg_hash, HashSet::from([instruction_name.clone()]));
+                        .insert(qarg, HashSet::from([instruction_name.clone()]));
                 }
             }
         }
@@ -315,52 +369,161 @@ impl Target {
             properties (InstructionProperties): The properties to set for this instruction
         Raises:
             KeyError: If ``instruction`` or ``qarg`` are not in the target */
-        
+
         // For debugging
-        // println!(
-        //     "Before - {:?}: {:?}",
-        //     instruction, self.gate_map[&instruction]
-        // );
+        println!(
+            "Before - {:?}: {:?}",
+            instruction, self.gate_map[&instruction]
+        );
         if !self.gate_map.contains_key(&instruction) {
             panic!(
                 "Provided instruction : '{:?}' not in this Target.",
                 &instruction
             );
         };
-        if !self.gate_map[&instruction].contains_key(&qargs.hash().ok().unwrap()) {
+        let qargs = match qargs.extract::<Vec<u32>>().ok() {
+            Some(vec) => Qargs { qargs: vec },
+            None => Qargs { qargs: vec![] },
+        };
+        if !self.gate_map[&instruction].contains_key(&qargs) {
             panic!(
                 "Provided qarg {:?} not in this Target for {:?}.",
                 &qargs, &instruction
             );
         }
         self.gate_map.get_mut(&instruction).map(|q_vals| {
-            *q_vals.get_mut(&qargs.hash().ok().unwrap()).unwrap() = properties;
+            *q_vals.get_mut(&qargs).unwrap() = properties;
             Some(())
         });
         self.instructions_durations = Option::None;
         self.instruction_schedule_map = Option::None;
-        // println!(
-        //     "After - {:?}: {:?}",
-        //     instruction, self.gate_map[&instruction]
-        // );
+        println!(
+            "After - {:?}: {:?}",
+            instruction, self.gate_map[&instruction]
+        );
     }
 
     #[getter]
-    fn instructions(&self) -> PyResult<Vec<(PyObject, Vec<usize>)>> {
+    fn instructions(&self) -> PyResult<Vec<(PyObject, Vec<u32>)>> {
         // Get list of instructions.
-        let mut instruction_list: Vec<(PyObject, Vec<usize>)> = vec![];
+        let mut instruction_list: Vec<(PyObject, Vec<u32>)> = vec![];
         // Add all operations and dehash qargs.
         for op in self.gate_map.keys() {
             for qarg in self.gate_map[op].keys() {
-                let instruction_pair = (
-                    self.gate_name_map[op].clone(),
-                    self.qarg_hash_table[qarg].clone(),
-                );
+                let instruction_pair = (self.gate_name_map[op].clone(), qarg.qargs.clone());
                 instruction_list.push(instruction_pair);
             }
         }
         // Return results.
         Ok(instruction_list)
+    }
+
+    #[pyo3(text_signature = "(/, inst_map, inst_name_map=None, error_dict=None")]
+    fn update_from_instruction_schedule_map(
+        &self,
+        py: Python<'_>,
+        inst_map: PyObject,
+        inst_name_map: Option<Bound<PyDict>>,
+        error_dict: Option<Bound<PyDict>>,
+    ) {
+        let get_calibration = match inst_map.getattr(py, "_get_calibration_entry") {
+            Ok(calibration) => calibration,
+            Err(e) => panic!(
+                "Could not extract calibration from the provided Instruction map: {:?}",
+                e
+            ),
+        };
+
+        // Expand name mapping with custom gate namer provided by user.
+        // TEMPORARY: Get arround improting this module and function, will be fixed after python wrapping.
+        let qiskit_inst_name_map = import_from_module_call(
+            py,
+            "qiskit.circuit.library.standard_gates",
+            "get_standard_gate_name_mapping",
+            None,
+        );
+
+        // Update with inst_name_map if possible.
+        if inst_name_map.is_some() {
+            let _ = qiskit_inst_name_map.call_method1("update", (inst_name_map.unwrap(),));
+        }
+
+        while let Ok(inst_name) = inst_map.getattr(py, "instruction") {
+            let inst_name = inst_name.extract::<String>(py).ok().unwrap();
+            let mut out_props: HashMap<Qargs, PyObject> = HashMap::new();
+            while let Ok(qargs) =
+                inst_map.call_method1(py, "qubits_with_instruction", (&inst_name,))
+            {
+                let qargs = match qargs.extract::<Vec<u32>>(py).ok() {
+                    Some(qargs) => Qargs { qargs },
+                    None => Qargs {
+                        qargs: vec![qargs.extract::<u32>(py).ok().unwrap()],
+                    },
+                };
+                let mut props = self.gate_map[&inst_name].get(&qargs);
+                let entry = match get_calibration.call1(py, (&inst_name, qargs.qargs.clone())) {
+                    Ok(ent) => ent,
+                    Err(e) => panic!(
+                        "Could not obtain calibration with '{:?}' : {:?}.",
+                        inst_name, e
+                    ),
+                };
+                if entry.getattr(py, "user_provided").is_ok_and(|res| res.extract::<bool>(py).unwrap_or(false)) && 
+                // TEMPORAL: Compare using __eq__
+                !props.unwrap().getattr(py, "_calibration").unwrap().call_method1(py, "__eq__", (&entry,)).unwrap().extract::<bool>(py).unwrap_or(false)
+                {
+                    let duration: Option<f32>;
+                    if self.dt.is_some() {
+                        let entry_duration = entry
+                            .call_method0(py, "get_schedule")
+                            .unwrap()
+                            .getattr(py, "duration");
+                        duration = if entry_duration.is_ok() {
+                            Some(
+                                entry_duration.unwrap().extract::<f32>(py).unwrap()
+                                    * self.dt.unwrap(),
+                            )
+                        } else {
+                            None
+                        }
+                    } else {
+                        duration = None;
+                    }
+                    // TODO: Create InstructionProperty for this
+                    // props = Some(InstructionProperties::new(duration, None, Some(entry)).into_py(py));
+                } else {
+                    if props.is_none() {
+                        // Edge case. Calibration is backend defined, but this is not
+                        // registered in the backend target. Ignore this entry.
+                        continue;
+                    }
+                }
+
+                // TEMPORARY until a better way is found
+                // WIP: Change python attributes from rust.
+
+                // let gate_error = match &error_dict {
+                //     Some(error_dic) => match error_dic.get_item(&inst_name).unwrap_or(None) {
+                //         Some(gate) => match gate.downcast_into::<PyDict>().ok() {
+                //             Some(gate_dict) => match gate_dict.get_item(qargs.qargs).ok() {
+                //                 Some(error) => error,
+                //                 None => None,
+                //             },
+                //             None => None,
+                //         },
+                //         None => None,
+                //     },
+                //     None => None,
+                // };
+                // // if gate_error.is_some() {
+                // //     props.unwrap().error = gate_error.unwrap().into_py(py);
+                // // }
+
+                if let Some(x) = out_props.get_mut(&qargs) {
+                    *x = props.unwrap().into_py(py)
+                };
+            }
+        }
     }
 }
 
