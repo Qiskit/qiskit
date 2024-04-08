@@ -12,7 +12,10 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use std::hash::{Hash, Hasher};
+use std::{
+    borrow::BorrowMut,
+    hash::{Hash, Hasher},
+};
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{
@@ -349,7 +352,7 @@ impl Target {
                 }
             }
         }
-        self.gate_map.insert(instruction_name, qargs_val);
+        self.gate_map.insert(instruction_name.clone(), qargs_val);
     }
 
     #[pyo3(text_signature = "(/, instruction, qargs, properties)")]
@@ -370,10 +373,6 @@ impl Target {
             KeyError: If ``instruction`` or ``qarg`` are not in the target */
 
         // For debugging
-        println!(
-            "Before - {:?}: {:?}",
-            instruction, self.gate_map[&instruction]
-        );
         if !self.gate_map.contains_key(&instruction) {
             panic!(
                 "Provided instruction : '{:?}' not in this Target.",
@@ -394,12 +393,8 @@ impl Target {
             *q_vals.get_mut(&qargs).unwrap() = properties;
             Some(())
         });
-        self.instructions_durations = Option::None;
-        self.instruction_schedule_map = Option::None;
-        println!(
-            "After - {:?}: {:?}",
-            instruction, self.gate_map[&instruction]
-        );
+        self.instructions_durations = None;
+        self.instruction_schedule_map = None;
     }
 
     #[getter]
@@ -466,17 +461,17 @@ impl Target {
                         inst_name, e
                     ),
                 };
-                if entry.getattr(py, "user_provided").is_ok_and(|res| res.extract::<bool>(py).unwrap_or(false)) && 
+                if entry.getattr(py, "user_provided").is_ok_and(|res| res.extract::<bool>(py).unwrap()) && 
                 // TEMPORAL: Compare using __eq__
-                !props.getattr(py, "_calibration").unwrap().call_method1(py, "__eq__", (&entry,)).unwrap().extract::<bool>(py).unwrap_or(false)
+                !props.getattr(py, "_calibration").unwrap().call_method1(py, "__eq__", (&entry,)).unwrap().extract::<bool>(py).unwrap()
                 {
-                    let duration: Option<f32> = if self.dt.is_some() {
+                    let duration: Option<f32> = if let Some(dt) = self.dt {
                         let entry_duration = entry
                             .call_method0(py, "get_schedule")
                             .unwrap()
                             .getattr(py, "duration");
                         if let Ok(entry_dur) = entry_duration {
-                            Some(entry_dur.extract::<f32>(py).unwrap() * self.dt.unwrap())
+                            Some(entry_dur.extract::<f32>(py).unwrap() * dt)
                         } else {
                             None
                         }
@@ -485,14 +480,13 @@ impl Target {
                     };
 
                     // TEMPORAL: Use Python counterpart
-                    let obtained_props = import_from_module_call1(
+                    props = import_from_module_call1(
                         py,
                         "qiskit.transpiler.target",
                         "InstructionProperties",
-                        (duration, None::<f32>, entry),
+                        (duration, None::<f32>, Some(entry)),
                     )
                     .to_object(py);
-                    props = obtained_props;
                 } else if props.is_none(py) {
                     // Edge case. Calibration is backend defined, but this is not
                     // registered in the backend target. Ignore this entry.
@@ -503,13 +497,12 @@ impl Target {
                 // WIP: Change python attributes from rust.
                 // WARNING: I don't exactly know whether assign_elem does what I want it to do.
                 let gate_error = match &error_dict {
-                    Some(error_dict) => match error_dict.get_item(&inst_name).unwrap() {
+                    Some(error_dict) => match error_dict.get_item(&inst_name).unwrap_or_default() {
                         Some(inst_err) => inst_err
-                            .to_object(py)
-                            .downcast_bound::<PyDict>(py)
-                            .unwrap()
+                            .downcast::<PyDict>()
+                            .unwrap_or(PyDict::new_bound(py).borrow_mut())
                             .get_item(PyTuple::new_bound(py, &qargs.vec))
-                            .unwrap(),
+                            .unwrap_or_default(),
                         None => None,
                     },
                     None => None,
@@ -530,12 +523,13 @@ impl Target {
 
                 // Prepare Qiskit Gate object assigned to the entries
                 if !self.gate_map.contains_key(&inst_name) {
-                    if qiskit_inst_name_map
-                        .call_method1("__contains__", (&inst_name,))
-                        .unwrap()
-                        .extract::<bool>()
-                        .unwrap()
+                    if if let Ok(q_inst_map) =
+                        qiskit_inst_name_map.call_method1("__contains__", (&inst_name,))
                     {
+                        q_inst_map.extract::<bool>().unwrap_or_default()
+                    } else {
+                        false
+                    } {
                         let inst_obj: PyObject = qiskit_inst_name_map
                             .get_item(&inst_name)
                             .unwrap()
@@ -562,6 +556,7 @@ impl Target {
                             normalized_props_dict
                                 .set_item(PyTuple::new_bound(py, qargs.vec.clone()), *value)
                         });
+
                         self.add_instruction(
                             py,
                             inst_obj,
@@ -654,6 +649,44 @@ impl Target {
                 }
             }
         }
+    }
+
+    #[pyo3(text_signature = "/")]
+    fn instruction_schedule_map(&mut self, py: Python<'_>) -> Option<PyObject> {
+        /*
+        Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
+        instructions in the target with a pulse schedule defined.
+
+        Returns:
+            InstructionScheduleMap: The instruction schedule map for the
+            instructions in this target with a pulse schedule defined.
+         */
+        if self.instruction_schedule_map.is_some() {
+            return self.instruction_schedule_map.clone();
+        }
+        let out_inst_schedule_map = 
+            import_from_module_call0(
+                py,
+                "qiskit.pulse.instruction_schedule_map",
+                "InstructionScheduleMap",
+            )
+            .to_object(py);
+        for (instruction, qargs) in self.gate_map.iter() {
+            for (qarg, properties) in qargs.iter() {
+                // Directly getting calibration entry to invoke .get_schedule().
+                // This keeps PulseQobjDef unparsed.
+                let cal_entry = properties.getattr(py, "_calibration").ok();
+                if let Some(cal_entry) = cal_entry {
+                    let _ = out_inst_schedule_map.call_method1(
+                        py,
+                        "_add",
+                        (instruction, qarg.vec.clone(), cal_entry),
+                    );
+                }
+            }
+        }
+        self.instruction_schedule_map = Some(out_inst_schedule_map.clone());
+        Some(out_inst_schedule_map)
     }
 }
 
