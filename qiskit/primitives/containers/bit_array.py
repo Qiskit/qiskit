@@ -347,3 +347,31 @@ class BitArray(ShapedMixin):
         else:
             raise ValueError("Cannot change the size of the array.")
         return BitArray(self._array.reshape(shape), self.num_bits)
+
+    def transpose(self, axes: tuple[int, ...] | list[int] | None = None) -> "BitArray":
+        """Return a bit array with axes transposed.
+
+        Args:
+            axes: tuple or list of ints, optional. See
+                `numpy.transpose
+                <https://numpy.org/doc/stable/reference/generated/numpy.transpose.html>`_
+                for the details.
+
+        Returns:
+            BitArray: a bit array with axes permuted.
+
+        Raises:
+            ValueError: if ``axes`` don't match this bit array.
+            ValueError: if ``axes`` includes any indices that are out of bounds.
+        """
+        if axes is None:
+            axes = tuple(range(self.ndim)[::-1])
+        if len(axes) != self.ndim:
+            raise ValueError("axes don't match bit array")
+        for i in axes:
+            if i >= self.ndim or self.ndim + i < 0:
+                raise ValueError(
+                    f"axis {i} is out of bounds for bit array of dimension {self.ndim}."
+                )
+        axes = tuple(i if i >= 0 else self.ndim + i for i in axes) + (-2, -1)
+        return BitArray(self._array.transpose(axes), self.num_bits)

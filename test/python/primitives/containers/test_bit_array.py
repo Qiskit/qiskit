@@ -282,3 +282,55 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(ba.reshape(360 * 2, 16).shape, (720,))
         self.assertEqual(ba.reshape(360 * 2, 16).num_shots, 16)
         self.assertEqual(ba.reshape(360 * 2, 16).num_bits, 15)
+
+    def test_transpose(self):
+        """Test the transpose method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        # Since the input dtype is uint16, bit array requires at least two u8.
+        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("default arg"):
+            ba2 = ba.transpose()
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
+
+        with self.subTest("arg 1"):
+            ba2 = ba.transpose((2, 1, 0))
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
+
+        with self.subTest("arg 2"):
+            ba2 = ba.transpose((0, 1, 2))
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
+
+        with self.subTest("arg 3"):
+            ba2 = ba.transpose((0, 2, 1))
+            self.assertEqual(ba2.shape, (1, 3, 2))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
+
+        with self.subTest("negative indices"):
+            ba2 = ba.transpose((0, -1, -2))
+            self.assertEqual(ba2.shape, (1, 3, 2))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
+                _ = ba.transpose((0, 1))
+            with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
+                _ = ba.transpose((0, 1, 2, 3))
+            with self.assertRaisesRegex(ValueError, "axis [0-9]+ is out of bounds for bit array"):
+                _ = ba.transpose((0, 1, 4))
+            with self.assertRaisesRegex(ValueError, "axis -[0-9]+ is out of bounds for bit array"):
+                _ = ba.transpose((0, 1, -4))
+            with self.assertRaisesRegex(ValueError, "repeated axis in transpose"):
+                _ = ba.transpose((0, 1, 1))
