@@ -87,7 +87,7 @@ class PhaseOracle(QuantumCircuit):
 
         super().__init__(oracle.num_qubits, name="Phase Oracle")
 
-        self.compose(oracle, inplace=True)
+        self.compose(oracle, inplace=True, copy=False)
 
     def evaluate_bitstring(self, bitstring: str) -> bool:
         """Evaluate the oracle on a bitstring.
