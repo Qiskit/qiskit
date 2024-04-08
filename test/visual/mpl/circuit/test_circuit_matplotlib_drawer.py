@@ -836,9 +836,13 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         circuit = QuantumCircuit(3)
         circuit.h(1)
+
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(5, coupling_map=TENERIFE_CMAP)
+
         transpiled = transpile(
             circuit,
-            backend=GenericBackendV2(5, coupling_map=TENERIFE_CMAP),
+            backend=backend,
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
@@ -2178,7 +2182,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 qc.cx(0, 1)
             with case(case.DEFAULT):
                 qc.h(0)
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
@@ -2211,7 +2216,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with case(case.DEFAULT):
                 with qc.if_test((creg[1], 0)):
                     qc.h(0)
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=0)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=0)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         backend.target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
@@ -2278,7 +2284,8 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
         See https://github.com/Qiskit/qiskit-terra/issues/11038"""
-        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=42)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=42)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 1)

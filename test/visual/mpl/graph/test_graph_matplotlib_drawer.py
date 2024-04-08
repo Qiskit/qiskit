@@ -389,7 +389,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=1)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=1)
 
         fname = "1_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -407,7 +408,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 5 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "5_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -425,7 +427,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 7 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "7_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -443,7 +446,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 16 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
 
         fname = "16_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -461,7 +465,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 27 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
 
         fname = "27_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -479,7 +484,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """test for plot_gate_map using 65 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "65_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
@@ -497,7 +503,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test figsize parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "figsize.png"
         self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename=fname)
@@ -515,7 +522,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_size parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
 
         fname = "qubit_size.png"
         self.graph_plot_gate_map(backend=backend, qubit_size=38, filename=fname)
@@ -533,7 +541,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "qubit_color.png"
         self.graph_plot_gate_map(backend=backend, qubit_color=["#ff0000"] * 7, filename=fname)
@@ -551,7 +560,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_labels parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
 
         fname = "qubit_labels.png"
         self.graph_plot_gate_map(
@@ -571,7 +581,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test line_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "line_color.png"
         self.graph_plot_gate_map(backend=backend, line_color=["#00ff00"] * 144, filename=fname)
@@ -589,7 +600,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
-        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+        with self.assertWarns(DeprecationWarning):
+            backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         fname = "font_color.png"
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename=fname)
