@@ -18,14 +18,17 @@ use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
+use std::ops::Deref;
 
-use pyo3::exceptions::{PyIndexError, PyTypeError};
+use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
+use pyo3::pybacked::PyBackedStr;
 
 use crate::utils::SliceOrInt;
 
@@ -571,28 +574,37 @@ pub enum EulerBasis {
     XZX,
 }
 
-#[pymethods]
 impl EulerBasis {
-    #![allow(clippy::wrong_self_convention)]
-    pub fn to_str(&self) -> String {
+    pub fn as_str(&self) -> &'static str {
         match self {
-            Self::U321 => "U321".to_string(),
-            Self::U3 => "U3".to_string(),
-            Self::U => "U".to_string(),
-            Self::PSX => "PSX".to_string(),
-            Self::ZSX => "ZSX".to_string(),
-            Self::ZSXX => "ZSXX".to_string(),
-            Self::U1X => "U1X".to_string(),
-            Self::RR => "RR".to_string(),
-            Self::ZYZ => "ZYZ".to_string(),
-            Self::ZXZ => "ZXZ".to_string(),
-            Self::XYX => "XYX".to_string(),
-            Self::XZX => "XZX".to_string(),
+            Self::U321 => "U321",
+            Self::U3 => "U3",
+            Self::U => "U",
+            Self::PSX => "PSX",
+            Self::ZSX => "ZSX",
+            Self::ZSXX => "ZSXX",
+            Self::U1X => "U1X",
+            Self::RR => "RR",
+            Self::ZYZ => "ZYZ",
+            Self::ZXZ => "ZXZ",
+            Self::XYX => "XYX",
+            Self::XZX => "XZX",
         }
     }
+}
 
-    #[staticmethod]
-    pub fn from_string(input: &str) -> PyResult<Self> {
+#[pymethods]
+impl EulerBasis {
+    fn __reduce__(&self, py: Python) -> Py<PyAny> {
+        (
+            py.get_type_bound::<Self>(),
+            (PyString::new_bound(py, self.as_str()),),
+        )
+            .into_py(py)
+    }
+
+    #[new]
+    pub fn from_str(input: &str) -> PyResult<Self> {
         let res = match input {
             "U321" => EulerBasis::U321,
             "U3" => EulerBasis::U3,
@@ -607,8 +619,8 @@ impl EulerBasis {
             "XYX" => EulerBasis::XYX,
             "XZX" => EulerBasis::XZX,
             basis => {
-                return Err(PyTypeError::new_err(format!(
-                    "Invalid target basis {basis}"
+                return Err(PyValueError::new_err(format!(
+                    "Invalid target basis '{basis}'"
                 )));
             }
         };
@@ -694,7 +706,7 @@ pub fn compute_error_list(
 #[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
-    target_basis_list: Vec<&str>,
+    target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
@@ -702,7 +714,7 @@ pub fn unitary_to_gate_sequence(
 ) -> PyResult<Option<OneQubitGateSequence>> {
     let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
     for basis in target_basis_list {
-        let basis_enum = EulerBasis::from_string(basis)?;
+        let basis_enum = EulerBasis::from_str(basis.deref())?;
         target_basis_vec.push(basis_enum)
     }
     let unitary_mat = unitary.as_array();
@@ -867,7 +879,7 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 }
 
 #[pymodule]
-pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;
     m.add_wrapped(wrap_pyfunction!(params_xzx))?;
@@ -880,5 +892,6 @@ pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
     m.add_class::<OneQubitGateSequence>()?;
     m.add_class::<OneQubitGateErrorMap>()?;
+    m.add_class::<EulerBasis>()?;
     Ok(())
 }

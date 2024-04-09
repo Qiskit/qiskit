@@ -16,6 +16,7 @@ Superoperator representation of a Quantum Channel."""
 from __future__ import annotations
 
 import copy
+import math
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -94,8 +95,8 @@ class SuperOp(QuantumChannel):
             super_mat = np.asarray(data, dtype=complex)
             # Determine total input and output dimensions
             dout, din = super_mat.shape
-            input_dim = int(np.sqrt(din))
-            output_dim = int(np.sqrt(dout))
+            input_dim = int(math.sqrt(din))
+            output_dim = int(math.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
             op_shape = OpShape.auto(

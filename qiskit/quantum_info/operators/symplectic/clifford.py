@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import functools
 import itertools
+import math
 import re
 from typing import Literal
 
@@ -973,7 +974,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     @staticmethod
     def _unitary_matrix_to_tableau(matrix):
         # pylint: disable=invalid-name
-        num_qubits = int(np.log2(len(matrix)))
+        num_qubits = int(math.log2(len(matrix)))
 
         stab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
         for i in range(num_qubits):

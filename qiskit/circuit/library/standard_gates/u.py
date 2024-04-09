@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+import cmath
 import copy
 import math
 from cmath import exp
@@ -339,12 +340,12 @@ class CUGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
         theta, phi, lam, gamma = (float(param) for param in self.params)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
-        a = numpy.exp(1j * gamma) * cos
-        b = -numpy.exp(1j * (gamma + lam)) * sin
-        c = numpy.exp(1j * (gamma + phi)) * sin
-        d = numpy.exp(1j * (gamma + phi + lam)) * cos
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        a = cmath.exp(1j * gamma) * cos
+        b = -cmath.exp(1j * (gamma + lam)) * sin
+        c = cmath.exp(1j * (gamma + phi)) * sin
+        d = cmath.exp(1j * (gamma + phi + lam)) * cos
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype

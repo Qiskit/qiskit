@@ -105,14 +105,14 @@ respectively loading a program indirectly from a named file and directly from a 
 .. note::
 
     While we are still in the exploratory release period, to use either function, the package
-    ``qiskit_qasm3_import`` must be installed.  This can be done by installing Qiskit Terra with the
+    ``qiskit_qasm3_import`` must be installed.  This can be done by installing Qiskit with the
     ``qasm3-import`` extra, such as by:
 
     .. code-block:: text
 
-        pip install qiskit-terra[qasm3-import]
+        pip install qiskit[qasm3-import]
 
-    We expect that this functionality will eventually be merged into core Terra, and no longer
+    We expect that this functionality will eventually be merged into Qiskit, and no longer
     require an optional import, but we do not yet have a timeline for this.
 
 .. autofunction:: load
