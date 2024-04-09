@@ -403,8 +403,9 @@ class StabilizerState(QuantumState):
         inserted between integers so that subsystems can be distinguished.
 
         Args:
-            outcome_bitstring (str): a target str to measure
-                    probabilities for
+            outcome_bitstring (None or str): targetted outcome bitstring
+                to perform a measurement calculation for, this will significantly
+                reduce the number of calculation performed (Default: None)
             qargs (None or list): subsystems to return probabilities for,
                     if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
@@ -713,7 +714,6 @@ class StabilizerState(QuantumState):
             qubits (range): range of qubits
             outcome (list[str]): outcome being built
             outcome_prob (float): probabilitiy of the outcome
-            ret (StabilizerState): stabilizer state performing the calculations
             probs (dict[str, float]): holds the outcomes and probabilitiy results
             outcome_bitstring (str): target outcome to measure which reduces measurements, None
                 if not targetting a specific target
@@ -731,7 +731,7 @@ class StabilizerState(QuantumState):
                 if not any(ret.clifford.stab_x[:, qubit]):
                     single_qubit_outcome: np.int64 = ret._measure_and_update(qubit, 0)
                     if outcome_bitstring is None or (
-                        int(outcome_bitstring[i : i + 1]) == single_qubit_outcome
+                        int(outcome_bitstring[i]) == single_qubit_outcome
                     ):
                         # No Target, or using Target and the single_qubit_outcome
                         # equals the desired target value, use current outcome_prob
@@ -739,7 +739,7 @@ class StabilizerState(QuantumState):
                     else:
                         # If the single_qubit_outcome does not equal the target
                         # then we know that the probability will be 0
-                        outcome[i] = str(outcome_bitstring[i : i + 1])
+                        outcome[i] = str(outcome_bitstring[i])
                         outcome_prob = 0
                 else:
                     qubit_for_branching = i
