@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit.library.data_preparation import Generalized_Uniform_Superposition_Gate
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase
 
 class TestGeneralizedUniformSuperposition(QiskitTestCase):
     """Test initialization with Generalized_Uniform_Superposition_Gate class"""
