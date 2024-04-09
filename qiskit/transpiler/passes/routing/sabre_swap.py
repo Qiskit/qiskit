@@ -29,7 +29,7 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
@@ -251,8 +251,13 @@ class SabreSwap(TransformationPass):
         )
         sabre_stop = time.perf_counter()
         logging.debug("Sabre swap algorithm execution complete in: %s", sabre_stop - sabre_start)
-
-        self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, final_permutation)))
+        final_layout = Layout(dict(zip(dag.qubits, final_permutation)))
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            self.property_set["final_layout"] = final_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         if self.fake_run:
             return dag
         return _apply_sabre_result(
@@ -309,6 +314,7 @@ def _build_sabre_dag(dag, num_physical_qubits, qubit_indices):
                     node._node_id,
                     [wire_map[x] for x in node.qargs],
                     cargs,
+                    getattr(node.op, "_directive", False),
                 )
             )
         return SabreDAG(num_physical_qubits, block_dag.num_clbits(), dag_list, node_blocks)

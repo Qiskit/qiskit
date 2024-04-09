@@ -16,6 +16,7 @@ Delay instruction (for circuit module).
 import numpy as np
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
@@ -23,18 +24,21 @@ class Delay(Instruction):
     """Do nothing and just delay/wait/idle for a specified duration."""
 
     def __init__(self, duration, unit="dt"):
-        """Create new delay instruction."""
+        """
+        Args:
+            duration: the length of time of the duration.  Given in units of ``unit``.
+            unit: the unit of the duration.  Must be ``"dt"`` or an SI-prefixed seconds unit.
+        """
         if unit not in {"s", "ms", "us", "ns", "ps", "dt"}:
             raise CircuitError("Unknown unit %s is specified." % unit)
 
         super().__init__("delay", 1, 0, params=[duration], unit=unit)
 
-    def inverse(self):
+    broadcast_arguments = Gate.broadcast_arguments
+
+    def inverse(self, annotated: bool = False):
         """Special case. Return self."""
         return self
-
-    def broadcast_arguments(self, qargs, cargs):
-        yield [qarg for sublist in qargs for qarg in sublist], []
 
     def c_if(self, classical, val):
         raise CircuitError("Conditional Delay is not yet implemented.")

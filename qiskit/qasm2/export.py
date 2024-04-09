@@ -139,9 +139,9 @@ def dumps(circuit: QuantumCircuit, /) -> str:
 
     # Mapping of instruction name to a pair of the source for a definition, and an OQ2 string
     # that includes the `gate` or `opaque` statement that defines the gate.
-    gates_to_define: collections.OrderedDict[
-        str, tuple[Instruction, str]
-    ] = collections.OrderedDict()
+    gates_to_define: collections.OrderedDict[str, tuple[Instruction, str]] = (
+        collections.OrderedDict()
+    )
 
     regless_qubits = [bit for bit in circuit.qubits if not circuit.find_bit(bit).registers]
     regless_clbits = [bit for bit in circuit.clbits if not circuit.find_bit(bit).registers]

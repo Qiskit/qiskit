@@ -15,13 +15,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Sequence
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.providers import Options
-from qiskit.utils.deprecation import deprecate_func
-
-from . import validation
 
 
 class BasePrimitive(ABC):
@@ -48,27 +43,3 @@ class BasePrimitive(ABC):
             **fields: The fields to update the options
         """
         self._run_options.update_options(**fields)
-
-    @staticmethod
-    @deprecate_func(since="0.46.0")
-    def _validate_circuits(
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-    ) -> tuple[QuantumCircuit, ...]:
-        return validation._validate_circuits(circuits)
-
-    @staticmethod
-    @deprecate_func(since="0.46.0")
-    def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
-        default: Sequence[Sequence[float]] | Sequence[float] | None = None,
-    ) -> tuple[tuple[float, ...], ...]:
-        return validation._validate_parameter_values(parameter_values, default=default)
-
-    @staticmethod
-    @deprecate_func(since="0.46.0")
-    def _cross_validate_circuits_parameter_values(
-        circuits: tuple[QuantumCircuit, ...], parameter_values: tuple[tuple[float, ...], ...]
-    ) -> None:
-        return validation._cross_validate_circuits_parameter_values(
-            circuits, parameter_values=parameter_values
-        )

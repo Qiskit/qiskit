@@ -137,8 +137,11 @@ Directives are operations to the quantum stack that are meant to be interpreted 
 the transpiler. In general, the transpiler or backend might optionally ignore them if there is no
 implementation for them.
 
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
 .. autosummary::
-   :toctree: ../stubs/
 
    Barrier
 
@@ -147,8 +150,11 @@ Standard Operations
 
 Operations are non-reversible changes in the quantum state of the circuit.
 
+..
+    This summary table deliberately does not generate toctree entries; these directives are "owned"
+    by ``qiskit.circuit``.
+
 .. autosummary::
-   :toctree: ../stubs/
 
    Measure
    Reset
@@ -330,7 +336,6 @@ Particular Quantum Circuits
    PhaseEstimation
    GroverOperator
    PhaseOracle
-   EvolvedOperatorAnsatz
    PauliEvolutionGate
    HamiltonianGate
    UnitaryOverlap
@@ -352,6 +357,7 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    PauliTwoDesign
    RealAmplitudes
    EfficientSU2
+   EvolvedOperatorAnsatz
    ExcitationPreserving
    QAOAAnsatz
 
@@ -559,6 +565,7 @@ from .n_local import (
     PauliTwoDesign,
     RealAmplitudes,
     EfficientSU2,
+    EvolvedOperatorAnsatz,
     ExcitationPreserving,
     QAOAAnsatz,
 )
@@ -577,5 +584,4 @@ from .iqp import IQP
 from .phase_estimation import PhaseEstimation
 from .grover_operator import GroverOperator
 from .phase_oracle import PhaseOracle
-from .evolved_operator_ansatz import EvolvedOperatorAnsatz
 from .overlap import UnitaryOverlap

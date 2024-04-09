@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :class:`.Barrier` class. When adding a
-    :class:`.Barrier` instance to a :class:`.QuantumCircuit` with the
-    :meth:`.QuantumCircuit.append` method previously there was no validation
-    that the size of the barrier matched the qargs specified.

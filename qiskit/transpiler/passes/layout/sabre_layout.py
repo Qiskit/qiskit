@@ -43,7 +43,7 @@ from qiskit._accelerate.sabre_swap import (
 from qiskit.transpiler.passes.routing.sabre_swap import _build_sabre_dag, _apply_sabre_result
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
-from qiskit.tools.parallel import CPU_COUNT
+from qiskit.utils.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ class SabreLayout(TransformationPass):
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
-        self.property_set["final_layout"] = Layout(
+        final_layout = Layout(
             {
                 mapped_dag.qubits[
                     component.coupling_map.graph[initial]
@@ -321,6 +321,12 @@ class SabreLayout(TransformationPass):
                 for initial, final in enumerate(component.final_permutation)
             }
         )
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = final_layout
+        else:
+            self.property_set["final_layout"] = final_layout.compose(
+                self.property_set["final_layout"], dag.qubits
+            )
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout

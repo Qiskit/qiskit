@@ -17,17 +17,24 @@ from __future__ import annotations
 
 from uuid import uuid4, UUID
 
+import symengine
+
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils import optionals as _optionals
 
 from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters.
+    """A compile-time symbolic parameter.
 
-    A parameter is a variable value that is not required to be fixed
-    at circuit definition.
+    The value of a :class:`Parameter` must be entirely determined before a circuit begins execution.
+    Typically this will mean that you should supply values for all :class:`Parameter`\\ s in a
+    circuit using :meth:`.QuantumCircuit.assign_parameters`, though certain hardware vendors may
+    allow you to give them a circuit in terms of these parameters, provided you also pass the values
+    separately.
+
+    This is the atom of :class:`.ParameterExpression`, and is itself an expression.  The numeric
+    value of a parameter need not be fixed while the circuit is being defined.
 
     Examples:
 
@@ -61,11 +68,10 @@ class Parameter(ParameterExpression):
     def __init__(
         self, name: str, *, uuid: UUID | None = None
     ):  # pylint: disable=super-init-not-called
-        """Create a new named :class:`Parameter`.
-
+        """
         Args:
             name: name of the ``Parameter``, used for visual representation. This can
-                be any unicode string, e.g. "ϕ".
+                be any Unicode string, e.g. "ϕ".
             uuid: For advanced usage only.  Override the UUID of this parameter, in order to make it
                 compare equal to some other parameter object.  By default, two parameters with the
                 same name do not compare equal to help catch shadowing bugs when two circuits
@@ -75,14 +81,7 @@ class Parameter(ParameterExpression):
         """
         self._name = name
         self._uuid = uuid4() if uuid is None else uuid
-        if not _optionals.HAS_SYMENGINE:
-            from sympy import Symbol
-
-            symbol = Symbol(name)
-        else:
-            import symengine
-
-            symbol = symengine.Symbol(name)
+        symbol = symengine.Symbol(name)
 
         self._symbol_expr = symbol
         self._parameter_keys = frozenset((self._hash_key(),))
@@ -102,11 +101,7 @@ class Parameter(ParameterExpression):
             return value
         # This is the `super().bind` case, where we're required to return a `ParameterExpression`,
         # so we need to lift the given value to a symbolic expression.
-        if _optionals.HAS_SYMENGINE:
-            from symengine import sympify
-        else:
-            from sympy import sympify
-        return ParameterExpression({}, sympify(value))
+        return ParameterExpression({}, symengine.sympify(value))
 
     def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
@@ -124,6 +119,16 @@ class Parameter(ParameterExpression):
         """Returns the name of the :class:`Parameter`."""
         return self._name
 
+    @property
+    def uuid(self) -> UUID:
+        """Returns the :class:`~uuid.UUID` of the :class:`Parameter`.
+
+        In advanced use cases, this property can be passed to the
+        :class:`Parameter` constructor to produce an instance that compares
+        equal to another instance.
+        """
+        return self._uuid
+
     def __str__(self):
         return self.name
 
@@ -138,7 +143,7 @@ class Parameter(ParameterExpression):
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
-            return self._uuid == other._uuid
+            return (self._uuid, self._name) == (other._uuid, other._name)
         elif isinstance(other, ParameterExpression):
             return super().__eq__(other)
         else:

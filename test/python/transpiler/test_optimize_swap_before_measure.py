@@ -15,10 +15,11 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
@@ -67,6 +68,38 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr[1], cr[0])
         expected.measure(qr[0], cr[1])
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_3swap_3measure(self):
+        """Remove three swaps affecting three measurements
+                ┌─┐         ┌─┐             ┌─┐
+        q_0: ─X─┤M├────X──X─┤M├     q_0: ───┤M├───
+              │ └╥┘┌─┐ │  │ └╥┘          ┌─┐└╥┘┌─┐
+        q_1: ─X──╫─┤M├─┼──┼──╫─     q_1: ┤M├─╫─┤M├
+                 ║ └╥┘ │  │  ║  ==>      └╥┘ ║ └╥┘
+        q_2: ────╫──╫──X──X──╫─     q_2: ─╫──╫──╫─
+                 ║  ║        ║            ║  ║  ║
+        c: 2/════╩══╩════════╩═     c: 2/═╩══╩══╩═
+                 0  1        0            0  1  0
+        """
+
+        qc = QuantumCircuit(3, 2)
+        qc.swap(0, 1)
+        qc.measure(0, 0)
+        qc.swap(0, 2)
+        qc.measure(1, 1)
+        qc.swap(0, 2)
+        qc.measure(0, 0)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(3, 2)
+        expected.measure(1, 0)
+        expected.measure(0, 1)
+        expected.measure(1, 0)
 
         pass_ = OptimizeSwapBeforeMeasure()
         after = pass_.run(dag)
@@ -133,6 +166,45 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         expected.measure(5, 3)
         expected.measure(6, 5)
         expected.measure(7, 6)
+
+        pass_ = OptimizeSwapBeforeMeasure()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_optimize_nswap_nmeasure_2(self):
+        """Remove multiple swaps affecting multiple measurements
+                   ┌─┐┌─┐                             ┌─┐┌─┐┌─┐┌─┐┌─┐
+        q_0: ─X──X─┤M├┤M├─X──────────────X─      q_0: ┤M├┤M├┤M├┤M├┤M├
+              │  │ └╥┘└╥┘ │       ┌─┐    │            └╥┘└╥┘└╥┘└╥┘└╥┘
+        q_1: ─X──X──╫──╫──┼─────X─┤M├─X──X─      q_1: ─╫──╫──╫──╫──╫─
+                    ║  ║  │ ┌─┐ │ └╥┘ │ ┌─┐  ==>       ║  ║  ║  ║  ║
+        q_2: ───────╫──╫──X─┤M├─X──╫──X─┤M├      q_2: ─╫──╫──╫──╫──╫─
+                    ║  ║    └╥┘    ║    └╥┘            ║  ║  ║  ║  ║
+        c: 1/═══════╩══╩═════╩═════╩═════╩═      c: 1/═╩══╩══╩══╩══╩═
+                    0  0     0     0     0             0  0  0  0  0
+        """
+
+        qc = QuantumCircuit(3, 1)
+        qc.swap(0, 1)
+        qc.swap(0, 1)
+        qc.measure(0, 0)
+        qc.measure(0, 0)
+        qc.swap(2, 0)
+        qc.measure(2, 0)
+        qc.swap(1, 2)
+        qc.measure(1, 0)
+        qc.swap(1, 2)
+        qc.swap(0, 1)
+        qc.measure(2, 0)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(3, 1)
+        expected.measure(0, 0)
+        expected.measure(0, 0)
+        expected.measure(0, 0)
+        expected.measure(0, 0)
+        expected.measure(0, 0)
 
         pass_ = OptimizeSwapBeforeMeasure()
         after = pass_.run(dag)
@@ -240,8 +312,10 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 
@@ -269,8 +343,10 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
 
         pass_manager = PassManager()
         pass_manager.append(
-            [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
-            do_while=lambda property_set: not property_set["dag_fixed_point"],
+            DoWhileController(
+                [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
+                do_while=lambda property_set: not property_set["dag_fixed_point"],
+            )
         )
         after = pass_manager.run(circuit)
 

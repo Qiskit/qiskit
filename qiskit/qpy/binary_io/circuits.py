@@ -24,26 +24,30 @@ import warnings
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit import extensions
 from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
 from qiskit.circuit.classical import expr
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
 from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    Modifier,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.extensions import quantum_initializer
 from qiskit.qpy import common, formats, type_keys
 from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp, Clifford
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
 
 def _read_header_v2(file_obj, version, vectors, metadata_deserializer=None):
-
     data = formats.CIRCUIT_HEADER_V2._make(
         struct.unpack(
             formats.CIRCUIT_HEADER_V2_PACK,
@@ -133,6 +137,8 @@ def _loads_instruction_parameter(
 ):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
+    elif type_key == type_keys.Value.MODIFIER:
+        param = common.data_from_binary(data_bytes, _read_modifier)
     elif type_key == type_keys.Container.RANGE:
         data = formats.RANGE._make(struct.unpack(formats.RANGE_PACK, data_bytes))
         param = range(data.start, data.stop, data.step)
@@ -219,13 +225,6 @@ def _read_instruction(
             cregs=registers["c"],
             use_symengine=use_symengine,
         )
-    if circuit is not None:
-        qubit_indices = dict(enumerate(circuit.qubits))
-        clbit_indices = dict(enumerate(circuit.clbits))
-    else:
-        qubit_indices = {}
-        clbit_indices = {}
-
     # Load Arguments
     if circuit is not None:
         for _qarg in range(instruction.num_qargs):
@@ -237,7 +236,7 @@ def _read_instruction(
             )
             if qarg.type.decode(common.ENCODE) == "c":
                 raise TypeError("Invalid input carg prior to all qargs")
-            qargs.append(qubit_indices[qarg.size])
+            qargs.append(circuit.qubits[qarg.size])
         for _carg in range(instruction.num_cargs):
             carg = formats.CIRCUIT_INSTRUCTION_ARG._make(
                 struct.unpack(
@@ -247,7 +246,7 @@ def _read_instruction(
             )
             if carg.type.decode(common.ENCODE) == "q":
                 raise TypeError("Invalid input qarg after all qargs")
-            cargs.append(clbit_indices[carg.size])
+            cargs.append(circuit.clbits[carg.size])
 
     # Load Parameters
     for _param in range(instruction.num_parameters):
@@ -284,12 +283,10 @@ def _read_instruction(
         gate_class = getattr(library, gate_name)
     elif hasattr(circuit_mod, gate_name):
         gate_class = getattr(circuit_mod, gate_name)
-    elif hasattr(extensions, gate_name):
-        gate_class = getattr(extensions, gate_name)
-    elif hasattr(quantum_initializer, gate_name):
-        gate_class = getattr(quantum_initializer, gate_name)
     elif hasattr(controlflow, gate_name):
         gate_class = getattr(controlflow, gate_name)
+    elif gate_name == "Clifford":
+        gate_class = Clifford
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
@@ -319,9 +316,17 @@ def _read_instruction(
         if condition:
             gate = gate.c_if(*condition)
     else:
-        if gate_name in {
-            "Initialize",
-            "StatePreparation",
+        if gate_name in {"Initialize", "StatePreparation"}:
+            if isinstance(params[0], str):
+                # the params are the labels of the initial state
+                gate = gate_class("".join(label for label in params))
+            elif instruction.num_parameters == 1:
+                # the params is the integer indicating which qubits to initialize
+                gate = gate_class(int(params[0].real), instruction.num_qargs)
+            else:
+                # the params represent a list of complex amplitudes
+                gate = gate_class(params)
+        elif gate_name in {
             "UCRXGate",
             "UCRYGate",
             "UCRZGate",
@@ -370,6 +375,9 @@ def _parse_custom_operation(
         ) = custom_operations[gate_name]
     else:
         type_str, num_qubits, num_clbits, definition = custom_operations[gate_name]
+    # Strip the trailing "_{uuid}" from the gate name if the version >=11
+    if version >= 11:
+        gate_name = "_".join(gate_name.split("_")[:-1])
     type_key = type_keys.CircuitInstruction(type_str)
 
     if type_key == type_keys.CircuitInstruction.INSTRUCTION:
@@ -400,6 +408,14 @@ def _parse_custom_operation(
             base_gate=base_gate,
         )
         inst_obj.definition = definition
+        return inst_obj
+
+    if version >= 11 and type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
+        with io.BytesIO(base_gate_raw) as base_gate_obj:
+            base_gate = _read_instruction(
+                base_gate_obj, None, registers, custom_operations, version, vectors, use_symengine
+            )
+        inst_obj = AnnotatedOperation(base_op=base_gate, modifiers=params)
         return inst_obj
 
     if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
@@ -445,6 +461,25 @@ def _read_pauli_evolution_gate(file_obj, version, vectors):
     synthesis = getattr(evo_synth, synth_data["class"])(**synth_data["settings"])
     return_gate = library.PauliEvolutionGate(pauli_op, time=time, synthesis=synthesis)
     return return_gate
+
+
+def _read_modifier(file_obj):
+    modifier = formats.MODIFIER_DEF._make(
+        struct.unpack(
+            formats.MODIFIER_DEF_PACK,
+            file_obj.read(formats.MODIFIER_DEF_SIZE),
+        )
+    )
+    if modifier.type == b"i":
+        return InverseModifier()
+    elif modifier.type == b"c":
+        return ControlModifier(
+            num_ctrl_qubits=modifier.num_ctrl_qubits, ctrl_state=modifier.ctrl_state
+        )
+    elif modifier.type == b"p":
+        return PowerModifier(power=modifier.power)
+    else:
+        raise TypeError("Unsupported modifier.")
 
 
 def _read_custom_operations(file_obj, version, vectors):
@@ -541,6 +576,9 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
+    elif isinstance(param, Modifier):
+        type_key = type_keys.Value.MODIFIER
+        data_bytes = common.data_to_binary(param, _write_modifier)
     elif isinstance(param, range):
         type_key = type_keys.Container.RANGE
         data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
@@ -569,34 +607,39 @@ def _dumps_instruction_parameter(param, index_map, use_symengine):
 
 
 # pylint: disable=too-many-boolean-expressions
-def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine):
-    gate_class_name = instruction.operation.base_class.__name__
+def _write_instruction(file_obj, instruction, custom_operations, index_map, use_symengine, version):
+    if isinstance(instruction.operation, Instruction):
+        gate_class_name = instruction.operation.base_class.__name__
+    else:
+        gate_class_name = instruction.operation.__class__.__name__
+
     custom_operations_list = []
     if (
         (
             not hasattr(library, gate_class_name)
             and not hasattr(circuit_mod, gate_class_name)
-            and not hasattr(extensions, gate_class_name)
-            and not hasattr(quantum_initializer, gate_class_name)
             and not hasattr(controlflow, gate_class_name)
+            and gate_class_name != "Clifford"
         )
         or gate_class_name == "Gate"
         or gate_class_name == "Instruction"
         or isinstance(instruction.operation, library.BlueprintCircuit)
     ):
         gate_class_name = instruction.operation.name
+        if version >= 11:
+            # Assign a uuid to each instance of a custom operation
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4().hex}"
         # ucr*_dg gates can have different numbers of parameters,
         # the uuid is appended to avoid storing a single definition
         # in circuits with multiple ucr*_dg gates.
-        if instruction.operation.name in ["ucrx_dg", "ucry_dg", "ucrz_dg"]:
-            gate_class_name += "_" + str(uuid.uuid4())
+        elif instruction.operation.name in {"ucrx_dg", "ucry_dg", "ucrz_dg"}:
+            gate_class_name = f"{gate_class_name}_{uuid.uuid4()}"
 
-        if gate_class_name not in custom_operations:
-            custom_operations[gate_class_name] = instruction.operation
-            custom_operations_list.append(gate_class_name)
+        custom_operations[gate_class_name] = instruction.operation
+        custom_operations_list.append(gate_class_name)
 
-    elif gate_class_name == "ControlledGate":
-        # controlled gates can have the same name but different parameter
+    elif gate_class_name in {"ControlledGate", "AnnotatedOperation"}:
+        # controlled or annotated gates can have the same name but different parameter
         # values, the uuid is appended to avoid storing a single definition
         # in circuits with multiple controlled gates.
         gate_class_name = instruction.operation.name + "_" + str(uuid.uuid4())
@@ -620,7 +663,7 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
-    label = getattr(instruction.operation, "label")
+    label = getattr(instruction.operation, "label", None)
     if label:
         label_raw = label.encode(common.ENCODE)
     else:
@@ -633,8 +676,12 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map, use_
             instruction.operation.target,
             tuple(instruction.operation.cases_specifier()),
         ]
+    elif isinstance(instruction.operation, Clifford):
+        instruction_params = [instruction.operation.tableau]
+    elif isinstance(instruction.operation, AnnotatedOperation):
+        instruction_params = instruction.operation.modifiers
     else:
-        instruction_params = instruction.operation.params
+        instruction_params = getattr(instruction.operation, "params", [])
 
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
@@ -716,7 +763,32 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
     file_obj.write(synth_data)
 
 
-def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine):
+def _write_modifier(file_obj, modifier):
+    if isinstance(modifier, InverseModifier):
+        type_key = b"i"
+        num_ctrl_qubits = 0
+        ctrl_state = 0
+        power = 0.0
+    elif isinstance(modifier, ControlModifier):
+        type_key = b"c"
+        num_ctrl_qubits = modifier.num_ctrl_qubits
+        ctrl_state = modifier.ctrl_state
+        power = 0.0
+    elif isinstance(modifier, PowerModifier):
+        type_key = b"p"
+        num_ctrl_qubits = 0
+        ctrl_state = 0
+        power = modifier.power
+    else:
+        raise TypeError("Unsupported modifier.")
+
+    modifier_data = struct.pack(
+        formats.MODIFIER_DEF_PACK, type_key, num_ctrl_qubits, ctrl_state, power
+    )
+    file_obj.write(modifier_data)
+
+
+def _write_custom_operation(file_obj, name, operation, custom_operations, use_symengine, version):
     type_key = type_keys.CircuitInstruction.assign(operation)
     has_definition = False
     size = 0
@@ -746,6 +818,9 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
         num_ctrl_qubits = operation.num_ctrl_qubits
         ctrl_state = operation.ctrl_state
         base_gate = operation.base_gate
+    elif type_key == type_keys.CircuitInstruction.ANNOTATED_OPERATION:
+        has_definition = False
+        base_gate = operation.base_op
     elif operation.definition is not None:
         has_definition = True
         data = common.data_to_binary(operation.definition, write_circuit)
@@ -760,6 +835,7 @@ def _write_custom_operation(file_obj, name, operation, custom_operations, use_sy
                 custom_operations,
                 {},
                 use_symengine,
+                version,
             )
             base_gate_raw = base_gate_buffer.getvalue()
     name_raw = name.encode(common.ENCODE)
@@ -994,7 +1070,9 @@ def _read_layout_v2(file_obj, circuit):
         circuit._layout._output_qubit_list = circuit.qubits
 
 
-def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=False):
+def write_circuit(
+    file_obj, circuit, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+):
     """Write a single QuantumCircuit object in the file like object.
 
     Args:
@@ -1008,6 +1086,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        version (int): The QPY format version to use for serializing this circuit
     """
     metadata_raw = json.dumps(
         circuit.metadata, separators=(",", ":"), cls=metadata_serializer
@@ -1048,7 +1127,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
     index_map["c"] = {bit: index for index, bit in enumerate(circuit.clbits)}
     for instruction in circuit.data:
         _write_instruction(
-            instruction_buffer, instruction, custom_operations, index_map, use_symengine
+            instruction_buffer, instruction, custom_operations, index_map, use_symengine, version
         )
 
     with io.BytesIO() as custom_operations_buffer:
@@ -1060,7 +1139,12 @@ def write_circuit(file_obj, circuit, metadata_serializer=None, use_symengine=Fal
                 operation = custom_operations[name]
                 new_custom_operations.extend(
                     _write_custom_operation(
-                        custom_operations_buffer, name, operation, custom_operations, use_symengine
+                        custom_operations_buffer,
+                        name,
+                        operation,
+                        custom_operations,
+                        use_symengine,
+                        version,
                     )
                 )
 

@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
+import cmath
 import copy
 import math
 from cmath import exp
@@ -40,13 +41,13 @@ class UGate(Gate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         U(\theta, \phi, \lambda) =
-            \begin{pmatrix}
-                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
-                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
-            \end{pmatrix}
+        \begin{pmatrix}
+            \cos\left(\rotationangle\right) & -e^{i\lambda}\sin\left(\rotationangle\right) \\
+            e^{i\phi}\sin\left(\rotationangle\right) & e^{i(\phi+\lambda)}\cos\left(\rotationangle\right)
+        \end{pmatrix}
 
     .. note::
 
@@ -80,10 +81,19 @@ class UGate(Gate):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
-        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
+        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the
+                inverse of this gate is always a :class:`.UGate` with inverse parameter values.
+
+        Returns:
+            UGate: inverse gate.
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -92,19 +102,22 @@ class UGate(Gate):
         num_ctrl_qubits: int = 1,
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
     ):
         """Return a (multi-)controlled-U gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
 
         Returns:
             ControlledGate: controlled version of this gate.
         """
-        if num_ctrl_qubits == 1:
+        if not annotated and num_ctrl_qubits == 1:
             gate = CUGate(
                 self.params[0],
                 self.params[1],
@@ -114,8 +127,14 @@ class UGate(Gate):
                 ctrl_state=ctrl_state,
             )
             gate.base_gate.label = self.label
-            return gate
-        return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        else:
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
+        return gate
 
     def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
@@ -129,6 +148,11 @@ class UGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def __eq__(self, other):
+        if isinstance(other, UGate):
+            return self._compare_parameters(other)
+        return False
 
 
 class _CUGateParams(list):
@@ -190,16 +214,18 @@ class CUGate(ControlledGate):
 
     .. math::
 
-        \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\rotationangle}{\frac{\theta}{2}}
 
         CU(\theta, \phi, \lambda, \gamma)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| +
             e^{i\gamma} U(\theta,\phi,\lambda) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
-                1 & 0                           & 0 & 0 \\
-                0 & e^{i\gamma}\cos(\th)        & 0 & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                0 & 0                           & 1 & 0 \\
-                0 & e^{i(\gamma+\phi)}\sin(\th) & 0 & e^{i(\gamma+\phi+\lambda)}\cos(\th)
+                1 & 0 & 0 & 0 \\
+                0 & e^{i\gamma}\cos(\rotationangle) &
+                0 & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+                0 & 0 & 1 & 0 \\
+                0 & e^{i(\gamma+\phi)}\sin(\rotationangle) &
+                0 & e^{i(\gamma+\phi+\lambda)}\cos(\rotationangle)
             \end{pmatrix}
 
     .. note::
@@ -218,15 +244,17 @@ class CUGate(ControlledGate):
 
         .. math::
 
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
             CU(\theta, \phi, \lambda, \gamma)\ q_1, q_0 =
-                |0\rangle\langle 0| \otimes I +
-                e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
-                \begin{pmatrix}
-                    1 & 0 & 0                             & 0 \\
-                    0 & 1 & 0                             & 0 \\
-                    0 & 0 & e^{i\gamma} \cos(\th)         & -e^{i(\gamma + \lambda)}\sin(\th) \\
-                    0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
-                \end{pmatrix}
+            |0\rangle\langle 0| \otimes I +
+            e^{i\gamma}|1\rangle\langle 1| \otimes U(\theta,\phi,\lambda) =
+            \begin{pmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & 1 & 0 & 0 \\
+            0 & 0 & e^{i\gamma} \cos(\rotationangle) & -e^{i(\gamma + \lambda)}\sin(\rotationangle) \\
+            0 & 0 &
+            e^{i(\gamma + \phi)}\sin(\rotationangle) & e^{i(\gamma + \phi+\lambda)}\cos(\rotationangle)
+            \end{pmatrix}
     """
 
     def __init__(
@@ -286,10 +314,20 @@ class CUGate(ControlledGate):
         qc.u(self.params[0] / 2, self.params[1], 0, 1)
         self.definition = qc
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
-        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)
+        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CUGate` with inverse parameter
+                values.
+
+        Returns:
+            CUGate: inverse gate.
         """
         return CUGate(
             -self.params[0],
@@ -302,12 +340,12 @@ class CUGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU gate."""
         theta, phi, lam, gamma = (float(param) for param in self.params)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
-        a = numpy.exp(1j * gamma) * cos
-        b = -numpy.exp(1j * (gamma + lam)) * sin
-        c = numpy.exp(1j * (gamma + phi)) * sin
-        d = numpy.exp(1j * (gamma + phi + lam)) * cos
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        a = cmath.exp(1j * gamma) * cos
+        b = -cmath.exp(1j * (gamma + lam)) * sin
+        c = cmath.exp(1j * (gamma + phi)) * sin
+        d = cmath.exp(1j * (gamma + phi + lam)) * cos
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype

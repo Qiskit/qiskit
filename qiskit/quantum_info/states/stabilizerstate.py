@@ -15,6 +15,9 @@ Stabilizer state class.
 """
 
 from __future__ import annotations
+
+from collections.abc import Collection
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -57,6 +60,17 @@ class StabilizerState(QuantumState):
         {'00': 0.5, '11': 0.5}
         1
 
+    Given a list of stabilizers, :meth:`qiskit.quantum_info.StabilizerState.from_stabilizer_list`
+    returns a state stabilized by the list
+
+    .. code-block:: python
+
+        from qiskit.quantum_info import StabilizerState
+
+        stabilizer_list = ["ZXX", "-XYX", "+ZYY"]
+        stab = StabilizerState.from_stabilizer_list(stabilizer_list)
+
+
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
            Phys. Rev. A 70, 052328 (2004).
@@ -91,11 +105,41 @@ class StabilizerState(QuantumState):
         # Initialize
         super().__init__(op_shape=OpShape.auto(num_qubits_r=self._data.num_qubits, num_qubits_l=0))
 
+    @classmethod
+    def from_stabilizer_list(
+        cls,
+        stabilizers: Collection[str],
+        allow_redundant: bool = False,
+        allow_underconstrained: bool = False,
+    ) -> StabilizerState:
+        """Create a stabilizer state from the collection of stabilizers.
+
+        Args:
+            stabilizers (Collection[str]): list of stabilizer strings
+            allow_redundant (bool): allow redundant stabilizers (i.e., some stabilizers
+                can be products of the others)
+            allow_underconstrained (bool): allow underconstrained set of stabilizers (i.e.,
+                the stabilizers do not specify a unique state)
+
+        Return:
+            StabilizerState: a state stabilized by stabilizers.
+        """
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.stabilizer import synth_circuit_from_stabilizers
+
+        circuit = synth_circuit_from_stabilizers(
+            stabilizers,
+            allow_redundant=allow_redundant,
+            allow_underconstrained=allow_underconstrained,
+        )
+        return cls(circuit)
+
     def __eq__(self, other):
         return (self._data.stab == other._data.stab).all()
 
     def __repr__(self):
-        return f"StabilizerState({self._data.stabilizer})"
+        return f"StabilizerState({self._data.to_labels(mode='S')})"
 
     @property
     def clifford(self):
@@ -371,7 +415,7 @@ class StabilizerState(QuantumState):
         outcome_prob = 1.0
         probs = {}  # probabilities dictionary
 
-        self._get_probablities(qubits, outcome, outcome_prob, probs)
+        self._get_probabilities(qubits, outcome, outcome_prob, probs)
 
         if decimals is not None:
             for key, value in probs.items():
@@ -600,7 +644,7 @@ class StabilizerState(QuantumState):
     # -----------------------------------------------------------------------
     # Helper functions for calculating the probabilities
     # -----------------------------------------------------------------------
-    def _get_probablities(self, qubits, outcome, outcome_prob, probs):
+    def _get_probabilities(self, qubits, outcome, outcome_prob, probs):
         """Recursive helper function for calculating the probabilities"""
 
         qubit_for_branching = -1
@@ -635,4 +679,4 @@ class StabilizerState(QuantumState):
             stab_cpy._measure_and_update(
                 qubits[len(qubits) - qubit_for_branching - 1], single_qubit_outcome
             )
-            stab_cpy._get_probablities(qubits, new_outcome, 0.5 * outcome_prob, probs)
+            stab_cpy._get_probabilities(qubits, new_outcome, 0.5 * outcome_prob, probs)

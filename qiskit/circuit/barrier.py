@@ -16,34 +16,31 @@ Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
 with the :meth:`~qiskit.circuit.QuantumCircuit.barrier` method.
 """
 
+from __future__ import annotations
+
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
 class Barrier(Instruction):
-    """Barrier instruction.
+    """A directive for circuit compilation to separate pieces of a circuit so that any optimizations
+    or re-writes are constrained to only act between barriers.
 
-    A barrier is a visual indicator of the grouping of a circuit section.
-    It also acts as a directive for circuit compilation to separate pieces
-    of a circuit so that any optimizations or re-writes are constrained
-    to only act between barriers."""
+    This will also appear in visualizations as a visual marker.
+    """
 
     _directive = True
 
-    def __init__(self, num_qubits, label=None):
-        """Create new barrier instruction.
-
+    def __init__(self, num_qubits: int, label: str | None = None):
+        """
         Args:
-            num_qubits (int): the number of qubits for the barrier type [Default: 0].
-            label (str): the barrier label
-
-        Raises:
-            TypeError: if barrier label is invalid.
+            num_qubits: the number of qubits for the barrier.
+            label: the optional label of this barrier.
         """
         self._label = label
         super().__init__("barrier", num_qubits, 0, [], label=label)
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         """Special case. Return self."""
         return Barrier(self.num_qubits)
 

@@ -19,6 +19,10 @@ import warnings
 from io import BytesIO
 
 import numpy as np
+import symengine as sym
+from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
+    load_basic,
+)
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import library, channels, instructions
@@ -26,13 +30,7 @@ from qiskit.pulse.schedule import ScheduleBlock
 from qiskit.qpy import formats, common, type_keys
 from qiskit.qpy.binary_io import value
 from qiskit.qpy.exceptions import QpyError
-from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
 
 
 def _read_channel(file_obj, version):
@@ -106,23 +104,15 @@ def _read_discriminator(file_obj, version):
 def _loads_symbolic_expr(expr_bytes, use_symengine=False):
     if expr_bytes == b"":
         return None
+    expr_bytes = zlib.decompress(expr_bytes)
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("load a symengine expression")
-        from symengine.lib.symengine_wrapper import (  # pylint: disable = no-name-in-module
-            load_basic,
-        )
-
-        expr = load_basic(zlib.decompress(expr_bytes))
+        return load_basic(expr_bytes)
     else:
         from sympy import parse_expr
 
-        expr_txt = zlib.decompress(expr_bytes).decode(common.ENCODE)
+        expr_txt = expr_bytes.decode(common.ENCODE)
         expr = parse_expr(expr_txt)
-        if _optional.HAS_SYMENGINE:
-            from symengine import sympify
-
-            return sympify(expr)
-    return expr
+        return sym.sympify(expr)
 
 
 def _read_symbolic_pulse(file_obj, version):
@@ -158,21 +148,15 @@ def _read_symbolic_pulse(file_obj, version):
     class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
-        # Once complex amp support will be deprecated we will need:
-        # parameters["angle"] = np.angle(parameters["amp"])
-        # parameters["amp"] = np.abs(parameters["amp"])
-
-        # In the meanwhile we simply add:
-        parameters["angle"] = 0
+        parameters["angle"] = np.angle(parameters["amp"])
+        parameters["amp"] = np.abs(parameters["amp"])
         _amp, _angle = sym.symbols("amp, angle")
         envelope = envelope.subs(_amp, _amp * sym.exp(sym.I * _angle))
 
-        # And warn that this will change in future releases:
         warnings.warn(
-            "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
-            " will be converted automatically to float (amp,angle) representation.",
-            PendingDeprecationWarning,
+            f"Library pulses with complex amp are no longer supported. "
+            f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
+            UserWarning,
         )
         class_name = "ScalableSymbolicPulse"
 
@@ -247,6 +231,20 @@ def _read_symbolic_pulse_v6(file_obj, version, use_symengine):
             valid_amp_conditions=valid_amp_conditions,
         )
     elif class_name == "ScalableSymbolicPulse":
+        # Between Qiskit 0.40 and 0.46, the (amp, angle) representation was present,
+        # but complex amp was still allowed. In Qiskit 1.0 and beyond complex amp
+        # is no longer supported and so the amp needs to be checked and converted.
+        # Once QPY version is bumped, a new reader function can be introduced without
+        # this check.
+        if isinstance(parameters["amp"], complex):
+            parameters["angle"] = np.angle(parameters["amp"])
+            parameters["amp"] = np.abs(parameters["amp"])
+            warnings.warn(
+                f"ScalableSymbolicPulse with complex amp are no longer supported. "
+                f"{pulse_type} with complex amp was converted to (amp,angle) representation.",
+                UserWarning,
+            )
+
         return library.ScalableSymbolicPulse(
             pulse_type=pulse_type,
             duration=duration,
@@ -404,7 +402,6 @@ def _dumps_symbolic_expr(expr, use_symengine):
     if expr is None:
         return b""
     if use_symengine:
-        _optional.HAS_SYMENGINE.require_now("dump a symengine expression")
         expr_bytes = expr.__reduce__()[1][0]
     else:
         from sympy import srepr, sympify
@@ -484,7 +481,7 @@ def _dumps_operand(operand, use_symengine):
 def _write_element(file_obj, element, metadata_serializer, use_symengine):
     if isinstance(element, ScheduleBlock):
         common.write_type_key(file_obj, type_keys.Program.SCHEDULE_BLOCK)
-        write_schedule_block(file_obj, element, metadata_serializer)
+        write_schedule_block(file_obj, element, metadata_serializer, use_symengine)
     else:
         type_key = type_keys.ScheduleInstruction.assign(element)
         common.write_type_key(file_obj, type_key)
@@ -577,7 +574,9 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, use_symen
     return block
 
 
-def write_schedule_block(file_obj, block, metadata_serializer=None, use_symengine=False):
+def write_schedule_block(
+    file_obj, block, metadata_serializer=None, use_symengine=False, version=common.QPY_VERSION
+):  # pylint: disable=unused-argument
     """Write a single ScheduleBlock object in the file like object.
 
     Args:
@@ -591,6 +590,7 @@ def write_schedule_block(file_obj, block, metadata_serializer=None, use_symengin
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        version (int): The QPY format version to use for serializing this circuit block
     Raises:
         TypeError: If any of the instructions is invalid data format.
     """
