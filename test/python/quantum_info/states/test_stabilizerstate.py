@@ -13,6 +13,8 @@
 
 """Tests for Stabilizerstate quantum state class."""
 
+from itertools import product
+from random import choice
 import unittest
 import logging
 from ddt import ddt, data, unpack
@@ -534,6 +536,53 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities(decimals=3)
                 target = np.array([0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
                 self.assertTrue(np.allclose(probs, target))
+
+        # 8 qubit measurement
+        num_qubits = 8
+        qc = QuantumCircuit(num_qubits)
+        for qubit_num in range(0, num_qubits):
+            qc.h(qubit_num)
+        stab = StabilizerState(qc)
+
+        decimals: int = 7
+        expected_result: float = round(float(1 / (2**num_qubits)), decimals)
+        target = {
+            result: expected_result
+            for result in ["".join(x) for x in product(["0", "1"], repeat=num_qubits)]
+        }
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None), decimals=5"):
+                value = stab.probabilities_dict(decimals=decimals)
+                self.assertEqual(value, target)
+                for bitstring in target:
+                    self.assertEqual(
+                        stab.probabilities_dict_from_bitstring(
+                            decimals=decimals, outcome_bitstring=bitstring
+                        ),
+                        {bitstring: target[bitstring]},
+                    )
+                probs = stab.probabilities(decimals=decimals)
+                target = np.array(([expected_result] * (2**num_qubits)))
+                self.assertTrue(np.allclose(probs, target))
+
+    @combine(num_qubits=[25, 50, 100, 200, 300, 400, 500, 600, 750])
+    def test_probabilities_dict_large_num_qubits(self, num_qubits):
+        """Test probabilities_dict_from_bitstring methods with large number of qubits using
+        random outcome_bitstring values"""
+        qc = QuantumCircuit(num_qubits)
+        for qubit_num in range(0, num_qubits):
+            qc.h(qubit_num)
+        stab = StabilizerState(qc)
+
+        expected_result: float = float(1 / (2**num_qubits))
+        outcome_bitstring: str = "".join(choice(["1", "0"]) for i in range(num_qubits))
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None)"):
+                target: dict = {outcome_bitstring, expected_result}
+                self.assertTrue(
+                    target,
+                    stab.probabilities_dict_from_bitstring(outcome_bitstring=outcome_bitstring),
+                )
 
     def test_probabilities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
@@ -1083,7 +1132,7 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         self.assertTrue(cliff1.equiv(cliff2))
         self.assertEqual(cliff1.probabilities_dict(), cliff2.probabilities_dict())
 
-        targets: list[str] = cliff1.probabilities_dict().keys()
+        targets: list = cliff1.probabilities_dict().keys()
         for bitstring in targets:
             self.assertEqual(
                 cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
@@ -1094,7 +1143,7 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         self.assertTrue(cliff3.equiv(cliff4))
         self.assertEqual(cliff3.probabilities_dict(), cliff4.probabilities_dict())
 
-        targets: list[str] = cliff3.probabilities_dict().keys()
+        targets: list = cliff3.probabilities_dict().keys()
         for bitstring in targets:
             self.assertEqual(
                 cliff1.probabilities_dict_from_bitstring(outcome_bitstring=bitstring),
