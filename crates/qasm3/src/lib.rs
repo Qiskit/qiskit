@@ -16,6 +16,7 @@ mod error;
 mod expr;
 
 use std::ffi::OsString;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 
 use hashbrown::HashMap;
@@ -24,6 +25,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyModule, PyTuple};
 
 use oq3_semantics::syntax_to_semantics::parse_source_string;
+use pyo3::pybacked::PyBackedStr;
 
 use crate::error::QASM3ImporterError;
 
@@ -58,14 +60,15 @@ const STDGATES_INC_CUSTOM_GATES_ATTR: &str = "STDGATES_INC_GATES";
 #[pyfunction]
 #[pyo3(pass_module, signature = (source, /, *, custom_gates=None, include_path=None))]
 pub fn loads(
-    module: &PyModule,
+    module: &Bound<PyModule>,
     py: Python,
     source: String,
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
     let default_include_path = || -> PyResult<Vec<OsString>> {
-        Ok(vec![Path::new(module.filename()?)
+        let filename: PyBackedStr = module.filename()?.try_into()?;
+        Ok(vec![Path::new(filename.deref())
             .parent()
             .unwrap()
             .join(["qasm", "libs", "dummy"].iter().collect::<PathBuf>())
@@ -130,34 +133,35 @@ pub fn loads(
     signature = (pathlike_or_filelike, /, *, custom_gates=None, include_path=None),
 )]
 pub fn load(
-    module: &PyModule,
+    module: &Bound<PyModule>,
     py: Python,
-    pathlike_or_filelike: &PyAny,
+    pathlike_or_filelike: &Bound<PyAny>,
     custom_gates: Option<Vec<circuit::PyGate>>,
     include_path: Option<Vec<OsString>>,
 ) -> PyResult<circuit::PyCircuit> {
-    let source =
-        if pathlike_or_filelike.is_instance(PyModule::import(py, "io")?.getattr("TextIOBase")?)? {
-            pathlike_or_filelike
-                .call_method0("read")?
-                .extract::<String>()?
-        } else {
-            let path = PyModule::import(py, "os")?
-                .getattr("fspath")?
-                .call1((pathlike_or_filelike,))?
-                .extract::<OsString>()?;
-            ::std::fs::read_to_string(&path).map_err(|err| {
-                QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
-            })?
-        };
+    let source = if pathlike_or_filelike
+        .is_instance(&PyModule::import_bound(py, "io")?.getattr("TextIOBase")?)?
+    {
+        pathlike_or_filelike
+            .call_method0("read")?
+            .extract::<String>()?
+    } else {
+        let path = PyModule::import_bound(py, "os")?
+            .getattr("fspath")?
+            .call1((pathlike_or_filelike,))?
+            .extract::<OsString>()?;
+        ::std::fs::read_to_string(&path).map_err(|err| {
+            QASM3ImporterError::new_err(format!("failed to read file '{:?}': {:?}", &path, err))
+        })?
+    };
     loads(module, py, source, custom_gates, include_path)
 }
 
 /// Create a suitable sequence for use with the ``custom_gates`` of :func:`load` and :func:`loads`,
 /// as a Python object on the Python heap, so we can re-use it, and potentially expose it has a
 /// data attribute to users.
-fn stdgates_inc_gates(py: Python) -> PyResult<&PyTuple> {
-    let library = PyModule::import(py, "qiskit.circuit.library")?;
+fn stdgates_inc_gates(py: Python) -> PyResult<Bound<PyTuple>> {
+    let library = PyModule::import_bound(py, "qiskit.circuit.library")?;
     let stdlib_gate = |qiskit_class, name, num_params, num_qubits| -> PyResult<Py<PyAny>> {
         Ok(circuit::PyGate::new(
             py,
@@ -168,7 +172,7 @@ fn stdgates_inc_gates(py: Python) -> PyResult<&PyTuple> {
         )
         .into_py(py))
     };
-    Ok(PyTuple::new(
+    Ok(PyTuple::new_bound(
         py,
         vec![
             stdlib_gate("PhaseGate", "p", 1, 1)?,
@@ -210,10 +214,13 @@ fn stdgates_inc_gates(py: Python) -> PyResult<&PyTuple> {
 /// Internal module supplying the OpenQASM 3 import capabilities.  The entries in it should largely
 /// be re-exposed directly to public Python space.
 #[pymodule]
-fn _qasm3(py: Python<'_>, module: &PyModule) -> PyResult<()> {
+fn _qasm3(module: &Bound<PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(loads, module)?)?;
     module.add_function(wrap_pyfunction!(load, module)?)?;
     module.add_class::<circuit::PyGate>()?;
-    module.add(STDGATES_INC_CUSTOM_GATES_ATTR, stdgates_inc_gates(py)?)?;
+    module.add(
+        STDGATES_INC_CUSTOM_GATES_ATTR,
+        stdgates_inc_gates(module.py())?,
+    )?;
     Ok(())
 }

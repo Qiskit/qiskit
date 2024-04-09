@@ -240,8 +240,8 @@ class Instruction(Operation):
         """
         if (
             self.name != other.name
-            or other.num_qubits != other.num_qubits
-            or other.num_clbits != other.num_clbits
+            or self.num_qubits != other.num_qubits
+            or self.num_clbits != other.num_clbits
             or len(self.params) != len(other.params)
         ):
             return False
@@ -268,12 +268,17 @@ class Instruction(Operation):
         return True
 
     def _define(self):
-        """Populates self.definition with a decomposition of this gate."""
+        """Populate the cached :attr:`_definition` field of this :class:`Instruction`.
+
+        Subclasses should implement this method to provide lazy construction of their public
+        :attr:`definition` attribute.  A subclass can use its :attr:`params` at the time of the
+        call.  The method should populate :attr:`_definition` with a :class:`.QuantumCircuit` and
+        not return a value."""
         pass
 
     @property
     def params(self):
-        """return instruction params."""
+        """The parameters of this :class:`Instruction`.  Ideally these will be gate angles."""
         return self._params
 
     @params.setter
@@ -290,7 +295,8 @@ class Instruction(Operation):
         return parameter
 
     def is_parameterized(self):
-        """Return True .IFF. instruction is parameterized else False"""
+        """Return whether the :class:`Instruction` contains :ref:`compile-time parameters
+        <circuit-compile-time-parameters>`."""
         return any(
             isinstance(param, ParameterExpression) and param.parameters for param in self.params
         )
