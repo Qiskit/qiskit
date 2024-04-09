@@ -576,9 +576,9 @@ class TestStabilizerState(QiskitTestCase):
 
         expected_result: float = float(1 / (2**num_qubits))
         outcome_bitstring: str = "".join(choice(["1", "0"]) for i in range(num_qubits))
+        target: dict = {outcome_bitstring, expected_result}
         for _ in range(self.samples):
             with self.subTest(msg="P(None)"):
-                target: dict = {outcome_bitstring, expected_result}
                 self.assertTrue(
                     target,
                     stab.probabilities_dict_from_bitstring(outcome_bitstring=outcome_bitstring),
