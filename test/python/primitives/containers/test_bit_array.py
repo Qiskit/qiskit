@@ -18,6 +18,7 @@ import ddt
 import numpy as np
 
 from qiskit.primitives.containers import BitArray
+from qiskit.primitives.containers.bit_array import concatenate
 from qiskit.result import Counts
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -334,3 +335,16 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.transpose((0, 1, -4))
             with self.assertRaisesRegex(ValueError, "repeated axis in transpose"):
                 _ = ba.transpose((0, 1, 1))
+
+    def test_concatenate(self):
+        """Test the transpose method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        # Since the input dtype is uint16, bit array requires at least two u8.
+        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        ba2 = concatenate([ba, ba], axis=1)
+        print(ba.shape)
+        print(ba2.shape)

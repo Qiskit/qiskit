@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import partial
 from itertools import chain, repeat
-from typing import Callable, Iterable, Literal, Mapping
+from typing import Callable, Iterable, Literal, Mapping, Sequence
 
 import numpy as np
 from numpy.typing import NDArray
@@ -375,3 +375,27 @@ class BitArray(ShapedMixin):
                 )
         axes = tuple(i if i >= 0 else self.ndim + i for i in axes) + (-2, -1)
         return BitArray(self._array.transpose(axes), self.num_bits)
+
+def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
+    """Join a sequence of bit arrays along an existing axis.
+
+    Args:
+        bitarrays: The sequence of bit arrays.
+        axis: The axis along which the arrays will be joined. Default is 0.
+
+    Returns:
+        BitArray: The concatenated bit array.
+
+    Raises:
+        ValueError: if the sequence of bit arrays is empty.
+        ValueError: if any bit arrays has a different number of shots.
+        ValueError: if any bit arrays has a different number of qubits.
+    """
+    if len(bitarrays) == 0:
+        raise ValueError("empty sequence")
+    if any(ba.num_bits != bitarrays[0].num_bits for ba in bitarrays):
+        raise ValueError("invalid num_bits")
+    if any(ba.num_shots != bitarrays[0].num_shots for ba in bitarrays):
+        raise ValueError("invalid num_shots")
+    data = np.concatenate([ba.array for ba in bitarrays], axis=axis)
+    return BitArray(data, bitarrays[0].num_bits)
