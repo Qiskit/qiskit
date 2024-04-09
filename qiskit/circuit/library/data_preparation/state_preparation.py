@@ -471,6 +471,9 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             [SV24] 
                 A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation of uniform quantum superposition states,"
                 Quantum Information Processing, 23(38): pp. 1-32 (2024).
+
+        Raises:
+            QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
                 
         Note:
             The Shukla-Vedula algorithm [SV24] provides an efficient approach for creation of a generalized uniform superposition 
@@ -479,12 +482,14 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             in existing literature.
         """
         super().__init__("USup", num_qubits, [])
-        assert (
-            isinstance(M, int) and M > 1
-        ), "M must be a positive integer greater than 1."
-        assert isinstance(num_qubits, int) and num_qubits >= np.log2(
-            M
-        ), "num_qubits must be an integer greater than or equal to log2(M)."
+        if not isinstance(M, int) and M > 1:
+            raise ValueError(
+                "M must be a positive integer greater than 1."
+            )
+        if not isinstance(num_qubits, int) and num_qubits >= np.log2:
+            raise ValueError(
+                "num_qubits must be an integer greater than or equal to log2(M)."
+            )
         self.M = M
         self._num_qubits = self._get_num_qubits(num_qubits, params)
 
