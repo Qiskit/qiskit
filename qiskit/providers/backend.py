@@ -40,8 +40,8 @@ class Backend:
 class BackendV1(Backend, ABC):
     """Abstract class for Backends
 
-    This abstract class is to be used for all Backend objects created by a
-    provider. There are several classes of information contained in a Backend.
+    This abstract class is to be used for Backend objects.
+    There are several classes of information contained in a Backend.
     The first are the attributes of the class itself. These should be used to
     defined the immutable characteristics of the backend. The ``options``
     attribute of the backend is used to contain the dynamic user configurable

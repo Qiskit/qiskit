@@ -63,11 +63,16 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
-        cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
-        cls.backend_16_rueschlikon = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
-        cls.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
-        cls.backend_65_manhattan = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+        cls.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42)
+        cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
+        cls.backend_16_rueschlikon = GenericBackendV2(
+            num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42
+        )
+        cls.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42)
+        cls.backend_65_manhattan = GenericBackendV2(
+            num_qubits=65, coupling_map=MANHATTAN_CMAP, seed=42
+        )
+        cls.backend1Q = GenericBackendV2(num_qubits=1, seed=42)
 
     def setUp(self):
         super().setUp()
@@ -398,11 +403,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(num_qubits=1)
-
         fname = "1_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=backend, filename=fname)
+        self.graph_plot_gate_map(backend=self.backend1Q, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
