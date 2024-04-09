@@ -1,6 +1,6 @@
 # Qiskit
 
-[![Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=0.*&logo=Qiskit&label=qiskit-terra)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0)
+[![Release](https://img.shields.io/github/v/release/Qiskit/qiskit-terra.svg?style=flat&filter=0.*&logo=Qiskit)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0)
 [![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
 [![Downloads](https://img.shields.io/pypi/dm/qiskit-terra.svg)](https://pypi.org/project/qiskit-terra/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit-terra/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit-terra?branch=main)
@@ -10,7 +10,7 @@
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
 
 > [!IMPORTANT]
-> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since `qiskit-terra>=0.25` (released on July 27th, 2023) the package was fully replaced by `qiskit`. 
+> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since `qiskit-terra>=0.25` (released on July 27th, 2023) the package was fully replaced by `qiskit>=0.44`. 
 > If you are installing or depending on `qiskit-terra`, consider changing that to `qiskit`. 
 > [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation#the-old-qiskit-structure).
 
