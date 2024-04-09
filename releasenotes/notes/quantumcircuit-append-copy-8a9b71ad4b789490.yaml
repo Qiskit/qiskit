@@ -1,0 +1,21 @@
+---
+features_circuits:
+  - |
+    :meth:`.QuantumCircuit.append` now has a ``copy`` keyword argument, which defaults to ``True``.
+    When an instruction with runtime parameters (:class:`.ParameterExpression`\ s) is appended to
+    a circuit, by default, the circuit has always created a copy of the instruction so that if
+    :meth:`.QuantumCircuit.assign_parameters` attempts to mutate the instruction in place, it does
+    not affect other references to the same instruction.  Now, setting ``copy=False`` allows you to
+    override this, so you can avoid the copy penalty if you know your instructions will not be used
+    in other locations.
+  - |
+    :meth:`.QuantumCircuit.compose` now has a ``copy`` keyword argument, which defaults to ``True``.
+    By default, :meth:`~.QuantumCircuit.compose` copies all instructions, so that mutations from one
+    circuit do not affect any other.  If ``copy=False``, then instructions from the other circuit
+    will become directly owned by the new circuit, which may involve mutating them in place.  The
+    other circuit must not be used afterwards, in this case.
+fixes:
+  - |
+    :meth:`.QuantumCircuit.append` with ``copy=True`` (its default) will now correctly copy
+    instructions parametrized by :class:`.ParameterExpression` instances, and not just by
+    :class:`.Parameter` instances.
