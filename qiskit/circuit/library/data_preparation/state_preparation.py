@@ -469,7 +469,12 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             Quantum Information Processing, 23(38): pp. 1-32 (2024).
     """
 
-    def __init__(self, M, num_qubits):
+    def __init__(
+        self,
+        params: Union[str, list, int, Statevector],
+        M : int = 2,
+        num_qubits: Optional[int] = None,
+    ):
         """
         Initializes Generalized_Uniform_Superposition_Gate.
 
@@ -485,7 +490,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             M
         ), "num_qubits must be an integer greater than or equal to log2(M)."
         self.M = M
-        self._num_qubits = num_qubits
+        self._num_qubits = self._get_num_qubits(num_qubits, params)
 
     def _define(self):
         """
