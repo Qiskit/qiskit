@@ -388,9 +388,9 @@ class StabilizerState(QuantumState):
 
     def probabilities_dict_from_bitstring(
         self,
+        outcome_bitstring: str,
         qargs: None | list = None,
         decimals: None | int = None,
-        outcome_bitstring: None | str = None,
     ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary.
 
@@ -403,16 +403,39 @@ class StabilizerState(QuantumState):
         inserted between integers so that subsystems can be distinguished.
 
         Args:
+            outcome_bitstring (str): a target str to measure
+                    probabilities for
             qargs (None or list): subsystems to return probabilities for,
                     if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                     values. If None no rounding is done (Default: None)
-            outcome_bitstring (None or str): a target str to measure
-                    probabilities for, None if no bitstrings to target
-                    measurements for, retrieve all measurements
 
         Returns:
             dict[str, float]: The measurement probabilities in dict (ket) form.
+        """
+        return self._get_probabilities_dict(
+            outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
+        )
+
+    def _get_probabilities_dict(
+        self,
+        outcome_bitstring: None | str = None,
+        qargs: None | list = None,
+        decimals: None | int = None,
+    ) -> dict[str, float]:
+        """Helper Function for calculating the subsystem measurement probability dictionary
+
+        Args:
+            outcome_bitstring (None or str): targetted outcome bitstring
+                to perform a measurement calculation for, this will significantly
+                reduce the number of calculation performed (Default: None)
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (key) form.
         """
         if qargs is None:
             qubits = range(self.clifford.num_qubits)
@@ -453,7 +476,7 @@ class StabilizerState(QuantumState):
         Returns:
             dict: The measurement probabilities in dict (key) form.
         """
-        return self.probabilities_dict_from_bitstring(qargs, decimals)
+        return self._get_probabilities_dict(outcome_bitstring=None, qargs=qargs, decimals=decimals)
 
     def reset(self, qargs: list | None = None) -> StabilizerState:
         """Reset state or subsystems to the 0-state.
