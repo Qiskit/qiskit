@@ -26,9 +26,10 @@ from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
+from qiskit.quantum_info.states.statevector import (
+    Statevector,
+)  # pylint: disable=cyclic-import
 from qiskit.quantum_info import Operator
-from qiskit.visualization import circuit_drawer
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -86,7 +87,9 @@ class StatePreparation(Gate):
         self._name = "state_preparation_dg" if self._inverse else "state_preparation"
 
         if label is None:
-            self._label = "State Preparation Dg" if self._inverse else "State Preparation"
+            self._label = (
+                "State Preparation Dg" if self._inverse else "State Preparation"
+            )
         else:
             self._label = f"{label} Dg" if self._inverse else label
 
@@ -207,7 +210,9 @@ class StatePreparation(Gate):
 
             # Check if param is a power of 2
             if num_qubits == 0 or not num_qubits.is_integer():
-                raise QiskitError("Desired statevector length not a positive power of 2.")
+                raise QiskitError(
+                    "Desired statevector length not a positive power of 2."
+                )
 
             num_qubits = int(num_qubits)
         return num_qubits
@@ -216,10 +221,14 @@ class StatePreparation(Gate):
         """Return inverted StatePreparation"""
 
         label = (
-            None if self._label in ("State Preparation", "State Preparation Dg") else self._label
+            None
+            if self._label in ("State Preparation", "State Preparation Dg")
+            else self._label
         )
 
-        return StatePreparation(self._params_arg, inverse=not self._inverse, label=label)
+        return StatePreparation(
+            self._params_arg, inverse=not self._inverse, label=label
+        )
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -228,7 +237,7 @@ class StatePreparation(Gate):
             raise QiskitError(
                 "StatePreparation parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
@@ -250,10 +259,14 @@ class StatePreparation(Gate):
         elif isinstance(parameter, np.number):
             return complex(parameter.item())
         else:
-            raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
+            raise CircuitError(
+                f"invalid param type {type(parameter)} for instruction  {self.name}"
+            )
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
+        return Gate(
+            name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[]
+        )
 
     def _gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
@@ -270,9 +283,11 @@ class StatePreparation(Gate):
         for i in range(self.num_qubits):
             # work out which rotations must be done to disentangle the LSB
             # qubit (we peel away one qubit at a time)
-            (remaining_param, thetas, phis) = StatePreparation._rotations_to_disentangle(
-                remaining_param
-            )
+            (
+                remaining_param,
+                thetas,
+                phis,
+            ) = StatePreparation._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -287,7 +302,9 @@ class StatePreparation(Gate):
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i : self.num_qubits])
+                circuit.append(
+                    ry_mult.to_instruction().reverse_ops(), q[i : self.num_qubits]
+                )
         circuit.global_phase -= np.angle(sum(remaining_param))
         return circuit
 
@@ -341,7 +358,7 @@ class StatePreparation(Gate):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = abs(a_complex)
-        final_r = np.sqrt(mag_a**2 + np.absolute(b_complex) ** 2)
+        final_r = np.sqrt(mag_a ** 2 + np.absolute(b_complex) ** 2)
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -389,13 +406,17 @@ class StatePreparation(Gate):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]], np.identity(2 ** (local_num_qubits - 2)))
+        angle_weight = np.kron(
+            [[0.5, 0.5], [0.5, -0.5]], np.identity(2 ** (local_num_qubits - 2))
+        )
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(target_gate, list_of_angles[0 : (list_len // 2)], False)
+        multiplex_1 = self._multiplex(
+            target_gate, list_of_angles[0 : (list_len // 2)], False
+        )
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
@@ -404,7 +425,9 @@ class StatePreparation(Gate):
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2) :], False)
+        multiplex_2 = self._multiplex(
+            target_gate, list_of_angles[(list_len // 2) :], False
+        )
         if list_len > 1:
             circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
@@ -415,6 +438,8 @@ class StatePreparation(Gate):
             circuit.append(CXGate(), [msb, lsb])
 
         return circuit
+
+
 class Generalized_Uniform_Superposition_Gate(Gate):
     """
     Generates a generalized uniform superposition state, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $ (where 1< M <= 2^n), 
@@ -439,7 +464,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
     References:
         [SV24] 
-            A. Shukla and P. Vedula, “An efficient quantum algorithm for preparation of uniform quantum superposition states,” 
+            A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation of uniform quantum superposition states,"
             Quantum Information Processing, 23(38): pp. 1-32 (2024).
     """
 
@@ -451,9 +476,13 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             M (int): The number of computational basis states with amplitude 1/sqrt(M).
             num_qubits (int): The number of qubits used.
         """
-        super().__init__('USup', num_qubits, [])
-        assert isinstance(M, int) and M > 1, "M must be a positive integer greater than 1."
-        assert isinstance(num_qubits, int) and num_qubits >= np.log2(M), "num_qubits must be an integer greater than or equal to log2(M)."
+        super().__init__("USup", num_qubits, [])
+        assert (
+            isinstance(M, int) and M > 1
+        ), "M must be a positive integer greater than 1."
+        assert isinstance(num_qubits, int) and num_qubits >= np.log2(
+            M
+        ), "num_qubits must be an integer greater than or equal to log2(M)."
         self.M = M
         self._num_qubits = num_qubits
 
@@ -464,42 +493,37 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         Returns:
             QuantumCircuit: The quantum circuit implementing the gate.
         """
-        qreg = QuantumRegister(self.num_qubits(), 'q')
+        qreg = QuantumRegister(self.num_qubits(), "q")
         qc = QuantumCircuit(self.num_qubits())
-        
-        
+
         M = self.M
         num_qubits = self.num_qubits()
-        
 
-        if (M & (M-1)) == 0: # if M is an integer power of 2
+        if (M & (M - 1)) == 0:  # if M is an integer power of 2
             m = int(np.log2(M))
             qc.h(qreg[0:m])
-            return qc  
-    
-        N = [int(x) for x in list(np.binary_repr(M))][::-1] 
+            return qc
+
+        N = [int(x) for x in list(np.binary_repr(M))][::-1]
         k = len(N)
-        L = [index for (index,item) in enumerate(N) if item==1] # Locations of '1's
-    
+        L = [index for (index, item) in enumerate(N) if item == 1]  # Locations of '1's
+
         qc.x(qreg[L[1:k]])
-        Mcurrent = 2**(L[0])
-        theta = -2*np.arccos(np.sqrt(Mcurrent/M))
-        
+        Mcurrent = 2 ** (L[0])
+        theta = -2 * np.arccos(np.sqrt(Mcurrent / M))
 
-        if L[0]>0:   #if M is even
-            qc.h(qreg[0:L[0]])
+        if L[0] > 0:  # if M is even
+            qc.h(qreg[0 : L[0]])
         qc.ry(theta, qreg[L[1]])
-        qc.ch(qreg[L[1]], qreg[L[0]:L[1]], ctrl_state='0')
-            
+        qc.ch(qreg[L[1]], qreg[L[0] : L[1]], ctrl_state="0")
 
-        for m in range(1,len(L)-1):
-            theta = -2*np.arccos(np.sqrt(2**L[m]/ (M-Mcurrent)))
-            qc.cry(theta, qreg[L[m]], qreg[L[m+1]], ctrl_state='0')
-            qc.ch(qreg[L[m+1]], qreg[L[m]:L[m+1]], ctrl_state='0')
-            Mcurrent = Mcurrent + 2**(L[m])
-        
+        for m in range(1, len(L) - 1):
+            theta = -2 * np.arccos(np.sqrt(2 ** L[m] / (M - Mcurrent)))
+            qc.cry(theta, qreg[L[m]], qreg[L[m + 1]], ctrl_state="0")
+            qc.ch(qreg[L[m + 1]], qreg[L[m] : L[m + 1]], ctrl_state="0")
+            Mcurrent = Mcurrent + 2 ** (L[m])
+
         return qc
-        
 
     def num_qubits(self):
         """Returns the number of qubits used by the gate."""
