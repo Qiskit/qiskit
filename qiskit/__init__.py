@@ -98,6 +98,7 @@ import qiskit.circuit.reset
 _config = _user_config.get_config()
 
 from qiskit.compiler import transpile, assemble, schedule, sequence
+from qiskit.transpiler.preset_passmanagers import default_passmanager
 
 from .version import __version__
 
@@ -112,4 +113,5 @@ __all__ = [
     "schedule",
     "sequence",
     "transpile",
+    "default_passmanager",
 ]
