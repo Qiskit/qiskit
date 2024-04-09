@@ -15,6 +15,7 @@ Stinespring representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 from numbers import Number
 import numpy as np
 
@@ -281,7 +282,7 @@ class Stinespring(QuantumChannel):
             return ret
         # If the number is real we can update the Kraus operators
         # directly
-        num = np.sqrt(other)
+        num = math.sqrt(other)
         stine_l, stine_r = self._data
         stine_l = num * self._data[0]
         stine_r = None

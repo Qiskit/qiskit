@@ -12,6 +12,7 @@
 
 """QDrift Class"""
 
+import math
 from typing import Union, Optional, Callable
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -73,7 +74,7 @@ class QDrift(ProductFormula):
         weights = np.abs(coeffs)
         lambd = np.sum(weights)
 
-        num_gates = int(np.ceil(2 * (lambd**2) * (time**2) * self.reps))
+        num_gates = math.ceil(2 * (lambd**2) * (time**2) * self.reps)
         # The protocol calls for the removal of the individual coefficients,
         # and multiplication by a constant evolution time.
         evolution_time = lambd * time / num_gates
@@ -83,8 +84,6 @@ class QDrift(ProductFormula):
             size=(num_gates,),
             p=weights / lambd,
         )
-        # Update the coefficients of sampled_ops
-        self.sampled_ops = [(op, evolution_time) for op, coeff in self.sampled_ops]
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
@@ -94,7 +93,7 @@ class QDrift(ProductFormula):
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
         evolution_circuit = PauliEvolutionGate(
-            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
+            sum(SparsePauliOp(np.sign(coeff) * op) for op, coeff in self.sampled_ops),
             time=evolution_time,
             synthesis=lie_trotter,
         ).definition

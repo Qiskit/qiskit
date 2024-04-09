@@ -21,7 +21,7 @@ import ddt
 import numpy as np
 
 from qiskit import pulse
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
@@ -482,6 +482,38 @@ class TestAssignFromProgram(QiskitTestCase):
 
         self.assertEqual(block.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block.blocks[0].pulse.sigma, 4.0)
+
+    def test_parametric_pulses_with_parameter_vector(self):
+        """Test Parametric Pulses with parameters determined by a ParameterVector
+        in the Play instruction."""
+        param_vec = ParameterVector("param_vec", 3)
+        param = Parameter("param")
+
+        waveform = pulse.library.Gaussian(duration=128, sigma=param_vec[0], amp=param_vec[1])
+
+        block = pulse.ScheduleBlock()
+        block += pulse.Play(waveform, pulse.DriveChannel(10))
+        block += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        block1 = block.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        block2 = block.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
+        self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block1.blocks[1].phase, 0.1)
+        self.assertEqual(block2.blocks[0].pulse.amp, param)
+        self.assertEqual(block2.blocks[0].pulse.sigma, 4.0)
+        self.assertEqual(block2.blocks[1].phase, 0.1)
+
+        sched = pulse.Schedule()
+        sched += pulse.Play(waveform, pulse.DriveChannel(10))
+        sched += pulse.ShiftPhase(param_vec[2], pulse.DriveChannel(10))
+        sched1 = sched.assign_parameters({param_vec: [4, 0.2, 0.1]}, inplace=False)
+        sched2 = sched.assign_parameters({param_vec: [4, param, 0.1]}, inplace=False)
+        self.assertEqual(sched1.instructions[0][1].pulse.amp, 0.2)
+        self.assertEqual(sched1.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched1.instructions[1][1].phase, 0.1)
+        self.assertEqual(sched2.instructions[0][1].pulse.amp, param)
+        self.assertEqual(sched2.instructions[0][1].pulse.sigma, 4.0)
+        self.assertEqual(sched2.instructions[1][1].phase, 0.1)
 
 
 class TestScheduleTimeslots(QiskitTestCase):

@@ -351,6 +351,12 @@ class TestBackendSamplerV2(QiskitTestCase):
         with self.subTest("zero shots, pub"):
             with self.assertRaises(ValueError):
                 _ = sampler.run([SamplerPub(qc1, shots=0)]).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Sampler pub-like was given"):
+                _ = sampler.run(qc1).result()
+        with self.subTest("missing [] for pqc"):
+            with self.assertRaisesRegex(ValueError, "Note that if you want to run a single pub,"):
+                _ = sampler.run((qc2, [0, 1])).result()
 
     @combine(backend=BACKENDS)
     def test_run_empty_parameter(self, backend):
@@ -649,6 +655,21 @@ class TestBackendSamplerV2(QiskitTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0].data), 0)
+
+    @combine(backend=BACKENDS)
+    def test_empty_creg(self, backend):
+        """Test that the sampler works if provided a classical register with no bits."""
+        # Test case for issue #12043
+        q = QuantumRegister(1, "q")
+        c1 = ClassicalRegister(0, "c1")
+        c2 = ClassicalRegister(1, "c2")
+        qc = QuantumCircuit(q, c1, c2)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        sampler = BackendSamplerV2(backend=backend, options=self._options)
+        result = sampler.run([qc], shots=self._shots).result()
+        self.assertEqual(result[0].data.c1.array.shape, (self._shots, 0))
 
 
 if __name__ == "__main__":
