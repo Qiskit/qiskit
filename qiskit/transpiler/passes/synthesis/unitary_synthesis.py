@@ -772,7 +772,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             decomposers.append(decomposer)
 
         # If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
-        # is an ideal deocmposition and there is no need to bother calculating the XX embodiments
+        # is an ideal decomposition and there is no need to bother calculating the XX embodiments
         # or try the XX decomposer
         if {"cx", "cz", "ecr"}.issuperset(available_2q_basis):
             self._decomposer_cache[qubits_tuple] = decomposers
