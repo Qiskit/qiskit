@@ -490,7 +490,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             raise ValueError(
                 "num_qubits must be an integer greater than or equal to log2(M)."
             )
-        self.M = M
+        self._M = M
         self._num_qubits = self._get_num_qubits(num_qubits, params)
 
     def _define(self):
@@ -503,7 +503,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         qreg = QuantumRegister(self.num_qubits(), "q")
         qc = QuantumCircuit(self.num_qubits())
 
-        M = self.M
+        M = self.M()
         num_qubits = self.num_qubits()
 
         if (M & (M - 1)) == 0:  # if M is an integer power of 2
@@ -538,7 +538,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
     def __repr__(self):
         """Returns a string representation of the gate."""
-        return f"Generalized_Uniform_Superposition_Gate(M={self.M}, num_qubits={self._num_qubits})"
+        return f"Generalized_Uniform_Superposition_Gate(M={self.M()}, num_qubits={self._num_qubits})"
 
     def broadcast_arguments(self, qargs, cargs):
         """Validates and handles the arguments."""
