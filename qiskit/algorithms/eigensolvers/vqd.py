@@ -102,11 +102,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial_point (Sequence[float] | Sequence[Sequence[float]] | None): An optional initial
-                point (i.e. initial parameter values) or a list of initial points
-                (one for every k-th eigenvalue) for the optimizer.
-                If ``None`` then VQD will look to the ansatz for a
-                preferred point and if not will simply compute a random one.
             callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
                 A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
