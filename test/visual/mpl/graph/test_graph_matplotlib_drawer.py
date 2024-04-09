@@ -60,6 +60,15 @@ def cwd(path):
 class TestGraphMatplotlibDrawer(QiskitTestCase):
     """Graph MPL visualization"""
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+        cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+        cls.backend_16_rueschlikon = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+        cls.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
+        cls.backend_65_manhattan = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+
     def setUp(self):
         super().setUp()
         self.graph_state_drawer = VisualTestUtilities.save_data_wrap(
@@ -74,12 +83,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_plot_coupling_map = VisualTestUtilities.save_data_wrap(
             plot_coupling_map, str(self), RESULT_DIR
         )
-
-        self.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
-        self.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
-        self.backend_16_rueschlikon = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
-        self.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
-        self.backend_65_manhattan = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
