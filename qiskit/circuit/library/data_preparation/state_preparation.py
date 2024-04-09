@@ -465,7 +465,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
                 A positive integer representing the number of qubits used.
         
         Returns:
-            cirq.Circuit: A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. 
+            A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. 
     
         **References:**
             [SV24] 
