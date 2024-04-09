@@ -10,7 +10,7 @@
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
 
 > [!IMPORTANT]
-> The package `qiskit-terra` is not going to be updated after August 15th, 2024. Since `qiskit-terra>=0.25` (released on July 27th, 2023) the package was fully replaced by `qiskit`. 
+> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since `qiskit-terra>=0.25` (released on July 27th, 2023) the package was fully replaced by `qiskit`. 
 > If you are installing or depending on `qiskit-terra`, consider changing that to `qiskit`. 
 > [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation#the-old-qiskit-structure).
 
