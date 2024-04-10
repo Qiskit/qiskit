@@ -535,7 +535,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         return qc
 
     def M(self):
-        """Returns the M value used by the gate"
+        """Returns the M value used by the gate"""
         return self._M
     
     def num_qubits(self):
