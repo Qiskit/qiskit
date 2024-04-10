@@ -226,35 +226,58 @@ def generate_preset_pass_manager(
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
 
+    pm_options = {
+        "target": target,
+        "basis_gates": basis_gates,
+        "inst_map": inst_map,
+        "coupling_map": coupling_map,
+        "instruction_durations": instruction_durations,
+        "backend_properties": backend_properties,
+        "timing_constraints": timing_constraints,
+        "layout_method": layout_method,
+        "routing_method": routing_method,
+        "translation_method": translation_method,
+        "scheduling_method": scheduling_method,
+        "approximation_degree": approximation_degree,
+        "seed_transpiler": seed_transpiler,
+        "unitary_synthesis_method": unitary_synthesis_method,
+        "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+        "initial_layout": initial_layout,
+        "hls_config": hls_config,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
+    }
+
     if backend is not None:
-        backend_target = backend.target
+        pm_options["_skip_target"] = _skip_target
+        pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
-        backend_target = Target()
+        pm_config = PassManagerConfig(**pm_options)
 
     target = Target.from_configuration(
-        basis_gates,
-        coupling_map=coupling_map,
-        inst_map=inst_map,
-        backend_properties=backend_properties,
-        instruction_durations=instruction_durations,
-        timing_constraints=timing_constraints,
+        pm_config.basis_gates,
+        coupling_map=pm_config.coupling_map,
+        inst_map=pm_config.inst_map,
+        backend_properties=pm_config.backend_properties,
+        instruction_durations=pm_config.instruction_durations,
+        timing_constraints=pm_config.timing_constraints,
     )
 
     return default_passmanager(
-        target=backend_target.update(target),
+        target=target,
         optimization_level=optimization_level,
-        initial_layout=initial_layout,
-        init_method=init_method,
-        layout_method=layout_method,
-        routing_method=routing_method,
-        translation_method=translation_method,
-        optimization_method=optimization_method,
-        scheduling_method=scheduling_method,
-        approximation_degree=approximation_degree,
-        seed_transpiler=seed_transpiler,
-        unitary_synthesis_method=unitary_synthesis_method,
-        unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-        hls_config=hls_config,
+        initial_layout=pm_config.initial_layout,
+        init_method=pm_config.init_method,
+        layout_method=pm_config.layout_method,
+        routing_method=pm_config.routing_method,
+        translation_method=pm_config.translation_method,
+        optimization_method=pm_config.optimization_method,
+        scheduling_method=pm_config.scheduling_method,
+        approximation_degree=pm_config.approximation_degree,
+        seed_transpiler=pm_config.seed_transpiler,
+        unitary_synthesis_method=pm_config.unitary_synthesis_method,
+        unitary_synthesis_plugin_config=pm_config.unitary_synthesis_plugin_config,
+        hls_config=pm_config.hls_config,
     )
 
 
@@ -366,18 +389,24 @@ def default_passmanager(
 
     pm_options = {
         "target": target,
-        "initial_layout": initial_layout,
-        "init_method": init_method,
+        "basis_gates": target.operation_names,
+        "inst_map": target.instruction_schedule_map(),
+        "coupling_map": target.build_coupling_map(),
+        "instruction_durations": target.durations(),
+        "backend_properties": target_to_backend_properties(target),
+        "timing_constraints": target.timing_constraints(),
         "layout_method": layout_method,
         "routing_method": routing_method,
         "translation_method": translation_method,
-        "optimization_method": optimization_method,
         "scheduling_method": scheduling_method,
         "approximation_degree": approximation_degree,
         "seed_transpiler": seed_transpiler,
         "unitary_synthesis_method": unitary_synthesis_method,
         "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+        "initial_layout": initial_layout,
         "hls_config": hls_config,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
     }
 
     pm_config = PassManagerConfig(**pm_options)
