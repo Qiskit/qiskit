@@ -13,14 +13,15 @@
 """Unit tests for BitArray."""
 
 from itertools import product
+from test import QiskitTestCase
 
 import ddt
 import numpy as np
 
 from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.bit_array import concatenate
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 def u_8(arr):
@@ -453,3 +454,51 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.marginalize(-1)
             with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
                 _ = ba.marginalize(9)
+
+    def test_expectation_value(self):
+        """Test the expectation_value method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        op = "I" * 8 + "Z"
+        op2 = "I" * 8 + "0"
+        op3 = "I" * 8 + "1"
+        pauli = Pauli(op)
+        sp_op = SparsePauliOp(op)
+        sp_op2 = SparsePauliOp.from_sparse_list([("Z", [6], 1)], num_qubits=9)
+        sp_op3 = SparsePauliOp.from_sparse_list([("Z", [5], 1)], num_qubits=9)
+
+        with self.subTest("str"):
+            expval = ba.expectation_value(op)
+            # both 0 and 1 appear 5 times
+            self.assertAlmostEqual(expval, 0)
+
+            expval = ba.expectation_value(op2)
+            self.assertAlmostEqual(expval, 0.5)
+
+            expval = ba.expectation_value(op3)
+            self.assertAlmostEqual(expval, 0.5)
+
+            ba2 = ba.marginalize(6)
+            # 6th bit are all 0
+            expval = ba2.expectation_value("Z")
+            self.assertAlmostEqual(expval, 1)
+
+        with self.subTest("Pauli"):
+            expval = ba.expectation_value(pauli)
+            self.assertAlmostEqual(expval, 0)
+
+        with self.subTest("SparsePauliOp"):
+            expval = ba.expectation_value(sp_op)
+            self.assertAlmostEqual(expval, 0)
+
+            expval = ba.expectation_value(sp_op2)
+            # 6th bit are all 0
+            self.assertAlmostEqual(expval, 1)
+
+        with self.subTest("loc"):
+            # 5th bit are all 1
+            expval = ba.expectation_value(sp_op3, (0, 1, 2))
+            self.assertAlmostEqual(expval, -1)

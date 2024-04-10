@@ -412,19 +412,21 @@ class BitArray(ShapedMixin):
 
     def expectation_value(
         self, operator: str | Pauli | SparsePauliOp, loc: int | tuple[int, ...] | None = None
-    ) -> NDArray[np.float64]:
-        """_summary_
+    ) -> float:
+        """Compute the expectation value of an operator.
+
+        .. note:
+            This method returns the real part of the expectation value even if
+            the operator has complex coefficients due to the specification of
+            :func:~.sampled_expval_complex.
 
         Args:
-            operators: _description_
-            loc: Which entry of this array to return an expectation value for.
+            operator: The operator for the expectation value
+            loc: Which entry of this array to compute the expectation value.
                 If ``None``, counts from all positions in this array are unioned together.
 
         Returns:
-            ndarray: _description_
-
-        Raises:
-            ValueError: if...
+            The expectation value.
         """
         counts = self.get_counts(loc)
         return sampled_expectation_value(counts, operator)
