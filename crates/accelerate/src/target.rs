@@ -100,7 +100,6 @@ impl<T: Hash> Hash for HashableVec<T> {
 }
 
 #[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
-#[derive(Clone, Debug)]
 pub struct InstructionProperties {
     #[pyo3(get)]
     pub duration: Option<f32>,
@@ -350,9 +349,9 @@ impl Target {
         &mut self,
         _py: Python<'_>,
         instruction: String,
-        qargs: &Bound<PyAny>,
+        qargs: Vec<u32>,
         properties: PyObject,
-    ) {
+    ) -> PyResult<()> {
         /* Update the property object for an instruction qarg pair already in the Target
 
         Args:
@@ -369,10 +368,7 @@ impl Target {
                 &instruction
             );
         };
-        let qargs = match qargs.extract::<Vec<u32>>().ok() {
-            Some(vec) => HashableVec { vec },
-            None => HashableVec { vec: vec![] },
-        };
+        let qargs = HashableVec { vec: qargs };
         if !self.gate_map[&instruction].contains_key(&qargs) {
             panic!(
                 "Provided qarg {:?} not in this Target for {:?}.",
@@ -386,6 +382,7 @@ impl Target {
         }
         self.instructions_durations = None;
         self.instruction_schedule_map = None;
+        Ok(())
     }
 
     #[getter]
@@ -407,18 +404,12 @@ impl Target {
     fn update_from_instruction_schedule_map(
         &mut self,
         py: Python<'_>,
-        inst_map: PyObject,
-        inst_name_map: Option<Bound<PyDict>>,
+        inst_map: Bound<PyAny>,
+        inst_name_map: Option<HashMap<String, Bound<PyAny>>>,
         error_dict: Option<Bound<PyDict>>,
-    ) {
+    ) -> PyResult<()> {
         println!("I'm inside but...??");
-        let get_calibration = match inst_map.getattr(py, "_get_calibration_entry") {
-            Ok(calibration) => calibration,
-            Err(e) => panic!(
-                "Could not extract calibration from the provided Instruction map: {:?}",
-                e
-            ),
-        };
+        let get_calibration = inst_map.getattr("_get_calibration_entry")?;
 
         // Expand name mapping with custom gate namer provided by user.
         // TEMPORARY: Get arround improting this module and function, will be fixed after python wrapping.
@@ -430,303 +421,186 @@ impl Target {
 
         // Update with inst_name_map if possible.
         if inst_name_map.is_some() {
-            let _ = qiskit_inst_name_map.call_method1("update", (inst_name_map,));
+            qiskit_inst_name_map.call_method1("update", (inst_name_map,))?;
         }
-        println!("Where am I??");
-        if let Ok(inst_map_list) = inst_map.getattr(py, "instructions") {
-            println!("1");
-            let inst_map_list = if let Ok(inst_map_list) = inst_map_list.extract::<Vec<String>>(py)
+
+        for inst_name in inst_map.getattr("instructions")?.extract::<Vec<String>>()? {
+            let mut out_props: HashMap<HashableVec<u32>, PyObject> = HashMap::new();
+            for qargs in inst_map
+                .call_method1("qubits_with_instruction", (&inst_name,))?
+                .downcast::<PyList>()?
             {
-                inst_map_list
-            } else {
-                panic!("Could not extract instruction name from 'InstructionScheduleMap.'")
-            };
-            for inst_name in inst_map_list {
-                let mut out_props: HashMap<HashableVec<u32>, PyObject> = HashMap::new();
-                if let Ok(qubits) =
-                    inst_map.call_method1(py, "qubits_with_instruction", (&inst_name,))
-                {
-                    println!("2: Loop");
-                    let qubits = if let Ok(qubits) = qubits.downcast_bound::<PyList>(py) {
-                        qubits.to_owned()
+                let qargs = HashableVec {
+                    vec: if let Ok(qargs) = qargs.extract::<u32>() {
+                        vec![qargs]
                     } else {
-                        PyList::empty_bound(py)
+                        qargs.extract::<Vec<u32>>()?
+                    },
+                };
+                let mut props: Option<PyObject> = if self.gate_map[&inst_name].contains_key(&qargs)
+                {
+                    Some(self.gate_map[&inst_name][&qargs].clone())
+                } else {
+                    None
+                };
+                let entry = get_calibration.call1((&inst_name, qargs.vec.clone()))?;
+                let prop_entry = if let Some(prop) = &props {
+                    entry.eq(prop.getattr(py, "_calibration")?)?
+                } else {
+                    entry.is_none()
+                };
+                if entry.getattr("user_provided")?.extract::<bool>()? && prop_entry {
+                    // It only copies user-provided calibration from the inst map.
+                    // Backend defined entry must already exist in Target.
+                    let duration = if let Some(dur) = self.dt {
+                        Some(
+                            entry
+                                .call_method0("get_schedule")?
+                                .getattr("duration")?
+                                .extract::<f32>()?
+                                * dur,
+                        )
+                    } else {
+                        None
                     };
-                    for qargs in qubits {
-                        let qargs = match qargs.extract::<Vec<u32>>().ok() {
-                            Some(vec) => HashableVec { vec },
-                            None => HashableVec {
-                                vec: match qargs.extract::<u32>() {
-                                    Ok(qarg) => vec![qarg],
-                                    Err(_) => vec![],
-                                },
-                            },
-                        };
-                        println!("Loop 3");
-                        let mut props = if let Some(inst_gate_map) = self.gate_map.get(&inst_name) {
-                            if let Some(props) = inst_gate_map.get(&qargs) {
-                                Some(props.to_object(py))
-                            } else {
-                                None
-                            }
-                        } else {
-                           None
-                        };
-                        let entry = match get_calibration.call1(py, (&inst_name, qargs.vec.clone()))
-                        {
-                            Ok(ent) => ent,
-                            Err(e) => panic!(
-                                "Could not obtain calibration with '{:?}' : {:?}.",
-                                inst_name, e
-                            ),
-                        };
-
-                        // Temporary until a better solution is found.
-                        if if let Ok(entry_user) = entry.getattr(py, "user_provided") {
-                            entry_user.extract::<bool>(py).unwrap_or_default()
-                        } else {
-                            false
-                        } && if let Some(prop) = &props {
-                            if let Ok(calibration) = prop.getattr(py, "_calibration") {
-                                if let Ok(result) = calibration.call_method1(py, "__eq__", (&entry,)) {
-                                    if let Ok(truth) = result.extract::<bool>(py) {
-                                        truth
-                                    } else {
-                                        false
-                                    }
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        } else {
-                            false
-                        }
-                        // if entry.getattr(py, "user_provided").is_ok_and(|res| res.extract::<bool>(py).unwrap_or(false)) &&
-                        // TEMPORAL: Compare using __eq__
-                        // !props.getattr(py, "_calibration").unwrap().call_method1(py, "__eq__", (&entry,)).unwrap().extract::<bool>(py).unwrap_or(false)
-                        {
-                            println!("4");
-                            let duration: Option<f32> = if let Some(dt) = self.dt {
-                                if let Ok(entry_duration) = entry.call_method0(py, "get_schedule") {
-                                    if let Ok(entry_dur) = entry_duration.getattr(py, "duration") {
-                                        if let Ok(dur) = entry_dur.extract::<f32>(py) {
-                                            Some(dur * dt)
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            };
-
-                            // TEMPORAL: Use Python counterpart
-                            props = Some(import_from_module_call1(
-                                py,
-                                "qiskit.transpiler.target",
-                                "InstructionProperties",
-                                (duration, None::<f32>, Some(entry)),
-                            )
-                            .to_object(py));
-                        } else if props.is_none() {
-                            // Edge case. Calibration is backend defined, but this is not
-                            // registered in the backend target. Ignore this entry.
-                            println!("5");
-                            continue;
-                        }
-
-                        // TEMPORARY: until a better way is found
-                        // WIP: Change python attributes from rust.
-                        // WARNING: I don't exactly know whether assign_elem does what I want it to do.
-                        if let Some(error_dict) = &error_dict {
-                            if let Ok(Some(inst_error)) = error_dict.get_item(inst_name.clone()) {
-                                if let Ok(error_qargs) = inst_error.downcast_into::<PyDict>() {
-                                    if let Ok(Some(error)) = error_qargs
-                                        .get_item(PyTuple::new_bound(py, qargs.vec.clone()))
-                                    {
-                                        if let Some(prop) = &props {
-                                            match prop.setattr(py, "error", error) {
-                                            Ok(success) => success,
-                                            Err(e) => panic!(
-                                                "Could not set 'error' attribute in props to {:?}",
-                                                e
-                                            ),
-                                        };
-                                    }
-                                    }
-                                }
-                            }
-                        };
-
-                        if let Some(x) = out_props.get_mut(&qargs) {
-                            *x = props.into_py(py)
-                        };
-                        if !out_props.is_empty() {
-                            println!("6");
-                            continue;
-                        }
-
-                        // Prepare Qiskit Gate object assigned to the entries
-                        if !self.gate_map.contains_key(&inst_name) {
-                            println!("7");
-                            if if let Ok(q_inst_map) =
-                                qiskit_inst_name_map.call_method1("__contains__", (&inst_name,))
-                            {
-                                q_inst_map.extract::<bool>().unwrap_or_default()
-                            } else {
-                                false
-                            } {
-                                if let Ok(inst_obj) = qiskit_inst_name_map.get_item(&inst_name) {
-                                    // inst_obj.to_object(py);
-                                    println!("8");
-                                    let mut normalized_props: HashMap<HashableVec<u32>, &PyObject> =
-                                        HashMap::new();
-                                    for (qargs, prop) in &out_props {
-                                        if let Ok(result) = inst_obj.getattr("num_qubits") {
-                                            if let Ok(num_qubits) = result.extract::<usize>() {
-                                                if qargs.vec.len() != num_qubits {
-                                                    continue;
-                                                }
-                                            }
-                                        }
-                                        if let Some(x) = normalized_props.get_mut(qargs) {
-                                            *x = prop;
-                                        };
-                                    } // TEMPORARY: Convert map into PyDict
-                                    let normalized_props_dict = PyDict::new_bound(py);
-                                    let _ = normalized_props.iter().map(|(qargs, value)| {
-                                        normalized_props_dict.set_item(
-                                            PyTuple::new_bound(py, qargs.vec.clone()),
-                                            *value,
-                                        )
-                                    });
-                                    self.add_instruction(
-                                        py,
-                                        inst_obj.to_object(py),
-                                        Some(normalized_props_dict),
-                                        Some(inst_name.clone()),
-                                    );
-                                }
-                            } else {
-                                println!("9");
-                                let mut qlen: HashSet<usize> = HashSet::new();
-                                let mut param_names: HashSet<HashableVec<String>> = HashSet::new();
-                                if let Ok(qubits_inst) = inst_map.call_method1(
-                                    py,
-                                    "qubits_with_instruction",
-                                    (&inst_name,),
-                                ) {
-                                    println!("10");
-                                    let qubits_inst = if let Ok(qubit_inst) =
-                                        qubits_inst.downcast_bound::<PyList>(py)
-                                    {
-                                        qubit_inst
-                                    } else {
-                                        panic!("Could not extract instruction list from instruction map.")
-                                    };
-                                    for qargs in qubits_inst {
-                                        println!("11-loop");
-                                        let mut _extract_qargs: Vec<u32> =
-                                            if let Ok(_extract_qargs) = qargs.extract::<u32>() {
-                                                vec![_extract_qargs]
-                                            } else if let Ok(_extract_qargs) =
-                                                qargs.extract::<Vec<u32>>()
-                                            {
-                                                _extract_qargs
-                                            } else {
-                                                panic!("Unable to extract Qargs.")
-                                            };
-                                        qlen.insert(_extract_qargs.len());
-
-                                        if let Ok(cal) = out_props[&HashableVec {
-                                            vec: _extract_qargs,
-                                        }]
-                                            .getattr(py, "_calibration")
-                                        {
-                                            if let Ok(cal_signature) =
-                                                cal.call_method0(py, "get_signature")
-                                            {
-                                                if let Ok(sign_param) =
-                                                    cal_signature.getattr(py, "parameters")
-                                                {
-                                                    if let Ok(param_dict) =
-                                                        sign_param.downcast_bound::<PyDict>(py)
-                                                    {
-                                                        if let Ok(param_keys) = param_dict
-                                                            .keys()
-                                                            .extract::<Vec<String>>()
-                                                        {
-                                                            println!("12");
-                                                            param_names.insert(HashableVec {
-                                                                vec: param_keys,
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if qlen.len() > 1 || param_names.len() > 1 {
-                                    panic!("Schedules for {:?} are defined non-uniformly for multiple qubit lengths {:?},
-                                    or different parameter names {:?}. Provide these schedules with inst_name_map or define 
-                                    them with different names for different gate parameters", inst_name, qlen, param_names);
-                                }
-                                println!("13");
-                                let mut params: Vec<PyObject> = vec![];
-                                let param_args = if let Some(arg) = param_names.into_iter().next() {
-                                    (arg.vec,)
-                                } else {
-                                    (vec![],)
-                                };
-                                let param_class = import_from_module_call1(py, "qiskit.circuit.parameter", "Parameter", param_args);
-                                params.push(
-                                    param_class.to_object(py),
-                                );
-                                let inst_obj = match py.import_bound("qiskit.circuit.gate") {
-                                    Ok(gate_mod) => match gate_mod.call_method1("Gate", (&inst_name, qlen.into_iter().next(), params)) {
-                                        Ok(obj) => obj,
-                                        Err(e) => panic!("Could not import class 'Gate' from 'qiskit.circuit.gate': {:?}", e),
-                                    },
-                                    Err(e) => panic!("Could not resolve 'qiskit.circuit.gate': {:?}", e),
-                                };
-                                let props_dict = PyDict::new_bound(py);
-                                let _ = out_props.iter().map(|(qargs, value)| {
-                                    props_dict
-                                        .set_item(PyTuple::new_bound(py, qargs.vec.clone()), value)
-                                });
-                                self.add_instruction(
-                                    py,
-                                    inst_obj.to_object(py),
-                                    Some(props_dict),
-                                    Some(inst_name.clone()),
-                                );
-                            }
-                        } else {
-                            // Entry found: Update "existing instructions."
-                            println!("14");
-                            for (qargs, prop) in out_props.iter() {
-                                if self.gate_map.contains_key(&inst_name) {
-                                    continue;
-                                }
-                                self.update_instruction_properties(
-                                    py,
-                                    inst_name.clone(),
-                                    PyTuple::new_bound(py, &qargs.vec).as_any(),
-                                    prop.clone_ref(py),
-                                )
-                            }
-                        }
+                    props = Some(
+                        import_from_module_call1(
+                            py,
+                            "qiskit.transpiler.target",
+                            "Target",
+                            (duration, None::<f32>, entry.clone()),
+                        )
+                        .into(),
+                    );
+                } else {
+                    if props.is_none() {
+                        // Edge case. Calibration is backend defined, but this is not
+                        // registered in the backend target. Ignore this entry.
+                        continue;
                     }
+                }
+                if let (Some(error_dict), Some(props)) = (error_dict.clone(), props.clone()) {
+                    if let Some(inst_dict) = error_dict.get_item(inst_name.clone())? {
+                        props.setattr(
+                            py,
+                            "error",
+                            inst_dict.get_item(PyTuple::new_bound(py, qargs.vec.clone()))?,
+                        )?;
+                    }
+                    if let Some(out_p) = out_props.get_mut(&qargs) {
+                        *out_p = props.clone();
+                    }
+                }
+                if let (Some(out_p), Some(props)) = (out_props.get_mut(&qargs), props) {
+                    *out_p = props.to_object(py);
+                }
+                if out_props.is_empty() {
+                    continue;
+                }
+            }
+            // Prepare Qiskit Gate object assigned to the entries
+            if !self.gate_map.contains_key(&inst_name) {
+                if qiskit_inst_name_map.contains(&inst_name)? {
+                    let inst_obj = qiskit_inst_name_map.get_item(&inst_name)?;
+                    let normalized_props = PyDict::new_bound(py);
+                    for (qargs, prop) in out_props.iter() {
+                        if qargs.vec.len() != inst_obj.getattr("num_qubits")?.extract::<usize>()? {
+                            continue;
+                        }
+                        normalized_props
+                            .set_item(PyTuple::new_bound(py, qargs.vec.clone()), prop)?;
+                    }
+                    self.add_instruction(
+                        py,
+                        inst_obj.to_object(py),
+                        Some(normalized_props),
+                        Some(inst_name.clone()),
+                    );
+                } else {
+                    // Check qubit length parameter name uniformity.
+                    let mut qlen: HashSet<usize> = HashSet::new();
+                    let mut param_names: HashSet<HashableVec<String>> = HashSet::new();
+                    for qarg in inst_map
+                        .call_method1("qubit_with_instruction", (&inst_name,))?
+                        .downcast::<PyList>()?
+                    {
+                        let extract_qarg: HashableVec<u32>;
+                        if is_instance(py, &qarg.to_object(py), HashSet::from(["int".to_string()]))
+                        {
+                            extract_qarg = HashableVec {
+                                vec: vec![qarg.extract::<u32>()?],
+                            };
+                        } else {
+                            extract_qarg = HashableVec {
+                                vec: qarg.extract::<Vec<u32>>()?,
+                            };
+                        }
+                        qlen.insert(extract_qarg.vec.len());
+                        let cal = out_props[&extract_qarg].getattr(py, "_calibration")?;
+                        param_names.insert(HashableVec {
+                            vec: cal
+                                .call_method0(py, "get_signature")?
+                                .getattr(py, "parameters")?
+                                .call_method0(py, "keys")?
+                                .extract::<Vec<String>>(py)?,
+                        });
+                    }
+                    if qlen.len() > 1 && param_names.len() > 1 {
+                        panic!(
+                            "Schedules for {:?} are defined non-uniformly for 
+                        multiple qubit lengths {:?}, 
+                        or different parameter names {:?}. 
+                        Provide these schedules with inst_name_map or define them with 
+                        different names for different gate parameters.",
+                            inst_name, qlen, param_names
+                        )
+                    }
+                    let params_list = if let Some(params) = param_names
+                        .into_iter()
+                        .next()
+                        .and_then(|hashvec| Some(hashvec.vec))
+                    {
+                        let mut param_vec = vec![];
+                        let _ = params.into_iter().map(|name| {
+                            param_vec.push(import_from_module_call1(
+                                py,
+                                "qiskit.circuit.parameters",
+                                "Parameter",
+                                (&name,),
+                            ))
+                        });
+                        param_vec
+                    } else {
+                        vec![]
+                    };
+
+                    let inst_obj = import_from_module_call1(
+                        py,
+                        "qiskit.circuit.gate",
+                        "Gate",
+                        (&inst_name, qlen.into_iter().next(), params_list),
+                    );
+                    let parsed_dict = PyDict::new_bound(py);
+                    let _ = out_props.iter().map(|(key, val)| {
+                        parsed_dict.set_item(PyTuple::new_bound(py, key.vec.clone()), val)
+                    });
+                    self.add_instruction(
+                        py,
+                        inst_obj.to_object(py),
+                        Some(parsed_dict),
+                        Some(inst_name.clone()),
+                    )
+                }
+            } else {
+                for (qargs, prop) in out_props.into_iter() {
+                    if self.gate_map[&inst_name].contains_key(&qargs) {
+                        continue;
+                    }
+                    return self.update_instruction_properties(py, inst_name.clone(), qargs.vec, prop);
                 }
             }
         }
+        Ok(())
     }
 
     #[pyo3(text_signature = "/")]
