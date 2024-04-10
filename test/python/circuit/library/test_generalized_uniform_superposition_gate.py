@@ -18,8 +18,11 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit.library.data_preparation import Generalized_Uniform_Superposition_Gate
+from qiskit.circuit.library.data_preparation import (
+    Generalized_Uniform_Superposition_Gate,
+)
 from test import QiskitTestCase
+
 
 @ddt
 class TestGeneralizedUniformSuperposition(QiskitTestCase):
@@ -30,22 +33,22 @@ class TestGeneralizedUniformSuperposition(QiskitTestCase):
         M_min = 3
         M_max = 80
         for M in range(M_min, M_max):
-            if (M & (M-1)) == 0: # If M is an integer power of 2
+            if (M & (M - 1)) == 0:  # If M is an integer power of 2
                 n = int(np.log2(M))
-            else: # If M is not an integer power of 2
+            else:  # If M is not an integer power of 2
                 n = int(np.ceil(np.log2(M)))
-            desired_sv = (1/np.sqrt(M))*np.array([1]*M + [0]*(2**n - M))
+            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2 ** n - M))
             gate = Generalized_Uniform_Superposition_Gate(M, n)
             unitary_matrix = np.real(gate.to_unitary())
-            actual_sv = unitary_matrix[:,0]
+            actual_sv = unitary_matrix[:, 0]
             self.assertTrue(np.allclose(desired_sv, actual_sv))
-    
+
     def test_incompatible_M(self):
         """Test error raised if M not valid"""
         M_min = -2
         M_max = 2
         n = 1
-        for M in range(M_min, M_max): 
+        for M in range(M_min, M_max):
             with self.assertRaises(ValueError):
                 Generalized_Uniform_Superposition_Gate(M, n)
 
@@ -63,16 +66,17 @@ class TestGeneralizedUniformSuperposition(QiskitTestCase):
         M_min = 3
         M_max = 10
         for M in range(M_min, M_max):
-            if (M & (M-1)) == 0: # If M is an integer power of 2
+            if (M & (M - 1)) == 0:  # If M is an integer power of 2
                 n = int(np.log2(M))
-            else: # If M is not an integer power of 2
+            else:  # If M is not an integer power of 2
                 n = int(np.ceil(np.log2(M)))
-            desired_sv = (1/np.sqrt(M))*np.array([1]*M + [0]*(2**n - M))
+            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2 ** n - M))
             num_qubits = None
             gate = Generalized_Uniform_Superposition_Gate(M, num_qubits)
             unitary_matrix = np.real(gate.to_unitary())
-            actual_sv = unitary_matrix[:,0]
+            actual_sv = unitary_matrix[:, 0]
             self.assertTrue(np.allclose(desired_sv, actual_sv))
-    
+
+
 if __name__ == "__main__":
     unittest.main()
