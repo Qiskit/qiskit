@@ -14,6 +14,7 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
+import math
 from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
@@ -288,7 +289,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             float: the standard deviation upper bound.
         """
         gamma = self._compute_gamma(qubits=qubits)
-        return gamma / np.sqrt(shots)
+        return gamma / math.sqrt(shots)
 
     def _from_backend(self, backend, qubits):
         """Calculates amats from backend properties readout_error"""
