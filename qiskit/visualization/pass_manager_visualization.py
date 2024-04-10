@@ -48,6 +48,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, ppri
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
             default is False.
+        pprint (Bool) : True if you want to dump as pretty-print text. The
+            default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
         no image was generated or PIL is not installed.
@@ -137,6 +139,8 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
             categories. Any values not included in the provided dict will be filled in from
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
+        pprint (Bool) : True if you want to dump as pretty-print text. The
             default is False.
     Returns:
         PIL.Image or None: an in-memory representation of the pass manager. Or None if
@@ -336,10 +340,10 @@ def _pprint(graph, nest=0):
         for subgraph in subgraphs:
             sub_output = _pprint(subgraph, nest + 1)
             if sub_output:
-                output.append("  " * nest + subgraph.get_label())
+                output.append("  " * nest + subgraph.get_label().strip())
                 output += sub_output
     elif nodes:
         for node in nodes:
             if node.get_shape() == "rectangle":
-                output.append("  " * nest + "- " + node.get_label())
+                output.append("  " * nest + "- " + node.get_label().strip())
     return output
