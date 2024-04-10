@@ -399,6 +399,26 @@ impl Target {
         }
         Ok(Some(qargs))
     }
+
+    #[pyo3(text_signature = "(/, operation)")]
+    fn qargs_for_operation_name(
+        &self,
+        operation: String,
+    ) -> PyResult<Option<Vec<HashableVec<u32>>>> {
+        /*
+        Get the qargs for a given operation name
+
+        Args:
+           operation (str): The operation name to get qargs for
+        Returns:
+            set: The set of qargs the gate instance applies to.
+         */
+        if self.gate_map[&operation].is_empty() {
+            return Ok(None);
+        }
+        let qargs: Vec<HashableVec<u32>> = self.gate_map[&operation].clone().into_keys().collect();
+        Ok(Some(qargs))
+    }
 }
 
 #[pymodule]

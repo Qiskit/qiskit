@@ -342,3 +342,13 @@ class Target:
     @property
     def qargs(self):
         return self._Target.qargs
+
+    def qargs_for_operation_name(self, operation):
+        """Get the qargs for a given operation name
+
+        Args:
+           operation (str): The operation name to get qargs for
+        Returns:
+            set: The set of qargs the gate instance applies to.
+        """
+        return self._Target.qargs_for_operation_name(operation)
