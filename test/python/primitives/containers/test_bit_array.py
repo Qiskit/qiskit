@@ -341,8 +341,6 @@ class BitArrayTestCase(QiskitTestCase):
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
-        # Since the input dtype is uint16, bit array requires at least two u8.
-        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
 
@@ -391,8 +389,6 @@ class BitArrayTestCase(QiskitTestCase):
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
-        # Since the input dtype is uint16, bit array requires at least two u8.
-        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
 
@@ -412,3 +408,48 @@ class BitArrayTestCase(QiskitTestCase):
             self.assertEqual(ba2.shape, (2,))
             for j in range(2):
                 self.assertEqual(ba.get_counts(loc=(0, j, 2)), ba2.get_counts(loc=j))
+
+    def test_marginalize(self):
+        """Test the marginalize method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("all"):
+            ba2 = ba.marginalize(range(ba.num_bits))
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, ba.num_bits)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
+
+        with self.subTest("1 bit, int"):
+            ba2 = ba.marginalize(0)
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_counts(loc=(i, j, k)), {"0": 5, "1": 5})
+
+        with self.subTest("1 bit, list"):
+            ba2 = ba.marginalize([0])
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, 1)
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba2.get_counts(loc=(i, j, k)), {"0": 5, "1": 5})
+
+        with self.subTest("2 bits"):
+            ba2 = ba.marginalize([0, 1])
+            self.assertEqual(ba2.shape, ba.shape)
+            self.assertEqual(ba2.num_bits, 2)
+            even = {"00": 3, "01": 3, "10": 2, "11": 2}
+            odd = {"10": 3, "11": 3, "00": 2, "01": 2}
+            for count, (i, j, k) in enumerate(product(range(1), range(2), range(3))):
+                expect = even if count % 2 == 0 else odd
+                self.assertEqual(ba2.get_counts(loc=(i, j, k)), expect)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
+                _ = ba.marginalize(-1)
+            with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
+                _ = ba.marginalize(9)
