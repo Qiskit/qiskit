@@ -271,10 +271,12 @@ class TestPatelMarkovHayes(QiskitTestCase):
         self.assertEqual(unitary_patel, unitary_compare)
 
     def test_invalid_state_type(self):
+        """Test invalid state type"""
         with self.assertRaises(QiskitError):
             synth_cnot_count_full_pmh("invalid_state", 2)
 
     def test_invalid_section_size(self):
+        """Test invalid section_size"""
         state = [[1, 0], [0, 1]]
         with self.assertRaises(QiskitError):
             synth_cnot_count_full_pmh(state, 3)
