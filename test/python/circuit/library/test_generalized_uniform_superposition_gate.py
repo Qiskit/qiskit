@@ -37,7 +37,7 @@ class TestGeneralizedUniformSuperposition(QiskitTestCase):
                 n = int(np.log2(M))
             else:  # If M is not an integer power of 2
                 n = int(np.ceil(np.log2(M)))
-            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2 ** n - M))
+            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2**n - M))
             gate = Generalized_Uniform_Superposition_Gate(M, n)
             unitary_matrix = np.real(gate.to_unitary())
             actual_sv = unitary_matrix[:, 0]
@@ -70,7 +70,7 @@ class TestGeneralizedUniformSuperposition(QiskitTestCase):
                 n = int(np.log2(M))
             else:  # If M is not an integer power of 2
                 n = int(np.ceil(np.log2(M)))
-            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2 ** n - M))
+            desired_sv = (1 / np.sqrt(M)) * np.array([1] * M + [0] * (2**n - M))
             num_qubits = None
             gate = Generalized_Uniform_Superposition_Gate(M, num_qubits)
             unitary_matrix = np.real(gate.to_unitary())
