@@ -213,7 +213,7 @@ class PassManager(BasePassManager):
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def pprint(self):
-        """TODO"""
+        """Passmanager pretty-printer."""
         from qiskit.visualization import pass_manager_drawer
 
         return pass_manager_drawer(self, pprint=True)
@@ -413,7 +413,7 @@ class StagedPassManager(PassManager):
         return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw, args=args)
 
     def pprint(self):
-        """TODO"""
+        """Pretty-print of :class:`.StagedPassManager`."""
         from qiskit.visualization import staged_pass_manager_drawer
 
         return staged_pass_manager_drawer(self, pprint=True)

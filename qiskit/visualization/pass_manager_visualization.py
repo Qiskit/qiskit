@@ -93,7 +93,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False, ppri
 
     for index, controller_group in enumerate(pass_manager.to_flow_controller().tasks):
         subgraph, component_id, prev_node = draw_subgraph(
-            controller_group, component_id, style, prev_node, index, False
+            controller_group, component_id, style, prev_node, index
         )
         graph.add_subgraph(subgraph)
 
@@ -328,7 +328,7 @@ def make_output(graph, raw, filename):
 
 
 def _pprint(graph, nest=0):
-    """TODO."""
+    """Recursively text passmanager printer"""
     output = []
     subgraphs = graph.get_subgraphs()
     nodes = graph.get_nodes()
@@ -336,10 +336,10 @@ def _pprint(graph, nest=0):
         for subgraph in subgraphs:
             sub_output = _pprint(subgraph, nest + 1)
             if sub_output:
-                output.append("\t" * nest + subgraph.get_label())
+                output.append("  " * nest + subgraph.get_label())
                 output += sub_output
     elif nodes:
         for node in nodes:
             if node.get_shape() == "rectangle":
-                output.append("\t" * nest + node.get_label())
+                output.append("  " * nest + "- " + node.get_label())
     return output
