@@ -534,13 +534,17 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
         return qc
 
+    def M(self):
+        """Returns the M value used by the gate"
+        return self._M
+    
     def num_qubits(self):
         """Returns the number of qubits used by the gate."""
         return self._num_qubits
 
     def __repr__(self):
         """Returns a string representation of the gate."""
-        return f"Generalized_Uniform_Superposition_Gate(M={self.M}, num_qubits={self._num_qubits})"
+        return f"Generalized_Uniform_Superposition_Gate(M={self._M}, num_qubits={self._num_qubits})"
 
     def broadcast_arguments(self, qargs, cargs):
         """Validates and handles the arguments."""
