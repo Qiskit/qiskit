@@ -24,7 +24,7 @@ from qiskit.exceptions import QiskitError
 
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = None
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
 ) -> QuantumCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
@@ -60,7 +60,6 @@ def synth_cnot_count_full_pmh(
         )
 
     num_qubits = len(state)
-    section_size = num_qubits if not section_size else section_size
     if not section_size <= num_qubits:
         raise QiskitError(
             "section_size should be less than or equal to the number of qubits ({0}), "
