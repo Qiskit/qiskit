@@ -57,6 +57,22 @@ class TestGeneralizedUniformSuperposition(QiskitTestCase):
         for n in range(n_min, n_max):
             with self.assertRaises(ValueError):
                 Generalized_Uniform_Superposition_Gate(M, n)
+
+    def test_no_qubit_args(self):
+        """Tests error raised if number of qubits not compatible with  integer state M (n >= log2(M) )"""
+        M_min = 3
+        M_max = 10
+        for M in range(M_min, M_max):
+            if (M & (M-1)) == 0: # If M is an integer power of 2
+                n = int(np.log2(M))
+            else: # If M is not an integer power of 2
+                n = int(np.ceil(np.log2(M)))
+            desired_sv = (1/np.sqrt(M))*np.array([1]*M + [0]*(2**n - M))
+            num_qubits = None
+            gate = Generalized_Uniform_Superposition_Gate(M, num_qubits)
+            unitary_matrix = np.real(gate.to_unitary())
+            actual_sv = unitary_matrix[:,0]
+            self.assertTrue(np.allclose(desired_sv, actual_sv))
     
 if __name__ == "__main__":
     unittest.main()
