@@ -14,7 +14,8 @@
 
 import unittest
 
-from qiskit.dagcircuit import _DAGDependencyV2, DAGOpNode
+from qiskit.dagcircuit.dagdependency_v2 import _DAGDependencyV2
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit import Instruction
