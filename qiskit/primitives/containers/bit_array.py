@@ -415,7 +415,48 @@ class BitArray(ShapedMixin):
         arr = np.packbits(arr, axis=-1, bitorder="big")
         return BitArray(arr, num_bits)
 
-    def expectation_values(operators: str | Pauli | SparsePauliOp) -> float | complex: ...
+    def expectation_values(self, operator: str | Pauli | SparsePauliOp) -> NDArray[np.float64]:
+        """_summary_
+
+        Args:
+            operators (str | Pauli | SparsePauliOp): _description_
+
+        Returns:
+            ndarray: _description_
+
+        Raises:
+            ValueError: if...
+        """
+        if isinstance(operator, str):
+            oper_strs = [operator.upper()]
+            coeffs = np.asarray([1.0])
+        elif isinstance(operator, Pauli):
+            oper_strs = [operator.to_label()]
+            coeffs = np.asarray([1.0])
+        elif isinstance(operator, SparsePauliOp):
+            oper_strs = operator.paulis.to_labels()
+            coeffs = np.real_if_close(operator.coeffs)
+            # workaround to avoid "TypeError: The given array is not contiguous"
+            # by sampled_expval_float
+            coeffs = np.array(coeffs)
+        else:
+            raise ValueError(f"Invalid operator type {type(operator)}")
+        for op in oper_strs:
+            if not set(op).issubset(DIAG_OPERATORS):
+                raise ValueError(f"Input operator {op} is not diagonal")
+            if len(op) != self.num_bits:
+                raise ValueError(
+                    f"The size {len(op)} of operator {op} differs from the number of bits {self.num_bits}."
+                )
+        if coeffs.dtype == np.dtype(complex).type:
+            sampled_expval = sampled_expval_complex
+        else:
+            sampled_expval = sampled_expval_float
+        ret = np.empty(self.shape)
+        for index in np.ndindex(self.shape):
+            counts = self.get_counts(index)
+            ret[index] = sampled_expval(oper_strs, coeffs, counts)
+        return ret
 
 
 def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
