@@ -52,7 +52,7 @@ from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-i
 from qiskit.providers.models.backendproperties import BackendProperties
 
 # import target class from the rust side
-from qiskit._accelerate import target
+from qiskit._accelerate.target import Target as Target2
 
 # TODO: Use InstructionProperties from Python side
 from qiskit.transpiler.target import InstructionProperties
@@ -75,7 +75,7 @@ class Target:
         qubit_properties=None,
         concurrent_measurements=None,
     ):
-        self._Target = target.Target(
+        self._Target = Target2(
             description,
             num_qubits,
             dt,
@@ -352,3 +352,20 @@ class Target:
             set: The set of qargs the gate instance applies to.
         """
         return self._Target.qargs_for_operation_name(operation)
+
+    def durations(self):
+        """Get an InstructionDurations object from the target
+
+        Returns:
+            InstructionDurations: The instruction duration represented in the
+                target
+        """
+        if self._Target.instruction_durations is not None:
+            return self._instruction_durations
+        out_durations = []
+        for instruction, props_map in self._Target.gate_map.items():
+            for qarg, properties in props_map.items():
+                if properties is not None and properties.duration is not None:
+                    out_durations.append((instruction, list(qarg), properties.duration, "s"))
+        self._Target.instruction_durations = InstructionDurations(out_durations, dt=self.dt)
+        return self._Target.instruction_durations

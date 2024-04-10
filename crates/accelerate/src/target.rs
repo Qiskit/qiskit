@@ -21,23 +21,6 @@ use pyo3::{
     types::{PyDict, PyTuple},
 };
 
-// TEMPORARY: until I can wrap around Python class
-pub fn is_instance(py: Python<'_>, object: &PyObject, class_names: HashSet<String>) -> bool {
-    // Get type name
-    let type_name: Option<String> = match object.getattr(py, "__class__").ok() {
-        Some(class) => class
-            .getattr(py, "__name__")
-            .ok()
-            .map(|name| name.extract::<String>(py).ok().unwrap_or("".to_string())),
-        None => None,
-    };
-    // Check if it matches any option
-    match type_name {
-        Some(class_name) => class_names.contains(&class_name),
-        None => false,
-    }
-}
-
 #[derive(Eq, PartialEq, Clone, Debug)]
 struct HashableVec<T> {
     pub vec: Vec<T>,
@@ -91,36 +74,25 @@ impl InstructionProperties {
     }
 
     #[setter]
-    pub fn set_calibration(&mut self, py: Python<'_>, calibration: PyObject) {
-        // Conditional new entry
-        let new_entry = if is_instance(
-            py,
-            &calibration,
-            HashSet::from(["Schedule".to_string(), "ScheduleBlock".to_string()]),
-        ) {
-            // TEMPORARY: Import calibration_entries module
-            let module = match py.import_bound("qiskit.pulse.calibration_entries") {
-                Ok(module) => module,
-                Err(e) => panic!(
-                    "Could not find the module qiskit.pulse.calibration_entries: {:?}",
-                    e
-                ),
-            };
-            // TEMPORARY: Import SchedDef class object
-            let sched_def = match module.call_method0("ScheduleDef") {
-                Ok(sched) => sched.to_object(py),
-                Err(e) => panic!("Failed to import the 'ScheduleDef' class: {:?}", e),
-            };
+    pub fn set_calibration(&mut self, calibration: PyObject) -> PyResult<()> {
+        self.calibration_ = Some(calibration);
+        Ok(())
+    }
 
-            // TEMPORARY: Send arguments for the define call.
-            let args = (&calibration, true);
-            // Peform the function call.
-            sched_def.call_method1(py, "define", args).ok();
-            sched_def
+    fn __repr__(&self, py: Python<'_>) -> String {
+        if let Some(calibration) = self.get_calibration(py) {
+            format!(
+                "InstructionProperties(duration={:?}, error={:?}, calibration={:?})",
+                self.duration,
+                self.error,
+                calibration.call_method0(py, "__repr__")
+            )
         } else {
-            calibration
-        };
-        self.calibration_ = Some(new_entry);
+            format!(
+                "InstructionProperties(duration={:?}, error={:?}, calibration=None)",
+                self.duration, self.error
+            )
+        }
     }
 }
 
@@ -151,7 +123,8 @@ pub struct Target {
     gate_name_map: HashMap<String, PyObject>,
     global_operations: HashMap<usize, HashSet<String>>,
     qarg_gate_map: HashMap<HashableVec<u32>, HashSet<String>>,
-    instructions_durations: Option<PyObject>,
+    #[pyo3(get, set)]
+    instruction_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
 }
 
@@ -192,7 +165,7 @@ impl Target {
             gate_name_map: HashMap::new(),
             global_operations: HashMap::new(),
             qarg_gate_map: HashMap::new(),
-            instructions_durations: Option::None,
+            instruction_durations: Option::None,
             instruction_schedule_map: Option::None,
         }
     }
@@ -339,7 +312,7 @@ impl Target {
                 *qvals_qargs = properties
             }
         }
-        self.instructions_durations = None;
+        self.instruction_durations = None;
         self.instruction_schedule_map = None;
         Ok(())
     }
