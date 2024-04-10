@@ -238,7 +238,7 @@ class StatePreparation(Gate):
             raise QiskitError(
                 "StatePreparation parameter vector has %d elements, therefore expects %s "
                 "qubits. However, %s were provided."
-                % (2 ** self.num_qubits, self.num_qubits, len(flat_qargs))
+                % (2**self.num_qubits, self.num_qubits, len(flat_qargs))
             )
         yield flat_qargs, []
 
@@ -359,7 +359,7 @@ class StatePreparation(Gate):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = abs(a_complex)
-        final_r = math.sqrt(mag_a ** 2 + abs(b_complex) ** 2)
+        final_r = math.sqrt(mag_a**2 + abs(b_complex) ** 2)
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -447,34 +447,36 @@ class Generalized_Uniform_Superposition_Gate(Gate):
     """
 
     def __init__(
-        self, M: int = 2, num_qubits: Optional[int] = None,
+        self,
+        M: int = 2,
+        num_qubits: Optional[int] = None,
     ):
         """
         Initializes Generalized_Uniform_Superposition_Gate.
-    
+
         Args:
-            M (int): 
-                A positive integer M (> 1) representing the number of computational basis states with an amplitude of 1/sqrt(M) 
-                in the uniform superposition state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where $1< M <= 2^n$). Note that the remaining 
+            M (int):
+                A positive integer M (> 1) representing the number of computational basis states with an amplitude of 1/sqrt(M)
+                in the uniform superposition state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where $1< M <= 2^n$). Note that the remaining
                 (2^n - M) computational basis states have zero amplitudes. Here M need not be an integer power of 2.
-                
-            num_qubits (int): 
+
+            num_qubits (int):
                 A positive integer representing the number of qubits used.
-        
+
         Returns:
-            A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. 
-    
+            A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $.
+
         **References:**
-            [SV24] 
+            [SV24]
                 A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation of uniform quantum superposition states,"
                 Quantum Information Processing, 23(38): pp. 1-32 (2024).
 
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
-                
+
         Note:
-            The Shukla-Vedula algorithm [SV24] provides an efficient approach for creation of a generalized uniform superposition 
-            state of the form, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ 
+            The Shukla-Vedula algorithm [SV24] provides an efficient approach for creation of a generalized uniform superposition
+            state of the form, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$
             gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
             in existing literature.
         """
