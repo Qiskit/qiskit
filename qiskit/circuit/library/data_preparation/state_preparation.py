@@ -502,11 +502,11 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         Returns:
             QuantumCircuit: The quantum circuit implementing the gate.
         """
-        qreg = QuantumRegister(self.num_qubits, "q")
-        qc = QuantumCircuit(self.num_qubits)
+        qreg = QuantumRegister(self._num_qubits, "q")
+        qc = QuantumCircuit(self._num_qubits)
 
-        M = self.M
-        num_qubits = self.num_qubits
+        M = self._M
+        num_qubits = self._num_qubits
 
         if (M & (M - 1)) == 0:  # if M is an integer power of 2
             m = int(np.log2(M))
@@ -534,11 +534,11 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
         return qc
 
-    def M(self):
+    def _get_M(self):
         """Returns the M value used by the gate"""
         return self._M
     
-    def num_qubits(self):
+    def _get_num_qubits(self):
         """Returns the number of qubits used by the gate."""
         return self._num_qubits
 
@@ -550,9 +550,9 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         """Validates and handles the arguments."""
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
 
-        if self.num_qubits != len(flat_qargs):
+        if self._num_qubits != len(flat_qargs):
             raise CircuitError(
-                f"Generalized_Uniform_Superposition_Gate expects {self.num_qubits} qubits, but {len(flat_qargs)} were provided."
+                f"Generalized_Uniform_Superposition_Gate expects {self._num_qubits} qubits, but {len(flat_qargs)} were provided."
             )
         yield flat_qargs, []
 
@@ -576,6 +576,6 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
     def to_unitary(self):
         instruction = self.to_instruction()
-        qc = QuantumCircuit(self.num_qubits)
-        qc.append(instruction, list(range(self.num_qubits)))
+        qc = QuantumCircuit(self._num_qubits)
+        qc.append(instruction, list(range(self._num_qubits)))
         return np.array(Operator(qc).data)
