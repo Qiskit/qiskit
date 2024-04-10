@@ -448,7 +448,6 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
     def __init__(
         self,
-        params: Union[str, list, int, Statevector],
         M : int = 2,
         num_qubits: Optional[int] = None,
     ):
@@ -481,18 +480,21 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
             in existing literature.
         """
-        super().__init__("USup", num_qubits, [])
         if not isinstance(M, int) and M > 1:
             raise ValueError(
                 "M must be a positive integer greater than 1."
             )
-        if not isinstance(num_qubits, int) and num_qubits >= np.log2:
-            raise ValueError(
-                "num_qubits must be an integer greater than or equal to log2(M)."
-            )
+        if num_qubits is None:
+            num_qubits = np.ceil(np.log2(M))
+        else:
+            if not(isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
+                raise ValueError(
+                    "num_qubits must be an integer greater than or equal to log2(M)."
+                )
+        self._num_qubits = num_qubits
         self._M = M
-        self._num_qubits = self._get_num_qubits(num_qubits, params)
-
+        super().__init__("USup", self._num_qubits, [M])
+        
     def _define(self):
         """
         Defines the gate operation.
