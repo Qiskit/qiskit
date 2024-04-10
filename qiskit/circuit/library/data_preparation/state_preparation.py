@@ -359,7 +359,7 @@ class StatePreparation(Gate):
         a_complex = complex(a_complex)
         b_complex = complex(b_complex)
         mag_a = abs(a_complex)
-        final_r = math.sqrt(mag_a**2 + abs(b_complex) ** 2)
+        final_r = math.sqrt(mag_a ** 2 + abs(b_complex) ** 2)
         if final_r < _EPS:
             theta = 0
             phi = 0
@@ -447,9 +447,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
     """
 
     def __init__(
-        self,
-        M : int = 2,
-        num_qubits: Optional[int] = None,
+        self, M: int = 2, num_qubits: Optional[int] = None,
     ):
         """
         Initializes Generalized_Uniform_Superposition_Gate.
@@ -480,24 +478,22 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
             in existing literature.
         """
-        if not(isinstance(M, int) and (M > 1)):
-            raise ValueError(
-                "M must be a positive integer greater than 1."
-            )
+        if not (isinstance(M, int) and (M > 1)):
+            raise ValueError("M must be a positive integer greater than 1.")
         if num_qubits is None:
-            if (M & (M-1)) == 0: # If M is an integer power of 2
+            if (M & (M - 1)) == 0:  # If M is an integer power of 2
                 num_qubits = int(np.log2(M))
-            else: # If M is not an integer power of 2
+            else:  # If M is not an integer power of 2
                 num_qubits = int(np.ceil(np.log2(M)))
         else:
-            if not(isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
+            if not (isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
                 raise ValueError(
                     "num_qubits must be an integer greater than or equal to log2(M)."
                 )
         self._num_qubits = num_qubits
         self._M = M
         super().__init__("USup", self._num_qubits, [M])
-        
+
     def _define(self):
         """
         Defines the gate operation.
