@@ -385,3 +385,30 @@ class BitArrayTestCase(QiskitTestCase):
                 ValueError, "All bit arrays must have same number of dimensions"
             ):
                 _ = concatenate([ba, ba2])
+
+    def test_getitem(self):
+        """Test the __getitem__ method."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        # Since the input dtype is uint16, bit array requires at least two u8.
+        # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+
+        with self.subTest("all"):
+            ba2 = ba[:]
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
+
+        with self.subTest("no slice"):
+            ba2 = ba[0, 1, 2]
+            self.assertEqual(ba2.shape, ())
+            self.assertEqual(ba.get_counts(loc=(0, 1, 2)), ba2.get_counts())
+
+        with self.subTest("slice"):
+            ba2 = ba[0, :, 2]
+            self.assertEqual(ba2.shape, (2,))
+            for j in range(2):
+                self.assertEqual(ba.get_counts(loc=(0, j, 2)), ba2.get_counts(loc=j))
