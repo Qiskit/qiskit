@@ -24,7 +24,7 @@ from qiskit.exceptions import QiskitError
 
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 1
 ) -> QuantumCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
