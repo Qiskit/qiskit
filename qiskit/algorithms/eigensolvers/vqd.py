@@ -129,7 +129,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             fidelity: The fidelity class using primitives.
             ansatz: A parameterized circuit used as ansatz for the wave function.
             optimizer: A classical optimizer or a list of optimizers, one for every k-th eigenvalue.
-            Can either be a Qiskit optimizer or a callable
+                Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k: The number of eigenvalues to return. Returns the lowest k eigenvalues.
             betas: Beta parameters in the VQD paper.
