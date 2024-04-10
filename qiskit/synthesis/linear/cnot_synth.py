@@ -45,7 +45,9 @@ def synth_cnot_count_full_pmh(
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
 
     Raises:
-        QiskitError: when variable ``state`` isn't of type ``numpy.ndarray``
+        QiskitError:
+         - when variable ``state`` isn't of type ``numpy.ndarray``
+         - when ``section_size`` is greater than the number of qubits
 
     References:
         1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
