@@ -1,0 +1,27 @@
+---
+features_circuits:
+  - |
+    Construction time for :class:`.QuantumVolume` circuits has been significantly improved, on the
+    order of 10x or a bit more.  The internal SU4 gates will now also use more bits of randomness
+    during their generation, leading to more representative volume circuits, especially at large
+    widths and depths.
+  - |
+    :class:`.QuantumVolume` now has a ``flatten`` keyword argument.  This defaults to ``False``,
+    where the constructed circuit contains a single instruction that in turn contains the actual
+    volume structure.  If set ``True``, the circuit will directly have the volumetric SU4 matrices.
+  - |
+    :class:`.UnitaryGate` now accepts an optional ``num_qubits`` argument.  The only effect of this
+    is to skip the inference of the qubit count, which can be helpful for performance when many
+    gates are being constructed.
+upgrade_circuits:
+  - |
+    The random-number usage of :class:`.QuantumVolume` has changed, so you will get a different
+    circuit for a fixed seed between older versions of Qiskit and this version.  The random-unitary
+    generation now uses more bits of entropy, so large circuits will be less biased.
+  - |
+    The internal :class:`.UnitaryGate` instances in the definition of a :class:`.QuantumVolume`
+    circuit will no longer have a :attr:`~.Instruction.label` field set.  Previously this was set
+    to the string ``su4_<seed>`` where ``<seed>`` was a three-digit number denoting the seed of an
+    internal Numpy pRNG instance for that gate.  Doing this was a serious performance problem, and
+    the seed ought not to have been useful; if you need to retrieve the matrix from the gate, simply
+    use the :meth:`.Gate.to_matrix` method.
