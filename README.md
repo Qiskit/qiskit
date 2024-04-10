@@ -10,8 +10,8 @@
 [![DOI](https://zenodo.org/badge/161550823.svg)](https://zenodo.org/badge/latestdoi/161550823)
 
 > [!IMPORTANT]
-> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since `qiskit-terra>=0.25` (released on July 27th, 2023) the package was fully replaced by `qiskit>=0.44`. 
-> If you are installing or depending on `qiskit-terra`, consider changing that to `qiskit`. 
+> **The package `qiskit-terra` is not going to be updated after August 15th, 2024**. Since Qiskit 0.44 (released on July 27th, 2023), the `qiskit` meta-package only contains `qiskit-terra`. In Qiskit 1.0 and beyond, the meta-package architecture is removed.
+> If you are installing or depending on `qiskit-terra`, consider changing that to `qiskit`: Either `qiskit>=0.x,<1` (if you did not transition to Qiskit 1.0 yet) or `qiskit>=0.x,<2` (to also include Qiskit 1.*).
 > [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation#the-old-qiskit-structure).
 
 **Qiskit**  is an open-source SDK for working with quantum computers at the level of extended quantum circuits, operators, and primitives.
