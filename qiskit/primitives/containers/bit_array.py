@@ -28,8 +28,15 @@ from qiskit.result import Counts
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
+from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
+from qiskit.quantum_info import Pauli, SparsePauliOp
+
+
 # this lookup table tells you how many bits are 1 in each uint8 value
 _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
+
+# A list of valid diagonal operators
+DIAG_OPERATORS = {"Z", "I", "0", "1"}
 
 
 def _min_num_bytes(num_bits: int) -> int:
@@ -109,6 +116,9 @@ class BitArray(ShapedMixin):
     def __repr__(self):
         desc = f"<shape={self.shape}, num_shots={self.num_shots}, num_bits={self.num_bits}>"
         return f"BitArray({desc})"
+
+    def __getitem__(self, indices):
+        return BitArray(self._array[indices], self.num_bits)
 
     @property
     def array(self) -> NDArray[np.uint8]:
@@ -365,7 +375,7 @@ class BitArray(ShapedMixin):
             ValueError: if ``axes`` includes any indices that are out of bounds.
         """
         if axes is None:
-            axes = tuple(range(self.ndim)[::-1])
+            axes = tuple(reversed(range(self.ndim)))
         if len(axes) != self.ndim:
             raise ValueError("axes don't match bit array")
         for i in axes:
@@ -375,6 +385,38 @@ class BitArray(ShapedMixin):
                 )
         axes = tuple(i if i >= 0 else self.ndim + i for i in axes) + (-2, -1)
         return BitArray(self._array.transpose(axes), self.num_bits)
+
+    def marginalize(self, indices: int | Sequence[int]) -> "BitArray":
+        """Return a bit array marginalized over some indices of interests.
+
+        Args:
+            indices: The bit positions of interest to marginalize over.
+
+        Returns:
+            A bit array marginalized to bits of interests.
+
+        Raises:
+            ValueError: if there are any invalid indices to marginalize over.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        for index in indices:
+            if index < 0 or index >= self.num_bits:
+                raise ValueError(
+                    f"index {index} is out of bounds for the number of bits {self.num_bits}."
+                )
+        arr = np.unpackbits(self._array, axis=-1, bitorder="big")
+        arr = arr[..., -1 : -self.num_bits - 1 : -1]
+        arr = arr[..., indices[::-1]]
+        num_bits = len(indices)
+        pad_size = -num_bits % 8
+        pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
+        arr = np.pad(arr, pad_width, constant_values=0)
+        arr = np.packbits(arr, axis=-1, bitorder="big")
+        return BitArray(arr, num_bits)
+
+    def expectation_values(operators: str | Pauli | SparsePauliOp) -> float | complex: ...
+
 
 def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
     """Join a sequence of bit arrays along an existing axis.
@@ -393,9 +435,11 @@ def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
     """
     if len(bitarrays) == 0:
         raise ValueError("empty sequence")
-    if any(ba.num_bits != bitarrays[0].num_bits for ba in bitarrays):
+    num_bits = bitarrays[0].num_bits
+    num_shots = bitarrays[0].num_shots
+    if any(ba.num_bits != num_bits for ba in bitarrays):
         raise ValueError("invalid num_bits")
-    if any(ba.num_shots != bitarrays[0].num_shots for ba in bitarrays):
+    if any(ba.num_shots != num_shots for ba in bitarrays):
         raise ValueError("invalid num_shots")
     data = np.concatenate([ba.array for ba in bitarrays], axis=axis)
-    return BitArray(data, bitarrays[0].num_bits)
+    return BitArray(data, num_bits)
