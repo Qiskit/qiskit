@@ -15,6 +15,7 @@
 import unittest
 import ddt
 
+from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import UnitaryGate
 from qiskit.quantum_info.operators import Operator
@@ -268,6 +269,15 @@ class TestPatelMarkovHayes(QiskitTestCase):
 
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_patel, unitary_compare)
+
+    def test_invalid_state_type(self):
+        with self.assertRaises(QiskitError):
+            synth_cnot_count_full_pmh("invalid_state", 2)
+
+    def test_invalid_section_size(self):
+        state = [[1, 0], [0, 1]]
+        with self.assertRaises(QiskitError):
+            synth_cnot_count_full_pmh(state, 3)
 
 
 if __name__ == "__main__":

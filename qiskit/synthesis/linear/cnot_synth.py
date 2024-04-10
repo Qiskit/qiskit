@@ -58,6 +58,14 @@ def synth_cnot_count_full_pmh(
             "state should be of type list or numpy.ndarray, "
             "but was of the type {}".format(type(state))
         )
+
+    num_qubits = len(state)
+    if not section_size <= num_qubits:
+        raise QiskitError(
+            "section_size should be less than or equal to the number of qubits ({0}), "
+            "but was {1}".format(num_qubits, section_size)
+        )
+
     state = np.array(state)
     # Synthesize lower triangular part
     [state, circuit_l] = _lwr_cnot_synth(state, section_size)
