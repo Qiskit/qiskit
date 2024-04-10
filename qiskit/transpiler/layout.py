@@ -485,28 +485,17 @@ class TranspileLayout:
     def initial_virtual_layout(self, filter_ancillas: bool = False) -> Layout:
         """Return a :class:`.Layout` object for the initial layout.
 
-<<<<<<< HEAD
         This returns a mapping of virtual :class:`~.Qubit` objects in the input
-        circuit to the physical qubit selected during layout. This is analogous
-        to the :attr:`.initial_layout` attribute.
-=======
-        This returns a mapping of virtual :class:`~.circuit.Qubit` objects in the input
         circuit to the positions of the physical qubits selected during layout.
         This is analogous to the :attr:`.initial_layout` attribute.
->>>>>>> 8121aaef6 (transpiler layout docs (#12090))
 
         Args:
             filter_ancillas: If set to ``True`` only qubits in the input circuit
                 will be in the returned layout. Any ancilla qubits added to the
                 output circuit will be filtered from the returned object.
         Returns:
-<<<<<<< HEAD
             A layout object mapping the input circuit's :class:`~.Qubit`
-            objects to the selected physical qubits.
-=======
-            A layout object mapping the input circuit's :class:`~.circuit.Qubit`
             objects to the positions of the selected physical qubits.
->>>>>>> 8121aaef6 (transpiler layout docs (#12090))
         """
         if not filter_ancillas:
             return self.initial_layout
