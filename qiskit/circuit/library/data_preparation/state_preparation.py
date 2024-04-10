@@ -480,7 +480,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
             in existing literature.
         """
-        if not isinstance(M, int) and M > 1:
+        if not(isinstance(M, int) and (M > 1)):
             raise ValueError(
                 "M must be a positive integer greater than 1."
             )
