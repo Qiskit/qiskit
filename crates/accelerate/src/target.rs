@@ -390,6 +390,15 @@ impl Target {
         self.instruction_schedule_map = Some(out_inst_schedule_map.clone().unbind());
         out_inst_schedule_map.to_object(py)
     }
+
+    #[getter]
+    fn qargs(&self) -> PyResult<Option<HashSet<HashableVec<u32>>>> {
+        let qargs: HashSet<HashableVec<u32>> = self.qarg_gate_map.clone().into_keys().collect();
+        if qargs.len() == 1 && qargs.iter().next().is_none() {
+            return Ok(None);
+        }
+        Ok(Some(qargs))
+    }
 }
 
 #[pymodule]

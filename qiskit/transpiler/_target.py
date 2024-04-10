@@ -237,7 +237,6 @@ class Target:
             ``None`` will be used.
         """
         get_calibration = getattr(inst_map, "_get_calibration_entry")
-        print(self._Target.gate_map)
         # Expand name mapping with custom gate name provided by user.
         qiskit_inst_name_map = get_standard_gate_name_mapping()
         if inst_name_map is not None:
@@ -339,3 +338,7 @@ class Target:
         """
         out_inst_schedule_map = InstructionScheduleMap()
         return self._Target.instruction_schedule_map(out_inst_schedule_map)
+
+    @property
+    def qargs(self):
+        return self._Target.qargs
