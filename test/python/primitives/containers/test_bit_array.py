@@ -345,6 +345,43 @@ class BitArrayTestCase(QiskitTestCase):
         # Thus, 9 is the minimum number of qubits, i.e., 8 + 1.
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
-        ba2 = concatenate([ba, ba], axis=1)
-        print(ba.shape)
-        print(ba2.shape)
+
+        with self.subTest("default"):
+            ba2 = concatenate([ba, ba])
+            self.assertEqual(ba2.shape, (2, 2, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts(loc=(0, j, k)), ba2.get_counts(loc=(1, j, k)))
+
+        with self.subTest("arg"):
+            ba2 = concatenate([ba, ba], axis=1)
+            self.assertEqual(ba2.shape, (1, 4, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts(loc=(0, j, k)), ba2.get_counts(loc=(0, j + 2, k)))
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to concatenate"):
+                _ = concatenate([])
+            with self.assertRaisesRegex(ValueError, "axis -1 is out of bounds"):
+                _ = concatenate([ba, ba], -1)
+            with self.assertRaisesRegex(ValueError, "axis 100 is out of bounds"):
+                _ = concatenate([ba, ba], 100)
+            with self.assertRaisesRegex(ValueError, "axis None must be a non-negative integer"):
+                _ = concatenate([ba, ba], None)
+
+            ba2 = BitArray(data, 10)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
+                _ = concatenate([ba, ba2])
+
+            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
+            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
+            ba2 = BitArray(data2, 9)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of shots"
+            ):
+                _ = concatenate([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of dimensions"
+            ):
+                _ = concatenate([ba, ba2])

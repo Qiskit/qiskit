@@ -24,19 +24,13 @@ from typing import Callable, Iterable, Literal, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit.result import Counts
+from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.result import Counts, sampled_expectation_value
 
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
-from qiskit._accelerate.sampled_exp_val import sampled_expval_float, sampled_expval_complex
-from qiskit.quantum_info import Pauli, SparsePauliOp
-
-
 # this lookup table tells you how many bits are 1 in each uint8 value
 _WEIGHT_LOOKUP = np.unpackbits(np.arange(256, dtype=np.uint8).reshape(-1, 1), axis=1).sum(axis=1)
-
-# A list of valid diagonal operators
-DIAG_OPERATORS = {"Z", "I", "0", "1"}
 
 
 def _min_num_bytes(num_bits: int) -> int:
@@ -410,16 +404,21 @@ class BitArray(ShapedMixin):
         arr = arr[..., indices[::-1]]
         num_bits = len(indices)
         pad_size = -num_bits % 8
-        pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
-        arr = np.pad(arr, pad_width, constant_values=0)
+        if pad_size > 0:
+            pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
+            arr = np.pad(arr, pad_width, constant_values=0)
         arr = np.packbits(arr, axis=-1, bitorder="big")
         return BitArray(arr, num_bits)
 
-    def expectation_values(self, operator: str | Pauli | SparsePauliOp) -> NDArray[np.float64]:
+    def expectation_value(
+        self, operator: str | Pauli | SparsePauliOp, loc: int | tuple[int, ...] | None = None
+    ) -> NDArray[np.float64]:
         """_summary_
 
         Args:
-            operators (str | Pauli | SparsePauliOp): _description_
+            operators: _description_
+            loc: Which entry of this array to return an expectation value for.
+                If ``None``, counts from all positions in this array are unioned together.
 
         Returns:
             ndarray: _description_
@@ -427,43 +426,18 @@ class BitArray(ShapedMixin):
         Raises:
             ValueError: if...
         """
-        if isinstance(operator, str):
-            oper_strs = [operator.upper()]
-            coeffs = np.asarray([1.0])
-        elif isinstance(operator, Pauli):
-            oper_strs = [operator.to_label()]
-            coeffs = np.asarray([1.0])
-        elif isinstance(operator, SparsePauliOp):
-            oper_strs = operator.paulis.to_labels()
-            coeffs = np.real_if_close(operator.coeffs)
-            # workaround to avoid "TypeError: The given array is not contiguous"
-            # by sampled_expval_float
-            coeffs = np.array(coeffs)
-        else:
-            raise ValueError(f"Invalid operator type {type(operator)}")
-        for op in oper_strs:
-            if not set(op).issubset(DIAG_OPERATORS):
-                raise ValueError(f"Input operator {op} is not diagonal")
-            if len(op) != self.num_bits:
-                raise ValueError(
-                    f"The size {len(op)} of operator {op} differs from the number of bits {self.num_bits}."
-                )
-        if coeffs.dtype == np.dtype(complex).type:
-            sampled_expval = sampled_expval_complex
-        else:
-            sampled_expval = sampled_expval_float
-        ret = np.empty(self.shape)
-        for index in np.ndindex(self.shape):
-            counts = self.get_counts(index)
-            ret[index] = sampled_expval(oper_strs, coeffs, counts)
-        return ret
+        counts = self.get_counts(loc)
+        return sampled_expectation_value(counts, operator)
 
 
 def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
     """Join a sequence of bit arrays along an existing axis.
 
     Args:
-        bitarrays: The sequence of bit arrays.
+        bitarrays: The bit arrays must have (1) the same number of bits,
+            (2) the same number of shots, and
+            (3) the same shape, except in the dimension corresponding to axis
+            (the first, by default).
         axis: The axis along which the arrays will be joined. Default is 0.
 
     Returns:
@@ -473,14 +447,35 @@ def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
         ValueError: if the sequence of bit arrays is empty.
         ValueError: if any bit arrays has a different number of shots.
         ValueError: if any bit arrays has a different number of qubits.
+        ValueError: if any bit arrays has a different number of dimensions.
     """
     if len(bitarrays) == 0:
-        raise ValueError("empty sequence")
+        raise ValueError("Need at least one bit array to concatenate")
     num_bits = bitarrays[0].num_bits
     num_shots = bitarrays[0].num_shots
-    if any(ba.num_bits != num_bits for ba in bitarrays):
-        raise ValueError("invalid num_bits")
-    if any(ba.num_shots != num_shots for ba in bitarrays):
-        raise ValueError("invalid num_shots")
+    ndim = bitarrays[0].ndim
+    for i, ba in enumerate(bitarrays):
+        if ba.num_bits != num_bits:
+            raise ValueError(
+                "All bit arrays must have same number of bits, "
+                f"but the bit array at index 0 has {num_bits} bits "
+                f"and the bit array at index {i} has {ba.num_bits} bits."
+            )
+        if ba.num_shots != num_shots:
+            raise ValueError(
+                "All bit arrays must have same number of shots, "
+                f"but the bit array at index 0 has {num_shots} shots "
+                f"and the bit array at index {i} has {ba.num_shots} shots."
+            )
+        if ba.ndim != ndim:
+            raise ValueError(
+                "All bit arrays must have same number of dimensions, "
+                f"but the bit array at index 0 has {ndim} dimension(s) "
+                f"and the bit array at index {i} has {ba.ndim} dimension(s)."
+            )
+    if axis is None:
+        raise ValueError(f"axis {axis} must be a non-negative integer.")
+    if axis < 0 or axis >= ndim:
+        raise ValueError(f"axis {axis} is out of bounds for bit array of dimension {ndim}.")
     data = np.concatenate([ba.array for ba in bitarrays], axis=axis)
     return BitArray(data, num_bits)
