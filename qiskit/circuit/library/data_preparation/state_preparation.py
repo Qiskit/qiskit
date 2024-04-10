@@ -485,7 +485,10 @@ class Generalized_Uniform_Superposition_Gate(Gate):
                 "M must be a positive integer greater than 1."
             )
         if num_qubits is None:
-            num_qubits = np.ceil(np.log2(M))
+            if (M & (M-1)) == 0: # If M is an integer power of 2
+                num_qubits = int(np.log2(M))
+            else: # If M is not an integer power of 2
+                num_qubits = int(np.ceil(np.log2(M)))
         else:
             if not(isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
                 raise ValueError(
