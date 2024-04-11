@@ -63,7 +63,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        with cls.assertRaises(DeprecationWarning):
+        with cls.assertWarns(DeprecationWarning):
             cls.backend_5_yorktown = GenericBackendV2(
                 num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
             )
