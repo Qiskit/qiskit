@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Sequence
-from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
