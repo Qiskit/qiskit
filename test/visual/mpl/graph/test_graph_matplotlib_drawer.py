@@ -63,16 +63,21 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42)
-        cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
-        cls.backend_16_rueschlikon = GenericBackendV2(
-            num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42
-        )
-        cls.backend_27_mumbai = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42)
-        cls.backend_65_manhattan = GenericBackendV2(
-            num_qubits=65, coupling_map=MANHATTAN_CMAP, seed=42
-        )
-        cls.backend1Q = GenericBackendV2(num_qubits=1, seed=42)
+        with cls.assertRaises(DeprecationWarning):
+            cls.backend_5_yorktown = GenericBackendV2(
+                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
+            )
+            cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
+            cls.backend_16_rueschlikon = GenericBackendV2(
+                num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42
+            )
+            cls.backend_27_mumbai = GenericBackendV2(
+                num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42
+            )
+            cls.backend_65_manhattan = GenericBackendV2(
+                num_qubits=65, coupling_map=MANHATTAN_CMAP, seed=42
+            )
+            cls.backend1Q = GenericBackendV2(num_qubits=1, seed=42)
 
     def setUp(self):
         super().setUp()
