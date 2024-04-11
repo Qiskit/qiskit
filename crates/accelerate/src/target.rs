@@ -44,10 +44,9 @@ impl<T: ToPyObject> IntoPy<PyObject> for HashableVec<T> {
 pub struct InstructionProperties {
     #[pyo3(get)]
     pub duration: Option<f32>,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub error: Option<f32>,
     pub calibration: Option<PyObject>,
-    calibration_: Option<PyObject>,
 }
 
 #[pymethods]
@@ -61,21 +60,20 @@ impl InstructionProperties {
             calibration,
             error,
             duration,
-            calibration_: Option::<PyObject>::None,
         }
     }
 
     #[getter]
     pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
-        match &self.calibration_ {
+        match &self.calibration {
             Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
             None => None,
         }
     }
 
     #[setter]
-    pub fn set_calibration(&mut self, calibration: PyObject) -> PyResult<()> {
-        self.calibration_ = Some(calibration);
+    pub fn set_calibration(&mut self, py: Python<'_>, calibration: Bound<PyAny>) -> PyResult<()> {
+        self.calibration = Some(calibration.to_object(py));
         Ok(())
     }
 

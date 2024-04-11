@@ -52,7 +52,10 @@ from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-i
 from qiskit.providers.models.backendproperties import BackendProperties
 
 # import target class from the rust side
-from qiskit._accelerate.target import Target as Target2
+from qiskit._accelerate.target import (
+    Target as Target2,
+    InstructionProperties as InstructionProperties2,
+)
 
 # TODO: Use InstructionProperties from Python side
 
@@ -76,7 +79,9 @@ class InstructionProperties:
         error: float | None = None,
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
     ):
-        self._InsrProp = InstructionProperties2(duration, error, calibration)
+        self._InsrProp = InstructionProperties2(
+            duration=duration, error=error, calibration=calibration
+        )
 
     @property
     def duration(self):
@@ -84,7 +89,11 @@ class InstructionProperties:
 
     @property
     def error(self):
-        return self._InsrProp.eror
+        return self._InsrProp.error
+
+    @error.setter
+    def error(self, other):
+        self._InsrProp.error = other
 
     @property
     def calibration(self):
@@ -318,13 +327,12 @@ class Target:
                 except TypeError:
                     qargs = (qargs,)
                 try:
-                    print(self._Target.gate_map[inst_name][qargs])
                     props = self._Target.gate_map[inst_name][qargs]
                 except (KeyError, TypeError):
                     props = None
 
                 entry = get_calibration(inst_name, qargs)
-                if entry.user_provided and getattr(props, "_calibration", None) != entry:
+                if entry.user_provided and getattr(props, "calibration", None) != entry:
                     # It only copies user-provided calibration from the inst map.
                     # Backend defined entry must already exist in Target.
                     if self.dt is not None:
@@ -372,7 +380,7 @@ class Target:
                         if isinstance(qargs, int):
                             qargs = (qargs,)
                         qlen.add(len(qargs))
-                        cal = getattr(out_props[tuple(qargs)], "_calibration")
+                        cal = getattr(out_props[tuple(qargs)], "calibration")
                         param_names.add(tuple(cal.get_signature().parameters.keys()))
                     if len(qlen) > 1 or len(param_names) > 1:
                         raise QiskitError(
