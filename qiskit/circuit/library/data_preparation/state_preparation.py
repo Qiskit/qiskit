@@ -443,7 +443,8 @@ class StatePreparation(Gate):
 
 class Generalized_Uniform_Superposition_Gate(Gate):
     """
-    Class that implements a generalized uniform superposition state, using n qubits, following the Shukla-Vedula algorithm [SV24].
+    Class that implements a generalized uniform superposition state, using n qubits, 
+    following the Shukla-Vedula algorithm [SV24].
     """
 
     def __init__(
@@ -456,29 +457,35 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
         Args:
             M (int):
-                A positive integer M (> 1) representing the number of computational basis states with an amplitude of 1/sqrt(M)
-                in the uniform superposition state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where $1< M <= 2^n$). Note that the remaining
-                (2^n - M) computational basis states have zero amplitudes. Here M need not be an integer power of 2.
+                A positive integer M (> 1) representing the number of computational 
+                basis states with an amplitude of 1/sqrt(M) in the uniform superposition 
+                state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where 
+                $1< M <= 2^n$). Note that the remaining (2^n - M) computational basis 
+                states have zero amplitudes. Here M need not be an integer power of 2.
 
             num_qubits (int):
                 A positive integer representing the number of qubits used.
 
         Returns:
-            A quantum circuit that creates the uniform superposition state: $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $.
+            A quantum circuit that creates the uniform superposition state: 
+            $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $.
 
         **References:**
             [SV24]
-                A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation of uniform quantum superposition states,"
-                Quantum Information Processing, 23(38): pp. 1-32 (2024).
+            A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation 
+            of uniform quantum superposition states," Quantum Information Processing, 
+            23(38): pp. 1-32 (2024).
 
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
 
         Note:
-            The Shukla-Vedula algorithm [SV24] provides an efficient approach for creation of a generalized uniform superposition
-            state of the form, $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$
-            gates, hence providing an exponential improvement, in terms of reduced resources and complexity, compared to alternative methods
-            in existing literature.
+            The Shukla-Vedula algorithm [SV24] provides an efficient approach for 
+            creation of a generalized uniform superposition state of the form, 
+            $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $. It needs only 
+            $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ gates, hence providing an 
+            exponential improvement, in terms of reduced resources and complexity, 
+            compared to alternative methods in existing literature.
         """
         if not (isinstance(M, int) and (M > 1)):
             raise ValueError("M must be a positive integer greater than 1.")
