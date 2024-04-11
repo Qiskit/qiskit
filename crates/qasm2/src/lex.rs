@@ -262,7 +262,7 @@ impl Token {
     }
 
     /// If the token is a real number, this method can be called to evaluate its value.  Panics if
-    /// the token is not a real number.
+    /// the token is not a float or an integer.
     pub fn real(&self, context: &TokenContext) -> f64 {
         if !(self.ttype == TokenType::Real || self.ttype == TokenType::Integer) {
             panic!()
