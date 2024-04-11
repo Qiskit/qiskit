@@ -90,7 +90,7 @@ class RXCalibrationBuilder(CalibrationBuilder):
 
         super().__init__()
         self.target = target
-        self.already_generated = {}
+        self.already_generated = {}  # TODO: unused?
         self.requires = [NormalizeRXAngle(self.target)]
 
     def supported(self, node_op: Instruction, qubits: list) -> bool:

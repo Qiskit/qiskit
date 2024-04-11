@@ -15,12 +15,14 @@
 from __future__ import annotations
 
 import collections
+from collections.abc import Sequence
 from typing import Optional
 
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 
 from qiskit.passmanager.flow_controllers import ConditionalController
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes import Error
 from qiskit.transpiler.passes import BasisTranslator
@@ -450,6 +452,7 @@ def generate_translation_passmanager(
     Raises:
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
+    unroll: Sequence[BasePass]
     if method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of

@@ -227,7 +227,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _error(
         self, circuit: euler_one_qubit_decomposer.OneQubitGateSequence | Sequence[DAGOpNode], qubit
-    ):
+    ) -> tuple[float, int]:
         """
         Calculate a rough error for a `circuit` that runs on a specific
         `qubit` of `target` (`circuit` can either be an OneQubitGateSequence

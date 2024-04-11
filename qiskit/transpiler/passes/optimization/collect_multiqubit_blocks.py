@@ -46,9 +46,9 @@ class CollectMultiQBlocks(AnalysisPass):
 
         # the dicts below are keyed by a qubit signifying the root of a
         #    set in the DSU data structure
-        self.bit_groups: dict[
-            Qubit, list[Qubit]
-        ] = {}  # current groups of bits stored at top of trees
+        self.bit_groups: dict[Qubit, list[Qubit]] = (
+            {}
+        )  # current groups of bits stored at top of trees
         self.gate_groups: dict[Qubit, list[Qubit]] = {}  # current gate lists for the groups
 
         self.max_block_size = max_block_size  # maximum block size
