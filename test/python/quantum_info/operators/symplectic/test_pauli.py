@@ -525,7 +525,7 @@ class TestPauli(QiskitTestCase):
         transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
         permuted_op = op.apply_layout(transpiled_psi.layout)
         permuted_sparse_op = sparse_op.apply_layout(transpiled_psi.layout)
-        self.assertEqual(permuted_op, permuted_sparse_op.paulis)
+        self.assertEqual(SparsePauliOp(permuted_op), permuted_sparse_op)
 
     def test_permute_pauli_estimator_example(self):
         """Test using the apply_layout method with an estimator workflow."""
