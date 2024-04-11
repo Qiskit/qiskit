@@ -43,7 +43,7 @@ from qiskit.compiler.transpiler import transpile
 from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator
+from qiskit.quantum_info.operators import Pauli, Operator, SparsePauliOp
 from qiskit.utils import optionals
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -515,6 +515,17 @@ class TestPauli(QiskitTestCase):
         expected_op = identity_op.compose(op, qargs=qargs)
         self.assertNotEqual(op, permuted_op)
         self.assertEqual(permuted_op, expected_op)
+
+    def test_apply_layout_consistency(self):
+        """Test that the Pauli apply_layout() is consistent with the SparsePauliOp apply_layout()."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("IZZZ")
+        sparse_op = SparsePauliOp(op)
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        permuted_sparse_op = sparse_op.apply_layout(transpiled_psi.layout)
+        self.assertEqual(permuted_op, permuted_sparse_op.paulis)
 
     def test_permute_pauli_estimator_example(self):
         """Test using the apply_layout method with an estimator workflow."""
