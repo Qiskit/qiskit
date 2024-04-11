@@ -86,6 +86,15 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         )
         self.assertIsInstance(pm, PassManager)
 
+    def test_init_invalid_optlevel(self):
+        """Test default init stage with invalid optimization level.
+        See: 00000"""
+        plugin_manager = PassManagerStagePluginManager()
+        with self.assertRaises(TranspilerError):
+            plugin_manager.get_passmanager_stage(
+                "init", "default", PassManagerConfig(), optimization_level=4
+            )
+
 
 @ddt.ddt
 class TestBuiltinPlugins(QiskitTestCase):
