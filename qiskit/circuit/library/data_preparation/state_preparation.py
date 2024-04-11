@@ -88,9 +88,7 @@ class StatePreparation(Gate):
         self._name = "state_preparation_dg" if self._inverse else "state_preparation"
 
         if label is None:
-            self._label = (
-                "State Preparation Dg" if self._inverse else "State Preparation"
-            )
+            self._label = "State Preparation Dg" if self._inverse else "State Preparation"
         else:
             self._label = f"{label} Dg" if self._inverse else label
 
@@ -211,9 +209,7 @@ class StatePreparation(Gate):
 
             # Check if param is a power of 2
             if num_qubits == 0 or not num_qubits.is_integer():
-                raise QiskitError(
-                    "Desired statevector length not a positive power of 2."
-                )
+                raise QiskitError("Desired statevector length not a positive power of 2.")
 
             num_qubits = int(num_qubits)
         return num_qubits
@@ -222,14 +218,10 @@ class StatePreparation(Gate):
         """Return inverted StatePreparation"""
 
         label = (
-            None
-            if self._label in ("State Preparation", "State Preparation Dg")
-            else self._label
+            None if self._label in ("State Preparation", "State Preparation Dg") else self._label
         )
 
-        return StatePreparation(
-            self._params_arg, inverse=not self._inverse, label=label
-        )
+        return StatePreparation(self._params_arg, inverse=not self._inverse, label=label)
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -260,14 +252,10 @@ class StatePreparation(Gate):
         elif isinstance(parameter, np.number):
             return complex(parameter.item())
         else:
-            raise CircuitError(
-                f"invalid param type {type(parameter)} for instruction  {self.name}"
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} for instruction  {self.name}")
 
     def _return_repeat(self, exponent: float) -> "Gate":
-        return Gate(
-            name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[]
-        )
+        return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=[])
 
     def _gates_to_uncompute(self):
         """Call to create a circuit with gates that take the desired vector to zero.
@@ -303,9 +291,7 @@ class StatePreparation(Gate):
 
             if np.linalg.norm(thetas) != 0:
                 ry_mult = self._multiplex(RYGate, thetas, last_cnot=add_last_cnot)
-                circuit.append(
-                    ry_mult.to_instruction().reverse_ops(), q[i : self.num_qubits]
-                )
+                circuit.append(ry_mult.to_instruction().reverse_ops(), q[i : self.num_qubits])
         circuit.global_phase -= np.angle(sum(remaining_param))
         return circuit
 
@@ -407,17 +393,13 @@ class StatePreparation(Gate):
 
         # calc angle weights, assuming recursion (that is the lower-level
         # requested angles have been correctly implemented by recursion
-        angle_weight = np.kron(
-            [[0.5, 0.5], [0.5, -0.5]], np.identity(2 ** (local_num_qubits - 2))
-        )
+        angle_weight = np.kron([[0.5, 0.5], [0.5, -0.5]], np.identity(2 ** (local_num_qubits - 2)))
 
         # calc the combo angles
         list_of_angles = angle_weight.dot(np.array(list_of_angles)).tolist()
 
         # recursive step on half the angles fulfilling the above assumption
-        multiplex_1 = self._multiplex(
-            target_gate, list_of_angles[0 : (list_len // 2)], False
-        )
+        multiplex_1 = self._multiplex(target_gate, list_of_angles[0 : (list_len // 2)], False)
         circuit.append(multiplex_1.to_instruction(), q[0:-1])
 
         # attach CNOT as follows, thereby flipping the LSB qubit
@@ -426,9 +408,7 @@ class StatePreparation(Gate):
         # implement extra efficiency from the paper of cancelling adjacent
         # CNOTs (by leaving out last CNOT and reversing (NOT inverting) the
         # second lower-level multiplex)
-        multiplex_2 = self._multiplex(
-            target_gate, list_of_angles[(list_len // 2) :], False
-        )
+        multiplex_2 = self._multiplex(target_gate, list_of_angles[(list_len // 2) :], False)
         if list_len > 1:
             circuit.append(multiplex_2.to_instruction().reverse_ops(), q[0:-1])
         else:
@@ -496,9 +476,7 @@ class Generalized_Uniform_Superposition_Gate(Gate):
                 num_qubits = int(np.ceil(np.log2(M)))
         else:
             if not (isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
-                raise ValueError(
-                    "num_qubits must be an integer greater than or equal to log2(M)."
-                )
+                raise ValueError("num_qubits must be an integer greater than or equal to log2(M).")
         self._num_qubits = num_qubits
         self._M = M
         super().__init__("USup", self._num_qubits, [M])
