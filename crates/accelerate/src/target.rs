@@ -63,7 +63,8 @@ pub struct InstructionProperties {
     pub duration: Option<f32>,
     #[pyo3(get, set)]
     pub error: Option<f32>,
-    pub calibration: Option<PyObject>,
+    #[pyo3(get)]
+    _calibration: Option<PyObject>,
 }
 
 #[pymethods]
@@ -74,15 +75,15 @@ impl InstructionProperties {
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
     pub fn new(duration: Option<f32>, error: Option<f32>, calibration: Option<PyObject>) -> Self {
         InstructionProperties {
-            calibration,
             error,
             duration,
+            _calibration: calibration,
         }
     }
 
     #[getter]
     pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
-        match &self.calibration {
+        match &self._calibration {
             Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
             None => None,
         }
@@ -90,7 +91,7 @@ impl InstructionProperties {
 
     #[setter]
     pub fn set_calibration(&mut self, py: Python<'_>, calibration: Bound<PyAny>) -> PyResult<()> {
-        self.calibration = Some(calibration.to_object(py));
+        self._calibration = Some(calibration.to_object(py));
         Ok(())
     }
 
@@ -98,9 +99,7 @@ impl InstructionProperties {
         if let Some(calibration) = self.get_calibration(py) {
             format!(
                 "InstructionProperties(duration={:?}, error={:?}, calibration={:?})",
-                self.duration,
-                self.error,
-                calibration.call_method0(py, "__repr__")
+                self.duration, self.error, calibration
             )
         } else {
             format!(

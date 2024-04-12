@@ -91,6 +91,10 @@ class InstructionProperties:
     def error(self):
         return self._InsrProp.error
 
+    @property
+    def _calibration(self):
+        return self._InsrProp._calibration
+
     @error.setter
     def error(self, other):
         self._InsrProp.error = other
@@ -332,7 +336,7 @@ class Target:
                     props = None
 
                 entry = get_calibration(inst_name, qargs)
-                if entry.user_provided and getattr(props, "calibration", None) != entry:
+                if entry.user_provided and getattr(props, "_calibration", None) != entry:
                     # It only copies user-provided calibration from the inst map.
                     # Backend defined entry must already exist in Target.
                     if self.dt is not None:
@@ -380,7 +384,7 @@ class Target:
                         if isinstance(qargs, int):
                             qargs = (qargs,)
                         qlen.add(len(qargs))
-                        cal = getattr(out_props[tuple(qargs)], "calibration")
+                        cal = getattr(out_props[tuple(qargs)], "_calibration")
                         param_names.add(tuple(cal.get_signature().parameters.keys()))
                     if len(qlen) > 1 or len(param_names) > 1:
                         raise QiskitError(
