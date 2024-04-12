@@ -11,22 +11,23 @@
 // that they have been altered from the originals.
 #![allow(clippy::too_many_arguments)]
 
-use hashbrown::HashSet;
-use ndarray::prelude::*;
-use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use pyo3::prelude::*;
-use pyo3::wrap_pyfunction;
 use pyo3::Python;
+
+use hashbrown::HashSet;
+use numpy::{IntoPyArray, PyArray, PyReadonlyArray2};
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::{NLayout, PhysicalQubit};
-use crate::sabre_swap::neighbor_table::NeighborTable;
-use crate::sabre_swap::sabre_dag::SabreDAG;
-use crate::sabre_swap::swap_map::SwapMap;
-use crate::sabre_swap::{build_swap_map_inner, Heuristic, NodeBlockResults, SabreResult};
+
+use super::neighbor_table::NeighborTable;
+use super::route::{swap_map, swap_map_trial, RoutingTargetView};
+use super::sabre_dag::SabreDAG;
+use super::swap_map::SwapMap;
+use super::{Heuristic, NodeBlockResults, SabreResult};
 
 #[pyfunction]
 #[pyo3(signature = (dag, neighbor_table, distance_matrix, heuristic, max_iterations, num_swap_trials, num_random_trials, seed=None, partial_layouts=vec![]))]
@@ -35,7 +36,7 @@ pub fn sabre_layout_and_routing(
     dag: &SabreDAG,
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
-    heuristic: &Heuristic,
+    heuristic: Heuristic,
     max_iterations: usize,
     num_swap_trials: usize,
     num_random_trials: usize,
@@ -43,6 +44,11 @@ pub fn sabre_layout_and_routing(
     mut partial_layouts: Vec<Vec<Option<u32>>>,
 ) -> (NLayout, PyObject, (SwapMap, PyObject, NodeBlockResults)) {
     let run_in_parallel = getenv_use_multiple_threads();
+    let target = RoutingTargetView {
+        neighbors: neighbor_table,
+        coupling: &neighbor_table.coupling_graph(),
+        distance: distance_matrix.as_array(),
+    };
     let mut starting_layouts: Vec<Vec<Option<u32>>> =
         (0..num_random_trials).map(|_| vec![]).collect();
     starting_layouts.append(&mut partial_layouts);
@@ -54,7 +60,6 @@ pub fn sabre_layout_and_routing(
         .sample_iter(&rand::distributions::Standard)
         .take(starting_layouts.len())
         .collect();
-    let dist = distance_matrix.as_array();
     let res = if run_in_parallel && starting_layouts.len() > 1 {
         seed_vec
             .into_par_iter()
@@ -63,9 +68,8 @@ pub fn sabre_layout_and_routing(
                 (
                     index,
                     layout_trial(
+                        &target,
                         dag,
-                        neighbor_table,
-                        &dist,
                         heuristic,
                         seed_trial,
                         max_iterations,
@@ -89,9 +93,8 @@ pub fn sabre_layout_and_routing(
             .enumerate()
             .map(|(index, seed_trial)| {
                 layout_trial(
+                    &target,
                     dag,
-                    neighbor_table,
-                    &dist,
                     heuristic,
                     seed_trial,
                     max_iterations,
@@ -115,18 +118,20 @@ pub fn sabre_layout_and_routing(
 }
 
 fn layout_trial(
+    target: &RoutingTargetView,
     dag: &SabreDAG,
-    neighbor_table: &NeighborTable,
-    distance_matrix: &ArrayView2<f64>,
-    heuristic: &Heuristic,
+    heuristic: Heuristic,
     seed: u64,
     max_iterations: usize,
     num_swap_trials: usize,
     run_swap_in_parallel: bool,
     starting_layout: &[Option<u32>],
 ) -> (NLayout, Vec<PhysicalQubit>, SabreResult) {
-    let num_physical_qubits: u32 = distance_matrix.shape()[0].try_into().unwrap();
+    let num_physical_qubits: u32 = target.neighbors.num_qubits().try_into().unwrap();
     let mut rng = Pcg64Mcg::seed_from_u64(seed);
+
+    // This is purely for RNG compatibility during a refactor.
+    let routing_seed = Pcg64Mcg::seed_from_u64(seed).next_u64();
 
     // Pick a random initial layout including a full ancilla allocation.
     let mut initial_layout = {
@@ -182,29 +187,18 @@ fn layout_trial(
 
     for _iter in 0..max_iterations {
         for dag in [&dag_no_control_forward, &dag_no_control_reverse] {
-            let (_result, final_layout) = build_swap_map_inner(
-                num_physical_qubits,
-                dag,
-                neighbor_table,
-                distance_matrix,
-                heuristic,
-                Some(seed),
-                &initial_layout,
-                1,
-                Some(false),
-            );
+            let (_result, final_layout) =
+                swap_map_trial(target, dag, heuristic, &initial_layout, routing_seed);
             initial_layout = final_layout;
         }
     }
 
-    let (sabre_result, final_layout) = build_swap_map_inner(
-        num_physical_qubits,
+    let (sabre_result, final_layout) = swap_map(
+        target,
         dag,
-        neighbor_table,
-        distance_matrix,
         heuristic,
-        Some(seed),
         &initial_layout,
+        Some(seed),
         num_swap_trials,
         Some(run_swap_in_parallel),
     );
@@ -213,10 +207,4 @@ fn layout_trial(
         .map(|(_, virt)| virt.to_phys(&final_layout))
         .collect();
     (initial_layout, final_permutation, sabre_result)
-}
-
-#[pymodule]
-pub fn sabre_layout(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(sabre_layout_and_routing))?;
-    Ok(())
 }
