@@ -541,10 +541,10 @@ pub fn swap_map_trial(
             let best_swap = state.choose_best_swap();
             state.apply_swap(best_swap);
             current_swaps.push(best_swap);
-            if let Some(node) = state.routable_node_on_qubit(best_swap[0]) {
+            if let Some(node) = state.routable_node_on_qubit(best_swap[1]) {
                 routable_nodes.push(node);
             }
-            if let Some(node) = state.routable_node_on_qubit(best_swap[1]) {
+            if let Some(node) = state.routable_node_on_qubit(best_swap[0]) {
                 routable_nodes.push(node);
             }
             num_search_steps += 1;
