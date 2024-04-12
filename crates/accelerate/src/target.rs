@@ -451,6 +451,44 @@ impl Target {
         }
         Ok(res.into())
     }
+
+    fn operation_names_for_qargs(
+        &self,
+        isclass: &Bound<PyAny>,
+        qargs: Option<HashableVec<u32>>,
+    ) -> PyResult<HashSet<String>> {
+        // When num_qubits == 0 we return globally defined operators
+        let mut res = HashSet::new();
+        let mut qargs = qargs;
+        if self.num_qubits == 0 {
+            qargs = None;
+        }
+        if let Some(qargs) = qargs {
+            if qargs
+                .vec
+                .iter()
+                .any(|x| !(0..self.num_qubits as u32).contains(x))
+            {
+                return Err(PyTypeError::new_err(format!("{:?}", qargs)));
+            }
+            res.extend(self.qarg_gate_map[&qargs].clone());
+            if let Some(ext) = self.global_operations.get(&qargs.vec.len()) {
+                res = ext.union(&res).cloned().collect();
+            }
+            for (name, op) in self.gate_name_map.iter() {
+                if isclass.call1((op,))?.extract::<bool>()? {
+                    res.insert(name.into());
+                }
+            }
+            if res.is_empty() {
+                return Err(PyTypeError::new_err(format!(
+                    "{:?} not in target",
+                    qargs.vec
+                )));
+            }
+        }
+        Ok(res)
+    }
 }
 
 #[pymodule]

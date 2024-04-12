@@ -489,3 +489,19 @@ class Target:
             KeyError: If qargs is not in target
         """
         return self._Target.operations_for_qargs(inspect.isclass, qargs)
+
+    def operation_names_for_qargs(self, qargs):
+        """Get the operation names for a specified qargs tuple
+
+        Args:
+            qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
+                to it. For example, ``(0,)`` will return the set of all
+                instructions that apply to qubit 0. If set to ``None`` this will
+                return the names for any globally defined operations in the target.
+        Returns:
+            set: The set of operation names that apply to the specified ``qargs``.
+
+        Raises:
+            KeyError: If ``qargs`` is not in target
+        """
+        return self._Target.operation_names_for_qargs(inspect.isclass, qargs)
