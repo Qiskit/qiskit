@@ -421,7 +421,7 @@ class StatePreparation(Gate):
         return circuit
 
 
-class Generalized_Uniform_Superposition_Gate(Gate):
+class GeneralizedUniformSuperpositionGate(Gate):
     """
     Class that implements a generalized uniform superposition state, using n qubits,
     following the Shukla-Vedula algorithm [SV24].
@@ -429,15 +429,15 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
     def __init__(
         self,
-        M: int = 2,
+        m_value: int = 2,
         num_qubits: Optional[int] = None,
     ):
-        """
-        Initializes Generalized_Uniform_Superposition_Gate.
+        r"""
+        Initializes GeneralizedUniformSuperpositionGate.
 
         Args:
-            M (int):
-                A positive integer M (> 1) representing the number of computational
+            m_value (int):
+                A positive integer M = m_value (> 1) representing the number of computational
                 basis states with an amplitude of 1/sqrt(M) in the uniform superposition
                 state ($\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j} $, where
                 $1< M <= 2^n$). Note that the remaining (2^n - M) computational basis
@@ -467,19 +467,21 @@ class Generalized_Uniform_Superposition_Gate(Gate):
             exponential improvement, in terms of reduced resources and complexity,
             compared to alternative methods in existing literature.
         """
-        if not (isinstance(M, int) and (M > 1)):
-            raise ValueError("M must be a positive integer greater than 1.")
+        if not (isinstance(m_value, int) and (m_value > 1)):
+            raise ValueError("m_value must be a positive integer greater than 1.")
         if num_qubits is None:
-            if (M & (M - 1)) == 0:  # If M is an integer power of 2
-                num_qubits = int(np.log2(M))
-            else:  # If M is not an integer power of 2
-                num_qubits = int(np.ceil(np.log2(M)))
+            if (m_value & (m_value - 1)) == 0:  # If m_value is an integer power of 2
+                num_qubits = int(np.log2(m_value))
+            else:  # If m_value is not an integer power of 2
+                num_qubits = int(np.ceil(np.log2(m_value)))
         else:
-            if not (isinstance(num_qubits, int) and (num_qubits >= np.log2(M))):
-                raise ValueError("num_qubits must be an integer greater than or equal to log2(M).")
+            if not (isinstance(num_qubits, int) and (num_qubits >= np.log2(m_value))):
+                raise ValueError(
+                    "num_qubits must be an integer greater than or equal to log2(m_value)."
+                )
         self._num_qubits = num_qubits
-        self._M = M
-        super().__init__("USup", self._num_qubits, [M])
+        self._m_value = m_value
+        super().__init__("USup", self._num_qubits, [m_value])
 
     def _define(self):
         """
@@ -491,38 +493,38 @@ class Generalized_Uniform_Superposition_Gate(Gate):
         qreg = QuantumRegister(self._num_qubits, "q")
         qc = QuantumCircuit(self._num_qubits)
 
-        M = self._M
-        num_qubits = self._num_qubits
+        m_value = self._m_value
 
-        if (M & (M - 1)) == 0:  # if M is an integer power of 2
-            m = int(np.log2(M))
+        if (m_value & (m_value - 1)) == 0:  # if m_value is an integer power of 2
+            m = int(np.log2(m_value))
             qc.h(qreg[0:m])
             return qc
 
-        N = [int(x) for x in list(np.binary_repr(M))][::-1]
-        k = len(N)
-        L = [index for (index, item) in enumerate(N) if item == 1]  # Locations of '1's
+        n_value = [int(x) for x in list(np.binary_repr(m_value))][::-1]
+        k = len(n_value)
+        l_value = [index for (index, item) in enumerate(n_value) if item == 1]  # Locations of '1's
 
-        qc.x(qreg[L[1:k]])
-        Mcurrent = 2 ** (L[0])
-        theta = -2 * np.arccos(np.sqrt(Mcurrent / M))
+        qc.x(qreg[l_value[1:k]])
+        m_current_value = 2 ** (l_value[0])
+        theta = -2 * np.arccos(np.sqrt(m_current_value / m_value))
 
-        if L[0] > 0:  # if M is even
-            qc.h(qreg[0 : L[0]])
-        qc.ry(theta, qreg[L[1]])
-        qc.ch(qreg[L[1]], qreg[L[0] : L[1]], ctrl_state="0")
+        if l_value[0] > 0:  # if m_value is even
+            qc.h(qreg[0 : l_value[0]])
+        qc.ry(theta, qreg[l_value[1]])
+        qc.ch(qreg[l_value[1]], qreg[l_value[0] : l_value[1]], ctrl_state="0")
 
-        for m in range(1, len(L) - 1):
-            theta = -2 * np.arccos(np.sqrt(2 ** L[m] / (M - Mcurrent)))
-            qc.cry(theta, qreg[L[m]], qreg[L[m + 1]], ctrl_state="0")
-            qc.ch(qreg[L[m + 1]], qreg[L[m] : L[m + 1]], ctrl_state="0")
-            Mcurrent = Mcurrent + 2 ** (L[m])
+        for m in range(1, len(l_value) - 1):
+            theta = -2 * np.arccos(np.sqrt(2 ** l_value[m] / (m_value - m_current_value)))
+            qc.cry(theta, qreg[l_value[m]], qreg[l_value[m + 1]], ctrl_state="0")
+            qc.ch(qreg[l_value[m + 1]], qreg[l_value[m] : l_value[m + 1]], ctrl_state="0")
+            m_current_value = m_current_value + 2 ** (l_value[m])
 
         return qc
 
     def __repr__(self):
         """Returns a string representation of the gate."""
-        return f"Generalized_Uniform_Superposition_Gate(M={self._M}, num_qubits={self._num_qubits})"
+        return f"""GeneralizedUniformSuperpositionGate(m_value={self._m_value},
+         num_qubits={self._num_qubits})"""
 
     def broadcast_arguments(self, qargs, cargs):
         """Validates and handles the arguments."""
@@ -530,29 +532,25 @@ class Generalized_Uniform_Superposition_Gate(Gate):
 
         if self._num_qubits != len(flat_qargs):
             raise CircuitError(
-                f"Generalized_Uniform_Superposition_Gate expects {self._num_qubits} qubits, but {len(flat_qargs)} were provided."
+                (
+                    f"GeneralizedUniformSuperpositionGate expects {self._num_qubits} qubits, "
+                    f"but {len(flat_qargs)} were provided."
+                )
             )
         yield flat_qargs, []
 
-    def validate_parameter(self, parameter):
-        """Validates the gate parameter."""
-        # Validation logic goes here
-        pass
-
-    def inverse(self):
-        """Returns the inverse of the gate."""
-        # Inverse logic goes here
-        pass
-
-    def decompose(self, qubits):
+    def decompose(self):
+        """Returns the gate decomposition."""
         qc = self._define()
         return qc
 
     def to_instruction(self):
+        """Returns the gate instruction."""
         qc = self._define()
         return qc.to_instruction()
 
     def to_unitary(self):
+        """Returns unitary of the gate."""
         instruction = self.to_instruction()
         qc = QuantumCircuit(self._num_qubits)
         qc.append(instruction, list(range(self._num_qubits)))
