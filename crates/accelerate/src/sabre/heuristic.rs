@@ -34,8 +34,8 @@ impl SetScaling {
             SetScaling::Size => "Size",
         };
         Ok((
-            py.import("builtins")?.getattr("getattr")?,
-            (py.get_type::<Self>(), name),
+            py.import_bound("builtins")?.getattr("getattr")?,
+            (py.get_type_bound::<Self>(), name),
         )
             .into_py(py))
     }
@@ -69,7 +69,7 @@ impl BasicHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "BasicHeuristic(weight={!r}, scale={!r})";
-        Ok(PyString::new(py, fmt)
+        Ok(PyString::new_bound(py, fmt)
             .call_method1("format", (self.weight, self.scale))?
             .into_py(py))
     }
@@ -109,7 +109,7 @@ impl LookaheadHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "LookaheadHeuristic(weight={!r}, size={!r}, scale={!r})";
-        Ok(PyString::new(py, fmt)
+        Ok(PyString::new_bound(py, fmt)
             .call_method1("format", (self.weight, self.size, self.scale))?
             .into_py(py))
     }
@@ -143,7 +143,7 @@ impl DecayHeuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "DecayHeuristic(increment={!r}, reset={!r})";
-        Ok(PyString::new(py, fmt)
+        Ok(PyString::new_bound(py, fmt)
             .call_method1("format", (self.increment, self.reset))?
             .into_py(py))
     }
@@ -250,7 +250,7 @@ impl Heuristic {
 
     pub fn __repr__(&self, py: Python) -> PyResult<Py<PyAny>> {
         let fmt = "Heuristic(basic={!r}, lookahead={!r}, decay={!r}, attempt_limit={!r}, best_epsilon={!r})";
-        Ok(PyString::new(py, fmt)
+        Ok(PyString::new_bound(py, fmt)
             .call_method1(
                 "format",
                 (
