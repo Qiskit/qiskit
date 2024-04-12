@@ -22,6 +22,7 @@ use pyo3::{
     types::{PyDict, PyList, PyTuple},
 };
 
+// This struct allows qargs and any vec to become hashable
 #[derive(Eq, PartialEq, Clone, Debug)]
 struct HashableVec<T> {
     pub vec: Vec<T>,
@@ -414,9 +415,14 @@ impl Target {
         py: Python<'_>,
         isclass: &Bound<PyAny>,
         qargs: Option<HashableVec<u32>>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<Py<PyList>> {
         let res = PyList::empty_bound(py);
-        if let Some(qargs) = qargs.clone() {
+        for op in self.gate_name_map.values() {
+            if isclass.call1((op,))?.extract::<bool>()? {
+                res.append(op)?;
+            }
+        }
+        if let Some(qargs) = qargs {
             if qargs
                 .vec
                 .iter()
@@ -437,23 +443,14 @@ impl Target {
                     res.append(arg)?;
                 }
             }
-        }
-        for op in self.gate_name_map.values() {
-            if isclass.call1((op,))?.extract::<bool>()? {
-                res.append(op)?;
-            }
-        }
-        if res.is_empty() {
-            if let Some(qargs) = qargs {
+            if res.is_empty() {
                 return Err(PyTypeError::new_err(format!(
                     "{:?} not in target",
                     qargs.vec
                 )));
-            } else {
-                return Err(PyTypeError::new_err(format!("{:?} not in target", qargs)));
             }
         }
-        Ok(res.to_object(py))
+        Ok(res.into())
     }
 }
 

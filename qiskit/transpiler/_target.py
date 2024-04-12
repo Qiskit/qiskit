@@ -467,21 +467,21 @@ class Target:
             operations.
         """
         return self._Target.gate_name_map[instruction]
-    
-    def operation_names_for_qargs(self, qargs):
-        """Get the operation names for a specified qargs tuple
+
+    def operations_for_qargs(self, qargs):
+        """Get the operation class object for a specified qargs tuple
 
         Args:
-            qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
+            qargs (tuple): A qargs tuple of the qubits to get the gates that apply
                 to it. For example, ``(0,)`` will return the set of all
                 instructions that apply to qubit 0. If set to ``None`` this will
-                return the names for any globally defined operations in the target.
+                return any globally defined operations in the target.
         Returns:
-            set: The set of operation names that apply to the specified ``qargs``.
+            list: The list of :class:`~qiskit.circuit.Instruction` instances
+            that apply to the specified qarg. This may also be a class if
+            a variable width operation is globally defined.
 
         Raises:
-            KeyError: If ``qargs`` is not in target
+            KeyError: If qargs is not in target
         """
-        self._Target.operation_names_for_qargs(inspect.isclass, qargs)
-    
-    
+        return self._Target.operations_for_qargs(inspect.isclass, qargs)
