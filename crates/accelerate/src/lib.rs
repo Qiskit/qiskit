@@ -20,6 +20,7 @@ mod dense_layout;
 mod edge_collections;
 mod error_map;
 mod euler_one_qubit_decomposer;
+mod gates;
 mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
@@ -32,6 +33,8 @@ mod stochastic_swap;
 mod two_qubit_decompose;
 mod utils;
 mod vf2_layout;
+mod xx_decompose;
+
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
