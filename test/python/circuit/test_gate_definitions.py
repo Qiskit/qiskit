@@ -277,7 +277,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "ClassicalFunction",
         "ClassicalElement",
         "StatePreparation",
-        "Generalized_Uniform_Superposition_Gate",
+        "GeneralizedUniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
