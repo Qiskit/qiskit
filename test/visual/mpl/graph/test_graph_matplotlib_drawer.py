@@ -60,25 +60,6 @@ def cwd(path):
 class TestGraphMatplotlibDrawer(QiskitTestCase):
     """Graph MPL visualization"""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        with cls.assertWarns(DeprecationWarning):
-            cls.backend_5_yorktown = GenericBackendV2(
-                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
-            )
-            cls.backend_7_lagos = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP, seed=42)
-            cls.backend_16_rueschlikon = GenericBackendV2(
-                num_qubits=16, coupling_map=RUESCHLIKON_CMAP, seed=42
-            )
-            cls.backend_27_mumbai = GenericBackendV2(
-                num_qubits=27, coupling_map=MUMBAI_CMAP, seed=42
-            )
-            cls.backend_65_manhattan = GenericBackendV2(
-                num_qubits=65, coupling_map=MANHATTAN_CMAP, seed=42
-            )
-            cls.backend1Q = GenericBackendV2(num_qubits=1, seed=42)
-
     def setUp(self):
         super().setUp()
         self.graph_state_drawer = VisualTestUtilities.save_data_wrap(
@@ -408,8 +389,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 1 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=1)
+
         fname = "1_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend1Q, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -424,8 +407,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 5 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+
         fname = "5_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend_5_yorktown, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -440,8 +425,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 7 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+
         fname = "7_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend_7_lagos, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -456,8 +443,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 16 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=16, coupling_map=RUESCHLIKON_CMAP)
+
         fname = "16_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend_16_rueschlikon, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -472,8 +461,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test plot_gate_map using 27 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=27, coupling_map=MUMBAI_CMAP)
+
         fname = "27_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend_27_mumbai, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -488,8 +479,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """test for plot_gate_map using 65 qubit backend"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+
         fname = "65_qubit_gate_map.png"
-        self.graph_plot_gate_map(backend=self.backend_65_manhattan, filename=fname)
+        self.graph_plot_gate_map(backend=backend, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -504,8 +497,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test figsize parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+
         fname = "figsize.png"
-        self.graph_plot_gate_map(backend=self.backend_5_yorktown, figsize=(10, 10), filename=fname)
+        self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -520,8 +515,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_size parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP)
+
         fname = "qubit_size.png"
-        self.graph_plot_gate_map(backend=self.backend_5_yorktown, qubit_size=38, filename=fname)
+        self.graph_plot_gate_map(backend=backend, qubit_size=38, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -536,10 +533,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+
         fname = "qubit_color.png"
-        self.graph_plot_gate_map(
-            backend=self.backend_7_lagos, qubit_color=["#ff0000"] * 7, filename=fname
-        )
+        self.graph_plot_gate_map(backend=backend, qubit_color=["#ff0000"] * 7, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -554,9 +551,11 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test qubit_labels parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=7, coupling_map=LAGOS_CMAP)
+
         fname = "qubit_labels.png"
         self.graph_plot_gate_map(
-            backend=self.backend_7_lagos, qubit_labels=list(range(10, 17, 1)), filename=fname
+            backend=backend, qubit_labels=list(range(10, 17, 1)), filename=fname
         )
 
         ratio = VisualTestUtilities._save_diff(
@@ -572,10 +571,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test line_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+
         fname = "line_color.png"
-        self.graph_plot_gate_map(
-            backend=self.backend_65_manhattan, line_color=["#00ff00"] * 144, filename=fname
-        )
+        self.graph_plot_gate_map(backend=backend, line_color=["#00ff00"] * 144, filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),
@@ -590,10 +589,10 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         """Test font_color parameter of plot_gate_map"""
         # getting the mock backend from FakeProvider
 
+        backend = GenericBackendV2(num_qubits=65, coupling_map=MANHATTAN_CMAP)
+
         fname = "font_color.png"
-        self.graph_plot_gate_map(
-            backend=self.backend_65_manhattan, font_color="#ff00ff", filename=fname
-        )
+        self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

@@ -73,24 +73,6 @@ FAILURE_PREFIX = "circuit_failure_"
 class TestCircuitMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        with cls.assertWarns(DeprecationWarning):
-            cls.backend_5_yorktown = GenericBackendV2(
-                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
-            )
-            cls.backend_5_tenerife = GenericBackendV2(
-                num_qubits=5, coupling_map=TENERIFE_CMAP, seed=42
-            )
-            cls.backend_yorktown_with_switch_if = GenericBackendV2(
-                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
-            )
-            cls.backend_yorktown_with_switch_if.target.add_instruction(
-                SwitchCaseOp, name="switch_case"
-            )
-            cls.backend_yorktown_with_switch_if.target.add_instruction(IfElseOp, name="if_else")
-
     def setUp(self):
         super().setUp()
         self.threshold = 0.9999
@@ -854,10 +836,9 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/4757"""
         circuit = QuantumCircuit(3)
         circuit.h(1)
-
         transpiled = transpile(
             circuit,
-            backend=self.backend_5_tenerife,
+            backend=GenericBackendV2(5, coupling_map=TENERIFE_CMAP),
             basis_gates=["id", "cx", "rz", "sx", "x"],
             optimization_level=0,
             initial_layout=[1, 2, 0],
@@ -2197,8 +2178,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
                 qc.cx(0, 1)
             with case(case.DEFAULT):
                 qc.h(0)
-        with self.assertWarns(DeprecationWarning):
-            backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=16)
         backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
         fname = "layout_control_flow.png"
@@ -2231,9 +2211,10 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             with case(case.DEFAULT):
                 with qc.if_test((creg[1], 0)):
                     qc.h(0)
-        tqc = transpile(
-            qc, self.backend_yorktown_with_switch_if, optimization_level=2, seed_transpiler=671_42
-        )
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=0)
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        tqc = transpile(qc, backend, optimization_level=2, seed_transpiler=671_42)
 
         fname = "nested_layout_control_flow.png"
         self.circuit_drawer(tqc, output="mpl", filename=fname)
@@ -2297,17 +2278,14 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     def test_no_qreg_names_after_layout(self):
         """Test that full register names are not shown after transpilation.
         See https://github.com/Qiskit/qiskit-terra/issues/11038"""
+        backend = GenericBackendV2(5, coupling_map=YORKTOWN_CMAP, seed=42)
 
         qc = QuantumCircuit(3)
         qc.cx(0, 1)
         qc.cx(1, 2)
         qc.cx(2, 0)
         circuit = transpile(
-            qc,
-            self.backend_5_yorktown,
-            basis_gates=["rz", "sx", "cx"],
-            layout_method="sabre",
-            seed_transpiler=42,
+            qc, backend, basis_gates=["rz", "sx", "cx"], layout_method="sabre", seed_transpiler=42
         )
 
         fname = "qreg_names_after_layout.png"
