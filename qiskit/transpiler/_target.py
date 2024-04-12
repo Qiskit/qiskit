@@ -426,7 +426,7 @@ class Target:
         Returns:
             set: The set of qargs the gate instance applies to.
         """
-        return self._Target.qargs_for_operation_name(operation)
+        return {x: None for x in self._Target.qargs_for_operation_name(operation)}.keys()
 
     def durations(self):
         """Get an InstructionDurations object from the target
@@ -444,3 +444,44 @@ class Target:
                     out_durations.append((instruction, list(qarg), properties.duration, "s"))
         self._Target.instruction_durations = InstructionDurations(out_durations, dt=self.dt)
         return self._Target.instruction_durations
+
+    def timing_constraints(self):
+        """Get an :class:`~qiskit.transpiler.TimingConstraints` object from the target
+
+        Returns:
+            TimingConstraints: The timing constraints represented in the ``Target``
+        """
+        return TimingConstraints(
+            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
+        )
+
+    def operation_from_name(self, instruction):
+        """Get the operation class object for a given name
+
+        Args:
+            instruction (str): The instruction name to get the
+                :class:`~qiskit.circuit.Instruction` instance for
+        Returns:
+            qiskit.circuit.Instruction: The Instruction instance corresponding to the
+            name. This also can also be the class for globally defined variable with
+            operations.
+        """
+        return self._Target.gate_name_map[instruction]
+    
+    def operation_names_for_qargs(self, qargs):
+        """Get the operation names for a specified qargs tuple
+
+        Args:
+            qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
+                to it. For example, ``(0,)`` will return the set of all
+                instructions that apply to qubit 0. If set to ``None`` this will
+                return the names for any globally defined operations in the target.
+        Returns:
+            set: The set of operation names that apply to the specified ``qargs``.
+
+        Raises:
+            KeyError: If ``qargs`` is not in target
+        """
+        self._Target.operation_names_for_qargs(inspect.isclass, qargs)
+    
+    

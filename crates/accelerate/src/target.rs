@@ -16,9 +16,10 @@ use std::hash::{Hash, Hasher};
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{
+    exceptions::PyTypeError,
     prelude::*,
     pyclass,
-    types::{PyDict, PyTuple},
+    types::{PyDict, PyList, PyTuple},
 };
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -37,6 +38,21 @@ impl<T: Hash> Hash for HashableVec<T> {
 impl<T: ToPyObject> IntoPy<PyObject> for HashableVec<T> {
     fn into_py(self, py: Python<'_>) -> PyObject {
         PyTuple::new_bound(py, self.vec).to_object(py)
+    }
+}
+
+impl<'a, 'b: 'a, T> FromPyObject<'b> for HashableVec<T>
+where
+    Vec<T>: FromPyObject<'a>,
+{
+    fn extract(ob: &'b PyAny) -> PyResult<Self> {
+        Ok(Self {
+            vec: ob.extract::<Vec<T>>()?,
+        })
+    }
+
+    fn extract_bound(ob: &Bound<'b, PyAny>) -> PyResult<Self> {
+        Self::extract(ob.clone().into_gil_ref())
     }
 }
 
@@ -118,6 +134,7 @@ pub struct Target {
     // Maybe convert PyObjects into rust representations of Instruction and Data
     #[pyo3(get)]
     gate_map: HashMap<String, HashMap<HashableVec<u32>, PyObject>>,
+    #[pyo3(get)]
     gate_name_map: HashMap<String, PyObject>,
     global_operations: HashMap<usize, HashSet<String>>,
     qarg_gate_map: HashMap<HashableVec<u32>, HashSet<String>>,
@@ -389,6 +406,54 @@ impl Target {
         }
         let qargs: Vec<HashableVec<u32>> = self.gate_map[&operation].clone().into_keys().collect();
         Ok(Some(qargs))
+    }
+
+    #[pyo3(text_signature = "(/, operation)")]
+    fn operations_for_qargs(
+        &self,
+        py: Python<'_>,
+        isclass: &Bound<PyAny>,
+        qargs: Option<HashableVec<u32>>,
+    ) -> PyResult<PyObject> {
+        let res = PyList::empty_bound(py);
+        if let Some(qargs) = qargs.clone() {
+            if qargs
+                .vec
+                .iter()
+                .any(|x| !(0..(self.num_qubits as u32)).contains(x))
+            {
+                // TODO: Throw Python Exception
+                return Err(PyTypeError::new_err(format!(
+                    "{:?} not in target.",
+                    qargs.vec
+                )));
+            }
+
+            for x in self.qarg_gate_map[&qargs].clone() {
+                res.append(self.gate_name_map[&x].clone())?;
+            }
+            if let Some(qarg) = self.global_operations.get(&qargs.vec.len()) {
+                for arg in qarg {
+                    res.append(arg)?;
+                }
+            }
+        }
+        for op in self.gate_name_map.values() {
+            if isclass.call1((op,))?.extract::<bool>()? {
+                res.append(op)?;
+            }
+        }
+        if res.is_empty() {
+            if let Some(qargs) = qargs {
+                return Err(PyTypeError::new_err(format!(
+                    "{:?} not in target",
+                    qargs.vec
+                )));
+            } else {
+                return Err(PyTypeError::new_err(format!("{:?} not in target", qargs)));
+            }
+        }
+        Ok(res.to_object(py))
     }
 }
 
