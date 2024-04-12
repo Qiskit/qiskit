@@ -16,12 +16,11 @@ Generalized Uniform Superposition Gate test.
 
 import unittest
 from test import QiskitTestCase
+import numpy as np
 
 from qiskit.circuit.library.data_preparation import (
     GeneralizedUniformSuperpositionGate,
 )
-
-import numpy as np
 
 
 class TestGeneralizedUniformSuperposition(QiskitTestCase):
