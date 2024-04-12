@@ -76,13 +76,20 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.backend_5_yorktown = GenericBackendV2(num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42)
-        cls.backend_5_tenerife = GenericBackendV2(num_qubits=5, coupling_map=TENERIFE_CMAP, seed=42)
-        cls.backend_yorktown_with_switch_if = GenericBackendV2(
-            num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
-        )
-        cls.backend_yorktown_with_switch_if.target.add_instruction(SwitchCaseOp, name="switch_case")
-        cls.backend_yorktown_with_switch_if.target.add_instruction(IfElseOp, name="if_else")
+        with cls.assertWarns(DeprecationWarning):
+            cls.backend_5_yorktown = GenericBackendV2(
+                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
+            )
+            cls.backend_5_tenerife = GenericBackendV2(
+                num_qubits=5, coupling_map=TENERIFE_CMAP, seed=42
+            )
+            cls.backend_yorktown_with_switch_if = GenericBackendV2(
+                num_qubits=5, coupling_map=YORKTOWN_CMAP, seed=42
+            )
+            cls.backend_yorktown_with_switch_if.target.add_instruction(
+                SwitchCaseOp, name="switch_case"
+            )
+            cls.backend_yorktown_with_switch_if.target.add_instruction(IfElseOp, name="if_else")
 
     def setUp(self):
         super().setUp()
