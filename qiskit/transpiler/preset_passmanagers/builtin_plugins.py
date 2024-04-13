@@ -155,7 +155,7 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             )
 
         else:
-            return TranspilerError(f"Invalid optimization level {optimization_level}")
+            raise TranspilerError(f"Invalid optimization level {optimization_level}")
         return init
 
 
