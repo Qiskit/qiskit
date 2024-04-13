@@ -264,10 +264,7 @@ impl Target {
                             .max(qarg.vec.iter().cloned().fold(0, u32::max) as usize + 1),
                     );
                 }
-                if let Some(x) = qargs_val.get_mut(&qarg) {
-                    let prop_qarg: Option<PyObject> = properties[&qarg].clone();
-                    *x = prop_qarg;
-                }
+                qargs_val.insert(qarg.clone(), properties[&qarg].clone());
                 self.qarg_gate_map
                     .entry(qarg)
                     .and_modify(|e| {
@@ -280,9 +277,7 @@ impl Target {
                     )));
             }
         }
-        if let Some(gate_name) = self.gate_map.get_mut(&instruction_name) {
-            *gate_name = qargs_val;
-        }
+        self.gate_map.insert(instruction_name, qargs_val);
         self.instruction_durations = None;
         self.instruction_schedule_map = None;
         Ok(())
@@ -308,7 +303,7 @@ impl Target {
         // For debugging
         if !self.gate_map.contains_key(&instruction) {
             panic!(
-                "Provided instruction : '{:?}' not in this Target.",
+                "Provided instruction: '{:?}' not in this Target.",
                 &instruction
             );
         };

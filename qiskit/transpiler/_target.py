@@ -576,7 +576,7 @@ class Target:
                     return False
             return True
 
-        return self._Target.instructions_supported(
+        return self._Target.instruction_supported(
             inspect.isclass,
             isinstance,
             Parameter,
