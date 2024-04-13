@@ -505,3 +505,84 @@ class Target:
             KeyError: If ``qargs`` is not in target
         """
         return self._Target.operation_names_for_qargs(inspect.isclass, qargs)
+
+    def instruction_supported(
+        self, operation_name=None, qargs=None, operation_class=None, parameters=None
+    ):
+        """Return whether the instruction (operation + qubits) is supported by the target
+
+        Args:
+            operation_name (str): The name of the operation for the instruction. Either
+                this or ``operation_class`` must be specified, if both are specified
+                ``operation_class`` will take priority and this argument will be ignored.
+            qargs (tuple): The tuple of qubit indices for the instruction. If this is
+                not specified then this method will return ``True`` if the specified
+                operation is supported on any qubits. The typical application will
+                always have this set (otherwise it's the same as just checking if the
+                target contains the operation). Normally you would not set this argument
+                if you wanted to check more generally that the target supports an operation
+                with the ``parameters`` on any qubits.
+            operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
+                the target supports a particular operation by class rather
+                than by name. This lookup is more expensive as it needs to
+                iterate over all operations in the target instead of just a
+                single lookup. If this is specified it will supersede the
+                ``operation_name`` argument. The typical use case for this
+                operation is to check whether a specific variant of an operation
+                is supported on the backend. For example, if you wanted to
+                check whether a :class:`~.RXGate` was supported on a specific
+                qubit with a fixed angle. That fixed angle variant will
+                typically have a name different from the object's
+                :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
+                This can be used to check if any instances of the class are
+                available in such a case.
+            parameters (list): A list of parameters to check if the target
+                supports them on the specified qubits. If the instruction
+                supports the parameter values specified in the list on the
+                operation and qargs specified this will return ``True`` but
+                if the parameters are not supported on the specified
+                instruction it will return ``False``. If this argument is not
+                specified this method will return ``True`` if the instruction
+                is supported independent of the instruction parameters. If
+                specified with any :class:`~.Parameter` objects in the list,
+                that entry will be treated as supporting any value, however parameter names
+                will not be checked (for example if an operation in the target
+                is listed as parameterized with ``"theta"`` and ``"phi"`` is
+                passed into this function that will return ``True``). For
+                example, if called with::
+
+                    parameters = [Parameter("theta")]
+                    target.instruction_supported("rx", (0,), parameters=parameters)
+
+                will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
+                that will accept any parameter. If you need to check for a fixed numeric
+                value parameter this argument is typically paired with the ``operation_class``
+                argument. For example::
+
+                    target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
+
+                will return ``True`` if an RXGate(pi/4) exists on qubit 0.
+
+        Returns:
+            bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+
+        """
+
+        def check_obj_params(parameters, obj):
+            for index, param in enumerate(parameters):
+                if isinstance(param, Parameter) and not isinstance(obj.params[index], Parameter):
+                    return False
+                if param != obj.params[index] and not isinstance(obj.params[index], Parameter):
+                    return False
+            return True
+
+        return self._Target.instructions_supported(
+            inspect.isclass,
+            isinstance,
+            Parameter,
+            check_obj_params,
+            operation_name,
+            qargs,
+            operation_class,
+            parameters,
+        )

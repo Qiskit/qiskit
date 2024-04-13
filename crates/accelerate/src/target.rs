@@ -19,7 +19,7 @@ use pyo3::{
     exceptions::PyTypeError,
     prelude::*,
     pyclass,
-    types::{PyDict, PyList, PyTuple},
+    types::{PyDict, PyList, PySequence, PyTuple},
 };
 
 // This struct allows qargs and any vec to become hashable
@@ -116,7 +116,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub description: String,
     #[pyo3(get)]
-    pub num_qubits: usize,
+    pub num_qubits: Option<usize>,
     #[pyo3(get)]
     pub dt: Option<f32>,
     #[pyo3(get)]
@@ -168,7 +168,7 @@ impl Target {
     ) -> Self {
         Target {
             description: description.unwrap_or("".to_string()),
-            num_qubits: num_qubits.unwrap_or(0),
+            num_qubits,
             dt,
             granularity: granularity.unwrap_or(1),
             min_length: min_length.unwrap_or(1),
@@ -275,9 +275,11 @@ impl Target {
                     panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg.vec)
                 }
                 if !qarg.vec.is_empty() {
-                    self.num_qubits = self
-                        .num_qubits
-                        .max(qarg.vec.iter().cloned().fold(0, u32::max) as usize + 1)
+                    self.num_qubits = Some(
+                        self.num_qubits
+                            .unwrap_or_default()
+                            .max(qarg.vec.iter().cloned().fold(0, u32::max) as usize + 1),
+                    )
                 }
                 qargs_val.insert(qarg.clone(), values.to_object(py));
                 if let Some(gate_map_key) = self.qarg_gate_map.get_mut(&qarg) {
@@ -408,7 +410,7 @@ impl Target {
         Ok(Some(qargs))
     }
 
-    #[pyo3(text_signature = "(/, operation)")]
+    #[pyo3(text_signature = "(/, qargs)")]
     fn operations_for_qargs(
         &self,
         py: Python<'_>,
@@ -425,7 +427,7 @@ impl Target {
             if qargs
                 .vec
                 .iter()
-                .any(|x| !(0..(self.num_qubits as u32)).contains(x))
+                .any(|x| !(0..(self.num_qubits.unwrap_or_default() as u32)).contains(x))
             {
                 // TODO: Throw Python Exception
                 return Err(PyTypeError::new_err(format!(
@@ -452,6 +454,7 @@ impl Target {
         Ok(res.into())
     }
 
+    #[pyo3(text_signature = "(/, qargs)")]
     fn operation_names_for_qargs(
         &self,
         isclass: &Bound<PyAny>,
@@ -460,14 +463,14 @@ impl Target {
         // When num_qubits == 0 we return globally defined operators
         let mut res = HashSet::new();
         let mut qargs = qargs;
-        if self.num_qubits == 0 {
+        if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
         }
         if let Some(qargs) = qargs {
             if qargs
                 .vec
                 .iter()
-                .any(|x| !(0..self.num_qubits as u32).contains(x))
+                .any(|x| !(0..self.num_qubits.unwrap_or_default() as u32).contains(x))
             {
                 return Err(PyTypeError::new_err(format!("{:?}", qargs)));
             }
@@ -488,6 +491,166 @@ impl Target {
             }
         }
         Ok(res)
+    }
+
+    #[pyo3(text_signature = "(/, qargs)")]
+    fn instruction_supported(
+        &self,
+        py: Python<'_>,
+        isclass: &Bound<PyAny>,
+        isinstance: &Bound<PyAny>,
+        parameter_class: &Bound<PyAny>,
+        check_obj_params: &Bound<PyAny>,
+        operation_name: Option<String>,
+        qargs: Option<HashableVec<u32>>,
+        operation_class: Option<&Bound<PyAny>>,
+        parameters: Option<&Bound<PyList>>,
+    ) -> PyResult<bool> {
+        // Fix num_qubits first, then think about this thing.
+        let mut qargs = qargs;
+        if self.num_qubits.is_none() {
+            qargs = None;
+        }
+
+        if let Some(qargs_) = qargs.clone() {
+            // For unique qarg comparisons
+            let qarg_unique: HashSet<&u32> = HashSet::from_iter(qargs_.vec.iter());
+            if let Some(operation_class) = operation_class {
+                for (op_name, obj) in self.gate_name_map.iter() {
+                    if isclass.call1((obj,))?.extract::<bool>()? {
+                        if operation_class.eq(obj)? {
+                            continue;
+                        }
+                        if qargs.is_none()
+                            || (qargs_
+                                .vec
+                                .iter()
+                                .all(|qarg| qarg <= &(self.num_qubits.unwrap_or_default() as u32))
+                                && qarg_unique.len() == qargs_.vec.len())
+                        {
+                            return Ok(true);
+                        } else {
+                            return Ok(false);
+                        }
+                    }
+
+                    if isinstance
+                        .call1((obj, operation_class))?
+                        .extract::<bool>()?
+                    {
+                        if let Some(parameters) = parameters {
+                            if parameters.len()
+                                != obj
+                                    .getattr(py, "params")?
+                                    .downcast_bound::<PySequence>(py)?
+                                    .len()?
+                            {
+                                continue;
+                            }
+                            if check_obj_params
+                                .call1((parameters, obj))?
+                                .extract::<bool>()?
+                            {
+                                continue;
+                            }
+                        }
+                        if qargs.is_none() {
+                            return Ok(true);
+                        }
+                        // TODO: Double check this method and what's stored in gate_map
+                        if self.gate_map.contains_key(op_name) {
+                            let qubit_comparison = self.gate_name_map[op_name]
+                                .getattr(py, "num_qubits")?
+                                .extract::<usize>(py)?
+                                == qargs_.vec.len()
+                                && qargs_
+                                    .vec
+                                    .iter()
+                                    .all(|x| x < &(self.num_qubits.unwrap_or_default() as u32));
+                            return Ok(qubit_comparison);
+                        }
+                    }
+                }
+            }
+            if let Some(operation_name) = operation_name {
+                if self.gate_map.contains_key(&operation_name) {
+                    let mut obj = &self.gate_name_map[&operation_name];
+                    if isclass.call1((obj,))?.extract::<bool>()? {
+                        // The parameters argument was set and the operation_name specified is
+                        // defined as a globally supported class in the target. This means
+                        // there is no available validation (including whether the specified
+                        // operation supports parameters), the returned value will not factor
+                        // in the argument `parameters`,
+
+                        // If no qargs a operation class is supported
+                        if qargs.is_none()
+                            || (qargs_
+                                .vec
+                                .iter()
+                                .all(|qarg| qarg <= &(self.num_qubits.unwrap_or_default() as u32))
+                                && qarg_unique.len() == qargs_.vec.len())
+                        {
+                            return Ok(true);
+                        } else {
+                            return Ok(false);
+                        }
+                    }
+                    let obj_params = obj.getattr(py, "params")?;
+                    let obj_params = obj_params.downcast_bound::<PyList>(py)?;
+                    if let Some(parameters) = parameters {
+                        if parameters.len() != obj_params.len() {
+                            return Ok(false);
+                        }
+                        for (index, param) in parameters.iter().enumerate() {
+                            let mut matching_param = false;
+                            if isinstance
+                                .call1((obj_params.get_item(index)?, parameter_class))?
+                                .extract::<bool>()?
+                                || param.eq(obj_params.get_item(index)?)?
+                            {
+                                matching_param = true;
+                            }
+                            if !matching_param {
+                                return Ok(false);
+                            }
+                        }
+                        return Ok(true);
+                    }
+                    if qargs.is_none() {
+                        return Ok(true);
+                    }
+                    if self.gate_map[&operation_name].contains_key(&qargs_) {
+                        return Ok(true);
+                    }
+                    // Double check this
+                    if self.gate_map[&operation_name].is_empty() {
+                        obj = &self.gate_name_map[&operation_name];
+                        if isclass.call1((obj,))?.extract::<bool>()? {
+                            if qargs.is_none()
+                                || (qargs_.vec.iter().all(|qarg| {
+                                    qarg <= &(self.num_qubits.unwrap_or_default() as u32)
+                                }) && qarg_unique.len() == qargs_.vec.len())
+                            {
+                                return Ok(true);
+                            } else {
+                                return Ok(false);
+                            }
+                        } else {
+                            let qubit_comparison = self.gate_name_map[&operation_name]
+                                .getattr(py, "num_qubits")?
+                                .extract::<usize>(py)?
+                                == qargs_.vec.len()
+                                && qargs_
+                                    .vec
+                                    .iter()
+                                    .all(|x| x < &(self.num_qubits.unwrap_or_default() as u32));
+                            return Ok(qubit_comparison);
+                        }
+                    }
+                }
+            }
+        }
+        Ok(false)
     }
 }
 
