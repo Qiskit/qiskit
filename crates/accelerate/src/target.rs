@@ -16,11 +16,13 @@ use std::hash::{Hash, Hasher};
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{
-    exceptions::PyTypeError,
+    exceptions::{PyAttributeError, PyTypeError},
     prelude::*,
     pyclass,
-    types::{PyDict, PyList, PySequence, PyTuple},
+    types::{PyList, PySequence, PyTuple},
 };
+
+use self::exceptions::TranspilerError;
 
 // This struct allows qargs and any vec to become hashable
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -55,6 +57,12 @@ where
     fn extract_bound(ob: &Bound<'b, PyAny>) -> PyResult<Self> {
         Self::extract(ob.clone().into_gil_ref())
     }
+}
+
+mod exceptions {
+    use pyo3::import_exception;
+
+    import_exception! {qiskit.transpiler.exceptions, TranspilerError}
 }
 
 #[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
@@ -133,11 +141,11 @@ pub struct Target {
     pub concurrent_measurements: Vec<HashSet<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
     #[pyo3(get)]
-    gate_map: HashMap<String, HashMap<HashableVec<u32>, PyObject>>,
+    gate_map: HashMap<String, HashMap<Option<HashableVec<u32>>, Option<PyObject>>>,
     #[pyo3(get)]
     gate_name_map: HashMap<String, PyObject>,
     global_operations: HashMap<usize, HashSet<String>>,
-    qarg_gate_map: HashMap<HashableVec<u32>, HashSet<String>>,
+    qarg_gate_map: HashMap<Option<HashableVec<u32>>, Option<HashSet<String>>>,
     #[pyo3(get, set)]
     instruction_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
@@ -191,106 +199,93 @@ impl Target {
         py: Python<'_>,
         instruction: PyObject,
         is_class: bool,
-        properties: Option<Bound<PyDict>>,
+        properties: Option<HashMap<Option<HashableVec<u32>>, Option<PyObject>>>,
         name: Option<String>,
-    ) {
+    ) -> PyResult<()> {
         // Unwrap instruction name
-        let mut instruction_name: String = match name {
-            Some(name) => name,
-            None => "".to_string(),
-        };
-        // Unwrap instruction num qubits
-        let instruction_num_qubits = match instruction.getattr(py, "num_qubits") {
-            Ok(number) => match number.extract::<usize>(py) {
-                Ok(num_qubits) => num_qubits,
-                Err(e) => panic!(
-                    "The provided instruction does not have a valid number of qubits: {:?}",
-                    e
-                ),
-            },
-            Err(e) => panic!(
-                "The provided instruction does not the attribute 'num_qubits': {:?}",
-                e
-            ),
-        };
-        // Cont. unwrap instruction name
+        let instruction_name: String;
+        let mut properties = properties;
         if !is_class {
-            if instruction_name.is_empty() {
-                instruction_name = match instruction.getattr(py, "name") {
-                    Ok(i_name) => match i_name.extract::<String>(py) {
-                        Ok(i_name) => i_name,
-                        Err(e) => panic!("The provided instruction does not have a valid 'name' attribute: {:?}", e)
-                    },
-                    Err(e) => panic!("A name must be specified when defining a supported global operation by class: {:?}", e)
-                };
+            if let Some(name) = name {
+                instruction_name = name;
+            } else {
+                instruction_name = instruction.getattr(py, "name")?.extract::<String>(py)?;
             }
         } else {
-            if instruction_name.is_empty() {
-                panic!(
-                    "A name must be specified when defining a supported global operation by class."
-                );
+            if let Some(name) = name {
+                instruction_name = name;
+            } else {
+                return Err(TranspilerError::new_err(
+                    "A name must be specified when defining a supported global operation by class",
+                ));
             }
-            if properties.is_none() {
-                panic!("An instruction added globally by class can't have properties set.");
+            if properties.is_some() {
+                return Err(TranspilerError::new_err(
+                    "An instruction added globally by class can't have properties set.",
+                ));
             }
         }
-
-        // Unwrap properties
-        let properties: Bound<PyDict> = properties.unwrap_or(PyDict::new_bound(py));
-        // Check if instruction exists
+        if properties.is_none() {
+            properties = Some(HashMap::from_iter([(None, None)].into_iter()));
+        }
         if self.gate_map.contains_key(&instruction_name) {
-            panic!(
+            return Err(PyAttributeError::new_err(format!(
                 "Instruction {:?} is already in the target",
-                &instruction_name
-            );
+                instruction_name
+            )));
         }
-        // Add to gate name map
         self.gate_name_map
-            .insert(instruction_name.clone(), instruction);
-
-        // TEMPORARY: Build qargs with hashed qargs.
-        let mut qargs_val: HashMap<HashableVec<u32>, PyObject> = HashMap::new();
-        if !is_class {
-            // If no properties
-            if properties.is_empty() {
-                if let Some(operation) = self.global_operations.get_mut(&instruction_num_qubits) {
-                    operation.insert(instruction_name.clone());
-                } else {
-                    self.global_operations.insert(
-                        instruction_num_qubits,
-                        HashSet::from([instruction_name.clone()]),
-                    );
-                }
+            .insert(instruction_name.clone(), instruction.clone());
+        let mut qargs_val: HashMap<Option<HashableVec<u32>>, Option<PyObject>> = HashMap::new();
+        if is_class {
+            qargs_val = HashMap::from_iter([(None, None)].into_iter());
+        } else if let Some(properties) = properties {
+            let inst_num_qubits = instruction
+                .getattr(py, "num_qubits")?
+                .extract::<usize>(py)?;
+            if properties.contains_key(&None) {
+                self.global_operations
+                    .entry(inst_num_qubits)
+                    .and_modify(|e| {
+                        e.insert(instruction_name.clone());
+                    })
+                    .or_insert(HashSet::from_iter([instruction_name.clone()].into_iter()));
             }
-            // Obtain nested qarg hashmap
-            for (qarg, values) in properties {
-                // Obtain values of qargs
-                let qarg = match qarg.extract::<Vec<u32>>().ok() {
-                    Some(vec) => HashableVec { vec },
-                    None => HashableVec { vec: vec![] },
-                };
-                // Store qargs hash value.
-                // self.qarg_hash_table.insert(qarg_hash, qarg.clone());
-                if !qarg.vec.is_empty() && qarg.vec.len() != instruction_num_qubits {
-                    panic!("The number of qubits for {:?} does not match the number of qubits in the properties dictionary: {:?}", &instruction_name, qarg.vec)
-                }
-                if !qarg.vec.is_empty() {
+            for qarg in properties.keys().cloned() {
+                if let Some(qarg) = qarg.clone() {
+                    if qarg.vec.len() != inst_num_qubits {
+                        return Err(TranspilerError::new_err(
+                            format!("The number of qubits for {instruction} does not match the number of qubits in the properties dictionary: {:?}", qarg.vec)
+                        ));
+                    }
                     self.num_qubits = Some(
                         self.num_qubits
                             .unwrap_or_default()
                             .max(qarg.vec.iter().cloned().fold(0, u32::max) as usize + 1),
-                    )
+                    );
                 }
-                qargs_val.insert(qarg.clone(), values.to_object(py));
-                if let Some(gate_map_key) = self.qarg_gate_map.get_mut(&qarg) {
-                    gate_map_key.insert(instruction_name.clone());
-                } else {
-                    self.qarg_gate_map
-                        .insert(qarg, HashSet::from([instruction_name.clone()]));
+                if let Some(x) = qargs_val.get_mut(&qarg) {
+                    let prop_qarg: Option<PyObject> = properties[&qarg].clone();
+                    *x = prop_qarg;
                 }
+                self.qarg_gate_map
+                    .entry(qarg)
+                    .and_modify(|e| {
+                        if let Some(e) = e {
+                            e.insert(instruction_name.clone());
+                        }
+                    })
+                    .or_insert(Some(HashSet::from_iter(
+                        [instruction_name.clone()].into_iter(),
+                    )));
             }
         }
-        self.gate_map.insert(instruction_name, qargs_val);
+        if let Some(gate_name) = self.gate_map.get_mut(&instruction_name) {
+            *gate_name = qargs_val;
+        }
+        self.instruction_durations = None;
+        self.instruction_schedule_map = None;
+        Ok(())
     }
 
     #[pyo3(text_signature = "(/, instruction, qargs, properties)")]
@@ -318,15 +313,15 @@ impl Target {
             );
         };
         let qargs = HashableVec { vec: qargs };
-        if !self.gate_map[&instruction].contains_key(&qargs) {
+        if !self.gate_map[&instruction].contains_key(&Some(qargs.clone())) {
             panic!(
                 "Provided qarg {:?} not in this Target for {:?}.",
                 &qargs, &instruction
             );
         }
         if let Some(q_vals) = self.gate_map.get_mut(&instruction) {
-            if let Some(qvals_qargs) = q_vals.get_mut(&qargs) {
-                *qvals_qargs = properties
+            if let Some(qvals_qargs) = q_vals.get_mut(&Some(qargs)) {
+                *qvals_qargs = Some(properties);
             }
         }
         self.instruction_durations = None;
@@ -370,10 +365,12 @@ impl Target {
             for (qarg, properties) in qargs.iter() {
                 // Directly getting calibration entry to invoke .get_schedule().
                 // This keeps PulseQobjDef unparsed.
-                let cal_entry = properties.getattr(py, "_calibration").ok();
-                if let Some(cal_entry) = cal_entry {
-                    let _ = out_inst_schedule_map
-                        .call_method1("_add", (instruction, qarg.clone(), cal_entry));
+                if let Some(properties) = properties {
+                    let cal_entry = properties.getattr(py, "_calibration").ok();
+                    if let Some(cal_entry) = cal_entry {
+                        let _ = out_inst_schedule_map
+                            .call_method1("_add", (instruction, qarg.clone(), cal_entry));
+                    }
                 }
             }
         }
@@ -382,8 +379,9 @@ impl Target {
     }
 
     #[getter]
-    fn qargs(&self) -> PyResult<Option<HashSet<HashableVec<u32>>>> {
-        let qargs: HashSet<HashableVec<u32>> = self.qarg_gate_map.clone().into_keys().collect();
+    fn qargs(&self) -> PyResult<Option<HashSet<Option<HashableVec<u32>>>>> {
+        let qargs: HashSet<Option<HashableVec<u32>>> =
+            self.qarg_gate_map.clone().into_keys().collect();
         if qargs.len() == 1 && qargs.iter().next().is_none() {
             return Ok(None);
         }
@@ -394,7 +392,7 @@ impl Target {
     fn qargs_for_operation_name(
         &self,
         operation: String,
-    ) -> PyResult<Option<Vec<HashableVec<u32>>>> {
+    ) -> PyResult<Option<Vec<Option<HashableVec<u32>>>>> {
         /*
         Get the qargs for a given operation name
 
@@ -406,7 +404,8 @@ impl Target {
         if self.gate_map[&operation].is_empty() {
             return Ok(None);
         }
-        let qargs: Vec<HashableVec<u32>> = self.gate_map[&operation].clone().into_keys().collect();
+        let qargs: Vec<Option<HashableVec<u32>>> =
+            self.gate_map[&operation].clone().into_keys().collect();
         Ok(Some(qargs))
     }
 
@@ -436,9 +435,12 @@ impl Target {
                 )));
             }
 
-            for x in self.qarg_gate_map[&qargs].clone() {
-                res.append(self.gate_name_map[&x].clone())?;
+            if let Some(gate_map_qarg) = self.qarg_gate_map[&Some(qargs.clone())].clone() {
+                for x in gate_map_qarg {
+                    res.append(self.gate_name_map[&x].clone())?;
+                }
             }
+
             if let Some(qarg) = self.global_operations.get(&qargs.vec.len()) {
                 for arg in qarg {
                     res.append(arg)?;
@@ -474,7 +476,9 @@ impl Target {
             {
                 return Err(PyTypeError::new_err(format!("{:?}", qargs)));
             }
-            res.extend(self.qarg_gate_map[&qargs].clone());
+            if let Some(qarg_gate_map_arg) = self.qarg_gate_map[&Some(qargs.clone())].clone() {
+                res.extend(qarg_gate_map_arg);
+            }
             if let Some(ext) = self.global_operations.get(&qargs.vec.len()) {
                 res = ext.union(&res).cloned().collect();
             }
@@ -619,7 +623,7 @@ impl Target {
                     if qargs.is_none() {
                         return Ok(true);
                     }
-                    if self.gate_map[&operation_name].contains_key(&qargs_) {
+                    if self.gate_map[&operation_name].contains_key(&Some(qargs_.clone())) {
                         return Ok(true);
                     }
                     // Double check this
