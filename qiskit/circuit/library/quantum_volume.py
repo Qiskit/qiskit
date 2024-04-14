@@ -15,9 +15,8 @@
 from typing import Optional, Union
 
 import numpy as np
-from qiskit.quantum_info.random import random_unitary
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.library.generalized_gates.permutation import Permutation
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit.circuit.library.generalized_gates import PermutationGate, UnitaryGate
 
 
 class QuantumVolume(QuantumCircuit):
@@ -60,6 +59,8 @@ class QuantumVolume(QuantumCircuit):
         depth: Optional[int] = None,
         seed: Optional[Union[int, np.random.Generator]] = None,
         classical_permutation: bool = True,
+        *,
+        flatten: bool = False,
     ) -> None:
         """Create quantum volume model circuit of size num_qubits x depth.
 
@@ -69,46 +70,46 @@ class QuantumVolume(QuantumCircuit):
             seed: Random number generator or generator seed.
             classical_permutation: use classical permutations at every layer,
                 rather than quantum.
+            flatten: If ``False`` (the default), construct a circuit that contains a single
+                instruction, which in turn has the actual volume structure.  If ``True``, construct
+                the volume structure directly.
         """
-        # Initialize RNG
-        if seed is None:
-            rng_set = np.random.default_rng()
-            seed = rng_set.integers(low=1, high=1000)
-        if isinstance(seed, np.random.Generator):
-            rng = seed
-        else:
-            rng = np.random.default_rng(seed)
+        import scipy.stats
 
         # Parameters
         depth = depth or num_qubits  # how many layers of SU(4)
-        width = int(np.floor(num_qubits / 2))  # how many SU(4)s fit in each layer
-        name = "quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
+        width = num_qubits // 2  # how many SU(4)s fit in each layer
+        rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
+        if seed is None:
+            # Get the internal entropy used to seed the default RNG, if no seed was given.  This
+            # stays in the output name, so effectively stores a way of regenerating the circuit.
+            # This is just best-effort only, for backwards compatibility, and isn't critical (if
+            # someone needs full reproducibility, they should be manually controlling the seeding).
+            seed = getattr(getattr(rng.bit_generator, "seed_seq", None), "entropy", None)
 
-        # Generator random unitary seeds in advance.
-        # Note that this means we are constructing multiple new generator
-        # objects from low-entropy integer seeds rather than pass the shared
-        # generator object to the random_unitary function. This is done so
-        # that we can use the integer seed as a label for the generated gates.
-        unitary_seeds = rng.integers(low=1, high=1000, size=[depth, width])
+        super().__init__(
+            num_qubits, name="quantum_volume_" + str([num_qubits, depth, seed]).replace(" ", "")
+        )
+        base = self if flatten else QuantumCircuit(num_qubits, name=self.name)
 
         # For each layer, generate a permutation of qubits
         # Then generate and apply a Haar-random SU(4) to each pair
-        circuit = QuantumCircuit(num_qubits, name=name)
-        perm_0 = list(range(num_qubits))
-        for d in range(depth):
-            perm = rng.permutation(perm_0)
-            if not classical_permutation:
-                layer_perm = Permutation(num_qubits, perm)
-                circuit.compose(layer_perm, inplace=True)
-            for w in range(width):
-                seed_u = unitary_seeds[d][w]
-                su4 = random_unitary(4, seed=seed_u).to_instruction()
-                su4.label = "su4_" + str(seed_u)
-                if classical_permutation:
-                    physical_qubits = int(perm[2 * w]), int(perm[2 * w + 1])
-                    circuit.compose(su4, [physical_qubits[0], physical_qubits[1]], inplace=True)
-                else:
-                    circuit.compose(su4, [2 * w, 2 * w + 1], inplace=True)
-
-        super().__init__(*circuit.qregs, name=circuit.name)
-        self.compose(circuit.to_instruction(), qubits=self.qubits, inplace=True)
+        unitaries = scipy.stats.unitary_group.rvs(4, depth * width, rng).reshape(depth, width, 4, 4)
+        qubits = tuple(base.qubits)
+        for row in unitaries:
+            perm = rng.permutation(num_qubits)
+            if classical_permutation:
+                for w, unitary in enumerate(row):
+                    gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
+                    qubit = 2 * w
+                    base._append(
+                        CircuitInstruction(gate, (qubits[perm[qubit]], qubits[perm[qubit + 1]]))
+                    )
+            else:
+                base._append(CircuitInstruction(PermutationGate(perm), qubits))
+                for w, unitary in enumerate(row):
+                    gate = UnitaryGate(unitary, check_input=False, num_qubits=2)
+                    qubit = 2 * w
+                    base._append(CircuitInstruction(gate, qubits[qubit : qubit + 2]))
+        if not flatten:
+            self._append(CircuitInstruction(base.to_instruction(), tuple(self.qubits)))
