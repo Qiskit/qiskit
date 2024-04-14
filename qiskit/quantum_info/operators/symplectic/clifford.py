@@ -37,7 +37,8 @@ from .clifford_circuits import _append_circuit, _append_operation
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
-    """An N-qubit unitary operator from the Clifford group.
+    r"""
+    An N-qubit unitary operator from the Clifford group.
 
     An N-qubit Clifford operator takes Paulis to Paulis via conjugation
     (up to a global phase). More precisely, the Clifford group :math:`\mathcal{C}_N`
