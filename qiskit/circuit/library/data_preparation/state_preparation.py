@@ -26,6 +26,7 @@ from qiskit.circuit.library.standard_gates.h import HGate
 from qiskit.circuit.library.standard_gates.s import SGate, SdgGate
 from qiskit.circuit.library.standard_gates.ry import RYGate
 from qiskit.circuit.library.standard_gates.rz import RZGate
+from qiskit.circuit.library.generalized_gates import Isometry
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
@@ -119,7 +120,7 @@ class StatePreparation(Gate):
         elif self._from_int:
             self.definition = self._define_from_int()
         else:
-            self.definition = self._define_synthesis()
+            self.definition = self._define_synthesis_isom()
 
     def _define_from_label(self):
         q = QuantumRegister(self.num_qubits, "q")
@@ -166,6 +167,21 @@ class StatePreparation(Gate):
 
         # note: X is it's own inverse, so even if self._inverse is True,
         # we don't need to invert anything
+        return initialize_circuit
+
+    def _define_synthesis_isom(self):
+        """Calculate a subcircuit that implements this initialization via isometry"""
+        q = QuantumRegister(self.num_qubits, "q")
+        initialize_circuit = QuantumCircuit(q, name="init_def")
+
+        isom = Isometry(self._params_arg, 0, 0)
+        initialize_circuit.append(isom, q[:])
+
+        # invert the circuit to create the desired vector from zero (assuming
+        # the qubits are in the zero state)
+        if self._inverse is True:
+            return initialize_circuit.inverse()
+
         return initialize_circuit
 
     def _define_synthesis(self):
