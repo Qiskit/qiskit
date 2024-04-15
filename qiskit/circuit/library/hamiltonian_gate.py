@@ -21,6 +21,7 @@ import typing
 from numbers import Number
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -92,18 +93,22 @@ class HamiltonianGate(Gate):
         times_eq = self.params[1] == other.params[1]
         return operators_eq and times_eq
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return matrix for the unitary."""
-        # pylint: disable=unused-argument
         import scipy.linalg
 
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         try:
-            return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
+            time = float(self.params[1])
         except TypeError as ex:
             raise TypeError(
                 "Unable to generate Unitary matrix for "
                 "unbound t parameter {}".format(self.params[1])
             ) from ex
+        arr = scipy.linalg.expm(-1j * self.params[0] * time)
+        dtype = complex if dtype is None else dtype
+        return np.array(arr, dtype=dtype, copy=_numpy_compat.COPY_ONLY_IF_NEEDED)
 
     def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""

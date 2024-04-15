@@ -171,10 +171,11 @@ class SparsePauliOp(LinearOp):
         # Initialize LinearOp
         super().__init__(num_qubits=self._pauli_list.num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __repr__(self):
         prefix = "SparsePauliOp("

@@ -833,7 +833,7 @@ method <https://numpy.org/devdocs/user/basics.interoperability.html#the-array-me
 ``__array__``.  This is used by :meth:`Gate.to_matrix`, and has the signature:
 
 .. currentmodule:: None
-.. py:method:: __array__(dtype=None)
+.. py:method:: __array__(dtype=None, copy=None)
 
     Return a Numpy array representing the gate.  This can use the gate's :attr:`~Instruction.params`
     field, and may assume that these are numeric values (assuming the subclass expects that) and not
@@ -875,7 +875,9 @@ are unitary, so should be a :class:`Gate`::
             # Also we have an efficient representation of power.
             return RXZGate(exponent * self.params[0])
 
-        def __array__(self, dtype=None):
+        def __array__(self, dtype=None, copy=None):
+            if copy is False:
+                raise ValueError("cannot produce a matrix without calculation")
             cos = math.cos(0.5 * self.params[0])
             isin = 1j * math.sin(0.5 * self.params[0])
             return np.array([
@@ -1340,6 +1342,7 @@ In both these cases, the matrix form of :class:`.CCXGate` in ``ctrl_state = 1`` 
 """
 
 from .exceptions import CircuitError
+from . import _utils
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit

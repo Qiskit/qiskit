@@ -122,10 +122,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     _COMPOSE_PHASE_LOOKUP = None
     _COMPOSE_1Q_LOOKUP = None
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""

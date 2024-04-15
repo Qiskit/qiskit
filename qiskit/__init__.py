@@ -53,6 +53,7 @@ if sys.version_info < (3, 9):
 
 
 import qiskit._accelerate
+import qiskit._numpy_compat
 
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
