@@ -17,6 +17,7 @@ Chi-matrix representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -96,7 +97,7 @@ class Chi(QuantumChannel):
             if output_dims:
                 output_dim = np.prod(input_dims)
             if output_dims is None and input_dims is None:
-                output_dim = int(np.sqrt(dim_l))
+                output_dim = int(math.sqrt(dim_l))
                 input_dim = dim_l // output_dim
             elif input_dims is None:
                 input_dim = dim_l // output_dim
@@ -125,7 +126,7 @@ class Chi(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
         super().__init__(chi_mat, num_qubits=num_qubits)

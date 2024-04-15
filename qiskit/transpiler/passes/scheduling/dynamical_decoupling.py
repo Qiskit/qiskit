@@ -109,8 +109,7 @@ class DynamicalDecoupling(TransformationPass):
             "Instead, use :class:`~.PadDynamicalDecoupling`, which performs the same "
             "function but requires scheduling and alignment analysis passes to run prior to it."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(
         self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True, target=None

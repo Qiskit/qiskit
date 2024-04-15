@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import enum
+import math
 import warnings
 from collections.abc import Sequence
 from math import pi, erf
@@ -135,7 +136,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         # The error function is used because the Gaussian may have chopped tails.
         # Area is normalized by amplitude.
         # This makes widths robust to the rounding error.
-        risefall_area = params["sigma"] * np.sqrt(2 * pi) * erf(risefall_sigma_ratio)
+        risefall_area = params["sigma"] * math.sqrt(2 * pi) * erf(risefall_sigma_ratio)
         full_area = params["width"] + risefall_area
 
         # Get estimate of target area. Assume this is pi/2 controlled rotation.

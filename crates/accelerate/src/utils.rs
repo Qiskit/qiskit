@@ -25,7 +25,7 @@ pub enum SliceOrInt<'a> {
     // The order here defines the order the variants are tried in the FromPyObject` derivation.
     // `Int` is _much_ more common, so that should be first.
     Int(isize),
-    Slice(&'a PySlice),
+    Slice(Bound<'a, PySlice>),
 }
 
 /// Return indices that sort partially ordered data.
@@ -49,12 +49,12 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
         .collect::<Vec<_>>()
-        .into_pyarray(py)
+        .into_pyarray_bound(py)
         .into()
 }
 
 #[pymodule]
-pub fn utils(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn utils(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())
 }
