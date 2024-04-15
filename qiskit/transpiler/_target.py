@@ -602,3 +602,26 @@ class Target:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
         return self._Target.has_calibration(operation_name, qargs)
+
+    def get_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+        *args: ParameterValueType,
+        **kwargs: ParameterValueType,
+    ) -> Schedule | ScheduleBlock:
+        """Get calibrated pulse schedule for the instruction.
+
+        If calibration is templated with parameters, one can also provide those values
+        to build a schedule with assigned parameters.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+            args: Parameter values to build schedule if any.
+            kwargs: Parameter values with name to build schedule if any.
+
+        Returns:
+            Calibrated pulse schedule of corresponding instruction.
+        """
+        return self._Target.get_calibration(operation_name, qargs, args, kwargs)

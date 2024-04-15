@@ -19,7 +19,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyKeyError},
     prelude::*,
     pyclass,
-    types::{PyList, PySequence, PyTuple},
+    types::{PyDict, PyList, PySequence, PyTuple},
 };
 
 use self::exceptions::TranspilerError;
@@ -707,6 +707,45 @@ impl Target {
             }
         }
         Ok(false)
+    }
+
+    #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
+    fn get_calibration(
+        &self,
+        py: Python<'_>,
+        operation_name: String,
+        qargs: HashableVec<u32>,
+        args: Bound<PyTuple>,
+        kwargs: Option<Bound<PyDict>>,
+    ) -> PyResult<PyObject> {
+        /* Get calibrated pulse schedule for the instruction.
+
+        If calibration is templated with parameters, one can also provide those values
+        to build a schedule with assigned parameters.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+            args: Parameter values to build schedule if any.
+            kwargs: Parameter values with name to build schedule if any.
+
+        Returns:
+            Calibrated pulse schedule of corresponding instruction.
+         */
+        if !self.has_calibration(py, operation_name.clone(), qargs.clone())? {
+            return Err(PyKeyError::new_err(format!(
+                "Calibration of instruction {:?} for qubit {:?} is not defined.",
+                operation_name, qargs.vec
+            )));
+        }
+        Ok(
+            self.gate_map[&operation_name].as_ref().unwrap()[&Some(qargs)]
+                .as_ref()
+                .unwrap()
+                .getattr(py, "_calibration")?
+                .call_method_bound(py, "get_schedule", args, kwargs.as_ref())?
+                .to_object(py),
+        )
     }
 }
 
