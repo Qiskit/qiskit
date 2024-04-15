@@ -15,7 +15,7 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::aview2;
+use numpy::ndarray::{aview2, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
@@ -42,13 +42,12 @@ pub fn blocks_to_matrix(
     let identity = aview2(&ONE_QUBIT_IDENTITY).into_faer_complex();
     let input_matrix = op_list[0].0.as_array().into_faer_complex();
     let mut matrix: Mat<c64> = Mat::<c64>::zeros(4, 4);
-    let mut result: Mat<c64> = Mat::<c64>::zeros(4, 4);
 
     match op_list[0].1.as_slice() {
         [0] => kron(matrix.as_mut(), identity.as_ref(), input_matrix.as_ref()),
         [1] => kron(matrix.as_mut(), input_matrix.as_ref(), identity.as_ref()),
         [0, 1] => matrix = input_matrix.to_owned(),
-        [1, 0] => matrix = change_basis(input_matrix.to_owned()),
+        [1, 0] => matrix = change_basis_faer(input_matrix.to_owned()),
         [] => matrix = Mat::<c64>::identity(4, 4),
         _ => unreachable!(),
     };
@@ -59,22 +58,23 @@ pub fn blocks_to_matrix(
         match q_list.as_slice() {
             [0] => kron(op_result.as_mut(), identity.as_ref(), op_matrix.as_ref()),
             [1] => kron(op_result.as_mut(), op_matrix.as_ref(), identity.as_ref()),
-            [1, 0] => op_result = change_basis(op_matrix.to_owned()),
+            [1, 0] => op_result = change_basis_faer(op_matrix.to_owned()),
             [] => op_result = Mat::<c64>::identity(4, 4),
             _ => op_result = op_matrix.to_owned(),
         };
 
+        let aux = matrix.clone();
         matmul(
-            result.as_mut(),
+            matrix.as_mut(),
             op_result.as_ref(),
-            matrix.as_ref(),
+            aux.as_ref(),
             None,
             c64::new(1., 0.),
             Parallelism::None,
         );
     }
 
-    Ok(result
+    Ok(matrix
         .as_ref()
         .into_ndarray_complex()
         .to_owned()
@@ -84,11 +84,25 @@ pub fn blocks_to_matrix(
 
 /// Switches the order of qubits in a two qubit operation.
 #[inline]
-pub fn change_basis(matrix: Mat<c64>) -> Mat<c64> {
+pub fn change_basis_faer(matrix: Mat<c64>) -> Mat<c64> {
     let mut trans_matrix: Mat<c64> = matrix.transpose().to_owned();
     swap_rows(trans_matrix.as_mut(), 1, 2);
     trans_matrix = trans_matrix.transpose().to_owned();
     swap_rows(trans_matrix.as_mut(), 1, 2);
+    trans_matrix
+}
+
+/// Switches the order of qubits in a two qubit operation.
+#[inline]
+pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
+    let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
+    for index in 0..trans_matrix.ncols() {
+        trans_matrix.swap([1, index], [2, index]);
+    }
+    trans_matrix = trans_matrix.reversed_axes();
+    for index in 0..trans_matrix.ncols() {
+        trans_matrix.swap([1, index], [2, index]);
+    }
     trans_matrix
 }
 

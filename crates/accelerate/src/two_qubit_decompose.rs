@@ -417,12 +417,7 @@ fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<
             let result = match q_list.as_slice() {
                 [0] => Some(kron(&identity, &op_matrix)),
                 [1] => Some(kron(&op_matrix, &identity)),
-                [1, 0] => Some(
-                    change_basis(op_matrix.view().into_faer_complex().to_owned())
-                        .as_ref()
-                        .into_ndarray_complex()
-                        .to_owned(),
-                ),
+                [1, 0] => Some(change_basis(op_matrix.view())),
                 [] => Some(Array2::eye(4)),
                 _ => None,
             };
