@@ -330,7 +330,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     _skip_target = False
     _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
-    # If a target is specified have it override any implicit selections from a backend
+    # If a target is specified, have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
@@ -347,7 +347,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
     # If target is not specified and any hardware constraint object is
-    # manually specified then do not use the target from the backend as
+    # manually specified, do not use the target from the backend as
     # it is invalidated by a custom basis gate list, custom coupling map,
     # custom dt or custom instruction_durations
     elif (
@@ -372,6 +372,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     _check_circuits_coupling_map(circuits, coupling_map, backend)
 
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
+    instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
 
     if _given_inst_map and inst_map.has_custom_gate() and target is not None:
         # Do not mutate backend target
@@ -383,51 +384,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             scheduling_method = backend.get_scheduling_stage_plugin()
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
-
-    if instruction_durations or dt:
-        # If durations are provided and there is more than one circuit
-        # we need to serialize the execution because the full durations
-        # is dependent on the circuit calibrations which are per circuit
-        if len(circuits) > 1:
-            out_circuits = []
-            for circuit in circuits:
-                instruction_durations = _parse_instruction_durations(
-                    backend, instruction_durations, dt, circuit
-                )
-                pm = generate_preset_pass_manager(
-                    optimization_level,
-                    backend=backend,
-                    target=target,
-                    basis_gates=basis_gates,
-                    inst_map=inst_map,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    backend_properties=backend_properties,
-                    timing_constraints=timing_constraints,
-                    initial_layout=initial_layout,
-                    layout_method=layout_method,
-                    routing_method=routing_method,
-                    translation_method=translation_method,
-                    scheduling_method=scheduling_method,
-                    approximation_degree=approximation_degree,
-                    seed_transpiler=seed_transpiler,
-                    unitary_synthesis_method=unitary_synthesis_method,
-                    unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-                    hls_config=hls_config,
-                    init_method=init_method,
-                    optimization_method=optimization_method,
-                    _skip_target=_skip_target,
-                )
-                out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
-            for name, circ in zip(output_name, out_circuits):
-                circ.name = name
-                end_time = time()
-            _log_transpile_time(start_time, end_time)
-            return out_circuits
-        else:
-            instruction_durations = _parse_instruction_durations(
-                backend, instruction_durations, dt, circuits[0]
-            )
 
     pm = generate_preset_pass_manager(
         optimization_level,
@@ -453,7 +409,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         optimization_method=optimization_method,
         _skip_target=_skip_target,
     )
-    out_circuits = pm.run(circuits, callback=callback)
+    out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
     end_time = time()
@@ -546,12 +502,12 @@ def _parse_initial_layout(initial_layout):
     return initial_layout
 
 
-def _parse_instruction_durations(backend, inst_durations, dt, circuit):
+def _parse_instruction_durations(backend, inst_durations, dt):
     """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
     the backend will be ignored, otherwise, the durations will be populated from the
-    backend. If any circuits have gate calibrations, those calibration durations would
-    take precedence over backend durations, but be superceded by ``inst_duration``s.
+    backend.
     """
+    final_durations = InstructionDurations()
     if not inst_durations:
         backend_version = getattr(backend, "version", 0)
         if backend_version <= 1:
@@ -562,22 +518,10 @@ def _parse_instruction_durations(backend, inst_durations, dt, circuit):
                 pass
         else:
             backend_durations = backend.instruction_durations
-
-    circ_durations = InstructionDurations()
-    if not inst_durations:
-        circ_durations.update(backend_durations, dt or backend_durations.dt)
-
-    if circuit.calibrations:
-        cal_durations = []
-        for gate, gate_cals in circuit.calibrations.items():
-            for (qubits, parameters), schedule in gate_cals.items():
-                cal_durations.append((gate, qubits, parameters, schedule.duration))
-        circ_durations.update(cal_durations, circ_durations.dt)
-
-    if inst_durations:
-        circ_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
-
-    return circ_durations
+        final_durations.update(backend_durations, dt or backend_durations.dt)
+    else:
+        final_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
+    return final_durations
 
 
 def _parse_approximation_degree(approximation_degree):
