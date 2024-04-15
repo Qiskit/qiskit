@@ -12,7 +12,7 @@
 
 """Pulse target for unit tests."""
 
-from qiskit.pulse.compiler.target import QiskitPulseTarget
+from qiskit.pulse.compiler.target import QiskitPulseTarget, ControlPort, MeasurePort
 
 
 TWOQ_CROSSRES_TARGET = QiskitPulseTarget(
@@ -24,31 +24,35 @@ TWOQ_CROSSRES_TARGET = QiskitPulseTarget(
         0: "M0",
         1: "M1",
     },
-    tx_ports={
-        "Q_channel-0": {
-            "qubits": [0],
-            "op_type": "generic",
-            "num_frames": 3, 
-            "reserved_frames": ["Q0", "Q1"],
-        },
-        "Q_channel-1": {
-            "qubits": [1],
-            "op_type": "generic",
-            "num_frames": 3, 
-            "reserved_frames": ["Q1"],
-        },
-        "R_channel-0": {
-            "qubits": [0],
-            "op_type": "measure",
-            "num_frames": 1, 
-            "reserved_frames": ["M0"],
-        },
-        "R_channel-1": {
-            "qubits": [1],
-            "op_type": "measure",
-            "num_frames": 1, 
-            "reserved_frames": ["M1"],
-        },
-    },
+    tx_ports=[
+        # Self-drive port + CR drive port for qubit 1
+        ControlPort(
+            identifier="Q_channel-0",
+            qubits=(0,),
+            num_frames=3,
+            reserved_frames=["Q0", "Q1"],
+        ),
+        # Only self-drive port
+        ControlPort(
+            identifier="Q_channel-1",
+            qubits=(1,),
+            num_frames=3,
+            reserved_frames=["Q1"],
+        ),
+        # Dispersive measurement for self qubit
+        MeasurePort(
+            identifier="R_Channel-0",
+            qubits=(0,),
+            num_frames=1,
+            reserved_frames=["M0"],
+        ),
+        # Dispersive measurement for self qubit
+        MeasurePort(
+            identifier="R_Channel-1",
+            qubits=(1,),
+            num_frames=1,
+            reserved_frames=["M1"],
+        ),
+    ],
 )
 """Pedagogical target for two qubit device control with cross resonance."""

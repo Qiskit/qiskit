@@ -102,4 +102,4 @@ from .mixed_frames import (
 )
 
 # TODO Alias to minimize logical change. Name will be updated in the followup PR.
-SignalEntry = PulseTarget
+PulseEndpoint = PulseTarget

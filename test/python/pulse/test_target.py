@@ -15,11 +15,9 @@
 from ddt import ddt, named_data, unpack
 
 from qiskit.pulse import model
-from qiskit.pulse.compiler.target import QiskitPulseTarget
+from qiskit.pulse.compiler.target import QiskitPulseTarget, ControlPort, MeasurePort
 from qiskit.pulse.exceptions import NotExistingComponent
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
-# TODO update test
 
 
 @ddt
@@ -37,134 +35,132 @@ class TestPulseTarget(QiskitTestCase):
                 0: "M0",
                 1: "M1",
             },
-            qubit_ports={
-                0: "Port0",
-                1: "Port1",
-                2: "OnlyPort",
-            },
-            coupler_ports={
-                (0, 1): "PortA",
-            },
-            mixed_frames={
-                "Port0": ["Q0", "Q1", "M0", "EX0"],
-                "Port1": ["Q1", "M1", "EX1", "EX2"],
-            },
+            tx_ports=[
+                ControlPort(
+                    identifier="Q_channel-0",
+                    qubits=(0,),
+                    num_frames=2,
+                    reserved_frames=["Q0", "Q1"],
+                ),
+                ControlPort(
+                    identifier="Q_channel-1",
+                    qubits=(1,),
+                    num_frames=2,
+                    reserved_frames=["Q1"],
+                ),
+                ControlPort(
+                    identifier="Coupler-A",
+                    qubits=(0, 1),
+                    num_frames=0,
+                    reserved_frames=[],
+                ),
+                MeasurePort(
+                    identifier="R_channel-0",
+                    qubits=(0,),
+                    num_frames=1,
+                    reserved_frames=["M0"],
+                ),
+                MeasurePort(
+                    identifier="R_channel-1",
+                    qubits=(1,),
+                    num_frames=1,
+                    reserved_frames=["M1"],
+                ),
+            ],
         )
 
     @named_data(
-        ["qubit0", model.Qubit(0), "Port0"],
-        ["qubit1", model.Qubit(1), "Port1"],
-        ["coupler", model.Coupler(0, 1), "PortA"],
+        ["qubit0_query", model.Qubit(0), "Q_channel-0"],
+        ["qubit1_query", model.Qubit(1), "Q_channel-1"],
+        ["coupler_query", model.Coupler(0, 1), "Coupler-A"],
+        ["generic_query1", model.Port("Q_channel-0"), "Q_channel-0"],
+        ["generic_query2", model.Port("Coupler-A"), "Coupler-A"],
     )
     @unpack
-    def test_get_port_uid(self, port, uid):
-        """Test get Qiskit port UID from pulse target."""
-        self.assertEqual(self.target.get_port_identifier(port), uid)
-
-    def test_get_generic_port_fail(self):
-        """Test get cannot get port UID with generic Port object."""
-        with self.assertRaises(TypeError):
-            self.target.get_port_identifier(model.Port("GenericPort"))
-
-    def test_port_not_found(self):
-        """Test port is not available in pulse target."""
-        with self.assertRaises(NotExistingComponent):
-            self.target.get_port_identifier(model.Qubit(100))
+    def test_get_control_port_uid(self, port, uid):
+        """Test get control Qiskit port UID from pulse target."""
+        self.assertEqual(
+            self.target.get_port_identifier(pulse_endpoint=port, op_type="control"),
+            uid,
+        )
 
     @named_data(
-        ["frame_q0", model.QubitFrame(0), "Q0"],
-        ["frame_q1", model.QubitFrame(1), "Q1"],
-        ["frame_m0", model.MeasurementFrame(0), "M0"],
-        ["frame_m1", model.MeasurementFrame(1), "M1"],
+        ["qubit0_query", model.Qubit(0), "R_channel-0"],
+        ["qubit1_query", model.Qubit(1), "R_channel-1"],
+    )
+    @unpack
+    def test_get_measure_port_uid(self, port, uid):
+        """Test get measure Qiskit port UID from pulse target."""
+        self.assertEqual(
+            self.target.get_port_identifier(pulse_endpoint=port, op_type="measure"),
+            uid,
+        )
+
+    @named_data(
+        ["random_name_query", model.Port("NotDefinedPort")],
+        ["invalid_index_query", model.Qubit(100)],
+    )
+    def test_port_not_found(self, port):
+        """Test port is not available in pulse target."""
+        with self.assertRaises(NotExistingComponent):
+            self.target.get_port_identifier(pulse_endpoint=port, op_type="control")
+
+    @named_data(
+        ["frame_q0_query", model.QubitFrame(0), "Q0"],
+        ["frame_q1_query", model.QubitFrame(1), "Q1"],
+        ["frame_m0_query", model.MeasurementFrame(0), "M0"],
+        ["frame_m1_query", model.MeasurementFrame(1), "M1"],
+        ["generic_query", model.GenericFrame("my_frame"), "my_frame"],
     )
     def test_get_frame_uid(self, frame, uid):
         """Test get Qiskit frame UID from pulse target."""
         self.assertEqual(self.target.get_frame_identifier(frame), uid)
-
-    def test_get_generic_frame_fail(self):
-        """Test get cannot get frame UID with GenericFrame object."""
-        with self.assertRaises(TypeError):
-            self.target.get_frame_identifier(model.GenericFrame("GenericFrame"))
 
     def test_frame_not_found(self):
         """Test frame is not available in pulse target."""
         with self.assertRaises(NotExistingComponent):
             self.target.get_frame_identifier(model.QubitFrame(100))
 
-    @named_data(
-        [
-            "qubit0",
-            model.Qubit(0),
-            [model.GenericFrame("EX0")],
-        ],
-        [
-            "qubit1",
-            model.Qubit(1),
-            [model.GenericFrame("EX1"), model.GenericFrame("EX2")],
-        ],
-    )
-    @unpack
-    def test_get_extra_frames(self, port, frames):
-        """Test get extra frames tied to a particular Qiskit port."""
-        self.assertListEqual(self.target.extra_frames(port), frames)
-
-    def test_get_extra_frames_not_available_for_port(self):
-        """Test port exists but no mixed frame is defined."""
-        with self.assertRaises(NotExistingComponent):
-            self.target.extra_frames(model.Qubit(2))
-
-    @named_data(
-        ["q0_port0", model.MixedFrame(model.Qubit(0), model.QubitFrame(0))],
-        ["q1_port0", model.MixedFrame(model.Qubit(0), model.QubitFrame(1))],
-        ["m0_port0", model.MixedFrame(model.Qubit(0), model.MeasurementFrame(0))],
-    )
-    def test_check_mixed_frame_available(self, mixed_frame):
-        """Test available mixed frames on this target."""
-        self.assertTrue(self.target.is_mixed_frame_available(mixed_frame))
-
-    @named_data(
-        ["q0_port1", model.MixedFrame(model.Qubit(1), model.QubitFrame(0))],
-        ["q0_port100", model.MixedFrame(model.Qubit(100), model.QubitFrame(0))],
-        ["m1_port0", model.MixedFrame(model.Qubit(0), model.MeasurementFrame(1))],
-    )
-    def test_check_mixed_frame_not_available(self, mixed_frame):
-        """Test unavailable mixed frames on this target."""
-        self.assertFalse(self.target.is_mixed_frame_available(mixed_frame))
-
-    def test_filter_mixed_frame_only_port(self):
-        """Test get mixed frame list filtered by port."""
+    def test_filter_calibrated_mixed_frame_only_port(self):
+        """Test get backend-reserved mixed frame list filtered by port."""
         self.assertListEqual(
-            self.target.filter_mixed_frames(port=model.Qubit(0)),
+            self.target.reserved_mixed_frames(pulse_endpoint=model.Qubit(0)),
             [
+                # self-drive
                 model.MixedFrame(model.Qubit(0), model.QubitFrame(0)),
+                # cr-like
                 model.MixedFrame(model.Qubit(0), model.QubitFrame(1)),
+                # measure
                 model.MixedFrame(model.Qubit(0), model.MeasurementFrame(0)),
-                model.MixedFrame(model.Qubit(0), model.GenericFrame("EX0")),
             ],
         )
 
-    def test_filter_mixed_frame_only_frame(self):
-        """Test get mixed frame list filtered by frame."""
+    def test_filter_calibrated_mixed_frame_only_frame(self):
+        """Test get backend-reserved mixed frame list filtered by frame."""
         self.assertListEqual(
-            self.target.filter_mixed_frames(frame=model.QubitFrame(1)),
+            self.target.reserved_mixed_frames(frame=model.QubitFrame(1)),
             [
+                # cr-like
                 model.MixedFrame(model.Qubit(0), model.QubitFrame(1)),
+                # self-drive
                 model.MixedFrame(model.Qubit(1), model.QubitFrame(1)),
             ],
         )
 
-    def test_filter_mixed_frame_both_port_frame(self):
-        """Test get mixed frame list filtered by both port and frame."""
+    def test_filter_calibrated_mixed_frame_both_port_frame(self):
+        """Test get backend-reserved mixed frame list filtered by both port and frame."""
         self.assertListEqual(
-            self.target.filter_mixed_frames(frame=model.QubitFrame(1), port=model.Qubit(0)),
+            self.target.reserved_mixed_frames(
+                frame=model.QubitFrame(1), pulse_endpoint=model.Qubit(0)
+            ),
             [
                 model.MixedFrame(model.Qubit(0), model.QubitFrame(1)),
             ],
         )
 
-    def test_filter_mixed_frame_non_existing(self):
+    def test_filter_calibrated_mixed_frame_non_existing(self):
         """Test no mixed frame mached with the condition."""
         self.assertListEqual(
-            self.target.filter_mixed_frames(port=model.Qubit(100)),
+            self.target.reserved_mixed_frames(pulse_endpoint=model.Qubit(100)),
             [],
         )
