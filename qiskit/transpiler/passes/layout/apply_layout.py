@@ -71,9 +71,9 @@ class ApplyLayout(TransformationPass):
             }
             for qreg in dag.qregs.values():
                 self.property_set["layout"].add_register(qreg)
-            virtual_phsyical_map = layout.get_virtual_bits()
+            virtual_physical_map = layout.get_virtual_bits()
             for node in dag.topological_op_nodes():
-                qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
+                qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
         else:
             # First build a new layout object going from:
