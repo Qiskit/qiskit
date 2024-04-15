@@ -541,7 +541,15 @@ class OptimizationPassManager(PassManagerStagePlugin):
                         ]
                     ),
                 ]
-            elif optimization_level in {2, 3}:
+
+            elif optimization_level == 2:
+                _opt = [
+                    Optimize1qGatesDecomposition(
+                        basis=pass_manager_config.basis_gates, target=pass_manager_config.target
+                    ),
+                    CommutativeCancellation(target=pass_manager_config.target),
+                ]
+            elif optimization_level == 3:
                 # Steps for optimization level 3
                 _opt = [
                     Collect2qBlocks(),
@@ -583,13 +591,34 @@ class OptimizationPassManager(PassManagerStagePlugin):
                 ConditionalController(unroll, condition=_unroll_condition),
             ]
 
-            if optimization_level in {2, 3}:
+            if optimization_level == 3:
                 optimization.append(_minimum_point_check)
+            elif optimization_level == 2:
+                optimization.append(
+                    [
+                        Collect2qBlocks(),
+                        ConsolidateBlocks(
+                            basis_gates=pass_manager_config.basis_gates,
+                            target=pass_manager_config.target,
+                            approximation_degree=pass_manager_config.approximation_degree,
+                        ),
+                        UnitarySynthesis(
+                            pass_manager_config.basis_gates,
+                            approximation_degree=pass_manager_config.approximation_degree,
+                            coupling_map=pass_manager_config.coupling_map,
+                            backend_props=pass_manager_config.backend_properties,
+                            method=pass_manager_config.unitary_synthesis_method,
+                            plugin_config=pass_manager_config.unitary_synthesis_plugin_config,
+                            target=pass_manager_config.target,
+                        ),
+                    ]
+                )
+                optimization.append(_depth_check + _size_check)
             else:
                 optimization.append(_depth_check + _size_check)
             opt_loop = (
                 _opt + _unroll_if_out_of_basis + _minimum_point_check
-                if optimization_level in {2, 3}
+                if optimization_level == 3
                 else _opt + _unroll_if_out_of_basis + _depth_check + _size_check
             )
             optimization.append(DoWhileController(opt_loop, do_while=_opt_control))
