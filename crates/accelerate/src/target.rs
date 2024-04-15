@@ -16,7 +16,7 @@ use std::hash::{Hash, Hasher};
 
 use hashbrown::{HashMap, HashSet};
 use pyo3::{
-    exceptions::{PyAttributeError, PyKeyError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
     types::{PyDict, PyList, PySequence, PyTuple},
@@ -103,17 +103,21 @@ impl InstructionProperties {
         Ok(())
     }
 
-    fn __repr__(&self, py: Python<'_>) -> String {
+    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
         if let Some(calibration) = self.get_calibration(py) {
-            format!(
+            Ok(format!(
                 "InstructionProperties(duration={:?}, error={:?}, calibration={:?})",
-                self.duration, self.error, calibration
-            )
+                self.duration,
+                self.error,
+                calibration
+                    .call_method0(py, "__repr__")?
+                    .extract::<String>(py)?
+            ))
         } else {
-            format!(
+            Ok(format!(
                 "InstructionProperties(duration={:?}, error={:?}, calibration=None)",
                 self.duration, self.error
-            )
+            ))
         }
     }
 }
@@ -746,6 +750,26 @@ impl Target {
                 .call_method_bound(py, "get_schedule", args, kwargs.as_ref())?
                 .to_object(py),
         )
+    }
+
+    #[pyo3(text_signature = "(/, index: int)")]
+    fn instruction_properties(&self, index: usize) -> PyResult<PyObject> {
+        let mut instruction_properties: Vec<PyObject> = vec![];
+        for operation in self.gate_map.keys() {
+            if let Some(gate_map_oper) = self.gate_map[operation].to_owned() {
+                for (_, inst_props) in gate_map_oper.iter() {
+                    if let Some(inst_props) = inst_props {
+                        instruction_properties.push(inst_props.to_owned())
+                    }
+                }
+            }
+        }
+        if !((0..instruction_properties.len()).contains(&index)) {
+            return Err(PyIndexError::new_err(
+                format!("Index: {:?} is out of range.", index)
+            ));
+        }
+        Ok(instruction_properties[index].to_owned())
     }
 }
 
