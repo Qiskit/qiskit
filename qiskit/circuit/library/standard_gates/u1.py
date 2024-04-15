@@ -143,8 +143,10 @@ class U1Gate(Gate):
         r"""Return inverted U1 gate (:math:`U1(\lambda)^{\dagger} = U1(-\lambda)`)"""
         return U1Gate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U1 gate."""
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=dtype)
 
@@ -267,8 +269,10 @@ class CU1Gate(ControlledGate):
         r"""Return inverted CU1 gate (:math:`CU1(\lambda)^{\dagger} = CU1(-\lambda)`)"""
         return CU1Gate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU1 gate."""
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
             return numpy.array(

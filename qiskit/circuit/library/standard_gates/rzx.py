@@ -156,10 +156,12 @@ class RZXGate(Gate):
         """Return inverse RZX gate (i.e. with the negative rotation angle)."""
         return RZXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZX gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)

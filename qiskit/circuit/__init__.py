@@ -382,6 +382,7 @@ typically raise the corresponding standard Python error).
 """
 
 from .exceptions import CircuitError
+from . import _utils
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit

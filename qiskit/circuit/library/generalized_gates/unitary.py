@@ -17,6 +17,7 @@ from __future__ import annotations
 import typing
 import numpy
 
+from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -115,10 +116,10 @@ class UnitaryGate(Gate):
         # up to global phase?
         return matrix_equal(self.params[0], other.params[0], ignore_phase=True)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         """Return matrix for the unitary."""
-        # pylint: disable=unused-argument
-        return self.params[0]
+        dtype = self.params[0].dtype if dtype is None else dtype
+        return numpy.array(self.params[0], dtype=dtype, copy=copy)
 
     def inverse(self):
         """Return the adjoint of the unitary."""

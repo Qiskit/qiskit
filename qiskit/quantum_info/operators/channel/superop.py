@@ -15,11 +15,12 @@ Superoperator representation of a Quantum Channel."""
 
 from __future__ import annotations
 
-import copy
+import copy as _copy
 from typing import TYPE_CHECKING
 
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -126,10 +127,9 @@ class SuperOp(QuantumChannel):
         # Initialize QuantumChannel
         super().__init__(super_mat, op_shape=op_shape)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _tensor_shape(self):
@@ -148,18 +148,18 @@ class SuperOp(QuantumChannel):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.transpose(self._data)
         ret._op_shape = self._op_shape.transpose()
         return ret
 
     def adjoint(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(np.transpose(self._data))
         ret._op_shape = self._op_shape.transpose()
         return ret
@@ -176,7 +176,7 @@ class SuperOp(QuantumChannel):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = _bipartite_tensor(
             a._data, b.data, shape1=a._bipartite_shape, shape2=b._bipartite_shape

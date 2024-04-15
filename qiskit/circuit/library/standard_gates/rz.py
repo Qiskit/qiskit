@@ -112,10 +112,12 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
 
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
@@ -244,10 +246,12 @@ class CRZGate(ControlledGate):
         """Return inverse CRZ gate (i.e. with the negative rotation angle)."""
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(

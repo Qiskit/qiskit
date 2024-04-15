@@ -131,8 +131,10 @@ class U3Gate(Gate):
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U3 gate."""
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = math.cos(theta / 2)
@@ -142,7 +144,7 @@ class U3Gate(Gate):
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )
 
 
@@ -277,8 +279,10 @@ class CU3Gate(ControlledGate):
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state
         )
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU3 gate."""
+        if copy is False:
+            raise ValueError("cannot produce matrix without calculation")
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
         cos = math.cos(theta / 2)
@@ -291,7 +295,7 @@ class CU3Gate(ControlledGate):
                     [0, 0, 1, 0],
                     [0, exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos],
                 ],
-                dtype=dtype,
+                dtype=dtype or complex,
             )
         else:
             return numpy.array(
@@ -301,7 +305,7 @@ class CU3Gate(ControlledGate):
                     [exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos, 0],
                     [0, 0, 0, 1],
                 ],
-                dtype=dtype,
+                dtype=dtype or complex,
             )
 
 
