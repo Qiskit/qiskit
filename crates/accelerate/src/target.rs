@@ -678,6 +678,36 @@ impl Target {
         }
         Ok(false)
     }
+
+    #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
+    fn has_calibration(
+        &self,
+        py: Python<'_>,
+        operation_name: String,
+        qargs: HashableVec<u32>,
+    ) -> PyResult<bool> {
+        /*
+        Return whether the instruction (operation + qubits) defines a calibration.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+
+        Returns:
+            Returns ``True`` if the calibration is supported and ``False`` if it isn't.
+         */
+        if !self.gate_map.contains_key(&operation_name) {
+            return Ok(false);
+        }
+        if let Some(gate_map_qarg) = self.gate_map[&operation_name].as_ref() {
+            if let Some(oper_qarg) = &gate_map_qarg[&Some(qargs)] {
+                return Ok(!oper_qarg.getattr(py, "_calibration")?.is_none(py));
+            } else {
+                return Ok(false);
+            }
+        }
+        Ok(false)
+    }
 }
 
 #[pymodule]

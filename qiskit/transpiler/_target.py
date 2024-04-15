@@ -586,3 +586,19 @@ class Target:
             operation_class,
             parameters,
         )
+
+    def has_calibration(
+        self,
+        operation_name: str,
+        qargs: tuple[int, ...],
+    ) -> bool:
+        """Return whether the instruction (operation + qubits) defines a calibration.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+
+        Returns:
+            Returns ``True`` if the calibration is supported and ``False`` if it isn't.
+        """
+        return self._Target.has_calibration(operation_name, qargs)
