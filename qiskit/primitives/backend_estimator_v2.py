@@ -17,6 +17,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
+import math
 
 import numpy as np
 
@@ -146,7 +147,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return PrimitiveResult([self._run_pub(pub) for pub in pubs])
 
     def _run_pub(self, pub: EstimatorPub) -> PubResult:
-        shots = int(np.ceil(1.0 / pub.precision**2))
+        shots = math.ceil(1.0 / pub.precision**2)
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values

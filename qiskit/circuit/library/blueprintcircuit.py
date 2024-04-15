@@ -127,10 +127,12 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super()._append(instruction, _qargs, _cargs)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+    def compose(
+        self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False, *, copy=True
+    ):
         if not self._is_built:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace, wrap)
+        return super().compose(other, qubits, clbits, front, inplace, wrap, copy=copy)
 
     def inverse(self, annotated: bool = False):
         if not self._is_built:
