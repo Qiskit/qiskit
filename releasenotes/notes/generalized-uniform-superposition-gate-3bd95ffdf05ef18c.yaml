@@ -14,9 +14,3 @@ features:
     qc.append(usp_gate, list(range(n)))
     qc.draw('mpl',style="clifford")
     ```
-
-fixes:
-  - |
-    Refer to
-    '#11725 <https://github.com/Qiskit/qiskit/issues/11725>' for more
-    details.
