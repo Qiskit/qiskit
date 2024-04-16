@@ -26,6 +26,7 @@ num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.14"
 faer = "0.18.2"
+itertools = "0.12.1"
 
 [dependencies.smallvec]
 version = "1.13"

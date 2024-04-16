@@ -590,6 +590,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "jod-thread"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1097,6 +1106,7 @@ dependencies = [
  "faer-ext",
  "hashbrown 0.14.3",
  "indexmap 2.2.6",
+ "itertools 0.12.1",
  "ndarray",
  "num-bigint",
  "num-complex",

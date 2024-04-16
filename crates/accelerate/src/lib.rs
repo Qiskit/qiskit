@@ -20,6 +20,7 @@ mod dense_layout;
 mod edge_collections;
 mod error_map;
 mod euler_one_qubit_decomposer;
+mod isometry;
 mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
@@ -62,6 +63,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
     m.add_wrapped(wrap_pymodule!(two_qubit_decompose::two_qubit_decompose))?;
     m.add_wrapped(wrap_pymodule!(utils::utils))?;
+    m.add_wrapped(wrap_pymodule!(isometry::isometry))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
     ))?;

@@ -30,6 +30,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
+from qiskit._accelerate import isometry as isometry_rs
 
 from .diagonal import Diagonal
 from .uc import UCGate
@@ -157,7 +158,9 @@ class Isometry(Instruction):
         # correspond to the firstfew columns of the identity matrix up to diag, and hence we only
         # have to save a list containing them.
         for column_index in range(2**m):
-            self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
+            remaining_isometry, diag = self._decompose_column(
+                circuit, q, diag, remaining_isometry, column_index
+            )
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
             # remove first column (which is now stored in diag)
@@ -173,7 +176,10 @@ class Isometry(Instruction):
         """
         n = int(math.log2(self.iso_data.shape[0]))
         for s in range(n):
-            self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
+            remaining_isometry, diag = self._disentangle(
+                circuit, q, diag, remaining_isometry, column_index, s
+            )
+        return remaining_isometry, diag
 
     def _disentangle(self, circuit, q, diag, remaining_isometry, column_index, s):
         """
@@ -205,12 +211,14 @@ class Isometry(Instruction):
                 circuit, q, gate, control_labels, target_label
             )
             # apply the MCG to the remaining isometry
-            _apply_multi_controlled_gate(v, control_labels, target_label, gate)
+            v = _apply_multi_controlled_gate(v, control_labels, target_label, gate)
             # correct for the implementation "up to diagonal"
             diag_mcg_inverse = np.conj(diagonal_mcg).tolist()
-            _apply_diagonal_gate(v, control_labels + [target_label], diag_mcg_inverse)
+            v = _apply_diagonal_gate(v, control_labels + [target_label], diag_mcg_inverse)
             # update the diag according to the applied diagonal gate
-            _apply_diagonal_gate_to_diag(diag, control_labels + [target_label], diag_mcg_inverse, n)
+            diag = _apply_diagonal_gate_to_diag(
+                diag, control_labels + [target_label], diag_mcg_inverse, n
+            )
 
         # UCGate to disentangle a qubit:
         # Find the UCGate, decompose it and apply it to the remaining isometry
@@ -224,38 +232,24 @@ class Isometry(Instruction):
             diagonal_ucg_inverse = np.conj(diagonal_ucg).tolist()
             single_qubit_gates = _merge_UCGate_and_diag(single_qubit_gates, diagonal_ucg_inverse)
             # apply the UCGate (with the merged diagonal gate) to the remaining isometry
-            _apply_ucg(v, len(control_labels), single_qubit_gates)
+            v = _apply_ucg(v, len(control_labels), single_qubit_gates)
             # update the diag according to the applied diagonal gate
-            _apply_diagonal_gate_to_diag(
+            diag = _apply_diagonal_gate_to_diag(
                 diag, control_labels + [target_label], diagonal_ucg_inverse, n
             )
             # # correct for the implementation "up to diagonal"
             # diag_inv = np.conj(diag).tolist()
             # _apply_diagonal_gate(v, control_labels + [target_label], diag_inv)
+        return v, diag
 
     # This method finds the single-qubit gates for a UCGate to disentangle a qubit:
     # we consider the n-qubit state v[:,0] starting with k zeros (in the computational basis).
     # The qubit with label n-s-1 is disentangled into the basis state k_s(k,s).
     def _find_squs_for_disentangling(self, v, k, s):
-        k_prime = 0
-        n = int(math.log2(self.iso_data.shape[0]))
-        if _b(k, s + 1) == 0:
-            i_start = _a(k, s + 1)
-        else:
-            i_start = _a(k, s + 1) + 1
-        id_list = [np.eye(2, 2) for _ in range(i_start)]
-        squs = [
-            _reverse_qubit_state(
-                [
-                    v[2 * i * 2**s + _b(k, s), k_prime],
-                    v[(2 * i + 1) * 2**s + _b(k, s), k_prime],
-                ],
-                _k_s(k, s),
-                self._epsilon,
-            )
-            for i in range(i_start, 2 ** (n - s - 1))
-        ]
-        return id_list + squs
+        res = isometry_rs.find_squs_for_disentangling(
+            v, k, s, self._epsilon, n=int(math.log2(self.iso_data.shape[0]))
+        )
+        return res
 
     # Append a UCGate up to diagonal to the circuit circ.
     def _append_ucg_up_to_diagonal(self, circ, q, single_qubit_gates, control_labels, target_label):
@@ -341,15 +335,8 @@ class Isometry(Instruction):
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or
 # basis_state=1 respectively
 def _reverse_qubit_state(state, basis_state, epsilon):
-    state = np.array(state)
-    r = np.linalg.norm(state)
-    if r < epsilon:
-        return np.eye(2, 2)
-    if basis_state == 0:
-        m = np.array([[np.conj(state[0]), np.conj(state[1])], [-state[1], state[0]]]) / r
-    else:
-        m = np.array([[-state[1], state[0]], [np.conj(state[0]), np.conj(state[1])]]) / r
-    return m
+    res = isometry_rs.reverse_qubit_state(state, basis_state, epsilon)
+    return res
 
 
 # Methods for applying gates to matrices (should be moved to Qiskit AER)
@@ -373,17 +360,8 @@ def _reverse_qubit_state(state, basis_state, epsilon):
 def _apply_ucg(m, k, single_qubit_gates):
     # ToDo: Improve efficiency by parallelizing the gate application. A generalized version of
     # ToDo: this method should be implemented by the state vector simulator in Qiskit AER.
-    num_qubits = int(math.log2(m.shape[0]))
-    num_col = m.shape[1]
-    spacing = 2 ** (num_qubits - k - 1)
-    for j in range(2 ** (num_qubits - 1)):
-        i = (j // spacing) * spacing + j
-        gate_index = i // (2 ** (num_qubits - k))
-        for col in range(num_col):
-            m[np.array([i, i + spacing]), np.array([col, col])] = np.ndarray.flatten(
-                single_qubit_gates[gate_index].dot(np.array([[m[i, col]], [m[i + spacing, col]]]))
-            ).tolist()
-    return m
+    res = isometry_rs.apply_ucg(m, k, single_qubit_gates)
+    return res
 
 
 # Apply a diagonal gate with diagonal entries liste in diag and acting on qubits with labels
@@ -396,16 +374,8 @@ def _apply_ucg(m, k, single_qubit_gates):
 def _apply_diagonal_gate(m, action_qubit_labels, diag):
     # ToDo: Improve efficiency by parallelizing the gate application. A generalized version of
     # ToDo: this method should be implemented by the state vector simulator in Qiskit AER.
-    num_qubits = int(math.log2(m.shape[0]))
-    num_cols = m.shape[1]
-    basis_states = list(itertools.product([0, 1], repeat=num_qubits))
-    for state in basis_states:
-        state_on_action_qubits = [state[i] for i in action_qubit_labels]
-        diag_index = _bin_to_int(state_on_action_qubits)
-        i = _bin_to_int(state)
-        for j in range(num_cols):
-            m[i, j] = diag[diag_index] * m[i, j]
-    return m
+    res = isometry_rs.apply_diagonal_gate(m, action_qubit_labels, diag)
+    return res
 
 
 # Special case of the method _apply_diagonal_gate, where the input m is a diagonal matrix on the
@@ -417,15 +387,8 @@ def _apply_diagonal_gate(m, action_qubit_labels, diag):
 
 
 def _apply_diagonal_gate_to_diag(m_diagonal, action_qubit_labels, diag, num_qubits):
-    if not m_diagonal:
-        return m_diagonal
-    basis_states = list(itertools.product([0, 1], repeat=num_qubits))
-    for state in basis_states[: len(m_diagonal)]:
-        state_on_action_qubits = [state[i] for i in action_qubit_labels]
-        diag_index = _bin_to_int(state_on_action_qubits)
-        i = _bin_to_int(state)
-        m_diagonal[i] *= diag[diag_index]
-    return m_diagonal
+    res = isometry_rs.apply_diagonal_gate_to_diag(m_diagonal, action_qubit_labels, diag, num_qubits)
+    return res
 
 
 # Apply a MC single-qubit gate (given by the 2*2 unitary input: gate) with controlling on
@@ -436,43 +399,9 @@ def _apply_diagonal_gate_to_diag(m_diagonal, action_qubit_labels, diag, num_qubi
 
 
 def _apply_multi_controlled_gate(m, control_labels, target_label, gate):
-    # ToDo: This method should be integrated into the state vector simulator in Qiskit AER.
-    num_qubits = int(math.log2(m.shape[0]))
-    num_cols = m.shape[1]
-    control_labels.sort()
-    free_qubits = num_qubits - len(control_labels) - 1
-    basis_states_free = list(itertools.product([0, 1], repeat=free_qubits))
-    for state_free in basis_states_free:
-        (e1, e2) = _construct_basis_states(state_free, control_labels, target_label)
-        for i in range(num_cols):
-            m[np.array([e1, e2]), np.array([i, i])] = np.ndarray.flatten(
-                gate.dot(np.array([[m[e1, i]], [m[e2, i]]]))
-            ).tolist()
-    return m
-
-
-# Helper method for _apply_multi_controlled_gate. This constructs the basis states the MG gate
-# is acting on for a specific state state_free of the qubits we neither control nor act on.
-
-
-def _construct_basis_states(state_free, control_labels, target_label):
-    e1 = []
-    e2 = []
-    j = 0
-    for i in range(len(state_free) + len(control_labels) + 1):
-        if i in control_labels:
-            e1.append(1)
-            e2.append(1)
-        elif i == target_label:
-            e1.append(0)
-            e2.append(1)
-        else:
-            e1.append(state_free[j])
-            e2.append(state_free[j])
-            j += 1
-    out1 = _bin_to_int(e1)
-    out2 = _bin_to_int(e2)
-    return out1, out2
+    # ToDo: This method should be integrated into the state vector simulator in Qiskit AER
+    res = isometry_rs.apply_multi_controlled_gate(m, control_labels, target_label, gate)
+    return res
 
 
 # Some helper methods:
@@ -500,10 +429,6 @@ def _bin_to_int(binary_digits_as_list):
     return int("".join(str(x) for x in binary_digits_as_list), 2)
 
 
-def _ct(m):
-    return np.transpose(np.conjugate(m))
-
-
 def _get_binary_rep_as_list(n, num_digits):
     binary_string = np.binary_repr(n).zfill(num_digits)
     binary = []
@@ -517,9 +442,8 @@ def _get_binary_rep_as_list(n, num_digits):
 
 
 def _merge_UCGate_and_diag(single_qubit_gates, diag):
-    for i, gate in enumerate(single_qubit_gates):
-        single_qubit_gates[i] = np.array([[diag[2 * i], 0.0], [0.0, diag[2 * i + 1]]]).dot(gate)
-    return single_qubit_gates
+    res = isometry_rs.merge_ucgate_and_diag(single_qubit_gates, diag)
+    return res
 
 
 # Helper variables/functions for the column-by-column decomposition
@@ -553,22 +477,8 @@ def _k_s(k, s):
 
 
 def _ucg_is_identity_up_to_global_phase(single_qubit_gates, epsilon):
-    if not np.abs(single_qubit_gates[0][0, 0]) < epsilon:
-        global_phase = 1.0 / (single_qubit_gates[0][0, 0])
-    else:
-        return False
-    for gate in single_qubit_gates:
-        if not np.allclose(global_phase * gate, np.eye(2, 2)):
-            return False
-    return True
+    return isometry_rs.ucg_is_identity_up_to_global_phase(single_qubit_gates, epsilon)
 
 
 def _diag_is_identity_up_to_global_phase(diag, epsilon):
-    if not np.abs(diag[0]) < epsilon:
-        global_phase = 1.0 / (diag[0])
-    else:
-        return False
-    for d in diag:
-        if not np.abs(global_phase * d - 1) < epsilon:
-            return False
-    return True
+    return isometry_rs.diag_is_identity_up_to_global_phase(diag, epsilon)
