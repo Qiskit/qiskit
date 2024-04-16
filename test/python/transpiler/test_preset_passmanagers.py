@@ -365,7 +365,7 @@ class TestPassesInspection(QiskitTestCase):
 
         transpiled = transpile(
             qc, initial_layout=[0, 1], optimization_level=level, callback=self.callback
-     <   )
+        )
 
         self.assertIn("SetLayout", self.passes)
         self.assertIn("ApplyLayout", self.passes)

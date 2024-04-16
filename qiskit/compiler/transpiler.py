@@ -13,13 +13,21 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
+import copy
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
 import warnings
 
 from qiskit import user_config
-from qiskit.circuit.controlflow import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
+from qiskit.circuit.controlflow import (
+    IfElseOp,
+    ForLoopOp,
+    WhileLoopOp,
+    SwitchCaseOp,
+    ContinueLoopOp,
+    BreakLoopOp,
+)
 from qiskit.circuit.library import UnitaryGate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -47,6 +55,8 @@ CUSTOM_MAPPING = {
     "for_loop": ForLoopOp,
     "while_loop": WhileLoopOp,
     "switch_case": SwitchCaseOp,
+    "continue": ContinueLoopOp,
+    "break": BreakLoopOp,
     "unitary": UnitaryGate,
     "qsd2q": UnitaryGate,
 }
@@ -447,13 +457,18 @@ def _log_transpile_time(start_time, end_time):
 
 def _parse_basis_gates(basis_gates, backend, inst_map):
 
-    if basis_gates and "measure" not in basis_gates:
-        basis_gates += ["measure"]
+    try:
+        instructions = set(basis_gates)
+        for name in {"measure", "delay", "reset"}:
+            if name not in instructions:
+                instructions.add(name)
+    except TypeError:
+        instructions = None
 
     if backend is None:
-        return basis_gates or DEFAULT_BASIS_GATES
+        return list(instructions) if instructions else DEFAULT_BASIS_GATES
 
-    instructions = basis_gates or backend.operation_names
+    instructions = instructions or backend.operation_names
     if inst_map is not None:
         for inst in inst_map.instructions:
             for qubit in inst_map.qubits_with_instruction(inst):
@@ -461,7 +476,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
                 if entry.user_provided:
                     instructions.remove(inst)
 
-    return instructions or DEFAULT_BASIS_GATES
+    return list(instructions) if instructions else DEFAULT_BASIS_GATES
 
 
 def _parse_inst_map(inst_map, backend):
