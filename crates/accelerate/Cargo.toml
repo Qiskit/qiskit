@@ -25,7 +25,7 @@ num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.14"
-faer-core = "0.17.0"
+faer = "0.18.2"
 
 [dependencies.smallvec]
 version = "1.13"
@@ -51,10 +51,10 @@ features = ["rayon"]
 workspace = true
 features = ["rayon"]
 
-[dependencies.faer]
-version = "0.17.0"
+[dependencies.faer-ext]
+version = "0.1.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.9"
+version = "0.18.10"
 features = ["macro"]
