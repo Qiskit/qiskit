@@ -15,12 +15,12 @@ default = ["extension-module"]
 extension-module = ["pyo3/extension-module"]
 
 [dependencies]
-rayon = "1.9"
-numpy = "0.20.0"
+rayon = "1.10"
+numpy = "0.21.0"
 rand = "0.8"
 rand_pcg = "0.3"
 rand_distr = "0.4.3"
-ahash = "0.8.6"
+ahash = "0.8.11"
 num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
@@ -33,11 +33,15 @@ features = ["union"]
 
 [dependencies.pyo3]
 workspace = true
-features = ["hashbrown", "indexmap", "num-complex", "num-bigint"]
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
 
 [dependencies.ndarray]
 version = "^0.15.6"
-features = ["rayon"]
+features = ["rayon", "approx-0_5"]
+
+[dependencies.approx]
+version = "0.5"
+features = ["num-complex"]
 
 [dependencies.hashbrown]
 workspace = true
@@ -52,5 +56,5 @@ version = "0.17.0"
 features = ["ndarray"]
 
 [dependencies.pulp]
-version = "0.18.8"
+version = "0.18.10"
 features = ["macro"]

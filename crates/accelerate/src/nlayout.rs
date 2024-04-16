@@ -57,8 +57,8 @@ macro_rules! qubit_newtype {
         unsafe impl numpy::Element for $id {
             const IS_COPY: bool = true;
 
-            fn get_dtype(py: Python<'_>) -> &numpy::PyArrayDescr {
-                u32::get_dtype(py)
+            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype_bound(py)
             }
         }
     };
@@ -139,7 +139,7 @@ impl NLayout {
     ///
     #[pyo3(text_signature = "(self, /)")]
     fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(py, self.iter_virtual()).into()
+        PyList::new_bound(py, self.iter_virtual()).into()
     }
 
     /// Get physical bit from virtual bit
@@ -217,7 +217,7 @@ impl NLayout {
 }
 
 #[pymodule]
-pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
 }

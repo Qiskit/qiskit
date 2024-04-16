@@ -23,7 +23,7 @@ jobs:
         with:
           components: llvm-tools-preview
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_BEFORE_BUILD: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata'
           CIBW_BEFORE_BUILD_WINDOWS: 'bash ./tools/build_pgo.sh /tmp/pgo-data/merged.profdata && cp /tmp/pgo-data/merged.profdata ~/.'
@@ -51,7 +51,7 @@ jobs:
         with:
           components: llvm-tools-preview
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_SKIP: 'pp* cp36-* cp37-* *musllinux* *amd64 *x86_64'
       - uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
           python-version: '3.10'
       - uses: dtolnay/rust-toolchain@stable
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
           CIBW_ARCHS_MACOS: arm64 universal2
@@ -124,7 +124,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_ARCHS_LINUX: s390x
           CIBW_TEST_SKIP: "cp*"
@@ -158,7 +158,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_ARCHS_LINUX: ppc64le
           CIBW_TEST_SKIP: "cp*"
@@ -192,7 +192,7 @@ jobs:
         with:
           platforms: all
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_ARCHS_LINUX: aarch64
       - uses: actions/upload-artifact@v4

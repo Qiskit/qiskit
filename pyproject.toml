@@ -171,7 +171,8 @@ select = [
   "F632",  # is-literal
   "F634",  # if-tuple
   "F823",  # undefined-local
-  "C4",  # category: flake8-comprehensions
+  "G",     # flake8-logging-format
+  "T10",   # category: flake8-debugger
 ]
 
 [tool.pylint.main]

@@ -424,7 +424,7 @@ impl<'a> ExprParser<'a> {
             // going to have to acquire the GIL and call the Python object the user gave us right
             // now.  We need to explicitly handle any exceptions that might occur from that.
             Python::with_gil(|py| {
-                let args = PyTuple::new(
+                let args = PyTuple::new_bound(
                     py,
                     exprs.iter().map(|x| {
                         if let Expr::Constant(val) = x {

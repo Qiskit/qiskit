@@ -43,6 +43,14 @@ else:
             " Qiskit unfortunately cannot enforce this requirement during environment resolution."
             " See https://qisk.it/packaging-1-0 for more detail."
         )
+if sys.version_info < (3, 9):
+    warnings.warn(
+        "Using Qiskit with Python 3.8 is deprecated as of the 1.1.0 release. "
+        "Support for running Qiskit with Python 3.8 will be removed in the "
+        "1.3.0 release, which coincides with when Python 3.8 goes end of life.",
+        DeprecationWarning,
+    )
+
 
 import qiskit._accelerate
 
@@ -54,8 +62,7 @@ import qiskit._accelerate
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
-sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
+sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
@@ -70,6 +77,7 @@ sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
 sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
     qiskit._accelerate.convert_2q_block_matrix
 )
+sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
 
 # qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError

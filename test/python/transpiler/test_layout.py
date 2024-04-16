@@ -428,6 +428,88 @@ class LayoutTest(QiskitTestCase):
         self.assertNotIn(qr[1], layout)
         self.assertNotIn(1, layout)
 
+    def test_compose(self):
+        """Test the compose method."""
+        qubits = [Qubit() for _ in range(4)]
+        first = [0, 3, 1, 2]
+        second = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        expected = Layout({qubits[0]: 1, qubits[1]: 2, qubits[2]: 3, qubits[3]: 0})
+        self.assertEqual(second_layout.compose(first_layout, qubits), expected)
+
+    def test_compose_different_qubit_lists(self):
+        """Test the compose method when the lists of source qubits for the
+        two layouts are different.
+        """
+        qr1 = QuantumRegister(4, "qr1")
+        qr2 = QuantumRegister(4, "qr2")
+
+        qubits1 = [Qubit(qr1, 0), Qubit(qr1, 1), Qubit(qr1, 2), Qubit(qr1, 3)]
+        qubits2 = [Qubit(qr2, 0), Qubit(qr2, 1), Qubit(qr2, 2), Qubit(qr2, 3)]
+        positions1 = [1, 2, 3, 0]
+        positions2 = [0, 2, 1, 3]
+        layout1 = Layout(dict(zip(qubits1, positions1)))
+        layout2 = Layout(dict(zip(qubits2, positions2)))
+        # qr1[0] -> 1 <--> qr2[1] -> 2
+        # qr1[1] -> 2 <--> qr2[2] -> 1
+        # qr1[2] -> 3 <--> qr2[3] -> 3
+        # qr1[3] -> 0 <--> qr2[0] -> 0
+        expected = Layout({qubits1[0]: 2, qubits1[1]: 1, qubits1[2]: 3, qubits1[3]: 0})
+        composed = layout1.compose(layout2, qubits2)
+        self.assertEqual(composed, expected)
+
+    def test_compose_no_permutation_original(self):
+        """Test compose where the first doesn't permute anything."""
+        qubits = [Qubit() for _ in range(4)]
+        first = [0, 1, 2, 3]
+        second = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        self.assertEqual(second_layout.compose(first_layout, qubits), second_layout)
+
+    def test_compose_no_permutation_second(self):
+        """Test compose where the second doesn't permute anything."""
+        qubits = [Qubit() for _ in range(4)]
+        second = [0, 1, 2, 3]
+        first = [2, 3, 1, 0]
+        first_layout = Layout(dict(zip(qubits, first)))
+        second_layout = Layout(dict(zip(qubits, second)))
+        self.assertEqual(second_layout.compose(first_layout, qubits), first_layout)
+
+    def test_inverse(self):
+        """Test inverse method."""
+        qubits = [Qubit() for _ in range(4)]
+        layout = Layout({qubits[0]: 1, qubits[1]: 2, qubits[2]: 3, qubits[3]: 0})
+        inverse = layout.inverse(qubits, qubits)
+        expected = Layout({qubits[1]: 0, qubits[2]: 1, qubits[3]: 2, qubits[0]: 3})
+        self.assertEqual(inverse, expected)
+
+    def test_inverse_different_qubit_lists(self):
+        """Test inverse method when the source and target qubits are different."""
+        qr1 = QuantumRegister(4, "qr1")
+        qr2 = QuantumRegister(4, "qr2")
+
+        qubits1 = [Qubit(qr1, 0), Qubit(qr1, 1), Qubit(qr1, 2), Qubit(qr1, 3)]
+        qubits2 = [Qubit(qr2, 0), Qubit(qr2, 1), Qubit(qr2, 2), Qubit(qr2, 3)]
+
+        layout = Layout({qubits1[0]: 1, qubits1[1]: 2, qubits1[2]: 3, qubits1[3]: 0})
+        inverse = layout.inverse(qubits1, qubits2)
+
+        expected = Layout({qubits2[1]: 0, qubits2[2]: 1, qubits2[3]: 2, qubits2[0]: 3})
+        self.assertEqual(inverse, expected)
+
+        not_expected = Layout({qubits1[1]: 0, qubits1[2]: 1, qubits1[3]: 2, qubits1[0]: 3})
+        self.assertNotEqual(inverse, not_expected)
+
+    def test_to_permutation(self):
+        """Test to_permutation method."""
+        qubits = [Qubit() for _ in range(3)]
+        positions = [2, 0, 1]
+        layout = Layout(dict(zip(qubits, positions)))
+        permutation = layout.to_permutation(qubits)
+        self.assertEqual(permutation, [1, 2, 0])
+
 
 if __name__ == "__main__":
     unittest.main()

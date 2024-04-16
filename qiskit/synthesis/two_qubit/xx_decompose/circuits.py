@@ -23,6 +23,7 @@ Output:
 """
 
 from __future__ import annotations
+import cmath
 from functools import reduce
 import math
 from operator import itemgetter
@@ -55,8 +56,8 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
     Returns the 6-tuple (r, s, u, v, x, y).
     """
 
-    cplus, cminus = np.cos(a_source + b_source), np.cos(a_source - b_source)
-    splus, sminus = np.sin(a_source + b_source), np.sin(a_source - b_source)
+    cplus, cminus = math.cos(a_source + b_source), math.cos(a_source - b_source)
+    splus, sminus = math.sin(a_source + b_source), math.sin(a_source - b_source)
     ca, sa = np.cos(interaction), np.sin(interaction)
 
     uplusv = (
@@ -117,10 +118,10 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
         ]
     )
     inner_phases = [
-        np.angle(middle_matrix[0, 0]),
-        np.angle(middle_matrix[1, 1]),
-        np.angle(middle_matrix[1, 2]) + np.pi / 2,
-        np.angle(middle_matrix[0, 3]) + np.pi / 2,
+        cmath.phase(middle_matrix[0, 0]),
+        cmath.phase(middle_matrix[1, 1]),
+        cmath.phase(middle_matrix[1, 2]) + np.pi / 2,
+        cmath.phase(middle_matrix[0, 3]) + np.pi / 2,
     ]
     r, s, x, y = np.dot(phase_solver, inner_phases)
 
@@ -133,8 +134,8 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
             np.kron(RZGate(2 * x).to_matrix(), RZGate(2 * y).to_matrix()),
         ],
     )
-    if (abs(np.angle(generated_matrix[3, 0]) - np.pi / 2) < 0.01 and a_target > b_target) or (
-        abs(np.angle(generated_matrix[3, 0]) + np.pi / 2) < 0.01 and a_target < b_target
+    if (abs(cmath.phase(generated_matrix[3, 0]) - np.pi / 2) < 0.01 and a_target > b_target) or (
+        abs(cmath.phase(generated_matrix[3, 0]) + np.pi / 2) < 0.01 and a_target < b_target
     ):
         x += np.pi / 4
         y += np.pi / 4
@@ -231,8 +232,8 @@ def xx_circuit_step(source, strength, target, embodiment):
     # finally conjugated by p_s_f_o.
     prefix_circuit.compose(permute_source_for_overlap, inplace=True)
     prefix_circuit.compose(source_reflection, inplace=True)
-    prefix_circuit.global_phase += -np.log(reflection_phase_shift).imag
-    prefix_circuit.global_phase += -np.log(shift_phase_shift).imag
+    prefix_circuit.global_phase -= cmath.phase(reflection_phase_shift)
+    prefix_circuit.global_phase -= cmath.phase(shift_phase_shift)
 
     # the affix circuit is constructed in reverse.
     # first (i.e., innermost), we install the other half of the source transformations and p_s_f_o.
@@ -291,8 +292,8 @@ def canonical_xx_circuit(target, strength_sequence, basis_embodiments):
         circuit.compose(basis_embodiments[strength_sequence[0]], inplace=True)
         circuit.compose(source_reflection.inverse(), inplace=True)
         circuit.compose(source_shift, inplace=True)
-        circuit.global_phase += -np.log(shift_phase_shift).imag
-        circuit.global_phase += -np.log(reflection_phase_shift).imag
+        circuit.global_phase -= cmath.phase(shift_phase_shift)
+        circuit.global_phase -= cmath.phase(reflection_phase_shift)
 
     circuit.compose(affix_circuit, inplace=True)
 

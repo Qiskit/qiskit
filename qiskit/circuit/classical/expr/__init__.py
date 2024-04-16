@@ -39,8 +39,8 @@ The expression system is based on tree representation.  All nodes in the tree ar
 
 These objects are mutable and should not be reused in a different location without a copy.
 
-The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed runtime
-variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
+The base for dynamic variables is the :class:`Var`, which can be either an arbitrarily typed
+real-time variable, or a wrapper around a :class:`.Clbit` or :class:`.ClassicalRegister`.
 
 .. autoclass:: Var
     :members: var, name

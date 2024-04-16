@@ -143,7 +143,7 @@ impl BuilderState {
         let gate = self.symbols.gates.get(gate_id).ok_or_else(|| {
             QASM3ImporterError::new_err(format!("internal error: unknown gate {:?}", gate_id))
         })?;
-        let params = PyTuple::new(
+        let params = PyTuple::new_bound(
             py,
             call.params()
                 .as_ref()
@@ -206,7 +206,7 @@ impl BuilderState {
                     }
                 }
             }
-            PyTuple::new(py, qubits.values())
+            PyTuple::new_bound(py, qubits.values())
         } else {
             // If there's no qargs (represented in the ASG with a `None` rather than an empty
             // vector), it's a barrier over all in-scope qubits, which is all qubits, unless we're

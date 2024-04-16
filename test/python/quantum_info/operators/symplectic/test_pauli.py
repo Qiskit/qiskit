@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -36,10 +36,16 @@ from qiskit.circuit.library import (
     CZGate,
     CYGate,
     SwapGate,
+    EfficientSU2,
 )
 from qiskit.circuit.library.generalized_gates import PauliGate
+from qiskit.compiler.transpiler import transpile
+from qiskit.providers.fake_provider import GenericBackendV2
+from qiskit.primitives import BackendEstimator
 from qiskit.quantum_info.random import random_clifford, random_pauli
-from qiskit.quantum_info.operators import Pauli, Operator
+from qiskit.quantum_info.operators import Pauli, Operator, SparsePauliOp
+from qiskit.utils import optionals
+
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -494,6 +500,98 @@ class TestPauli(QiskitTestCase):
         target = Pauli("X")
 
         self.assertEqual(value, target)
+
+    def test_apply_layout_with_transpile(self):
+        """Test the apply_layout method with a transpiler layout."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("IZZZ")
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        identity_op = Pauli("I" * 7)
+        initial_layout = transpiled_psi.layout.initial_index_layout(filter_ancillas=True)
+        final_layout = transpiled_psi.layout.routing_permutation()
+        qargs = [final_layout[x] for x in initial_layout]
+        expected_op = identity_op.compose(op, qargs=qargs)
+        self.assertNotEqual(op, permuted_op)
+        self.assertEqual(permuted_op, expected_op)
+
+    def test_apply_layout_consistency(self):
+        """Test that the Pauli apply_layout() is consistent with the SparsePauliOp apply_layout()."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("IZZZ")
+        sparse_op = SparsePauliOp(op)
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled_psi = transpile(psi, backend, optimization_level=3, seed_transpiler=12345)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        permuted_sparse_op = sparse_op.apply_layout(transpiled_psi.layout)
+        self.assertEqual(SparsePauliOp(permuted_op), permuted_sparse_op)
+
+    def test_permute_pauli_estimator_example(self):
+        """Test using the apply_layout method with an estimator workflow."""
+        psi = EfficientSU2(4, reps=4, entanglement="circular")
+        op = Pauli("XXXI")
+        backend = GenericBackendV2(num_qubits=7, seed=0)
+        backend.set_options(seed_simulator=123)
+        estimator = BackendEstimator(backend=backend, skip_transpilation=True)
+        thetas = list(range(len(psi.parameters)))
+        transpiled_psi = transpile(psi, backend, optimization_level=3)
+        permuted_op = op.apply_layout(transpiled_psi.layout)
+        job = estimator.run(transpiled_psi, permuted_op, thetas)
+        res = job.result().values
+        if optionals.HAS_AER:
+            np.testing.assert_allclose(res, [0.20898438], rtol=0.5, atol=0.2)
+        else:
+            np.testing.assert_allclose(res, [0.15820312], rtol=0.5, atol=0.2)
+
+    def test_apply_layout_invalid_qubits_list(self):
+        """Test that apply_layout with an invalid qubit count raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 1], 1)
+
+    def test_apply_layout_invalid_layout_list(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 3], 2)
+
+    def test_apply_layout_invalid_layout_list_no_num_qubits(self):
+        """Test that apply_layout with an invalid layout list raises."""
+        op = Pauli("YI")
+        with self.assertRaises(QiskitError):
+            op.apply_layout([0, 2])
+
+    def test_apply_layout_layout_list_no_num_qubits(self):
+        """Test apply_layout with a layout list and no qubit count"""
+        op = Pauli("YI")
+        res = op.apply_layout([1, 0])
+        self.assertEqual(Pauli("IY"), res)
+
+    def test_apply_layout_layout_list_and_num_qubits(self):
+        """Test apply_layout with a layout list and qubit count"""
+        op = Pauli("YI")
+        res = op.apply_layout([4, 0], 5)
+        self.assertEqual(Pauli("IIIIY"), res)
+
+    def test_apply_layout_null_layout_no_num_qubits(self):
+        """Test apply_layout with a null layout"""
+        op = Pauli("IZ")
+        res = op.apply_layout(layout=None)
+        self.assertEqual(op, res)
+
+    def test_apply_layout_null_layout_and_num_qubits(self):
+        """Test apply_layout with a null layout a num_qubits provided"""
+        op = Pauli("IZ")
+        res = op.apply_layout(layout=None, num_qubits=5)
+        # this should expand the operator
+        self.assertEqual(Pauli("IIIIZ"), res)
+
+    def test_apply_layout_null_layout_invalid_num_qubits(self):
+        """Test apply_layout with a null layout and num_qubits smaller than capable"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=None, num_qubits=1)
 
 
 if __name__ == "__main__":

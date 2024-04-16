@@ -750,6 +750,19 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(cls, explicit[num_ctrl_qubits])
 
     @data(1, 2, 3, 4)
+    def test_small_mcx_gates_yield_cx_count(self, num_ctrl_qubits):
+        """Test the creating a MCX gate with small number of controls (with no ancillas)
+        yields the expected number of cx gates."""
+        qc = QuantumCircuit(num_ctrl_qubits + 1)
+        qc.append(MCXGate(num_ctrl_qubits), range(num_ctrl_qubits + 1))
+        from qiskit import transpile
+
+        cqc = transpile(qc, basis_gates=["u", "cx"])
+        cx_count = cqc.count_ops()["cx"]
+        expected = {1: 1, 2: 6, 3: 14, 4: 36}
+        self.assertEqual(cx_count, expected[num_ctrl_qubits])
+
+    @data(1, 2, 3, 4)
     def test_mcxgraycode_gates_yield_explicit_gates(self, num_ctrl_qubits):
         """Test creating an mcx gate calls MCXGrayCode and yeilds explicit definition."""
         qc = QuantumCircuit(num_ctrl_qubits + 1)
@@ -969,6 +982,58 @@ class TestControlledGate(QiskitTestCase):
         ccx = CCXGate(ctrl_state=0)
         ref_circuit.append(ccx, [qreg[0], qreg[1], qreg[2]])
         self.assertEqual(qc, ref_circuit)
+
+    @data((4, [0, 1, 2], 3, "010"), (4, [2, 1, 3], 0, 2))
+    @unpack
+    def test_multi_control_x_ctrl_state_parameter(
+        self, num_qubits, ctrl_qubits, target_qubit, ctrl_state
+    ):
+        """To check the consistency of parameters ctrl_state in MCX"""
+        qc = QuantumCircuit(num_qubits)
+        qc.mcx(ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+        operator_qc = Operator(qc)
+
+        qc1 = QuantumCircuit(num_qubits)
+        gate = MCXGate(num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
+        qc1.append(gate, ctrl_qubits + [target_qubit])
+        operator_qc1 = Operator(qc1)
+
+        self.assertEqual(operator_qc, operator_qc1)
+
+    @data((4, 0.2, [0, 1, 2], 3, "010"), (4, 0.6, [2, 1, 3], 0, 0))
+    @unpack
+    def test_multi_control_p_ctrl_state_parameter(
+        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
+    ):
+        """To check the consistency of parameters ctrl_state in MCP"""
+        qc = QuantumCircuit(num_qubits)
+        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+        operator_qc = Operator(qc)
+
+        qc1 = QuantumCircuit(num_qubits)
+        gate = MCPhaseGate(lam, num_ctrl_qubits=len(ctrl_qubits), ctrl_state=ctrl_state)
+        qc1.append(gate, ctrl_qubits + [target_qubit])
+        operator_qc1 = Operator(qc1)
+
+        self.assertEqual(operator_qc, operator_qc1)
+
+    @data((4, 0.2, [0, 1, 2], 3, "000"), (3, 0.6, [0, 1], 2, 1))
+    @unpack
+    def test_open_control_mcphase_ctrl_state_parameter(
+        self, num_qubits, lam, ctrl_qubits, target_qubit, ctrl_state
+    ):
+        """To check the consistency of parameters ctrl_state in MCPhaseGate"""
+        qc = QuantumCircuit(num_qubits)
+        num_controls = len(ctrl_qubits)
+        qc.mcp(lam, ctrl_qubits, target_qubit, ctrl_state=ctrl_state)
+
+        # obtain unitary for circuit
+        simulated = Operator(qc).data
+        simulated = simulated[: 2 ** (num_controls + 1), : 2 ** (num_controls + 1)]
+        base = PhaseGate(lam).to_matrix()
+        expected = _compute_control_matrix(base, num_controls, ctrl_state=ctrl_state)
+
+        self.assertTrue(matrix_equal(simulated, expected))
 
     def test_open_control_composite_unrolling(self):
         """test unrolling of open control gates when gate is in basis"""

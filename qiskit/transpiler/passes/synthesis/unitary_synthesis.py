@@ -35,6 +35,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.synthesis.one_qubit import one_qubit_decompose
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _possible_decomposers
 from qiskit.synthesis.two_qubit.xx_decompose import XXDecomposer, XXEmbodiments
 from qiskit.synthesis.two_qubit.two_qubit_decompose import (
     TwoQubitBasisDecomposer,
@@ -84,23 +85,16 @@ def _choose_kak_gate(basis_gates):
 def _choose_euler_basis(basis_gates):
     """Choose the first available 1q basis to use in the Euler decomposition."""
     basis_set = set(basis_gates or [])
-
-    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-
-        if set(gates).issubset(basis_set):
-            return basis
-
+    decomposers = _possible_decomposers(basis_set)
+    if decomposers:
+        return decomposers[0]
     return "U"
 
 
 def _find_matching_euler_bases(target, qubit):
     """Find matching available 1q basis to use in the Euler decomposition."""
-    euler_basis_gates = []
     basis_set = target.operation_names_for_qargs((qubit,))
-    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
-        if set(gates).issubset(basis_set):
-            euler_basis_gates.append(basis)
-    return euler_basis_gates
+    return _possible_decomposers(basis_set)
 
 
 def _choose_bases(basis_gates, basis_dict=None):
@@ -777,6 +771,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             )
             decomposers.append(decomposer)
 
+        # If our 2q basis gates are a subset of cx, ecr, or cz then we know TwoQubitBasisDecomposer
+        # is an ideal decomposition and there is no need to bother calculating the XX embodiments
+        # or try the XX decomposer
+        if {"cx", "cz", "ecr"}.issuperset(available_2q_basis):
+            self._decomposer_cache[qubits_tuple] = decomposers
+            return decomposers
+
         # possible controlled decomposers (i.e. XXDecomposer)
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
         basis_2q_fidelity = {}
@@ -808,10 +809,23 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if basis_2q_fidelity:
             for basis_1q in available_1q_basis:
                 if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
+                    # If we're going to use the pulse optimal decomposition
+                    # in TwoQubitBasisDecomposer we need to compute the basis
+                    # fidelity to use for the decomposition. Either use the
+                    # cx error rate if approximation degree is None, or
+                    # the approximation degree value if it's a float
+                    if approximation_degree is None:
+                        props = target["cx"].get(qubits_tuple)
+                        if props is not None:
+                            fidelity = 1.0 - getattr(props, "error", 0.0)
+                        else:
+                            fidelity = 1.0
+                    else:
+                        fidelity = approximation_degree
                     pi2_decomposer = TwoQubitBasisDecomposer(
                         pi2_basis,
                         euler_basis=basis_1q,
-                        basis_fidelity=basis_2q_fidelity,
+                        basis_fidelity=fidelity,
                         pulse_optimize=True,
                     )
                     embodiments.update({pi / 2: XXEmbodiments[pi2_decomposer.gate.base_class]})

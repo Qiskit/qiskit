@@ -32,8 +32,7 @@ class ALAPSchedule(BaseSchedulerTransform):
             "Instead, use :class:`~.ALAPScheduleAnalysis`, which is an "
             "analysis pass that requires a padding pass to later modify the circuit."
         ),
-        since="0.21.0",
-        pending=True,
+        since="1.1.0",
     )
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

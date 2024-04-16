@@ -2228,6 +2228,27 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_control_flow_with_fold_minus_one(self):
+        """Test control flow works with fold=-1. Qiskit issue #12012"""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+        with circuit.if_test((creg[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "control_flow_fold_minus_one.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_annotated_operation(self):
         """Test AnnotatedOperations and other non-Instructions."""
         circuit = QuantumCircuit(3)
