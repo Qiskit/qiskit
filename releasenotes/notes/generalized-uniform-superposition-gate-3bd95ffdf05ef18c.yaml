@@ -1,0 +1,34 @@
+prelude: >
+
+features:
+  - |
+    Implemented GeneralizedUniformSuperpositionGate class, which allows the creation of a generalized uniform superposition state using the Shukla-Vedula algorithm [SV24]. This feature facilitates the creation of quantum circuits that produce a uniform superposition state $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}$, where $M$ is a positive integer representing the number of computational basis states with an amplitude of $\frac{1}{\sqrt{M}}$. This implementation supports the efficient creation of uniform superposition states, requiring only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ gates.
+    Usage example:
+    ```python
+    from qiskit import GeneralizedUniformSuperpositionGate, QuantumCircuit
+
+    M = 5
+    n = 3
+    usp_gate = GeneralizedUniformSuperpositionGate(M, n)
+    qc = QuantumCircuit(n)
+    qc.append(usp_gate, list(range(n)))
+    qc.draw('mpl',style="clifford")
+    ```
+
+changes: |
+  - Added the GeneralizedUniformSuperpositionGate class, providing a convenient way to create uniform superposition states in quantum circuits.
+  - The GeneralizedUniformSuperpositionGate class follows the Shukla-Vedula algorithm [SV24] for the efficient creation of generalized uniform superposition states.
+  - The algorithm allows for the creation of a uniform superposition state $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}$, where $M$ represents the number of computational basis states with equal amplitudes.
+
+fixes:- |
+     Refer to
+    `#11725 <https://github.com/Qiskit/qiskit/issues/11725>` for more
+    details.
+
+
+references: |
+  - '[SV24] A. Shukla and P. Vedula, "An efficient quantum algorithm for preparation of uniform quantum superposition states," Quantum Information Processing, 23(38): pp. 1-32 (2024).'
+
+notes: |
+  This release introduces the GeneralizedUniformSuperpositionGate class, offering an efficient method for creating uniform superposition states in quantum circuits using the Shukla-Vedula algorithm [SV24].
+
