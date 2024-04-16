@@ -13,7 +13,6 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
-import copy
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
@@ -28,10 +27,10 @@ from qiskit.circuit.controlflow import (
     ContinueLoopOp,
     BreakLoopOp,
 )
-from qiskit.circuit.library import UnitaryGate
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.library import UnitaryGate
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
@@ -375,7 +374,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
 
     if target is None:
-        basis_gates = _parse_basis_gates(basis_gates, backend, inst_map)
+        basis_gates, name_mapping = _parse_basis_gates(basis_gates, backend, inst_map)
         coupling_map = _parse_coupling_map(coupling_map, backend)
         _check_circuits_coupling_map(circuits, coupling_map, backend)
         inst_map = _parse_inst_map(inst_map, backend)
@@ -396,7 +395,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             ),
             dt=dt,
             timing_constraints=timing_constraints,
-            custom_name_mapping=CUSTOM_MAPPING,
+            custom_name_mapping=name_mapping,
         )
 
     if _given_inst_map and inst_map.has_custom_gate():
@@ -458,6 +457,8 @@ def _log_transpile_time(start_time, end_time):
 
 def _parse_basis_gates(basis_gates, backend, inst_map):
 
+    name_mapping = CUSTOM_MAPPING
+    # priority = basis_gates > backend
     try:
         instructions = set(basis_gates)
         for name in {"measure", "delay", "reset"}:
@@ -467,9 +468,15 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
         instructions = None
 
     if backend is None:
-        return list(instructions) if instructions else DEFAULT_BASIS_GATES
+        return list(instructions) if instructions else DEFAULT_BASIS_GATES, name_mapping
 
     instructions = instructions or backend.operation_names
+    name_mapping.update(
+        {name: backend.target.operation_from_name(name) for name in backend.operation_names}
+    )
+
+    # remove calibrated instructions, as they will be added later
+    # from the instruction schedule map
     if inst_map is not None:
         for inst in inst_map.instructions:
             for qubit in inst_map.qubits_with_instruction(inst):
@@ -477,7 +484,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
                 if entry.user_provided and entry in instructions:
                     instructions.remove(inst)
 
-    return list(instructions) if instructions else DEFAULT_BASIS_GATES
+    return list(instructions) if instructions else DEFAULT_BASIS_GATES, name_mapping
 
 
 def _parse_inst_map(inst_map, backend):
