@@ -42,6 +42,10 @@ class _DAGDependencyV2:
     """Object to represent a quantum circuit as a Directed Acyclic Graph (DAG)
     via operation dependencies (i.e. lack of commutation).
 
+    .. warning::
+
+        This is not part of the public API.
+
     The nodes in the graph are operations represented by quantum gates.
     The edges correspond to non-commutation between two operations
     (i.e. a dependency). A directed edge from node A to node B means that
@@ -489,24 +493,6 @@ class _DAGDependencyV2:
         """Checks if a second node is in the predecessors of node."""
         return self._multi_graph.has_edge(node_pred._node_id, node._node_id)
 
-    def quantum_predecessors(self, node):
-        """Returns iterator of the predecessors of a node that are
-        connected by a quantum edge as DAGOpNodes."""
-        return iter(
-            self._multi_graph.find_predecessors_by_edge(
-                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
-            )
-        )
-
-    def classical_predecessors(self, node):
-        """Returns iterator of the predecessors of a node that are
-        connected by a classical edge as DAGOpNodes."""
-        return iter(
-            self._multi_graph.find_predecessors_by_edge(
-                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
-            )
-        )
-
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGOpNodes."""
         return {self._multi_graph[x] for x in rx.ancestors(self._multi_graph, node._node_id)}
@@ -521,24 +507,6 @@ class _DAGDependencyV2:
         current node and [DAGOpNode] is its successors in  BFS order.
         """
         return iter(rx.bfs_successors(self._multi_graph, node._node_id))
-
-    def quantum_successors(self, node):
-        """Returns iterator of the successors of a node that are
-        connected by a quantum edge as DAGOpnodes."""
-        return iter(
-            self._multi_graph.find_successors_by_edge(
-                node._node_id, lambda edge_data: isinstance(edge_data, Qubit)
-            )
-        )
-
-    def classical_successors(self, node):
-        """Returns iterator of the successors of a node that are
-        connected by a classical edge as DAGOpNodes."""
-        return iter(
-            self._multi_graph.find_successors_by_edge(
-                node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
-            )
-        )
 
     def copy_empty_like(self):
         """Return a copy of self with the same structure but empty.
