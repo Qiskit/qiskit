@@ -30,12 +30,9 @@ use smallvec::{smallvec, SmallVec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
 use std::ops::Deref;
 
-use faer::IntoFaerComplex;
-use faer::IntoNdarray;
-use faer::IntoNdarrayComplex;
 use faer::Side::Lower;
-use faer::{prelude::*, scale, Mat, MatRef};
-use faer_core::{c64, ComplexField};
+use faer::{prelude::*, scale, ComplexField, Mat, MatRef};
+use faer_ext::{IntoFaer, IntoFaerComplex, IntoNdarray, IntoNdarrayComplex};
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
