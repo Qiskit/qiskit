@@ -345,7 +345,11 @@ class _DAGDependencyV2:
         themselves do not commute.
         """
         order = rx.TopologicalSorter(
-            self._multi_graph, check_cycle=False, reverse=True, initial=self.leaves, check_args=False
+            self._multi_graph,
+            check_cycle=False,
+            reverse=True,
+            initial=self.leaves,
+            check_args=False,
         )
 
         new_node = DAGOpNode(op=operation, qargs=qargs, cargs=cargs, dag=self)
