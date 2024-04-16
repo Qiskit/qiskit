@@ -59,7 +59,7 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = ("_symbol_expr", "_uuid", "_hash")
+    __slots__ = ("_uuid", "_hash")
 
     # This `__init__` does not call the super init, because we can't construct the
     # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
