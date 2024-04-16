@@ -372,8 +372,9 @@ def transpile(  # pylint: disable=too-many-return-statements
     approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
 
+    _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
+
     if target is None:
-        _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
         basis_gates = _parse_basis_gates(basis_gates, backend, inst_map)
         coupling_map = _parse_coupling_map(coupling_map, backend)
         _check_circuits_coupling_map(circuits, coupling_map, backend)
@@ -398,8 +399,8 @@ def transpile(  # pylint: disable=too-many-return-statements
             custom_name_mapping=CUSTOM_MAPPING,
         )
 
-        if _given_inst_map and inst_map.has_custom_gate():
-            target.update_from_instruction_schedule_map(inst_map)
+    if _given_inst_map and inst_map.has_custom_gate():
+        target.update_from_instruction_schedule_map(inst_map)
 
     pm = generate_preset_pass_manager(
         optimization_level,
@@ -473,7 +474,7 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
         for inst in inst_map.instructions:
             for qubit in inst_map.qubits_with_instruction(inst):
                 entry = inst_map._get_calibration_entry(inst, qubit)
-                if entry.user_provided:
+                if entry.user_provided and entry in instructions:
                     instructions.remove(inst)
 
     return list(instructions) if instructions else DEFAULT_BASIS_GATES
