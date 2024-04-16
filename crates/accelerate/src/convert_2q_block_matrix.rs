@@ -52,20 +52,20 @@ pub fn blocks_to_matrix(
     };
     for (op_matrix, q_list) in op_list.into_iter().skip(1) {
         let op_matrix = op_matrix.as_array().into_faer_complex();
-        let mut op_result: Mat<c64> = Mat::<c64>::zeros(4, 4);
+        let mut result: Mat<c64> = Mat::<c64>::zeros(4, 4);
 
         match q_list.as_slice() {
-            [0] => kron(op_result.as_mut(), identity.as_ref(), op_matrix.as_ref()),
-            [1] => kron(op_result.as_mut(), op_matrix.as_ref(), identity.as_ref()),
-            [1, 0] => op_result = change_basis_faer(op_matrix.to_owned()),
-            [] => op_result = Mat::<c64>::identity(4, 4),
-            _ => op_result = op_matrix.to_owned(),
+            [0] => kron(result.as_mut(), identity.as_ref(), op_matrix.as_ref()),
+            [1] => kron(result.as_mut(), op_matrix.as_ref(), identity.as_ref()),
+            [1, 0] => result = change_basis_faer(op_matrix.to_owned()),
+            [] => result = Mat::<c64>::identity(4, 4),
+            _ => result = op_matrix.to_owned(),
         };
 
         let aux = matrix.clone();
         matmul(
             matrix.as_mut(),
-            op_result.as_ref(),
+            result.as_ref(),
             aux.as_ref(),
             None,
             c64::new(1., 0.),
