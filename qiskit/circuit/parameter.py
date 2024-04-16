@@ -59,7 +59,7 @@ class Parameter(ParameterExpression):
            bc.draw('mpl')
     """
 
-    __slots__ = ("_name", "_uuid", "_hash")
+    __slots__ = ("_symbol_expr", "_uuid", "_hash")
 
     # This `__init__` does not call the super init, because we can't construct the
     # `_parameter_symbols` dictionary we need to pass to it before we're entirely initialised
@@ -79,7 +79,6 @@ class Parameter(ParameterExpression):
                 field when creating two parameters to the same thing (along with the same name)
                 allows them to be equal.  This is useful during serialization and deserialization.
         """
-        self._name = name
         self._uuid = uuid4() if uuid is None else uuid
         symbol = symengine.Symbol(name)
 
@@ -117,7 +116,7 @@ class Parameter(ParameterExpression):
     @property
     def name(self):
         """Returns the name of the :class:`Parameter`."""
-        return self._name
+        return self._symbol_expr.name
 
     @property
     def uuid(self) -> UUID:
@@ -143,7 +142,7 @@ class Parameter(ParameterExpression):
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
-            return (self._uuid, self._name) == (other._uuid, other._name)
+            return (self._uuid, self._symbol_expr) == (other._uuid, other._symbol_expr)
         elif isinstance(other, ParameterExpression):
             return super().__eq__(other)
         else:
@@ -155,7 +154,7 @@ class Parameter(ParameterExpression):
         # expression, so its full hash key is split into `(parameter_keys, symbolic_expression)`.
         # This method lets containing expressions get only the bits they need for equality checks in
         # the first value, without wasting time re-hashing individual Sympy/Symengine symbols.
-        return (self._name, self._uuid)
+        return (self._symbol_expr, self._uuid)
 
     def __hash__(self):
         # This is precached for performance, since it's used a lot and we are immutable.
@@ -165,10 +164,10 @@ class Parameter(ParameterExpression):
     # operation attempts to put this parameter into a hashmap.
 
     def __getstate__(self):
-        return (self._name, self._uuid, self._symbol_expr)
+        return (self._uuid, self._symbol_expr)
 
     def __setstate__(self, state):
-        self._name, self._uuid, self._symbol_expr = state
+        self._uuid, self._symbol_expr = state
         self._parameter_keys = frozenset((self._hash_key(),))
         self._hash = hash((self._parameter_keys, self._symbol_expr))
         self._parameter_symbols = {self: self._symbol_expr}
