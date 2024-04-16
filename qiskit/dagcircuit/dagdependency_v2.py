@@ -117,6 +117,8 @@ class _DAGDependencyV2:
         self.duration = None
         self.unit = "dt"
 
+        self.leaves = set()
+
         self.comm_checker = CommutationChecker()
 
     @property
