@@ -21,11 +21,10 @@ use smallvec::SmallVec;
 
 use faer::modules::core::kron;
 use faer::modules::core::mul::matmul;
-use faer::IntoFaerComplex;
-use faer::IntoNdarrayComplex;
+use faer::perm::swap_rows;
+use faer::prelude::*;
 use faer::{Mat, Parallelism};
-use faer_core::c64;
-use faer_core::permutation::swap_rows;
+use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
 
 static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
     [Complex64::new(1., 0.), Complex64::new(0., 0.)],
@@ -86,9 +85,13 @@ pub fn blocks_to_matrix(
 #[inline]
 pub fn change_basis_faer(matrix: Mat<c64>) -> Mat<c64> {
     let mut trans_matrix: Mat<c64> = matrix.transpose().to_owned();
-    swap_rows(trans_matrix.as_mut(), 1, 2);
+    let (a, b) = trans_matrix.as_mut().two_rows_mut(1, 2);
+    swap_rows(a, b);
+
     trans_matrix = trans_matrix.transpose().to_owned();
-    swap_rows(trans_matrix.as_mut(), 1, 2);
+    let (a, b) = trans_matrix.as_mut().two_rows_mut(1, 2);
+    swap_rows(a, b);
+
     trans_matrix
 }
 
