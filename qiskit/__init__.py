@@ -62,8 +62,7 @@ import qiskit._accelerate
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
-sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
+sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
