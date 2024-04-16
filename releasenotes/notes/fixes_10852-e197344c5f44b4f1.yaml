@@ -1,0 +1,8 @@
+---
+upgrade_providers:
+  - |
+    The :class:`.BasicSimulator` python-based simulator included in :mod:`qiskit.providers.basic_provider` 
+    now includes all the standard gates (:mod:`qiskit.circuit.library .standard_gates`). The new basis support includes:
+    ``s`` (:class:`.SGate`), ``sdg`` (:class:`.SdgGate`), ``sx`` (:class:`.SXGate`), ``sdgx`` (:class:`.SdgXGate`),
+    ``t`` (:class:`.TGate`), ``tdg`` (:class:`.TdgGate`), ``y`` (:class:`.YGate`), ``z`` (:class:`.ZGate`),
+    ``id`` (and the alias ``i``, :class:`.IGate`), ``r`` (:class:`.RGate`), ``rx`` (:class:`.RXGate`), and ``ry`` (:class:`.RYGate`).
