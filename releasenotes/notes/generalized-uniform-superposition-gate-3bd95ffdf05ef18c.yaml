@@ -1,10 +1,19 @@
-prelude: >
-
+---
 features:
   - |
-    Implemented GeneralizedUniformSuperpositionGate class, which allows the creation of a generalized uniform superposition state using the Shukla-Vedula algorithm [SV24]. This feature facilitates the creation of quantum circuits that produce a uniform superposition state $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}$, where $M$ is a positive integer representing the number of computational basis states with an amplitude of $\frac{1}{\sqrt{M}}$. This implementation supports the efficient creation of uniform superposition states, requiring only $O(\log_2 (M))$ qubits and $O(\log_2 (M))$ gates.
-    Usage example:
-    ```python
+    Implemented GeneralizedUniformSuperpositionGate class, which allows 
+    the creation of a generalized uniform superposition state using 
+    the Shukla-Vedula algorithm [SV24]. This feature facilitates the 
+    creation of quantum circuits that produce a uniform superposition 
+    state $\frac{1}{\sqrt{M}} \sum_{j=0}^{M-1}  \ket{j}$, where $M$ 
+    is a positive integer representing the number of computational 
+    basis states with an amplitude of $\frac{1}{\sqrt{M}}$. This 
+    implementation supports the efficient creation of uniform 
+    superposition states, requiring only $O(\log_2 (M))$ qubits 
+    and $O(\log_2 (M))$ gates. Usage example:
+
+    .. code-block:: python
+
     from qiskit import GeneralizedUniformSuperpositionGate, QuantumCircuit
 
     M = 5
@@ -13,4 +22,3 @@ features:
     qc = QuantumCircuit(n)
     qc.append(usp_gate, list(range(n)))
     qc.draw('mpl',style="clifford")
-    ```
