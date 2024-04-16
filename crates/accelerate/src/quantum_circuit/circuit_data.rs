@@ -343,8 +343,8 @@ impl CircuitData {
     /// Returns:
     ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
     pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
-        let qubits = PySet::empty(py)?;
-        let clbits = PySet::empty(py)?;
+        let qubits = PySet::empty_bound(py)?;
+        let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
             for b in self.intern_context.lookup(inst.qubits_id).iter() {
                 qubits.add(self.qubits_native[*b as usize].clone_ref(py))?;
