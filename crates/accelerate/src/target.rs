@@ -151,10 +151,13 @@ pub struct Target {
     #[pyo3(get)]
     gate_name_map: HashMap<String, PyObject>,
     global_operations: HashMap<usize, HashSet<String>>,
+    #[pyo3(get)]
     qarg_gate_map: HashMap<Option<HashableVec<u32>>, Option<HashSet<String>>>,
     #[pyo3(get, set)]
     instruction_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
+    #[pyo3(get, set)]
+    coupling_graph: Option<PyObject>,
 }
 
 #[pymethods]
@@ -196,6 +199,7 @@ impl Target {
             qarg_gate_map: HashMap::new(),
             instruction_durations: Option::None,
             instruction_schedule_map: Option::None,
+            coupling_graph: Option::None,
         }
     }
 
@@ -765,9 +769,10 @@ impl Target {
             }
         }
         if !((0..instruction_properties.len()).contains(&index)) {
-            return Err(PyIndexError::new_err(
-                format!("Index: {:?} is out of range.", index)
-            ));
+            return Err(PyIndexError::new_err(format!(
+                "Index: {:?} is out of range.",
+                index
+            )));
         }
         Ok(instruction_properties[index].to_owned())
     }
