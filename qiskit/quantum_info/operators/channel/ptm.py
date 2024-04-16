@@ -17,6 +17,7 @@ Pauli Transfer Matrix (PTM) representation of a Quantum Channel.
 
 from __future__ import annotations
 import copy
+import math
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -100,11 +101,11 @@ class PTM(QuantumChannel):
             if input_dims:
                 input_dim = np.prod(input_dims)
             else:
-                input_dim = int(np.sqrt(din))
+                input_dim = int(math.sqrt(din))
             if output_dims:
                 output_dim = np.prod(input_dims)
             else:
-                output_dim = int(np.sqrt(dout))
+                output_dim = int(math.sqrt(dout))
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
@@ -127,7 +128,7 @@ class PTM(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        num_qubits = int(np.log2(input_dim))
+        num_qubits = int(math.log2(input_dim))
         if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)

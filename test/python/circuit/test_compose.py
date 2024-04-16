@@ -345,6 +345,26 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(circuit_composed, circuit_expected)
 
+    def test_compose_copy(self):
+        """Test that `compose` copies instructions where appropriate."""
+        base = QuantumCircuit(2, 2)
+
+        # If given a parametric instruction, the instruction should be copied in the output unless
+        # specifically set to take ownership.
+        parametric = QuantumCircuit(1)
+        parametric.rz(Parameter("x"), 0)
+        should_copy = base.compose(parametric, qubits=[0])
+        self.assertIsNot(should_copy.data[-1].operation, parametric.data[-1].operation)
+        self.assertEqual(should_copy.data[-1].operation, parametric.data[-1].operation)
+        forbid_copy = base.compose(parametric, qubits=[0], copy=False)
+        self.assertIs(forbid_copy.data[-1].operation, parametric.data[-1].operation)
+
+        conditional = QuantumCircuit(1, 1)
+        conditional.x(0).c_if(conditional.clbits[0], True)
+        test = base.compose(conditional, qubits=[0], clbits=[0], copy=False)
+        self.assertIs(test.data[-1].operation, conditional.data[-1].operation)
+        self.assertEqual(test.data[-1].operation.condition, (test.clbits[0], True))
+
     def test_compose_classical(self):
         """Composing on classical bits.
 
