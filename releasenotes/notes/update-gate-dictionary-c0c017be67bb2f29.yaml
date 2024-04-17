@@ -7,4 +7,4 @@ fixes:
 features_circuits:
   - |
     All of the gates in the ``standard_gates`` library are now supported
-    as valid sting gates for ``TwoLocal`` circuits.
+    as valid string gates for ``TwoLocal`` circuits.
