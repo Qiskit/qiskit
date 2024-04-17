@@ -31,6 +31,7 @@ mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
 mod two_qubit_decompose;
+mod uc_gate;
 mod utils;
 mod vf2_layout;
 
@@ -64,6 +65,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(two_qubit_decompose::two_qubit_decompose))?;
     m.add_wrapped(wrap_pymodule!(utils::utils))?;
     m.add_wrapped(wrap_pymodule!(isometry::isometry))?;
+    m.add_wrapped(wrap_pymodule!(uc_gate::uc_gate))?;
     m.add_wrapped(wrap_pymodule!(
         euler_one_qubit_decomposer::euler_one_qubit_decomposer
     ))?;

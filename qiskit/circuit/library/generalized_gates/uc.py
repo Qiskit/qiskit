@@ -21,7 +21,6 @@
 
 from __future__ import annotations
 
-import cmath
 import math
 
 import numpy as np
@@ -33,14 +32,11 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
-
-# pylint: disable=cyclic-import
-from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit._accelerate import uc_gate
 
 from .diagonal import Diagonal
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UCGate(Gate):
@@ -274,24 +270,7 @@ class UCGate(Gate):
         v,u,r = outcome of the decomposition given in the reference mentioned above
         (see there for the details).
         """
-        # The notation is chosen as in https://arxiv.org/pdf/quant-ph/0410066.pdf.
-        x = a.dot(UCGate._ct(b))
-        det_x = np.linalg.det(x)
-        x11 = x.item((0, 0)) / cmath.sqrt(det_x)
-        phi = cmath.phase(det_x)
-        r1 = cmath.exp(1j / 2 * (np.pi / 2 - phi / 2 - cmath.phase(x11)))
-        r2 = cmath.exp(1j / 2 * (np.pi / 2 - phi / 2 + cmath.phase(x11) + np.pi))
-        r = np.array([[r1, 0], [0, r2]], dtype=complex)
-        d, u = np.linalg.eig(r.dot(x).dot(r))
-        # If d is not equal to diag(i,-i), then we put it into this "standard" form
-        # (see eq. (13) in https://arxiv.org/pdf/quant-ph/0410066.pdf) by interchanging
-        # the eigenvalues and eigenvectors.
-        if abs(d[0] + 1j) < _EPS:
-            d = np.flip(d, 0)
-            u = np.flip(u, 1)
-        d = np.diag(np.sqrt(d))
-        v = d.dot(UCGate._ct(u)).dot(UCGate._ct(r)).dot(b)
-        return v, u, r
+        return uc_gate.demultiplex_single_uc(a, b)
 
     @staticmethod
     def _ct(m):
