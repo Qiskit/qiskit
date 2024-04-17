@@ -1,10 +1,7 @@
 ---
-fixes:
-  - |
-    Fixes adding all supported gates in ``TwoLocal`` circuits. Refer to
-    `#12002 <https://github.com/Qiskit/qiskit/issues/12002>` for more
-    details.
 features_circuits:
   - |
-    All of the gates in the ``standard_gates`` library are now supported
-    as valid string gates for ``TwoLocal`` circuits.
+    All of the "standard gates" in the circuit library
+    (:mod:`qiskit.circuit.library`) can now be specified by string name for
+    the entangling operations in :class:`.TwoLocal` circuits, such as
+    :class:`.RealAmplitudes` and :class:`.EfficientSU2`.
