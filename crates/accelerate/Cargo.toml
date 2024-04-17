@@ -1,5 +1,5 @@
 [package]
-name = "qiskit_accelerate"
+name = "qiskit-accelerate"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,12 +7,7 @@ license.workspace = true
 
 [lib]
 name = "qiskit_accelerate"
-crate-type = ["cdylib"]
-
-[features]
-# This is a test-only shim removable feature.  See the root `Cargo.toml`.
-default = ["extension-module"]
-extension-module = ["pyo3/extension-module"]
+doctest = false
 
 [dependencies]
 rayon = "1.10"
@@ -27,6 +22,7 @@ num-bigint = "0.4"
 rustworkx-core = "0.14"
 faer = "0.18.2"
 itertools = "0.12.1"
+qiskit-circuit.workspace = true
 
 [dependencies.smallvec]
 version = "1.13"
