@@ -1,12 +1,12 @@
 [package]
-name = "qiskit"
+name = "qiskit-pyext"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 
 [lib]
-name = "qiskit"
+name = "qiskit_pyext"
 doctest = false
 crate-type = ["cdylib"]
 

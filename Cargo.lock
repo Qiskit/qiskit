@@ -1070,17 +1070,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qiskit"
-version = "1.1.0"
-dependencies = [
- "pyo3",
- "qiskit-accelerate",
- "qiskit-circuit",
- "qiskit-qasm2",
- "qiskit-qasm3",
-]
-
-[[package]]
 name = "qiskit-accelerate"
 version = "1.1.0"
 dependencies = [
@@ -1112,6 +1101,17 @@ version = "1.1.0"
 dependencies = [
  "hashbrown 0.14.3",
  "pyo3",
+]
+
+[[package]]
+name = "qiskit-pyext"
+version = "1.1.0"
+dependencies = [
+ "pyo3",
+ "qiskit-accelerate",
+ "qiskit-circuit",
+ "qiskit-qasm2",
+ "qiskit-qasm3",
 ]
 
 [[package]]

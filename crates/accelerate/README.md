@@ -5,8 +5,8 @@ that are used by the main Python-space components to accelerate certain tasks.  
 speed up one particular Python function by replacing its innards with a Rust one, this is the best
 place to put the code.  This is _usually_ the right place to put new Rust/Python code.
 
-The `pyext` crate is what actually builds the C extension modules.  Modules in here should define
-themselves has being submodules of `qiskit._accelerate`, and then the `pyext` crate should bind them
+The `qiskit-pyext` crate is what actually builds the C extension modules.  Modules in here should define
+themselves has being submodules of `qiskit._accelerate`, and then the `qiskit-pyext` crate should bind them
 into its `fn _accelerate` when it's making the C extension.
 
 Some examples of when it might be more appropriate to start a new crate:

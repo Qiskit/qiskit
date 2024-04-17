@@ -1,4 +1,4 @@
-# `qiskit`
+# `qiskit-pyext`
 
 This is the Rust crate that actually builds the `qiskit._accelerate` Python extension module.
 
