@@ -32,7 +32,7 @@ from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.bit import Bit
 from qiskit.dagcircuit.dagnode import DAGOpNode
 from qiskit.dagcircuit.exceptions import DAGDependencyError
-from qiskit.circuit.commutation_checker import CommutationChecker
+from qiskit.circuit.commutation_library import SessionCommutationChecker as scc
 
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
@@ -119,7 +119,7 @@ class _DAGDependencyV2:
 
         self.leaves = set()
 
-        self.comm_checker = CommutationChecker()
+        self.comm_checker = scc
 
     @property
     def global_phase(self):
