@@ -453,11 +453,11 @@ def _merge_UCGate_and_diag(single_qubit_gates, diag):
 
 
 def _a(k, s):
-    return k // 2**s
+    return isometry_rs.a(k, s)
 
 
 def _b(k, s):
-    return k - (_a(k, s) * 2**s)
+    return isometry_rs.b(k, s)
 
 
 # given a binary representation of k with binary digits [k_{n-1},..,k_1,k_0],
@@ -465,11 +465,7 @@ def _b(k, s):
 
 
 def _k_s(k, s):
-    if k == 0:
-        return 0
-    else:
-        num_digits = s + 1
-        return _get_binary_rep_as_list(k, num_digits)[0]
+    return isometry_rs.k_s(k, s)
 
 
 # Check if a gate of a special form is equal to the identity gate up to global phase
