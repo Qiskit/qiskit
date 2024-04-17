@@ -65,6 +65,10 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
         params = []
     if gate in ("U", "u"):
         gc = gates.UGate
+    elif gate == "u1":
+        gc = gates.U1Gate
+    elif gate == "u2":
+        gc = gates.U2Gate
     elif gate == "u3":
         gc = gates.U3Gate
     elif gate == "h":
