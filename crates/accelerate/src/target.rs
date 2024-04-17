@@ -124,12 +124,13 @@ impl InstructionProperties {
 }
 
 type GateMapType = HashMap<String, Option<HashMap<Option<HashableVec<u32>>, Option<PyObject>>>>;
+type TargetValue = Option<HashMap<Option<HashableVec<u32>>, Option<Py<PyAny>>>>;
 
 #[pyclass(mapping, module = "qiskit._accelerate.target.Target")]
 #[derive(Clone, Debug)]
 pub struct Target {
     #[pyo3(get, set)]
-    pub description: String,
+    pub description: Option<String>,
     #[pyo3(get)]
     pub num_qubits: Option<usize>,
     #[pyo3(get)]
@@ -187,7 +188,7 @@ impl Target {
         concurrent_measurements: Option<Vec<Vec<usize>>>,
     ) -> Self {
         Target {
-            description: description.unwrap_or("".to_string()),
+            description,
             num_qubits,
             dt,
             granularity: granularity.unwrap_or(1),
@@ -870,6 +871,7 @@ impl Target {
         Vec::from_iter(0..self.num_qubits.unwrap_or_default())
     }
 
+    // Class methods
     #[classmethod]
     fn from_configuration(
         _cls: &Bound<'_, PyType>,
@@ -1191,6 +1193,39 @@ impl Target {
             }
         }
         Ok(target)
+    }
+
+    // Magic methods:
+    fn __iter__(&self) -> PyResult<Vec<String>> {
+        Ok(self.gate_map.keys().cloned().collect())
+    }
+
+    fn __getitem__(&self, key: String) -> PyResult<TargetValue> {
+        if let Some(value) = self.gate_map.get(&key) {
+            Ok(value.to_owned())
+        } else {
+            Err(PyKeyError::new_err(format!("{key} not in gate_map")))
+        }
+    }
+
+    fn __len__(&self) -> PyResult<usize> {
+        Ok(self.gate_map.len())
+    }
+
+    fn __contains__(&self, item: String) -> PyResult<bool> {
+        Ok(self.gate_map.contains_key(&item))
+    }
+
+    fn keys(&self) -> PyResult<Vec<String>> {
+        Ok(self.gate_map.keys().cloned().collect())
+    }
+
+    fn values(&self) -> PyResult<Vec<TargetValue>> {
+        Ok(self.gate_map.values().cloned().collect())
+    }
+
+    fn items(&self) -> PyResult<Vec<(String, TargetValue)>> {
+        Ok(self.gate_map.clone().into_iter().collect())
     }
 }
 

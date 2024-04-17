@@ -145,26 +145,69 @@ class InstructionProperties:
 class Target:
     def __init__(
         self,
-        description=None,
-        num_qubits=0,
-        dt=None,
-        granularity=1,
-        min_length=1,
-        pulse_alignment=1,
-        acquire_alignment=1,
-        qubit_properties=None,
-        concurrent_measurements=None,
+        description: str | None = None,
+        num_qubits: int = 0,
+        dt: float | None = None,
+        granularity: int = 1,
+        min_length: int = 1,
+        pulse_alignment: int = 1,
+        acquire_alignment: int = 1,
+        qubit_properties: list | None = None,
+        concurrent_measurements: list | None = None,
     ):
+        """
+        Create a new ``Target`` object
+
+        Args:
+            description (str): An optional string to describe the Target.
+            num_qubits (int): An optional int to specify the number of qubits
+                the backend target has. If not set it will be implicitly set
+                based on the qargs when :meth:`~qiskit.Target.add_instruction`
+                is called. Note this must be set if the backend target is for a
+                noiseless simulator that doesn't have constraints on the
+                instructions so the transpiler knows how many qubits are
+                available.
+            dt (float): The system time resolution of input signals in seconds
+            granularity (int): An integer value representing minimum pulse gate
+                resolution in units of ``dt``. A user-defined pulse gate should
+                have duration of a multiple of this granularity value.
+            min_length (int): An integer value representing minimum pulse gate
+                length in units of ``dt``. A user-defined pulse gate should be
+                longer than this length.
+            pulse_alignment (int): An integer value representing a time
+                resolution of gate instruction starting time. Gate instruction
+                should start at time which is a multiple of the alignment
+                value.
+            acquire_alignment (int): An integer value representing a time
+                resolution of measure instruction starting time. Measure
+                instruction should start at time which is a multiple of the
+                alignment value.
+            qubit_properties (list): A list of :class:`~.QubitProperties`
+                objects defining the characteristics of each qubit on the
+                target device. If specified the length of this list must match
+                the number of qubits in the target, where the index in the list
+                matches the qubit number the properties are defined for. If some
+                qubits don't have properties available you can set that entry to
+                ``None``
+            concurrent_measurements(list): A list of sets of qubits that must be
+                measured together. This must be provided
+                as a nested list like ``[[0, 1], [2, 3, 4]]``.
+        Raises:
+            ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
+                defined and the value of ``num_qubits`` differs from the length of
+                ``qubit_properties``.
+        """
+
         self._Target = Target2(
-            description,
-            num_qubits,
-            dt,
-            granularity,
-            min_length,
-            pulse_alignment,
-            acquire_alignment,
-            qubit_properties,
-            concurrent_measurements,
+            description=description,
+            num_qubits=num_qubits,
+            dt=dt,
+            granularity=granularity,
+            min_length=min_length,
+            pulse_alignment=pulse_alignment,
+            acquire_alignment=acquire_alignment,
+            qubit_properties=qubit_properties,
+            concurrent_measurements=concurrent_measurements,
         )
 
     # Convert prior attributes into properties to get dynamically
@@ -910,3 +953,61 @@ class Target:
             custom_name_mapping,
         )
         return target
+
+    # Magic methods
+    def __iter__(self):
+        return iter(self._Target.__iter__())
+
+    def __getitem__(self, key):
+        return self._Target[key]
+
+    def __len__(self):
+        return len(self._Target)
+
+    def __contains__(self, item):
+        return item in self._Target
+
+    def keys(self):
+        return {x: None for x in self._Target.keys()}.keys()
+
+    def values(self):
+        return self._Target.values()
+
+    def items(self):
+        return self._Target.gate_map.items()
+
+    def __str__(self):
+        output = io.StringIO()
+        if self.description is not None:
+            output.write(f"Target: {self.description}\n")
+        else:
+            output.write("Target\n")
+        output.write(f"Number of qubits: {self.num_qubits}\n")
+        output.write("Instructions:\n")
+        for inst, qarg_props in self._Target.items():
+            output.write(f"\t{inst}\n")
+            for qarg, props in qarg_props.items():
+                if qarg is None:
+                    continue
+                if props is None:
+                    output.write(f"\t\t{qarg}\n")
+                    continue
+                prop_str_pieces = [f"\t\t{qarg}:\n"]
+                duration = getattr(props, "duration", None)
+                if duration is not None:
+                    prop_str_pieces.append(f"\t\t\tDuration: {duration} sec.\n")
+                error = getattr(props, "error", None)
+                if error is not None:
+                    prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
+                schedule = getattr(props, "_calibration", None)
+                if schedule is not None:
+                    prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
+                extra_props = getattr(props, "properties", None)
+                if extra_props is not None:
+                    extra_props_pieces = [
+                        f"\t\t\t\t{key}: {value}\n" for key, value in extra_props.items()
+                    ]
+                    extra_props_str = "".join(extra_props_pieces)
+                    prop_str_pieces.append(f"\t\t\tExtra properties:\n{extra_props_str}\n")
+                output.write("".join(prop_str_pieces))
+        return output.getvalue()
