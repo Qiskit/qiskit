@@ -164,10 +164,10 @@ class Parameter(ParameterExpression):
     # operation attempts to put this parameter into a hashmap.
 
     def __getstate__(self):
-        return (self._uuid, self._symbol_expr)
+        return (self.name, self._uuid, self._symbol_expr)
 
     def __setstate__(self, state):
-        self._uuid, self._symbol_expr = state
+        _, self._uuid, self._symbol_expr = state
         self._parameter_keys = frozenset((self._hash_key(),))
         self._hash = hash((self._parameter_keys, self._symbol_expr))
         self._parameter_symbols = {self: self._symbol_expr}
