@@ -158,6 +158,8 @@ pub struct Target {
     instruction_schedule_map: Option<PyObject>,
     #[pyo3(get, set)]
     coupling_graph: Option<PyObject>,
+    non_global_strict_basis: Option<Vec<String>>,
+    non_global_basis: Option<Vec<String>>,
 }
 
 #[pymethods]
@@ -197,9 +199,11 @@ impl Target {
             gate_name_map: HashMap::new(),
             global_operations: HashMap::new(),
             qarg_gate_map: HashMap::new(),
-            instruction_durations: Option::None,
-            instruction_schedule_map: Option::None,
-            coupling_graph: Option::None,
+            coupling_graph: None,
+            instruction_durations: None,
+            instruction_schedule_map: None,
+            non_global_basis: None,
+            non_global_strict_basis: None,
         }
     }
 
@@ -775,6 +779,75 @@ impl Target {
             )));
         }
         Ok(instruction_properties[index].to_owned())
+    }
+
+    #[pyo3(text_signature = "(/, strict_direction=False)")]
+    fn get_non_global_operation_names(
+        &mut self,
+        py: Python<'_>,
+        strict_direction: bool,
+    ) -> PyResult<PyObject> {
+        let mut search_set: HashSet<HashableVec<u32>> = HashSet::new();
+        if strict_direction {
+            if let Some(global_strict) = &self.non_global_strict_basis {
+                return Ok(global_strict.to_object(py));
+            }
+            // Build search set
+            for qarg_key in self.qarg_gate_map.keys().flatten().cloned() {
+                search_set.insert(qarg_key);
+            }
+        } else {
+            if let Some(global_basis) = &self.non_global_basis {
+                return Ok(global_basis.to_object(py));
+            }
+            for qarg_key in self.qarg_gate_map.keys().flatten().cloned() {
+                if qarg_key.vec.len() != 1 {
+                    search_set.insert(qarg_key);
+                }
+            }
+        }
+        let mut incomplete_basis_gates: Vec<String> = vec![];
+        let mut size_dict: HashMap<usize, usize> = HashMap::new();
+        *size_dict
+            .entry(1)
+            .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
+        for qarg in search_set {
+            if qarg.vec.len() == 1 {
+                continue;
+            }
+            *size_dict.entry(qarg.vec.len()).or_insert(0) += 1;
+        }
+        for (inst, qargs) in self.gate_map.iter() {
+            if let Some(qargs) = qargs {
+                let mut qarg_len = qargs.len();
+                let qarg_sample = qargs.keys().next();
+                if qarg_sample.is_none() {
+                    continue;
+                }
+                let qarg_sample = qarg_sample.unwrap();
+                if !strict_direction {
+                    let mut qarg_set = HashSet::new();
+                    for qarg in qargs.keys() {
+                        if let Some(qarg) = qarg.to_owned() {
+                            qarg_set.insert(qarg);
+                        }
+                    }
+                    qarg_len = qarg_set.len();
+                }
+                if let Some(qarg_sample) = qarg_sample {
+                    if qarg_len != size_dict[&qarg_sample.vec.len()] {
+                        incomplete_basis_gates.push(inst.to_owned());
+                    }
+                }
+            }
+        }
+        if strict_direction {
+            self.non_global_strict_basis = Some(incomplete_basis_gates);
+            Ok(self.non_global_strict_basis.to_object(py))
+        } else {
+            self.non_global_basis = Some(incomplete_basis_gates);
+            Ok(self.non_global_basis.to_object(py))
+        }
     }
 }
 
