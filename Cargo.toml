@@ -16,7 +16,11 @@ license = "Apache-2.0"
 [workspace.dependencies]
 indexmap.version = "2.2.6"
 hashbrown.version = "0.14.0"
-# Most of the crates don't need `extension-module`, since only `qiskit` builds an actual C extension.
+# Most of the crates don't need the feature `extension-module`, since only `qiskit` builds an actual
+# C extension (the feature disables linking in `libpython`, which is forbidden in Python
+# distributions).  We only activate that feature when building the C extension module; we still need
+# it disabled for Rust-only tests to avoid linker errors with it not being loaded.  See
+# https://pyo3.rs/main/features#extension-module for more.
 pyo3 = { version = "0.21.2", features = ["abi3-py38"] }
 
 # These are our own crates.
