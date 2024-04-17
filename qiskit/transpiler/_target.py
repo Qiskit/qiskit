@@ -206,7 +206,34 @@ class Target:
 
     @property
     def instructions(self):
+        """Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+        for the target
+
+        For globally defined variable width operations the tuple will be of the form
+        ``(class, None)`` where class is the actual operation class that
+        is globally defined.
+        """
         return self._Target.instructions
+
+    @property
+    def qargs(self):
+        """The set of qargs in the target."""
+        return self._Target.qargs
+
+    @property
+    def operation_names(self):
+        """Get the operation names in the target."""
+        return {x: None for x in self._Target.operation_names}.keys()
+
+    @property
+    def operations(self):
+        """Get the operation class objects in the target."""
+        return self._Target.operations
+
+    @property
+    def physical_qubits(self):
+        """Returns a sorted list of physical_qubits"""
+        return self._Target.physical_qubits
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -417,10 +444,6 @@ class Target:
         """
         out_inst_schedule_map = InstructionScheduleMap()
         return self._Target.instruction_schedule_map(out_inst_schedule_map)
-
-    @property
-    def qargs(self):
-        return self._Target.qargs
 
     def qargs_for_operation_name(self, operation):
         """Get the qargs for a given operation name

@@ -340,24 +340,6 @@ impl Target {
         Ok(())
     }
 
-    #[getter]
-    fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, PyObject)>> {
-        // Get list of instructions.
-        let mut instruction_list: Vec<(PyObject, PyObject)> = vec![];
-        // Add all operations and dehash qargs.
-        for op in self.gate_map.keys() {
-            if let Some(gate_map_op) = self.gate_map[op].as_ref() {
-                for qarg in gate_map_op.keys() {
-                    let instruction_pair =
-                        (self.gate_name_map[op].clone(), qarg.clone().into_py(py));
-                    instruction_list.push(instruction_pair);
-                }
-            }
-        }
-        // Return results.
-        Ok(instruction_list)
-    }
-
     #[pyo3(text_signature = "/")]
     fn instruction_schedule_map(
         &mut self,
@@ -392,16 +374,6 @@ impl Target {
         }
         self.instruction_schedule_map = Some(out_inst_schedule_map.clone().unbind());
         out_inst_schedule_map.to_object(py)
-    }
-
-    #[getter]
-    fn qargs(&self) -> PyResult<Option<HashSet<Option<HashableVec<u32>>>>> {
-        let qargs: HashSet<Option<HashableVec<u32>>> =
-            self.qarg_gate_map.clone().into_keys().collect();
-        if qargs.len() == 1 && qargs.iter().next().is_none() {
-            return Ok(None);
-        }
-        Ok(Some(qargs))
     }
 
     #[pyo3(text_signature = "(/, operation)")]
@@ -848,6 +820,53 @@ impl Target {
             self.non_global_basis = Some(incomplete_basis_gates);
             Ok(self.non_global_basis.to_object(py))
         }
+    }
+
+    // Class properties
+    #[getter]
+    fn qargs(&self) -> PyResult<Option<HashSet<Option<HashableVec<u32>>>>> {
+        let qargs: HashSet<Option<HashableVec<u32>>> =
+            self.qarg_gate_map.clone().into_keys().collect();
+        if qargs.len() == 1 && qargs.iter().next().is_none() {
+            return Ok(None);
+        }
+        Ok(Some(qargs))
+    }
+
+    #[getter]
+    fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, PyObject)>> {
+        // Get list of instructions.
+        let mut instruction_list: Vec<(PyObject, PyObject)> = vec![];
+        // Add all operations and dehash qargs.
+        for op in self.gate_map.keys() {
+            if let Some(gate_map_op) = self.gate_map[op].as_ref() {
+                for qarg in gate_map_op.keys() {
+                    let instruction_pair =
+                        (self.gate_name_map[op].clone(), qarg.clone().into_py(py));
+                    instruction_list.push(instruction_pair);
+                }
+            }
+        }
+        // Return results.
+        Ok(instruction_list)
+    }
+
+    #[getter]
+    fn operation_names(&self) -> Vec<String> {
+        // Get the operation names in the target.
+        return Vec::from_iter(self.gate_map.keys().cloned());
+    }
+
+    #[getter]
+    fn operations(&self) -> Vec<PyObject> {
+        // Get the operation names in the target.
+        return Vec::from_iter(self.gate_name_map.values().cloned());
+    }
+
+    #[getter]
+    fn physical_qubits(&self) -> Vec<usize> {
+        // Returns a sorted list of physical qubits.
+        Vec::from_iter(0..self.num_qubits.unwrap_or_default())
     }
 }
 
