@@ -810,3 +810,103 @@ class Target:
             List[str]: A list of operation names for operations that aren't global in this target
         """
         return self._Target.get_non_global_operation_names(strict_direction)
+
+    @classmethod
+    def from_configuration(
+        cls,
+        basis_gates: list[str],
+        num_qubits: int | None = None,
+        coupling_map: CouplingMap | None = None,
+        inst_map: InstructionScheduleMap | None = None,
+        backend_properties: BackendProperties | None = None,
+        instruction_durations: InstructionDurations | None = None,
+        concurrent_measurements: Optional[List[List[int]]] = None,
+        dt: float | None = None,
+        timing_constraints: TimingConstraints | None = None,
+        custom_name_mapping: dict[str, Any] | None = None,
+    ) -> Target:
+        """Create a target object from the individual global configuration
+
+        Prior to the creation of the :class:`~.Target` class, the constraints
+        of a backend were represented by a collection of different objects
+        which combined represent a subset of the information contained in
+        the :class:`~.Target`. This function provides a simple interface
+        to convert those separate objects to a :class:`~.Target`.
+
+        This constructor will use the input from ``basis_gates``, ``num_qubits``,
+        and ``coupling_map`` to build a base model of the backend and the
+        ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs
+        are then queried (in that order) based on that model to look up the properties
+        of each instruction and qubit. If there is an inconsistency between the inputs
+        any extra or conflicting information present in ``instruction_durations``,
+        ``backend_properties``, or ``inst_map`` will be ignored.
+
+        Args:
+            basis_gates: The list of basis gate names for the backend. For the
+                target to be created these names must either be in the output
+                from :func:`~.get_standard_gate_name_mapping` or present in the
+                specified ``custom_name_mapping`` argument.
+            num_qubits: The number of qubits supported on the backend.
+            coupling_map: The coupling map representing connectivity constraints
+                on the backend. If specified all gates from ``basis_gates`` will
+                be supported on all qubits (or pairs of qubits).
+            inst_map: The instruction schedule map representing the pulse
+               :class:`~.Schedule` definitions for each instruction. If this
+               is specified ``coupling_map`` must be specified. The
+               ``coupling_map`` is used as the source of truth for connectivity
+               and if ``inst_map`` is used the schedule is looked up based
+               on the instructions from the pair of ``basis_gates`` and
+               ``coupling_map``. If you want to define a custom gate for
+               a particular qubit or qubit pair, you can manually build :class:`.Target`.
+            backend_properties: The :class:`~.BackendProperties` object which is
+                used for instruction properties and qubit properties.
+                If specified and instruction properties are intended to be used
+                then the ``coupling_map`` argument must be specified. This is
+                only used to lookup error rates and durations (unless
+                ``instruction_durations`` is specified which would take
+                precedence) for instructions specified via ``coupling_map`` and
+                ``basis_gates``.
+            instruction_durations: Optional instruction durations for instructions. If specified
+                it will take priority for setting the ``duration`` field in the
+                :class:`~InstructionProperties` objects for the instructions in the target.
+            concurrent_measurements(list): A list of sets of qubits that must be
+                measured together. This must be provided
+                as a nested list like ``[[0, 1], [2, 3, 4]]``.
+            dt: The system time resolution of input signals in seconds
+            timing_constraints: Optional timing constraints to include in the
+                :class:`~.Target`
+            custom_name_mapping: An optional dictionary that maps custom gate/operation names in
+                ``basis_gates`` to an :class:`~.Operation` object representing that
+                gate/operation. By default, most standard gates names are mapped to the
+                standard gate object from :mod:`qiskit.circuit.library` this only needs
+                to be specified if the input ``basis_gates`` defines gates in names outside
+                that set.
+
+        Returns:
+            Target: the target built from the input configuration
+
+        Raises:
+            TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
+            specified.
+            KeyError: If no mapping is available for a specified ``basis_gate``.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.providers.backend_compat import qubit_props_list_from_props
+
+        target = cls()
+        target._Target = Target2.from_configuration(
+            qubit_props_list_from_props,
+            get_standard_gate_name_mapping,
+            inspect.isclass,
+            basis_gates,
+            num_qubits,
+            coupling_map,
+            inst_map,
+            backend_properties,
+            instruction_durations,
+            concurrent_measurements,
+            dt,
+            timing_constraints,
+            custom_name_mapping,
+        )
+        return target
