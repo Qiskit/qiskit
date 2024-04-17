@@ -1,8 +1,45 @@
 ---
 upgrade_providers:
   - |
-    The :class:`.BasicSimulator` python-based simulator included in :mod:`qiskit.providers.basic_provider` 
+    The :class:`.BasicSimulator` python-based simulator included in :mod:`qiskit.providers.basic_provider`
     now includes all the standard gates (:mod:`qiskit.circuit.library .standard_gates`). The new basis support includes:
-    ``s`` (:class:`.SGate`), ``sdg`` (:class:`.SdgGate`), ``sx`` (:class:`.SXGate`), ``sdgx`` (:class:`.SdgXGate`),
-    ``t`` (:class:`.TGate`), ``tdg`` (:class:`.TdgGate`), ``y`` (:class:`.YGate`), ``z`` (:class:`.ZGate`),
-    ``id`` (and the alias ``i``, :class:`.IGate`), ``r`` (:class:`.RGate`), ``rx`` (:class:`.RXGate`), and ``ry`` (:class:`.RYGate`).
+    ``c3sx`` (:class:`.C3SXGate`),
+    ``ccx`` (:class:`.CCXGate`),
+    ``ccz`` (:class:`.CCZGate`),
+    ``ch`` (:class:`.CHGate`),
+    ``cp`` (:class:`.CPhaseGate`),
+    ``crx`` (:class:`.CRXGate`),
+    ``cry`` (:class:`.CRYGate`),
+    ``crz`` (:class:`.CRZGate`),
+    ``cs`` (:class:`.CSGate`),
+    ``csdg`` (:class:`.CSdgGate`),
+    ``cswap`` (:class:`.CSwapGate`),
+    ``csx`` (:class:`.CSXGate`),
+    ``cu`` (:class:`.CUGate`),
+    ``cu1`` (:class:`.CU1Gate`),
+    ``cu3`` (:class:`.CU3Gate`),
+    ``cy`` (:class:`.CYGate`),
+    ``cz`` (:class:`.CZGate`),
+    ``dcx`` (:class:`.DCXGate`),
+    ``ecr`` (:class:`.ECRGate`),
+    ``global_phase`` (:class:`.GlobalPhaseGate`),
+    ``id`` (:class:`.IGate`),
+    ``iswap`` (:class:`.iSwapGate`),
+    ``r`` (:class:`.RGate`),
+    ``rcccx`` (:class:`.RC3XGate`),
+    ``rccx`` (:class:`.RCCXGate`),
+    ``rx`` (:class:`.RXGate`),
+    ``rxx`` (:class:`.RXXGate`),
+    ``ry`` (:class:`.RYGate`),
+    ``ryy`` (:class:`.RYYGate`),
+    ``rz`` (:class:`.RZGate`),
+    ``rzz`` (:class:`.RZZGate`),
+    ``s`` (:class:`.SGate`),
+    ``sdg`` (:class:`.SdgGate`),
+    ``swap`` (:class:`.SwapGate`),
+    ``sx`` (:class:`.SXGate`),
+    ``sdgx`` (:class:`.SdgXGate`),
+    ``t`` (:class:`.TGate`),
+    ``tdg`` (:class:`.TdgGate`),
+    ``y`` (:class:`.YGate`), and
+    ``z`` (:class:`.ZGate`).
