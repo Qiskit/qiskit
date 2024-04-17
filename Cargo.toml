@@ -17,7 +17,7 @@ license = "Apache-2.0"
 indexmap.version = "2.2.6"
 hashbrown.version = "0.14.0"
 # Most of the crates don't need `extension-module`, since only `qiskit` builds an actual C extension.
-pyo3 = { version = "0.21.0", features = ["abi3-py38"] }
+pyo3 = { version = "0.21.2", features = ["abi3-py38"] }
 
 # These are our own crates.
 qiskit-accelerate = { path = "crates/accelerate" }
