@@ -51,7 +51,7 @@ use pyo3::{PyObject, PyResult};
     freelist = 20,
     sequence,
     get_all,
-    module = "qiskit._accelerate.quantum_circuit"
+    module = "qiskit._accelerate.circuit"
 )]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
