@@ -489,7 +489,7 @@ class TestStatevector(QiskitTestCase):
     def test_to_dict_decimals(self):
         """Test to_dict method with decimals argument."""
         decimal = 3
-        sv = np.array([1/np.sqrt(2), 0, 0, -1/np.sqrt(2)], dtype=np.complex128)
+        sv = np.array([1 / np.sqrt(2), 0, 0, -1 / np.sqrt(2)], dtype=np.complex128)
         vec_rounded = Statevector(sv).to_dict(decimals=decimal)
         expected = {"00": 0.707, "11": -0.707}
         self.assertEqual(vec_rounded, expected)
