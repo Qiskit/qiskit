@@ -117,8 +117,12 @@ class _DAGDependencyV2:
         self.duration = None
         self.unit = "dt"
 
+        # The set of initial starting nodes for a reverse
+        # topological sort of the DAG
         self.leaves = set()
 
+        # The commutation checker initialized with
+        # _standard_gates_commutations library
         self.comm_checker = scc
 
     @property
