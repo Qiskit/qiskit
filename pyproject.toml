@@ -241,7 +241,6 @@ disable = [
     "use-dict-literal",
     "use-list-literal",
     "use-implicit-booleaness-not-comparison",
-    "use-maxsplit-arg",
 ]
 
 enable = [
