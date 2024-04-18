@@ -19,7 +19,6 @@ import ddt
 import numpy as np
 
 from qiskit.primitives.containers import BitArray
-from qiskit.primitives.containers.bit_array import concatenate
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
 
@@ -338,12 +337,13 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.transpose((0, 1, 1))
 
     def test_concatenate(self):
-        """Test the transpose method."""
+        """Test the concatenate function."""
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate = BitArray.concatenate
 
         with self.subTest("default"):
             ba2 = concatenate([ba, ba])
@@ -502,3 +502,35 @@ class BitArrayTestCase(QiskitTestCase):
             # 5th bit are all 1
             expval = ba.expectation_value(sp_op3, (0, 1, 2))
             self.assertAlmostEqual(expval, -1)
+
+    def test_stack_shots(self):
+        """Test the stack_shots function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        stack_shots = BitArray.stack_shots
+
+        with self.subTest("default"):
+            ba2 = stack_shots([ba, ba])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                counts_x2 = {key: val * 2 for key, val in ba.get_counts((i, j, k)).items()}
+                counts2 = ba2.get_counts((i, j, k))
+                self.assertEqual(counts_x2, counts2)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to concatenate"):
+                _ = stack_shots([])
+
+            ba2 = BitArray(data, 10)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
+                _ = stack_shots([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same shape"
+            ):
+                _ = stack_shots([ba, ba2])

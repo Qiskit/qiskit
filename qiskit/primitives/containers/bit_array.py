@@ -431,53 +431,90 @@ class BitArray(ShapedMixin):
         counts = self.get_counts(loc)
         return sampled_expectation_value(counts, operator)
 
+    @staticmethod
+    def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
+        """Join a sequence of bit arrays along an existing axis.
 
-def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
-    """Join a sequence of bit arrays along an existing axis.
+        Args:
+            bitarrays: The bit arrays must have (1) the same number of bits,
+                (2) the same number of shots, and
+                (3) the same shape, except in the dimension corresponding to axis
+                (the first, by default).
+            axis: The axis along which the arrays will be joined. Default is 0.
 
-    Args:
-        bitarrays: The bit arrays must have (1) the same number of bits,
-            (2) the same number of shots, and
-            (3) the same shape, except in the dimension corresponding to axis
-            (the first, by default).
-        axis: The axis along which the arrays will be joined. Default is 0.
+        Returns:
+            BitArray: The concatenated bit array.
 
-    Returns:
-        BitArray: The concatenated bit array.
+        Raises:
+            ValueError: if the sequence of bit arrays is empty.
+            ValueError: if any bit arrays has a different number of shots.
+            ValueError: if any bit arrays has a different number of qubits.
+            ValueError: if any bit arrays has a different number of dimensions.
+        """
+        if len(bitarrays) == 0:
+            raise ValueError("Need at least one bit array to concatenate")
+        num_bits = bitarrays[0].num_bits
+        num_shots = bitarrays[0].num_shots
+        ndim = bitarrays[0].ndim
+        for i, ba in enumerate(bitarrays):
+            if ba.num_bits != num_bits:
+                raise ValueError(
+                    "All bit arrays must have same number of bits, "
+                    f"but the bit array at index 0 has {num_bits} bits "
+                    f"and the bit array at index {i} has {ba.num_bits} bits."
+                )
+            if ba.num_shots != num_shots:
+                raise ValueError(
+                    "All bit arrays must have same number of shots, "
+                    f"but the bit array at index 0 has {num_shots} shots "
+                    f"and the bit array at index {i} has {ba.num_shots} shots."
+                )
+            if ba.ndim != ndim:
+                raise ValueError(
+                    "All bit arrays must have same number of dimensions, "
+                    f"but the bit array at index 0 has {ndim} dimension(s) "
+                    f"and the bit array at index {i} has {ba.ndim} dimension(s)."
+                )
+        if axis is None:
+            raise ValueError(f"axis {axis} must be a non-negative integer.")
+        if axis < 0 or axis >= ndim:
+            raise ValueError(f"axis {axis} is out of bounds for bit array of dimension {ndim}.")
+        data = np.concatenate([ba.array for ba in bitarrays], axis=axis)
+        return BitArray(data, num_bits)
 
-    Raises:
-        ValueError: if the sequence of bit arrays is empty.
-        ValueError: if any bit arrays has a different number of shots.
-        ValueError: if any bit arrays has a different number of qubits.
-        ValueError: if any bit arrays has a different number of dimensions.
-    """
-    if len(bitarrays) == 0:
-        raise ValueError("Need at least one bit array to concatenate")
-    num_bits = bitarrays[0].num_bits
-    num_shots = bitarrays[0].num_shots
-    ndim = bitarrays[0].ndim
-    for i, ba in enumerate(bitarrays):
-        if ba.num_bits != num_bits:
-            raise ValueError(
-                "All bit arrays must have same number of bits, "
-                f"but the bit array at index 0 has {num_bits} bits "
-                f"and the bit array at index {i} has {ba.num_bits} bits."
-            )
-        if ba.num_shots != num_shots:
-            raise ValueError(
-                "All bit arrays must have same number of shots, "
-                f"but the bit array at index 0 has {num_shots} shots "
-                f"and the bit array at index {i} has {ba.num_shots} shots."
-            )
-        if ba.ndim != ndim:
-            raise ValueError(
-                "All bit arrays must have same number of dimensions, "
-                f"but the bit array at index 0 has {ndim} dimension(s) "
-                f"and the bit array at index {i} has {ba.ndim} dimension(s)."
-            )
-    if axis is None:
-        raise ValueError(f"axis {axis} must be a non-negative integer.")
-    if axis < 0 or axis >= ndim:
-        raise ValueError(f"axis {axis} is out of bounds for bit array of dimension {ndim}.")
-    data = np.concatenate([ba.array for ba in bitarrays], axis=axis)
-    return BitArray(data, num_bits)
+    @staticmethod
+    def stack_shots(bitarrays: Sequence[BitArray]) -> BitArray:
+        """Join a sequence of bit arrays along shots.
+
+        Args:
+            bitarrays: The bit arrays must have (1) the same number of bits,
+                and (2) the same shape.
+
+        Returns:
+            BitArray: The concatenated bit array.
+
+        Raises:
+            ValueError: if the sequence of bit arrays is empty.
+            ValueError: if any bit arrays has a different number of shots.
+            ValueError: if any bit arrays has a different number of qubits.
+            ValueError: if any bit arrays has a different shape.
+        """
+        if len(bitarrays) == 0:
+            raise ValueError("Need at least one bit array to concatenate")
+        num_bits = bitarrays[0].num_bits
+        shape = bitarrays[0].shape
+        for i, ba in enumerate(bitarrays):
+            if ba.num_bits != num_bits:
+                raise ValueError(
+                    "All bit arrays must have same number of bits, "
+                    f"but the bit array at index 0 has {num_bits} bits "
+                    f"and the bit array at index {i} has {ba.num_bits} bits."
+                )
+            if ba.shape != shape:
+                raise ValueError(
+                    "All bit arrays must have same shape, "
+                    f"but the bit array at index 0 has shape {shape} "
+                    f"and the bit array at index {i} has shape {ba.shape}."
+                )
+        data = np.concatenate([ba.array for ba in bitarrays], axis=-2)
+        return BitArray(data, num_bits)
