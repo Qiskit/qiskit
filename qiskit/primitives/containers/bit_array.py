@@ -38,6 +38,23 @@ def _min_num_bytes(num_bits: int) -> int:
     return num_bits // 8 + (num_bits % 8 > 0)
 
 
+def _unpack(bitarray: BitArray) -> NDArray[np.uint8]:
+    arr = np.unpackbits(bitarray.array, axis=-1, bitorder="big")
+    arr = arr[..., -1 : -bitarray.num_bits - 1 : -1]
+    return arr
+
+
+def _pack(arr: NDArray[np.uint8]) -> NDArray[np.uint8]:
+    arr = arr[..., ::-1]
+    num_bits = arr.shape[-1]
+    pad_size = -num_bits % 8
+    if pad_size > 0:
+        pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
+        arr = np.pad(arr, pad_width, constant_values=0)
+    arr = np.packbits(arr, axis=-1, bitorder="big")
+    return arr, num_bits
+
+
 class BitArray(ShapedMixin):
     """Stores an array of bit values.
 
@@ -399,15 +416,9 @@ class BitArray(ShapedMixin):
                 raise ValueError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
-        arr = np.unpackbits(self._array, axis=-1, bitorder="big")
-        arr = arr[..., -1 : -self.num_bits - 1 : -1]
-        arr = arr[..., indices[::-1]]
-        num_bits = len(indices)
-        pad_size = -num_bits % 8
-        if pad_size > 0:
-            pad_width = [(0, 0)] * (arr.ndim - 1) + [(pad_size, 0)]
-            arr = np.pad(arr, pad_width, constant_values=0)
-        arr = np.packbits(arr, axis=-1, bitorder="big")
+        arr = _unpack(self)
+        arr = arr[..., indices]
+        arr, num_bits = _pack(arr)
         return BitArray(arr, num_bits)
 
     def expectation_value(
@@ -447,8 +458,8 @@ class BitArray(ShapedMixin):
 
         Raises:
             ValueError: if the sequence of bit arrays is empty.
+            ValueError: if any bit arrays has a different number of bits.
             ValueError: if any bit arrays has a different number of shots.
-            ValueError: if any bit arrays has a different number of qubits.
             ValueError: if any bit arrays has a different number of dimensions.
         """
         if len(bitarrays) == 0:
@@ -491,16 +502,15 @@ class BitArray(ShapedMixin):
                 and (2) the same shape.
 
         Returns:
-            BitArray: The concatenated bit array.
+            BitArray: The stacked bit array.
 
         Raises:
             ValueError: if the sequence of bit arrays is empty.
-            ValueError: if any bit arrays has a different number of shots.
-            ValueError: if any bit arrays has a different number of qubits.
+            ValueError: if any bit arrays has a different number of bits.
             ValueError: if any bit arrays has a different shape.
         """
         if len(bitarrays) == 0:
-            raise ValueError("Need at least one bit array to concatenate")
+            raise ValueError("Need at least one bit array to stack")
         num_bits = bitarrays[0].num_bits
         shape = bitarrays[0].shape
         for i, ba in enumerate(bitarrays):
@@ -517,4 +527,41 @@ class BitArray(ShapedMixin):
                     f"and the bit array at index {i} has shape {ba.shape}."
                 )
         data = np.concatenate([ba.array for ba in bitarrays], axis=-2)
+        return BitArray(data, num_bits)
+
+    @staticmethod
+    def stack_bits(bitarrays: Sequence[BitArray]) -> BitArray:
+        """Join a sequence of bit arrays along bits.
+
+        Args:
+            bitarrays: The bit arrays must have (1) the same number of shots,
+                and (2) the same shape.
+
+        Returns:
+            BitArray: The stacked bit array.
+
+        Raises:
+            ValueError: if the sequence of bit arrays is empty.
+            ValueError: if any bit arrays has a different number of shots.
+            ValueError: if any bit arrays has a different shape.
+        """
+        if len(bitarrays) == 0:
+            raise ValueError("Need at least one bit array to stack")
+        num_shots = bitarrays[0].num_shots
+        shape = bitarrays[0].shape
+        for i, ba in enumerate(bitarrays):
+            if ba.num_shots != num_shots:
+                raise ValueError(
+                    "All bit arrays must have same number of shots, "
+                    f"but the bit array at index 0 has {num_shots} shots "
+                    f"and the bit array at index {i} has {ba.num_shots} shots."
+                )
+            if ba.shape != shape:
+                raise ValueError(
+                    "All bit arrays must have same shape, "
+                    f"but the bit array at index 0 has shape {shape} "
+                    f"and the bit array at index {i} has shape {ba.shape}."
+                )
+        data = np.concatenate([_unpack(ba) for ba in bitarrays], axis=-1)
+        data, num_bits = _pack(data)
         return BitArray(data, num_bits)

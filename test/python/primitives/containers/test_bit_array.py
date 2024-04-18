@@ -515,6 +515,7 @@ class BitArrayTestCase(QiskitTestCase):
         with self.subTest("default"):
             ba2 = stack_shots([ba, ba])
             self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 9)
             self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
             for i, j, k in product(range(1), range(2), range(3)):
                 counts_x2 = {key: val * 2 for key, val in ba.get_counts((i, j, k)).items()}
@@ -522,7 +523,7 @@ class BitArrayTestCase(QiskitTestCase):
                 self.assertEqual(counts_x2, counts2)
 
         with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "Need at least one bit array to concatenate"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
                 _ = stack_shots([])
 
             ba2 = BitArray(data, 10)
@@ -530,7 +531,43 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = stack_shots([ba, ba2])
 
             ba2 = ba.reshape(2, 3)
-            with self.assertRaisesRegex(
-                ValueError, "All bit arrays must have same shape"
-            ):
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
                 _ = stack_shots([ba, ba2])
+
+    def test_stack_bits(self):
+        """Test the stack_bits function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        stack_bits = BitArray.stack_bits
+
+        with self.subTest("default"):
+            ba_01 = ba.marginalize([0, 1])
+            ba2 = stack_bits([ba, ba_01])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 11)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                bs = ba.get_bitstrings((i, j, k))
+                bs_01 = ba_01.get_bitstrings((i, j, k))
+                expected = [s1 + s2 for s1, s2 in zip(bs_01, bs)]
+                bs2 = ba2.get_bitstrings((i, j, k))
+                self.assertEqual(bs2, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
+                _ = stack_bits([])
+
+            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
+            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
+            ba2 = BitArray(data2, 9)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of shots"
+            ):
+                _ = stack_bits([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
+                _ = stack_bits([ba, ba2])
