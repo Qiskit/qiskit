@@ -34,23 +34,7 @@ const EPS: f64 = 1e-10;
 /// v,u,r = outcome of the decomposition given in the reference mentioned above
 ///
 /// (see there for the details).
-#[pyfunction]
-pub fn demultiplex_single_uc(
-    py: Python,
-    a: PyReadonlyArray2<Complex64>,
-    b: PyReadonlyArray2<Complex64>,
-) -> (PyObject, PyObject, PyObject) {
-    let a = a.as_array();
-    let b = b.as_array();
-    let [v, u, r] = demultiplex_single_uc_inner(a, b);
-    (
-        v.into_pyarray_bound(py).into(),
-        u.into_pyarray_bound(py).into(),
-        r.into_pyarray_bound(py).into(),
-    )
-}
-
-fn demultiplex_single_uc_inner(
+fn demultiplex_single_uc(
     a: ArrayView2<Complex64>,
     b: ArrayView2<Complex64>,
 ) -> [Array2<Complex64>; 3] {
@@ -117,7 +101,7 @@ pub fn dec_ucg_help(
                 // https://arxiv.org/pdf/quant-ph/0410066.pdf
                 // to demultiplex one control of all the num_ucgs uniformly-controlled gates
                 // with log2(len_ucg) uniform controls
-                let [v, u, r] = demultiplex_single_uc_inner(a, b);
+                let [v, u, r] = demultiplex_single_uc(a, b);
                 // replace the single-qubit gates with v,u (the already existing ones
                 // are not needed any more)
                 single_qubit_gates[(shift + i) as usize] = v;
@@ -171,7 +155,6 @@ pub fn dec_ucg_help(
 
 #[pymodule]
 pub fn uc_gate(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pyfunction!(demultiplex_single_uc))?;
     m.add_wrapped(wrap_pyfunction!(dec_ucg_help))?;
     Ok(())
 }

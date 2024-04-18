@@ -201,21 +201,6 @@ class UCGate(Gate):
         single_qubit_gates = [gate.astype(complex) for gate in self.params]
         return uc_gate.dec_ucg_help(single_qubit_gates, self.num_qubits)
 
-    def _demultiplex_single_uc(self, a, b):
-        """
-        This method implements the decomposition given in equation (3) in
-        https://arxiv.org/pdf/quant-ph/0410066.pdf.
-        The decomposition is used recursively to decompose uniformly controlled gates.
-        a,b = single qubit unitaries
-        v,u,r = outcome of the decomposition given in the reference mentioned above
-        (see there for the details).
-        """
-        return uc_gate.demultiplex_single_uc(a, b)
-
-    @staticmethod
-    def _ct(m):
-        return np.transpose(np.conjugate(m))
-
     @staticmethod
     def _rz(alpha):
         return np.array([[np.exp(1j * alpha / 2), 0], [0, np.exp(-1j * alpha / 2)]])

@@ -424,10 +424,6 @@ def _reverse_qubit_oder(qubits):
 # Convert list of binary digits to integer
 
 
-def _bin_to_int(binary_digits_as_list):
-    return int("".join(str(x) for x in binary_digits_as_list), 2)
-
-
 def _get_binary_rep_as_list(n, num_digits):
     binary_string = np.binary_repr(n).zfill(num_digits)
     binary = []
