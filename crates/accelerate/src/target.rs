@@ -82,12 +82,20 @@ impl InstructionProperties {
     #[pyo3(text_signature = "(/, duration: float | None = None,
         error: float | None = None,
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
-    pub fn new(duration: Option<f32>, error: Option<f32>, calibration: Option<PyObject>) -> Self {
-        InstructionProperties {
+    pub fn new(
+        duration: Option<f32>,
+        error: Option<f32>,
+        calibration: Option<Bound<PyAny>>,
+    ) -> Self {
+        let mut instruction_prop = InstructionProperties {
             error,
             duration,
-            _calibration: calibration,
+            _calibration: None,
+        };
+        if let Some(calibration) = calibration {
+            let _ = instruction_prop.set_calibration(calibration);
         }
+        instruction_prop
     }
 
     #[getter]
@@ -99,8 +107,8 @@ impl InstructionProperties {
     }
 
     #[setter]
-    pub fn set_calibration(&mut self, py: Python<'_>, calibration: Bound<PyAny>) -> PyResult<()> {
-        self._calibration = Some(calibration.to_object(py));
+    pub fn set_calibration(&mut self, calibration: Bound<PyAny>) -> PyResult<()> {
+        self._calibration = Some(calibration.unbind());
         Ok(())
     }
 
@@ -708,8 +716,6 @@ impl Target {
         py: Python<'_>,
         operation_name: String,
         qargs: HashableVec<u32>,
-        args: Bound<PyTuple>,
-        kwargs: Option<Bound<PyDict>>,
     ) -> PyResult<PyObject> {
         /* Get calibrated pulse schedule for the instruction.
 
@@ -731,14 +737,11 @@ impl Target {
                 operation_name, qargs.vec
             )));
         }
-        Ok(
-            self.gate_map[&operation_name].as_ref().unwrap()[&Some(qargs)]
-                .as_ref()
-                .unwrap()
-                .getattr(py, "_calibration")?
-                .call_method_bound(py, "get_schedule", args, kwargs.as_ref())?
-                .to_object(py),
-        )
+
+        self.gate_map[&operation_name].as_ref().unwrap()[&Some(qargs)]
+            .as_ref()
+            .unwrap()
+            .getattr(py, "_calibration")
     }
 
     #[pyo3(text_signature = "(/, index: int)")]
@@ -996,7 +999,7 @@ impl Target {
                 for qubit in 0..num_qubits.unwrap_or_default() {
                     let mut error: Option<f32> = None;
                     let mut duration: Option<f32> = None;
-                    let mut calibration: Option<PyObject> = None;
+                    let mut calibration: Option<Bound<PyAny>> = None;
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
@@ -1031,7 +1034,7 @@ impl Target {
                                             * dt.unwrap_or_default(),
                                     );
                                 }
-                                Some(calibration.to_object(py))
+                                Some(calibration)
                             }
                             Err(_) => None,
                         }
@@ -1086,7 +1089,7 @@ impl Target {
                 for edge in edges.as_slice().iter().copied() {
                     let mut error: Option<f32> = None;
                     let mut duration: Option<f32> = None;
-                    let mut calibration: Option<PyObject> = None;
+                    let mut calibration: Option<Bound<PyAny>> = None;
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
@@ -1121,7 +1124,7 @@ impl Target {
                                             * dt.unwrap_or_default(),
                                     );
                                 }
-                                Some(calibration.to_object(py))
+                                Some(calibration)
                             }
                             Err(_) => None,
                         }
