@@ -689,7 +689,9 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
             )
 
         def _swap_mapped(property_set):
-            return property_set["final_layout"] is None
+            return (
+                property_set["final_layout"] is None and property_set["final_permutation"] is None
+            )
 
         if pass_manager_config.target is None:
             coupling_map = pass_manager_config.coupling_map
@@ -877,7 +879,9 @@ class SabreLayoutPassManager(PassManagerStagePlugin):
             return not property_set["layout"]
 
         def _swap_mapped(property_set):
-            return property_set["final_layout"] is None
+            return (
+                property_set["final_layout"] is None and property_set["final_permutation"] is None
+            )
 
         if pass_manager_config.target is None:
             coupling_map = pass_manager_config.coupling_map

@@ -29,7 +29,7 @@ from qiskit.passmanager.flow_controllers import FlowControllerLinear
 from qiskit.passmanager.exceptions import PassManagerError
 from .basepasses import BasePass
 from .exceptions import TranspilerError
-from .layout import TranspileLayout
+from .layout import TranspileLayout, Layout
 
 _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
@@ -74,10 +74,35 @@ class PassManager(BasePassManager):
             out_program.name = out_name
 
         if self.property_set["layout"] is not None:
+            # compute final_layout from "final_permutation" attribute (the new way) and
+            # "final_layout" attribute (for backward-consistency).
+            if (
+                self.property_set["final_layout"] is None
+                and self.property_set["final_permutation"] is None
+            ):
+                final_layout = None
+            elif self.property_set["final_layout"] is None:
+                final_layout = Layout(
+                    dict(zip(out_program.qubits, self.property_set["final_permutation"]))
+                )
+            elif self.property_set["final_permutation"] is None:
+                final_layout = self.property_set["final_layout"]
+            else:
+                # pylint: disable=cyclic-import
+                from .passes.utils import _compose_permutations
+
+                virtual_map = self.property_set["final_layout"].get_virtual_bits()
+                final_layout_permutation = [virtual_map[virt] for virt in out_program.qubits]
+
+                composed_final_permutation = _compose_permutations(
+                    self.property_set["final_permutation"], final_layout_permutation
+                )
+                final_layout = Layout(dict(zip(out_program.qubits, composed_final_permutation)))
+
             out_program._layout = TranspileLayout(
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
+                final_layout=final_layout,
                 _input_qubit_count=len(in_program.qubits),
                 _output_qubit_list=out_program.qubits,
             )

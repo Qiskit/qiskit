@@ -25,7 +25,7 @@ from qiskit.passmanager.base_tasks import GenericPass, PassManagerIR
 from qiskit.passmanager.compilation_status import PropertySet, RunState, PassManagerState
 
 from .exceptions import TranspilerError
-from .layout import TranspileLayout
+from .layout import TranspileLayout, Layout
 
 
 class MetaPass(abc.ABCMeta):
@@ -154,14 +154,40 @@ class BasePass(GenericPass, metaclass=MetaPass):
         elif result is None:
             result_circuit = circuit.copy()
 
-        if self.property_set["layout"]:
+        if self.property_set["layout"] is not None:
+            # compute final_layout from "final_permutation" attribute (the new way) and
+            # "final_layout" attribute (for backward-consistency).
+            if (
+                self.property_set["final_layout"] is None
+                and self.property_set["final_permutation"] is None
+            ):
+                final_layout = None
+            elif self.property_set["final_layout"] is None:
+                final_layout = Layout(
+                    dict(zip(result_circuit.qubits, self.property_set["final_permutation"]))
+                )
+            elif self.property_set["final_permutation"] is None:
+                final_layout = self.property_set["final_layout"]
+            else:
+                # pylint: disable=cyclic-import
+                from .passes.utils import _compose_permutations
+
+                virtual_map = self.property_set["final_layout"].get_virtual_bits()
+                final_layout_permutation = [virtual_map[virt] for virt in result_circuit.qubits]
+
+                composed_final_permutation = _compose_permutations(
+                    self.property_set["final_permutation"], final_layout_permutation
+                )
+                final_layout = Layout(dict(zip(result_circuit.qubits, composed_final_permutation)))
+
             result_circuit._layout = TranspileLayout(
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
+                final_layout=final_layout,
                 _input_qubit_count=len(circuit.qubits),
                 _output_qubit_list=result_circuit.qubits,
             )
+
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         if self.property_set["conditional_latency"] is not None:
