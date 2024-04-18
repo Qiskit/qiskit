@@ -14,7 +14,7 @@
 
 from test import QiskitTestCase
 
-from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister
+from qiskit.circuit import QuantumCircuit, CircuitError, Clbit, ClassicalRegister, Store
 from qiskit.circuit.classical import expr, types
 
 
@@ -240,6 +240,22 @@ class TestCircuitVars(QiskitTestCase):
         qc_init = QuantumCircuit(declarations=[(a, a_init), (b, b_init)])
         self.assertEqual(list(qc_init.iter_vars()), list(qc_manual.iter_vars()))
         self.assertEqual(qc_init.data, qc_manual.data)
+
+    def test_declarations_widen_integer_literals(self):
+        a = expr.Var.new("a", types.Uint(8))
+        b = expr.Var.new("b", types.Uint(16))
+        qc = QuantumCircuit(declarations=[(a, 3)])
+        qc.add_var(b, 5)
+        actual_initializers = [
+            (op.lvalue, op.rvalue)
+            for instruction in qc
+            if isinstance((op := instruction.operation), Store)
+        ]
+        expected_initializers = [
+            (a, expr.Value(3, types.Uint(8))),
+            (b, expr.Value(5, types.Uint(16))),
+        ]
+        self.assertEqual(actual_initializers, expected_initializers)
 
     def test_cannot_shadow_vars(self):
         """Test that exact duplicate ``Var`` nodes within different combinations of the inputs are

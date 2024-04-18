@@ -1753,7 +1753,18 @@ class QuantumCircuit:
         # Validate the initialiser first to catch cases where the variable to be declared is being
         # used in the initialiser.
         circuit_scope = self._current_scope()
-        initial = _validate_expr(circuit_scope, expr.lift(initial))
+        # Convenience method to widen Python integer literals to the right width during the initial
+        # lift, if the type is already known via the variable.
+        if (
+            isinstance(name_or_var, expr.Var)
+            and name_or_var.type.kind is types.Uint
+            and isinstance(initial, int)
+            and not isinstance(initial, bool)
+        ):
+            coerce_type = name_or_var.type
+        else:
+            coerce_type = None
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
