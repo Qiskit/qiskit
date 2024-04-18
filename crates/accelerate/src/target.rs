@@ -391,16 +391,21 @@ impl Target {
         Returns:
             set: The set of qargs the gate instance applies to.
          */
-        if let Some(gate_map_oper) = self.gate_map[&operation].as_ref() {
-            if gate_map_oper.is_empty() {
-                return Ok(None);
+        if let Some(gate_map_oper) = self.gate_map.get(&operation).cloned() {
+            if let Some(gate_map_op) = gate_map_oper {
+                if gate_map_op.contains_key(&None) {
+                    return Ok(None);
+                }
+                let qargs: Vec<Option<HashableVec<u32>>> = gate_map_op.into_keys().collect();
+                Ok(Some(qargs))
+            } else {
+                Ok(None)
             }
-
-            let qargs: Vec<Option<HashableVec<u32>>> =
-                gate_map_oper.to_owned().into_keys().collect();
-            return Ok(Some(qargs));
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Operation: {operation} not in Target."
+            )))
         }
-        Ok(Some(vec![]))
     }
 
     #[pyo3(text_signature = "(/, qargs)")]
@@ -416,7 +421,7 @@ impl Target {
                 res.append(op)?;
             }
         }
-        if let Some(qargs) = qargs {
+        if let Some(qargs) = &qargs {
             if qargs
                 .vec
                 .iter()
@@ -429,9 +434,9 @@ impl Target {
                 )));
             }
 
-            if let Some(gate_map_qarg) = self.qarg_gate_map[&Some(qargs.clone())].clone() {
+            if let Some(gate_map_qarg) = &self.qarg_gate_map[&Some(qargs.to_owned())] {
                 for x in gate_map_qarg {
-                    res.append(self.gate_name_map[&x].clone())?;
+                    res.append(self.gate_name_map[x].clone())?;
                 }
             }
 
@@ -440,12 +445,14 @@ impl Target {
                     res.append(arg)?;
                 }
             }
-            if res.is_empty() {
-                return Err(PyKeyError::new_err(format!(
-                    "{:?} not in target",
-                    qargs.vec
-                )));
-            }
+        }
+        if res.is_empty() {
+            return Err(PyKeyError::new_err(format!("{:?} not in target", {
+                match &qargs {
+                    Some(qarg) => format!("{:?}", qarg.vec),
+                    None => "None".to_owned(),
+                }
+            })));
         }
         Ok(res.into())
     }
@@ -829,7 +836,9 @@ impl Target {
     fn qargs(&self) -> PyResult<Option<HashSet<Option<HashableVec<u32>>>>> {
         let qargs: HashSet<Option<HashableVec<u32>>> =
             self.qarg_gate_map.clone().into_keys().collect();
-        if qargs.len() == 1 && qargs.iter().next().is_none() {
+        // Modify logic to account for the case of {None}
+        let next_entry = qargs.iter().flatten().next();
+        if qargs.len() == 1 && (qargs.iter().next().is_none() || next_entry.is_none()) {
             return Ok(None);
         }
         Ok(Some(qargs))

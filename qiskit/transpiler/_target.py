@@ -198,8 +198,9 @@ class Target:
                 ``qubit_properties``.
         """
 
+        # Convert descriptions to string in the case of numerical descriptors
         self._Target = Target2(
-            description=description,
+            description=str(description),
             num_qubits=num_qubits,
             dt=dt,
             granularity=granularity,
@@ -496,7 +497,8 @@ class Target:
         Returns:
             set: The set of qargs the gate instance applies to.
         """
-        return {x: None for x in self._Target.qargs_for_operation_name(operation)}.keys()
+        qargs = self._Target.qargs_for_operation_name(operation)
+        return {x: None for x in qargs}.keys() if qargs else qargs
 
     def durations(self):
         """Get an InstructionDurations object from the target
