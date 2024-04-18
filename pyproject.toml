@@ -225,7 +225,6 @@ disable = [
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
-    "non-ascii-name",
     "not-context-manager",
     "superfluous-parens",
     "unknown-option-value",
@@ -241,7 +240,6 @@ disable = [
     "use-dict-literal",
     "use-list-literal",
     "use-implicit-booleaness-not-comparison",
-    "use-maxsplit-arg",
 ]
 
 enable = [

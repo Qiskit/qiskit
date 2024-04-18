@@ -75,7 +75,7 @@ register_type!(PyClassicalRegister);
 
 /// Information received from Python space about how to construct a Python-space object to
 /// represent a given gate that might be declared.
-#[pyclass(module = "qiskit._qasm3", frozen, name = "CustomGate")]
+#[pyclass(module = "qiskit._accelerate.qasm3", frozen, name = "CustomGate")]
 #[derive(Clone, Debug)]
 pub struct PyGate {
     constructor: Py<PyAny>,
