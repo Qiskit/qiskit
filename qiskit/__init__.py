@@ -77,8 +77,8 @@ sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
 sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
 sys.modules["qiskit._accelerate.target"] = qiskit._accelerate.target
+sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
 sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
