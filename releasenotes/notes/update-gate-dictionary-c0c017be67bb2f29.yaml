@@ -1,0 +1,7 @@
+---
+features_circuits:
+  - |
+    All of the "standard gates" in the circuit library
+    (:mod:`qiskit.circuit.library`) can now be specified by string name for
+    the entangling operations in :class:`.TwoLocal` circuits, such as
+    :class:`.RealAmplitudes` and :class:`.EfficientSU2`.
