@@ -49,7 +49,7 @@ class TestPermutationSynthesis(QiskitTestCase):
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            qc = synth_permutation_basic(pattern)
+            qc = synth_permutation_basic(pattern, return_dag=False)
 
             # Check that the synthesized circuit consists of SWAP gates only.
             for instruction in qc.data:
@@ -67,7 +67,7 @@ class TestPermutationSynthesis(QiskitTestCase):
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            qc = synth_permutation_acg(pattern)
+            qc = synth_permutation_acg(pattern, return_dag=False)
 
             # Check that the synthesized circuit consists of SWAP gates only.
             for instruction in qc.data:
@@ -88,7 +88,7 @@ class TestPermutationSynthesis(QiskitTestCase):
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            qc = synth_permutation_depth_lnn_kms(pattern)
+            qc = synth_permutation_depth_lnn_kms(pattern, return_dag=False)
 
             # Check that the synthesized circuit consists of SWAP gates only,
             # and that these SWAPs adhere to the LNN connectivity.
@@ -115,7 +115,7 @@ class TestPermutationSynthesis(QiskitTestCase):
         np.random.seed(1)
         for _ in range(5):
             pattern = np.random.permutation(width)
-            qc = synth_permutation_depth_lnn_kms(pattern)
+            qc = synth_permutation_depth_lnn_kms(pattern, return_dag=False)
             expected = Operator(qc)
             constructed = Operator(PermutationGate(pattern))
             self.assertEqual(expected, constructed)

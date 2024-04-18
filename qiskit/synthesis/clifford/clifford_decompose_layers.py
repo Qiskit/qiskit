@@ -19,6 +19,8 @@ from collections.abc import Callable
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Clifford  # pylint: disable=cyclic-import
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -43,7 +45,7 @@ def _default_cx_synth_func(mat):
     """
     Construct the layer of CX gates from a boolean invertible matrix mat.
     """
-    CX_circ = synth_cnot_count_full_pmh(mat)
+    CX_circ = synth_cnot_count_full_pmh(mat, return_dag=False)
     CX_circ.name = "CX"
 
     return CX_circ
@@ -70,7 +72,8 @@ def synth_clifford_layers(
     cx_cz_synth_func: Callable[[np.ndarray], QuantumCircuit] | None = None,
     cz_func_reverse_qubits: bool = False,
     validate: bool = False,
-) -> QuantumCircuit:
+    return_dag: bool = True,
+) -> QuantumCircuit | DAGCircuit:
     """Synthesis of a :class:`.Clifford` into layers, it provides a similar
     decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov [1].
 
@@ -164,6 +167,8 @@ def synth_clifford_layers(
     pauli_circ = _calc_pauli_diff(cliff, clifford_target)
     layeredCircuit.append(pauli_circ, qubit_list)
 
+    if return_dag:
+        return circuit_to_dag(layeredCircuit)
     return layeredCircuit
 
 
@@ -411,7 +416,9 @@ def _calc_pauli_diff(cliff, cliff_target):
     return pauli_circ
 
 
-def synth_clifford_depth_lnn(cliff):
+def synth_clifford_depth_lnn(
+    cliff: Clifford, return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """Synthesis of a :class:`.Clifford` into layers for linear-nearest neighbour connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by :math:`7n+2`, which is not optimal.
@@ -419,6 +426,8 @@ def synth_clifford_depth_lnn(cliff):
 
     Args:
         cliff (Clifford): a Clifford operator.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         QuantumCircuit: a circuit implementation of the Clifford.
@@ -440,5 +449,6 @@ def synth_clifford_depth_lnn(cliff):
         cz_synth_func=synth_cz_depth_line_mr,
         cx_cz_synth_func=synth_cx_cz_depth_line_my,
         cz_func_reverse_qubits=True,
+        return_dag=return_dag,
     )
     return circ

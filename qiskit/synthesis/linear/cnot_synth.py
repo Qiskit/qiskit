@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,12 +20,14 @@ from __future__ import annotations
 import copy
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
-) -> QuantumCircuit:
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2, return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
     using Patel, Markov and Hayes method.
@@ -40,6 +42,8 @@ def synth_cnot_count_full_pmh(
         section_size: The size of each section, used in the
             Patel–Markov–Hayes algorithm [1]. ``section_size`` must be a factor of the number
             of qubits.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
@@ -71,6 +75,9 @@ def synth_cnot_count_full_pmh(
     circ = QuantumCircuit(state.shape[0])
     for i in circuit_u + circuit_l:
         circ.cx(i[0], i[1])
+
+    if return_dag:
+        return circuit_to_dag(circ)
     return circ
 
 

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -57,7 +57,7 @@ class TestCXCZSynth(QiskitTestCase):
             # Generate a random CX circuit
             mat_x = random_invertible_binary_matrix(num_qubits, seed=rng)
             mat_x = np.array(mat_x, dtype=bool)
-            cir_x = synth_cnot_depth_line_kms(mat_x)
+            cir_x = synth_cnot_depth_line_kms(mat_x, return_dag=False)
 
             # Joint Synthesis
 

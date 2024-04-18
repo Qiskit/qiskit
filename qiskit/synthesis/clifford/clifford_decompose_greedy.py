@@ -18,9 +18,11 @@ Circuit synthesis for the Clifford class.
 # Synthesis based on Bravyi et. al. greedy clifford compiler
 # ---------------------------------------------------------------------
 
-
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Clifford, Pauli
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -31,7 +33,9 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
+def synth_clifford_greedy(
+    clifford: Clifford, return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
     on the greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin [1].
@@ -44,6 +48,8 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
 
     Args:
         clifford: A Clifford operator.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -121,6 +127,8 @@ def synth_clifford_greedy(clifford: Clifford) -> QuantumCircuit:
         elif destab and not stab:
             circ.z(qubit)
 
+    if return_dag:
+        return circuit_to_dag(circ)
     return circ
 
 

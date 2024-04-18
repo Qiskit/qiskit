@@ -621,9 +621,17 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
-        decomposition = synth_clifford_full(high_level_object)
+        decomposition = synth_clifford_full(high_level_object, return_dag)
         return decomposition
 
 
@@ -634,9 +642,17 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
-        decomposition = synth_clifford_ag(high_level_object)
+        decomposition = synth_clifford_ag(high_level_object, return_dag)
         return decomposition
 
 
@@ -650,10 +666,18 @@ class BMSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
         if high_level_object.num_qubits <= 3:
-            decomposition = synth_clifford_bm(high_level_object)
+            decomposition = synth_clifford_bm(high_level_object, return_dag)
         else:
             decomposition = None
         return decomposition
@@ -667,9 +691,17 @@ class GreedySynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
-        decomposition = synth_clifford_greedy(high_level_object)
+        decomposition = synth_clifford_greedy(high_level_object, return_dag)
         return decomposition
 
 
@@ -681,9 +713,17 @@ class LayerSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
-        decomposition = synth_clifford_layers(high_level_object)
+        decomposition = synth_clifford_layers(high_level_object, return_dag)
         return decomposition
 
 
@@ -696,9 +736,17 @@ class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Clifford."""
-        decomposition = synth_clifford_depth_lnn(high_level_object)
+        decomposition = synth_clifford_depth_lnn(high_level_object, return_dag)
         return decomposition
 
 
@@ -709,9 +757,17 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear, return_dag)
         return decomposition
 
 
@@ -722,9 +778,17 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+        decomposition = synth_cnot_depth_line_kms(high_level_object.linear, return_dag)
         return decomposition
 
 
@@ -735,9 +799,17 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear, return_dag)
         return decomposition
 
 
@@ -748,9 +820,17 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Permutation."""
-        decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
+        decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern, return_dag)
         return decomposition
 
 
@@ -761,9 +841,17 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Permutation."""
-        decomposition = synth_permutation_basic(high_level_object.pattern)
+        decomposition = synth_permutation_basic(high_level_object.pattern, return_dag)
         return decomposition
 
 
@@ -774,9 +862,17 @@ class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Permutation."""
-        decomposition = synth_permutation_acg(high_level_object.pattern)
+        decomposition = synth_permutation_acg(high_level_object.pattern, return_dag)
         return decomposition
 
 
@@ -813,7 +909,15 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
 
     """
 
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Permutation."""
 
         trials = options.get("trials", 5)
@@ -852,6 +956,8 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
             decomposition = QuantumCircuit(len(graph.node_indices()))
             for swap in swapper_result:
                 decomposition.swap(*swap)
+            if return_dag:
+                return circuit_to_dag(decomposition)
             return decomposition
 
         return None

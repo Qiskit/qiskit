@@ -637,7 +637,7 @@ class TestCliffordSynthesis(QiskitTestCase):
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(synth_clifford_bm(target))
+            value = Clifford(synth_clifford_bm(target, return_dag=False))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[2, 3, 4, 5])
@@ -648,7 +648,7 @@ class TestCliffordSynthesis(QiskitTestCase):
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(synth_clifford_ag(target))
+            value = Clifford(synth_clifford_ag(target, return_dag=False))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
@@ -659,7 +659,7 @@ class TestCliffordSynthesis(QiskitTestCase):
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(synth_clifford_greedy(target))
+            value = Clifford(synth_clifford_greedy(target, return_dag=False))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
@@ -670,7 +670,7 @@ class TestCliffordSynthesis(QiskitTestCase):
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(synth_clifford_full(target))
+            value = Clifford(synth_clifford_full(target, return_dag=False))
             self.assertEqual(value, target)
 
 

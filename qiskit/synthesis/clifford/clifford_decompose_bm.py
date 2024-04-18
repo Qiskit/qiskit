@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,11 +18,13 @@ Circuit synthesis for 2-qubit and 3-qubit Cliffords.
 # Synthesis based on Bravyi & Maslov decomposition
 # ---------------------------------------------------------------------
 
-
+from __future__ import annotations
 from itertools import product
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -32,12 +34,14 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
+def synth_clifford_bm(clifford: Clifford, return_dag: bool = True) -> QuantumCircuit | DAGCircuit:
     """Optimal CX-cost decomposition of a :class:`.Clifford` operator on 2 qubits
     or 3 qubits into a :class:`.QuantumCircuit` based on the Bravyi-Maslov method [1].
 
     Args:
         clifford: A Clifford operator.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -81,6 +85,9 @@ def synth_clifford_bm(clifford: Clifford) -> QuantumCircuit:
     # Add the inverse of the 2-qubit reductions circuit
     if len(inv_circuit) > 0:
         ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+
+    if return_dag:
+        return circuit_to_dag(ret_circ.decompose())
 
     return ret_circ.decompose()
 

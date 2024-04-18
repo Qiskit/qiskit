@@ -15,13 +15,18 @@ Circuit synthesis for the Clifford class for all-to-all architecture.
 
 from __future__ import annotations
 from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.synthesis.clifford.clifford_decompose_ag import synth_clifford_ag
 from qiskit.synthesis.clifford.clifford_decompose_bm import synth_clifford_bm
 from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_greedy
 
 
-def synth_clifford_full(clifford: Clifford, method: str | None = None) -> QuantumCircuit:
+def synth_clifford_full(
+    clifford: Clifford,
+    method: str | None = None,
+    return_dag: bool = True,
+) -> QuantumCircuit | DAGCircuit:
     r"""Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
 
     For :math:`N \leq 3` qubits this is based on optimal CX-cost decomposition
@@ -33,6 +38,8 @@ def synth_clifford_full(clifford: Clifford, method: str | None = None) -> Quantu
         clifford: A Clifford operator.
         method: Optional, a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -53,12 +60,12 @@ def synth_clifford_full(clifford: Clifford, method: str | None = None) -> Quantu
     num_qubits = clifford.num_qubits
 
     if method == "AG":
-        return synth_clifford_ag(clifford)
+        return synth_clifford_ag(clifford, return_dag)
 
     if method == "greedy":
-        return synth_clifford_greedy(clifford)
+        return synth_clifford_greedy(clifford, return_dag)
 
     if num_qubits <= 3:
-        return synth_clifford_bm(clifford)
+        return synth_clifford_bm(clifford, return_dag)
 
-    return synth_clifford_greedy(clifford)
+    return synth_clifford_greedy(clifford, return_dag)

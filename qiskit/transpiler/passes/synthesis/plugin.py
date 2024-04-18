@@ -664,7 +664,15 @@ class HighLevelSynthesisPlugin(abc.ABC):
     """
 
     @abc.abstractmethod
-    def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
+    def run(
+        self,
+        high_level_object,
+        coupling_map=None,
+        target=None,
+        qubits=None,
+        return_dag=True,
+        **options,
+    ):
         """Run synthesis for the given Operation.
 
         Args:

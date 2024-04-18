@@ -25,6 +25,8 @@ from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
@@ -238,7 +240,9 @@ def _optimize_cx_circ_depth_5n_line(mat):
     return cx_instructions_rows_m2nw, cx_instructions_rows_nw2id
 
 
-def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
+def synth_cnot_depth_line_kms(
+    mat: np.ndarray[bool], return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """
     Synthesize linear reversible circuit for linear nearest-neighbor architectures using
     Kutin, Moulton, Smithline method.
@@ -249,6 +253,8 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
 
     Args:
         mat: A boolean invertible matrix.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         The synthesized quantum circuit.
@@ -273,4 +279,6 @@ def synth_cnot_depth_line_kms(mat: np.ndarray[bool]) -> QuantumCircuit:
         qc.cx(pair[0], pair[1])
     for pair in cx_inst[1]:
         qc.cx(pair[0], pair[1])
+    if return_dag:
+        return circuit_to_dag(qc)
     return qc

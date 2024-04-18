@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,9 +18,12 @@ Circuit synthesis for the Clifford class.
 # Synthesis based on Aaronson & Gottesman decomposition
 # ---------------------------------------------------------------------
 
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_cx,
@@ -33,12 +36,14 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from .clifford_decompose_bm import _decompose_clifford_1q
 
 
-def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
+def synth_clifford_ag(clifford: Clifford, return_dag: bool = True) -> QuantumCircuit | DAGCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`
     based on Aaronson-Gottesman method [1].
 
     Args:
         clifford: A Clifford operator.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -77,6 +82,9 @@ def synth_clifford_ag(clifford: Clifford) -> QuantumCircuit:
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
     # result as a gate instruction
+    if return_dag:
+        return circuit_to_dag(circuit.inverse())
+
     return circuit.inverse()
 
 

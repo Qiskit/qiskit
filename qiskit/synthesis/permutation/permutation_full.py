@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from .permutation_utils import (
     _get_ordered_swap,
     _inverse_pattern,
@@ -24,7 +26,9 @@ from .permutation_utils import (
 )
 
 
-def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
+def synth_permutation_basic(
+    pattern: list[int] | np.ndarray[int], return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using sorting.
 
@@ -40,6 +44,8 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
+        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+            else, it will return a ``QuantumCircuit``.
 
     Returns:
         The synthesized quantum circuit.
@@ -54,10 +60,15 @@ def synth_permutation_basic(pattern: list[int] | np.ndarray[int]) -> QuantumCirc
     for swap in swaps:
         qc.swap(swap[0], swap[1])
 
+    if return_dag:
+        return circuit_to_dag(qc)
+
     return qc
 
 
-def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircuit:
+def synth_permutation_acg(
+    pattern: list[int] | np.ndarray[int], return_dag: bool = True
+) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using the Alon, Chung, Graham method.
 
@@ -98,5 +109,8 @@ def synth_permutation_acg(pattern: list[int] | np.ndarray[int]) -> QuantumCircui
 
     for swap in swaps:
         qc.swap(swap[0], swap[1])
+
+    if return_dag:
+        return circuit_to_dag(qc)
 
     return qc
