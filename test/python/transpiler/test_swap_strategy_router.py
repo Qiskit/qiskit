@@ -23,7 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
-from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import ApplyLayout, TrivialLayout
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import InverseCancellation
 from qiskit.transpiler.passes import Decompose
@@ -574,15 +574,21 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
 
-        expected_initial_layout = Layout.generate_trivial_layout(*circ.qregs)
-        expected_final_index_layout = [3, 1, 2, 0]
-        expected_final_layout = Layout.from_intlist(expected_final_index_layout, *circ.qregs)
+        expected_permutation = [3, 1, 2, 0]
 
-        swapped = self.pm_.run(circ.decompose())
+        cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
+        swap_strat = SwapStrategy(cmap, swap_layers=[[(0, 1), (2, 3)], [(1, 2)]])
 
-        self.assertEqual(swapped.layout.initial_layout, expected_initial_layout)
-        self.assertEqual(swapped.layout.final_layout, expected_final_layout)
-        self.assertEqual(swapped.layout.final_index_layout(), expected_final_index_layout)
+        layout_pm = PassManager(
+            [
+                TrivialLayout(cmap),
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat),
+            ]
+        )
+        swapped = layout_pm.run(circ.decompose())
+
+        self.assertEqual(swapped.layout.routing_permutation(), expected_permutation)
 
 
 class TestSwapRouterExceptions(QiskitTestCase):
