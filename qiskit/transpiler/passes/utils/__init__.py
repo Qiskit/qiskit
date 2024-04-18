@@ -32,3 +32,4 @@ from .filter_op_nodes import FilterOpNodes
 # Utility functions
 from . import control_flow
 from .block_to_matrix import _block_to_matrix
+from .permutations import _invert_permutation, _compose_permutations
