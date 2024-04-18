@@ -42,7 +42,7 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 theta = Parameter("θ")
 phi = Parameter("ϕ")
-lambda_p = Parameter("λ")
+lambda_ = Parameter("λ")
 
 # a typical target where u1 is cheaper than u2 is cheaper than u3
 u1_props = {(0,): InstructionProperties(error=0)}
@@ -51,7 +51,7 @@ u3_props = {(0,): InstructionProperties(error=2e-4)}
 target_u1_u2_u3 = Target()
 target_u1_u2_u3.add_instruction(U1Gate(theta), u1_props, name="u1")
 target_u1_u2_u3.add_instruction(U2Gate(theta, phi), u2_props, name="u2")
-target_u1_u2_u3.add_instruction(U3Gate(theta, phi, lambda_p), u3_props, name="u3")
+target_u1_u2_u3.add_instruction(U3Gate(theta, phi, lambda_), u3_props, name="u3")
 
 # a typical target where continuous rz and rx are available; rz is cheaper
 rz_props = {(0,): InstructionProperties(duration=0, error=0)}
@@ -74,7 +74,7 @@ u_props = {(0,): InstructionProperties(duration=0.9e-8, error=0.0005)}
 target_rz_ry_u = Target()
 target_rz_ry_u.add_instruction(RZGate(theta), rz_props, name="rz")
 target_rz_ry_u.add_instruction(RYGate(theta), ry_props, name="ry")
-target_rz_ry_u.add_instruction(UGate(theta, phi, lambda_p), u_props, name="u")
+target_rz_ry_u.add_instruction(UGate(theta, phi, lambda_), u_props, name="u")
 
 # a target with hadamard and phase, we don't yet have an explicit decomposer
 # but we can at least recognize circuits that are native for it
@@ -92,7 +92,7 @@ u_props = {(0,): None}
 target_rz_ry_u_noerror = Target()
 target_rz_ry_u_noerror.add_instruction(RZGate(theta), rz_props, name="rz")
 target_rz_ry_u_noerror.add_instruction(RYGate(theta), ry_props, name="ry")
-target_rz_ry_u_noerror.add_instruction(UGate(theta, phi, lambda_p), u_props, name="u")
+target_rz_ry_u_noerror.add_instruction(UGate(theta, phi, lambda_), u_props, name="u")
 
 
 @ddt.ddt
@@ -274,11 +274,11 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
+        theta_p = Parameter("theta")
 
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.1, qr)
         qc.p(0.2, qr)
 
@@ -287,8 +287,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.assign_parameters({theta: 3.14})).equiv(
-                Operator(result.assign_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta_p: 3.14})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14}))
             )
         )
 
@@ -308,14 +308,14 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
+        theta_p = Parameter("theta")
 
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.1, qr)
         qc.p(0.2, qr)
-        qc.p(theta, qr)
+        qc.p(theta_p, qr)
         qc.p(0.3, qr)
         qc.p(0.2, qr)
 
@@ -324,8 +324,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.assign_parameters({theta: 3.14})).equiv(
-                Operator(result.assign_parameters({theta: 3.14}))
+            Operator(qc.assign_parameters({theta_p: 3.14})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14}))
             )
         )
 
@@ -345,15 +345,15 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         """Expressions of Parameters should be treated as opaque gates."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        theta = Parameter("theta")
-        phi = Parameter("phi")
+        theta_p = Parameter("theta")
+        phi_p = Parameter("phi")
 
-        sum_ = theta + phi
-        product_ = theta * phi
+        sum_ = theta_p + phi_p
+        product_ = theta_p * phi_p
         qc.p(0.3, qr)
         qc.p(0.4, qr)
-        qc.p(theta, qr)
-        qc.p(phi, qr)
+        qc.p(theta_p, qr)
+        qc.p(phi_p, qr)
         qc.p(sum_, qr)
         qc.p(product_, qr)
         qc.p(0.3, qr)
@@ -364,8 +364,8 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(qc)
 
         self.assertTrue(
-            Operator(qc.assign_parameters({theta: 3.14, phi: 10})).equiv(
-                Operator(result.assign_parameters({theta: 3.14, phi: 10}))
+            Operator(qc.assign_parameters({theta_p: 3.14, phi_p: 10})).equiv(
+                Operator(result.assign_parameters({theta_p: 3.14, phi_p: 10}))
             )
         )
 
