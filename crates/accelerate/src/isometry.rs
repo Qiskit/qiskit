@@ -10,6 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use std::ops::BitAnd;
+
 use approx::abs_diff_eq;
 use num_complex::{Complex64, ComplexFloat};
 use pyo3::prelude::*;
@@ -319,29 +321,13 @@ pub fn merge_ucgate_and_diag(
 }
 
 #[inline(always)]
-fn get_binary_rep_as_list(n: usize, num_digits: usize) -> Vec<u8> {
-    // TODO: Come up with a better implementation of this which doesn't involve
-    // strings or doubly reversing
-    let binary_str = format!("{:0num_digits$b}", n, num_digits = num_digits);
-    let mut res: Vec<u8> = binary_str
-        .chars()
-        .map(|c| c.to_digit(10).unwrap() as u8)
-        .rev()
-        .take(num_digits)
-        .collect();
-    res.reverse();
-    res
-}
-
-#[inline(always)]
 #[pyfunction]
 fn k_s(k: usize, s: usize) -> usize {
     if k == 0 {
         0
     } else {
-        let num_digits = s + 1;
-        let res = get_binary_rep_as_list(k, num_digits);
-        res[0] as usize
+        let filter = 1 << s;
+        k.bitand(filter) >> s
     }
 }
 
