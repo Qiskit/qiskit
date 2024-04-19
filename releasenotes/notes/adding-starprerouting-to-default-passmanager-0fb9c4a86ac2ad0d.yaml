@@ -4,4 +4,4 @@ features:
     Added the :class:`StarPreRouting` pass to the default optimization level 2+3 passmanager. `StarPreRouting`
     runs before a layout is fixed (i.e. on abstract circuits) and transforms a circuit with inner
     'star'-connectivities to a linear connectivity before continuing to other transpilation stages, e.g.
-    the layouting and routing stage.
+    the layout and routing stage.
