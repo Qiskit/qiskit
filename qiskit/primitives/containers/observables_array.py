@@ -27,6 +27,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.exceptions import QiskitError
+from qiskit.transpiler import TranspileLayout
 
 from .object_array import object_array
 from .shape import ShapedMixin, shape_tuple
@@ -96,6 +98,83 @@ class ObservablesArray(ShapedMixin):
         suffix = f", shape={self.shape})"
         array = np.array2string(self._array, prefix=prefix, suffix=suffix, threshold=50)
         return prefix + array + suffix
+
+    def apply_layout(
+        self, layout: TranspileLayout | list[int] | None, num_qubits: int | None = None
+    ) -> ObservablesArray:
+        """Apply a transpiler layout to this observables array.
+
+        Args:
+            layout: Either a :class:`~.TranspileLayout`, a list of integers, or ``None``.
+                If both layout and ``num_qubits`` are none, a copy of the operator is
+                returned.
+            num_qubits: The number of qubits to expand the operator to. If not
+                provided then, if ``layout`` is a :class:`~.TranspileLayout`, the
+                number of the transpiler output circuit qubits will be used by
+                default. However, if ``layout`` is a list of integers, the permutation
+                specified will be applied without any expansion. If layout is
+                ``None``, the operator will be expanded to the given number of qubits.
+
+        Returns:
+            A new observables array with the provided layout applied.
+        """
+        if layout is None and num_qubits is None or self.size == 0:
+            return ObservablesArray(self._array, copy=True, validate=False)
+
+        # Determine index layout for each observable
+        obs_num_qubits = len(next(iter(self._array.flat[0])))
+
+        if layout is None:
+            n_qubits = obs_num_qubits
+            layout = list(range(n_qubits))
+        elif isinstance(layout, TranspileLayout):
+            n_qubits = len(layout._output_qubit_list)
+            layout = layout.final_index_layout()
+            if layout is not None and any(x >= n_qubits for x in layout):
+                raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+
+        if num_qubits is not None:
+            if num_qubits < n_qubits:
+                raise QiskitError(
+                    f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
+                    f"applied to a {n_qubits} qubit operator"
+                )
+            n_qubits = num_qubits
+
+        # Check if layout is trivial mapping
+        trivial_layout = layout == list(range(obs_num_qubits))
+
+        # If trivial layout and no qubit padding we return a copy
+        if trivial_layout and n_qubits == obs_num_qubits:
+            return ObservablesArray(self._array, copy=True, validate=False)
+
+        # Otherwise we need to pad and possible remap all dict keys
+        # This is super inefficient, and we really need a new data
+        # structure to avoid all this iteration and string manipulation
+        if trivial_layout:
+            pad = (n_qubits - obs_num_qubits) * "I"
+
+            def _key_fn(key):
+                return pad + key
+
+        else:
+
+            def _key_fn(key):
+                new_key = n_qubits * ["I"]
+                for char, qubit in zip(reversed(key), layout):
+                    # Qubit position is from end of string
+                    new_key[n_qubits - 1 - qubit] = char
+                return "".join(new_key)
+
+        mapped_array = np.empty_like(self._array)
+        for idx, observable in np.ndenumerate(self._array):
+            # Remap observable
+            new_observable = {}
+            for key, val in observable.items():
+                new_observable[_key_fn(key)] = val
+            mapped_array[idx] = new_observable
+
+        return ObservablesArray(mapped_array, copy=False, validate=False)
 
     def tolist(self) -> list:
         """Convert to a nested list"""
