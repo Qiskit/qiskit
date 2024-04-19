@@ -227,18 +227,14 @@ disable = [
     "no-value-for-parameter",
     "not-context-manager",
     "superfluous-parens",
-    "unknown-option-value",
     "unexpected-keyword-arg",
     "unnecessary-dict-index-lookup",
-    "unnecessary-direct-lambda-call",
     "unnecessary-dunder-call",
-    "unnecessary-ellipsis",
     "unnecessary-lambda-assignment",
     "unnecessary-list-index-lookup",
     "unspecified-encoding",
     "unsupported-assignment-operation",
     "use-dict-literal",
-    "use-list-literal",
     "use-implicit-booleaness-not-comparison",
 ]
 
