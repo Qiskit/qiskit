@@ -1,0 +1,6 @@
+---
+deprecations_providers:
+  - |
+    The abstraction ``Provider`` (and ``ProviderV1``) is now deprecated and it is going to be removed in the next major release.
+    The abstraction was not giving implementator much: ``name``, ``backends``, and/or ``get_backend``. A _provider_, as a concept, will continue existing as a collection of backends.
+    To ajust to this deprecation, you can just remove the parent parent class from your provider.
