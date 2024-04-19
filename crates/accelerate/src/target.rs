@@ -174,21 +174,37 @@ impl InstructionProperties {
     }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
-        if let Some(calibration) = self.get_calibration(py) {
-            Ok(format!(
-                "InstructionProperties(duration={:?}, error={:?}, calibration={:?})",
-                self.duration,
-                self.error,
-                calibration
-                    .call_method0(py, "__repr__")?
-                    .extract::<String>(py)?
-            ))
+        let mut output = "InstructionProperties(".to_owned();
+        if let Some(duration) = self.duration {
+            output.push_str("duration=");
+            output.push_str(duration.to_string().as_str());
+            output.push(' ');
         } else {
-            Ok(format!(
-                "InstructionProperties(duration={:?}, error={:?}, calibration=None)",
-                self.duration, self.error
-            ))
+            output.push_str("duration=None ");
         }
+
+        if let Some(error) = self.error {
+            output.push_str("error=");
+            output.push_str(error.to_string().as_str());
+            output.push(' ');
+        } else {
+            output.push_str("error=None ");
+        }
+
+        if let Some(calibration) = self.get_calibration(py) {
+            output.push_str(
+                format!(
+                    "calibration={:?})",
+                    calibration
+                        .call_method0(py, "__str__")?
+                        .extract::<String>(py)?
+                )
+                .as_str(),
+            );
+        } else {
+            output.push_str("calibration=None)");
+        }
+        Ok(output)
     }
 }
 
@@ -196,7 +212,7 @@ type GateMapType =
     IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>>;
 type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>;
 
-#[pyclass(mapping, module = "qiskit._accelerate.target.Target")]
+#[pyclass(mapping, subclass, module = "qiskit._accelerate.target.Target")]
 #[derive(Clone, Debug)]
 pub struct Target {
     #[pyo3(get, set)]
@@ -927,9 +943,9 @@ impl Target {
     }
 
     #[getter]
-    fn operation_names(&self) -> Vec<String> {
+    fn operation_names(&self) -> HashSet<String> {
         // Get the operation names in the target.
-        return Vec::from_iter(self.gate_map.keys().cloned());
+        return HashSet::from_iter(self.gate_map.keys().cloned());
     }
 
     #[getter]
