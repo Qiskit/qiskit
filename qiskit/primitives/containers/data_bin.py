@@ -15,7 +15,7 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import make_dataclass
 from typing import Any
 
@@ -74,15 +74,15 @@ class DataBin(metaclass=DataBinMeta):
     def __iter__(self) -> Iterable[str]:
         return iter(self._FIELDS)
 
-    def keys(self) -> tuple[str, ...]:
+    def keys(self) -> Sequence[str]:
         """Return a list of field names."""
         return tuple(self._FIELDS)
 
-    def values(self) -> tuple:
+    def values(self) -> Sequence[Any]:
         """Return a list of values."""
         return tuple(getattr(self, key) for key in self._FIELDS)
 
-    def items(self) -> tuple[tuple[str, Any], ...]:
+    def items(self) -> Sequence[tuple[str, Any]]:
         """Return a list of field names and values"""
         return tuple((key, getattr(self, key)) for key in self._FIELDS)
 
