@@ -1307,10 +1307,11 @@ class TestSabreSwapControlFlow(QiskitTestCase):
         transpiled = pass_(qc)
 
         # Check the pass claims to have done things right.
-        initial_layout = Layout.generate_trivial_layout(*qc.qubits)
-        self.assertEqual(initial_layout, pass_.property_set["final_layout"])
+        final_permutation = pass_.property_set["final_permutation"]
+        self.assertTrue((final_permutation == [0, 1, 2, 3, 4, 5, 6, 7]).all())
 
         # Check that pass really did do it right.
+        initial_layout = Layout.generate_trivial_layout(*qc.qubits)
         inner_block = transpiled.data[0].operation.blocks[0]
         running_layout = initial_layout.copy()
         for instruction in inner_block:
