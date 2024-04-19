@@ -5,6 +5,10 @@
 # never become actual package requirements, but still try to be as relaxed as
 # possible so it's easy to develop multiple packages from the same venv.
 
+# Build Rust directly
+setuptools
+setuptools-rust
+
 # Style
 black[jupyter]~=24.1
 
@@ -38,9 +42,8 @@ threadpoolctl
 # Be careful when adding new requirements. We want to keep the docs build simple because
 # we only build docs in this repo to generate API references that get consumed by
 # https://github.com/Qiskit/documentation. For example, coordinate adding dependencies
-# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to 
+# like `sphinx-design` to make sure that `Qiskit/documentation` will be able to
 # consume it properly.
 Sphinx>=6.0,<7.2
-# TODO: switch to stable release when 4.1 is released
-reno @ git+https://github.com/openstack/reno.git@85b9a9bb52c8f9ce4a5e66fa8d9eba7fde90bf6d
+reno >= 4.1.0
 sphinxcontrib-katex==0.9.9

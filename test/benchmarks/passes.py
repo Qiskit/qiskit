@@ -18,6 +18,7 @@
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as SEL
 from qiskit.transpiler.passes import *
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.library import CXGate
 
 from .utils import random_circuit
 
@@ -128,7 +129,7 @@ class PassBenchmarks:
         ResourceEstimation().run(self.dag)
 
     def time_cx_cancellation(self, _, __):
-        CXCancellation().run(self.dag)
+        InverseCancellation([CXGate()]).run(self.dag)
 
     def time_dag_longest_path(self, _, __):
         DAGLongestPath().run(self.dag)

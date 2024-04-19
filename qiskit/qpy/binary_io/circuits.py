@@ -225,13 +225,6 @@ def _read_instruction(
             cregs=registers["c"],
             use_symengine=use_symengine,
         )
-    if circuit is not None:
-        qubit_indices = dict(enumerate(circuit.qubits))
-        clbit_indices = dict(enumerate(circuit.clbits))
-    else:
-        qubit_indices = {}
-        clbit_indices = {}
-
     # Load Arguments
     if circuit is not None:
         for _qarg in range(instruction.num_qargs):
@@ -243,7 +236,7 @@ def _read_instruction(
             )
             if qarg.type.decode(common.ENCODE) == "c":
                 raise TypeError("Invalid input carg prior to all qargs")
-            qargs.append(qubit_indices[qarg.size])
+            qargs.append(circuit.qubits[qarg.size])
         for _carg in range(instruction.num_cargs):
             carg = formats.CIRCUIT_INSTRUCTION_ARG._make(
                 struct.unpack(
@@ -253,7 +246,7 @@ def _read_instruction(
             )
             if carg.type.decode(common.ENCODE) == "q":
                 raise TypeError("Invalid input qarg after all qargs")
-            cargs.append(clbit_indices[carg.size])
+            cargs.append(circuit.clbits[carg.size])
 
     # Load Parameters
     for _param in range(instruction.num_parameters):

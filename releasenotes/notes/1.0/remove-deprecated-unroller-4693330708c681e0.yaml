@@ -1,0 +1,21 @@
+---
+upgrade_transpiler:
+  - |
+    Removed the deprecated ``Unroller`` class in :mod:`qiskit.transpiler.passes.basis`.
+    This class was deprecated in Qiskit 0.45 and use of it can be replaced by
+    the combination usage of :class:`.BasisTranslator` and :class:`.UnrollCustomDefinitions`.
+
+    Note that :class:`.BasisTranslator` and :class:`.UnrollCustomDefinitions` take different
+    arguments than ``Unroller``, as they requires a ``EquivalenceLibrary`` object to be passed in.
+
+    Where previously ``Unroller(basis_gates)`` could be used,
+    you can now use::
+
+      from qiskit.circuit.library.standard_gates.equivalence_library import (
+          StandardEquivalenceLibrary as std_eqlib,
+      )
+      pm = PassManager([
+          UnrollCustomDefinitions(std_eqlib, basis_gates)
+          BasisTranslator(std_eqlib, basis_gates),
+      ])
+      translated = pm.run(circuit)

@@ -39,11 +39,12 @@ import multiprocessing as mp
 import sys
 import warnings
 from collections.abc import Callable, Iterable
-from typing import List, Tuple, Union, Dict, Any
+from typing import List, Tuple, Union, Dict, Any, Sequence
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -711,13 +712,18 @@ class Schedule:
         return self._parameter_manager.is_parameterized()
 
     def assign_parameters(
-        self, value_dict: dict[ParameterExpression, ParameterValueType], inplace: bool = True
+        self,
+        value_dict: dict[
+            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+        ],
+        inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters (parameter vectors) to either
+            numeric values (list of numeric values)
+            or another Parameter expression (list of Parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1408,14 +1414,17 @@ class ScheduleBlock:
 
     def assign_parameters(
         self,
-        value_dict: dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+        ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters (parameter vectors) to either numeric values
+            (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:

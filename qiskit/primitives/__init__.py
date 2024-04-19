@@ -110,7 +110,7 @@ Overview of SamplerV2
 :class:`~BaseSamplerV2` is a primitive that samples outputs of quantum circuits.
 
 Following construction, a sampler is used by calling its :meth:`~.BaseSamplerV2.run` method
-with a list of pubs (Primitive Unified Blocks). Each pub contains values that, together,
+with a list of pubs (Primitive Unified Blocs). Each pub contains values that, together,
 define a computational unit of work for the sampler to complete:
 
 * A single :class:`~qiskit.circuit.QuantumCircuit`, possibly parameterized.
@@ -128,7 +128,7 @@ Here is an example of how a sampler is used.
 
 .. code-block:: python
 
-    from qiskit.primitives.statevector_sampler import Sampler
+    from qiskit.primitives import StatevectorSampler as Sampler
     from qiskit import QuantumCircuit
     from qiskit.circuit.library import RealAmplitudes
 
@@ -387,14 +387,15 @@ level, however, here are some notable differences keep in mind when migrating fr
 Primitives API
 ==============
 
-Primitives V2
--------------
+Estimator V2
+------------
 
 .. autosummary::
    :toctree: ../stubs/
 
    BaseEstimatorV2
    StatevectorEstimator
+   BackendEstimatorV2
 
 Sampler V2
 ----------
@@ -404,6 +405,7 @@ Sampler V2
 
    BaseSamplerV2
    StatevectorSampler
+   BackendSamplerV2
 
 Results V2
 ----------
@@ -473,3 +475,5 @@ from .primitive_job import BasePrimitiveJob, PrimitiveJob
 from .sampler import Sampler
 from .statevector_estimator import StatevectorEstimator
 from .statevector_sampler import StatevectorSampler
+from .backend_estimator_v2 import BackendEstimatorV2
+from .backend_sampler_v2 import BackendSamplerV2

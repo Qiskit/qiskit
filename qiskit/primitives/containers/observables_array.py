@@ -230,8 +230,6 @@ class ObservablesArray(ShapedMixin):
         """
         if isinstance(observables, ObservablesArray):
             return observables
-        if isinstance(observables, (str, SparsePauliOp, Pauli, _Mapping)):
-            observables = [observables]
         return cls(observables)
 
     def validate(self):

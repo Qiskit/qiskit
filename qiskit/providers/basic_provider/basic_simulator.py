@@ -29,6 +29,7 @@ field, which is a result of measurements for each shot.
 
 from __future__ import annotations
 
+import math
 import uuid
 import time
 import logging
@@ -331,9 +332,9 @@ class BasicSimulator(BackendV2):
 
         # update quantum state
         if outcome == "0":
-            update_diag = [[1 / np.sqrt(probability), 0], [0, 0]]
+            update_diag = [[1 / math.sqrt(probability), 0], [0, 0]]
         else:
-            update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
+            update_diag = [[0, 0], [0, 1 / math.sqrt(probability)]]
         # update classical state
         self._add_unitary(update_diag, [qubit])
 
@@ -351,10 +352,10 @@ class BasicSimulator(BackendV2):
         outcome, probability = self._get_measure_outcome(qubit)
         # update quantum state
         if outcome == "0":
-            update = [[1 / np.sqrt(probability), 0], [0, 0]]
+            update = [[1 / math.sqrt(probability), 0], [0, 0]]
             self._add_unitary(update, [qubit])
         else:
-            update = [[0, 1 / np.sqrt(probability)], [0, 0]]
+            update = [[0, 1 / math.sqrt(probability)], [0, 0]]
             self._add_unitary(update, [qubit])
 
     def _validate_initial_statevector(self) -> None:
@@ -478,7 +479,7 @@ class BasicSimulator(BackendV2):
             Example::
 
                 backend_options = {
-                    "initial_statevector": np.array([1, 0, 0, 1j]) / np.sqrt(2),
+                    "initial_statevector": np.array([1, 0, 0, 1j]) / math.sqrt(2),
                 }
         """
         # TODO: replace assemble with new run flow

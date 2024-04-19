@@ -115,7 +115,7 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``, ``inst_map``,
-            ``couplig_map``, ``backend_properties``, ``instruction_durations``,
+            ``coupling_map``, ``backend_properties``, ``instruction_durations``,
             ``timing_constraints``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
@@ -136,11 +136,11 @@ def generate_preset_pass_manager(
         instruction_durations (InstructionDurations): Dictionary of duration
             (in dt) for each instruction.
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        initial_layout (Layout): Initial position of virtual qubits on
+        initial_layout (Layout | List[int]): Initial position of virtual qubits on
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``,
-            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~DenseLayout` and
+            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~.DenseLayout` and
             :class:`~.SabreLayout` respectively. This can also
             be the external plugin name to use for the ``layout`` stage of the output
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using

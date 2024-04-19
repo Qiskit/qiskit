@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    The :meth:`.Operator.power` method now works with floating-point exponents,
-    matching the documented description.
-
