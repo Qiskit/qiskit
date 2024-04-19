@@ -69,6 +69,7 @@ mod exceptions {
 
 // Subclassable or Python Wrapping.
 #[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
+#[derive(Clone, Debug)]
 pub struct InstructionProperties {
     #[pyo3(get)]
     pub duration: Option<f64>,
@@ -80,11 +81,21 @@ pub struct InstructionProperties {
 
 #[pymethods]
 impl InstructionProperties {
+    /**
+     A representation of the properties of a gate implementation.
+
+    This class provides the optional properties that a backend can provide
+    about an instruction. These represent the set that the transpiler can
+    currently work with if present. However, if your backend provides additional
+    properties for instructions you should subclass this to add additional
+    custom attributes for those custom/additional properties by the backend.
+     */
     #[new]
     #[pyo3(text_signature = "(/, duration: float | None = None,
         error: float | None = None,
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
     pub fn new(
+        py: Python<'_>,
         duration: Option<f64>,
         error: Option<f64>,
         calibration: Option<Bound<PyAny>>,
@@ -95,13 +106,39 @@ impl InstructionProperties {
             _calibration: None,
         };
         if let Some(calibration) = calibration {
-            let _ = instruction_prop.set_calibration(calibration);
+            let _ = instruction_prop.set_calibration(py, calibration);
         }
         instruction_prop
     }
 
     #[getter]
     pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
+        /*
+         The pulse representation of the instruction.
+
+        .. note::
+
+            This attribute always returns a Qiskit pulse program, but it is internally
+            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
+            and to uniformly handle different data representation,
+            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
+
+            This value can be overridden through the property setter in following manner.
+            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
+            always treated as a user-defined (custom) calibration and
+            the transpiler may automatically attach the calibration data to the output circuit.
+            This calibration data may appear in the wire format as an inline calibration,
+            which may further update the backend standard instruction set architecture.
+
+            If you are a backend provider who provides a default calibration data
+            that is not needed to be attached to the transpiled quantum circuit,
+            you can directly set :class:`.CalibrationEntry` instance to this attribute,
+            in which you should set :code:`user_provided=False` when you define
+            calibration data for the entry. End users can still intentionally utilize
+            the calibration data, for example, to run pulse-level simulation of the circuit.
+            However, such entry doesn't appear in the wire format, and backend must
+            use own definition to compile the circuit down to the execution format.
+         */
         match &self._calibration {
             Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
             None => None,
@@ -109,8 +146,30 @@ impl InstructionProperties {
     }
 
     #[setter]
-    pub fn set_calibration(&mut self, calibration: Bound<PyAny>) -> PyResult<()> {
-        self._calibration = Some(calibration.unbind());
+    pub fn set_calibration(&mut self, py: Python<'_>, calibration: Bound<PyAny>) -> PyResult<()> {
+        let module = py.import_bound("qiskit.pulse.schedule")?;
+        // Import Schedule and ScheduleBlock types.
+        let schedule_type = module.getattr("Schedule")?;
+        let schedule_type = schedule_type.downcast::<PyType>()?;
+        let schedule_block_type = module.getattr("ScheduleBlock")?;
+        let schedule_block_type = schedule_block_type.downcast::<PyType>()?;
+        if calibration.is_instance(schedule_block_type)?
+            || calibration.is_instance(schedule_type)?
+        {
+            // Import the calibration_entries module
+            let calibration_entries = py.import_bound("qiskit.pulse.calibration_entries")?;
+            // Import the schedule def class.
+            let schedule_def = calibration_entries.getattr("ScheduleDef")?;
+            // Create a ScheduleDef instance.
+            let new_entry: Bound<PyAny> = schedule_def.call0()?;
+            // Definethe schedule, make sure it is user provided.
+            let args = (calibration,);
+            let kwargs = [("user_provided", true)].into_py_dict_bound(py);
+            new_entry.call_method("define", args, Some(&kwargs))?;
+            self._calibration = Some(new_entry.unbind());
+        } else {
+            self._calibration = Some(calibration.unbind());
+        }
         Ok(())
     }
 
@@ -133,8 +192,9 @@ impl InstructionProperties {
     }
 }
 
-type GateMapType = IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<PyObject>>>>;
-type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<Py<PyAny>>>>;
+type GateMapType =
+    IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>>;
+type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>;
 
 #[pyclass(mapping, module = "qiskit._accelerate.target.Target")]
 #[derive(Clone, Debug)]
@@ -225,7 +285,7 @@ impl Target {
         py: Python<'_>,
         instruction: PyObject,
         is_class: bool,
-        properties: Option<IndexMap<Option<HashableVec<u32>>, Option<PyObject>>>,
+        properties: Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>,
         name: Option<String>,
     ) -> PyResult<()> {
         // Unwrap instruction name
@@ -262,7 +322,8 @@ impl Target {
         }
         self.gate_name_map
             .insert(instruction_name.clone(), instruction.clone());
-        let mut qargs_val: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> = IndexMap::new();
+        let mut qargs_val: IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>> =
+            IndexMap::new();
         if is_class {
             qargs_val = IndexMap::from_iter([(None, None)].into_iter());
         } else if let Some(properties) = properties {
@@ -315,7 +376,7 @@ impl Target {
         _py: Python<'_>,
         instruction: String,
         qargs: Vec<u32>,
-        properties: PyObject,
+        properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
         /* Update the property object for an instruction qarg pair already in the Target
 
@@ -344,7 +405,7 @@ impl Target {
         }
         if let Some(Some(q_vals)) = self.gate_map.get_mut(&instruction) {
             if let Some(q_vals) = q_vals.get_mut(&Some(qargs)) {
-                *q_vals = Some(properties);
+                *q_vals = properties;
             }
         }
         self.instruction_durations = None;
@@ -375,7 +436,7 @@ impl Target {
                     // Directly getting calibration entry to invoke .get_schedule().
                     // This keeps PulseQobjDef unparsed.
                     if let Some(properties) = properties {
-                        let cal_entry = properties.getattr(py, "_calibration").ok();
+                        let cal_entry = &properties._calibration;
                         if let Some(cal_entry) = cal_entry {
                             let _ = out_inst_schedule_map
                                 .call_method1("_add", (instruction, qarg.clone(), cal_entry));
@@ -683,12 +744,7 @@ impl Target {
     }
 
     #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
-    fn has_calibration(
-        &self,
-        py: Python<'_>,
-        operation_name: String,
-        qargs: HashableVec<u32>,
-    ) -> PyResult<bool> {
+    fn has_calibration(&self, operation_name: String, qargs: HashableVec<u32>) -> PyResult<bool> {
         /*
         Return whether the instruction (operation + qubits) defines a calibration.
 
@@ -704,7 +760,7 @@ impl Target {
         }
         if let Some(gate_map_qarg) = self.gate_map[&operation_name].as_ref() {
             if let Some(oper_qarg) = &gate_map_qarg[&Some(qargs)] {
-                return Ok(!oper_qarg.getattr(py, "_calibration")?.is_none(py));
+                return Ok(oper_qarg._calibration.is_some());
             } else {
                 return Ok(false);
             }
@@ -715,10 +771,9 @@ impl Target {
     #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
     fn get_calibration(
         &self,
-        py: Python<'_>,
         operation_name: String,
         qargs: HashableVec<u32>,
-    ) -> PyResult<PyObject> {
+    ) -> PyResult<&PyObject> {
         /* Get calibrated pulse schedule for the instruction.
 
         If calibration is templated with parameters, one can also provide those values
@@ -733,22 +788,26 @@ impl Target {
         Returns:
             Calibrated pulse schedule of corresponding instruction.
          */
-        if !self.has_calibration(py, operation_name.clone(), qargs.clone())? {
+        if !self.has_calibration(operation_name.clone(), qargs.clone())? {
             return Err(PyKeyError::new_err(format!(
                 "Calibration of instruction {:?} for qubit {:?} is not defined.",
                 operation_name, qargs.vec
             )));
         }
 
-        self.gate_map[&operation_name].as_ref().unwrap()[&Some(qargs)]
-            .as_ref()
-            .unwrap()
-            .getattr(py, "_calibration")
+        Ok(
+            self.gate_map[&operation_name].as_ref().unwrap()[&Some(qargs)]
+                .as_ref()
+                .unwrap()
+                ._calibration
+                .as_ref()
+                .unwrap(),
+        )
     }
 
     #[pyo3(text_signature = "(/, index: int)")]
-    fn instruction_properties(&self, index: usize) -> PyResult<PyObject> {
-        let mut instruction_properties: Vec<PyObject> = vec![];
+    fn instruction_properties(&self, index: usize) -> PyResult<InstructionProperties> {
+        let mut instruction_properties: Vec<InstructionProperties> = vec![];
         for operation in self.gate_map.keys() {
             if let Some(gate_map_oper) = self.gate_map[operation].to_owned() {
                 for (_, inst_props) in gate_map_oper.iter() {
@@ -996,8 +1055,10 @@ impl Target {
                 }
             }
             for gate in one_qubit_gates {
-                let mut gate_properties: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> =
-                    IndexMap::new();
+                let mut gate_properties: IndexMap<
+                    Option<HashableVec<u32>>,
+                    Option<InstructionProperties>,
+                > = IndexMap::new();
                 for qubit in 0..num_qubits.unwrap_or_default() {
                     let mut error: Option<f64> = None;
                     let mut duration: Option<f64> = None;
@@ -1063,10 +1124,7 @@ impl Target {
                             Some(HashableVec {
                                 vec: vec![qubit as u32],
                             }),
-                            Some(
-                                InstructionProperties::new(duration, error, calibration)
-                                    .into_py(py),
-                            ),
+                            Some(InstructionProperties::new(py, duration, error, calibration)),
                         );
                     }
                 }
@@ -1086,8 +1144,10 @@ impl Target {
                 .call_method0(py, "get_edges")?
                 .extract::<Vec<[u32; 2]>>(py)?;
             for gate in two_qubit_gates {
-                let mut gate_properties: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> =
-                    IndexMap::new();
+                let mut gate_properties: IndexMap<
+                    Option<HashableVec<u32>>,
+                    Option<InstructionProperties>,
+                > = IndexMap::new();
                 for edge in edges.as_slice().iter().copied() {
                     let mut error: Option<f64> = None;
                     let mut duration: Option<f64> = None;
@@ -1153,10 +1213,7 @@ impl Target {
                             Some(HashableVec {
                                 vec: edge.into_iter().collect(),
                             }),
-                            Some(
-                                InstructionProperties::new(duration, error, calibration)
-                                    .into_py(py),
-                            ),
+                            Some(InstructionProperties::new(py, duration, error, calibration)),
                         );
                     }
                 }

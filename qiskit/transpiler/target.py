@@ -54,90 +54,10 @@ from qiskit.providers.models.backendproperties import BackendProperties
 # import target class from the rust side
 from qiskit._accelerate.target import (
     Target as Target2,
-    InstructionProperties as InstructionProperties2,
+    InstructionProperties,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class InstructionProperties:
-    """A representation of the properties of a gate implementation.
-
-    This class provides the optional properties that a backend can provide
-    about an instruction. These represent the set that the transpiler can
-    currently work with if present. However, if your backend provides additional
-    properties for instructions you should subclass this to add additional
-    custom attributes for those custom/additional properties by the backend.
-    """
-
-    def __init__(
-        self,
-        duration: float | None = None,
-        error: float | None = None,
-        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
-    ):
-        self._InsrProp = InstructionProperties2(
-            duration=duration, error=error, calibration=calibration
-        )
-        self.calibration = calibration
-
-    @property
-    def duration(self):
-        return self._InsrProp.duration
-
-    @property
-    def error(self):
-        return self._InsrProp.error
-
-    @property
-    def _calibration(self):
-        return self._InsrProp._calibration
-
-    @error.setter
-    def error(self, other):
-        self._InsrProp.error = other
-
-    @property
-    def calibration(self):
-        """The pulse representation of the instruction.
-
-        .. note::
-
-            This attribute always returns a Qiskit pulse program, but it is internally
-            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-            and to uniformly handle different data representation,
-            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
-
-            This value can be overridden through the property setter in following manner.
-            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-            always treated as a user-defined (custom) calibration and
-            the transpiler may automatically attach the calibration data to the output circuit.
-            This calibration data may appear in the wire format as an inline calibration,
-            which may further update the backend standard instruction set architecture.
-
-            If you are a backend provider who provides a default calibration data
-            that is not needed to be attached to the transpiled quantum circuit,
-            you can directly set :class:`.CalibrationEntry` instance to this attribute,
-            in which you should set :code:`user_provided=False` when you define
-            calibration data for the entry. End users can still intentionally utilize
-            the calibration data, for example, to run pulse-level simulation of the circuit.
-            However, such entry doesn't appear in the wire format, and backend must
-            use own definition to compile the circuit down to the execution format.
-
-        """
-        return self._InsrProp.calibration
-
-    @calibration.setter
-    def calibration(self, calibration: Schedule | ScheduleBlock | CalibrationEntry):
-        if isinstance(calibration, (Schedule, ScheduleBlock)):
-            new_entry = ScheduleDef()
-            new_entry.define(calibration, user_provided=True)
-        else:
-            new_entry = calibration
-        self._InsrProp.calibration = new_entry
-
-    def __repr__(self):
-        return self._InsrProp.__repr__()
 
 
 class Target:
