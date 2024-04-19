@@ -235,7 +235,6 @@ disable = [
     "unspecified-encoding",
     "unsupported-assignment-operation",
     "use-dict-literal",
-    "use-implicit-booleaness-not-comparison",
 ]
 
 enable = [
