@@ -239,7 +239,6 @@ disable = [
     "unsupported-assignment-operation",
     "use-dict-literal",
     "use-list-literal",
-    "use-implicit-booleaness-not-comparison",
 ]
 
 enable = [
