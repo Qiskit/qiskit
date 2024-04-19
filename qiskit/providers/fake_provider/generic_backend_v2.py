@@ -528,7 +528,7 @@ class GenericBackendV2(BackendV2):
     def _default_options(cls) -> Options:
         with warnings.catch_warnings():  # TODO remove catch once aer release without Provider ABC
             warnings.filterwarnings(
-                "ignore", category=DeprecationWarning, message=".+ABC Provider and ProviderV1.+"
+                "ignore", category=DeprecationWarning, message=".+abstract Provider and ProviderV1.+"
             )
             if _optionals.HAS_AER:
                 from qiskit_aer import AerSimulator

@@ -31,8 +31,8 @@ class Provider:
 
     @deprecate_func(
         since=1.1,
-        additional_msg="The full ABC Provider and ProviderV1 is deprecated and it is going to"
-        " be removed in 2.0. Just remove it as a super class.",
+        additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will"
+        " be removed in 2.0. You can just remove it as the parent class and a `get_backend` method that returns the backends from `self.backend`.",
     )
     def __init__(self):
         pass
@@ -45,8 +45,8 @@ class ProviderV1(Provider, ABC):
 
     @deprecate_func(
         since=1.1,
-        additional_msg="The full ABC Provider and ProviderV1 is deprecated and it is going to"
-        " be removed in 2.0. Just remove it as a super class.",
+        additional_msg="The abstract Provider and ProviderV1 classes are deprecated and will"
+        " be removed in 2.0. You can just remove it as the parent class and a `get_backend` method that returns the backends from `self.backend`.",
     )
     def get_backend(self, name=None, **kwargs):
         """Return a single backend matching the specified filtering.
