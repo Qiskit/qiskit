@@ -2300,6 +2300,125 @@ class TestDagSubstitute(QiskitTestCase):
 
         self.assertEqual(src, expected)
 
+    def test_substitute_dag_vars(self):
+        """Should be possible to replace a node with a DAG acting on the same wires."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Bool())
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        dag.add_input_var(c)
+        dag.apply_operation_back(Store(c, expr.lift(False)), (), ())
+        node = dag.apply_operation_back(Store(a, expr.logic_or(expr.logic_or(a, b), c)), (), ())
+        dag.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        replace = DAGCircuit()
+        replace.add_captured_var(a)
+        replace.add_captured_var(b)
+        replace.add_captured_var(c)
+        replace.apply_operation_back(Store(a, expr.logic_or(a, b)), (), ())
+        replace.apply_operation_back(Store(a, expr.logic_or(a, c)), (), ())
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(c, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(a, expr.logic_or(a, b)), (), ())
+        expected.apply_operation_back(Store(a, expr.logic_or(a, c)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        dag.substitute_node_with_dag(node, replace, wires={})
+
+        self.assertEqual(dag, expected)
+
+    def test_substitute_dag_if_else_expr_var(self):
+        """Test that substitution works with if/else ops with standalone Vars."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        body_rep = QuantumCircuit(1)
+        body_rep.z(0)
+
+        q_rep = QuantumRegister(1)
+        c_rep = ClassicalRegister(2)
+        replacement = DAGCircuit()
+        replacement.add_qreg(q_rep)
+        replacement.add_creg(c_rep)
+        replacement.add_captured_var(b)
+        replacement.apply_operation_back(XGate(), [q_rep[0]], [])
+        replacement.apply_operation_back(
+            IfElseOp(expr.logic_and(b, expr.equal(c_rep, 1)), body_rep, None), [q_rep[0]], []
+        )
+
+        true_src = QuantumCircuit(1)
+        true_src.x(0)
+        true_src.z(0)
+        false_src = QuantumCircuit(1)
+        false_src.x(0)
+        q_src = QuantumRegister(4)
+        c1_src = ClassicalRegister(2)
+        c2_src = ClassicalRegister(2)
+        src = DAGCircuit()
+        src.add_qreg(q_src)
+        src.add_creg(c1_src)
+        src.add_creg(c2_src)
+        src.add_input_var(a)
+        src.add_input_var(b)
+        node = src.apply_operation_back(
+            IfElseOp(expr.logic_and(b, expr.equal(c1_src, 1)), true_src, false_src), [q_src[2]], []
+        )
+
+        wires = {q_rep[0]: q_src[2], c_rep[0]: c1_src[0], c_rep[1]: c1_src[1]}
+        src.substitute_node_with_dag(node, replacement, wires=wires)
+
+        expected = DAGCircuit()
+        expected.add_qreg(q_src)
+        expected.add_creg(c1_src)
+        expected.add_creg(c2_src)
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(XGate(), [q_src[2]], [])
+        expected.apply_operation_back(
+            IfElseOp(expr.logic_and(b, expr.equal(c1_src, 1)), body_rep, None), [q_src[2]], []
+        )
+
+        self.assertEqual(src, expected)
+
+    def test_contract_var_use_to_nothing(self):
+        """The replacement DAG can drop wires."""
+        a = expr.Var.new("a", types.Bool())
+
+        src = DAGCircuit()
+        src.add_input_var(a)
+        node = src.apply_operation_back(Store(a, a), (), ())
+        replace = DAGCircuit()
+        src.substitute_node_with_dag(node, replace, {})
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+
+        self.assertEqual(src, expected)
+
+    def test_raise_if_var_mismatch(self):
+        """The DAG can't add more wires."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        src = DAGCircuit()
+        src.add_input_var(a)
+        node = src.apply_operation_back(Store(a, a), (), ())
+
+        replace = DAGCircuit()
+        replace.add_input_var(a)
+        replace.add_input_var(b)
+        replace.apply_operation_back(Store(a, b), (), ())
+
+        with self.assertRaisesRegex(DAGCircuitError, "Cannot replace a node with a DAG with more"):
+            src.substitute_node_with_dag(node, replace, wires={})
+
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 

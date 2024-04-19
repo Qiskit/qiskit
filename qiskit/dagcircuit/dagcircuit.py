@@ -1364,12 +1364,22 @@ class DAGCircuit:
 
         Args:
             node (DAGOpNode): node to substitute
-            input_dag (DAGCircuit): circuit that will substitute the node
+            input_dag (DAGCircuit): circuit that will substitute the node.
             wires (list[Bit] | Dict[Bit, Bit]): gives an order for (qu)bits
                 in the input circuit. If a list, then the bits refer to those in the ``input_dag``,
                 and the order gets matched to the node wires by qargs first, then cargs, then
                 conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
                 that the ``node`` acts on.
+
+                Standalone :class:`~.expr.Var` nodes cannot currently be remapped as part of the
+                substitution; the ``input_dag`` should be defined over the correct set of variables
+                already.
+
+                ..
+                    The rule about not remapping `Var`s is to avoid performance pitfalls and reduce
+                    complexity; the creator of the input DAG should easily be able to arrange for
+                    the correct `Var`s to be used, and doing so avoids us needing to recurse through
+                    control-flow operations to do deep remappings.
             propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
@@ -1408,12 +1418,27 @@ class DAGCircuit:
         for input_dag_wire, our_wire in wire_map.items():
             if our_wire not in self.input_map:
                 raise DAGCircuitError(f"bit mapping invalid: {our_wire} is not in this DAG")
+            if isinstance(our_wire, expr.Var) or isinstance(input_dag_wire, expr.Var):
+                raise DAGCircuitError("`Var` nodes cannot be remapped during substitution")
             # Support mapping indiscriminately between Qubit and AncillaQubit, etc.
             check_type = Qubit if isinstance(our_wire, Qubit) else Clbit
             if not isinstance(input_dag_wire, check_type):
                 raise DAGCircuitError(
                     f"bit mapping invalid: {input_dag_wire} and {our_wire} are different bit types"
                 )
+        if _may_have_additional_wires(node.op):
+            node_vars = {var for var in _additional_wires(node.op) if isinstance(var, expr.Var)}
+        else:
+            node_vars = set()
+        dag_vars = set(input_dag.iter_vars())
+        if dag_vars - node_vars:
+            raise DAGCircuitError(
+                "Cannot replace a node with a DAG with more variables."
+                f" Variables in node: {node_vars}."
+                f" Variables in DAG: {dag_vars}."
+            )
+        for var in dag_vars:
+            wire_map[var] = var
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
         # It doesn't make sense to try and propagate a condition from a control-flow op; a
@@ -1492,14 +1517,22 @@ class DAGCircuit:
                     node._node_id, lambda edge, wire=self_wire: edge == wire
                 )[0]
                 self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
+        for contracted_var in node_vars - dag_vars:
+            pred = self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge, wire=contracted_var: edge == wire
+            )[0]
+            succ = self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge, wire=contracted_var: edge == wire
+            )[0]
+            self._multi_graph.add_edge(pred._node_id, succ._node_id, contracted_var)
 
         # Exlude any nodes from in_dag that are not a DAGOpNode or are on
-        # bits outside the set specified by the wires kwarg
+        # wires outside the set specified by the wires kwarg
         def filter_fn(node):
             if not isinstance(node, DAGOpNode):
                 return False
-            for qarg in node.qargs:
-                if qarg not in wire_map:
+            for _, _, wire in in_dag.edges(node):
+                if wire not in wire_map:
                     return False
             return True
 
