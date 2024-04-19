@@ -20,7 +20,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
-    types::{IntoPyDict, PyDict, PyList, PySequence, PyTuple, PyType},
+    types::{IntoPyDict, PyDict, PyList, PyTuple, PyType},
 };
 
 use self::exceptions::TranspilerError;
@@ -68,7 +68,7 @@ mod exceptions {
 }
 
 // Subclassable or Python Wrapping.
-#[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
+#[pyclass(module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
     #[pyo3(get)]
@@ -212,7 +212,7 @@ type GateMapType =
     IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>>;
 type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>;
 
-#[pyclass(mapping, subclass, module = "qiskit._accelerate.target.Target")]
+#[pyclass(mapping, subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct Target {
     #[pyo3(get, set)]
@@ -503,12 +503,7 @@ impl Target {
         qargs: Option<HashableVec<u32>>,
     ) -> PyResult<Py<PyList>> {
         let res = PyList::empty_bound(py);
-        for op in self.gate_name_map.values() {
-            if isclass.call1((op,))?.extract::<bool>()? {
-                res.append(op)?;
-            }
-        }
-        if let Some(qargs) = &qargs {
+        if let Some(qargs) = qargs.as_ref() {
             if qargs
                 .vec
                 .iter()
@@ -520,17 +515,22 @@ impl Target {
                     qargs.vec
                 )));
             }
-
-            if let Some(gate_map_qarg) = &self.qarg_gate_map[&Some(qargs.to_owned())] {
-                for x in gate_map_qarg {
-                    res.append(self.gate_name_map[x].clone())?;
-                }
+        }
+        if let Some(Some(gate_map_qarg)) = self.qarg_gate_map.get(&qargs) {
+            for x in gate_map_qarg {
+                res.append(self.gate_name_map[x].clone())?;
             }
-
+        }
+        if let Some(qargs) = qargs.as_ref() {
             if let Some(qarg) = self.global_operations.get(&qargs.vec.len()) {
                 for arg in qarg {
                     res.append(arg)?;
                 }
+            }
+        }
+        for op in self.gate_name_map.values() {
+            if isclass.call1((op,))?.extract::<bool>()? {
+                res.append(op)?;
             }
         }
         if res.is_empty() {
@@ -590,8 +590,7 @@ impl Target {
         &self,
         py: Python<'_>,
         isclass: &Bound<PyAny>,
-        isinstance: &Bound<PyAny>,
-        parameter_class: &Bound<PyAny>,
+        parameter_class: &Bound<PyType>,
         check_obj_params: &Bound<PyAny>,
         operation_name: Option<String>,
         qargs: Option<HashableVec<u32>>,
@@ -626,16 +625,16 @@ impl Target {
                         }
                     }
 
-                    if isinstance
-                        .call1((obj, operation_class))?
-                        .extract::<bool>()?
+                    if obj
+                        .bind_borrowed(py)
+                        .is_instance(operation_class.downcast::<PyType>()?)?
                     {
                         if let Some(parameters) = parameters {
                             if parameters.len()
                                 != obj
                                     .getattr(py, "params")?
-                                    .downcast_bound::<PySequence>(py)?
-                                    .len()?
+                                    .downcast_bound::<PyList>(py)?
+                                    .len()
                             {
                                 continue;
                             }
@@ -653,7 +652,7 @@ impl Target {
                         if self.gate_map[op_name].is_none()
                             || self.gate_map[op_name]
                                 .as_ref()
-                                .unwrap_or(&IndexMap::from_iter([(None, None)].into_iter()))
+                                .unwrap_or(&IndexMap::from_iter([].into_iter()))
                                 .contains_key(&None)
                         {
                             let qubit_comparison = self.gate_name_map[op_name]
@@ -701,9 +700,7 @@ impl Target {
                         }
                         for (index, param) in parameters.iter().enumerate() {
                             let mut matching_param = false;
-                            if isinstance
-                                .call1((obj_params.get_item(index)?, parameter_class))?
-                                .extract::<bool>()?
+                            if obj_params.get_item(index)?.is_instance(parameter_class)?
                                 || param.eq(obj_params.get_item(index)?)?
                             {
                                 matching_param = true;
@@ -727,7 +724,7 @@ impl Target {
                     if self.gate_map[&operation_name].is_none()
                         || self.gate_map[&operation_name]
                             .as_ref()
-                            .unwrap_or(&IndexMap::from_iter([(None, None)].into_iter()))
+                            .unwrap_or(&IndexMap::from_iter([].into_iter()))
                             .contains_key(&None)
                     {
                         obj = &self.gate_name_map[&operation_name];

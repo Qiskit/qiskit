@@ -509,7 +509,6 @@ class Target(Target2):
 
         return super().instruction_supported(
             inspect.isclass,
-            isinstance,
             Parameter,
             check_obj_params,
             operation_name,
