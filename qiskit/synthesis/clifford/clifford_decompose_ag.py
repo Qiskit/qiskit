@@ -21,7 +21,8 @@ Circuit synthesis for the Clifford class.
 from __future__ import annotations
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import SwapGate, HGate, CXGate, SGate, ZGate, XGate
 from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
@@ -37,7 +38,7 @@ from .clifford_decompose_bm import _decompose_clifford_1q
 
 
 def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
-    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`
+    """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` or :class:`.DAGCircuit`
     based on Aaronson-Gottesman method [1].
 
     Args:
@@ -58,7 +59,13 @@ def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
         return _decompose_clifford_1q(clifford.tableau)
 
     # Compose a circuit which we will convert to an instruction
-    circuit = QuantumCircuit(clifford.num_qubits, name=str(clifford))
+    qreg = QuantumRegister(clifford.num_qubits)
+    if use_dag:
+        circuit = DAGCircuit()
+        circuit.name = name = str(clifford)
+        circuit.add_qreg(qreg)
+    else:
+        circuit = QuantumCircuit(qreg, name=str(clifford))
 
     # Make a copy of Clifford as we are going to do row reduction to
     # reduce it to an identity
@@ -76,14 +83,24 @@ def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
     for i in range(clifford.num_qubits):
         if clifford_cpy.destab_phase[i]:
             _append_z(clifford_cpy, i)
-            circuit.z(i)
+            if isinstance(circuit, DAGCircuit):
+                circuit.apply_operation_back(ZGate(), (qreg[i],), check=False)
+            else:
+                circuit.z(i)
+
         if clifford_cpy.stab_phase[i]:
             _append_x(clifford_cpy, i)
-            circuit.x(i)
+            if isinstance(circuit, DAGCircuit):
+                circuit.apply_operation_back(XGate(), (qreg[i],), check=False)
+            else:
+                circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
     # result as a gate instruction
     if use_dag:
-        return circuit_to_dag(circuit.inverse())
+        new_dag = circuit.copy_empty_like()
+        for node in circuit.topological_op_nodes():
+            new_dag.apply_operation_front(node.op.inverse(), node.qargs, node.cargs, check=False)
+        return new_dag
 
     return circuit.inverse()
 
@@ -109,17 +126,29 @@ def _set_qubit_x_true(clifford, circuit, qubit):
     for i in range(qubit + 1, clifford.num_qubits):
         if x[i]:
             _append_swap(clifford, i, qubit)
-            circuit.swap(i, qubit)
+            if isinstance(circuit, DAGCircuit):
+                qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                circuit.apply_operation_back(SwapGate(), (qreg[i], qreg[qubit]), check=False)
+            else:
+                circuit.swap(i, qubit)
             return
 
     # no non-zero element found: need to apply Hadamard somewhere
     for i in range(qubit, clifford.num_qubits):
         if z[i]:
             _append_h(clifford, i)
-            circuit.h(i)
+            if isinstance(circuit, DAGCircuit):
+                qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                circuit.apply_operation_back(HGate(), (qreg[i],), check=False)
+            else:
+                circuit.h(i)
             if i != qubit:
                 _append_swap(clifford, i, qubit)
-                circuit.swap(i, qubit)
+                if isinstance(circuit, DAGCircuit):
+                    qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                    circuit.apply_operation_back(SwapGate(), (qreg[i], qreg[qubit]), check=False)
+                else:
+                    circuit.swap(i, qubit)
             return
 
 
@@ -135,23 +164,39 @@ def _set_row_x_zero(clifford, circuit, qubit):
     for i in range(qubit + 1, clifford.num_qubits):
         if x[i]:
             _append_cx(clifford, qubit, i)
-            circuit.cx(qubit, i)
+            if isinstance(circuit, DAGCircuit):
+                qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                circuit.apply_operation_back(CXGate(), (qreg[qubit], qreg[i]), check=False)
+            else:
+                circuit.cx(qubit, i)
 
     # Check whether Zs need to be set to zero:
     if np.any(z[qubit:]):
         if not z[qubit]:
             # to treat Zs: make sure row.Z[k] to True
             _append_s(clifford, qubit)
-            circuit.s(qubit)
+            if isinstance(circuit, DAGCircuit):
+                qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                circuit.apply_operation_back(SGate(), (qreg[qubit],), check=False)
+            else:
+                circuit.s(qubit)
 
         # reverse CNOTS
         for i in range(qubit + 1, clifford.num_qubits):
             if z[i]:
                 _append_cx(clifford, i, qubit)
-                circuit.cx(i, qubit)
+                if isinstance(circuit, DAGCircuit):
+                    qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                    circuit.apply_operation_back(CXGate(), (qreg[i], qreg[qubit]), check=False)
+                else:
+                    circuit.cx(i, qubit)
         # set row.Z[qubit] to False
         _append_s(clifford, qubit)
-        circuit.s(qubit)
+        if isinstance(circuit, DAGCircuit):
+            qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+            circuit.apply_operation_back(SGate(), (qreg[qubit],), check=False)
+        else:
+            circuit.s(qubit)
 
 
 def _set_row_z_zero(clifford, circuit, qubit):
@@ -169,18 +214,38 @@ def _set_row_z_zero(clifford, circuit, qubit):
         for i in range(qubit + 1, clifford.num_qubits):
             if z[i]:
                 _append_cx(clifford, i, qubit)
-                circuit.cx(i, qubit)
+                if isinstance(circuit, DAGCircuit):
+                    qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                    circuit.apply_operation_back(CXGate(), (qreg[i], qreg[qubit]), check=False)
+                else:
+                    circuit.cx(i, qubit)
 
     # check whether Xs need to be set to zero:
     if np.any(x[qubit:]):
         _append_h(clifford, qubit)
-        circuit.h(qubit)
+        if isinstance(circuit, DAGCircuit):
+            qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+            circuit.apply_operation_back(HGate(), (qreg[qubit],), check=False)
+        else:
+            circuit.h(qubit)
         for i in range(qubit + 1, clifford.num_qubits):
             if x[i]:
                 _append_cx(clifford, qubit, i)
-                circuit.cx(qubit, i)
+                if isinstance(circuit, DAGCircuit):
+                    qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                    circuit.apply_operation_back(CXGate(), (qreg[qubit], qreg[i]), check=False)
+                else:
+                    circuit.cx(qubit, i)
         if z[qubit]:
             _append_s(clifford, qubit)
-            circuit.s(qubit)
+            if isinstance(circuit, DAGCircuit):
+                qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+                circuit.apply_operation_back(SGate(), (qreg[qubit],), check=False)
+            else:
+                circuit.s(qubit)
         _append_h(clifford, qubit)
-        circuit.h(qubit)
+        if isinstance(circuit, DAGCircuit):
+            qreg = circuit.qregs[list(circuit.qregs.keys())[0]]
+            circuit.apply_operation_back(HGate(), (qreg[qubit],), check=False)
+        else:
+            circuit.h(qubit)

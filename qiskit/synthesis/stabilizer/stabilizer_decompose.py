@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,6 +19,8 @@ from __future__ import annotations
 from collections.abc import Callable
 import numpy as np
 from qiskit.circuit import QuantumCircuit
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import StabilizerState
 from qiskit.synthesis.linear.linear_matrix_utils import (
@@ -38,7 +40,8 @@ def synth_stabilizer_layers(
     cz_synth_func: Callable[[np.ndarray], QuantumCircuit] = _default_cz_synth_func,
     cz_func_reverse_qubits: bool = False,
     validate: bool = False,
-) -> QuantumCircuit:
+    use_dag: bool = False,
+) -> QuantumCircuit | DAGCircuit:
     """Synthesis of a stabilizer state into layers.
 
     It provides a similar decomposition to the synthesis described in Lemma 8 of reference [1],
@@ -67,6 +70,8 @@ def synth_stabilizer_layers(
             :func:`.synth_cz_depth_line_mr`,
             since this function returns a circuit that reverts the order of qubits.
         validate: If ``True``, validates the synthesis process.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the stabilizer state.
@@ -116,6 +121,8 @@ def synth_stabilizer_layers(
     pauli_circ = _calc_pauli_diff_stabilizer(cliff, clifford_target)
     layeredCircuit.append(pauli_circ, qubit_list)
 
+    if use_dag:
+        return circuit_to_dag(layeredCircuit)
     return layeredCircuit
 
 

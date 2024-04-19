@@ -23,24 +23,42 @@ References:
 """
 
 import numpy as np
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, SGate, ZGate, SdgGate
+from qiskit.dagcircuit import DAGCircuit
 
 
 def _append_cx_stage1(qc, n):
     """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i, 2 * i + 1)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 2, 2 * i + 1)
+    if isinstance(qc, DAGCircuit):
+        for i in range(n // 2):
+            qreg = qc.qregs[list(qc.qregs.keys())[0]]
+            qc.apply_operation_back(CXGate(), (qreg[2 * i], qreg[2 * i + 1]), check=False)
+        for i in range((n + 1) // 2 - 1):
+            qreg = qc.qregs[list(qc.qregs.keys())[0]]
+            qc.apply_operation_back(CXGate(), (qreg[2 * i + 2], qreg[2 * i + 1]), check=False)
+    else:
+        for i in range(n // 2):
+            qc.cx(2 * i, 2 * i + 1)
+        for i in range((n + 1) // 2 - 1):
+            qc.cx(2 * i + 2, 2 * i + 1)
     return qc
 
 
 def _append_cx_stage2(qc, n):
     """A single layer of CX gates."""
-    for i in range(n // 2):
-        qc.cx(2 * i + 1, 2 * i)
-    for i in range((n + 1) // 2 - 1):
-        qc.cx(2 * i + 1, 2 * i + 2)
+    if isinstance(qc, DAGCircuit):
+        for i in range(n // 2):
+            qreg = qc.qregs[list(qc.qregs.keys())[0]]
+            qc.apply_operation_back(CXGate(), (qreg[2 * i + 1], qreg[2 * i]), check=False)
+        for i in range((n + 1) // 2 - 1):
+            qreg = qc.qregs[list(qc.qregs.keys())[0]]
+            qc.apply_operation_back(CXGate(), (qreg[2 * i + 1], qreg[2 * i + 2]), check=False)
+    else:
+        for i in range(n // 2):
+            qc.cx(2 * i + 1, 2 * i)
+        for i in range((n + 1) // 2 - 1):
+            qc.cx(2 * i + 1, 2 * i + 2)
     return qc
 
 
@@ -132,7 +150,7 @@ def _create_patterns(n):
     return pats
 
 
-def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
+def synth_cz_depth_line_mr(mat: np.ndarray, use_dag=False) -> QuantumCircuit:
     r"""Synthesis of a CZ circuit for linear nearest neighbour (LNN) connectivity,
     based on Maslov and Roetteler.
 
@@ -143,6 +161,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     Args:
         mat: an upper-diagonal matrix representing the CZ circuit.
             ``mat[i][j]=1 for i<j`` represents a ``cz(i,j)`` gate
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the CZ circuit of depth :math:`2n+2` for LNN
@@ -159,7 +179,12 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
     # s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
     s_gates = np.zeros(num_qubits)
 
-    qc = QuantumCircuit(num_qubits)
+    qreg = QuantumRegister(num_qubits)
+    if use_dag:
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(qreg)
     for i in range(num_qubits):
         for j in range(i + 1, num_qubits):
             if mat[i][j]:  # CZ(i,j) gate
@@ -176,14 +201,24 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
                 patcnt = patlist.count(pats[(i, j)])
                 for _ in range(patcnt):
                     s_gates[j] += 1  # qc.sdg[j]
-        # Add phase gates: s, sdg or z
-        for j in range(num_qubits):
-            if s_gates[j] % 4 == 1:
-                qc.sdg(j)
-            elif s_gates[j] % 4 == 2:
-                qc.z(j)
-            elif s_gates[j] % 4 == 3:
-                qc.s(j)
+        if use_dag:
+            # Add phase gates: s, sdg or z
+            for j in range(num_qubits):
+                if s_gates[j] % 4 == 1:
+                    qc.apply_operation_back(SdgGate(), (qreg[j],), check=False)
+                elif s_gates[j] % 4 == 2:
+                    qc.apply_operation_back(ZGate(), (qreg[j],), check=False)
+                elif s_gates[j] % 4 == 3:
+                    qc.apply_operation_back(SGate(), (qreg[j],), check=False)
+        else:
+            # Add phase gates: s, sdg or z
+            for j in range(num_qubits):
+                if s_gates[j] % 4 == 1:
+                    qc.sdg(j)
+                elif s_gates[j] % 4 == 2:
+                    qc.z(j)
+                elif s_gates[j] % 4 == 3:
+                    qc.s(j)
         qc = _append_cx_stage1(qc, num_qubits)
         qc = _append_cx_stage2(qc, num_qubits)
         s_gates = np.zeros(num_qubits)
@@ -195,14 +230,24 @@ def synth_cz_depth_line_mr(mat: np.ndarray) -> QuantumCircuit:
                 patcnt = patlist.count(pats[(i, j)])
                 for _ in range(patcnt):
                     s_gates[j] += 1  # qc.sdg[j]
-        # Add phase gates: s, sdg or z
-        for j in range(num_qubits):
-            if s_gates[j] % 4 == 1:
-                qc.sdg(j)
-            elif s_gates[j] % 4 == 2:
-                qc.z(j)
-            elif s_gates[j] % 4 == 3:
-                qc.s(j)
+        if use_dag:
+            # Add phase gates: s, sdg or z
+            for j in range(num_qubits):
+                if s_gates[j] % 4 == 1:
+                    qc.apply_operation_back(SdgGate(), (qreg[j],), check=False)
+                elif s_gates[j] % 4 == 2:
+                    qc.apply_operation_back(ZGate(), (qreg[j],), check=False)
+                elif s_gates[j] % 4 == 3:
+                    qc.apply_operation_back(SGate(), (qreg[j],), check=False)
+        else:
+            # Add phase gates: s, sdg or z
+            for j in range(num_qubits):
+                if s_gates[j] % 4 == 1:
+                    qc.sdg(j)
+                elif s_gates[j] % 4 == 2:
+                    qc.z(j)
+                elif s_gates[j] % 4 == 3:
+                    qc.s(j)
         qc = _append_cx_stage1(qc, num_qubits)
 
     return qc

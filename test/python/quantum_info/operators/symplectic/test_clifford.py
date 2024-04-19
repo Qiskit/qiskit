@@ -52,6 +52,7 @@ from qiskit.circuit.library import (
     PermutationGate,
     PauliGate,
 )
+from qiskit.converters.dag_to_circuit import dag_to_circuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
@@ -634,44 +635,68 @@ class TestCliffordSynthesis(QiskitTestCase):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_bm(target))
-            self.assertEqual(value, target)
+        for use_dag in [True, False]:
+            with self.subTest(use_dag=use_dag):
+                for _ in range(samples):
+                    circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+                    target = Clifford(circ)
+                    if use_dag:
+                        synth_circ = dag_to_circuit(synth_clifford_bm(target, use_dag=True))
+                    else:
+                        synth_circ = synth_clifford_bm(target)
+                    value = Clifford(synth_circ)
+                    self.assertEqual(value, target)
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_ag(target))
-            self.assertEqual(value, target)
+        for use_dag in [True, False]:
+            with self.subTest(use_dag=use_dag):
+                for _ in range(samples):
+                    circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+                    target = Clifford(circ)
+                    if use_dag:
+                        synth_circ = dag_to_circuit(synth_clifford_ag(target, use_dag=True))
+                    else:
+                        synth_circ = synth_clifford_ag(target)
+                    value = Clifford(synth_circ)
+                    self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_greedy(target))
-            self.assertEqual(value, target)
+        for use_dag in [True, False]:
+            with self.subTest(use_dag=use_dag):
+                for _ in range(samples):
+                    circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+                    target = Clifford(circ)
+                    if use_dag:
+                        synth_circ = dag_to_circuit(synth_clifford_greedy(target, use_dag=True))
+                    else:
+                        synth_circ = synth_clifford_greedy(target)
+                    value = Clifford(synth_circ)
+                    self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_full(self, num_qubits):
         """Test synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
-        for _ in range(samples):
-            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
-            target = Clifford(circ)
-            value = Clifford(synth_clifford_full(target))
-            self.assertEqual(value, target)
+        for use_dag in [True, False]:
+            with self.subTest(use_dag=use_dag):
+                for _ in range(samples):
+                    circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+                    target = Clifford(circ)
+                    if use_dag:
+                        synth_circ = dag_to_circuit(synth_clifford_full(target, use_dag=True))
+                    else:
+                        synth_circ = synth_clifford_full(target)
+                    value = Clifford(synth_circ)
+                    self.assertEqual(value, target)
 
 
 @ddt

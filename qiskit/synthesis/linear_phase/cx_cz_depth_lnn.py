@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,10 +28,13 @@ References:
         Hadamard-free Clifford transformations they generate," 2022.
 """
 
+from __future__ import annotations
 from copy import deepcopy
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate, SdgGate, SGate, ZGate
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import calc_inverse_matrix
 from qiskit.synthesis.linear.linear_depth_lnn import _optimize_cx_circ_depth_5n_line
 
@@ -160,7 +163,7 @@ def _update_phase_schedule(n, phase_schedule, swap_plus):
     return phase_schedule
 
 
-def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
+def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus, use_dag=False):
     """
     Given
         Width of the circuit (int n)
@@ -175,7 +178,13 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
                 of its n(n-1)/2 boxes are SWAP+ and which are SWAP.
     Return a QuantumCircuit that computes the phase scheudle S inside CX
     """
-    cir = QuantumCircuit(n)
+
+    qreg = QuantumRegister(n)
+    if use_dag:
+        cir = DAGCircuit()
+        cir.add_qreg(qreg)
+    else:
+        cir = QuantumCircuit(qreg)
 
     wires = list(zip(range(n), range(1, n)))
     wires = wires[::2] + wires[1::2]
@@ -185,37 +194,63 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
 
         p = phase_schedule[j, k]
 
-        if (j, k) not in swap_plus:
-            cir.cx(w1, w2)
-
-        cir.cx(w2, w1)
+        if use_dag:
+            if (j, k) not in swap_plus:
+                cir.apply_operation_back(CXGate(), (qreg[w1], qreg[w2]), check=False)
+            cir.apply_operation_back(CXGate(), (qreg[w2], qreg[w1]), check=False)
+        else:
+            if (j, k) not in swap_plus:
+                cir.cx(w1, w2)
+            cir.cx(w2, w1)
 
         if p % 4 == 0:
             pass
         elif p % 4 == 1:
-            cir.sdg(w2)
+            if use_dag:
+                cir.apply_operation_back(SdgGate(), (qreg[w2],), check=False)
+            else:
+                cir.sdg(w2)
         elif p % 4 == 2:
-            cir.z(w2)
+            if use_dag:
+                cir.apply_operation_back(ZGate(), (qreg[w2],), check=False)
+            else:
+                cir.z(w2)
         else:
-            cir.s(w2)
-
-        cir.cx(w1, w2)
+            if use_dag:
+                cir.apply_operation_back(SGate(), (qreg[w2],), check=False)
+            else:
+                cir.s(w2)
+        if use_dag:
+            cir.apply_operation_back(CXGate(), (qreg[w1], qreg[w2]), check=False)
+        else:
+            cir.cx(w1, w2)
 
     for i in range(n):
         p = phase_schedule[n - 1 - i, n - 1 - i]
         if p % 4 == 0:
             continue
         if p % 4 == 1:
-            cir.sdg(i)
+            if use_dag:
+                cir.apply_operation_back(SdgGate(), (qreg[i],), check=False)
+            else:
+                cir.sdg(i)
         elif p % 4 == 2:
-            cir.z(i)
+            if use_dag:
+                cir.apply_operation_back(ZGate(), (qreg[i],), check=False)
+            else:
+                cir.z(i)
         else:
-            cir.s(i)
+            if use_dag:
+                cir.apply_operation_back(SGate(), (qreg[i],), check=False)
+            else:
+                cir.s(i)
 
     return cir
 
 
-def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCircuit:
+def synth_cx_cz_depth_line_my(
+    mat_x: np.ndarray, mat_z: np.ndarray, use_dag: bool = False
+) -> QuantumCircuit | DAGCircuit:
     """
     Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang.
@@ -226,6 +261,8 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
             ``mat_z[i][j]=1`` represents a ``cz(i,j)`` gate
 
         mat_x : a boolean invertible matrix representing a CX circuit.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of a CX circuit following a CZ circuit,
@@ -254,9 +291,13 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCi
 
     _update_phase_schedule(n, phase_schedule, swap_plus)
 
-    qc = _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus)
+    qc = _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus, use_dag)
 
     for i, j in reversed(cx_instructions_rows_m2nw):
-        qc.cx(i, j)
+        if use_dag:
+            qreg = qc.qregs[list(qc.qregs.keys())[0]]
+            qc.apply_operation_back(CXGate(), (qreg[i], qreg[j]), check=False)
+        else:
+            qc.cx(i, j)
 
     return qc

@@ -45,7 +45,7 @@ def _default_cx_synth_func(mat):
     """
     Construct the layer of CX gates from a boolean invertible matrix mat.
     """
-    CX_circ = synth_cnot_count_full_pmh(mat)
+    CX_circ = synth_cnot_count_full_pmh(mat, use_dag=False)
     CX_circ.name = "CX"
 
     return CX_circ
@@ -101,14 +101,13 @@ def synth_clifford_layers(
             It gets as input a boolean invertible matrix, and outputs a :class:`.QuantumCircuit`.
         cz_synth_func: A function to decompose the CZ sub-circuit.
             It gets as input a boolean symmetric matrix, and outputs a :class:`.QuantumCircuit`.
-        cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
-        validate (Boolean): if True, validates the synthesis process.
-        cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
+        cx_cz_synth_func: optional, a function to decompose both sub-circuits CZ and CX.
+        cz_func_reverse_qubits: True only if ``cz_synth_func`` is
             :func:`.synth_cz_depth_line_mr`, since this function returns a circuit that reverts
             the order of qubits.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+        validate: if True, validates the synthesis process.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
                         :class:`QuantumCircuit` when this class is called.
-
     Returns:
         A circuit implementation of the Clifford.
 
@@ -425,8 +424,8 @@ def synth_clifford_depth_lnn(cliff: Clifford, use_dag: bool = False) -> QuantumC
     It should be replaced by a better algorithm that provides depth bounded by :math:`7n-4` [3].
 
     Args:
-        cliff (Clifford): a Clifford operator.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+        cliff: a Clifford operator.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
                         :class:`QuantumCircuit` when this class is called.
 
     Returns:
