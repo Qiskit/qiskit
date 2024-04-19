@@ -151,9 +151,9 @@ pub fn apply_diagonal_gate(
         .take(num_qubits as usize)
         .multi_cartesian_product()
     {
-        let state_on_action_qubits: Vec<u8> =
-            action_qubit_labels.iter().map(|i| state[*i]).collect();
-        let diag_index = bin_to_int(&state_on_action_qubits);
+        let diag_index = action_qubit_labels
+            .iter()
+            .fold(0_usize, |acc, i| (acc << 1) + state[*i] as usize);
         let i = bin_to_int(&state);
         for j in 0..num_col {
             m[[i, j]] = diag[diag_index] * m[[i, j]]
@@ -177,9 +177,9 @@ pub fn apply_diagonal_gate_to_diag(
         .multi_cartesian_product()
         .take(m_diagonal.len())
     {
-        let state_on_action_qubits: Vec<u8> =
-            action_qubit_labels.iter().map(|i| state[*i]).collect();
-        let diag_index = bin_to_int(&state_on_action_qubits);
+        let diag_index = action_qubit_labels
+            .iter()
+            .fold(0_usize, |acc, i| (acc << 1) + state[*i] as usize);
         let i = bin_to_int(&state);
         m_diagonal[i] *= diag[diag_index]
     }
@@ -194,25 +194,30 @@ fn construct_basis_states(
     target_label: usize,
 ) -> [usize; 2] {
     let size = state_free.len() + control_labels.len() + 1;
-    let mut e1: Vec<u8> = Vec::with_capacity(size);
-    let mut e2: Vec<u8> = Vec::with_capacity(size);
+    let mut e1: usize = 0;
+    let mut e2: usize = 0;
     let mut j = 0;
     let control_set: HashSet<usize> = control_labels.iter().copied().collect();
     for i in 0..size {
         if control_set.contains(&i) {
-            e1.push(1);
-            e2.push(1);
+            e1 <<= 1;
+            e1 += 1;
+            e2 <<= 1;
+            e2 += 1;
         } else if i == target_label {
-            e1.push(0);
-            e2.push(1);
+            e1 <<= 1;
+            e2 <<= 1;
+            e2 += 1;
         } else {
             assert!(j <= 1);
-            e1.push(state_free[j]);
-            e2.push(state_free[j]);
+            e1 <<= 1;
+            e1 += state_free[j] as usize;
+            e2 <<= 1;
+            e2 += state_free[j] as usize;
             j += 1
         }
     }
-    [bin_to_int(&e1), bin_to_int(&e2)]
+    [e1, e2]
 }
 
 #[pyfunction]
