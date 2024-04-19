@@ -13,7 +13,7 @@
 """Transform a circuit with virtual qubits into a circuit with physical qubits."""
 
 from qiskit.circuit import QuantumRegister
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGCircuitError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -78,7 +78,11 @@ class ApplyLayout(TransformationPass):
 
             phys_map = list(range(len(new_dag.qubits)))
             for virt, phys in virtual_physical_map.items():
-                phys_map[dag.find_bit(virt).index] = phys
+                try:
+                    index = dag.find_bit(virt).index
+                except DAGCircuitError:
+                    index = phys
+                phys_map[index] = phys
 
         else:
             # First build a new layout object going from:
