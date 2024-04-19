@@ -14,7 +14,7 @@
 
 import unittest
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Qubit
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout, SetLayout
@@ -119,8 +119,39 @@ class TestApplyLayout(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
-    def test_final_layout_is_updated(self):
-        """Test that if vf2postlayout runs that we've updated the final layout."""
+    def test_final_permutation(self):
+        """Test that final permutation is updated."""
+
+        q = QuantumRegister(5, "q")
+
+        # note this layout reverses the order of qubits
+        initial_layout = Layout(
+            {
+                Qubit(q, 0): 4,
+                Qubit(q, 1): 3,
+                Qubit(q, 2): 2,
+                Qubit(q, 3): 1,
+                Qubit(q, 4): 0,
+            }
+        )
+
+        qc = QuantumCircuit(5)
+        qc.cx(Qubit(q, 0), Qubit(q, 2))
+
+        out_pass = ApplyLayout()
+        out_pass.property_set["layout"] = initial_layout
+        out_pass.property_set["final_permutation"] = [1, 2, 3, 4, 0]
+
+        out_pass(qc)
+
+        # The final permutation before applying the pass was 0->1, 1->2, 2->3, 3->4, 4->0.
+        # With the given layout (0->4, 1->3, 2->2, 3->1, 4->0), the final permutation
+        # should become 4->3, 3->2, 2->1, 1->0, 0->4.
+        new_final_permutation = out_pass.property_set["final_permutation"]
+        self.assertEqual(new_final_permutation, [4, 0, 1, 2, 3])
+
+    def test_final_permutation_with_postlayout(self):
+        """Test that if vf2postlayout runs that we've updated the final permutation."""
         qubits = 3
         qc = QuantumCircuit(qubits)
         for i in range(5):
@@ -134,15 +165,8 @@ class TestApplyLayout(QiskitTestCase):
         out_pass.property_set["original_qubit_indices"] = (
             first_layout_circ.layout.input_qubit_mapping
         )
-        out_pass.property_set["final_layout"] = Layout(
-            {
-                first_layout_circ.qubits[0]: 0,
-                first_layout_circ.qubits[1]: 3,
-                first_layout_circ.qubits[2]: 2,
-                first_layout_circ.qubits[3]: 4,
-                first_layout_circ.qubits[4]: 1,
-            }
-        )
+        out_pass.property_set["final_permutation"] = [0, 3, 2, 4, 1]
+
         # Set a post layout like vf2postlayout would:
         out_pass.property_set["post_layout"] = Layout(
             {
@@ -153,19 +177,9 @@ class TestApplyLayout(QiskitTestCase):
                 first_layout_circ.qubits[4]: 3,
             }
         )
+
         out_pass(first_layout_circ)
-        self.assertEqual(
-            out_pass.property_set["final_layout"],
-            Layout(
-                {
-                    first_layout_circ.qubits[0]: 0,
-                    first_layout_circ.qubits[2]: 1,
-                    first_layout_circ.qubits[4]: 4,
-                    first_layout_circ.qubits[1]: 3,
-                    first_layout_circ.qubits[3]: 2,
-                }
-            ),
-        )
+        self.assertEqual(out_pass.property_set["final_permutation"], [0, 3, 1, 2, 4])
 
 
 if __name__ == "__main__":

@@ -75,6 +75,11 @@ class ApplyLayout(TransformationPass):
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
+
+            phys_map = list(range(len(new_dag.qubits)))
+            for virt, phys in virtual_physical_map.items():
+                phys_map[dag.find_bit(virt).index] = phys
+
         else:
             # First build a new layout object going from:
             # old virtual -> old physical -> new virtual -> new physical
@@ -96,13 +101,13 @@ class ApplyLayout(TransformationPass):
                 qargs = [q[new_virtual_to_physical[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
             self.property_set["layout"] = full_layout
-            if (final_layout := self.property_set["final_layout"]) is not None:
-                final_layout_mapping = {
-                    new_dag.qubits[phys_map[dag.find_bit(old_virt).index]]: phys_map[old_phys]
-                    for old_virt, old_phys in final_layout.get_virtual_bits().items()
-                }
-                out_layout = Layout(final_layout_mapping)
-                self.property_set["final_layout"] = out_layout
+
+        if (final_virtual_permutation := self.property_set["final_permutation"]) is not None:
+            final_physical_permutation = list(range(len(new_dag.qubits)))
+            for inp, out in enumerate(final_virtual_permutation):
+                final_physical_permutation[phys_map[inp]] = phys_map[out]
+            self.property_set["final_permutation"] = final_physical_permutation
+
         new_dag._global_phase = dag._global_phase
 
         return new_dag
