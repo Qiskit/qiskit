@@ -1641,21 +1641,12 @@ class DAGCircuit:
         # This might include wires that are inherent to the node, like in its `condition` or
         # `target` fields, so might be wider than `node.op.num_{qu,cl}bits`.
         current_wires = {wire for _, _, wire in self.edges(node)}
-        new_wires = set(node.qargs) | set(node.cargs)
-        if (new_condition := getattr(op, "condition", None)) is not None:
-            new_wires.update(condition_resources(new_condition).clbits)
-        elif isinstance(op, SwitchCaseOp):
-            if isinstance(op.target, Clbit):
-                new_wires.add(op.target)
-            elif isinstance(op.target, ClassicalRegister):
-                new_wires.update(op.target)
-            else:
-                new_wires.update(node_resources(op.target).clbits)
+        new_wires = set(node.qargs) | set(node.cargs) | set(_additional_wires(op))
 
         if propagate_condition and not (
             isinstance(node.op, ControlFlowOp) or isinstance(op, ControlFlowOp)
         ):
-            if new_condition is not None:
+            if getattr(op, "condition", None) is not None:
                 raise DAGCircuitError(
                     "Cannot propagate a condition to an operation that already has one."
                 )

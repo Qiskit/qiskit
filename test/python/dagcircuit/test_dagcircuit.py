@@ -2809,6 +2809,55 @@ class TestDagSubstituteNode(QiskitTestCase):
                 node, SwitchCaseOp(expr.lift(cr2), [((1, 3), case.copy())]), inplace=inplace
             )
 
+    @data(True, False)
+    def test_replace_switch_case_standalone_var(self, inplace):
+        """Replace a standalone-Var switch/case with another."""
+        a = expr.Var.new("a", types.Uint(8))
+        b = expr.Var.new("b", types.Uint(8))
+
+        case = QuantumCircuit(1)
+        case.x(0)
+
+        qr = QuantumRegister(1)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        node = dag.apply_operation_back(SwitchCaseOp(a, [((1, 3), case.copy())]), qr, [])
+        dag.substitute_node(
+            node, SwitchCaseOp(expr.bit_and(a, 1), [(1, case.copy())]), inplace=inplace
+        )
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(SwitchCaseOp(expr.bit_and(a, 1), [(1, case.copy())]), qr, [])
+
+        self.assertEqual(dag, expected)
+
+    @data(True, False)
+    def test_replace_store_standalone_var(self, inplace):
+        """Replace a standalone-Var Store with another."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        qr = QuantumRegister(1)
+        dag = DAGCircuit()
+        dag.add_qreg(qr)
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        node = dag.apply_operation_back(Store(a, a), (), ())
+        dag.substitute_node(node, Store(a, expr.logic_not(a)), inplace=inplace)
+
+        expected = DAGCircuit()
+        expected.add_qreg(qr)
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.apply_operation_back(Store(a, expr.logic_not(a)), (), ())
+
+        self.assertEqual(dag, expected)
+
 
 class TestReplaceBlock(QiskitTestCase):
     """Test replacing a block of nodes in a DAG."""
