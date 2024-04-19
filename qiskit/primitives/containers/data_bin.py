@@ -15,78 +15,78 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import make_dataclass
+from typing import Any, Iterable
 
 
 class DataBinMeta(type):
-    """Metaclass for :class:`DataBin` that adds the shape to the type name.
-
-    This is so that the class has a custom repr with DataBin<*shape> notation.
-    """
-
-    def __repr__(cls):
-        name = cls.__name__
-        if cls._SHAPE is None:
-            return name
-        shape = ",".join(map(str, cls._SHAPE))
-        return f"{name}<{shape}>"
+    """This metaclass no longer has a purpose and will be removed."""
 
 
 class DataBin(metaclass=DataBinMeta):
-    """Base class for data bin containers.
-
-    Subclasses are typically made via :class:`~make_data_bin`, which is a specialization of
-    :class:`make_dataclass`.
-    """
-
-    _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
-    _SHAPE: tuple[int, ...] | None = None
-    _FIELDS: tuple[str, ...] = ()
-    """The fields allowed in this data bin."""
-    _FIELD_TYPES: tuple[type, ...] = ()
-    """The types of each field."""
-
-    def __len__(self):
-        return len(self._FIELDS)
-
-    def __repr__(self):
-        vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
-        return f"{type(self)}({', '.join(vals)})"
-
-
-def make_data_bin(
-    fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
-) -> DataBinMeta:
-    """Return a new subclass of :class:`~DataBin` with the provided fields and shape.
+    """Namespace for storing data.
 
     .. code-block:: python
 
-        my_bin = make_data_bin([("alpha", np.NDArray[np.float64])], shape=(20, 30))
+        data = DataBin(
+            alpha=BitArray.from_bitstrings(["0010"]),
+            beta=np.array([1.2])
+        )
 
-        # behaves like a dataclass
-        my_bin(alpha=np.empty((20, 30)))
+        print("alpha data:", data.alpha)
+        print("beta data:", data.beta)
+
+    """
+
+    _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def __setattr__(self, key, value):
+        raise NotImplementedError
+
+    def __len__(self):
+        return len(self.__dict__)
+
+    def __repr__(self):
+        vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
+        return f"{type(self).__name__}({', '.join(vals)})"
+
+    # The following properties exist to provide support to legacy private class attributes which
+    # gained widespread usage in several internal projects due to the lack of alternatives prior to
+    # qiskit 1.1. These properties will be removed once the internal projects have made the
+    # appropriate changes.
+
+    @property
+    def _FIELDS(self) -> tuple[str, ...]:  # pylint: disable=invalid-name
+        return tuple(self.__dict__)
+
+    @property
+    def _FIELD_TYPES(self) -> tuple[Any, ...]:  # pylint: disable=invalid-name
+        return tuple(type(val) for val in self.__dict__.values())
+
+    @property
+    def _SHAPE(self) -> tuple[int, ...] | None:  # pylint: disable=invalid-name
+        return None
+
+
+# pylint: disable=unused-argument
+def make_data_bin(
+    fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
+) -> DataBinMeta:
+    """Return the :class:`~DataBin` type.
+
+    .. note::
+        This class used to return a subclass of :class:`~DataBin`. However, that caused confusion
+        and didn't have a useful purpose. Several internal projects made use of this internal
+        function prior to qiskit 1.1. This function will be removed once these internal projects
+        have made the appropriate changes.
 
     Args:
         fields: Tuples ``(name, type)`` specifying the attributes of the returned class.
         shape: The intended shape of every attribute of this class.
 
     Returns:
-        A new class.
+        The :class:`DataBin` type.
     """
-    field_names, field_types = zip(*fields) if fields else ([], [])
-    for name in field_names:
-        if name in DataBin._RESTRICTED_NAMES:
-            raise ValueError(f"'{name}' is a restricted name for a DataBin.")
-    cls = make_dataclass(
-        "DataBin",
-        dict(zip(field_names, field_types)),
-        bases=(DataBin,),
-        frozen=True,
-        unsafe_hash=True,
-        repr=False,
-    )
-    cls._SHAPE = shape
-    cls._FIELDS = field_names
-    cls._FIELD_TYPES = field_types
-    return cls
+    return DataBin

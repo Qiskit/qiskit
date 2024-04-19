@@ -33,8 +33,8 @@ class PrimitiveResultCase(QiskitTestCase):
         beta = np.empty((10, 20), dtype=int)
 
         pub_results = [
-            PubResult(data_bin_cls(alpha, beta)),
-            PubResult(data_bin_cls(alpha, beta)),
+            PubResult(data_bin_cls(alpha=alpha, beta=beta)),
+            PubResult(data_bin_cls(alpha=alpha, beta=beta)),
         ]
         result = PrimitiveResult(pub_results, {"x": 2})
 
