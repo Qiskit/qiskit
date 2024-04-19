@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added the :class:`StarPreRouting` pass to the default optimization level 2+3 passmanager. `StarPreRouting`
     runs before a layout is fixed (i.e. on abstract circuits) and transforms a circuit with inner
