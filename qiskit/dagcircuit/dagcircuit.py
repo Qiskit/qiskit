@@ -1296,7 +1296,8 @@ class DAGCircuit:
                 multiple gates in the combined single op node.  If a :class:`.Bit` is not in the
                 dictionary, it will not be added to the args; this can be useful when dealing with
                 control-flow operations that have inherent bits in their ``condition`` or ``target``
-                fields.
+                fields.  :class:`.expr.Var` wires similarly do not need to be in this map, since
+                they will never be in ``qargs`` or ``cargs``.
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
                 would introduce a cycle (which would invalidate the

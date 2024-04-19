@@ -2774,6 +2774,34 @@ class TestReplaceBlock(QiskitTestCase):
 
         self.assertEqual(dag, expected)
 
+    def test_contract_stores(self):
+        """Test that contraction over nodes with `Var` wires works."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Bool())
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        dag.add_input_var(c)
+        dag.apply_operation_back(Store(c, expr.lift(False)), (), ())
+        nodes = [
+            dag.apply_operation_back(Store(a, expr.logic_or(a, b)), (), ()),
+            dag.apply_operation_back(Store(a, expr.logic_or(a, c)), (), ()),
+        ]
+        dag.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dag.replace_block_with_op(nodes, Store(a, expr.logic_or(expr.logic_or(a, b), c)), {})
+
+        expected = DAGCircuit()
+        expected.add_input_var(a)
+        expected.add_input_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(c, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(a, expr.logic_or(expr.logic_or(a, b), c)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dag, expected)
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
