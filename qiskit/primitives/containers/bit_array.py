@@ -373,13 +373,13 @@ class BitArray(ShapedMixin):
             raise ValueError("Cannot change the size of the array.")
         return BitArray(self._array.reshape(shape), self.num_bits)
 
-    def transpose(self, axes: tuple[int, ...] | list[int] | None = None) -> "BitArray":
+    def transpose(self, *axes) -> "BitArray":
         """Return a bit array with axes transposed.
 
         Args:
-            axes: Tuple or list of ints, optional. See
-                `numpy.transpose
-                <https://numpy.org/doc/stable/reference/generated/numpy.transpose.html>`_
+            axes: None, tuple of ints or n ints. See `ndarray.transpose
+                <https://numpy.org/doc/stable/reference/generated/
+                numpy.ndarray.transpose.html#numpy.ndarray.transpose>`_
                 for the details.
 
         Returns:
@@ -389,8 +389,10 @@ class BitArray(ShapedMixin):
             ValueError: If ``axes`` don't match this bit array.
             ValueError: If ``axes`` includes any indices that are out of bounds.
         """
-        if axes is None:
+        if len(axes) == 0:
             axes = tuple(reversed(range(self.ndim)))
+        if len(axes) == 1 and isinstance(axes[0], Sequence):
+            axes = axes[0]
         if len(axes) != self.ndim:
             raise ValueError("axes don't match bit array")
         for i in axes:
@@ -405,13 +407,15 @@ class BitArray(ShapedMixin):
         """Return a bit array marginalized over some indices of interest.
 
         .. note::
+
             The convention used by this method is that the index ``0`` corresponds to
             the least-significant bit in the :attr:`~array`, or equivalently
             the right-most bitstring entry as returned by
             :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
 
             If this bit array was produced by a sampler, then an index ``i`` corresponds to the
-            :class:`~.ClassicalRegister` location ``creg[i]]`.
+            :class:`~.ClassicalRegister` location ``creg[i]``.
+
         Args:
             indices: The bit positions of interest to marginalize over.
 
@@ -441,10 +445,11 @@ class BitArray(ShapedMixin):
     ) -> float:
         """Compute the expectation value of an operator.
 
-        .. note:
+        .. note::
+
             This method returns the real part of the expectation value even if
             the operator has complex coefficients due to the specification of
-            :func:~.sampled_expval_complex.
+            :func:`~.sampled_expectation_value`.
 
         Args:
             operator: The operator for the expectation value
@@ -472,10 +477,10 @@ class BitArray(ShapedMixin):
             BitArray: The concatenated bit array.
 
         Raises:
-            ValueError: if the sequence of bit arrays is empty.
-            ValueError: if any bit arrays has a different number of bits.
-            ValueError: if any bit arrays has a different number of shots.
-            ValueError: if any bit arrays has a different number of dimensions.
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of bits.
+            ValueError: If any bit arrays has a different number of shots.
+            ValueError: If any bit arrays has a different number of dimensions.
         """
         if len(bitarrays) == 0:
             raise ValueError("Need at least one bit array to concatenate")
@@ -520,9 +525,9 @@ class BitArray(ShapedMixin):
             BitArray: The stacked bit array.
 
         Raises:
-            ValueError: if the sequence of bit arrays is empty.
-            ValueError: if any bit arrays has a different number of bits.
-            ValueError: if any bit arrays has a different shape.
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of bits.
+            ValueError: If any bit arrays has a different shape.
         """
         if len(bitarrays) == 0:
             raise ValueError("Need at least one bit array to stack")
@@ -556,9 +561,9 @@ class BitArray(ShapedMixin):
             BitArray: The stacked bit array.
 
         Raises:
-            ValueError: if the sequence of bit arrays is empty.
-            ValueError: if any bit arrays has a different number of shots.
-            ValueError: if any bit arrays has a different shape.
+            ValueError: If the sequence of bit arrays is empty.
+            ValueError: If any bit arrays has a different number of shots.
+            ValueError: If any bit arrays has a different shape.
         """
         if len(bitarrays) == 0:
             raise ValueError("Need at least one bit array to stack")

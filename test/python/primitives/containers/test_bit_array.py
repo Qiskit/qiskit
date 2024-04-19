@@ -300,29 +300,35 @@ class BitArrayTestCase(QiskitTestCase):
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
 
-        with self.subTest("arg 1"):
+        with self.subTest("tuple 1"):
             ba2 = ba.transpose((2, 1, 0))
             self.assertEqual(ba2.shape, (3, 2, 1))
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
 
-        with self.subTest("arg 2"):
+        with self.subTest("tuple 2"):
             ba2 = ba.transpose((0, 1, 2))
             self.assertEqual(ba2.shape, (1, 2, 3))
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
 
-        with self.subTest("arg 3"):
+        with self.subTest("tuple 3"):
             ba2 = ba.transpose((0, 2, 1))
             self.assertEqual(ba2.shape, (1, 3, 2))
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
 
-        with self.subTest("negative indices"):
+        with self.subTest("tuple, negative indices"):
             ba2 = ba.transpose((0, -1, -2))
             self.assertEqual(ba2.shape, (1, 3, 2))
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
+
+        with self.subTest("ints"):
+            ba2 = ba.transpose(2, 1, 0)
+            self.assertEqual(ba2.shape, (3, 2, 1))
+            for i, j, k in product(range(1), range(2), range(3)):
+                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
