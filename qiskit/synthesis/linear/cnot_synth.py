@@ -26,7 +26,7 @@ from qiskit.exceptions import QiskitError
 
 
 def synth_cnot_count_full_pmh(
-    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2, return_dag: bool = True
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2, use_dag: bool = False
 ) -> QuantumCircuit | DAGCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
@@ -42,7 +42,7 @@ def synth_cnot_count_full_pmh(
         section_size: The size of each section, used in the
             Patel–Markov–Hayes algorithm [1]. ``section_size`` must be a factor of the number
             of qubits.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+        use_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
             else, it will return a ``QuantumCircuit``.
 
     Returns:
@@ -76,7 +76,7 @@ def synth_cnot_count_full_pmh(
     for i in circuit_u + circuit_l:
         circ.cx(i[0], i[1])
 
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(circ)
     return circ
 

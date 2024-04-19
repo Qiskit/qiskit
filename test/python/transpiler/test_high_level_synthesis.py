@@ -118,7 +118,7 @@ class OpADefaultSynthesisPlugin(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         qc = QuantumCircuit(1)
@@ -135,7 +135,7 @@ class OpARepeatSynthesisPlugin(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         if "n" not in options.keys():
@@ -156,7 +156,7 @@ class OpBSimpleSynthesisPlugin(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         qc = QuantumCircuit(2)
@@ -180,7 +180,7 @@ class OpBAnotherSynthesisPlugin(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         num_swaps = options.get("num_swaps", self.num_swaps)
@@ -200,7 +200,7 @@ class OpAPluginNeedsCouplingMap(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         if coupling_map is None:
@@ -219,7 +219,7 @@ class OpAPluginNeedsQubits(HighLevelSynthesisPlugin):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=False,
+        use_dag=True,
         **options,
     ):
         if qubits is None:

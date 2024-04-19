@@ -635,7 +635,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """
         from qiskit.synthesis.clifford import synth_clifford_full  # pylint: disable=cyclic-import
 
-        return synth_clifford_full(self, return_dag=False)
+        return synth_clifford_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the Clifford."""

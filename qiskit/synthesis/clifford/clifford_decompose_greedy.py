@@ -33,9 +33,7 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_greedy(
-    clifford: Clifford, return_dag: bool = True
-) -> QuantumCircuit | DAGCircuit:
+def synth_clifford_greedy(clifford: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit` based
     on the greedy Clifford compiler that is described in Appendix A of
     Bravyi, Hu, Maslov and Shaydulin [1].
@@ -48,8 +46,8 @@ def synth_clifford_greedy(
 
     Args:
         clifford: A Clifford operator.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -127,7 +125,7 @@ def synth_clifford_greedy(
         elif destab and not stab:
             circ.z(qubit)
 
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(circ)
     return circ
 

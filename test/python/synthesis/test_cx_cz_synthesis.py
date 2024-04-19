@@ -57,7 +57,7 @@ class TestCXCZSynth(QiskitTestCase):
             # Generate a random CX circuit
             mat_x = random_invertible_binary_matrix(num_qubits, seed=rng)
             mat_x = np.array(mat_x, dtype=bool)
-            cir_x = synth_cnot_depth_line_kms(mat_x, return_dag=False)
+            cir_x = synth_cnot_depth_line_kms(mat_x)
 
             # Joint Synthesis
 

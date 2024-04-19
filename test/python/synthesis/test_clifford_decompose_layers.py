@@ -38,7 +38,7 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
         samples = 10
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
-            circ = synth_clifford_layers(cliff, validate=True, return_dag=False)
+            circ = synth_clifford_layers(cliff, validate=True)
             cliff_target = Clifford(circ)
             self.assertEqual(cliff, cliff_target)
             # Verify the layered structure
@@ -58,7 +58,7 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
         samples = 10
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
-            circ = synth_clifford_depth_lnn(cliff, return_dag=False)
+            circ = synth_clifford_depth_lnn(cliff)
             # Check that the Clifford circuit 2-qubit depth is bounded by 7*n+2
             depth2q = (circ.decompose()).depth(
                 filter_function=lambda x: x.operation.num_qubits == 2

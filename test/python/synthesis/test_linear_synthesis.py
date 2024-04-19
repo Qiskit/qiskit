@@ -45,7 +45,7 @@ class TestLinearSynth(QiskitTestCase):
 
         for optimized in [True, False]:
             optimized_qc = optimize_cx_4_options(
-                partial(synth_cnot_count_full_pmh, return_dag=False), mat, optimize_count=optimized
+                partial(synth_cnot_count_full_pmh), mat, optimize_count=optimized
             )
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
@@ -62,7 +62,7 @@ class TestLinearSynth(QiskitTestCase):
 
         for optimized in [True, False]:
             optimized_qc = optimize_cx_4_options(
-                partial(synth_cnot_count_full_pmh, return_dag=False), mat, optimize_count=optimized
+                partial(synth_cnot_count_full_pmh), mat, optimize_count=optimized
             )
             self.assertEqual(optimized_qc.depth(), 4)
             self.assertEqual(optimized_qc.count_ops()["cx"], 4)
@@ -71,7 +71,7 @@ class TestLinearSynth(QiskitTestCase):
         """Test the transpose_cx_circ() function."""
         n = 5
         mat = random_invertible_binary_matrix(n, seed=1234)
-        qc = synth_cnot_count_full_pmh(mat, return_dag=False)
+        qc = synth_cnot_count_full_pmh(mat)
         transposed_qc = transpose_cx_circ(qc)
         transposed_mat = LinearFunction(transposed_qc).linear.astype(int)
         self.assertTrue((mat.transpose() == transposed_mat).all())
@@ -96,13 +96,13 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         optimized_qc = optimize_cx_4_options(
-            partial(synth_cnot_count_full_pmh, return_dag=False), mat, optimize_count=True
+            partial(synth_cnot_count_full_pmh), mat, optimize_count=True
         )
         self.assertEqual(optimized_qc.depth(), 17)
         self.assertEqual(optimized_qc.count_ops()["cx"], 20)
 
         optimized_qc = optimize_cx_4_options(
-            partial(synth_cnot_count_full_pmh, return_dag=False), mat, optimize_count=False
+            partial(synth_cnot_count_full_pmh), mat, optimize_count=False
         )
         self.assertEqual(optimized_qc.depth(), 15)
         self.assertEqual(optimized_qc.count_ops()["cx"], 23)
@@ -125,7 +125,7 @@ class TestLinearSynth(QiskitTestCase):
         for _ in range(num_trials):
             mat = random_invertible_binary_matrix(num_qubits, seed=rng)
             mat = np.array(mat, dtype=bool)
-            qc = synth_cnot_depth_line_kms(mat, return_dag=False)
+            qc = synth_cnot_depth_line_kms(mat)
             mat1 = LinearFunction(qc).linear
             self.assertTrue((mat == mat1).all())
 

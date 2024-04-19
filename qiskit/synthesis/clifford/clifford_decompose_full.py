@@ -25,7 +25,7 @@ from qiskit.synthesis.clifford.clifford_decompose_greedy import synth_clifford_g
 def synth_clifford_full(
     clifford: Clifford,
     method: str | None = None,
-    return_dag: bool = True,
+    use_dag: bool = False,
 ) -> QuantumCircuit | DAGCircuit:
     r"""Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`.
 
@@ -38,8 +38,8 @@ def synth_clifford_full(
         clifford: A Clifford operator.
         method: Optional, a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -60,12 +60,12 @@ def synth_clifford_full(
     num_qubits = clifford.num_qubits
 
     if method == "AG":
-        return synth_clifford_ag(clifford, return_dag)
+        return synth_clifford_ag(clifford, use_dag)
 
     if method == "greedy":
-        return synth_clifford_greedy(clifford, return_dag)
+        return synth_clifford_greedy(clifford, use_dag)
 
     if num_qubits <= 3:
-        return synth_clifford_bm(clifford, return_dag)
+        return synth_clifford_bm(clifford, use_dag)
 
-    return synth_clifford_greedy(clifford, return_dag)
+    return synth_clifford_greedy(clifford, use_dag)

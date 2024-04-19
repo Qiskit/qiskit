@@ -27,7 +27,7 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
 def synth_cnot_phase_aam(
-    cnots: list[list[int]], angles: list[str], section_size: int = 2, return_dag=True
+    cnots: list[list[int]], angles: list[str], section_size: int = 2, use_dag: bool = False
 ) -> QuantumCircuit | DAGCircuit:
     r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.
@@ -72,8 +72,8 @@ def synth_cnot_phase_aam(
         section_size: The size of every section in the Patel–Markov–Hayes algorithm.
             ``section_size`` must be a factor of the number of qubits.
 
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The decomposed quantum circuit.
@@ -189,8 +189,8 @@ def synth_cnot_phase_aam(
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir &= synth_cnot_count_full_pmh(state, section_size, return_dag=False).inverse()
-    if return_dag:
+    qcir &= synth_cnot_count_full_pmh(state, section_size).inverse()
+    if use_dag:
         return circuit_to_dag(qcir)
     return qcir
 

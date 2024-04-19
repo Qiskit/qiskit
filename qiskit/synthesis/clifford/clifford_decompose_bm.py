@@ -34,14 +34,14 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def synth_clifford_bm(clifford: Clifford, return_dag: bool = True) -> QuantumCircuit | DAGCircuit:
+def synth_clifford_bm(clifford: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
     """Optimal CX-cost decomposition of a :class:`.Clifford` operator on 2 qubits
     or 3 qubits into a :class:`.QuantumCircuit` based on the Bravyi-Maslov method [1].
 
     Args:
         clifford: A Clifford operator.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -86,7 +86,7 @@ def synth_clifford_bm(clifford: Clifford, return_dag: bool = True) -> QuantumCir
     if len(inv_circuit) > 0:
         ret_circ.append(inv_circuit.inverse(), range(num_qubits))
 
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(ret_circ.decompose())
 
     return ret_circ.decompose()

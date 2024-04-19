@@ -241,7 +241,7 @@ def _optimize_cx_circ_depth_5n_line(mat):
 
 
 def synth_cnot_depth_line_kms(
-    mat: np.ndarray[bool], return_dag: bool = True
+    mat: np.ndarray[bool], use_dag: bool = False
 ) -> QuantumCircuit | DAGCircuit:
     """
     Synthesize linear reversible circuit for linear nearest-neighbor architectures using
@@ -253,7 +253,7 @@ def synth_cnot_depth_line_kms(
 
     Args:
         mat: A boolean invertible matrix.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
+        use_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
             else, it will return a ``QuantumCircuit``.
 
     Returns:
@@ -279,6 +279,6 @@ def synth_cnot_depth_line_kms(
         qc.cx(pair[0], pair[1])
     for pair in cx_inst[1]:
         qc.cx(pair[0], pair[1])
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(qc)
     return qc

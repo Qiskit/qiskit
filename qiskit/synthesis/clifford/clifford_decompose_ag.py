@@ -36,14 +36,14 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 from .clifford_decompose_bm import _decompose_clifford_1q
 
 
-def synth_clifford_ag(clifford: Clifford, return_dag: bool = True) -> QuantumCircuit | DAGCircuit:
+def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircuit | DAGCircuit:
     """Decompose a :class:`.Clifford` operator into a :class:`.QuantumCircuit`
     based on Aaronson-Gottesman method [1].
 
     Args:
         clifford: A Clifford operator.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -82,7 +82,7 @@ def synth_clifford_ag(clifford: Clifford, return_dag: bool = True) -> QuantumCir
             circuit.x(i)
     # Next we invert the circuit to undo the row reduction and return the
     # result as a gate instruction
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(circuit.inverse())
 
     return circuit.inverse()

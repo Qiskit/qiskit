@@ -231,7 +231,7 @@ class LinearFunction(Gate):
         """
         from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-        return synth_cnot_count_full_pmh(self.linear, return_dag=False)
+        return synth_cnot_count_full_pmh(self.linear)
 
     @property
     def linear(self):

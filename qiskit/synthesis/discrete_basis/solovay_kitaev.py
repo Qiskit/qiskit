@@ -89,7 +89,7 @@ class SolovayKitaevDecomposition:
         self,
         gate_matrix: np.ndarray,
         recursion_degree: int,
-        return_dag: bool = False,
+        use_dag: bool = False,
         check_input: bool = True,
     ) -> "QuantumCircuit" | "DAGCircuit":
         r"""Run the algorithm.
@@ -98,7 +98,7 @@ class SolovayKitaevDecomposition:
             gate_matrix: The 2x2 matrix representing the gate. This matrix has to be SU(2)
                 up to global phase.
             recursion_degree: The recursion degree, called :math:`n` in the paper.
-            return_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
+            use_dag: If ``True`` return a :class:`.DAGCircuit`, else a :class:`.QuantumCircuit`.
             check_input: If ``True`` check that the input matrix is valid for the decomposition.
 
         Returns:
@@ -117,7 +117,7 @@ class SolovayKitaevDecomposition:
         _remove_inverse_follows_gate(decomposition)
 
         # convert to a circuit and attach the right phases
-        if return_dag:
+        if use_dag:
             out = decomposition.to_dag()
         else:
             out = decomposition.to_circuit()

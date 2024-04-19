@@ -670,7 +670,7 @@ class HighLevelSynthesisPlugin(abc.ABC):
         coupling_map=None,
         target=None,
         qubits=None,
-        return_dag=True,
+        use_dag=False,
         **options,
     ):
         """Run synthesis for the given Operation.
@@ -683,8 +683,8 @@ class HighLevelSynthesisPlugin(abc.ABC):
             target (Target): A target representing the target backend.
             qubits (list): List of qubits over which the operation is defined
                 in case synthesis is done on a physical circuit.
-            return_dag (bool): If ``True`` (default value), the function will return a ``DAGCircuit``,
-                else, it will return a ``QuantumCircuit``.
+            use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                            :class:`QuantumCircuit` when this class is called.
             options: Additional method-specific optional kwargs.
 
         Returns:

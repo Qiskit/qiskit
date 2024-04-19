@@ -27,7 +27,7 @@ from .permutation_utils import (
 
 
 def synth_permutation_basic(
-    pattern: list[int] | np.ndarray[int], return_dag: bool = True
+    pattern: list[int] | np.ndarray[int], use_dag: bool = False
 ) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using sorting.
@@ -44,8 +44,8 @@ def synth_permutation_basic(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
-        return_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -60,14 +60,14 @@ def synth_permutation_basic(
     for swap in swaps:
         qc.swap(swap[0], swap[1])
 
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(qc)
 
     return qc
 
 
 def synth_permutation_acg(
-    pattern: list[int] | np.ndarray[int], return_dag: bool = True
+    pattern: list[int] | np.ndarray[int], use_dag: bool = False
 ) -> QuantumCircuit | DAGCircuit:
     """Synthesize a permutation circuit for a fully-connected
     architecture using the Alon, Chung, Graham method.
@@ -84,8 +84,8 @@ def synth_permutation_acg(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
-        return_dag (bool): If ``True`` (default value), the function will return a ``DAGCircuit``,
-                else, it will return a ``QuantumCircuit``.
+        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+                        :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -112,7 +112,7 @@ def synth_permutation_acg(
     for swap in swaps:
         qc.swap(swap[0], swap[1])
 
-    if return_dag:
+    if use_dag:
         return circuit_to_dag(qc)
 
     return qc
