@@ -106,6 +106,8 @@ def synth_clifford_layers(
         cz_func_reverse_qubits (Boolean): True only if ``cz_synth_func`` is
             :func:`.synth_cz_depth_line_mr`, since this function returns a circuit that reverts
             the order of qubits.
+        return_dag (Boolean): If ``True`` (default value), the function will return a ``DAGCircuit``,
+             else, it will return a ``QuantumCircuit``.
 
     Returns:
         A circuit implementation of the Clifford.

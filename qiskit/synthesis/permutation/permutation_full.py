@@ -84,6 +84,8 @@ def synth_permutation_acg(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
+        return_dag (bool): If ``True`` (default value), the function will return a ``DAGCircuit``,
+                else, it will return a ``QuantumCircuit``.
 
     Returns:
         The synthesized quantum circuit.

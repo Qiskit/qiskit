@@ -683,6 +683,8 @@ class HighLevelSynthesisPlugin(abc.ABC):
             target (Target): A target representing the target backend.
             qubits (list): List of qubits over which the operation is defined
                 in case synthesis is done on a physical circuit.
+            return_dag (bool): If ``True`` (default value), the function will return a ``DAGCircuit``,
+                else, it will return a ``QuantumCircuit``.
             options: Additional method-specific optional kwargs.
 
         Returns:
