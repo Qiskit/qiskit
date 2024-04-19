@@ -439,6 +439,51 @@ class TestDagWireRemoval(QiskitTestCase):
         dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
         self.assertEqual(dag, dag.copy_empty_like())
 
+    def test_copy_empty_like_vars_captures(self):
+        """Variables can be converted to captures as part of the empty copy."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+        all_captures = DAGCircuit()
+        for var in [a, b, c, d]:
+            all_captures.add_captured_var(var)
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        dag.add_declared_var(c)
+        dag.add_declared_var(d)
+        self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
+
+        dag = DAGCircuit()
+        dag.add_captured_var(a)
+        dag.add_captured_var(b)
+        dag.add_declared_var(c)
+        dag.add_declared_var(d)
+        self.assertEqual(all_captures, dag.copy_empty_like(vars_mode="captures"))
+
+    def test_copy_empty_like_vars_drop(self):
+        """Variables can be dropped as part of the empty copy."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        dag.add_declared_var(c)
+        dag.add_declared_var(d)
+        self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
+
+        dag = DAGCircuit()
+        dag.add_captured_var(a)
+        dag.add_captured_var(b)
+        dag.add_declared_var(c)
+        dag.add_declared_var(d)
+        self.assertEqual(DAGCircuit(), dag.copy_empty_like(vars_mode="drop"))
+
     def test_remove_busy_clbit(self):
         """Classical bit removal of busy classical bits raises."""
         self.dag.apply_operation_back(Measure(), [self.qreg[0]], [self.individual_clbit])

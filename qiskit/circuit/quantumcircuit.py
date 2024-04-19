@@ -2685,7 +2685,7 @@ class QuantumCircuit:
         self,
         name: str | None = None,
         *,
-        vars_mode: Literal["alike" | "captures" | "drop"] = "alike",
+        vars_mode: Literal["alike", "captures", "drop"] = "alike",
     ) -> typing.Self:
         """Return a copy of self with the same structure but empty.
 
