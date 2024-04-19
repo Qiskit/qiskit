@@ -876,7 +876,7 @@ class DAGCircuit:
             raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
 
         variable_mapper = _classical_resource_map.VariableMapper(
-            dag.cregs.values(), edge_map, _reject_new_register
+            dag.cregs.values(), edge_map, add_register=_reject_new_register
         )
         for nd in other.topological_nodes():
             if isinstance(nd, DAGInNode):
@@ -1459,7 +1459,7 @@ class DAGCircuit:
         self._decrement_op(node.op)
 
         variable_mapper = _classical_resource_map.VariableMapper(
-            self.cregs.values(), wire_map, self.add_creg
+            self.cregs.values(), wire_map, add_register=self.add_creg
         )
         # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag

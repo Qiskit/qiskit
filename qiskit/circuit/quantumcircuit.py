@@ -883,10 +883,30 @@ class QuantumCircuit:
         wrap: bool = False,
         *,
         copy: bool = True,
+        var_remap: Mapping[str | expr.Var, str | expr.Var] | None = None,
+        inline_captures: bool = False,
     ) -> Optional["QuantumCircuit"]:
         """Compose circuit with ``other`` circuit or instruction, optionally permuting wires.
 
         ``other`` can be narrower or of equal width to ``self``.
+
+        When dealing with realtime variables (:class:`.expr.Var` instances), there are two principal
+        strategies for using :meth:`compose`:
+
+        1. The ``other`` circuit is treated as entirely additive, including its variables.  The
+           variables in ``other`` must be entirely distinct from those in ``self`` (use
+           ``var_remap`` to help with this), and all variables in ``other`` will be declared anew in
+           the output with matching input/capture/local scoping to how they are in ``other``.  This
+           is generally what you want if you're joining two unrelated circuits.
+
+        2. The ``other`` circuit was created as an exact extension to ``self`` to be inlined onto
+           it, including acting on the existing variables in their states at the end of ``self``.
+           In this case, ``other`` should be created with all these variables to be inlined declared
+           as "captures", and then you can use ``inline_captures=True`` in this method to link them.
+           This is generally what you want if you're building up a circuit by defining layers
+           on-the-fly, or rebuilding a circuit using layers taken from itself.  You might find the
+           ``vars_mode="captures"`` argument to :meth:`copy_empty_like` useful to create each
+           layer's base, in this case.
 
         Args:
             other (qiskit.circuit.Instruction or QuantumCircuit):
@@ -905,6 +925,24 @@ class QuantumCircuit:
                 the base circuit, in order to avoid unnecessary copies; in this case, it is not
                 valid to use ``other`` afterwards, and some instructions may have been mutated in
                 place.
+            var_remap (Mapping): mapping to use to rewrite :class:`.expr.Var` nodes in ``other`` as
+                they are inlined into ``self``.  This can be used to avoid naming conflicts.
+
+                Both keys and values can be given as strings or direct :class:`.expr.Var` instances.
+                If a key is a string, it matches any :class:`~.expr.Var` with the same name.  If a
+                value is a string, whenever a new key matches a it, a new :class:`~.expr.Var` is
+                created with the correct type.  If a value is a :class:`~.expr.Var`, its
+                :class:`~.expr.Expr.type` must exactly match that of the variable it is replacing.
+            inline_captures (bool): if ``True``, then all "captured" :class:`~.expr.Var` nodes in
+                the ``other`` :class:`.QuantumCircuit` are assumed to refer to variables already
+                declared in ``self`` (as any input/capture/local type), and the uses in ``other``
+                will apply to the existing variables.  If you want to build up a layer for an
+                existing circuit to use with :meth:`compose`, you might find the
+                ``vars_mode="captures"`` argument to :meth:`copy_empty_like` useful.  Any remapping
+                in ``vars_remap`` occurs before evaluating this variable inlining.
+
+                If this is ``False`` (the default), then all variables in ``other`` will be required
+                to be distinct from those in ``self``, and new declarations will be made for them.
 
         Returns:
             QuantumCircuit: the composed circuit (returns None if inplace==True).
@@ -960,6 +998,31 @@ class QuantumCircuit:
         # avoid an in-place composition getting `self` in a partially mutated state for a simple
         # error that the user might want to correct in an interactive session.
         dest = self if inplace else self.copy()
+
+        var_remap = {} if var_remap is None else var_remap
+
+        # This doesn't use `functools.cache` so we can access it during the variable remapping of
+        # instructions.  We cache all replacement lookups for a) speed and b) to ensure that
+        # the same variable _always_ maps to the same replacement even if it's used in different
+        # places in the recursion tree (such as being a captured variable).
+        def replace_var(var: expr.Var, cache: Mapping[expr.Var, expr.Var]) -> expr.Var:
+            # This is closing over an argument to `compose`.
+            nonlocal var_remap
+
+            if out := cache.get(var):
+                return out
+            if (replacement := var_remap.get(var)) or (replacement := var_remap.get(var.name)):
+                if isinstance(replacement, str):
+                    replacement = expr.Var.new(replacement, var.type)
+                if replacement.type != var.type:
+                    raise CircuitError(
+                        f"mismatched types in replacement for '{var.name}':"
+                        f" '{var.type}' cannot become '{replacement.type}'"
+                    )
+            else:
+                replacement = var
+            cache[var] = replacement
+            return replacement
 
         # As a special case, allow composing some clbits onto no clbits - normally the destination
         # has to be strictly larger. This allows composing final measurements onto unitary circuits.
@@ -1044,38 +1107,100 @@ class QuantumCircuit:
         dest.unit = "dt"
         dest.global_phase += other.global_phase
 
-        if not other.data:
-            # Nothing left to do. Plus, accessing 'data' here is necessary
-            # to trigger any lazy building since we now access '_data'
-            # directly.
-            return None if inplace else dest
+        # This is required to trigger data builds if the `other` is an unbuilt `BlueprintCircuit`,
+        # so we can the access the complete `CircuitData` object at `_data`.
+        _ = other.data
 
-        variable_mapper = _classical_resource_map.VariableMapper(
-            dest.cregs, edge_map, dest.add_register
-        )
+        def copy_with_remapping(
+            source, dest, bit_map, var_map, inline_captures, new_qubits=None, new_clbits=None
+        ):
+            # Copy the instructions from `source` into `dest`, remapping variables in instructions
+            # according to `var_map`.  If `new_qubits` or `new_clbits` are given, the qubits and
+            # clbits of the source instruction are remapped to those as well.
+            for var in source.iter_input_vars():
+                dest.add_input(replace_var(var, var_map))
+            if inline_captures:
+                for var in source.iter_captured_vars():
+                    replacement = replace_var(var, var_map)
+                    if not dest.has_var(replace_var(var, var_map)):
+                        if var is replacement:
+                            raise CircuitError(
+                                f"Variable '{var}' to be inlined is not in the base circuit."
+                                " If you wanted it to be automatically added, use"
+                                " `inline_captures=False`."
+                            )
+                        raise CircuitError(
+                            f"Replacement '{replacement}' for variable '{var}' is not in the"
+                            " base circuit.  Is the replacement correct?"
+                        )
+            else:
+                for var in source.iter_captured_vars():
+                    dest.add_capture(replace_var(var, var_map))
+            for var in source.iter_declared_vars():
+                dest.add_uninitialized_var(replace_var(var, var_map))
 
-        def map_vars(op):
-            n_op = op.copy() if copy else op
-            if (condition := getattr(n_op, "condition", None)) is not None:
-                n_op.condition = variable_mapper.map_condition(condition)
-            if isinstance(n_op, SwitchCaseOp):
-                n_op = n_op.copy() if n_op is op else n_op
-                n_op.target = variable_mapper.map_target(n_op.target)
-            return n_op
+            def recurse_block(block):
+                # Recurse the remapping into a control-flow block.  Note that this doesn't remap the
+                # clbits within; the story around nested classical-register-based control-flow
+                # doesn't really work in the current data model, and we hope to replace it with
+                # `Expr`-based control-flow everywhere.
+                new_block = block.copy_empty_like()
+                new_block._vars_input = {}
+                new_block._vars_capture = {}
+                new_block._vars_local = {}
+                # For the recursion, we never want to inline captured variables because we're not
+                # copying onto a base that has variables.
+                copy_with_remapping(block, new_block, bit_map, var_map, inline_captures=False)
+                return new_block
 
-        mapped_instrs: CircuitData = other._data.copy()
-        mapped_instrs.replace_bits(qubits=mapped_qubits, clbits=mapped_clbits)
-        mapped_instrs.map_ops(map_vars)
+            variable_mapper = _classical_resource_map.VariableMapper(
+                dest.cregs, bit_map, var_map, add_register=dest.add_register
+            )
+
+            def map_vars(op):
+                n_op = op
+                is_control_flow = isinstance(n_op, ControlFlowOp)
+                if (
+                    not is_control_flow
+                    and (condition := getattr(n_op, "condition", None)) is not None
+                ):
+                    n_op = n_op.copy() if n_op is op and copy else n_op
+                    n_op.condition = variable_mapper.map_condition(condition)
+                elif is_control_flow:
+                    n_op = n_op.replace_blocks(recurse_block(block) for block in n_op.blocks)
+                    if isinstance(n_op, (IfElseOp, WhileLoopOp)):
+                        n_op.condition = variable_mapper.map_condition(n_op.condition)
+                    elif isinstance(n_op, SwitchCaseOp):
+                        n_op.target = variable_mapper.map_target(n_op.target)
+                elif isinstance(n_op, Store):
+                    n_op = Store(
+                        variable_mapper.map_expr(n_op.lvalue), variable_mapper.map_expr(n_op.rvalue)
+                    )
+                return n_op.copy() if n_op is op and copy else n_op
+
+            instructions = source._data.copy()
+            instructions.replace_bits(qubits=new_qubits, clbits=new_clbits)
+            instructions.map_ops(map_vars)
+            dest._current_scope().extend(instructions)
 
         append_existing = None
         if front:
             append_existing = dest._data.copy()
             dest.clear()
-
-        circuit_scope = dest._current_scope()
-        circuit_scope.extend(mapped_instrs)
+        copy_with_remapping(
+            other,
+            dest,
+            bit_map=edge_map,
+            # The actual `Var: Var` map gets built up from the more freeform user input as we
+            # encounter the variables, since the user might be using string keys to refer to more
+            # than one variable in separated scopes of control-flow operations.
+            var_map={},
+            inline_captures=inline_captures,
+            new_qubits=mapped_qubits,
+            new_clbits=mapped_clbits,
+        )
         if append_existing:
-            circuit_scope.extend(append_existing)
+            dest._current_scope().extend(append_existing)
 
         return None if inplace else dest
 
@@ -2520,7 +2645,7 @@ class QuantumCircuit:
         """
         return self.num_unitary_factors()
 
-    def copy(self, name: str | None = None) -> "QuantumCircuit":
+    def copy(self, name: str | None = None) -> typing.Self:
         """Copy the circuit.
 
         Args:
@@ -2556,24 +2681,47 @@ class QuantumCircuit:
         )
         return cpy
 
-    def copy_empty_like(self, name: str | None = None) -> "QuantumCircuit":
+    def copy_empty_like(
+        self,
+        name: str | None = None,
+        *,
+        vars_mode: Literal["alike" | "captures" | "drop"] = "alike",
+    ) -> typing.Self:
         """Return a copy of self with the same structure but empty.
 
         That structure includes:
-            * name, calibrations and other metadata
-            * global phase
-            * all the qubits and clbits, including the registers
+
+        * name, calibrations and other metadata
+        * global phase
+        * all the qubits and clbits, including the registers
+        * the realtime variables defined in the circuit, handled according to the ``vars`` keyword
+          argument.
 
         .. warning::
 
             If the circuit contains any local variable declarations (those added by the
             ``declarations`` argument to the circuit constructor, or using :meth:`add_var`), they
-            will be **uninitialized** in the output circuit.  You will need to manually add store
+            may be **uninitialized** in the output circuit.  You will need to manually add store
             instructions for them (see :class:`.Store` and :meth:`.QuantumCircuit.store`) to
             initialize them.
 
         Args:
-            name (str): Name for the copied circuit. If None, then the name stays the same.
+            name: Name for the copied circuit. If None, then the name stays the same.
+            vars_mode: The mode to handle realtime variables in.
+
+                alike
+                    The variables in the output circuit will have the same declaration semantics as
+                    in the original circuit.  For example, ``input`` variables in the source will be
+                    ``input`` variables in the output circuit.
+
+                captures
+                    All variables will be converted to captured variables.  This is useful when you
+                    are building a new layer for an existing circuit that you will want to
+                    :meth:`compose` onto the base, since :meth:`compose` can inline captures onto
+                    the base circuit (but not other variables).
+
+                drop
+                    The output circuit will have no variables defined.
 
         Returns:
             QuantumCircuit: An empty copy of self.
@@ -2591,12 +2739,23 @@ class QuantumCircuit:
         cpy._qubit_indices = self._qubit_indices.copy()
         cpy._clbit_indices = self._clbit_indices.copy()
 
-        # Note that this causes the local variables to be uninitialised, because the stores are not
-        # copied.  This can leave the circuit in a potentially dangerous state for users if they
-        # don't re-add initialiser stores.
-        cpy._vars_local = self._vars_local.copy()
-        cpy._vars_input = self._vars_input.copy()
-        cpy._vars_capture = self._vars_capture.copy()
+        if vars_mode == "alike":
+            # Note that this causes the local variables to be uninitialised, because the stores are
+            # not copied.  This can leave the circuit in a potentially dangerous state for users if
+            # they don't re-add initialiser stores.
+            cpy._vars_local = self._vars_local.copy()
+            cpy._vars_input = self._vars_input.copy()
+            cpy._vars_capture = self._vars_capture.copy()
+        elif vars_mode == "captures":
+            cpy._vars_local = {}
+            cpy._vars_input = {}
+            cpy._vars_capture = {var.name: var for var in self.iter_vars()}
+        elif vars_mode == "drop":
+            cpy._vars_local = {}
+            cpy._vars_input = {}
+            cpy._vars_capture = {}
+        else:  # pragma: no cover
+            raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 
         cpy._parameter_table = ParameterTable()
         for parameter in getattr(cpy.global_phase, "parameters", ()):

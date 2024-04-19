@@ -485,6 +485,36 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual({b, d}, set(copied.iter_captured_vars()))
         self.assertEqual({b}, set(qc.iter_captured_vars()))
 
+    def test_copy_empty_variables_to_captures(self):
+        """``vars_mode="captures"`` should convert all variables to captures."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({a, b, c}, set(copied.iter_captured_vars()))
+        self.assertEqual({a, b, c}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+        qc = QuantumCircuit(captures=[c, d])
+        copied = qc.copy_empty_like(vars_mode="captures")
+        self.assertEqual({c, d}, set(copied.iter_captured_vars()))
+        self.assertEqual({c, d}, set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
+    def test_copy_empty_variables_drop(self):
+        """``vars_mode="drop"`` should not have variables in the output."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Bool())
+
+        qc = QuantumCircuit(inputs=[a, b], declarations=[(c, expr.lift(False))])
+        copied = qc.copy_empty_like(vars_mode="drop")
+        self.assertEqual(set(), set(copied.iter_vars()))
+        self.assertEqual([], list(copied.data))
+
     def test_copy_empty_like_parametric_phase(self):
         """Test that the parameter table of an empty circuit remains valid after copying a circuit
         with a parametric global phase."""
