@@ -14,7 +14,8 @@
 
 use std::hash::{Hash, Hasher};
 
-use hashbrown::{HashMap, HashSet};
+use hashbrown::HashSet;
+use indexmap::IndexMap;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
@@ -66,12 +67,13 @@ mod exceptions {
     import_exception_bound! {qiskit.providers.exceptions, BackendPropertyError}
 }
 
+// Subclassable or Python Wrapping.
 #[pyclass(module = "qiskit._accelerate.target.InstructionProperties")]
 pub struct InstructionProperties {
     #[pyo3(get)]
-    pub duration: Option<f32>,
+    pub duration: Option<f64>,
     #[pyo3(get, set)]
-    pub error: Option<f32>,
+    pub error: Option<f64>,
     #[pyo3(get)]
     _calibration: Option<PyObject>,
 }
@@ -83,8 +85,8 @@ impl InstructionProperties {
         error: float | None = None,
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
     pub fn new(
-        duration: Option<f32>,
-        error: Option<f32>,
+        duration: Option<f64>,
+        error: Option<f64>,
         calibration: Option<Bound<PyAny>>,
     ) -> Self {
         let mut instruction_prop = InstructionProperties {
@@ -131,8 +133,8 @@ impl InstructionProperties {
     }
 }
 
-type GateMapType = HashMap<String, Option<HashMap<Option<HashableVec<u32>>, Option<PyObject>>>>;
-type TargetValue = Option<HashMap<Option<HashableVec<u32>>, Option<Py<PyAny>>>>;
+type GateMapType = IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<PyObject>>>>;
+type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<Py<PyAny>>>>;
 
 #[pyclass(mapping, module = "qiskit._accelerate.target.Target")]
 #[derive(Clone, Debug)]
@@ -142,7 +144,7 @@ pub struct Target {
     #[pyo3(get)]
     pub num_qubits: Option<usize>,
     #[pyo3(get)]
-    pub dt: Option<f32>,
+    pub dt: Option<f64>,
     #[pyo3(get)]
     pub granularity: i32,
     #[pyo3(get)]
@@ -159,10 +161,10 @@ pub struct Target {
     #[pyo3(get)]
     gate_map: GateMapType,
     #[pyo3(get)]
-    gate_name_map: HashMap<String, PyObject>,
-    global_operations: HashMap<usize, HashSet<String>>,
+    gate_name_map: IndexMap<String, PyObject>,
+    global_operations: IndexMap<usize, HashSet<String>>,
     #[pyo3(get)]
-    qarg_gate_map: HashMap<Option<HashableVec<u32>>, Option<HashSet<String>>>,
+    qarg_gate_map: IndexMap<Option<HashableVec<u32>>, Option<HashSet<String>>>,
     #[pyo3(get, set)]
     instruction_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
@@ -187,7 +189,7 @@ impl Target {
     fn new(
         description: Option<String>,
         num_qubits: Option<usize>,
-        dt: Option<f32>,
+        dt: Option<f64>,
         granularity: Option<i32>,
         min_length: Option<usize>,
         pulse_alignment: Option<i32>,
@@ -205,10 +207,10 @@ impl Target {
             acquire_alignment: acquire_alignment.unwrap_or(0),
             qubit_properties: qubit_properties.unwrap_or(Vec::new()),
             concurrent_measurements: concurrent_measurements.unwrap_or(Vec::new()),
-            gate_map: HashMap::new(),
-            gate_name_map: HashMap::new(),
-            global_operations: HashMap::new(),
-            qarg_gate_map: HashMap::new(),
+            gate_map: IndexMap::new(),
+            gate_name_map: IndexMap::new(),
+            global_operations: IndexMap::new(),
+            qarg_gate_map: IndexMap::new(),
             coupling_graph: None,
             instruction_durations: None,
             instruction_schedule_map: None,
@@ -223,7 +225,7 @@ impl Target {
         py: Python<'_>,
         instruction: PyObject,
         is_class: bool,
-        properties: Option<HashMap<Option<HashableVec<u32>>, Option<PyObject>>>,
+        properties: Option<IndexMap<Option<HashableVec<u32>>, Option<PyObject>>>,
         name: Option<String>,
     ) -> PyResult<()> {
         // Unwrap instruction name
@@ -250,7 +252,7 @@ impl Target {
             }
         }
         if properties.is_none() {
-            properties = Some(HashMap::from_iter([(None, None)].into_iter()));
+            properties = Some(IndexMap::from_iter([(None, None)].into_iter()));
         }
         if self.gate_map.contains_key(&instruction_name) {
             return Err(PyAttributeError::new_err(format!(
@@ -260,9 +262,9 @@ impl Target {
         }
         self.gate_name_map
             .insert(instruction_name.clone(), instruction.clone());
-        let mut qargs_val: HashMap<Option<HashableVec<u32>>, Option<PyObject>> = HashMap::new();
+        let mut qargs_val: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> = IndexMap::new();
         if is_class {
-            qargs_val = HashMap::from_iter([(None, None)].into_iter());
+            qargs_val = IndexMap::from_iter([(None, None)].into_iter());
         } else if let Some(properties) = properties {
             let inst_num_qubits = instruction
                 .getattr(py, "num_qubits")?
@@ -574,7 +576,7 @@ impl Target {
                         if self.gate_map[op_name].is_none()
                             || self.gate_map[op_name]
                                 .as_ref()
-                                .unwrap_or(&HashMap::from_iter([(None, None)].into_iter()))
+                                .unwrap_or(&IndexMap::from_iter([(None, None)].into_iter()))
                                 .contains_key(&None)
                         {
                             let qubit_comparison = self.gate_name_map[op_name]
@@ -648,7 +650,7 @@ impl Target {
                     if self.gate_map[&operation_name].is_none()
                         || self.gate_map[&operation_name]
                             .as_ref()
-                            .unwrap_or(&HashMap::from_iter([(None, None)].into_iter()))
+                            .unwrap_or(&IndexMap::from_iter([(None, None)].into_iter()))
                             .contains_key(&None)
                     {
                         obj = &self.gate_name_map[&operation_name];
@@ -791,7 +793,7 @@ impl Target {
             }
         }
         let mut incomplete_basis_gates: Vec<String> = vec![];
-        let mut size_dict: HashMap<usize, usize> = HashMap::new();
+        let mut size_dict: IndexMap<usize, usize> = IndexMap::new();
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
@@ -898,9 +900,9 @@ impl Target {
         backend_properties: Option<&Bound<PyAny>>,
         instruction_durations: Option<PyObject>,
         concurrent_measurements: Option<Vec<Vec<usize>>>,
-        dt: Option<f32>,
+        dt: Option<f64>,
         timing_constraints: Option<PyObject>,
-        custom_name_mapping: Option<HashMap<String, Bound<PyAny>>>,
+        custom_name_mapping: Option<IndexMap<String, Bound<PyAny>>>,
     ) -> PyResult<Self> {
         let mut num_qubits = num_qubits;
         let mut granularity: i32 = 1;
@@ -994,17 +996,17 @@ impl Target {
                 }
             }
             for gate in one_qubit_gates {
-                let mut gate_properties: HashMap<Option<HashableVec<u32>>, Option<PyObject>> =
-                    HashMap::new();
+                let mut gate_properties: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> =
+                    IndexMap::new();
                 for qubit in 0..num_qubits.unwrap_or_default() {
-                    let mut error: Option<f32> = None;
-                    let mut duration: Option<f32> = None;
+                    let mut error: Option<f64> = None;
+                    let mut duration: Option<f64> = None;
                     let mut calibration: Option<Bound<PyAny>> = None;
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
                                 .call_method1("gate_length", (&gate, qubit))?
-                                .extract::<f32>()
+                                .extract::<f64>()
                             {
                                 Ok(duration) => Some(duration),
                                 Err(_) => None,
@@ -1012,7 +1014,7 @@ impl Target {
                         }
                         error = match backend_properties
                             .call_method1("gate_error", (&gate, qubit))?
-                            .extract::<f32>()
+                            .extract::<f64>()
                         {
                             Ok(error) => Some(error),
                             Err(_) => None,
@@ -1030,7 +1032,7 @@ impl Target {
                                         calibration
                                             .call_method0("get_schedule")?
                                             .getattr("duration")?
-                                            .extract::<f32>()?
+                                            .extract::<f64>()?
                                             * dt.unwrap_or_default(),
                                     );
                                 }
@@ -1043,7 +1045,7 @@ impl Target {
                         let kwargs = [("unit", "s")].into_py_dict_bound(py);
                         duration = match instruction_durations
                             .call_method_bound(py, "get", (&gate, qubit), Some(&kwargs))?
-                            .extract::<f32>(py)
+                            .extract::<f64>(py)
                         {
                             Ok(duration) => Some(duration),
                             Err(_) => None,
@@ -1084,17 +1086,17 @@ impl Target {
                 .call_method0(py, "get_edges")?
                 .extract::<Vec<[u32; 2]>>(py)?;
             for gate in two_qubit_gates {
-                let mut gate_properties: HashMap<Option<HashableVec<u32>>, Option<PyObject>> =
-                    HashMap::new();
+                let mut gate_properties: IndexMap<Option<HashableVec<u32>>, Option<PyObject>> =
+                    IndexMap::new();
                 for edge in edges.as_slice().iter().copied() {
-                    let mut error: Option<f32> = None;
-                    let mut duration: Option<f32> = None;
+                    let mut error: Option<f64> = None;
+                    let mut duration: Option<f64> = None;
                     let mut calibration: Option<Bound<PyAny>> = None;
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
                                 .call_method1("gate_length", (&gate, edge))?
-                                .extract::<f32>()
+                                .extract::<f64>()
                             {
                                 Ok(duration) => Some(duration),
                                 Err(_) => None,
@@ -1102,7 +1104,7 @@ impl Target {
                         }
                         error = match backend_properties
                             .call_method1("gate_error", (&gate, edge))?
-                            .extract::<f32>()
+                            .extract::<f64>()
                         {
                             Ok(error) => Some(error),
                             Err(_) => None,
@@ -1120,7 +1122,7 @@ impl Target {
                                         calibration
                                             .call_method0("get_schedule")?
                                             .getattr("duration")?
-                                            .extract::<f32>()?
+                                            .extract::<f64>()?
                                             * dt.unwrap_or_default(),
                                     );
                                 }
@@ -1133,7 +1135,7 @@ impl Target {
                         let kwargs = [("unit", "s")].into_py_dict_bound(py);
                         duration = match instruction_durations
                             .call_method_bound(py, "get", (&gate, edge), Some(&kwargs))?
-                            .extract::<f32>(py)
+                            .extract::<f64>(py)
                         {
                             Ok(duration) => Some(duration),
                             Err(_) => None,
