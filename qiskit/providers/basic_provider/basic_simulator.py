@@ -50,8 +50,13 @@ from qiskit.result import Result
 from qiskit.transpiler import Target
 
 from .basic_provider_job import BasicProviderJob
-from .basic_provider_tools import single_gate_matrix
-from .basic_provider_tools import SINGLE_QUBIT_GATES, TWO_QUBIT_GATES, THREE_QUBIT_GATES
+from .basic_provider_tools import single_gate_matrix, _two_gate_matrix
+from .basic_provider_tools import (
+    SINGLE_QUBIT_GATES,
+    TWO_QUBIT_GATES,
+    THREE_QUBIT_GATES,
+    TWO_QUBIT_GATES_WITH_PARAMETERS,
+)
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
 
@@ -668,7 +673,12 @@ class BasicSimulator(BackendV2):
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
-                # Check if CX gate
+                elif operation.name in TWO_QUBIT_GATES_WITH_PARAMETERS:
+                    params = getattr(operation, "params", None)
+                    qubit0 = operation.qubits[0]
+                    qubit1 = operation.qubits[1]
+                    gate = _two_gate_matrix(operation.name, params)
+                    self._add_unitary(gate, [qubit0, qubit1])
                 elif operation.name in ("id", "u0"):
                     pass
                 elif operation.name in TWO_QUBIT_GATES:

@@ -109,21 +109,38 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     return gc(*params).to_matrix()
 
 
-# Cache CX matrix as no parameters.
-_CX_MATRIX = gates.CXGate().to_matrix()
-
-
-def cx_gate_matrix() -> np.ndarray:
-    """Get the matrix for a controlled-NOT gate."""
-    return _CX_MATRIX
-
-
-# Two qubit gates.
+# Two qubit gates WITHOUT parameters
 TWO_QUBIT_GATES = {
     "CX": gates.CXGate().to_matrix(),
     "cx": gates.CXGate().to_matrix(),
     "swap": gates.SwapGate().to_matrix(),
 }
+
+# Two qubit gates WITH parameters, supported by _two_gate_matrix
+TWO_QUBIT_GATES_WITH_PARAMETERS = ["cp"]
+
+
+def _two_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarray:
+    """Get the matrix for two qubit gates.
+
+    Args:
+        gate: the two qubit gate name
+        params: the operation parameters op['params']
+    Returns:
+        array: A numpy array representing the matrix
+    Raises:
+        QiskitError: If a gate outside the supported set is passed in for the
+            ``Gate`` argument.
+    """
+    if params is None:
+        params = []
+    if gate == "cp":
+        gc = gates.CPhaseGate
+    else:
+        raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
+
+    return gc(*params).to_matrix()
+
 
 # Three qubit gates.
 THREE_QUBIT_GATES = {"ccx": gates.CCXGate().to_matrix(), "iswap": gates.iSwapGate().to_matrix()}
