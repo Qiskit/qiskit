@@ -130,7 +130,9 @@ class BitArray(ShapedMixin):
 
     def __getitem__(self, indices):
         if isinstance(indices, tuple) and len(indices) >= self.ndim + 2:
-            raise ValueError("BitArrays cannot be sliced along the bits axis, see marginalize() instead.")
+            raise ValueError(
+                "BitArrays cannot be sliced along the bits axis, see marginalize() instead."
+            )
         return BitArray(self._array[indices], self.num_bits)
 
     @property
@@ -403,11 +405,12 @@ class BitArray(ShapedMixin):
         """Return a bit array marginalized over some indices of interest.
 
         .. note::
-            The convention used by this method is that the index ``0`` corresponds to the least-significant 
-            bit in the :attr:`~array`, or equivalently the right-most bitstring entry as returned by 
+            The convention used by this method is that the index ``0`` corresponds to
+            the least-significant bit in the :attr:`~array`, or equivalently
+            the right-most bitstring entry as returned by
             :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
 
-            If this bit array was produced by a sampler, then an index ``i`` corresponds to the   
+            If this bit array was produced by a sampler, then an index ``i`` corresponds to the
             :class:`~.ClassicalRegister` location ``creg[i]]`.
         Args:
             indices: The bit positions of interest to marginalize over.
@@ -425,7 +428,7 @@ class BitArray(ShapedMixin):
                 raise ValueError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
-        # This implementation introduces a temporary 8x memory overhead due to bit 
+        # This implementation introduces a temporary 8x memory overhead due to bit
         # unpacking. This could be fixed using bitwise functions, at the expense of a
         # more complicated implementation.
         arr = _unpack(self)
