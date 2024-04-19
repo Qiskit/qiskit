@@ -51,8 +51,7 @@ from qiskit.transpiler import Target
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
-from .basic_provider_tools import SINGLE_QUBIT_GATES
-from .basic_provider_tools import cx_gate_matrix
+from .basic_provider_tools import SINGLE_QUBIT_GATES, TWO_QUBIT_GATES, THREE_QUBIT_GATES
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
 
@@ -662,6 +661,8 @@ class BasicSimulator(BackendV2):
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
+                elif operation.name in ("id", "u0"):
+                    pass
                 elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, "params", None)
                     qubit = operation.qubits[0]
@@ -670,11 +671,17 @@ class BasicSimulator(BackendV2):
                 # Check if CX gate
                 elif operation.name in ("id", "u0"):
                     pass
-                elif operation.name in ("CX", "cx"):
+                elif operation.name in TWO_QUBIT_GATES:
                     qubit0 = operation.qubits[0]
                     qubit1 = operation.qubits[1]
-                    gate = cx_gate_matrix()
+                    gate = TWO_QUBIT_GATES[operation.name]
                     self._add_unitary(gate, [qubit0, qubit1])
+                elif operation.name in THREE_QUBIT_GATES:
+                    qubit0 = operation.qubits[0]
+                    qubit1 = operation.qubits[1]
+                    qubit2 = operation.qubits[2]
+                    gate = THREE_QUBIT_GATES[operation.name]
+                    self._add_unitary(gate, [qubit0, qubit1, qubit2])
                 # Check if reset
                 elif operation.name == "reset":
                     qubit = operation.qubits[0]

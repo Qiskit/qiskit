@@ -118,6 +118,17 @@ def cx_gate_matrix() -> np.ndarray:
     return _CX_MATRIX
 
 
+# Two qubit gates.
+TWO_QUBIT_GATES = {
+    "CX": gates.CXGate().to_matrix(),
+    "cx": gates.CXGate().to_matrix(),
+    "swap": gates.SwapGate().to_matrix(),
+}
+
+# Three qubit gates.
+THREE_QUBIT_GATES = {"ccx": gates.CCXGate().to_matrix(), "iswap": gates.iSwapGate().to_matrix()}
+
+
 def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
     """Return the index string for Numpy.einsum matrix-matrix multiplication.
 
