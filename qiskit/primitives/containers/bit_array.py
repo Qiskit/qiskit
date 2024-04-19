@@ -129,6 +129,8 @@ class BitArray(ShapedMixin):
         return f"BitArray({desc})"
 
     def __getitem__(self, indices):
+        if isinstance(indices, tuple) and len(indices) >= self.ndim + 2:
+            raise ValueError("BitArrays cannot be sliced along the bits axis, see marginalize() instead.")
         return BitArray(self._array[indices], self.num_bits)
 
     @property
@@ -373,17 +375,17 @@ class BitArray(ShapedMixin):
         """Return a bit array with axes transposed.
 
         Args:
-            axes: tuple or list of ints, optional. See
+            axes: Tuple or list of ints, optional. See
                 `numpy.transpose
                 <https://numpy.org/doc/stable/reference/generated/numpy.transpose.html>`_
                 for the details.
 
         Returns:
-            BitArray: a bit array with axes permuted.
+            BitArray: A bit array with axes permuted.
 
         Raises:
-            ValueError: if ``axes`` don't match this bit array.
-            ValueError: if ``axes`` includes any indices that are out of bounds.
+            ValueError: If ``axes`` don't match this bit array.
+            ValueError: If ``axes`` includes any indices that are out of bounds.
         """
         if axes is None:
             axes = tuple(reversed(range(self.ndim)))
@@ -398,8 +400,15 @@ class BitArray(ShapedMixin):
         return BitArray(self._array.transpose(axes), self.num_bits)
 
     def marginalize(self, indices: int | Sequence[int]) -> "BitArray":
-        """Return a bit array marginalized over some indices of interests.
+        """Return a bit array marginalized over some indices of interest.
 
+        .. note::
+            The convention used by this method is that the index ``0`` corresponds to the least-significant 
+            bit in the :attr:`~array`, or equivalently the right-most bitstring entry as returned by 
+            :meth:`~get_counts` or :meth:`~get_bitstrings`, etc.
+
+            If this bit array was produced by a sampler, then an index ``i`` corresponds to the   
+            :class:`~.ClassicalRegister` location ``creg[i]]`.
         Args:
             indices: The bit positions of interest to marginalize over.
 
@@ -407,7 +416,7 @@ class BitArray(ShapedMixin):
             A bit array marginalized to bits of interests.
 
         Raises:
-            ValueError: if there are any invalid indices to marginalize over.
+            ValueError: If there are any invalid indices to marginalize over.
         """
         if isinstance(indices, int):
             indices = (indices,)
@@ -416,6 +425,9 @@ class BitArray(ShapedMixin):
                 raise ValueError(
                     f"index {index} is out of bounds for the number of bits {self.num_bits}."
                 )
+        # This implementation introduces a temporary 8x memory overhead due to bit 
+        # unpacking. This could be fixed using bitwise functions, at the expense of a
+        # more complicated implementation.
         arr = _unpack(self)
         arr = arr[..., indices]
         arr, num_bits = _pack(arr)
