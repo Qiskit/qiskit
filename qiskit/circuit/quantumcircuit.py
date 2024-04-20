@@ -621,9 +621,7 @@ class QuantumCircuit:
                 q_1: ┤ RX(1.57) ├─────
                      └──────────┘
         """
-        reverse_circ = QuantumCircuit(
-            self.qubits, self.clbits, *self.qregs, *self.cregs, name=self.name + "_reverse"
-        )
+        reverse_circ = self.copy_empty_like(self.name + "_reverse")
 
         for instruction in reversed(self.data):
             reverse_circ._append(instruction.replace(operation=instruction.operation.reverse_ops()))

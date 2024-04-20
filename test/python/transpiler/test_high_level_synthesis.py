@@ -28,6 +28,7 @@ from qiskit.circuit import (
     Operation,
     EquivalenceLibrary,
 )
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
     SwapGate,
     CXGate,
@@ -36,6 +37,7 @@ from qiskit.circuit.library import (
     U3Gate,
     U2Gate,
     U1Gate,
+    UGate,
     CU3Gate,
     CU1Gate,
 )
@@ -2040,6 +2042,59 @@ class TestUnrollCustomDefinitionsCompatibility(QiskitTestCase):
         qc.append(QuantumCircuit(2, global_phase=0.5).to_gate(), [0, 1], [])
         pass_ = HighLevelSynthesis(equivalence_library=EquivalenceLibrary(), basis_gates=["u"])
         expected = QuantumCircuit(2, global_phase=0.5)
+        self.assertEqual(pass_(qc), expected)
+
+    def test_leave_store_alone_basis(self):
+        """Don't attempt to synthesise `Store` instructions with basis gates."""
+
+        pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, basis_gates=["u", "cx"])
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, a)
+        qc.compose(bell, [0, 1], inplace=True)
+        qc.store(b, a)
+
+        expected = qc.copy_empty_like()
+        expected.store(b, a)
+        expected.compose(pass_(bell), [0, 1], inplace=True)
+        expected.store(b, a)
+
+        self.assertEqual(pass_(qc), expected)
+
+    def test_leave_store_alone_with_target(self):
+        """Don't attempt to synthesise `Store` instructions with a `Target`."""
+
+        # Note no store.
+        target = Target()
+        target.add_instruction(
+            UGate(Parameter("a"), Parameter("b"), Parameter("c")), {(0,): None, (1,): None}
+        )
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 0): None})
+
+        pass_ = HighLevelSynthesis(equivalence_library=std_eqlib, target=target)
+
+        bell = QuantumCircuit(2)
+        bell.h(0)
+        bell.cx(0, 1)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, a)
+        qc.compose(bell, [0, 1], inplace=True)
+        qc.store(b, a)
+
+        expected = qc.copy_empty_like()
+        expected.store(b, a)
+        expected.compose(pass_(bell), [0, 1], inplace=True)
+        expected.store(b, a)
+
         self.assertEqual(pass_(qc), expected)
 
 
