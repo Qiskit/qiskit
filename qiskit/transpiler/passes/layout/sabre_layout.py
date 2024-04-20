@@ -35,8 +35,8 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre_layout import sabre_layout_and_routing
-from qiskit._accelerate.sabre_swap import (
+from qiskit._accelerate.sabre import (
+    sabre_layout_and_routing,
     Heuristic,
     NeighborTable,
 )

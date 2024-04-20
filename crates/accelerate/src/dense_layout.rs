@@ -217,14 +217,14 @@ pub fn best_subset(
     let cols: Vec<usize> = new_cmap.iter().map(|edge| edge[1]).collect();
 
     Ok((
-        rows.to_pyarray(py).into(),
-        cols.to_pyarray(py).into(),
-        best_map.to_pyarray(py).into(),
+        rows.to_pyarray_bound(py).into(),
+        cols.to_pyarray_bound(py).into(),
+        best_map.to_pyarray_bound(py).into(),
     ))
 }
 
 #[pymodule]
-pub fn dense_layout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn dense_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(best_subset))?;
     Ok(())
 }

@@ -31,7 +31,7 @@ use crate::nlayout::PhysicalQubit;
 ///
 /// and used solely to represent neighbors of each node in qiskit-terra's rust
 /// module.
-#[pyclass(module = "qiskit._accelerate.sabre_swap")]
+#[pyclass(module = "qiskit._accelerate.sabre")]
 #[derive(Clone, Debug)]
 pub struct NeighborTable {
     // The choice of 4 `PhysicalQubit`s in the stack-allocated region is because a) this causes the
@@ -49,6 +49,10 @@ impl NeighborTable {
                 .iter()
                 .map(move |v| (NodeIndex::new(u), NodeIndex::new(v.index())))
         }))
+    }
+
+    pub fn num_qubits(&self) -> usize {
+        self.neighbors.len()
     }
 }
 
@@ -104,22 +108,22 @@ impl NeighborTable {
     }
 
     fn __getstate__(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(
+        PyList::new_bound(
             py,
             self.neighbors
                 .iter()
-                .map(|v| PyList::new(py, v.iter()).to_object(py)),
+                .map(|v| PyList::new_bound(py, v.iter()).to_object(py)),
         )
         .into()
     }
 
-    fn __setstate__(&mut self, state: &PyList) -> PyResult<()> {
+    fn __setstate__(&mut self, state: &Bound<PyList>) -> PyResult<()> {
         self.neighbors = state
             .iter()
             .map(|v| {
                 v.downcast::<PyList>()?
                     .iter()
-                    .map(PyAny::extract)
+                    .map(|b| b.extract())
                     .collect::<PyResult<_>>()
             })
             .collect::<PyResult<_>>()?;

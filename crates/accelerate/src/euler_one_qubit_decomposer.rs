@@ -18,6 +18,8 @@ use num_complex::{Complex64, ComplexFloat};
 use smallvec::{smallvec, SmallVec};
 use std::cmp::Ordering;
 use std::f64::consts::PI;
+use std::ops::Deref;
+use std::str::FromStr;
 
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
@@ -27,8 +29,9 @@ use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
+use pyo3::pybacked::PyBackedStr;
 
-use crate::utils::SliceOrInt;
+use qiskit_circuit::SliceOrInt;
 
 pub const ANGLE_ZERO_EPSILON: f64 = 1e-12;
 
@@ -594,31 +597,39 @@ impl EulerBasis {
 #[pymethods]
 impl EulerBasis {
     fn __reduce__(&self, py: Python) -> Py<PyAny> {
-        (py.get_type::<Self>(), (PyString::new(py, self.as_str()),)).into_py(py)
+        (
+            py.get_type_bound::<Self>(),
+            (PyString::new_bound(py, self.as_str()),),
+        )
+            .into_py(py)
     }
 
     #[new]
-    pub fn from_str(input: &str) -> PyResult<Self> {
-        let res = match input {
-            "U321" => EulerBasis::U321,
-            "U3" => EulerBasis::U3,
-            "U" => EulerBasis::U,
-            "PSX" => EulerBasis::PSX,
-            "ZSX" => EulerBasis::ZSX,
-            "ZSXX" => EulerBasis::ZSXX,
-            "U1X" => EulerBasis::U1X,
-            "RR" => EulerBasis::RR,
-            "ZYZ" => EulerBasis::ZYZ,
-            "ZXZ" => EulerBasis::ZXZ,
-            "XYX" => EulerBasis::XYX,
-            "XZX" => EulerBasis::XZX,
-            basis => {
-                return Err(PyValueError::new_err(format!(
-                    "Invalid target basis '{basis}'"
-                )));
-            }
-        };
-        Ok(res)
+    pub fn __new__(input: &str) -> PyResult<Self> {
+        Self::from_str(input)
+            .map_err(|_| PyValueError::new_err(format!("Invalid target basis '{input}'")))
+    }
+}
+
+impl FromStr for EulerBasis {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "U321" => Ok(EulerBasis::U321),
+            "U3" => Ok(EulerBasis::U3),
+            "U" => Ok(EulerBasis::U),
+            "PSX" => Ok(EulerBasis::PSX),
+            "ZSX" => Ok(EulerBasis::ZSX),
+            "ZSXX" => Ok(EulerBasis::ZSXX),
+            "U1X" => Ok(EulerBasis::U1X),
+            "RR" => Ok(EulerBasis::RR),
+            "ZYZ" => Ok(EulerBasis::ZYZ),
+            "ZXZ" => Ok(EulerBasis::ZXZ),
+            "XYX" => Ok(EulerBasis::XYX),
+            "XZX" => Ok(EulerBasis::XZX),
+            _ => Err(()),
+        }
     }
 }
 
@@ -700,7 +711,7 @@ pub fn compute_error_list(
 #[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
-    target_basis_list: Vec<&str>,
+    target_basis_list: Vec<PyBackedStr>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
     simplify: bool,
@@ -708,7 +719,7 @@ pub fn unitary_to_gate_sequence(
 ) -> PyResult<Option<OneQubitGateSequence>> {
     let mut target_basis_vec: Vec<EulerBasis> = Vec::with_capacity(target_basis_list.len());
     for basis in target_basis_list {
-        let basis_enum = EulerBasis::from_str(basis)?;
+        let basis_enum = EulerBasis::__new__(basis.deref())?;
         target_basis_vec.push(basis_enum)
     }
     let unitary_mat = unitary.as_array();
@@ -873,7 +884,7 @@ pub fn params_zxz(unitary: PyReadonlyArray2<Complex64>) -> [f64; 4] {
 }
 
 #[pymodule]
-pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn euler_one_qubit_decomposer(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_zyz))?;
     m.add_wrapped(wrap_pyfunction!(params_xyx))?;
     m.add_wrapped(wrap_pyfunction!(params_xzx))?;
