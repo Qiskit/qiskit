@@ -113,37 +113,39 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
 TWO_QUBIT_GATES = {
     "CX": gates.CXGate().to_matrix(),
     "cx": gates.CXGate().to_matrix(),
+    "ecr": gates.ECRGate().to_matrix(),
+    "cy": gates.CYGate().to_matrix(),
+    "cz": gates.CZGate().to_matrix(),
     "swap": gates.SwapGate().to_matrix(),
+    "iswap": gates.iSwapGate().to_matrix(),
+    "ch": gates.CHGate().to_matrix(),
+    "cs": gates.CSGate().to_matrix(),
+    "csdg": gates.CSdgGate().to_matrix(),
+    "csx": gates.CSXGate().to_matrix(),
+    "dcx": gates.DCXGate().to_matrix(),
 }
 
 # Two qubit gates WITH parameters, supported by _two_gate_matrix
-TWO_QUBIT_GATES_WITH_PARAMETERS = ["cp"]
-
-
-def _two_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarray:
-    """Get the matrix for two qubit gates.
-
-    Args:
-        gate: the two qubit gate name
-        params: the operation parameters op['params']
-    Returns:
-        array: A numpy array representing the matrix
-    Raises:
-        QiskitError: If a gate outside the supported set is passed in for the
-            ``Gate`` argument.
-    """
-    if params is None:
-        params = []
-    if gate == "cp":
-        gc = gates.CPhaseGate
-    else:
-        raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
-
-    return gc(*params).to_matrix()
+TWO_QUBIT_GATES_WITH_PARAMETERS = {
+    "cp": gates.CPhaseGate,
+    "crx": gates.CRXGate,
+    "cry": gates.CRYGate,
+    "crz": gates.CRZGate,
+    "cu": gates.CUGate,
+    "cu1": gates.CU1Gate,
+    "cu3": gates.CU3Gate,
+    "rxx": gates.RXXGate,
+    "ryy": gates.RYYGate,
+    "rzz": gates.RZZGate,
+}
 
 
 # Three qubit gates.
-THREE_QUBIT_GATES = {"ccx": gates.CCXGate().to_matrix(), "iswap": gates.iSwapGate().to_matrix()}
+THREE_QUBIT_GATES = {
+    "ccx": gates.CCXGate().to_matrix(),
+    "ccz": gates.CCZGate().to_matrix(),
+    "cswap": gates.CSwapGate().to_matrix(),
+}
 
 
 def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:

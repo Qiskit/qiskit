@@ -584,8 +584,8 @@ class C3SXGate(SingletonControlledGate):
 
         Args:
             label: An optional label for the gate [Default: ``None``]
-            ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            ctrl_state: control state expressed as integer, string (e.g.``"110"``), or ``None``.
+            If ``None``, use all 1s.
         """
         from .sx import SXGate
 
