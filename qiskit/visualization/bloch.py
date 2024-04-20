@@ -587,11 +587,11 @@ class Bloch:
     def plot_vectors(self):
         """Plot vector"""
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.vectors)):
+        for k, vector in enumerate(self.vectors):
 
-            xs3d = self.vectors[k][1] * np.array([0, 1])
-            ys3d = -self.vectors[k][0] * np.array([0, 1])
-            zs3d = self.vectors[k][2] * np.array([0, 1])
+            xs3d = vector[1] * np.array([0, 1])
+            ys3d = -vector[0] * np.array([0, 1])
+            zs3d = vector[2] * np.array([0, 1])
 
             color = self.vector_color[np.mod(k, len(self.vector_color))]
 
@@ -617,15 +617,10 @@ class Bloch:
     def plot_points(self):
         """Plot points"""
         # -X and Y data are switched for plotting purposes
-        for k in range(len(self.points)):
-            num = len(self.points[k][0])
+        for k, point in enumerate(self.points):
+            num = len(point[0])
             dist = [
-                np.sqrt(
-                    self.points[k][0][j] ** 2
-                    + self.points[k][1][j] ** 2
-                    + self.points[k][2][j] ** 2
-                )
-                for j in range(num)
+                np.sqrt(point[0][j] ** 2 + point[1][j] ** 2 + point[2][j] ** 2) for j in range(num)
             ]
             if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                 # combine arrays so that they can be sorted together
@@ -637,9 +632,9 @@ class Bloch:
                 indperm = np.arange(num)
             if self.point_style[k] == "s":
                 self.axes.scatter(
-                    np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
-                    np.real(self.points[k][2][indperm]),
+                    np.real(point[1][indperm]),
+                    -np.real(point[0][indperm]),
+                    np.real(point[2][indperm]),
                     s=self.point_size[np.mod(k, len(self.point_size))],
                     alpha=1,
                     edgecolor=None,
@@ -656,9 +651,9 @@ class Bloch:
                 marker = self.point_marker[np.mod(k, len(self.point_marker))]
                 pnt_size = self.point_size[np.mod(k, len(self.point_size))]
                 self.axes.scatter(
-                    np.real(self.points[k][1][indperm]),
-                    -np.real(self.points[k][0][indperm]),
-                    np.real(self.points[k][2][indperm]),
+                    np.real(point[1][indperm]),
+                    -np.real(point[0][indperm]),
+                    np.real(point[2][indperm]),
                     s=pnt_size,
                     alpha=1,
                     edgecolor=None,
@@ -670,9 +665,9 @@ class Bloch:
             elif self.point_style[k] == "l":
                 color = self.point_color[np.mod(k, len(self.point_color))]
                 self.axes.plot(
-                    np.real(self.points[k][1]),
-                    -np.real(self.points[k][0]),
-                    np.real(self.points[k][2]),
+                    np.real(point[1]),
+                    -np.real(point[0]),
+                    np.real(point[2]),
                     alpha=0.75,
                     zdir="z",
                     color=color,

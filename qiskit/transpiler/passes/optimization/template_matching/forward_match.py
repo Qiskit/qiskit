@@ -138,8 +138,8 @@ class ForwardMatch:
         """
         matches = []
 
-        for i in range(0, len(self.match)):
-            matches.append(self.match[i][0])
+        for match in self.match:
+            matches.append(match[0])
 
         pred = matches.copy()
         if len(pred) > 1:
