@@ -2,8 +2,7 @@
 upgrade_providers:
   - |
     The :class:`.BasicSimulator` python-based simulator included in :mod:`qiskit.providers.basic_provider`
-    now includes all the standard gates (:mod:`qiskit.circuit.library .standard_gates`). The new basis support includes:
-    ``c3sx`` (:class:`.C3SXGate`),
+    now includes all the standard gates (:mod:`qiskit.circuit.library .standard_gates`) up to 3 qubits. The new basis support includes:
     ``ccx`` (:class:`.CCXGate`),
     ``ccz`` (:class:`.CCZGate`),
     ``ch`` (:class:`.CHGate`),
@@ -26,7 +25,6 @@ upgrade_providers:
     ``id`` (:class:`.IGate`),
     ``iswap`` (:class:`.iSwapGate`),
     ``r`` (:class:`.RGate`),
-    ``rcccx`` (:class:`.RC3XGate`),
     ``rccx`` (:class:`.RCCXGate`),
     ``rx`` (:class:`.RXGate`),
     ``rxx`` (:class:`.RXXGate`),

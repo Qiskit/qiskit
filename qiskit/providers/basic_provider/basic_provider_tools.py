@@ -144,6 +144,7 @@ TWO_QUBIT_GATES_WITH_PARAMETERS = {
 THREE_QUBIT_GATES = {
     "ccx": gates.CCXGate().to_matrix(),
     "ccz": gates.CCZGate().to_matrix(),
+    "rccx": gates.RCCXGate().to_matrix(),
     "cswap": gates.CSwapGate().to_matrix(),
 }
 

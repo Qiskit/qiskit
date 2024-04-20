@@ -381,6 +381,14 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(result.success, True)
 
+    def test_rcx(self):
+        self.circuit.rccx(0, 1, 2)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
     def test_global_phase(self):
         qc = self.circuit
         qc.append(lib.GlobalPhaseGate(0.1), [])
