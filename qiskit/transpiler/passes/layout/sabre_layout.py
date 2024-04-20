@@ -354,6 +354,16 @@ class SabreLayout(TransformationPass):
                 ],
                 component.circuit_to_dag_dict,
             )
+
+        # convert to final_permutation instead
+        final_layout = self.property_set["final_layout"]
+        final_permutation = [None] * len(mapped_dag.qubits)
+        for i, q in enumerate(mapped_dag.qubits):
+            pos = final_layout._v2p[q]
+            final_permutation[i] = pos
+        self.property_set["final_layout"] = None
+        self.property_set["final_permutation"] = final_permutation
+
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
