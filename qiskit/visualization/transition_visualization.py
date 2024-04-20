@@ -12,8 +12,11 @@
 
 import warnings
 from qiskit.utils.deprecation import deprecate_func
-warnings.warn("qiskit.visualization.transition_visualization module is \
-deprecated since 1.1.1")
+
+warnings.warn(
+    "qiskit.visualization.transition_visualization module is \
+deprecated since 1.1.1"
+)
 
 """
 Visualization function for animation of state transitions by applying gates to single qubit.
@@ -124,6 +127,7 @@ class _Quaternion:
         """Calculates norm of quaternion"""
         _, v = self.get_axisangle()
         return np.linalg.norm(v)
+
 
 @deprecate_func(since="1.1.1", additional_msg="Plan to move to QuSTaR/kaleidoscope")
 def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
