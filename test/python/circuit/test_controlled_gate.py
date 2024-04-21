@@ -75,6 +75,9 @@ from qiskit.circuit.library import (
     MCPhaseGate,
     GlobalPhaseGate,
     UnitaryGate,
+    MCRXGate,
+    MCRYGate,
+    MCRZGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -1540,7 +1543,7 @@ class TestControlledStandardGates(QiskitTestCase):
         args = [theta] * numargs
         if gate_class in [MSGate, Barrier]:
             args[0] = 2
-        elif gate_class in [MCU1Gate, MCPhaseGate]:
+        elif gate_class in [MCU1Gate, MCPhaseGate, MCRXGate, MCRYGate, MCRZGate]:
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
