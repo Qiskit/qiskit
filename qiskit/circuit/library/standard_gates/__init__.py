@@ -14,6 +14,12 @@
 Standard gates
 """
 
+# from .rx import CRXGate, MCRXGate, MCRXPUCXBasis, RXGate
+# from .rxx import RXXGate
+# from .ry import CRYGate, MCRYGate, MCRYPUCXBasis, MCRYVChain, RYGate
+# from .ryy import RYYGate
+# from .rz import CRZGate, MCRZGate, MCRZPUCXBasis, RZGate
+
 from .dcx import DCXGate
 from .ecr import ECRGate
 from .global_phase import GlobalPhaseGate
@@ -23,11 +29,11 @@ from .iswap import iSwapGate
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
 from .p import CPhaseGate, MCPhaseGate, PhaseGate
 from .r import RGate
-from .rx import CRXGate, MCRXGate, MCRXPUCXBasis, RXGate
+from .rx import CRXGate, RXGate
 from .rxx import RXXGate
-from .ry import CRYGate, MCRYGate, MCRYPUCXBasis, MCRYVChain, RYGate
+from .ry import CRYGate, RYGate
 from .ryy import RYYGate
-from .rz import CRZGate, MCRZGate, MCRZPUCXBasis, RZGate
+from .rz import CRZGate, RZGate
 from .rzx import RZXGate
 from .rzz import RZZGate
 from .s import CSdgGate, CSGate, SdgGate, SGate

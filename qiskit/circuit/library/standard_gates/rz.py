@@ -19,7 +19,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.exceptions import QiskitError
 
 from .rx import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
 

@@ -24,7 +24,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.exceptions import QiskitError
 
 
 class RXGate(Gate):
