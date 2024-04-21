@@ -13,10 +13,11 @@
 """Rotation around the Z axis."""
 from cmath import exp
 from typing import Optional, Union
-from qiskit.circuit.gate import Gate
+
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
 
 from .rx import _mcsu2_real_diagonal
 

@@ -15,13 +15,15 @@
 import math
 from math import pi
 from typing import Optional, Union
+
 import numpy as np
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.parameterexpression import ParameterValueType
-from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
+from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.exceptions import QiskitError
 
 
 class RXGate(Gate):
@@ -230,6 +232,7 @@ class CRXGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
@@ -560,11 +563,12 @@ def _mcsu2_real_diagonal(
 
     """
     # pylint: disable=cyclic-import
-    from .x import MCXVChain
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.circuit.library.generalized_gates import UnitaryGate
-    from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.compiler import transpile
+    from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+
+    from .x import MCXVChain
 
     if unitary.shape != (2, 2):
         raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")

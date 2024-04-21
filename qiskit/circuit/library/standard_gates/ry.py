@@ -15,11 +15,13 @@
 import math
 from math import pi
 from typing import Optional, Union
+
 import numpy
+
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 from .rx import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
@@ -65,6 +67,7 @@ class RYGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .r import RGate
 
         q = QuantumRegister(1, "q")
@@ -230,6 +233,7 @@ class CRYGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .x import CXGate
 
         # q_0: ─────────────■───────────────■──
@@ -538,9 +542,13 @@ class MCRYVChain(MCRYGate):
         )
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int):
-        """Get the number of required ancilla qubits."""
-        return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, "v-chain")
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "basic") -> int:
+        """Get the number of required ancilla qubits without instantiating the class.
+
+        This staticmethod might be necessary to check the number of ancillas before
+        creating the gate, or to use the number of ancillas in the initialization.
+        """
+        return MCRYGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
 
     def _define(self):
         """Define the MCRY gate using a V-chain of CX gates."""

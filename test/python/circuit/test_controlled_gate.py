@@ -75,9 +75,6 @@ from qiskit.circuit.library import (
     MCPhaseGate,
     GlobalPhaseGate,
     UnitaryGate,
-    MCRXGate,
-    MCRYGate,
-    MCRZGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -633,12 +630,8 @@ class TestControlledGate(QiskitTestCase):
 
         # iterate over all possible combinations of control qubits
         for ctrl_state in range(2**num_controls):
-            bitstr = bin(ctrl_state)[2:].zfill(num_controls)[::-1]
             theta = 0.871236 * pi
             qc = QuantumCircuit(q_controls, q_target)
-            for idx, bit in enumerate(bitstr):
-                if bit == "0":
-                    qc.x(q_controls[idx])
 
             # call mcrx/mcry/mcrz
             if base_gate_name == "y":
@@ -649,19 +642,23 @@ class TestControlledGate(QiskitTestCase):
                     None,
                     mode="noancilla",
                     use_basis_gates=use_basis_gates,
+                    ctrl_state=ctrl_state,
                 )
             else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
                 getattr(qc, "mcr" + base_gate_name)(
-                    theta, q_controls, q_target[0], use_basis_gates=use_basis_gates
+                    theta,
+                    q_controls,
+                    q_target[0],
+                    use_basis_gates=use_basis_gates,
+                    ctrl_state=ctrl_state,
                 )
-
-            for idx, bit in enumerate(bitstr):
-                if bit == "0":
-                    qc.x(q_controls[idx])
 
             if use_basis_gates:
                 with self.subTest(msg="check only basis gates used"):
-                    gates_used = set(qc.decompose(["mcr" + base_gate_name]).count_ops().keys())
+                    # Decompose control state than decompose mcrx/mcry/mcrz
+                    gates_used = set(
+                        qc.decompose().decompose(["mcr" + base_gate_name]).count_ops().keys()
+                    )
                     self.assertTrue(gates_used.issubset({"x", "u", "p", "cx"}))
 
             simulated = Operator(qc)

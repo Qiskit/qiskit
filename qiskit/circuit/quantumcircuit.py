@@ -15,63 +15,71 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+
 import copy as _copy
 import itertools
 import multiprocessing as mp
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
-    Union,
+    Any,
+    Callable,
+    DefaultDict,
+    Iterable,
+    Literal,
+    Mapping,
     Optional,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
-    Sequence,
-    Callable,
-    Mapping,
-    Iterable,
-    Any,
-    DefaultDict,
-    Literal,
+    Union,
     overload,
 )
+
 import numpy as np
+
 from qiskit._accelerate.circuit import CircuitData
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.parameter import Parameter
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
-from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameter import Parameter
-from qiskit.circuit.exceptions import CircuitError
+
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .controlflow import ControlFlowOp
-from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
-from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
-from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
-from .controlflow.for_loop import ForLoopOp, ForLoopContext
-from .controlflow.if_else import IfElseOp, IfContext
-from .controlflow.switch_case import SwitchCaseOp, SwitchContext
-from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
+from .bit import Bit
 from .classical import expr, types
-from .parameterexpression import ParameterExpression, ParameterValueType
-from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
-from .parametertable import ParameterReferences, ParameterTable, ParameterView
-from .parametervector import ParameterVector
+from .controlflow import ControlFlowOp
+from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
+from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
+from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
+from .controlflow.for_loop import ForLoopContext, ForLoopOp
+from .controlflow.if_else import IfContext, IfElseOp
+from .controlflow.switch_case import SwitchCaseOp, SwitchContext
+from .controlflow.while_loop import WhileLoopContext, WhileLoopOp
+from .delay import Delay
 from .instructionset import InstructionSet
 from .operation import Operation
+from .parameterexpression import ParameterExpression, ParameterValueType
+from .parametertable import ParameterReferences, ParameterTable, ParameterView
+from .parametervector import ParameterVector
+from .quantumcircuitdata import CircuitInstruction, QuantumCircuitData
+from .quantumregister import AncillaQubit, AncillaRegister, QuantumRegister, Qubit
 from .register import Register
-from .bit import Bit
-from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
-from .delay import Delay
 from .store import Store
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
-    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
-    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
+    from qiskit.quantum_info.states.statevector import (
+        Statevector,  # pylint: disable=cyclic-import
+    )
+    from qiskit.transpiler.layout import (
+        TranspileLayout,  # pylint: disable=cyclic-import
+    )
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -2072,10 +2080,10 @@ class QuantumCircuit:
             QuantumCircuit: a circuit one level decomposed
         """
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes.basis.decompose import Decompose
-        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
+        from qiskit.transpiler.passes.basis.decompose import Decompose
+        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
 
         dag = circuit_to_dag(self, copy_operations=True)
         dag = HighLevelSynthesis().run(dag)
@@ -2828,8 +2836,8 @@ class QuantumCircuit:
             QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
         # pylint: disable=cyclic-import
-        from qiskit.transpiler.passes import RemoveFinalMeasurements
         from qiskit.converters import circuit_to_dag
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
 
         if inplace:
             circ = self
@@ -4341,6 +4349,7 @@ class QuantumCircuit:
         q_controls: Sequence[QubitSpecifier],
         q_target: QubitSpecifier,
         use_basis_gates: bool = False,
+        ctrl_state: str | int | None = None,
     ):
         """
         Apply Multiple-Controlled X rotation gate
@@ -4350,7 +4359,10 @@ class QuantumCircuit:
             theta: angle theta
             q_controls: The list of control qubits
             q_target: The target qubit
-            use_basis_gates (bool): use p, u, cx as the basis gates.
+            use_basis_gates: use p, u, cx as the basis gates.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Raises:
             QiskitError: parameter errors
@@ -4359,9 +4371,13 @@ class QuantumCircuit:
 
         if use_basis_gates:
             return self.append(
-                MCRXPUCXBasis(theta, len(q_controls)), q_controls[:] + [q_target], []
+                MCRXPUCXBasis(theta, len(q_controls), ctrl_state=ctrl_state),
+                q_controls[:] + [q_target],
+                [],
             )
-        return self.append(MCRXGate(theta, len(q_controls)), q_controls[:] + [q_target], [])
+        return self.append(
+            MCRXGate(theta, len(q_controls), ctrl_state=ctrl_state), q_controls[:] + [q_target], []
+        )
 
     def mcry(
         self,
@@ -4370,7 +4386,7 @@ class QuantumCircuit:
         q_target: QubitSpecifier,
         q_ancillae: QubitSpecifier | Sequence[QubitSpecifier] | None = None,
         mode: str = None,
-        use_basis_gates=False,
+        use_basis_gates: bool = False,
         ctrl_state: str | int | None = None,
     ):
         """
@@ -4386,9 +4402,14 @@ class QuantumCircuit:
                 - 'noancilla': no ancilla qubits are used.
                 - 'basic': uses 2 less ancilla qubits than the number of control qubits.
             use_basis_gates: use p, u, cx as the basis gates.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Raises:
             QiskitError: parameter errors
+            ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
+            AttributeError: if no ancilla qubits are passed, but some are needed.
         """
         from .library.standard_gates.ry import MCRYGate, MCRYPUCXBasis, MCRYVChain
 
@@ -4456,20 +4477,24 @@ class QuantumCircuit:
 
     def mcrz(
         self,
-        lam: ParameterValueType,
-        q_controls: Union[QuantumRegister, List[Qubit]],
-        q_target: Qubit,
+        lam: ParameterValueType,  # type: ignore
+        q_controls: Sequence[QubitSpecifier],
+        q_target: QubitSpecifier,
         use_basis_gates: bool = False,
+        ctrl_state: str | int | None = None,
     ):
         """
         Apply Multiple-Controlled Z rotation gate
 
         Args:
             self: The QuantumCircuit object to apply the mcrz gate on.
-            theta: angle theta
+            lam: angle lam
             q_controls: The list of control qubits
             q_target: The target qubit
-            use_basis_gates (bool): use p, u, cx as the basis gates.
+            use_basis_gates: use p, u, cx as the basis gates.
+            ctrl_state:
+                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
+                on the '1' state.
 
         Raises:
             QiskitError: parameter errors
@@ -4477,8 +4502,14 @@ class QuantumCircuit:
         from .library.standard_gates.rz import MCRZGate, MCRZPUCXBasis
 
         if use_basis_gates:
-            return self.append(MCRZPUCXBasis(lam, len(q_controls)), q_controls[:] + [q_target], [])
-        return self.append(MCRZGate(lam, len(q_controls)), q_controls[:] + [q_target], [])
+            return self.append(
+                MCRZPUCXBasis(lam, len(q_controls), ctrl_state=ctrl_state),
+                q_controls[:] + [q_target],
+                [],
+            )
+        return self.append(
+            MCRZGate(lam, len(q_controls), ctrl_state=ctrl_state), q_controls[:] + [q_target], []
+        )
 
     def y(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.YGate`.
