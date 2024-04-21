@@ -14,8 +14,10 @@ import warnings
 from qiskit.utils.deprecation import deprecate_func
 
 warnings.warn(
-    "qiskit.visualization.transition_visualization module is \
-deprecated since 1.1.1"
+    "qiskit.visualization.transition_visualization module is "
+    "deprecated since 1.1.1",
+    category=DeprecationWarning,
+    stacklevel=2
 )
 
 """
