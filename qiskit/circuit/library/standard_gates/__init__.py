@@ -39,10 +39,8 @@ from .u1 import CU1Gate, MCU1Gate, U1Gate
 from .u2 import U2Gate
 from .u3 import CU3Gate, U3Gate
 from .x import (
-    C3SXdgGate,
     C3SXGate,
     C3XGate,
-    C4XdgGate,
     C4XGate,
     CCXGate,
     CXGate,
@@ -50,7 +48,6 @@ from .x import (
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
-    RC3XdgGate,
     RC3XGate,
     RCCXGate,
     XGate,
