@@ -18,11 +18,11 @@ from .h import HGate, CHGate
 from .i import IGate
 from .p import PhaseGate, CPhaseGate, MCPhaseGate
 from .r import RGate
-from .rx import RXGate, CRXGate
+from .rx import RXGate, CRXGate, MCRXPUCXBasis, MCRXGate
 from .rxx import RXXGate
-from .ry import RYGate, CRYGate
+from .ry import RYGate, CRYGate, MCRYGate, MCRYPUCXBasis, MCRYVChain
 from .ryy import RYYGate
-from .rz import RZGate, CRZGate
+from .rz import RZGate, CRZGate, MCRZGate, MCRZPUCXBasis
 from .rzz import RZZGate
 from .rzx import RZXGate
 from .xx_minus_yy import XXMinusYYGate
@@ -43,7 +43,6 @@ from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate, CCZGate
 from .global_phase import GlobalPhaseGate
-from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 
 def get_standard_gate_name_mapping():

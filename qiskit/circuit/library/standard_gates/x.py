@@ -21,6 +21,10 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int, with_gate_array, with_controlled_gate_array
 
 _X_ARRAY = [[0, 1], [1, 0]]
+_SX_ARRAY = numpy.array([[(1 + 1j) / 2, (1 - 1j) / 2], [(1 - 1j) / 2, (1 + 1j) / 2]], dtype=complex)
+_SXDG_ARRAY = numpy.array(
+    [[(1 - 1j) / 2, (1 + 1j) / 2], [(1 + 1j) / 2, (1 - 1j) / 2]], dtype=complex
+)
 
 
 @with_gate_array(_X_ARRAY)
@@ -562,6 +566,7 @@ class RCCXGate(SingletonGate):
         return isinstance(other, RCCXGate)
 
 
+@with_controlled_gate_array(_SX_ARRAY, num_ctrl_qubits=3, cached_states=(4,))
 class C3SXGate(SingletonControlledGate):
     """The 3-qubit controlled sqrt-X gate.
 
@@ -666,6 +671,141 @@ class C3SXGate(SingletonControlledGate):
 
     def __eq__(self, other):
         return isinstance(other, C3SXGate) and self.ctrl_state == other.ctrl_state
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted C3SX gate (i.e. C3SXdg).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.C3SXdgGate`.
+
+        Returns:
+            C3SXdgGate: inverse gate.
+        """
+        return C3SXdgGate(ctrl_state=self.ctrl_state)
+
+
+@with_controlled_gate_array(_SXDG_ARRAY, num_ctrl_qubits=3, cached_states=(4,))
+class C3SXdgGate(SingletonControlledGate):
+    """The 3-qubit controlled sqrt-X gate.
+
+    This implementation is based on Page 17 of [1].
+
+    References:
+        [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
+    """
+
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
+        """Create a new 3-qubit controlled sqrt-X gate.
+
+        Args:
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+        """
+        from .sx import SXdgGate
+
+        super().__init__(
+            "c3sx",
+            4,
+            [],
+            num_ctrl_qubits=3,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SXdgGate(label=_base_label),
+            duration=duration,
+            unit=unit,
+        )
+
+    _singleton_lookup_key = stdlib_singleton_key(num_ctrl_qubits=3)
+
+    def _define(self):
+        """
+        gate c3sqrtx a,b,c,d
+        {
+            h d; cu1(pi/8) a,d; h d;
+            cx a,b;
+            h d; cu1(-pi/8) b,d; h d;
+            cx a,b;
+            h d; cu1(pi/8) b,d; h d;
+            cx b,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
+            cx b,c;
+            h d; cu1(-pi/8) c,d; h d;
+            cx a,c;
+            h d; cu1(pi/8) c,d; h d;
+        }
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from .u1 import CU1Gate
+        from .h import HGate
+
+        angle = numpy.pi / 8
+        q = QuantumRegister(4, name="q")
+        rules = [
+            (HGate(), [q[3]], []),
+            (CU1Gate(angle), [q[0], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-angle), [q[1], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[1]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(angle), [q[1], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[1], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(-angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+            (CXGate(), [q[0], q[2]], []),
+            (HGate(), [q[3]], []),
+            (CU1Gate(angle), [q[2], q[3]], []),
+            (HGate(), [q[3]], []),
+        ][::-1]
+        qc = QuantumCircuit(q)
+        for instr, qargs, cargs in rules:
+            qc._append(instr.inverse(), qargs, cargs)
+
+        self.definition = qc
+
+    def __eq__(self, other):
+        return isinstance(other, C3SXGate) and self.ctrl_state == other.ctrl_state
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverted C3SXdg gate (i.e. C3SX).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.C3SXGate`.
+
+        Returns:
+            C3SXGate: inverse gate.
+        """
+        return C3SXGate(ctrl_state=self.ctrl_state)
 
 
 @with_controlled_gate_array(_X_ARRAY, num_ctrl_qubits=3, cached_states=(7,))
