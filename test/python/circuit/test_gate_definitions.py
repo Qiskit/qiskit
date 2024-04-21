@@ -14,58 +14,59 @@
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
 import inspect
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import data, ddt, idata, unpack
+from ddt import ddt, data, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import ControlledGate, Gate, ParameterVector
+from qiskit.quantum_info import Operator
+from qiskit.circuit import ParameterVector, Gate, ControlledGate
+from qiskit.circuit.library import standard_gates
 from qiskit.circuit.library import (
-    CCXGate,
-    CHGate,
-    CPhaseGate,
-    CRXGate,
-    CRYGate,
-    CRZGate,
-    CSwapGate,
-    CSXGate,
-    CU1Gate,
-    CU3Gate,
-    CUGate,
-    CXGate,
-    CYGate,
-    CZGate,
-    ECRGate,
     HGate,
+    CHGate,
     IGate,
-    PhaseGate,
     RGate,
-    RVGate,
     RXGate,
+    CRXGate,
     RYGate,
-    RYYGate,
+    CRYGate,
     RZGate,
-    SdgGate,
+    CRZGate,
     SGate,
-    SXdgGate,
-    SXGate,
-    TdgGate,
+    SdgGate,
+    CSwapGate,
     TGate,
+    TdgGate,
     U1Gate,
+    CU1Gate,
     U2Gate,
     U3Gate,
-    UGate,
+    CU3Gate,
     XGate,
-    XXMinusYYGate,
+    CXGate,
+    ECRGate,
+    CCXGate,
     YGate,
+    CYGate,
     ZGate,
-    standard_gates,
+    CZGate,
+    RYYGate,
+    PhaseGate,
+    CPhaseGate,
+    UGate,
+    CUGate,
+    SXGate,
+    SXdgGate,
+    CSXGate,
+    RVGate,
+    XXMinusYYGate,
 )
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
 
 from .gate_utils import _get_free_params
 
