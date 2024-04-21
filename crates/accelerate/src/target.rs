@@ -557,7 +557,7 @@ impl Target {
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
         }
-        if let Some(qargs) = qargs {
+        if let Some(qargs) = qargs.as_ref() {
             if qargs
                 .vec
                 .iter()
@@ -565,23 +565,22 @@ impl Target {
             {
                 return Err(PyKeyError::new_err(format!("{:?}", qargs)));
             }
-            if let Some(qarg_gate_map_arg) = self.qarg_gate_map[&Some(qargs.clone())].clone() {
-                res.extend(qarg_gate_map_arg);
+        }
+        if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
+            res.extend(qarg_gate_map_arg.to_owned());
+        }
+        for (name, op) in self.gate_name_map.iter() {
+            if isclass.call1((op,))?.extract::<bool>()? {
+                res.insert(name.into());
             }
+        }
+        if let Some(qargs) = qargs.as_ref() {
             if let Some(ext) = self.global_operations.get(&qargs.vec.len()) {
                 res = ext.union(&res).cloned().collect();
             }
-            for (name, op) in self.gate_name_map.iter() {
-                if isclass.call1((op,))?.extract::<bool>()? {
-                    res.insert(name.into());
-                }
-            }
-            if res.is_empty() {
-                return Err(PyKeyError::new_err(format!(
-                    "{:?} not in target",
-                    qargs.vec
-                )));
-            }
+        }
+        if res.is_empty() {
+            return Err(PyKeyError::new_err(format!("{:?} not in target", qargs)));
         }
         Ok(res)
     }
@@ -651,10 +650,7 @@ impl Target {
                         }
                         // TODO: Double check this method and what's stored in gate_map
                         if self.gate_map[op_name].is_none()
-                            || self.gate_map[op_name]
-                                .as_ref()
-                                .unwrap_or(&IndexMap::from_iter([].into_iter()))
-                                .contains_key(&None)
+                            || self.gate_map[op_name].as_ref().unwrap().contains_key(&None)
                         {
                             let qubit_comparison = self.gate_name_map[op_name]
                                 .getattr(py, "num_qubits")?
@@ -663,7 +659,8 @@ impl Target {
                                 && qargs_
                                     .vec
                                     .iter()
-                                    .all(|x| x < &(self.num_qubits.unwrap_or_default() as u32));
+                                    .cloned()
+                                    .all(|x| x < (self.num_qubits.unwrap_or_default() as u32));
                             return Ok(qubit_comparison);
                         }
                     }
@@ -716,7 +713,7 @@ impl Target {
                         return Ok(true);
                     }
                     if let Some(gate_map_oper) = self.gate_map[&operation_name].as_ref() {
-                        if gate_map_oper.contains_key(&Some(qargs_.clone())) {
+                        if gate_map_oper.contains_key(&qargs) {
                             return Ok(true);
                         }
                     }
@@ -725,7 +722,7 @@ impl Target {
                     if self.gate_map[&operation_name].is_none()
                         || self.gate_map[&operation_name]
                             .as_ref()
-                            .unwrap_or(&IndexMap::from_iter([].into_iter()))
+                            .unwrap()
                             .contains_key(&None)
                     {
                         obj = &self.gate_name_map[&operation_name];
@@ -820,14 +817,12 @@ impl Target {
     }
 
     #[pyo3(text_signature = "(/, index: int)")]
-    fn instruction_properties(&self, index: usize) -> PyResult<InstructionProperties> {
-        let mut instruction_properties: Vec<InstructionProperties> = vec![];
+    fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
+        let mut instruction_properties: Vec<Option<InstructionProperties>> = vec![];
         for operation in self.gate_map.keys() {
             if let Some(gate_map_oper) = self.gate_map[operation].to_owned() {
                 for (_, inst_props) in gate_map_oper.iter() {
-                    if let Some(inst_props) = inst_props {
-                        instruction_properties.push(inst_props.to_owned())
-                    }
+                    instruction_properties.push(inst_props.to_owned())
                 }
             }
         }

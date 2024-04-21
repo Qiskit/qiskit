@@ -857,10 +857,12 @@ class Target(Target2):
                 prop_str_pieces = [f"\t\t{qarg}:\n"]
                 duration = getattr(props, "duration", None)
                 if duration is not None:
-                    prop_str_pieces.append(f"\t\t\tDuration: {duration} sec.\n")
+                    prop_str_pieces.append(
+                        f"\t\t\tDuration: {0 if duration == 0 else duration} sec.\n"
+                    )
                 error = getattr(props, "error", None)
                 if error is not None:
-                    prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
+                    prop_str_pieces.append(f"\t\t\tError Rate: {0 if error == 0 else error}\n")
                 schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
