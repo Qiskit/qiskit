@@ -486,13 +486,13 @@ class BasicSimulator(BackendV2):
         from qiskit.compiler import assemble
 
         out_options = {}
-        for key in backend_options:
+        for key, value in backend_options.items():
             if not hasattr(self.options, key):
                 warnings.warn(
                     "Option %s is not used by this backend" % key, UserWarning, stacklevel=2
                 )
             else:
-                out_options[key] = backend_options[key]
+                out_options[key] = value
         qobj = assemble(run_input, self, **out_options)
         qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)

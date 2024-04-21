@@ -894,10 +894,9 @@ class TextDrawing:
 
         self._wire_map = get_wire_map(self._circuit, (self.qubits + self.clbits), self.cregbundle)
         wire_labels = []
-        for wire in self._wire_map:
+        for wire, index in self._wire_map.items():
             if isinstance(wire, ClassicalRegister):
                 register = wire
-                index = self._wire_map[wire]
             else:
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index

@@ -213,10 +213,9 @@ class QCircuitImage:
         self._latex.append([" "] * (self._img_depth + 1))
 
         # display the bit/register labels
-        for wire in self._wire_map:
+        for wire, index in self._wire_map.items():
             if isinstance(wire, ClassicalRegister):
                 register = wire
-                index = self._wire_map[wire]
             else:
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
@@ -620,11 +619,11 @@ class QCircuitImage:
             # First sort the val_bits in the order of the register bits in the circuit
             cond_wires = []
             cond_bits = []
-            for wire in self._wire_map:
+            for wire, index in self._wire_map.items():
                 reg, _, reg_index = get_bit_reg_index(self._circuit, wire)
                 if reg == cond_reg:
                     cond_bits.append(reg_index)
-                    cond_wires.append(self._wire_map[wire])
+                    cond_wires.append(index)
 
             gap = cond_wires[0] - max(wire_list)
             prev_wire = cond_wires[0]

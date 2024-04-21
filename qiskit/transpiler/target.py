@@ -940,7 +940,9 @@ class Target(Mapping):
         is globally defined.
         """
         return [
-            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+            (self._gate_name_map[op], qarg)
+            for op, qargs in self._gate_map.items()
+            for qarg in qargs
         ]
 
     def instruction_properties(self, index):
@@ -979,7 +981,7 @@ class Target(Mapping):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for op in self._gate_map for _, inst_props in self._gate_map[op].items()
+            inst_props for _, qargs in self._gate_map.items() for _, inst_props in qargs.items()
         ]
         return instruction_properties[index]
 
