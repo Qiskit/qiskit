@@ -202,10 +202,7 @@ class TestStandardGates(QiskitTestCase):
         n_params = len(free_params)
         param_vector = ParameterVector("th", n_params)
 
-        if class_name in (
-            "MCPhaseGate",
-            "MCU1Gate",
-        ):
+        if class_name in ("MCPhaseGate", "MCU1Gate"):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
         # num_ctrl_qubits >= 2 with MCRX/MCRY/MCRZ will fail

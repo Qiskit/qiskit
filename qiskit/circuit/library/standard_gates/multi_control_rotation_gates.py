@@ -13,8 +13,78 @@
 Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
-from qiskit.circuit import QuantumCircuit
+from typing import Optional, Union, Tuple, List
 
-mcrx = QuantumCircuit.mcrx
-mcry = QuantumCircuit.mcry
-mcrz = QuantumCircuit.mcrz
+from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.utils.deprecation import deprecate_func
+
+
+@deprecate_func(since="1.1.0", additional_msg="Use QuantumCircuit.mcrx instead.")
+def mcrx(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
+    """
+    Apply Multiple-Controlled X rotation gate
+    Args:
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
+        theta (float): angle theta
+        q_controls (QuantumRegister or list(Qubit)): The list of control qubits
+        q_target (Qubit): The target qubit
+        use_basis_gates (bool): use p, u, cx
+    Raises:
+        QiskitError: parameter errors
+    """
+    return self.mcrx(theta, q_controls, q_target, use_basis_gates, use_basis_gates)
+
+
+@deprecate_func(since="1.1.0", additional_msg="Use QuantumCircuit.mcry instead.")
+def mcry(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
+    mode: str = None,
+    use_basis_gates=False,
+):
+    """
+    Apply Multiple-Controlled Y rotation gate
+    Args:
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcry gate on.
+        theta (float): angle theta
+        q_controls (list(Qubit)): The list of control qubits
+        q_target (Qubit): The target qubit
+        q_ancillae (QuantumRegister or tuple(QuantumRegister, int)): The list of ancillary qubits.
+        mode (string): The implementation mode to use
+        use_basis_gates (bool): use p, u, cx
+    Raises:
+        QiskitError: parameter errors
+    """
+    return self.mcry(theta, q_controls, q_target, q_ancillae, mode, use_basis_gates)
+
+
+@deprecate_func(since="1.1.0", additional_msg="Use QuantumCircuit.mcrz instead.")
+def mcrz(
+    self,
+    lam: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
+    """
+    Apply Multiple-Controlled Z rotation gate
+    Args:
+        self (QuantumCircuit): The QuantumCircuit object to apply the mcrz gate on.
+        lam (float): angle lambda
+        q_controls (list(Qubit)): The list of control qubits
+        q_target (Qubit): The target qubit
+        use_basis_gates (bool): use p, u, cx
+    Raises:
+        QiskitError: parameter errors
+    """
+    return self.mcrz(lam, q_controls, q_target, use_basis_gates, use_basis_gates)
