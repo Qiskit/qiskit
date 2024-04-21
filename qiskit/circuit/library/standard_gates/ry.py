@@ -378,7 +378,7 @@ class MCRYGate(ControlledGate):
             )
         else:
             cgate = _mcsu2_real_diagonal(
-                RYGate(self.params[0]),
+                RYGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
                 use_basis_gates=False,
             )
@@ -483,7 +483,7 @@ class MCRYPUCXBasis(MCRYGate):
             )
         else:
             cgate = _mcsu2_real_diagonal(
-                RYGate(self.params[0]),
+                RYGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
                 use_basis_gates=True,
             )

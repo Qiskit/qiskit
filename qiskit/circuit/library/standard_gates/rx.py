@@ -20,6 +20,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 
 
@@ -364,7 +365,7 @@ class MCRXGate(ControlledGate):
             )
         else:
             cgate = _mcsu2_real_diagonal(
-                RXGate(self.params[0]),
+                RXGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
                 use_basis_gates=False,
             )
@@ -464,7 +465,7 @@ class MCRXPUCXBasis(MCRXGate):
             )
         else:
             cgate = _mcsu2_real_diagonal(
-                RXGate(self.params[0]),
+                RXGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
                 use_basis_gates=True,
             )
@@ -531,7 +532,7 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 
 
 def _mcsu2_real_diagonal(
-    unitary: Gate,
+    unitary: np.ndarray,
     num_controls: int,
     ctrl_state: Optional[str] = None,
     use_basis_gates: bool = False,
@@ -559,44 +560,50 @@ def _mcsu2_real_diagonal(
 
     """
     # pylint: disable=cyclic-import
-    # from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from .x import MCXVChain
     from qiskit.circuit.quantumcircuit import QuantumCircuit
+    from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from qiskit.quantum_info.operators.predicates import is_unitary_matrix
     from qiskit.compiler import transpile
 
-    # from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-    from .x import MCXVChain
+    if unitary.shape != (2, 2):
+        raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
 
-    # if unitary.shape != (2, 2):
-    #     raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
-    # if not is_unitary_matrix(unitary):
-    #     raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
-    # if not np.isclose(1.0, np.linalg.det(unitary)):
-    #     raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
-    # is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
-    # is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
-    #     unitary[1, 0].imag, 0.0
-    # )
-    # if not is_main_diag_real and not is_secondary_diag_real:
-    #     raise QiskitError("The unitary must have one real diagonal.")
-    # if is_secondary_diag_real:
-    #     x = unitary[0, 1]
-    #     z = unitary[1, 1]
-    # else:
-    #     x = -unitary[0, 1].real
-    #     z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
-    # if np.isclose(z, -1):
-    #     s_op = [[1.0, 0.0], [0.0, 1.0j]]
-    # else:
-    #     alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-    #     alpha_i = z.imag / (
-    #         2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
-    #     )
-    #     alpha = alpha_r + 1.0j * alpha_i
-    #     beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
-    #     # S gate definition
-    #     s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+    if not is_unitary_matrix(unitary):
+        raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
 
-    s_gate = unitary
+    if not np.isclose(1.0, np.linalg.det(unitary)):
+        raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
+
+    is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
+    is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
+        unitary[1, 0].imag, 0.0
+    )
+
+    if not is_main_diag_real and not is_secondary_diag_real:
+        raise QiskitError("The unitary must have one real diagonal.")
+
+    if is_secondary_diag_real:
+        x = unitary[0, 1]
+        z = unitary[1, 1]
+    else:
+        x = -unitary[0, 1].real
+        z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
+
+    if np.isclose(z, -1):
+        s_op = [[1.0, 0.0], [0.0, 1.0j]]
+    else:
+        alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (
+            2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+        )
+        alpha = alpha_r + 1.0j * alpha_i
+        beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+
+        # S gate definition
+        s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+
+    s_gate = UnitaryGate(s_op)
 
     k_1 = math.ceil(num_controls / 2.0)
     k_2 = math.floor(num_controls / 2.0)
@@ -613,7 +620,7 @@ def _mcsu2_real_diagonal(
     controls = list(range(num_controls))  # control indices, defined for code legibility
     target = num_controls  # target index, defined for code legibility
 
-    if s_gate.name == "rx":
+    if not is_secondary_diag_real:
         circuit.h(target)
 
     mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
@@ -637,7 +644,7 @@ def _mcsu2_real_diagonal(
     circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
     circuit.append(s_gate.inverse(), [target])
 
-    if s_gate.name == "rx":
+    if not is_secondary_diag_real:
         circuit.h(target)
 
     if use_basis_gates:
