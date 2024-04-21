@@ -69,13 +69,9 @@ from .store import Store
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
+    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.base_operator import BaseOperator
-    from qiskit.quantum_info.states.statevector import (
-        Statevector,  # pylint: disable=cyclic-import
-    )
-    from qiskit.transpiler.layout import (
-        TranspileLayout,  # pylint: disable=cyclic-import
-    )
+    from qiskit.quantum_info.states.statevector import Statevector  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -2076,10 +2072,10 @@ class QuantumCircuit:
             QuantumCircuit: a circuit one level decomposed
         """
         # pylint: disable=cyclic-import
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        from qiskit.converters.dag_to_circuit import dag_to_circuit
         from qiskit.transpiler.passes.basis.decompose import Decompose
         from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self, copy_operations=True)
         dag = HighLevelSynthesis().run(dag)
@@ -2832,8 +2828,8 @@ class QuantumCircuit:
             QuantumCircuit: Returns the resulting circuit when ``inplace=False``, else None.
         """
         # pylint: disable=cyclic-import
-        from qiskit.converters import circuit_to_dag
         from qiskit.transpiler.passes import RemoveFinalMeasurements
+        from qiskit.converters import circuit_to_dag
 
         if inplace:
             circ = self

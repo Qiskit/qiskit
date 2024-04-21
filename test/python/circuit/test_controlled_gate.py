@@ -1452,7 +1452,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
 
-    from qiskit.circuit.library.standard_gates import rx, ry, rz, u1
+    from qiskit.circuit.library.standard_gates import u1, rx, ry, rz
 
     num_ctrl = 2
     num_target = 1
