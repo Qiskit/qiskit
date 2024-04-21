@@ -62,7 +62,7 @@ logger = logging.getLogger(__name__)
 
 class Target(Target2):
     def __new__(
-        self,
+        cls,
         description: str | None = None,
         num_qubits: int = 0,
         dt: float | None = None,
@@ -124,8 +124,8 @@ class Target(Target2):
             elif not isinstance(description, str):
                 description = str(description)
 
-        return super().__new__(
-            self,
+        return super(Target, cls).__new__(
+            cls,
             description=description,
             num_qubits=num_qubits,
             dt=dt,
@@ -371,7 +371,7 @@ class Target(Target2):
                 target
         """
         if self.instruction_durations is not None:
-            return self._instruction_durations
+            return self.instruction_durations
         out_durations = []
         for instruction, props_map in self.gate_map.items():
             for qarg, properties in props_map.items():

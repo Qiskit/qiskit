@@ -68,7 +68,7 @@ mod exceptions {
 }
 
 // Subclassable or Python Wrapping.
-#[pyclass(module = "qiskit._accelerate.target")]
+#[pyclass(subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
     #[pyo3(get)]
@@ -178,17 +178,17 @@ impl InstructionProperties {
         if let Some(duration) = self.duration {
             output.push_str("duration=");
             output.push_str(duration.to_string().as_str());
-            output.push(' ');
+            output.push_str(", ");
         } else {
-            output.push_str("duration=None ");
+            output.push_str("duration=None, ");
         }
 
         if let Some(error) = self.error {
             output.push_str("error=");
             output.push_str(error.to_string().as_str());
-            output.push(' ');
+            output.push_str(", ");
         } else {
-            output.push_str("error=None ");
+            output.push_str("error=None, ");
         }
 
         if let Some(calibration) = self.get_calibration(py) {
@@ -219,19 +219,19 @@ pub struct Target {
     pub description: Option<String>,
     #[pyo3(get)]
     pub num_qubits: Option<usize>,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub dt: Option<f64>,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub granularity: i32,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub min_length: usize,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub pulse_alignment: i32,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub acquire_alignment: i32,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub qubit_properties: Vec<PyObject>,
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub concurrent_measurements: Vec<Vec<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
     #[pyo3(get)]
@@ -375,14 +375,15 @@ impl Target {
                             e.insert(instruction_name.clone());
                         }
                     })
-                    .or_insert(Some(HashSet::from_iter(
-                        [instruction_name.clone()].into_iter(),
-                    )));
+                    .or_insert(Some(HashSet::from([instruction_name.clone()])));
             }
         }
         self.gate_map.insert(instruction_name, Some(qargs_val));
+        self.coupling_graph = None;
         self.instruction_durations = None;
         self.instruction_schedule_map = None;
+        self.non_global_basis = None;
+        self.non_global_strict_basis = None;
         Ok(())
     }
 
@@ -840,26 +841,29 @@ impl Target {
     }
 
     #[pyo3(text_signature = "(/, strict_direction=False)")]
-    fn get_non_global_operation_names(
-        &mut self,
-        py: Python<'_>,
-        strict_direction: bool,
-    ) -> PyResult<PyObject> {
-        let mut search_set: HashSet<HashableVec<u32>> = HashSet::new();
+    fn get_non_global_operation_names(&mut self, strict_direction: bool) -> PyResult<Vec<String>> {
+        let mut search_set: HashSet<Option<HashableVec<u32>>> = HashSet::new();
         if strict_direction {
             if let Some(global_strict) = &self.non_global_strict_basis {
-                return Ok(global_strict.to_object(py));
+                return Ok(global_strict.to_owned());
             }
             // Build search set
-            for qarg_key in self.qarg_gate_map.keys().flatten().cloned() {
+            for qarg_key in self.qarg_gate_map.keys().cloned() {
                 search_set.insert(qarg_key);
             }
         } else {
             if let Some(global_basis) = &self.non_global_basis {
-                return Ok(global_basis.to_object(py));
+                return Ok(global_basis.to_owned());
             }
-            for qarg_key in self.qarg_gate_map.keys().flatten().cloned() {
-                if qarg_key.vec.len() != 1 {
+            for qarg_key in self.qarg_gate_map.keys().cloned() {
+                if let Some(qarg_key_) = &qarg_key {
+                    if qarg_key_.vec.len() != 1 {
+                        let mut vec = qarg_key_.clone().vec;
+                        vec.sort();
+                        let qarg_key = Some(HashableVec { vec });
+                        search_set.insert(qarg_key);
+                    }
+                } else {
                     search_set.insert(qarg_key);
                 }
             }
@@ -869,42 +873,58 @@ impl Target {
         *size_dict
             .entry(1)
             .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
-        for qarg in search_set {
-            if qarg.vec.len() == 1 {
+        for qarg in &search_set {
+            if qarg.is_none()
+                || qarg
+                    .as_ref()
+                    .unwrap_or(&HashableVec { vec: vec![] })
+                    .vec
+                    .len()
+                    == 1
+            {
                 continue;
             }
-            *size_dict.entry(qarg.vec.len()).or_insert(0) += 1;
+            *size_dict
+                .entry(
+                    qarg.to_owned()
+                        .unwrap_or(HashableVec { vec: vec![] })
+                        .vec
+                        .len(),
+                )
+                .or_insert(0) += 1;
         }
         for (inst, qargs) in self.gate_map.iter() {
             if let Some(qargs) = qargs {
                 let mut qarg_len = qargs.len();
                 let qarg_sample = qargs.keys().next();
-                if qarg_sample.is_none() {
-                    continue;
-                }
-                let qarg_sample = qarg_sample.unwrap();
-                if !strict_direction {
-                    let mut qarg_set = HashSet::new();
-                    for qarg in qargs.keys() {
-                        if let Some(qarg) = qarg.to_owned() {
-                            qarg_set.insert(qarg);
-                        }
-                    }
-                    qarg_len = qarg_set.len();
-                }
                 if let Some(qarg_sample) = qarg_sample {
-                    if qarg_len != size_dict[&qarg_sample.vec.len()] {
-                        incomplete_basis_gates.push(inst.to_owned());
+                    if !strict_direction {
+                        let mut qarg_set = HashSet::new();
+                        for qarg in qargs.keys() {
+                            let mut qarg_set_vec: HashableVec<u32> = HashableVec { vec: vec![] };
+                            if let Some(qarg) = qarg {
+                                let mut to_vec: Vec<u32> = qarg.vec.to_owned();
+                                to_vec.sort();
+                                qarg_set_vec = HashableVec { vec: to_vec };
+                            }
+                            qarg_set.insert(qarg_set_vec);
+                        }
+                        qarg_len = qarg_set.len();
+                    }
+                    if let Some(qarg_sample) = qarg_sample {
+                        if qarg_len != *size_dict.entry(qarg_sample.vec.len()).or_insert(0) {
+                            incomplete_basis_gates.push(inst.to_owned());
+                        }
                     }
                 }
             }
         }
         if strict_direction {
-            self.non_global_strict_basis = Some(incomplete_basis_gates);
-            Ok(self.non_global_strict_basis.to_object(py))
+            self.non_global_strict_basis = Some(incomplete_basis_gates.to_owned());
+            Ok(incomplete_basis_gates)
         } else {
-            self.non_global_basis = Some(incomplete_basis_gates);
-            Ok(self.non_global_basis.to_object(py))
+            self.non_global_basis = Some(incomplete_basis_gates.to_owned());
+            Ok(incomplete_basis_gates)
         }
     }
 
