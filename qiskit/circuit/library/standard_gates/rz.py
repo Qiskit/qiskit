@@ -20,7 +20,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
-from .rx import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
+from .rx import _mcsu2_real_diagonal
 
 
 class RZGate(Gate):
@@ -395,11 +395,15 @@ class MCRZGate(ControlledGate):
                 self.params[0],
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
-                ctrl_state=ctrl_state,
                 _base_label=self.label,
             )
         else:
-            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits=num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                annotated=annotated,
+            )
         return gate
 
 

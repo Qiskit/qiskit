@@ -15,60 +15,56 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
-
 import copy as _copy
 import itertools
 import multiprocessing as mp
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Iterable,
-    Literal,
-    Mapping,
+    Union,
     Optional,
-    Sequence,
     Tuple,
     Type,
     TypeVar,
-    Union,
+    Sequence,
+    Callable,
+    Mapping,
+    Iterable,
+    Any,
+    DefaultDict,
+    Literal,
     overload,
 )
-
 import numpy as np
-
 from qiskit._accelerate.circuit import CircuitData
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.parameter import Parameter
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
-
+from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.exceptions import CircuitError
 from . import _classical_resource_map
 from ._utils import sort_parameters
-from .bit import Bit
-from .classical import expr, types
-from .classicalregister import ClassicalRegister, Clbit
 from .controlflow import ControlFlowOp
-from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.builder import CircuitScopeInterface, ControlFlowBuilderBlock
+from .controlflow.break_loop import BreakLoopOp, BreakLoopPlaceholder
 from .controlflow.continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
-from .controlflow.for_loop import ForLoopContext, ForLoopOp
-from .controlflow.if_else import IfContext, IfElseOp
+from .controlflow.for_loop import ForLoopOp, ForLoopContext
+from .controlflow.if_else import IfElseOp, IfContext
 from .controlflow.switch_case import SwitchCaseOp, SwitchContext
-from .controlflow.while_loop import WhileLoopContext, WhileLoopOp
-from .delay import Delay
-from .instructionset import InstructionSet
-from .operation import Operation
+from .controlflow.while_loop import WhileLoopOp, WhileLoopContext
+from .classical import expr, types
 from .parameterexpression import ParameterExpression, ParameterValueType
+from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
+from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterReferences, ParameterTable, ParameterView
 from .parametervector import ParameterVector
-from .quantumcircuitdata import CircuitInstruction, QuantumCircuitData
-from .quantumregister import AncillaQubit, AncillaRegister, QuantumRegister, Qubit
+from .instructionset import InstructionSet
+from .operation import Operation
 from .register import Register
+from .bit import Bit
+from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
+from .delay import Delay
 from .store import Store
 
 if typing.TYPE_CHECKING:
