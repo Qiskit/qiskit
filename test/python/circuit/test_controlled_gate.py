@@ -1543,7 +1543,7 @@ class TestControlledStandardGates(QiskitTestCase):
         args = [theta] * numargs
         if gate_class in [MSGate, Barrier]:
             args[0] = 2
-        elif gate_class in [MCU1Gate, MCPhaseGate, MCRXGate, MCRYGate, MCRZGate]:
+        elif gate_class in [MCU1Gate, MCPhaseGate]:
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
