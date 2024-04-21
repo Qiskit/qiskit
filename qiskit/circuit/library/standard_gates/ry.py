@@ -360,15 +360,7 @@ class MCRYGate(ControlledGate):
         q_controls = list(range(self.num_ctrl_qubits))
         q_target = self.num_ctrl_qubits
         if self.num_ctrl_qubits == 1:
-            _apply_cu(
-                qc,
-                self.params[0],
-                0,
-                0,
-                q_controls[0],
-                q_target,
-                use_basis_gates=False,
-            )
+            qc.cry(self.params[0], q_controls[0], q_target)
         elif self.num_ctrl_qubits < 4:
             theta_step = self.params[0] * (1 / (2 ** (self.num_ctrl_qubits - 1)))
             _apply_mcu_graycode(

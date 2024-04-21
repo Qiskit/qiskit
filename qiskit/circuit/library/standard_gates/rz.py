@@ -361,7 +361,7 @@ class MCRZGate(ControlledGate):
         q_controls = list(range(self.num_ctrl_qubits))
         q_target = self.num_ctrl_qubits
         if self.num_ctrl_qubits == 1:
-            qc.append(CRZGate(self.params[0]), q_controls + [q_target])
+            qc.crz(self.params[0], q_controls[0], q_target)
         else:
             cgate = _mcsu2_real_diagonal(
                 RZGate(self.params[0]).to_matrix(),
