@@ -14,59 +14,58 @@
 """Test hardcoded decomposition rules and matrix definitions for standard gates."""
 
 import inspect
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 import numpy as np
-from ddt import ddt, data, idata, unpack
+from ddt import data, ddt, idata, unpack
 
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.quantum_info import Operator
-from qiskit.circuit import ParameterVector, Gate, ControlledGate
-from qiskit.circuit.library import standard_gates
+from qiskit.circuit import ControlledGate, Gate, ParameterVector
 from qiskit.circuit.library import (
-    HGate,
+    CCXGate,
     CHGate,
-    IGate,
-    RGate,
-    RXGate,
+    CPhaseGate,
     CRXGate,
-    RYGate,
     CRYGate,
-    RZGate,
     CRZGate,
-    SGate,
-    SdgGate,
     CSwapGate,
-    TGate,
-    TdgGate,
-    U1Gate,
+    CSXGate,
     CU1Gate,
+    CU3Gate,
+    CUGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    ECRGate,
+    HGate,
+    IGate,
+    PhaseGate,
+    RGate,
+    RVGate,
+    RXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    SdgGate,
+    SGate,
+    SXdgGate,
+    SXGate,
+    TdgGate,
+    TGate,
+    U1Gate,
     U2Gate,
     U3Gate,
-    CU3Gate,
-    XGate,
-    CXGate,
-    ECRGate,
-    CCXGate,
-    YGate,
-    CYGate,
-    ZGate,
-    CZGate,
-    RYYGate,
-    PhaseGate,
-    CPhaseGate,
     UGate,
-    CUGate,
-    SXGate,
-    SXdgGate,
-    CSXGate,
-    RVGate,
+    XGate,
     XXMinusYYGate,
+    YGate,
+    ZGate,
+    standard_gates,
 )
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-
+from qiskit.quantum_info import Operator
 
 from .gate_utils import _get_free_params
 
@@ -202,7 +201,17 @@ class TestStandardGates(QiskitTestCase):
         n_params = len(free_params)
         param_vector = ParameterVector("th", n_params)
 
-        if class_name in ("MCPhaseGate", "MCU1Gate"):
+        if class_name in (
+            "MCPhaseGate",
+            "MCU1Gate",
+            "MCRXGate",
+            "MCRXPUCXBasis",
+            "MCRYGate",
+            "MCRYPUCXBasis",
+            "MCRYVChain",
+            "MCRZGate",
+            "MCRZPUCXBasis",
+        ):
             param_vector = param_vector[:-1]
             gate = gate_class(*param_vector, num_ctrl_qubits=2)
         elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
@@ -233,7 +242,17 @@ class TestStandardGates(QiskitTestCase):
         n_params = len(free_params)
         float_vector = [0.1 + 0.1 * i for i in range(n_params)]
 
-        if class_name in ("MCPhaseGate", "MCU1Gate"):
+        if class_name in (
+            "MCPhaseGate",
+            "MCU1Gate",
+            "MCRXGate",
+            "MCRXPUCXBasis",
+            "MCRYGate",
+            "MCRYPUCXBasis",
+            "MCRYVChain",
+            "MCRZGate",
+            "MCRZPUCXBasis",
+        ):
             float_vector = float_vector[:-1]
             gate = gate_class(*float_vector, num_ctrl_qubits=2)
         elif class_name in ("MCXGate", "MCXGrayCode", "MCXRecursive", "MCXVChain"):
@@ -248,6 +267,7 @@ class TestStandardGates(QiskitTestCase):
 
         from qiskit.quantum_info.operators.predicates import is_identity_matrix
 
+        print(class_name)
         self.assertTrue(is_identity_matrix(Operator(gate).dot(gate.inverse()).data))
 
         if gate.definition is not None:
@@ -273,6 +293,13 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "UCPauliRotGate",
         "SingleQubitUnitary",
         "MCXGate",
+        "MCRXGate",
+        "MCRXPUCXBasis",
+        "MCRYGate",
+        "MCRYPUCXBasis",
+        "MCRYVChain",
+        "MCRZGate",
+        "MCRZPUCXBasis",
         "VariadicZeroParamGate",
         "ClassicalFunction",
         "ClassicalElement",

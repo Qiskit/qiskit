@@ -14,76 +14,79 @@
 """Test Qiskit's controlled gate operation."""
 
 import unittest
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from test import combine  # pylint: disable=wrong-import-order
 
 import numpy as np
+from ddt import data, ddt, unpack
 from numpy import pi
-from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, QiskitError
-from qiskit.circuit import ControlledGate, Parameter, Gate
-from qiskit.circuit.annotated_operation import AnnotatedOperation
-from qiskit.circuit.singleton import SingletonControlledGate, _SingletonControlledGateOverrides
-from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
-from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.states import Statevector
 import qiskit.circuit.add_control as ac
-from qiskit.transpiler.passes import UnrollCustomDefinitions, BasisTranslator
-from qiskit.converters.circuit_to_dag import circuit_to_dag
-from qiskit.converters.dag_to_circuit import dag_to_circuit
-from qiskit.quantum_info import Operator
+import qiskit.circuit.library.standard_gates as allGates
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ControlledGate, Gate, Parameter
+from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.circuit.annotated_operation import AnnotatedOperation
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import (
-    CXGate,
-    XGate,
-    YGate,
-    ZGate,
-    U1Gate,
-    CYGate,
-    CZGate,
-    CU1Gate,
-    SwapGate,
-    PhaseGate,
+    Barrier,
+    C3SXGate,
+    C3XGate,
+    C4XGate,
     CCXGate,
-    HGate,
-    RZGate,
-    RXGate,
-    CPhaseGate,
-    RYGate,
-    CRYGate,
-    CRXGate,
-    CSwapGate,
-    UGate,
-    U3Gate,
     CHGate,
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
     CRZGate,
+    CSwapGate,
+    CSXGate,
+    CU1Gate,
     CU3Gate,
     CUGate,
-    SXGate,
-    CSXGate,
-    MSGate,
-    Barrier,
-    RCCXGate,
-    RC3XGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    GlobalPhaseGate,
+    HGate,
+    MCPhaseGate,
     MCU1Gate,
     MCXGate,
     MCXGrayCode,
     MCXRecursive,
     MCXVChain,
-    C3XGate,
-    C3SXGate,
-    C4XGate,
-    MCPhaseGate,
-    GlobalPhaseGate,
+    MSGate,
+    PhaseGate,
+    RC3XGate,
+    RCCXGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    SwapGate,
+    SXGate,
+    U1Gate,
+    U3Gate,
+    UGate,
     UnitaryGate,
+    XGate,
+    YGate,
+    ZGate,
 )
-from qiskit.circuit._utils import _compute_control_matrix
-import qiskit.circuit.library.standard_gates as allGates
-from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
-from test import combine  # pylint: disable=wrong-import-order
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.circuit.library.standard_gates.rx import _mcsu2_real_diagonal
+from qiskit.circuit.singleton import (
+    SingletonControlledGate,
+    _SingletonControlledGateOverrides,
+)
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.dag_to_circuit import dag_to_circuit
+from qiskit.quantum_info import Operator
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.states import Statevector
+from qiskit.transpiler.passes import BasisTranslator, UnrollCustomDefinitions
 
 from .gate_utils import _get_free_params
 
@@ -658,7 +661,7 @@ class TestControlledGate(QiskitTestCase):
 
             if use_basis_gates:
                 with self.subTest(msg="check only basis gates used"):
-                    gates_used = set(qc.count_ops().keys())
+                    gates_used = set(qc.decompose(["mcr" + base_gate_name]).count_ops().keys())
                     self.assertTrue(gates_used.issubset({"x", "u", "p", "cx"}))
 
             simulated = Operator(qc)
@@ -1452,7 +1455,7 @@ class TestOpenControlledToMatrix(QiskitTestCase):
 class TestSingleControlledRotationGates(QiskitTestCase):
     """Test the controlled rotation gates controlled on one qubit."""
 
-    from qiskit.circuit.library.standard_gates import u1, rx, ry, rz
+    from qiskit.circuit.library.standard_gates import rx, ry, rz, u1
 
     num_ctrl = 2
     num_target = 1

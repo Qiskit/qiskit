@@ -15,12 +15,16 @@
 import math
 from math import pi
 from typing import Optional, Union
-import numpy
 
+import numpy as np
+
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.exceptions import QiskitError
 
 
 class RXGate(Gate):
@@ -60,8 +64,6 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
 
         q = QuantumRegister(1, "q")
@@ -124,7 +126,7 @@ class RXGate(Gate):
         """Return a numpy.array for the RX gate."""
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
-        return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
+        return np.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
     def power(self, exponent: float):
         """Raise gate to a power."""
@@ -226,8 +228,6 @@ class CRXGate(ControlledGate):
           u3(theta/2,-pi/2,0) t;
         }
         """
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
@@ -270,11 +270,11 @@ class CRXGate(ControlledGate):
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)
         if self.ctrl_state:
-            return numpy.array(
+            return np.array(
                 [[1, 0, 0, 0], [0, cos, 0, -isin], [0, 0, 1, 0], [0, -isin, 0, cos]], dtype=dtype
             )
         else:
-            return numpy.array(
+            return np.array(
                 [[cos, 0, -isin, 0], [0, 1, 0, 0], [-isin, 0, cos, 0], [0, 0, 0, 1]], dtype=dtype
             )
 
@@ -282,3 +282,358 @@ class CRXGate(ControlledGate):
         if isinstance(other, CRXGate):
             return self._compare_parameters(other) and self.ctrl_state == other.ctrl_state
         return False
+
+
+class MCRXGate(ControlledGate):
+    r"""The general, multi-controlled X rotation gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcrx` method.
+    """
+
+    def __init__(
+        self,
+        theta: ParameterValueType,  # type: ignore
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
+        """Create new MCRX gate."""
+        super().__init__(
+            "mcrx",
+            num_ctrl_qubits + 1,
+            [theta],
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=RXGate(theta, label=_base_label),
+            duration=duration,
+            unit=unit,
+        )
+
+    def inverse(self, annotated: bool = False):
+        r"""Return inverse MCRX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.MCRXGate` with an inverted parameter value.
+
+        Returns:
+            MCRXGate: inverse gate.
+        """
+        # use __class__ so this works for derived classes
+        return self.__class__(
+            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
+
+    def _define(self):
+        q = QuantumRegister(self.num_qubits, name="q")
+        qc = QuantumCircuit(q)
+        q_controls = list(range(self.num_ctrl_qubits))
+        q_target = self.num_ctrl_qubits
+        if self.num_ctrl_qubits == 1:
+            _apply_cu(
+                qc,
+                self.params[0],
+                -pi / 2,
+                pi / 2,
+                q_controls[0],
+                q_target,
+                use_basis_gates=False,
+            )
+        elif self.num_ctrl_qubits < 4:
+            theta_step = self.params[0] * (1 / (2 ** (self.num_ctrl_qubits - 1)))
+            _apply_mcu_graycode(
+                qc,
+                theta_step,
+                -pi / 2,
+                pi / 2,
+                q_controls,
+                q_target,
+                use_basis_gates=False,
+            )
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RXGate(self.params[0]),
+                num_controls=self.num_ctrl_qubits,
+                use_basis_gates=False,
+            )
+            qc.compose(cgate, q_controls + [q_target], inplace=True)
+        self.definition = qc
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        annotated: bool = False,
+    ):
+        r"""Return a multi-controlled-RX gate with more control lines.
+
+        Args:
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+            annotated: indicates whether the controlled gate can be implemented
+                as an annotated gate.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        if not annotated and ctrl_state is None:
+            # use __class__ so this works for derived classes
+            gate = self.__class__(
+                self.params[0],
+                self.num_ctrl_qubits + num_ctrl_qubits,
+                label=label,
+                ctrl_state=ctrl_state,
+                _base_label=self.label,
+            )
+        else:
+            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+        return gate
+
+
+class MCRXPUCXBasis(MCRXGate):
+    r"""The general, multi-controlled X rotation gate using p, u, and cx as basis gates.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcrx` method.
+    """
+
+    def __init__(
+        self,
+        theta: ParameterValueType,  # type: ignore
+        num_ctrl_qubits: int,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _base_label=None,
+    ):
+        """Create new MCRXPUCXBasis gate."""
+        super().__init__(
+            theta=theta,
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            duration=duration,
+            unit=unit,
+            _base_label=_base_label,
+        )
+
+    def _define(self):
+        q = QuantumRegister(self.num_qubits, name="q")
+        qc = QuantumCircuit(q)
+        q_controls = list(range(self.num_ctrl_qubits))
+        q_target = self.num_ctrl_qubits
+        if self.num_ctrl_qubits == 1:
+            _apply_cu(
+                qc,
+                self.params[0],
+                -pi / 2,
+                pi / 2,
+                q_controls[0],
+                q_target,
+                use_basis_gates=True,
+            )
+        elif self.num_ctrl_qubits < 4:
+            theta_step = self.params[0] * (1 / (2 ** (self.num_ctrl_qubits - 1)))
+            _apply_mcu_graycode(
+                qc,
+                theta_step,
+                -pi / 2,
+                pi / 2,
+                q_controls,
+                q_target,
+                use_basis_gates=True,
+            )
+        else:
+            cgate = _mcsu2_real_diagonal(
+                RXGate(self.params[0]),
+                num_controls=self.num_ctrl_qubits,
+                use_basis_gates=True,
+            )
+            qc.compose(cgate, q_controls + [q_target], inplace=True)
+        self.definition = qc
+
+
+def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
+    if use_basis_gates:
+        #          ┌──────────────┐
+        # control: ┤ P(λ/2 + φ/2) ├──■──────────────────────────────────■────────────────
+        #          ├──────────────┤┌─┴─┐┌────────────────────────────┐┌─┴─┐┌────────────┐
+        #  target: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-0.5*0,0,-0.5*λ - 0.5*φ) ├┤ X ├┤ U(0/2,φ,0) ├
+        #          └──────────────┘└───┘└────────────────────────────┘└───┘└────────────┘
+        circuit.p((lam + phi) / 2, [control])
+        circuit.p((lam - phi) / 2, [target])
+        circuit.cx(control, target)
+        circuit.u(-theta / 2, 0, -(phi + lam) / 2, [target])
+        circuit.cx(control, target)
+        circuit.u(theta / 2, phi, 0, [target])
+    else:
+        circuit.cu(theta, phi, lam, 0, control, target)
+
+
+def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
+    r"""Apply multi-controlled u gate from ctls to tgt using graycode
+    pattern with single-step angles theta, phi, lam."""
+
+    n = len(ctls)
+
+    gray_code = _generate_gray_code(n)
+    last_pattern = None
+
+    for pattern in gray_code:
+        if "1" not in pattern:
+            continue
+        if last_pattern is None:
+            last_pattern = pattern
+        # find left most set bit
+        lm_pos = list(pattern).index("1")
+
+        # find changed bit
+        comp = [i != j for i, j in zip(pattern, last_pattern)]
+        if True in comp:
+            pos = comp.index(True)
+        else:
+            pos = None
+        if pos is not None:
+            if pos != lm_pos:
+                circuit.cx(ctls[pos], ctls[lm_pos])
+            else:
+                indices = [i for i, x in enumerate(pattern) if x == "1"]
+                for idx in indices[1:]:
+                    circuit.cx(ctls[idx], ctls[lm_pos])
+        # check parity and undo rotation
+        if pattern.count("1") % 2 == 0:
+            # inverse CU: u(theta, phi, lamb)^dagger = u(-theta, -lam, -phi)
+            _apply_cu(
+                circuit, -theta, -lam, -phi, ctls[lm_pos], tgt, use_basis_gates=use_basis_gates
+            )
+        else:
+            _apply_cu(circuit, theta, phi, lam, ctls[lm_pos], tgt, use_basis_gates=use_basis_gates)
+        last_pattern = pattern
+
+
+def _mcsu2_real_diagonal(
+    unitary: Gate,
+    num_controls: int,
+    ctrl_state: Optional[str] = None,
+    use_basis_gates: bool = False,
+) -> QuantumCircuit:
+    """
+    Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
+
+    Args:
+        unitary: SU(2) unitary matrix with one real diagonal.
+        num_controls: The number of control qubits.
+        ctrl_state: The state on which the SU(2) operation is controlled. Defaults to all
+            control qubits being in state 1.
+        use_basis_gates: If ``True``, use ``[p, u, cx]`` gates to implement the decomposition.
+
+    Returns:
+        A :class:`.QuantumCircuit` implementing the multi-controlled SU(2) gate.
+
+    Raises:
+        QiskitError: If the input matrix is invalid.
+
+    References:
+
+        .. [1]: R. Vale et al. Decomposition of Multi-controlled Special Unitary Single-Qubit Gates
+            `arXiv:2302.06377 (2023) <https://arxiv.org/abs/2302.06377>`__
+
+    """
+    # pylint: disable=cyclic-import
+    # from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from qiskit.compiler import transpile
+
+    # from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+    from .x import MCXVChain
+
+    # if unitary.shape != (2, 2):
+    #     raise QiskitError(f"The unitary must be a 2x2 matrix, but has shape {unitary.shape}.")
+    # if not is_unitary_matrix(unitary):
+    #     raise QiskitError(f"The unitary in must be an unitary matrix, but is {unitary}.")
+    # if not np.isclose(1.0, np.linalg.det(unitary)):
+    #     raise QiskitError("Invalid Value _mcsu2_real_diagonal requires det(unitary) equal to one.")
+    # is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
+    # is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
+    #     unitary[1, 0].imag, 0.0
+    # )
+    # if not is_main_diag_real and not is_secondary_diag_real:
+    #     raise QiskitError("The unitary must have one real diagonal.")
+    # if is_secondary_diag_real:
+    #     x = unitary[0, 1]
+    #     z = unitary[1, 1]
+    # else:
+    #     x = -unitary[0, 1].real
+    #     z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
+    # if np.isclose(z, -1):
+    #     s_op = [[1.0, 0.0], [0.0, 1.0j]]
+    # else:
+    #     alpha_r = math.sqrt((math.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+    #     alpha_i = z.imag / (
+    #         2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0))
+    #     )
+    #     alpha = alpha_r + 1.0j * alpha_i
+    #     beta = x / (2.0 * math.sqrt((z.real + 1.0) * (math.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+    #     # S gate definition
+    #     s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+
+    s_gate = unitary
+
+    k_1 = math.ceil(num_controls / 2.0)
+    k_2 = math.floor(num_controls / 2.0)
+
+    ctrl_state_k_1 = None
+    ctrl_state_k_2 = None
+
+    if ctrl_state is not None:
+        str_ctrl_state = f"{ctrl_state:0{num_controls}b}"
+        ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
+        ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
+
+    circuit = QuantumCircuit(num_controls + 1, name="MCSU2")
+    controls = list(range(num_controls))  # control indices, defined for code legibility
+    target = num_controls  # target index, defined for code legibility
+
+    if s_gate.name == "rx":
+        circuit.h(target)
+
+    mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
+    circuit.append(s_gate, [target])
+
+    mcx_2 = MCXVChain(
+        num_ctrl_qubits=k_2,
+        dirty_ancillas=True,
+        ctrl_state=ctrl_state_k_2,
+        # action_only=general_su2_optimization # Requires PR #9687
+    )
+    circuit.append(mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
+    circuit.append(s_gate.inverse(), [target])
+
+    mcx_3 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
+    circuit.append(s_gate, [target])
+
+    mcx_4 = MCXVChain(num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2)
+    circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
+    circuit.append(s_gate.inverse(), [target])
+
+    if s_gate.name == "rx":
+        circuit.h(target)
+
+    if use_basis_gates:
+        circuit = transpile(circuit, basis_gates=["p", "u", "cx"])
+
+    return circuit

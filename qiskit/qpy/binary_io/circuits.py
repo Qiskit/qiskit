@@ -14,35 +14,35 @@
 
 """Binary IO for circuit objects."""
 
-from collections import defaultdict
 import io
 import json
 import struct
 import uuid
 import warnings
+from collections import defaultdict
 
 import numpy as np
 
 from qiskit import circuit as circuit_mod
-from qiskit.circuit import library, controlflow, CircuitInstruction, ControlFlowOp
-from qiskit.circuit.classical import expr
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.gate import Gate
-from qiskit.circuit.singleton import SingletonInstruction, SingletonGate
-from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit import CircuitInstruction, ControlFlowOp, controlflow, library
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
-    Modifier,
-    InverseModifier,
     ControlModifier,
+    InverseModifier,
+    Modifier,
     PowerModifier,
 )
+from qiskit.circuit.classical import expr
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.controlledgate import ControlledGate
+from qiskit.circuit.gate import Gate
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.singleton import SingletonGate, SingletonInstruction
 from qiskit.qpy import common, formats, type_keys
-from qiskit.qpy.binary_io import value, schedules
-from qiskit.quantum_info.operators import SparsePauliOp, Clifford
+from qiskit.qpy.binary_io import schedules, value
+from qiskit.quantum_info.operators import Clifford, SparsePauliOp
 from qiskit.synthesis import evolution as evo_synth
 from qiskit.transpiler.layout import Layout, TranspileLayout
 
@@ -298,10 +298,13 @@ def _read_instruction(
         if gate_name in {
             "MCPhaseGate",
             "MCU1Gate",
-            "MCXGrayCode",
-            "MCXGate",
-            "MCXRecursive",
-            "MCXVChain",
+            "MCRXGate",
+            "MCRXPUCXBasis",
+            "MCRYGate",
+            "MCRYPUCXBasis",
+            "MCRYVChain",
+            "MCRZGate",
+            "MCRZPUCXBasis",
         }:
             gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
         else:
