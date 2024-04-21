@@ -15,14 +15,11 @@
 import math
 from math import pi
 from typing import Optional, Union
-
 import numpy
-
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 
 from .rx import _apply_cu, _apply_mcu_graycode, _mcsu2_real_diagonal
@@ -66,6 +63,8 @@ class RYGate(Gate):
         """
         gate ry(theta) a { r(theta, pi/2) a; }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .r import RGate
 
         q = QuantumRegister(1, "q")
@@ -229,6 +228,8 @@ class CRYGate(ControlledGate):
           u3(-lambda/2,0,0) b; cx a,b;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
         # q_0: ─────────────■───────────────■──
@@ -347,6 +348,9 @@ class MCRYGate(ControlledGate):
 
     def _define(self):
         """Define the MCRY gate without ancillae."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
@@ -450,6 +454,9 @@ class MCRYPUCXBasis(MCRYGate):
         )
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
@@ -538,6 +545,9 @@ class MCRYVChain(MCRYGate):
 
     def _define(self):
         """Define the MCRY gate using a V-chain of CX gates."""
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q, name=self.name)
         q_controls = q[: self.num_ctrl_qubits]

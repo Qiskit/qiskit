@@ -14,47 +14,36 @@
 Standard gates
 """
 
-from .dcx import DCXGate
-from .ecr import ECRGate
-from .global_phase import GlobalPhaseGate
-from .h import CHGate, HGate
+from .h import HGate, CHGate
 from .i import IGate
-from .iswap import iSwapGate
-from .p import CPhaseGate, MCPhaseGate, PhaseGate
+from .p import PhaseGate, CPhaseGate, MCPhaseGate
 from .r import RGate
-from .rx import CRXGate, MCRXGate, MCRXPUCXBasis, RXGate
+from .rx import RXGate, CRXGate
 from .rxx import RXXGate
-from .ry import CRYGate, MCRYGate, MCRYPUCXBasis, MCRYVChain, RYGate
+from .ry import RYGate, CRYGate
 from .ryy import RYYGate
-from .rz import CRZGate, MCRZGate, MCRZPUCXBasis, RZGate
-from .rzx import RZXGate
+from .rz import RZGate, CRZGate
 from .rzz import RZZGate
-from .s import CSdgGate, CSGate, SdgGate, SGate
-from .swap import CSwapGate, SwapGate
-from .sx import CSXGate, SXdgGate, SXGate
-from .t import TdgGate, TGate
-from .u import CUGate, UGate
-from .u1 import CU1Gate, MCU1Gate, U1Gate
-from .u2 import U2Gate
-from .u3 import CU3Gate, U3Gate
-from .x import (
-    C3SXGate,
-    C3XGate,
-    C4XGate,
-    CCXGate,
-    CXGate,
-    MCXGate,
-    MCXGrayCode,
-    MCXRecursive,
-    MCXVChain,
-    RC3XGate,
-    RCCXGate,
-    XGate,
-)
+from .rzx import RZXGate
 from .xx_minus_yy import XXMinusYYGate
 from .xx_plus_yy import XXPlusYYGate
-from .y import CYGate, YGate
-from .z import CCZGate, CZGate, ZGate
+from .ecr import ECRGate
+from .s import SGate, SdgGate, CSGate, CSdgGate
+from .swap import SwapGate, CSwapGate
+from .iswap import iSwapGate
+from .sx import SXGate, SXdgGate, CSXGate
+from .dcx import DCXGate
+from .t import TGate, TdgGate
+from .u import UGate, CUGate
+from .u1 import U1Gate, CU1Gate, MCU1Gate
+from .u2 import U2Gate
+from .u3 import U3Gate, CU3Gate
+from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3XGate
+from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
+from .y import YGate, CYGate
+from .z import ZGate, CZGate, CCZGate
+from .global_phase import GlobalPhaseGate
+from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 
 def get_standard_gate_name_mapping():

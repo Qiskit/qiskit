@@ -13,12 +13,10 @@
 """Rotation around the Z axis."""
 from cmath import exp
 from typing import Optional, Union
-
-from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 from .rx import _mcsu2_real_diagonal
 
@@ -354,6 +352,9 @@ class MCRZGate(ControlledGate):
         )
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
@@ -437,6 +438,9 @@ class MCRZPUCXBasis(MCRZGate):
         )
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))

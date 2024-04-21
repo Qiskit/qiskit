@@ -15,15 +15,12 @@
 import math
 from math import pi
 from typing import Optional, Union
-
 import numpy as np
-
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
-from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 
 
 class RXGate(Gate):
@@ -63,6 +60,9 @@ class RXGate(Gate):
         """
         gate rx(theta) a {r(theta, 0) a;}
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .r import RGate
 
         q = QuantumRegister(1, "q")
@@ -227,6 +227,8 @@ class CRXGate(ControlledGate):
           u3(theta/2,-pi/2,0) t;
         }
         """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u1 import U1Gate
         from .u3 import U3Gate
         from .x import CXGate
@@ -332,6 +334,9 @@ class MCRXGate(ControlledGate):
         )
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
@@ -429,6 +434,9 @@ class MCRXPUCXBasis(MCRXGate):
         )
 
     def _define(self):
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
@@ -527,7 +535,7 @@ def _mcsu2_real_diagonal(
     num_controls: int,
     ctrl_state: Optional[str] = None,
     use_basis_gates: bool = False,
-) -> QuantumCircuit:
+):
     """
     Return a multi-controlled SU(2) gate [1]_ with a real main diagonal or secondary diagonal.
 
@@ -552,6 +560,7 @@ def _mcsu2_real_diagonal(
     """
     # pylint: disable=cyclic-import
     # from qiskit.circuit.library.generalized_gates import UnitaryGate
+    from qiskit.circuit.quantumcircuit import QuantumCircuit
     from qiskit.compiler import transpile
 
     # from qiskit.quantum_info.operators.predicates import is_unitary_matrix
