@@ -416,7 +416,6 @@ class MCRYGate(ControlledGate):
                 self.params[0],
                 self.num_ctrl_qubits + num_ctrl_qubits,
                 label=label,
-                ctrl_state=ctrl_state,
                 _base_label=self.label,
             )
         else:
