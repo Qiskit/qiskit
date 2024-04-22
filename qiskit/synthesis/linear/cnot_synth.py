@@ -37,9 +37,7 @@ def synth_cnot_count_full_pmh(
     Args:
         state: :math:`n \\times n` boolean invertible matrix, describing
             the state of the input circuit
-        section_size: The size of each section, used in the
-            Patel–Markov–Hayes algorithm [1]. ``section_size`` must be a factor of the number
-            of qubits.
+        section_size: The size of each section in the Patel–Markov–Hayes algorithm [1].
 
     Returns:
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
