@@ -19,7 +19,6 @@ use numpy::ndarray::{aview2, Array2, ArrayView2};
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
-use faer::modules::core::kron;
 use faer::modules::core::mul::matmul;
 use faer::perm::swap_rows;
 use faer::prelude::*;
@@ -40,26 +39,24 @@ pub fn blocks_to_matrix(
 ) -> PyResult<Py<PyArray2<Complex64>>> {
     let identity = aview2(&ONE_QUBIT_IDENTITY).into_faer_complex();
     let input_matrix = op_list[0].0.as_array().into_faer_complex();
-    let mut matrix: Mat<c64> = Mat::<c64>::zeros(4, 4);
 
-    match op_list[0].1.as_slice() {
-        [0] => kron(matrix.as_mut(), identity.as_ref(), input_matrix.as_ref()),
-        [1] => kron(matrix.as_mut(), input_matrix.as_ref(), identity.as_ref()),
-        [0, 1] => matrix = input_matrix.to_owned(),
-        [1, 0] => matrix = change_basis_faer(input_matrix),
-        [] => matrix = Mat::<c64>::identity(4, 4),
+    let mut matrix = match op_list[0].1.as_slice() {
+        [0] => identity.kron(input_matrix.as_ref()),
+        [1] => input_matrix.kron(identity.as_ref()),
+        [0, 1] => input_matrix.to_owned(),
+        [1, 0] => change_basis_faer(input_matrix),
+        [] => Mat::<c64>::identity(4, 4),
         _ => unreachable!(),
     };
     for (op_matrix, q_list) in op_list.into_iter().skip(1) {
         let op_matrix = op_matrix.as_array().into_faer_complex();
-        let mut result: Mat<c64> = Mat::<c64>::zeros(4, 4);
 
-        match q_list.as_slice() {
-            [0] => kron(result.as_mut(), identity.as_ref(), op_matrix.as_ref()),
-            [1] => kron(result.as_mut(), op_matrix.as_ref(), identity.as_ref()),
-            [1, 0] => result = change_basis_faer(op_matrix),
-            [] => result = Mat::<c64>::identity(4, 4),
-            _ => result = op_matrix.to_owned(),
+        let result = match q_list.as_slice() {
+            [0] => identity.kron(op_matrix.as_ref()),
+            [1] => op_matrix.kron(identity.as_ref()),
+            [1, 0] => change_basis_faer(op_matrix),
+            [] => Mat::<c64>::identity(4, 4),
+            _ => op_matrix.to_owned(),
         };
 
         let aux = matrix.clone();
