@@ -415,7 +415,9 @@ class MCRYGate(ControlledGate):
                 _base_label=self.label,
             )
         else:
-            gate = super().control(num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
+            gate = super().control(
+                num_ctrl_qubits, label=label, ctrl_state=ctrl_state, annotated=annotated
+            )
         return gate
 
 
