@@ -46,7 +46,7 @@ pub fn blocks_to_matrix(
         [0] => kron(matrix.as_mut(), identity.as_ref(), input_matrix.as_ref()),
         [1] => kron(matrix.as_mut(), input_matrix.as_ref(), identity.as_ref()),
         [0, 1] => matrix = input_matrix.to_owned(),
-        [1, 0] => matrix = change_basis_faer(input_matrix.to_owned()),
+        [1, 0] => matrix = change_basis_faer(input_matrix),
         [] => matrix = Mat::<c64>::identity(4, 4),
         _ => unreachable!(),
     };
@@ -57,7 +57,7 @@ pub fn blocks_to_matrix(
         match q_list.as_slice() {
             [0] => kron(result.as_mut(), identity.as_ref(), op_matrix.as_ref()),
             [1] => kron(result.as_mut(), op_matrix.as_ref(), identity.as_ref()),
-            [1, 0] => result = change_basis_faer(op_matrix.to_owned()),
+            [1, 0] => result = change_basis_faer(op_matrix),
             [] => result = Mat::<c64>::identity(4, 4),
             _ => result = op_matrix.to_owned(),
         };
@@ -85,7 +85,7 @@ pub fn blocks_to_matrix(
 /// This function will substitue `change_basis` once the
 /// `two_qubit_decompose.rs` uses Mat<c64> instead of ArrayView2
 #[inline]
-pub fn change_basis_faer(matrix: Mat<c64>) -> Mat<c64> {
+pub fn change_basis_faer(matrix: MatRef<c64>) -> Mat<c64> {
     let mut trans_matrix: Mat<c64> = matrix.transpose().to_owned();
     let (row1, row2) = trans_matrix.as_mut().two_rows_mut(1, 2);
     swap_rows(row1, row2);
