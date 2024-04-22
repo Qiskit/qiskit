@@ -14,10 +14,10 @@
 
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from collections.abc import Iterable
 from dataclasses import dataclass
-import math
 
 import numpy as np
 
@@ -25,6 +25,7 @@ from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.providers import BackendV1, BackendV2
 from qiskit.quantum_info import Pauli, PauliList
+from qiskit.result import Counts
 from qiskit.transpiler import PassManager, PassManagerConfig
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
@@ -144,10 +145,48 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 )
 
     def _run(self, pubs: list[EstimatorPub]) -> PrimitiveResult[PubResult]:
-        return PrimitiveResult([self._run_pub(pub) for pub in pubs])
+        pub_dict = defaultdict(list)
+        # consolidate pubs with the same number of shots
+        for i, pub in enumerate(pubs):
+            shots = int(math.ceil(1.0 / pub.precision**2))
+            pub_dict[shots].append(i)
 
-    def _run_pub(self, pub: EstimatorPub) -> PubResult:
-        shots = math.ceil(1.0 / pub.precision**2)
+        results = [None] * len(pubs)
+        for shots, lst in pub_dict.items():
+            # run pubs with the same number of shots at once
+            pub_results = self._run_pubs([pubs[i] for i in lst], shots)
+            # reconstruct the result of pubs
+            for i, pub_result in zip(lst, pub_results):
+                results[i] = pub_result
+        return PrimitiveResult(results)
+
+    def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
+        sizes = []
+        flat_circuits = []
+        bc_param_ind_list = []
+        bc_obs_list = []
+        for pub in pubs:
+            bc_circuits, bc_param_ind, bc_obs = self._preprocessing_pub(pub)
+            flat_circuits.extend(bc_circuits)
+            sizes.append(len(bc_circuits))
+            bc_param_ind_list.append(bc_param_ind)
+            bc_obs_list.append(bc_obs)
+
+        run_result, metadata = _run_circuits(
+            flat_circuits, self._backend, shots=shots, seed_simulator=self._options.seed_simulator
+        )
+        counts = _prepare_counts(run_result)
+
+        results = []
+        start = 0
+        for pub, size, bc_param_ind, bc_obs in zip(pubs, sizes, bc_param_ind_list, bc_obs_list):
+            end = start + size
+            expval_map = self._calc_expval_map(counts[start:end], metadata[start:end])
+            start = end
+            results.append(self._postprocessing_pub(pub, expval_map, bc_param_ind, bc_obs, shots))
+        return results
+
+    def _preprocessing_pub(self, pub: EstimatorPub) -> list[QuantumCircuit]:
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
@@ -162,8 +201,16 @@ class BackendEstimatorV2(BaseEstimatorV2):
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
             param_obs_map[param_index].update(bc_obs[index].keys())
-        expval_map = self._calc_expval_paulis(circuit, parameter_values, param_obs_map, shots)
 
+        return (
+            self._generate_circuits(circuit, parameter_values, param_obs_map),
+            bc_param_ind,
+            bc_obs,
+        )
+
+    def _postprocessing_pub(
+        self, pub: EstimatorPub, expval_map: dict, bc_param_ind, bc_obs, shots: int
+    ) -> PubResult:
         # calculate expectation values (evs) and standard errors (stds)
         evs = np.zeros_like(bc_param_ind, dtype=float)
         variances = np.zeros_like(bc_param_ind, dtype=float)
@@ -178,30 +225,27 @@ class BackendEstimatorV2(BaseEstimatorV2):
         data_bin = data_bin_cls(evs=evs, stds=stds)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
 
-    def _calc_expval_paulis(
+    def _generate_circuits(
         self,
         circuit: QuantumCircuit,
         parameter_values: BindingsArray,
         param_obs_map: dict[tuple[int, ...], set[str]],
-        shots: int,
-    ) -> dict[tuple[tuple[int, ...], str], tuple[float, float]]:
-        # generate circuits
+    ) -> list[QuantumCircuit]:
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
             bound_circuit = parameter_values.bind(circuit, param_index)
             # sort pauli_strings so that the order is deterministic
             meas_paulis = PauliList(sorted(pauli_strings))
-            new_circuits = self._preprocessing(bound_circuit, meas_paulis, param_index)
+            new_circuits = self._preprocessing_circuits(bound_circuit, meas_paulis, param_index)
             circuits.extend(new_circuits)
+        return circuits
 
-        # run circuits
-        result, metadata = _run_circuits(
-            circuits, self._backend, shots=shots, seed_simulator=self._options.seed_simulator
-        )
-
-        # postprocessing results
+    def _calc_expval_map(
+        self,
+        counts: list[Counts],
+        metadata: dict,
+    ) -> dict[tuple[tuple[int, ...], str], tuple[float, float]]:
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}
-        counts = _prepare_counts(result)
         for count, meta in zip(counts, metadata):
             orig_paulis = meta["orig_paulis"]
             meas_paulis = meta["meas_paulis"]
@@ -211,7 +255,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 expval_map[param_index, pauli.to_label()] = (expval, variance)
         return expval_map
 
-    def _preprocessing(
+    def _preprocessing_circuits(
         self, circuit: QuantumCircuit, observable: PauliList, param_index: tuple[int, ...]
     ) -> list[QuantumCircuit]:
         # generate measurement circuits with metadata
