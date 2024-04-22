@@ -94,7 +94,7 @@ class TestPassManagerConfig(QiskitTestCase):
         str_out = str(pm_config)
         expected = """Pass Manager Config:
 \tinitial_layout: None
-\tbasis_gates: ['c3sx', 'ccx', 'ccz', 'ch', 'cp', 'crx', 'cry', 'crz', 'cs', 'csdg', 'cswap', 'csx', 'cu', 'cu1', 'cu3', 'cx', 'cy', 'cz', 'dcx', 'delay', 'ecr', 'global_phase', 'h', 'id', 'iswap', 'measure', 'p', 'r', 'rcccx', 'rccx', 'reset', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap', 'sx', 'sxdg', 't', 'tdg', 'u', 'u1', 'u2', 'u3', 'unitary', 'x', 'xx_minus_yy', 'xx_plus_yy', 'y', 'z']
+\tbasis_gates: ['ccx', 'ccz', 'ch', 'cp', 'crx', 'cry', 'crz', 'cs', 'csdg', 'cswap', 'csx', 'cu', 'cu1', 'cu3', 'cx', 'cy', 'cz', 'dcx', 'delay', 'ecr', 'global_phase', 'h', 'id', 'iswap', 'measure', 'p', 'r', 'rccx', 'reset', 'rx', 'rxx', 'ry', 'ryy', 'rz', 'rzx', 'rzz', 's', 'sdg', 'swap', 'sx', 'sxdg', 't', 'tdg', 'u', 'u1', 'u2', 'u3', 'unitary', 'x', 'xx_minus_yy', 'xx_plus_yy', 'y', 'z']
 \tinst_map: None
 \tcoupling_map: None
 \tlayout_method: None
@@ -111,7 +111,6 @@ class TestPassManagerConfig(QiskitTestCase):
 \ttarget: Target: Basic Target
 \tNumber of qubits: None
 \tInstructions:
-\t\tc3sx
 \t\tccx
 \t\tccz
 \t\tch
@@ -139,7 +138,6 @@ class TestPassManagerConfig(QiskitTestCase):
 \t\tmeasure
 \t\tp
 \t\tr
-\t\trcccx
 \t\trccx
 \t\treset
 \t\trx
