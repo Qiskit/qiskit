@@ -38,6 +38,8 @@ upgrade_providers:
     ``sx`` (:class:`.SXGate`),
     ``sdgx`` (:class:`.SdgXGate`),
     ``t`` (:class:`.TGate`),
+    ``xx_minus_yy`` (:class:`.XXMinusYYGate`),
+    ``xx_plus_yy`` (:class:`.XXPlusYYGate`),
     ``tdg`` (:class:`.TdgGate`),
     ``y`` (:class:`.YGate`), and
     ``z`` (:class:`.ZGate`).

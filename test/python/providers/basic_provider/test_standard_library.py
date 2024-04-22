@@ -45,6 +45,47 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(result.success, True)
 
+    def test_unitary(self):
+        matrix = [[0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0], [0, 1, 0, 0]]
+        self.circuit.unitary(matrix, [0, 1])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_u(self):
+        self.circuit.u(0.5, 1.5, 1.5, 0)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_u1(self):
+        self.circuit.append(lib.U1Gate(0.5), [1])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_u2(self):
+        self.circuit.append(lib.U2Gate(0.5, 0.5), [1])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_u3(self):
+        self.circuit.append(lib.U3Gate(0.5, 0.5, 0.5), [1])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
     def test_ccx(self):
         self.circuit.ccx(0, 1, 2)
         self.circuit.measure_all()
@@ -165,7 +206,7 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(result.success, True)
 
-    def test_iden(self):
+    def test_id(self):
         self.circuit.id(1)
         self.circuit.measure_all()
         result = (
@@ -199,6 +240,14 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_rxx(self):
         self.circuit.rxx(1, 1, 0)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_rzx(self):
+        self.circuit.rzx(1, 1, 0)
         self.circuit.measure_all()
         result = (
             BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
@@ -269,6 +318,14 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(result.success, True)
 
+    def test_p(self):
+        self.circuit.p(1, 0)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
     def test_r(self):
         self.circuit.r(0.5, 0, 1)
         self.circuit.measure_all()
@@ -287,30 +344,6 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_tdg(self):
         self.circuit.tdg(1)
-        self.circuit.measure_all()
-        result = (
-            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
-        )
-        self.assertEqual(result.success, True)
-
-    def test_u1(self):
-        self.circuit.append(lib.U1Gate(1), [1])
-        self.circuit.measure_all()
-        result = (
-            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
-        )
-        self.assertEqual(result.success, True)
-
-    def test_u2(self):
-        self.circuit.append(lib.U2Gate(1, 2), [1])
-        self.circuit.measure_all()
-        result = (
-            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
-        )
-        self.assertEqual(result.success, True)
-
-    def test_u3(self):
-        self.circuit.append(lib.U3Gate(1, 2, 3), [1])
         self.circuit.measure_all()
         result = (
             BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
@@ -381,6 +414,22 @@ class TestStandard1Q(QiskitTestCase):
         )
         self.assertEqual(result.success, True)
 
+    def test_delay(self):
+        self.circuit.delay(0, 1)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_reset(self):
+        self.circuit.reset(1)
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
     def test_rcx(self):
         self.circuit.rccx(0, 1, 2)
         self.circuit.measure_all()
@@ -392,6 +441,22 @@ class TestStandard1Q(QiskitTestCase):
     def test_global_phase(self):
         qc = self.circuit
         qc.append(lib.GlobalPhaseGate(0.1), [])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_xx_minus_yy(self):
+        self.circuit.append(lib.XXMinusYYGate(0.1, 0.2), [0, 1])
+        self.circuit.measure_all()
+        result = (
+            BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()
+        )
+        self.assertEqual(result.success, True)
+
+    def test_xx_plus_yy(self):
+        self.circuit.append(lib.XXPlusYYGate(0.1, 0.2), [0, 1])
         self.circuit.measure_all()
         result = (
             BasicSimulator().run(self.circuit, shots=self.shots, seed_simulator=self.seed).result()

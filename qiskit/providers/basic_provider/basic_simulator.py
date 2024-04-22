@@ -142,7 +142,6 @@ class BasicSimulator(BackendV2):
             num_qubits=None,
         )
         basis_gates = [
-            "c3sx",
             "ccx",
             "ccz",
             "ch",
@@ -170,7 +169,6 @@ class BasicSimulator(BackendV2):
             "measure",
             "p",
             "r",
-            "rcccx",
             "rccx",
             "reset",
             "rx",
@@ -665,7 +663,7 @@ class BasicSimulator(BackendV2):
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
-                elif operation.name in ("id", "u0"):
+                elif operation.name in ("id", "u0", "delay"):
                     pass
                 elif operation.name == "global_phase":
                     params = getattr(operation, "params", None)

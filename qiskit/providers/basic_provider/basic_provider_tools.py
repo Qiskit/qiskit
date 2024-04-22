@@ -109,7 +109,7 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     return gc(*params).to_matrix()
 
 
-# Two qubit gates WITHOUT parameters
+# Two qubit gates WITHOUT parameters: name -> matrix
 TWO_QUBIT_GATES = {
     "CX": gates.CXGate().to_matrix(),
     "cx": gates.CXGate().to_matrix(),
@@ -125,7 +125,7 @@ TWO_QUBIT_GATES = {
     "dcx": gates.DCXGate().to_matrix(),
 }
 
-# Two qubit gates WITH parameters, supported by _two_gate_matrix
+# Two qubit gates WITH parameters: name -> class
 TWO_QUBIT_GATES_WITH_PARAMETERS = {
     "cp": gates.CPhaseGate,
     "crx": gates.CRXGate,
@@ -137,10 +137,13 @@ TWO_QUBIT_GATES_WITH_PARAMETERS = {
     "rxx": gates.RXXGate,
     "ryy": gates.RYYGate,
     "rzz": gates.RZZGate,
+    "rzx": gates.RZXGate,
+    "xx_minus_yy": gates.XXMinusYYGate,
+    "xx_plus_yy": gates.XXPlusYYGate,
 }
 
 
-# Three qubit gates.
+# Three qubit gates: name -> matrix
 THREE_QUBIT_GATES = {
     "ccx": gates.CCXGate().to_matrix(),
     "ccz": gates.CCZGate().to_matrix(),
