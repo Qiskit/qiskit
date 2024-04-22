@@ -67,6 +67,12 @@ mod exceptions {
     import_exception_bound! {qiskit.providers.exceptions, BackendPropertyError}
 }
 
+fn isclass(py: Python<'_>, object: &Bound<PyAny>) -> PyResult<bool> {
+    let inspect_module: Bound<PyModule> = py.import_bound("inspect")?;
+    let is_class_method: Bound<PyAny> = inspect_module.getattr("isclass")?;
+    is_class_method.call1((object,))?.extract::<bool>()
+}
+
 // Subclassable or Python Wrapping.
 #[pyclass(subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
@@ -299,19 +305,18 @@ impl Target {
     fn add_instruction(
         &mut self,
         py: Python<'_>,
-        instruction: PyObject,
-        is_class: bool,
+        instruction: &Bound<PyAny>,
         properties: Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>,
         name: Option<String>,
     ) -> PyResult<()> {
         // Unwrap instruction name
         let instruction_name: String;
         let mut properties = properties;
-        if !is_class {
+        if !isclass(py, instruction)? {
             if let Some(name) = name {
                 instruction_name = name;
             } else {
-                instruction_name = instruction.getattr(py, "name")?.extract::<String>(py)?;
+                instruction_name = instruction.getattr("name")?.extract::<String>()?;
             }
         } else {
             if let Some(name) = name {
@@ -337,15 +342,13 @@ impl Target {
             )));
         }
         self.gate_name_map
-            .insert(instruction_name.clone(), instruction.clone());
+            .insert(instruction_name.clone(), instruction.clone().unbind());
         let mut qargs_val: IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>> =
             IndexMap::new();
-        if is_class {
+        if isclass(py, instruction)? {
             qargs_val = IndexMap::from_iter([(None, None)].into_iter());
         } else if let Some(properties) = properties {
-            let inst_num_qubits = instruction
-                .getattr(py, "num_qubits")?
-                .extract::<usize>(py)?;
+            let inst_num_qubits = instruction.getattr("num_qubits")?.extract::<usize>()?;
             if properties.contains_key(&None) {
                 self.global_operations
                     .entry(inst_num_qubits)
@@ -500,7 +503,6 @@ impl Target {
     fn operations_for_qargs(
         &self,
         py: Python<'_>,
-        isclass: &Bound<PyAny>,
         qargs: Option<HashableVec<u32>>,
     ) -> PyResult<Py<PyList>> {
         let res = PyList::empty_bound(py);
@@ -530,7 +532,7 @@ impl Target {
             }
         }
         for op in self.gate_name_map.values() {
-            if isclass.call1((op,))?.extract::<bool>()? {
+            if isclass(py, op.bind(py))? {
                 res.append(op)?;
             }
         }
@@ -548,7 +550,7 @@ impl Target {
     #[pyo3(text_signature = "(/, qargs)")]
     fn operation_names_for_qargs(
         &self,
-        isclass: &Bound<PyAny>,
+        py: Python<'_>,
         qargs: Option<HashableVec<u32>>,
     ) -> PyResult<HashSet<String>> {
         // When num_qubits == 0 we return globally defined operators
@@ -570,7 +572,7 @@ impl Target {
             res.extend(qarg_gate_map_arg.to_owned());
         }
         for (name, op) in self.gate_name_map.iter() {
-            if isclass.call1((op,))?.extract::<bool>()? {
+            if isclass(py, op.bind(py))? {
                 res.insert(name.into());
             }
         }
@@ -589,7 +591,6 @@ impl Target {
     fn instruction_supported(
         &self,
         py: Python<'_>,
-        isclass: &Bound<PyAny>,
         parameter_class: &Bound<PyType>,
         check_obj_params: &Bound<PyAny>,
         operation_name: Option<String>,
@@ -608,7 +609,7 @@ impl Target {
             let qarg_unique: HashSet<&u32> = HashSet::from_iter(qargs_.vec.iter());
             if let Some(operation_class) = operation_class {
                 for (op_name, obj) in self.gate_name_map.iter() {
-                    if isclass.call1((obj,))?.extract::<bool>()? {
+                    if isclass(py, obj.bind(py))? {
                         if !operation_class.eq(obj)? {
                             continue;
                         }
@@ -670,7 +671,7 @@ impl Target {
             if let Some(operation_name) = operation_name {
                 if self.gate_map.contains_key(&operation_name) {
                     let mut obj = &self.gate_name_map[&operation_name];
-                    if isclass.call1((obj,))?.extract::<bool>()? {
+                    if isclass(py, obj.bind(py))? {
                         // The parameters argument was set and the operation_name specified is
                         // defined as a globally supported class in the target. This means
                         // there is no available validation (including whether the specified
@@ -726,7 +727,7 @@ impl Target {
                             .contains_key(&None)
                     {
                         obj = &self.gate_name_map[&operation_name];
-                        if isclass.call1((obj,))?.extract::<bool>()? {
+                        if isclass(py, obj.bind(py))? {
                             if qargs.is_none()
                                 || (qargs_.vec.iter().all(|qarg| {
                                     qarg <= &(self.num_qubits.unwrap_or_default() as u32)
@@ -979,7 +980,6 @@ impl Target {
         py: Python<'_>,
         qubits_props_list_from_props: Bound<PyAny>,
         get_standard_gate_name_mapping: Bound<PyAny>,
-        isclass: Bound<PyAny>,
         basis_gates: Vec<String>,
         num_qubits: Option<usize>,
         coupling_map: Option<PyObject>,
@@ -1064,7 +1064,7 @@ impl Target {
                         one_qubit_gates.push(gate);
                     } else if gate_obj_num_qubits == 2 {
                         two_qubit_gates.push(gate);
-                    } else if isclass.call1((&gate_obj,))?.extract::<bool>()? {
+                    } else if isclass(py, &gate_obj)? {
                         global_ideal_variable_width_gates.push(gate)
                     } else {
                         return Err(TranspilerError::new_err(
@@ -1157,15 +1157,7 @@ impl Target {
                     }
                 }
                 if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(
-                        py,
-                        inst.unbind(),
-                        isclass
-                            .call1((name_mapping.get_item(&gate)?,))?
-                            .extract::<bool>()?,
-                        Some(gate_properties),
-                        Some(gate),
-                    )?;
+                    target.add_instruction(py, &inst, Some(gate_properties), Some(gate))?;
                 }
             }
             let edges = coupling_map
@@ -1246,28 +1238,12 @@ impl Target {
                     }
                 }
                 if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(
-                        py,
-                        inst.unbind(),
-                        isclass
-                            .call1((name_mapping.get_item(&gate)?,))?
-                            .extract::<bool>()?,
-                        Some(gate_properties),
-                        Some(gate),
-                    )?;
+                    target.add_instruction(py, &inst, Some(gate_properties), Some(gate))?;
                 }
             }
             for gate in global_ideal_variable_width_gates {
                 if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(
-                        py,
-                        inst.unbind(),
-                        isclass
-                            .call1((name_mapping.get_item(&gate)?,))?
-                            .extract::<bool>()?,
-                        None,
-                        Some(gate),
-                    )?;
+                    target.add_instruction(py, &inst, None, Some(gate))?;
                 }
             }
         } else {
@@ -1279,15 +1255,7 @@ impl Target {
                     )));
                 }
                 if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(
-                        py,
-                        inst.unbind(),
-                        isclass
-                            .call1((name_mapping.get_item(&gate)?,))?
-                            .extract::<bool>()?,
-                        None,
-                        Some(gate),
-                    )?;
+                    target.add_instruction(py, &inst, None, Some(gate))?;
                 }
             }
         }

@@ -209,8 +209,7 @@ class Target(Target2):
             TranspilerError: If an operation class is passed in for ``instruction`` and no name
                 is specified or ``properties`` is set.
         """
-        is_class = inspect.isclass(instruction)
-        super().add_instruction(instruction, is_class, properties, name)
+        super().add_instruction(instruction, properties, name)
 
     def update_instruction_properties(self, instruction, qargs, properties):
         """Update the property object for an instruction qarg pair already in the Target
@@ -419,7 +418,7 @@ class Target(Target2):
         Raises:
             KeyError: If qargs is not in target
         """
-        return super().operations_for_qargs(inspect.isclass, qargs)
+        return super().operations_for_qargs(qargs)
 
     def operation_names_for_qargs(self, qargs):
         """Get the operation names for a specified qargs tuple
@@ -435,7 +434,7 @@ class Target(Target2):
         Raises:
             KeyError: If ``qargs`` is not in target
         """
-        return super().operation_names_for_qargs(inspect.isclass, qargs)
+        return super().operation_names_for_qargs(qargs)
 
     def instruction_supported(
         self, operation_name=None, qargs=None, operation_class=None, parameters=None
@@ -508,7 +507,6 @@ class Target(Target2):
             return True
 
         return super().instruction_supported(
-            inspect.isclass,
             Parameter,
             check_obj_params,
             operation_name,
@@ -803,7 +801,6 @@ class Target(Target2):
         return super().from_configuration(
             qubit_props_list_from_props,
             get_standard_gate_name_mapping,
-            inspect.isclass,
             basis_gates,
             num_qubits,
             coupling_map,
