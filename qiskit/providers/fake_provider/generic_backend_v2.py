@@ -62,8 +62,8 @@ _NOISE_DEFAULTS = {
 
 # Fallback values for gates with unknown noise default ranges.
 _NOISE_DEFAULTS_FALLBACK = {
-    "1-q": (3e-8, 6e-8, 9e-5, 1e-4),
-    "multi-q": (8e-8, 9e-7, 1e-5, 5e-3),
+    "1-q": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
+    "multi-q": (7.992e-08, 8.99988e-07, 5e-3),
 }
 
 # Ranges to sample qubit properties from.

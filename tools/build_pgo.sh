@@ -25,6 +25,8 @@ RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" python setup.py build_rust --releas
 
 QISKIT_PARALLEL=FALSE stestr run --abbreviate
 
+python tools/pgo_scripts/test_utility_scale.py
+
 deactivate
 
 ${HOME}/.rustup/toolchains/*x86_64*/lib/rustlib/x86_64*/bin/llvm-profdata merge -o $merged_path /tmp/pgo-data

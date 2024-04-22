@@ -22,24 +22,22 @@ use approx::{abs_diff_eq, relative_eq};
 use num_complex::{Complex, Complex64, ComplexFloat};
 use num_traits::Zero;
 use pyo3::exceptions::{PyIndexError, PyValueError};
-use pyo3::import_exception;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
 use smallvec::{smallvec, SmallVec};
 use std::f64::consts::{FRAC_1_SQRT_2, PI};
+use std::ops::Deref;
 
-use faer::IntoFaerComplex;
-use faer::IntoNdarray;
-use faer::IntoNdarrayComplex;
 use faer::Side::Lower;
-use faer::{prelude::*, scale, Mat, MatRef};
-use faer_core::{c64, ComplexField};
+use faer::{prelude::*, scale, ComplexField, Mat, MatRef};
+use faer_ext::{IntoFaer, IntoFaerComplex, IntoNdarray, IntoNdarrayComplex};
 use ndarray::linalg::kron;
 use ndarray::prelude::*;
 use ndarray::Zip;
 use numpy::PyReadonlyArray2;
 use numpy::{IntoPyArray, ToPyArray};
+use pyo3::pybacked::PyBackedStr;
 
 use crate::convert_2q_block_matrix::change_basis;
 use crate::euler_one_qubit_decomposer::{
@@ -47,10 +45,13 @@ use crate::euler_one_qubit_decomposer::{
     OneQubitGateSequence, ANGLE_ZERO_EPSILON,
 };
 use crate::utils;
+use crate::QiskitError;
 
 use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
+
+use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.0;
 const PI4: f64 = PI / 4.0;
@@ -201,7 +202,6 @@ fn decompose_two_qubit_product_gate(
         det_r = det_one_qubit(r.view());
     }
     if det_r.abs() < 0.1 {
-        import_exception!(qiskit, QiskitError);
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detR < 0.1",
         ));
@@ -214,7 +214,6 @@ fn decompose_two_qubit_product_gate(
     let mut l = temp.slice(s![..;2, ..;2]).to_owned();
     let det_l = det_one_qubit(l.view());
     if det_l.abs() < 0.9 {
-        import_exception!(qiskit, QiskitError);
         return Err(QiskitError::new_err(
             "decompose_two_qubit_product_gate: unable to decompose: detL < 0.9",
         ));
@@ -467,7 +466,7 @@ impl Specialization {
             Self::fSimabbEquiv => 8,
             Self::fSimabmbEquiv => 9,
         };
-        Ok((py.get_type::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
+        Ok((py.get_type_bound::<Self>().getattr("_from_u8")?, (val,)).into_py(py))
     }
 
     #[staticmethod]
@@ -597,15 +596,15 @@ impl TwoQubitWeylDecomposition {
 
     fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
         Ok((
-            py.get_type::<Self>().getattr("_from_state")?,
+            py.get_type_bound::<Self>().getattr("_from_state")?,
             (
                 [self.a, self.b, self.c, self.global_phase],
                 [
-                    self.K1l.to_pyarray(py),
-                    self.K1r.to_pyarray(py),
-                    self.K2l.to_pyarray(py),
-                    self.K2r.to_pyarray(py),
-                    self.unitary_matrix.to_pyarray(py),
+                    self.K1l.to_pyarray_bound(py),
+                    self.K1r.to_pyarray_bound(py),
+                    self.K2l.to_pyarray_bound(py),
+                    self.K2r.to_pyarray_bound(py),
+                    self.unitary_matrix.to_pyarray_bound(py),
                 ],
                 self.specialization,
                 self.default_euler_basis,
@@ -693,7 +692,6 @@ impl TwoQubitWeylDecomposition {
             }
         }
         if !found {
-            import_exception!(qiskit, QiskitError);
             return Err(QiskitError::new_err(format!(
                 "TwoQubitWeylDecomposition: failed to diagonalize M2. Please report this at https://github.com/Qiskit/qiskit-terra/issues/4159. Input: {:?}", unitary_matrix
             )));
@@ -1084,7 +1082,6 @@ impl TwoQubitWeylDecomposition {
         specialized.calculated_fidelity = tr.trace_to_fid();
         if let Some(fid) = specialized.requested_fidelity {
             if specialized.calculated_fidelity + 1.0e-13 < fid {
-                import_exception!(qiskit, QiskitError);
                 return Err(QiskitError::new_err(format!(
                     "Specialization: {:?} calculated fidelity: {} is worse than requested fidelity: {}",
                     specialized.specialization,
@@ -1100,41 +1097,41 @@ impl TwoQubitWeylDecomposition {
     #[allow(non_snake_case)]
     #[getter]
     fn K1l(&self, py: Python) -> PyObject {
-        self.K1l.to_pyarray(py).into()
+        self.K1l.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K1r(&self, py: Python) -> PyObject {
-        self.K1r.to_pyarray(py).into()
+        self.K1r.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2l(&self, py: Python) -> PyObject {
-        self.K2l.to_pyarray(py).into()
+        self.K2l.to_pyarray_bound(py).into()
     }
 
     #[allow(non_snake_case)]
     #[getter]
     fn K2r(&self, py: Python) -> PyObject {
-        self.K2r.to_pyarray(py).into()
+        self.K2r.to_pyarray_bound(py).into()
     }
 
     #[getter]
     fn unitary_matrix(&self, py: Python) -> PyObject {
-        self.unitary_matrix.to_pyarray(py).into()
+        self.unitary_matrix.to_pyarray_bound(py).into()
     }
 
     #[pyo3(signature = (euler_basis=None, simplify=false, atol=None))]
     fn circuit(
         &self,
-        euler_basis: Option<&str>,
+        euler_basis: Option<PyBackedStr>,
         simplify: bool,
         atol: Option<f64>,
     ) -> PyResult<TwoQubitGateSequence> {
         let euler_basis: EulerBasis = match euler_basis {
-            Some(basis) => EulerBasis::from_str(basis)?,
+            Some(basis) => EulerBasis::__new__(basis.deref())?,
             None => self.default_euler_basis,
         };
         let target_1q_basis_list: Vec<EulerBasis> = vec![euler_basis];
@@ -1238,9 +1235,9 @@ impl TwoQubitGateSequence {
         Ok(self.gates.len())
     }
 
-    fn __getitem__(&self, py: Python, idx: utils::SliceOrInt) -> PyResult<PyObject> {
+    fn __getitem__(&self, py: Python, idx: SliceOrInt) -> PyResult<PyObject> {
         match idx {
-            utils::SliceOrInt::Slice(slc) => {
+            SliceOrInt::Slice(slc) => {
                 let len = self.gates.len().try_into().unwrap();
                 let indices = slc.indices(len)?;
                 let mut out_vec: TwoQubitSequenceVec = Vec::new();
@@ -1267,7 +1264,7 @@ impl TwoQubitGateSequence {
                 }
                 Ok(out_vec.into_py(py))
             }
-            utils::SliceOrInt::Int(idx) => {
+            SliceOrInt::Int(idx) => {
                 let len = self.gates.len() as isize;
                 if idx >= len || idx < -len {
                     Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
@@ -1618,7 +1615,6 @@ impl TwoQubitBasisDecomposer {
             EulerBasis::ZSXX => (),
             _ => {
                 if self.pulse_optimize.is_some() {
-                    import_exception!(qiskit, QiskitError);
                     return Err(QiskitError::new_err(format!(
                         "'pulse_optimize' currently only works with ZSX basis ({} used)",
                         self.euler_basis.as_str()
@@ -1630,7 +1626,6 @@ impl TwoQubitBasisDecomposer {
         }
         if self.gate != "cx" {
             if self.pulse_optimize.is_some() {
-                import_exception!(qiskit, QiskitError);
                 return Err(QiskitError::new_err(
                     "pulse_optimizer currently only works with CNOT entangling gate",
                 ));
@@ -1646,7 +1641,6 @@ impl TwoQubitBasisDecomposer {
             None
         };
         if self.pulse_optimize.is_some() && res.is_none() {
-            import_exception!(qiskit, QiskitError);
             return Err(QiskitError::new_err(
                 "Failed to compute requested pulse optimal decomposition",
             ));
@@ -1680,7 +1674,10 @@ impl TwoQubitBasisDecomposer {
     fn __getnewargs__(&self, py: Python) -> (String, PyObject, f64, &str, Option<bool>) {
         (
             self.gate.clone(),
-            self.basis_decomposer.unitary_matrix.to_pyarray(py).into(),
+            self.basis_decomposer
+                .unitary_matrix
+                .to_pyarray_bound(py)
+                .into(),
             self.basis_fidelity,
             self.euler_basis.as_str(),
             self.pulse_optimize,
@@ -1820,7 +1817,7 @@ impl TwoQubitBasisDecomposer {
         Ok(TwoQubitBasisDecomposer {
             gate,
             basis_fidelity,
-            euler_basis: EulerBasis::from_str(euler_basis)?,
+            euler_basis: EulerBasis::__new__(euler_basis)?,
             pulse_optimize,
             basis_decomposer,
             super_controlled,
@@ -1878,7 +1875,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp0(py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 2]> {
         decomp0_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1895,7 +1892,7 @@ impl TwoQubitBasisDecomposer {
     fn decomp1(&self, py: Python, target: &TwoQubitWeylDecomposition) -> SmallVec<[PyObject; 4]> {
         self.decomp1_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1920,7 +1917,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 6]> {
         self.decomp2_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -1935,7 +1932,7 @@ impl TwoQubitBasisDecomposer {
     ) -> SmallVec<[PyObject; 8]> {
         self.decomp3_supercontrolled_inner(target)
             .into_iter()
-            .map(|x| x.into_pyarray(py).into())
+            .map(|x| x.into_pyarray_bound(py).into())
             .collect()
     }
 
@@ -2046,7 +2043,7 @@ impl TwoQubitBasisDecomposer {
 }
 
 #[pymodule]
-pub fn two_qubit_decompose(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn two_qubit_decompose(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(_num_basis_gates))?;
     m.add_class::<TwoQubitGateSequence>()?;
     m.add_class::<TwoQubitWeylDecomposition>()?;
