@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,8 +20,8 @@ import qiskit.circuit.library.standard_gates as lib
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-class TestStandard1Q(QiskitTestCase):
-    """Standard Extension Test. Gates with a single Qubit"""
+class TestStandardGates(QiskitTestCase):
+    """Standard gates support in BasicSimulator, up to 3 qubits"""
 
     def setUp(self):
         super().setUp()
