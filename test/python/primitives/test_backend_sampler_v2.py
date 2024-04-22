@@ -33,7 +33,7 @@ from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.providers import JobStatus
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import Fake7QPulseV1
+from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
@@ -689,8 +689,32 @@ class TestBackendSamplerV2(QiskitTestCase):
         self.assertEqual(result[1].data.meas.num_shots, shots2)
         self._assert_allclose(result[1].data.meas, np.array(target2))
 
-    def test_job_size_limit(self):
-        """Test primitive respects backend's job size limit."""
+    def test_job_size_limit_backend_v2(self):
+        """Test BackendSamplerV2 respects backend's job size limit."""
+
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
+
+            @property
+            def max_circuits(self):
+                return 1
+
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSamplerV2(backend=FakeBackendLimitedCircuits(num_qubits=5))
+        result = sampler.run([qc, qc2], shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_job_size_limit_backend_v1(self):
+        """Test BackendSamplerV2 respects backend's job size limit."""
         backend = Fake7QPulseV1()
         config = backend.configuration()
         config.max_experiments = 1
