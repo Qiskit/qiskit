@@ -200,16 +200,16 @@ class BackendEstimatorV2(BaseEstimatorV2):
     def _preprocess_pub(self, pub: EstimatorPub) -> _PreprocessedData:
         """Converts a pub into a list of bound circuits necessary to estimate all its observables.
 
-        The circuits contain metadata explaining which bindings array index they are with respect to, and
-        which measurement basis they are measuring.
+        The circuits contain metadata explaining which bindings array index they are with respect to,
+        and which measurement basis they are measuring.
 
         Args:
             pub: The pub to preprocess.
 
         Returns:
-            The values ``(circuits, bc_param_ind, bc_obs)`` where ``circuits`` are the circuits to execute on the
-            backend, ``bc_param_ind`` are indices of the pub's bindings array and ``bc_obs`` is the observables
-            array, both broadcast to the shape of the pub.
+            The values ``(circuits, bc_param_ind, bc_obs)`` where ``circuits`` are the circuits to
+            execute on the backend, ``bc_param_ind`` are indices of the pub's bindings array and
+            ``bc_obs`` is the observables array, both broadcast to the shape of the pub.
         """
         circuit = pub.circuit
         observables = pub.observables
@@ -234,7 +234,19 @@ class BackendEstimatorV2(BaseEstimatorV2):
     def _postprocess_pub(
         self, pub: EstimatorPub, expval_map: dict, data: _PreprocessedData, shots: int
     ) -> PubResult:
-        # calculate expectation values (evs) and standard errors (stds)
+        """Computes expectation values (evs) and standard errors (stds).
+
+        The values are stored in arrays broadcast to the shape of the pub.
+
+        Args:
+            pub: The pub to postprocess.
+            expval_map: The map
+            data: The result data of the preprocessing.
+            shots: The number of shots.
+
+        Returns:
+            The pub result.
+        """
         bc_param_ind = data.parameter_indices
         bc_obs = data.observables
         evs = np.zeros_like(bc_param_ind, dtype=float)
@@ -256,7 +268,8 @@ class BackendEstimatorV2(BaseEstimatorV2):
         parameter_values: BindingsArray,
         param_obs_map: dict[tuple[int, ...], set[str]],
     ) -> list[QuantumCircuit]:
-        """Bind the given circuit against each parameter value set, and add necessary measurements to each.
+        """Bind the given circuit against each parameter value set, and add necessary measurements
+        to each.
 
         Args:
             circuit: The (possibly parametric) circuit of interest.
@@ -265,9 +278,9 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 Pauli terms whose expectation values are required in those locations.
 
         Returns:
-            A flat list of circuits sufficient to measure all Pauli terms in the ``param_obs_map`` values at the
-            corresponding ``parameter_values`` location, where requisite book-keeping is stored as
-            circuit metadata.
+            A flat list of circuits sufficient to measure all Pauli terms in the ``param_obs_map``
+            values at the corresponding ``parameter_values`` location, where requisite
+            book-keeping is stored as circuit metadata.
         """
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
@@ -285,6 +298,18 @@ class BackendEstimatorV2(BaseEstimatorV2):
         counts: list[Counts],
         metadata: dict,
     ) -> dict[tuple[tuple[int, ...], str], tuple[float, float]]:
+        """Computes the map of expectation values.
+
+        Args:
+            counts: The counts data.
+            metadata: The metadata.
+
+        Returns:
+            The map of expectation values takes a pair of an index of the bindings array and
+            a pauli string as a key and returns the expectation value of the pauli string
+            with the the pub's circuit bound against the parameter value set in the index of
+            the bindings array.
+        """
         expval_map: dict[tuple[tuple[int, ...], str], tuple[float, float]] = {}
         for count, meta in zip(counts, metadata):
             orig_paulis = meta["orig_paulis"]

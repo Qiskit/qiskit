@@ -158,6 +158,7 @@ class BackendSamplerV2(BaseSamplerV2):
         return PrimitiveResult(results)
 
     def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[PubResult]:
+        """Compute results for pubs that all require the same value of ``shots``."""
         # prepare circuits
         bound_circuits = [pub.parameter_values.bind_all(pub.circuit) for pub in pubs]
         flatten_circuits = []
@@ -197,6 +198,7 @@ class BackendSamplerV2(BaseSamplerV2):
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
     ) -> PubResult:
+        """Converts the memory data into an array of bit arrays with the shape of the pub."""
         arrays = {
             item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
             for item in meas_info
@@ -220,6 +222,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
+    """Analyzes the information for each creg in a circuit."""
     meas_info = []
     max_num_bits = 0
     for creg in circuit.cregs:
@@ -242,7 +245,7 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
 
 
 def _prepare_memory(results: list[Result]) -> list[list[str]]:
-    """Join splitted results if exceeding max_experiments"""
+    """Joins splitted results if exceeding max_experiments"""
     lst = []
     for res in results:
         for exp in res.results:
@@ -255,6 +258,7 @@ def _prepare_memory(results: list[Result]) -> list[list[str]]:
 
 
 def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]:
+    """Converts the memory data into an array in an unpacked way."""
     lst = []
     for memory in results:
         if num_bytes > 0:
@@ -271,6 +275,7 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
 def _samples_to_packed_array(
     samples: NDArray[np.uint8], num_bits: int, start: int
 ) -> NDArray[np.uint8]:
+    """Converts an unpacked array of the memory data into a packed array."""
     # samples of `Backend.run(memory=True)` will be the order of
     # clbit_last, ..., clbit_1, clbit_0
     # place samples in the order of clbit_start+num_bits-1, ..., clbit_start+1, clbit_start
