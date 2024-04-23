@@ -15,8 +15,9 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import make_dataclass
+from typing import Any
 
 
 class DataBinMeta(type):
@@ -40,7 +41,15 @@ class DataBin(metaclass=DataBinMeta):
     :class:`make_dataclass`.
     """
 
-    _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
+    _RESTRICTED_NAMES = {
+        "_RESTRICTED_NAMES",
+        "_SHAPE",
+        "_FIELDS",
+        "_FIELD_TYPES",
+        "keys",
+        "values",
+        "items",
+    }
     _SHAPE: tuple[int, ...] | None = None
     _FIELDS: tuple[str, ...] = ()
     """The fields allowed in this data bin."""
@@ -54,10 +63,33 @@ class DataBin(metaclass=DataBinMeta):
         vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
         return f"{type(self)}({', '.join(vals)})"
 
+    def __getitem__(self, key: str) -> Any:
+        if key not in self._FIELDS:
+            raise KeyError(f"Key ({key}) does not exist in this data bin.")
+        return getattr(self, key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._FIELDS
+
+    def __iter__(self) -> Iterable[str]:
+        return iter(self._FIELDS)
+
+    def keys(self) -> Sequence[str]:
+        """Return a list of field names."""
+        return tuple(self._FIELDS)
+
+    def values(self) -> Sequence[Any]:
+        """Return a list of values."""
+        return tuple(getattr(self, key) for key in self._FIELDS)
+
+    def items(self) -> Sequence[tuple[str, Any]]:
+        """Return a list of field names and values"""
+        return tuple((key, getattr(self, key)) for key in self._FIELDS)
+
 
 def make_data_bin(
     fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
-) -> DataBinMeta:
+) -> type[DataBin]:
     """Return a new subclass of :class:`~DataBin` with the provided fields and shape.
 
     .. code-block:: python
@@ -74,7 +106,7 @@ def make_data_bin(
     Returns:
         A new class.
     """
-    field_names, field_types = zip(*fields) if fields else ([], [])
+    field_names, field_types = zip(*fields) if fields else ((), ())
     for name in field_names:
         if name in DataBin._RESTRICTED_NAMES:
             raise ValueError(f"'{name}' is a restricted name for a DataBin.")
