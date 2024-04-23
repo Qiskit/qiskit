@@ -41,6 +41,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.library.generalized_gates import LinearFunction
 from qiskit.quantum_info import Clifford
+from qiskit.synthesis.linear import random_invertible_binary_matrix
 from qiskit.transpiler.passes.synthesis.plugin import (
     HighLevelSynthesisPlugin,
     HighLevelSynthesisPluginManager,
@@ -554,6 +555,134 @@ class TestHighLevelSynthesisInterface(QiskitTestCase):
             # HighLevelSynthesis is initialized with use_qubit_indices=True, which means synthesis
             # plugin should see qubits and complete without errors.
             pm_use_qubits_true.run(qc)
+
+
+class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
+    """Tests for the PMHSynthesisLinearFunction plugin for synthesizing linear functions."""
+
+    @staticmethod
+    def construct_linear_circuit(num_qubits: int):
+        """Construct linear circuit."""
+        qc = QuantumCircuit(num_qubits)
+        for i in range(1, num_qubits):
+            qc.cx(i - 1, i)
+        return qc
+
+    def test_section_size(self):
+        """Test that the plugin takes the section size argument into account."""
+
+        mat = random_invertible_binary_matrix(7, seed=1234)
+        qc = QuantumCircuit(7)
+        qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
+
+        with self.subTest("section_size_1"):
+            hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 1})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 22)
+            self.assertEqual(qct.depth(), 20)
+
+        with self.subTest("section_size_2"):
+            hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 2})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 23)
+            self.assertEqual(qct.depth(), 19)
+
+        with self.subTest("section_size_3"):
+            hls_config = HLSConfig(linear_function=[("pmh", {"section_size": 3})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 23)
+            self.assertEqual(qct.depth(), 17)
+
+    def test_invert_and_transpose(self):
+        """Test that the plugin takes the use_inverted and use_transposed arguments into account."""
+
+        linear_function = LinearFunction(self.construct_linear_circuit(7))
+
+        qc = QuantumCircuit(7)
+        qc.append(linear_function, [0, 1, 2, 3, 4, 5, 6])
+
+        with self.subTest("default"):
+            hls_config = HLSConfig(linear_function=[("pmh", {})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 12)
+            self.assertEqual(qct.depth(), 8)
+
+        with self.subTest("invert"):
+            hls_config = HLSConfig(linear_function=[("pmh", {"use_inverted": True})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 6)
+            self.assertEqual(qct.depth(), 6)
+
+        with self.subTest("transpose"):
+            hls_config = HLSConfig(linear_function=[("pmh", {"use_transposed": True})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 6)
+            self.assertEqual(qct.depth(), 6)
+
+        with self.subTest("invert_and_transpose"):
+            hls_config = HLSConfig(
+                linear_function=[("pmh", {"use_inverted": True, "use_transposed": True})]
+            )
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 6)
+            self.assertEqual(qct.depth(), 6)
+
+
+class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):
+    """Tests for the KMSSynthesisLinearFunction plugin for synthesizing linear functions."""
+
+    @staticmethod
+    def construct_linear_circuit(num_qubits: int):
+        """Construct linear circuit."""
+        qc = QuantumCircuit(num_qubits)
+        for i in range(1, num_qubits):
+            qc.cx(i - 1, i)
+        return qc
+
+    def test_invert_and_transpose(self):
+        """Test that the plugin takes the use_inverted and use_transposed arguments into account."""
+
+        linear_function = LinearFunction(self.construct_linear_circuit(7))
+
+        qc = QuantumCircuit(7)
+        qc.append(linear_function, [0, 1, 2, 3, 4, 5, 6])
+
+        with self.subTest("default"):
+            hls_config = HLSConfig(linear_function=[("kms", {})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 100)
+            self.assertEqual(qct.depth(), 34)
+
+        with self.subTest("invert"):
+            hls_config = HLSConfig(linear_function=[("kms", {"use_inverted": True})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 101)
+            self.assertEqual(qct.depth(), 35)
+
+        with self.subTest("transpose"):
+            hls_config = HLSConfig(linear_function=[("kms", {"use_transposed": True})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 84)
+            self.assertEqual(qct.depth(), 31)
+
+        with self.subTest("invert_and_transpose"):
+            hls_config = HLSConfig(
+                linear_function=[("kms", {"use_inverted": True, "use_transposed": True})]
+            )
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 87)
+            self.assertEqual(qct.depth(), 32)
 
 
 class TestTokenSwapperPermutationPlugin(QiskitTestCase):
