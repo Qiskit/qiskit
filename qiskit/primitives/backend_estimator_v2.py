@@ -161,6 +161,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         return PrimitiveResult(results)
 
     def _run_pubs(self, pubs: list[EstimatorPub], shots: int) -> list[PubResult]:
+        """Compute results for pubs that all require the same value of ``shots``."""
         sizes = []
         flat_circuits = []
         bc_param_ind_list = []
@@ -186,7 +187,22 @@ class BackendEstimatorV2(BaseEstimatorV2):
             results.append(self._postprocessing_pub(pub, expval_map, bc_param_ind, bc_obs, shots))
         return results
 
-    def _preprocessing_pub(self, pub: EstimatorPub) -> list[QuantumCircuit]:
+    def _preprocess_pub(
+        self, pub: EstimatorPub
+    ) -> tuple[list[QuantumCircuit], np.ndarray, np.ndarray]:
+        """Converts a pub into a list of bound circuits necessary to estimate all its observables.
+
+        The circuits contain metadata explaining which bindings array index they are with respect to, and
+        which measurement basis they are measuring.
+
+        Args:
+            pub: The pub to preprocess.
+
+        Returns:
+            The values ``(circuits, bc_param_ind, bc_obs)`` where ``circuits`` are the circuits to execute on the
+            backend, ``bc_param_ind`` are indices of the pub's bindings array and ``bc_obs`` is the observables
+            array, both broadcast to the shape of the pub.
+        """
         circuit = pub.circuit
         observables = pub.observables
         parameter_values = pub.parameter_values
@@ -200,7 +216,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         param_obs_map = defaultdict(set)
         for index in np.ndindex(*bc_param_ind.shape):
             param_index = bc_param_ind[index]
-            param_obs_map[param_index].update(bc_obs[index].keys())
+            param_obs_map[param_index].update(bc_obs[index])
 
         return (
             self._generate_circuits(circuit, parameter_values, param_obs_map),
@@ -208,7 +224,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             bc_obs,
         )
 
-    def _postprocessing_pub(
+    def _postprocess_pub(
         self, pub: EstimatorPub, expval_map: dict, bc_param_ind, bc_obs, shots: int
     ) -> PubResult:
         # calculate expectation values (evs) and standard errors (stds)
@@ -225,12 +241,25 @@ class BackendEstimatorV2(BaseEstimatorV2):
         data_bin = data_bin_cls(evs=evs, stds=stds)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
 
-    def _generate_circuits(
+    def _bind_and_add_measurements(
         self,
         circuit: QuantumCircuit,
         parameter_values: BindingsArray,
         param_obs_map: dict[tuple[int, ...], set[str]],
     ) -> list[QuantumCircuit]:
+        """Bind the given circuit against each parameter value set, and add necessary measurements to each.
+
+        Args:
+            circuit: The (possibly parametric) circuit of interest.
+            parameter_values: An array of parameter value sets that can be applied to the circuit.
+            param_obs_map: A mapping from locations in ``parameter_values`` to a sets of
+                Pauli terms whose expectation values are required in those locations.
+
+        Returns:
+            A flat list of circuits sufficient to measure all Pauli terms in the ``param_obs_map`` values at the
+            corresponding ``parameter_values`` location, where requisite book-keeping is stored as
+            circuit metadata.
+        """
         circuits = []
         for param_index, pauli_strings in param_obs_map.items():
             bound_circuit = parameter_values.bind(circuit, param_index)
@@ -255,10 +284,23 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 expval_map[param_index, pauli.to_label()] = (expval, variance)
         return expval_map
 
-    def _preprocessing_circuits(
+    def _create_measurement_circuits(
         self, circuit: QuantumCircuit, observable: PauliList, param_index: tuple[int, ...]
     ) -> list[QuantumCircuit]:
-        # generate measurement circuits with metadata
+        """Generate a list of circuits sufficient to estimate each of the given Paulis.
+
+        Paulis are divided into qubitwise-commuting subsets to reduce the total circuit count.
+        Metadata is attached to circuits in order to remember what each one measures, and
+        where it belongs in the output.
+
+        Args:
+            circuit: The circuit of interest.
+            observable: Which Pauli terms we would like to observe.
+            param_index: Where to put the data we estimate (only passed to metadata).
+
+        Returns:
+            A list of circuits sufficient to estimate each of the given Paulis.
+        """
         meas_circuits: list[QuantumCircuit] = []
         if self._options.abelian_grouping:
             for obs in observable.group_commuting(qubit_wise=True):
