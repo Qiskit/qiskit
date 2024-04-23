@@ -167,7 +167,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
         bc_param_ind_list = []
         bc_obs_list = []
         for pub in pubs:
-            bc_circuits, bc_param_ind, bc_obs = self._preprocessing_pub(pub)
+            bc_circuits, bc_param_ind, bc_obs = self._preprocess_pub(pub)
             flat_circuits.extend(bc_circuits)
             sizes.append(len(bc_circuits))
             bc_param_ind_list.append(bc_param_ind)
@@ -184,7 +184,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             end = start + size
             expval_map = self._calc_expval_map(counts[start:end], metadata[start:end])
             start = end
-            results.append(self._postprocessing_pub(pub, expval_map, bc_param_ind, bc_obs, shots))
+            results.append(self._postprocess_pub(pub, expval_map, bc_param_ind, bc_obs, shots))
         return results
 
     def _preprocess_pub(
@@ -219,7 +219,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             param_obs_map[param_index].update(bc_obs[index])
 
         return (
-            self._generate_circuits(circuit, parameter_values, param_obs_map),
+            self._bind_and_add_measurements(circuit, parameter_values, param_obs_map),
             bc_param_ind,
             bc_obs,
         )
@@ -265,7 +265,9 @@ class BackendEstimatorV2(BaseEstimatorV2):
             bound_circuit = parameter_values.bind(circuit, param_index)
             # sort pauli_strings so that the order is deterministic
             meas_paulis = PauliList(sorted(pauli_strings))
-            new_circuits = self._preprocessing_circuits(bound_circuit, meas_paulis, param_index)
+            new_circuits = self._create_measurement_circuits(
+                bound_circuit, meas_paulis, param_index
+            )
             circuits.extend(new_circuits)
         return circuits
 
