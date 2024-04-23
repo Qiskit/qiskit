@@ -288,9 +288,7 @@ class Target(Target2):
         Returns:
             TimingConstraints: The timing constraints represented in the ``Target``
         """
-        return TimingConstraints(
-            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
-        )
+        return super().timing_constraints()
 
     def operation_from_name(self, instruction):
         """Get the operation class object for a given name

@@ -731,6 +731,21 @@ impl Target {
         Ok(self.instruction_durations.to_owned())
     }
 
+    #[pyo3(text_signature = "(/,)")]
+    fn timing_constraints(&self, py: Python<'_>) -> PyResult<PyObject> {
+        let timing_constraints_class = py
+            .import_bound("qiskit.transpiler.timing_constraints")?
+            .getattr("TimingConstraints")?;
+        Ok(timing_constraints_class
+            .call1((
+                self.granularity,
+                self.min_length,
+                self.pulse_alignment,
+                self.acquire_alignment,
+            ))?
+            .unbind())
+    }
+
     #[pyo3(text_signature = "(/, qargs)")]
     fn operations_for_qargs(
         &self,
