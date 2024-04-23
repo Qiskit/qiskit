@@ -301,7 +301,7 @@ class Target(Target2):
             name. This also can also be the class for globally defined variable with
             operations.
         """
-        return super().gate_name_map[instruction]
+        return super().operation_from_name(instruction)
 
     def operations_for_qargs(self, qargs):
         """Get the operation class object for a specified qargs tuple

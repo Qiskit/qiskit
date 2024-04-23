@@ -746,6 +746,18 @@ impl Target {
             .unbind())
     }
 
+    #[pyo3(text_signature = "(/,)")]
+    fn operation_from_name(&self, instruction: String) -> PyResult<PyObject> {
+        if self.gate_name_map.contains_key(&instruction) {
+            Ok(self.gate_name_map[&instruction].to_owned())
+        } else {
+            Err(PyKeyError::new_err(format!(
+                "Instruction {:?} not in target",
+                instruction
+            )))
+        }
+    }
+
     #[pyo3(text_signature = "(/, qargs)")]
     fn operations_for_qargs(
         &self,
@@ -794,7 +806,7 @@ impl Target {
         Ok(res.into())
     }
 
-    #[pyo3(text_signature = "(/, qargs)")]
+    #[pyo3(text_signature = "(/, qargs=None)")]
     fn operation_names_for_qargs(
         &self,
         py: Python<'_>,
