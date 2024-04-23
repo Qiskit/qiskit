@@ -181,7 +181,7 @@ class BackendSamplerV2(BaseSamplerV2):
             meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
             end = start + bound.size
             results.append(
-                self._postprocessing_pub(
+                self._postprocess_pub(
                     result_memory[start:end], shots, bound.shape, meas_info, max_num_bytes
                 )
             )
@@ -189,7 +189,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
         return results
 
-    def _postprocessing_pub(
+    def _postprocess_pub(
         self,
         result_memory: list[list[str]],
         shots: int,
