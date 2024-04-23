@@ -118,7 +118,7 @@ class Target(Target2):
 
         # In case a number is passed as first argument, assume it means num_qubits.
         if description is not None:
-            if num_qubits is None:
+            if num_qubits is None and isinstance(description, int):
                 num_qubits = description
                 description = None
             elif not isinstance(description, str):
@@ -686,12 +686,8 @@ class Target(Target2):
             specified.
             KeyError: If no mapping is available for a specified ``basis_gate``.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.providers.backend_compat import qubit_props_list_from_props
 
         return super().from_configuration(
-            qubit_props_list_from_props,
-            get_standard_gate_name_mapping,
             basis_gates,
             num_qubits,
             coupling_map,

@@ -20,7 +20,7 @@ use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
-    types::{IntoPyDict, PyDict, PyList, PyTuple, PyType},
+    types::{IntoPyDict, PyList, PyTuple, PyType},
 };
 
 use self::exceptions::{QiskitError, TranspilerError};
@@ -82,6 +82,18 @@ fn get_standard_gate_name_mapping(py: Python<'_>) -> PyResult<IndexMap<String, B
     is_class_method
         .call0()?
         .extract::<IndexMap<String, Bound<PyAny>>>()
+}
+
+fn qubit_props_list_from_props(
+    py: Python<'_>,
+    properties: &Bound<PyAny>,
+) -> PyResult<Vec<PyObject>> {
+    let qiskit_backend_comp_module = py.import_bound("qiskit.providers.backend_compat")?;
+    let qubit_props_list_funct =
+        qiskit_backend_comp_module.getattr("qubit_props_list_from_props")?;
+    let kwargs = [("properties", properties)].into_py_dict_bound(py);
+    let props_list = qubit_props_list_funct.call((), Some(&kwargs))?;
+    props_list.extract::<Vec<PyObject>>()
 }
 
 // Subclassable or Python Wrapping.
@@ -493,7 +505,7 @@ impl Target {
 
                 let entry = get_calibration.call1((&inst_name, qargs_.to_owned()))?;
                 let entry_comparison: bool = if let Some(props) = props.as_ref() {
-                    !entry.eq(props._calibration.clone())?
+                    !entry.eq(props._calibration.as_ref())?
                 } else {
                     !entry.is_none()
                 };
@@ -1278,8 +1290,6 @@ impl Target {
     fn from_configuration(
         _cls: &Bound<'_, PyType>,
         py: Python<'_>,
-        qubits_props_list_from_props: Bound<PyAny>,
-        get_standard_gate_name_mapping: Bound<PyAny>,
         basis_gates: Vec<String>,
         num_qubits: Option<usize>,
         coupling_map: Option<PyObject>,
@@ -1312,12 +1322,7 @@ impl Target {
         }
         let mut qubit_properties = None;
         if let Some(backend_properties) = backend_properties {
-            let kwargs: Bound<PyDict> = [("properties", backend_properties)].into_py_dict_bound(py);
-            qubit_properties = Some(
-                qubits_props_list_from_props
-                    .call((), Some(&kwargs))?
-                    .extract::<Vec<PyObject>>()?,
-            );
+            qubit_properties = Some(qubit_props_list_from_props(py, backend_properties)?);
         }
         let mut target = Self::new(
             None,
@@ -1330,10 +1335,11 @@ impl Target {
             qubit_properties,
             concurrent_measurements,
         );
-        let name_mapping = get_standard_gate_name_mapping.call0()?;
-        let name_mapping = name_mapping.downcast::<PyDict>()?;
+        let mut name_mapping = get_standard_gate_name_mapping(py)?;
         if let Some(custom_name_mapping) = custom_name_mapping {
-            name_mapping.call_method1("update", (custom_name_mapping,))?;
+            for (key, value) in custom_name_mapping.into_iter() {
+                name_mapping.insert(key, value);
+            }
         }
 
         /*
@@ -1358,27 +1364,27 @@ impl Target {
                 )
             }
             for gate in basis_gates {
-                if let Some(gate_obj) = name_mapping.get_item(&gate)? {
+                if let Some(gate_obj) = name_mapping.get(&gate) {
                     let gate_obj_num_qubits = gate_obj.getattr("num_qubits")?.extract::<usize>()?;
                     if gate_obj_num_qubits == 1 {
                         one_qubit_gates.push(gate);
                     } else if gate_obj_num_qubits == 2 {
                         two_qubit_gates.push(gate);
-                    } else if isclass(py, &gate_obj)? {
+                    } else if isclass(py, gate_obj)? {
                         global_ideal_variable_width_gates.push(gate)
                     } else {
                         return Err(TranspilerError::new_err(
                             format!(
-                                "The specified basis gate: {gate} has {gate_obj_num_qubits} 
-                                qubits. This constructor method only supports fixed width operations 
+                                "The specified basis gate: {gate} has {gate_obj_num_qubits} \
+                                qubits. This constructor method only supports fixed width operations \
                                 with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                             )
                         ));
                     }
                 } else {
                     return Err(PyKeyError::new_err(format!(
-                        "The specified basis gate: {gate} is not present in the standard gate
-                            names or a provided custom_name_mapping"
+                        "The specified basis gate: {gate} is not present in the standard gate names or a \
+                        provided custom_name_mapping"
                     )));
                 }
             }
@@ -1394,18 +1400,15 @@ impl Target {
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
-                                .call_method1("gate_length", (&gate, qubit))?
-                                .extract::<f64>()
+                                .call_method1("gate_length", (&gate, qubit))
                             {
-                                Ok(duration) => Some(duration),
+                                Ok(duration) => Some(duration.extract::<f64>()?),
                                 Err(_) => None,
                             }
                         }
-                        error = match backend_properties
-                            .call_method1("gate_error", (&gate, qubit))?
-                            .extract::<f64>()
+                        error = match backend_properties.call_method1("gate_error", (&gate, qubit))
                         {
-                            Ok(error) => Some(error),
+                            Ok(error) => Some(error.extract::<f64>()?),
                             Err(_) => None,
                         };
                     }
@@ -1432,11 +1435,13 @@ impl Target {
                     }
                     if let Some(instruction_durations) = &instruction_durations {
                         let kwargs = [("unit", "s")].into_py_dict_bound(py);
-                        duration = match instruction_durations
-                            .call_method_bound(py, "get", (&gate, qubit), Some(&kwargs))?
-                            .extract::<f64>(py)
-                        {
-                            Ok(duration) => Some(duration),
+                        duration = match instruction_durations.call_method_bound(
+                            py,
+                            "get",
+                            (&gate, qubit),
+                            Some(&kwargs),
+                        ) {
+                            Ok(duration) => Some(duration.extract::<f64>(py)?),
                             Err(_) => None,
                         }
                     }
@@ -1456,9 +1461,12 @@ impl Target {
                         );
                     }
                 }
-                if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(py, &inst, Some(gate_properties), Some(gate))?;
-                }
+                target.add_instruction(
+                    py,
+                    &name_mapping[&gate],
+                    Some(gate_properties),
+                    Some(gate),
+                )?;
             }
             let edges = coupling_map
                 .call_method0(py, "get_edges")?
@@ -1468,25 +1476,21 @@ impl Target {
                     Option<HashableVec<u32>>,
                     Option<InstructionProperties>,
                 > = IndexMap::new();
-                for edge in edges.as_slice().iter().copied() {
+                for edge in edges.as_slice().iter().cloned() {
                     let mut error: Option<f64> = None;
                     let mut duration: Option<f64> = None;
                     let mut calibration: Option<Bound<PyAny>> = None;
                     if let Some(backend_properties) = backend_properties {
                         if duration.is_none() {
                             duration = match backend_properties
-                                .call_method1("gate_length", (&gate, edge))?
-                                .extract::<f64>()
+                                .call_method1("gate_length", (&gate, edge))
                             {
-                                Ok(duration) => Some(duration),
+                                Ok(duration) => Some(duration.extract::<f64>()?),
                                 Err(_) => None,
                             }
                         }
-                        error = match backend_properties
-                            .call_method1("gate_error", (&gate, edge))?
-                            .extract::<f64>()
-                        {
-                            Ok(error) => Some(error),
+                        error = match backend_properties.call_method1("gate_error", (&gate, edge)) {
+                            Ok(error) => Some(error.extract::<f64>()?),
                             Err(_) => None,
                         };
                     }
@@ -1513,11 +1517,13 @@ impl Target {
                     }
                     if let Some(instruction_durations) = &instruction_durations {
                         let kwargs = [("unit", "s")].into_py_dict_bound(py);
-                        duration = match instruction_durations
-                            .call_method_bound(py, "get", (&gate, edge), Some(&kwargs))?
-                            .extract::<f64>(py)
-                        {
-                            Ok(duration) => Some(duration),
+                        duration = match instruction_durations.call_method_bound(
+                            py,
+                            "get",
+                            (&gate, edge),
+                            Some(&kwargs),
+                        ) {
+                            Ok(duration) => Some(duration.extract::<f64>(py)?),
                             Err(_) => None,
                         }
                     }
@@ -1537,26 +1543,25 @@ impl Target {
                         );
                     }
                 }
-                if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(py, &inst, Some(gate_properties), Some(gate))?;
-                }
+                target.add_instruction(
+                    py,
+                    &name_mapping[&gate],
+                    Some(gate_properties),
+                    Some(gate),
+                )?;
             }
             for gate in global_ideal_variable_width_gates {
-                if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(py, &inst, None, Some(gate))?;
-                }
+                target.add_instruction(py, &name_mapping[&gate], None, Some(gate))?;
             }
         } else {
             for gate in basis_gates {
-                if !name_mapping.contains(&gate)? {
+                if !name_mapping.contains_key(&gate) {
                     return Err(PyKeyError::new_err(format!(
-                        "The specified basis gate: {gate} is not present in the standard gate
-                            names or a provided custom_name_mapping"
+                        "The specified basis gate: {gate} is not present in the standard gate \
+                        names or a provided custom_name_mapping"
                     )));
                 }
-                if let Some(inst) = name_mapping.get_item(&gate)? {
-                    target.add_instruction(py, &inst, None, Some(gate))?;
-                }
+                target.add_instruction(py, &name_mapping[&gate], None, Some(gate))?;
             }
         }
         Ok(target)
