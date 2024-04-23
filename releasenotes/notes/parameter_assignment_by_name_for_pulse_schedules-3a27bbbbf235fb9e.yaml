@@ -1,6 +1,4 @@
 ---
-prelude: >
-
 features_pulse:
   - |
     It is now possible to assign parameters to pulse `Schedule`and `ScheduleBlock` objects by specifying
