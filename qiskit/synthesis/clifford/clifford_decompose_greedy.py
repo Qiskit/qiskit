@@ -22,7 +22,6 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import CXGate, XGate, YGate, ZGate, HGate, SGate, SwapGate
-from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Clifford, Pauli
@@ -48,7 +47,7 @@ def synth_clifford_greedy(clifford: Clifford, use_dag: bool = False) -> QuantumC
     Args:
         clifford: A Clifford operator.
         use_dag: If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.

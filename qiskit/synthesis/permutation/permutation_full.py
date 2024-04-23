@@ -15,8 +15,8 @@
 from __future__ import annotations
 
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import SwapGate
 from qiskit.dagcircuit import DAGCircuit
 from .permutation_utils import (
     _get_ordered_swap,
@@ -44,8 +44,8 @@ def synth_permutation_basic(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -53,15 +53,21 @@ def synth_permutation_basic(
     # This is the very original Qiskit algorithm for synthesizing permutations.
 
     num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
+    if use_dag:
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(num_qubits)
 
     swaps = _get_ordered_swap(pattern)
 
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
     if use_dag:
-        return circuit_to_dag(qc)
+        for swap in swaps:
+            qc.apply_operation_back(SwapGate(), (qreg[swap[0]], qreg[swap[1]]), check=False)
+    else:
+        for swap in swaps:
+            qc.swap(swap[0], swap[1])
 
     return qc
 
@@ -84,8 +90,8 @@ def synth_permutation_acg(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -102,17 +108,23 @@ def synth_permutation_acg(
     """
 
     num_qubits = len(pattern)
-    qc = QuantumCircuit(num_qubits)
+    if use_dag:
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(num_qubits)
 
     # invert pattern (Qiskit notation is opposite)
     cur_pattern = _inverse_pattern(pattern)
     cycles = _pattern_to_cycles(cur_pattern)
     swaps = _decompose_cycles(cycles)
 
-    for swap in swaps:
-        qc.swap(swap[0], swap[1])
-
     if use_dag:
-        return circuit_to_dag(qc)
+        for swap in swaps:
+            qc.apply_operation_back(SwapGate(), (qreg[swap[0]], qreg[swap[1]]), check=False)
+    else:
+        for swap in swaps:
+            qc.swap(swap[0], swap[1])
 
     return qc

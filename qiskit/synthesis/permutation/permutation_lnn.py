@@ -14,8 +14,8 @@
 
 from __future__ import annotations
 import numpy as np
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import SwapGate
 from qiskit.dagcircuit import DAGCircuit
 from .permutation_utils import _inverse_pattern
 
@@ -38,8 +38,8 @@ def synth_permutation_depth_lnn_kms(
             qubit ``m`` to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
             means that qubit ``2`` goes to position ``0``, qubit ``4`` goes to
             position ``1``, etc.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -56,16 +56,16 @@ def synth_permutation_depth_lnn_kms(
     # [2, 4, 3, 0, 1] means that 0 maps to 2, 1 to 3, 2 to 3, 3 to 0, and 4 to 1.
     # This is why we invert the pattern.
     cur_pattern = _inverse_pattern(pattern)
-
     num_qubits = len(cur_pattern)
-    qc = QuantumCircuit(num_qubits)
-
+    if use_dag:
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+    else:
+        qc = QuantumCircuit(num_qubits)
     # add conditional odd-even swap layers
     for i in range(num_qubits):
         _create_swap_layer(qc, cur_pattern, i % 2)
-
-    if use_dag:
-        return circuit_to_dag(qc.decompose())
 
     return qc
 
@@ -79,5 +79,9 @@ def _create_swap_layer(qc, pattern, starting_point):
     num_qubits = len(pattern)
     for j in range(starting_point, num_qubits - 1, 2):
         if pattern[j] > pattern[j + 1]:
-            qc.swap(j, j + 1)
+            if isinstance(qc, DAGCircuit):
+                qreg = qc.qregs[list(qc.qregs.keys())[0]]
+                qc.apply_operation_back(SwapGate(), (qreg[j], qreg[j + 1]), check=False)
+            else:
+                qc.swap(j, j + 1)
             pattern[j], pattern[j + 1] = pattern[j + 1], pattern[j]

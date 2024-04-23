@@ -147,7 +147,9 @@ class UnitaryGate(Gate):
             qc.global_phase = global_phase
             self.definition = qc
         elif self.num_qubits == 2:
-            from qiskit.synthesis.two_qubit.two_qubit_decompose import two_qubit_cnot_decompose
+            from qiskit.synthesis.two_qubit.two_qubit_decompose import (  # pylint: disable=cyclic-import
+                two_qubit_cnot_decompose,
+            )
 
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:

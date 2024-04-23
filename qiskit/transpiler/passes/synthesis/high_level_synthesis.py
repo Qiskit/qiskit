@@ -142,8 +142,9 @@ from qiskit.circuit.operation import Operation
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
-from qiskit.circuit.library import LinearFunction
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit import QuantumRegister, ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit.library import LinearFunction, SwapGate
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -827,7 +828,9 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         if use_dag:
             if use_transposed:
                 transposed_circ = decomposition.copy_empty_like()
-                transposed_circ.name = decomposition.name + "_transpose"
+                # QuantumCircuits get a default name, while DAGCircuits don't
+                transposed_circ.name = decomposition.name or "synth_circuit"
+                transposed_circ.name += "_transpose"
                 for node in decomposition.topological_op_nodes():
                     if node.op.name != "cx":
                         raise CircuitError("The circuit contains non-CX gates.")
@@ -907,7 +910,9 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
         if use_dag:
             if use_transposed:
                 transposed_circ = decomposition.copy_empty_like()
-                transposed_circ.name = decomposition.name + "_transpose"
+                # QuantumCircuits get a default name, while DAGCircuits don't
+                transposed_circ.name = decomposition.name or "synth_circuit"
+                transposed_circ.name += "_transpose"
                 for node in decomposition.topological_op_nodes():
                     if node.op.name != "cx":
                         raise CircuitError("The circuit contains non-CX gates.")
@@ -1072,11 +1077,19 @@ class TokenSwapperSynthesisPermutation(HighLevelSynthesisPlugin):
             swapper_result = None
 
         if swapper_result is not None:
-            decomposition = QuantumCircuit(len(graph.node_indices()))
-            for swap in swapper_result:
-                decomposition.swap(*swap)
             if use_dag:
-                return circuit_to_dag(decomposition)
+                qreg = QuantumRegister(len(graph.node_indices()))
+                decomposition = DAGCircuit()
+                decomposition.add_qreg(qreg)
+                for swap in swapper_result:
+                    decomposition.apply_operation_back(
+                        SwapGate(), (qreg[swap[0]], qreg[swap[1]]), check=False
+                    )
+            else:
+                decomposition = QuantumCircuit(len(graph.node_indices()))
+                for swap in swapper_result:
+                    decomposition.swap(*swap)
+
             return decomposition
 
         return None

@@ -38,8 +38,8 @@ def synth_clifford_full(
         clifford: A Clifford operator.
         method: Optional, a synthesis method (``'AG'`` or ``'greedy'``).
              If set this overrides optimal decomposition for :math:`N \leq 3` qubits.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                 :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.

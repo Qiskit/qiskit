@@ -23,7 +23,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import SwapGate, HGate, CXGate, SGate, ZGate, XGate
-from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -43,8 +42,8 @@ def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
 
     Args:
         clifford: A Clifford operator.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
-                        :class:`QuantumCircuit` when this class is called.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                 :class:`QuantumCircuit` when this class is called.
 
     Returns:
         A circuit implementation of the Clifford.
@@ -62,7 +61,7 @@ def synth_clifford_ag(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
     qreg = QuantumRegister(clifford.num_qubits)
     if use_dag:
         circuit = DAGCircuit()
-        circuit.name = name = str(clifford)
+        circuit.name = str(clifford)
         circuit.add_qreg(qreg)
     else:
         circuit = QuantumCircuit(qreg, name=str(clifford))

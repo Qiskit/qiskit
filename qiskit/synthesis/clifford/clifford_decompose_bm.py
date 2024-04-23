@@ -24,7 +24,6 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import SdgGate, HGate, CXGate, SGate, ZGate, XGate, YGate
-from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info import Clifford
 from qiskit.exceptions import QiskitError
@@ -41,7 +40,7 @@ def synth_clifford_bm(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
 
     Args:
         clifford: A Clifford operator.
-        use_dag (bool): If true a :class:`.DAGCircuit` is returned instead of a
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
                         :class:`QuantumCircuit` when this class is called.
 
     Returns:
@@ -102,6 +101,7 @@ def synth_clifford_bm(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
                 )
             ret_circ.compose(new_dag, qubits=ret_circ.qubits, inplace=True)
 
+        # Working with a DAG directly saves the final .decompose() step
         return ret_circ
 
     else:
@@ -111,11 +111,11 @@ def synth_clifford_bm(clifford: Clifford, use_dag: bool = False) -> QuantumCircu
             pos = [qubit, qubit + num_qubits]
             circ = _decompose_clifford_1q(clifford.tableau[pos][:, pos + [-1]])
             if len(circ) > 0:
-                ret_circ.append(circ, [qubit])
+                ret_circ.append(circ, [qubit], copy=False)
 
         # Add the inverse of the 2-qubit reductions circuit
         if len(inv_circuit) > 0:
-            ret_circ.append(inv_circuit.inverse(), range(num_qubits))
+            ret_circ.append(inv_circuit.inverse(), range(num_qubits), copy=False)
 
         return ret_circ.decompose()
 

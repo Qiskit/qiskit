@@ -24,8 +24,8 @@ References:
 from __future__ import annotations
 import numpy as np
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import CXGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
@@ -253,8 +253,8 @@ def synth_cnot_depth_line_kms(
 
     Args:
         mat: A boolean invertible matrix.
-        use_dag: If ``True`` (default value), the function will return a ``DAGCircuit``,
-            else, it will return a ``QuantumCircuit``.
+        use_dag: If true a :class:`.DAGCircuit` is returned instead of a
+                :class:`QuantumCircuit` when this class is called.
 
     Returns:
         The synthesized quantum circuit.
@@ -274,11 +274,18 @@ def synth_cnot_depth_line_kms(
     # that we got in _optimize_cx_circ_depth_5n_line
     num_qubits = len(mat)
     cx_inst = _optimize_cx_circ_depth_5n_line(mat)
-    qc = QuantumCircuit(num_qubits)
-    for pair in cx_inst[0]:
-        qc.cx(pair[0], pair[1])
-    for pair in cx_inst[1]:
-        qc.cx(pair[0], pair[1])
     if use_dag:
-        return circuit_to_dag(qc)
+        qreg = QuantumRegister(num_qubits)
+        qc = DAGCircuit()
+        qc.add_qreg(qreg)
+        for pair in cx_inst[0]:
+            qc.apply_operation_back(CXGate(), (qreg[pair[0]], qreg[pair[1]]), check=False)
+        for pair in cx_inst[1]:
+            qc.apply_operation_back(CXGate(), (qreg[pair[0]], qreg[pair[1]]), check=False)
+    else:
+        qc = QuantumCircuit(num_qubits)
+        for pair in cx_inst[0]:
+            qc.cx(pair[0], pair[1])
+        for pair in cx_inst[1]:
+            qc.cx(pair[0], pair[1])
     return qc

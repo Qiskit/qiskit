@@ -180,7 +180,7 @@ class SolovayKitaev(TransformationPass):
 
             # call solovay kitaev
             approximation = self._sk.run(
-                matrix, self.recursion_degree, use_dag=True, check_input=check_input
+                matrix, self.recursion_degree, return_dag=True, check_input=check_input
             )
 
             # convert to a dag and replace the gate by the approximation

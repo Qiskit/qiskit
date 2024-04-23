@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2023.
+# (C) Copyright IBM 2023, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,11 +18,12 @@ from ddt import ddt
 
 import numpy as np
 
-from qiskit.converters.dag_to_circuit import dag_to_circuit
+from qiskit.converters import dag_to_circuit
 from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford import synth_clifford_layers, synth_clifford_depth_lnn
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -47,8 +48,8 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
                         )
                     else:
                         circ = synth_clifford_layers(cliff, validate=True)
-                    cliff_target = Clifford(circ)
-                    self.assertEqual(cliff, cliff_target)
+                    cliff_cliff = Clifford(circ)
+                    self.assertEqual(cliff, cliff_cliff)
                     # Verify the layered structure
                     self.assertEqual(circ.data[0].operation.name, "S2")
                     self.assertEqual(circ.data[1].operation.name, "CZ")
@@ -80,8 +81,14 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
                     self.assertTrue(depth2q <= 7 * num_qubits + 2)
                     # Check that the Clifford circuit has linear nearest neighbour connectivity
                     self.assertTrue(check_lnn_connectivity(circ.decompose()))
-                    cliff_target = Clifford(circ)
-                    self.assertEqual(cliff, cliff_target)
+                    cliff_cliff = Clifford(circ)
+                    self.assertEqual(cliff, cliff_cliff)
+                    # Verify the layered structure
+                    self.assertEqual(circ.data[0].operation.name, "S2")
+                    self.assertEqual(circ.data[2].operation.name, "H2")
+                    self.assertEqual(circ.data[3].operation.name, "S1")
+                    self.assertEqual(circ.data[5].operation.name, "H1")
+                    self.assertEqual(circ.data[6].operation.name, "Pauli")
 
 
 if __name__ == "__main__":
