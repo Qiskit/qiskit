@@ -69,3 +69,62 @@ class DataBinTestCase(QiskitTestCase):
         data_bin_cls = make_data_bin([])
         data_bin = data_bin_cls()
         self.assertEqual(len(data_bin), 0)
+
+    def test_make_databin_mapping(self):
+        """Test the make_data_bin() function with mapping features."""
+        data_bin_cls = make_data_bin([("alpha", int), ("beta", dict)])
+        data_bin = data_bin_cls(10, {1: 2})
+        self.assertEqual(len(data_bin), 2)
+
+        with self.subTest("iterator"):
+            iterator = iter(data_bin)
+            key = next(iterator)
+            self.assertEqual(key, "alpha")
+            key = next(iterator)
+            self.assertEqual(key, "beta")
+            with self.assertRaises(StopIteration):
+                _ = next(iterator)
+
+        with self.subTest("keys"):
+            lst = data_bin.keys()
+            key = lst[0]
+            self.assertEqual(key, "alpha")
+            key = lst[1]
+            self.assertEqual(key, "beta")
+
+        with self.subTest("values"):
+            lst = data_bin.values()
+            val = lst[0]
+            self.assertIsInstance(val, int)
+            self.assertEqual(val, 10)
+            val = lst[1]
+            self.assertIsInstance(val, dict)
+            self.assertEqual(val, {1: 2})
+
+        with self.subTest("items"):
+            lst = data_bin.items()
+            key, val = lst[0]
+            self.assertEqual(key, "alpha")
+            self.assertIsInstance(val, int)
+            self.assertEqual(val, 10)
+            key, val = lst[1]
+            self.assertEqual(key, "beta")
+            self.assertIsInstance(val, dict)
+            self.assertEqual(val, {1: 2})
+
+        with self.subTest("contains"):
+            self.assertIn("alpha", data_bin)
+            self.assertIn("beta", data_bin)
+            self.assertNotIn("gamma", data_bin)
+
+        with self.subTest("getitem"):
+            val = data_bin["alpha"]
+            self.assertIsInstance(val, int)
+            self.assertEqual(val, 10)
+            val = data_bin["beta"]
+            self.assertIsInstance(val, dict)
+            self.assertEqual(val, {1: 2})
+
+        with self.subTest("error"):
+            with self.assertRaises(KeyError):
+                _ = data_bin["gamma"]
