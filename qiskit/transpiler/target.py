@@ -280,15 +280,7 @@ class Target(Target2):
             InstructionDurations: The instruction duration represented in the
                 target
         """
-        if self.instruction_durations is not None:
-            return self.instruction_durations
-        out_durations = []
-        for instruction, props_map in self.gate_map.items():
-            for qarg, properties in props_map.items():
-                if properties is not None and properties.duration is not None:
-                    out_durations.append((instruction, list(qarg), properties.duration, "s"))
-        self.instruction_durations = InstructionDurations(out_durations, dt=self.dt)
-        return self.instruction_durations
+        return super().durations()
 
     def timing_constraints(self):
         """Get an :class:`~qiskit.transpiler.TimingConstraints` object from the target

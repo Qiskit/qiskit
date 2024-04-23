@@ -697,6 +697,40 @@ impl Target {
         }
     }
 
+    #[pyo3(text_signature = "(/,)")]
+    fn durations(&mut self, py: Python<'_>) -> PyResult<Option<PyObject>> {
+        if self.instruction_durations.is_some() {
+            return Ok(self.instruction_durations.to_owned());
+        }
+        let mut out_durations: Vec<(&String, HashableVec<u32>, f64, &str)> = vec![];
+        for (instruction, props_map) in self.gate_map.iter() {
+            if let Some(props_map) = props_map {
+                for (qarg, properties) in props_map.into_iter() {
+                    if let Some(properties) = properties {
+                        if let Some(duration) = properties.duration {
+                            out_durations.push((
+                                instruction,
+                                qarg.to_owned().unwrap_or(HashableVec { vec: vec![] }),
+                                duration,
+                                "s",
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+        let instruction_duration_class = py
+            .import_bound("qiskit.transpiler.instruction_durations")?
+            .getattr("InstructionDurations")?;
+        let kwargs = [("dt", self.dt)].into_py_dict_bound(py);
+        self.instruction_durations = Some(
+            instruction_duration_class
+                .call((out_durations,), Some(&kwargs))?
+                .unbind(),
+        );
+        Ok(self.instruction_durations.to_owned())
+    }
+
     #[pyo3(text_signature = "(/, qargs)")]
     fn operations_for_qargs(
         &self,
