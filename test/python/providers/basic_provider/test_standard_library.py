@@ -464,5 +464,68 @@ class TestStandardGates(QiskitTestCase):
         self.assertEqual(result.success, True)
 
 
+class TestStandardGatesTarget(QiskitTestCase):
+    """Standard gates, up to 3 qubits, as a target"""
+
+    def test_target(self):
+        target = BasicSimulator().target
+        expected = {
+            "cz",
+            "u3",
+            "p",
+            "cswap",
+            "z",
+            "cu1",
+            "ecr",
+            "reset",
+            "ch",
+            "cy",
+            "dcx",
+            "crx",
+            "sx",
+            "unitary",
+            "csdg",
+            "rzz",
+            "measure",
+            "swap",
+            "csx",
+            "y",
+            "s",
+            "xx_plus_yy",
+            "cs",
+            "h",
+            "t",
+            "u",
+            "rxx",
+            "cu",
+            "rzx",
+            "ry",
+            "rx",
+            "cu3",
+            "tdg",
+            "u2",
+            "xx_minus_yy",
+            "global_phase",
+            "u1",
+            "id",
+            "cx",
+            "cp",
+            "rz",
+            "sxdg",
+            "x",
+            "ryy",
+            "sdg",
+            "ccz",
+            "delay",
+            "crz",
+            "iswap",
+            "ccx",
+            "cry",
+            "rccx",
+            "r",
+        }
+        self.assertEqual(set(target.operation_names), expected)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
