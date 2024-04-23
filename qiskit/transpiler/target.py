@@ -399,17 +399,7 @@ class Target(Target2):
 
         """
 
-        def check_obj_params(parameters, obj):
-            for index, param in enumerate(parameters):
-                if isinstance(param, Parameter) and not isinstance(obj.params[index], Parameter):
-                    return False
-                if param != obj.params[index] and not isinstance(obj.params[index], Parameter):
-                    return False
-            return True
-
         return super().instruction_supported(
-            Parameter,
-            check_obj_params,
             operation_name,
             qargs,
             operation_class,
