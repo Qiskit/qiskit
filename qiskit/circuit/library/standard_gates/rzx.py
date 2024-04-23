@@ -179,7 +179,6 @@ class RZXGate(Gate):
         )
 
     def power(self, exponent: float, annotated: bool = False):
-        """Raise gate to a power."""
         (theta,) = self.params
         return RZXGate(exponent * theta)
 

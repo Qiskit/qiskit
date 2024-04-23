@@ -186,7 +186,6 @@ class XXPlusYYGate(Gate):
         )
 
     def power(self, exponent: float, annotated: bool = False):
-        """Raise gate to a power."""
         theta, beta = self.params
         return XXPlusYYGate(exponent * theta, beta)
 

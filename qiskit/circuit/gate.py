@@ -66,12 +66,17 @@ class Gate(Instruction):
         """Raise this gate to the power of ``exponent``.
 
         Implemented either as a unitary gate (ref. :class:`~.library.UnitaryGate`)
-        or as an annotated operation (ref. :class:`.AnnotatedOperation`).
+        or as an annotated operation (ref. :class:`.AnnotatedOperation`). In the case of several standard
+        gates, such as :class:`.RXGate`, when the power of a gate can be expressed in terms of another
+        standard gate that is returned directly.
 
         Args:
             exponent (float): the power to raise the gate to
             annotated (bool): indicates whether the power gate can be implemented
-                as an annotated operation.
+                as an annotated operation. In the case of several standard
+                gates, such as :class:`.RXGate`, this argument is ignored when
+                the power of a gate can be expressed in terms of another
+                standard gate.
 
         Returns:
             An operation implementing ``gate^exponent``

@@ -126,7 +126,6 @@ class RYGate(Gate):
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
     def power(self, exponent: float, annotated: bool = False):
-        """Raise gate to a power."""
         (theta,) = self.params
         return RYGate(exponent * theta)
 
