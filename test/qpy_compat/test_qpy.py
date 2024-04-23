@@ -21,15 +21,15 @@ import sys
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import Clbit
-from qiskit.circuit.quantumregister import Qubit
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library import QFT, DCXGate, PauliGate, U1Gate, U2Gate, U3Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.quantum_info.random import random_unitary
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate, PauliGate
-from qiskit.circuit.gate import Gate
+from qiskit.quantum_info.random import random_unitary
 from qiskit.version import VERSION as current_version_str
 
 try:
@@ -329,8 +329,8 @@ def generate_evolution_gate():
     """Generate a circuit with a pauli evolution gate."""
     # Runtime import since this only exists in terra 0.19.0
     from qiskit.circuit.library import PauliEvolutionGate
-    from qiskit.synthesis import SuzukiTrotter
     from qiskit.quantum_info import SparsePauliOp
+    from qiskit.synthesis import SuzukiTrotter
 
     synthesis = SuzukiTrotter()
     op = SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)])
@@ -342,7 +342,7 @@ def generate_evolution_gate():
 
 def generate_control_flow_circuits():
     """Test qpy serialization with control flow instructions."""
-    from qiskit.circuit.controlflow import WhileLoopOp, IfElseOp, ForLoopOp
+    from qiskit.circuit.controlflow import ForLoopOp, IfElseOp, WhileLoopOp
 
     # If instruction
     circuits = []
@@ -518,7 +518,7 @@ def generate_referenced_schedule():
 
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
-    from qiskit.pulse import builder, Constant, DriveChannel
+    from qiskit.pulse import Constant, DriveChannel, builder
 
     circuits = []
 
@@ -588,7 +588,7 @@ def generate_open_controlled_gates():
 
 def generate_acquire_instruction_with_kernel_and_discriminator():
     """Test QPY serialization with Acquire instruction with kernel and discriminator."""
-    from qiskit.pulse import builder, AcquireChannel, MemorySlot, Discriminator, Kernel
+    from qiskit.pulse import AcquireChannel, Discriminator, Kernel, MemorySlot, builder
 
     schedule_blocks = []
 
@@ -620,7 +620,7 @@ def generate_acquire_instruction_with_kernel_and_discriminator():
 def generate_layout_circuits():
     """Test qpy circuits with layout set."""
 
-    from qiskit.transpiler.layout import TranspileLayout, Layout
+    from qiskit.transpiler.layout import Layout, TranspileLayout
 
     qr = QuantumRegister(3, "foo")
     qc = QuantumCircuit(qr, name="GHZ with layout")
@@ -654,14 +654,19 @@ def generate_clifford_circuits():
 
 def generate_annotated_circuits():
     """Test qpy circuits with annotated operations."""
-    from qiskit.circuit import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier
-    from qiskit.circuit.library import XGate, CXGate
+    from qiskit.circuit import (
+        AnnotatedOperation,
+        ControlModifier,
+        InverseModifier,
+        PowerModifier,
+    )
+    from qiskit.circuit.library import CXGate, XGate
 
     op1 = AnnotatedOperation(
         CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
     )
     op2 = AnnotatedOperation(XGate(), InverseModifier())
-    qc = QuantumCircuit(6, 1)
+    qc = QuantumCircuit(6, 1, name="Annotated Circuits")
     qc.cx(0, 1)
     qc.append(op1, [0, 1, 2])
     qc.h(4)
