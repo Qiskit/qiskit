@@ -226,9 +226,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
             param_index = bc_param_ind[index]
             param_obs_map[param_index].update(bc_obs[index])
 
-        bound_circuits = (
-            self._bind_and_add_measurements(circuit, parameter_values, param_obs_map),
-        )
+        bound_circuits = self._bind_and_add_measurements(circuit, parameter_values, param_obs_map)
         return _PreprocessedData(bound_circuits, bc_param_ind, bc_obs)
 
     def _postprocess_pub(
