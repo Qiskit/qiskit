@@ -70,7 +70,7 @@ pub fn blocks_to_matrix(
                     c64::new(1., 0.),
                     Parallelism::None,
                 );
-            },
+            }
             None => {
                 matmul(
                     matrix.as_mut(),
