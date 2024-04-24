@@ -1101,7 +1101,6 @@ The contents of HEADER are defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name
@@ -1134,7 +1133,6 @@ The contents of HEADER as defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name
