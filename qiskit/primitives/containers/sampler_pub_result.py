@@ -16,6 +16,10 @@ Sampler Pub result class
 
 from __future__ import annotations
 
+from typing import Iterable
+
+import numpy as np
+
 from .bit_array import BitArray
 from .pub_result import PubResult
 
@@ -23,66 +27,47 @@ from .pub_result import PubResult
 class SamplerPubResult(PubResult):
     """Result of Sampler Pub."""
 
-    def _preprocessing(self, name: str | None) -> BitArray:
-        if name is None and len(self.data) != 1:
-            raise ValueError("Since there is not exactly one data field, a name must be provided.")
-        if name is None:
-            name = self.data._FIELDS[0]
-        data_value = getattr(self.data, name)
-        if not isinstance(data_value, BitArray):
-            raise TypeError(f"The requested field {name} is not a BitArray.")
-        return data_value
+    def join_data(self, names: Iterable[str] | None = None) -> BitArray | np.ndarray:
+        """Join data from many registers into one data container.
 
-    def get_counts(self, loc: tuple[int] | None = None, name: str | None = None):
-        """Return a counts dictionary with bitstring keys.
+        Data is joined along the bits axis. For example, for :class:`~.BitArray` data, this corresponds
+        to bitstring concatenation.
 
         Args:
-            loc: Which entry of this array to return a dictionary for. If None, counts from
-                all positions in this array are unioned together.
-            name: The field name.
+            names: Which registers to join. Their order is maintained, for example, given
+                ``["alpha", "beta"]``, the data from register ``alpha`` is placed to the left of the
+                data from register ``beta``. When ``None`` is given, this value is set to the
+                ordered list of register names, which will have been preserved from the input circuit
+                order.
 
         Returns:
-            A dictionary mapping bitstrings to the number of occurrences of that bitstring.
+            Joint data.
 
         Raises:
-            ValueError: if there are more than one fields and no field name is provided.
-            ValueError: if an invalid field name is provided.
+            ValueError: If specified names are empty.
+            ValueError: If specified name does not exist.
+            TypeError: If specified data comes from incompatible types.
         """
-        data_value = self._preprocessing(name)
-        return data_value.get_counts(loc=loc)
+        if names is None:
+            names = list(self.data)
+            if not names:
+                raise ValueError("No entry exists in the data bin.")
+        else:
+            if not names:
+                raise ValueError("An empty name list is given.")
+            for name in names:
+                if name not in self.data:
+                    raise ValueError(f"Name {name} does not exist.")
 
-    def get_int_counts(self, loc: tuple[int] | None = None, name: str | None = None):
-        r"""Return a counts dictionary, where bitstrings are stored as int\s.
-
-        Args:
-            loc: Which entry of this array to return a dictionary for. If None, counts from
-                all positions in this array are unioned together.
-            name: The field name.
-
-        Returns:
-            A dictionary mapping bitstrings to the number of occurrences of that bitstring.
-
-        Raises:
-            ValueError: if there are more than one fields and no field name is provided.
-            ValueError: if an invalid field name is provided.
-        """
-        data_value = self._preprocessing(name)
-        return data_value.get_int_counts(loc=loc)
-
-    def get_bitstrings(self, loc: tuple[int] | None = None, name: str | None = None):
-        """Return a list of bitstrings.
-
-        Args:
-            loc: Which entry of this array to return a dictionary for. If None, counts from
-                all positions in this array are unioned together.
-            name: The field name.
-
-        Returns:
-            A dictionary mapping bitstrings to the number of occurrences of that bitstring.
-
-        Raises:
-            ValueError: if there are more than one fields and no field name is provided.
-            ValueError: if an invalid field name is provided.
-        """
-        data_value = self._preprocessing(name)
-        return data_value.get_bitstrings(loc=loc)
+        data = [self.data[name] for name in names]
+        if isinstance(data[0], BitArray):
+            if not all(isinstance(datum, BitArray) for datum in data):
+                raise TypeError("Data comes from incompatible types.")
+            joint_data = BitArray.stack_bits(data)
+        elif isinstance(data[0], np.ndarray):
+            if not all(isinstance(datum, np.ndarray) for datum in data):
+                raise TypeError("Data comes from incompatible types.")
+            joint_data = np.concatenate(data, axis=-1)
+        else:
+            raise TypeError("Data comes from incompatible types.")
+        return joint_data
