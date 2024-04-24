@@ -81,7 +81,7 @@ class TestBackendSamplerV2(QiskitTestCase):
             target_counts = (
                 target.get_int_counts(idx) if isinstance(target, BitArray) else target[idx]
             )
-            max_key = max(max(int_counts.keys()), max(target_counts.keys()))
+            max_key = max(int_counts.keys(), target_counts.keys())
             ary = np.array([int_counts.get(i, 0) for i in range(max_key + 1)])
             tgt = np.array([target_counts.get(i, 0) for i in range(max_key + 1)])
             np.testing.assert_allclose(ary, tgt, rtol=rtol, atol=atol, err_msg=f"index: {idx}")

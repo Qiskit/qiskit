@@ -129,7 +129,7 @@ def score_layout(
 ):
     """Score a layout given an average error map."""
     if layout_mapping:
-        size = max(max(layout_mapping), max(layout_mapping.values()))
+        size = max(layout_mapping, layout_mapping.values())
     else:
         size = 0
     nlayout = NLayout(layout_mapping, size + 1, size + 1)
