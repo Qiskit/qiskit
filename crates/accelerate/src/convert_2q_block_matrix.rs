@@ -41,8 +41,8 @@ pub fn blocks_to_matrix(
     let input_matrix = op_list[0].0.as_array().into_faer_complex();
 
     let mut matrix = match op_list[0].1.as_slice() {
-        [0] => identity.kron(input_matrix.as_ref()),
-        [1] => input_matrix.kron(identity.as_ref()),
+        [0] => identity.kron(input_matrix),
+        [1] => input_matrix.kron(identity),
         [0, 1] => input_matrix.to_owned(),
         [1, 0] => change_basis_faer(input_matrix),
         [] => Mat::<c64>::identity(4, 4),
@@ -52,8 +52,8 @@ pub fn blocks_to_matrix(
         let op_matrix = op_matrix.as_array().into_faer_complex();
 
         let result = match q_list.as_slice() {
-            [0] => Some(identity.kron(op_matrix.as_ref())),
-            [1] => Some(op_matrix.kron(identity.as_ref())),
+            [0] => Some(identity.kron(op_matrix)),
+            [1] => Some(op_matrix.kron(identity)),
             [1, 0] => Some(change_basis_faer(op_matrix)),
             [] => Some(Mat::<c64>::identity(4, 4)),
             _ => None,
