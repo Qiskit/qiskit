@@ -1016,6 +1016,7 @@ Instructions:
             """An example properties subclass."""
 
             def __new__(cls, duration=None, error=None, calibration=None, *args, **kwargs):
+                # pylint: disable=unused-argument
                 return super(ExtraProperties, cls).__new__(
                     cls, duration=duration, error=error, calibration=calibration
                 )
@@ -1028,6 +1029,7 @@ Instructions:
                 tuned=None,
                 diamond_norm_error=None,
             ):
+                # pylint: disable=unused-argument
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 

@@ -644,11 +644,7 @@ impl Target {
     }
 
     #[pyo3(text_signature = "(/)")]
-    fn instruction_schedule_map(
-        &mut self,
-        py: Python<'_>,
-        out_inst_schedule_map: Bound<PyAny>,
-    ) -> PyObject {
+    fn instruction_schedule_map(&mut self, py: Python<'_>) -> PyResult<PyObject> {
         /*
         Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
         instructions in the target with a pulse schedule defined.
@@ -657,8 +653,11 @@ impl Target {
             InstructionScheduleMap: The instruction schedule map for the
             instructions in this target with a pulse schedule defined.
          */
+        let inst_sched_map_module = py.import_bound("qiskit.pulse.instruction_schedule_map")?;
+        let inst_sched_map_class = inst_sched_map_module.getattr("InstructionScheduleMap")?;
+        let out_inst_schedule_map = inst_sched_map_class.call0()?;
         if let Some(schedule_map) = self.instruction_schedule_map.clone() {
-            return schedule_map;
+            return Ok(schedule_map);
         }
         for (instruction, qargs) in self.gate_map.iter() {
             if let Some(qargs) = qargs {
@@ -676,7 +675,7 @@ impl Target {
             }
         }
         self.instruction_schedule_map = Some(out_inst_schedule_map.clone().unbind());
-        out_inst_schedule_map.to_object(py)
+        Ok(out_inst_schedule_map.unbind())
     }
 
     #[pyo3(text_signature = "(/, operation)")]
