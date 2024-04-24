@@ -221,7 +221,6 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "modified-iterating-list",
     "nested-min-max",
     "no-member",
     "no-value-for-parameter",
