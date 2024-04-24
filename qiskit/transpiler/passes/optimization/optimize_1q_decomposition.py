@@ -34,6 +34,7 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.circuit import Qubit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
 
 
 logger = logging.getLogger(__name__)
@@ -213,10 +214,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
             if best_circuit_sequence is not None and self._substitution_checks(
                 dag, run, best_circuit_sequence, basis, qubit
             ):
-                new_dag = self._gate_sequence_to_dag(best_circuit_sequence)
-                dag.substitute_node_with_dag(run[0], new_dag)
+                for gate_name, angles in best_circuit_sequence:
+                    op = NAME_MAP[gate_name](*angles)
+                    node = DAGOpNode(NAME_MAP[gate_name](*angles), run[0].qargs, dag=dag)
+                    node._node_id = dag._multi_graph.add_node(node)
+                    dag._increment_op(op)
+                    dag._multi_graph.insert_node_on_in_edges(node._node_id, run[0]._node_id)
+                dag.global_phase += best_circuit_sequence.global_phase
                 # Delete the other nodes in the run
-                for current_node in run[1:]:
+                for current_node in run:
                     dag.remove_op_node(current_node)
 
         return dag

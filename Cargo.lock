@@ -957,9 +957,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.80"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a56dea16b0a29e94408b9aa5e2940a4eedbd128a1ba20e8f7ae60fd3d465af0e"
+checksum = "3d1597b0c024618f09a9c3b8655b7e430397a36d23fdafec26d6965e9eec3eba"
 dependencies = [
  "unicode-ident",
 ]
@@ -1003,9 +1003,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a8b1990bd018761768d5e608a13df8bd1ac5f678456e0f301bb93e5f3ea16b"
+checksum = "a5e00b96a521718e08e03b1a622f01c8a8deb50719335de3f60b3b3950f069d8"
 dependencies = [
  "cfg-if",
  "hashbrown 0.14.3",
@@ -1026,9 +1026,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-build-config"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "650dca34d463b6cdbdb02b1d71bfd6eb6b6816afc708faebb3bac1380ff4aef7"
+checksum = "7883df5835fafdad87c0d888b266c8ec0f4c9ca48a5bed6bbb592e8dedee1b50"
 dependencies = [
  "once_cell",
  "target-lexicon",
@@ -1036,9 +1036,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-ffi"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a7da8fc04a8a2084909b59f29e1b8474decac98b951d77b80b26dc45f046ad"
+checksum = "01be5843dc60b916ab4dad1dca6d20b9b4e6ddc8e15f50c47fe6d85f1fb97403"
 dependencies = [
  "libc",
  "pyo3-build-config",
@@ -1046,9 +1046,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b8a199fce11ebb28e3569387228836ea98110e43a804a530a9fd83ade36d513"
+checksum = "77b34069fc0682e11b31dbd10321cbf94808394c56fd996796ce45217dfac53c"
 dependencies = [
  "proc-macro2",
  "pyo3-macros-backend",
@@ -1058,9 +1058,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-macros-backend"
-version = "0.21.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fbbfd7eb553d10036513cb122b888dcd362a945a00b06c165f2ab480d4cc3b"
+checksum = "08260721f32db5e1a5beae69a55553f56b99bd0e1c3e6e0a5e8851a9d0f5a85c"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -1070,25 +1070,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "qiskit-qasm2"
-version = "1.1.0"
-dependencies = [
- "hashbrown 0.14.3",
- "pyo3",
-]
-
-[[package]]
-name = "qiskit-qasm3"
-version = "1.1.0"
-dependencies = [
- "hashbrown 0.14.3",
- "indexmap 2.2.6",
- "oq3_semantics",
- "pyo3",
-]
-
-[[package]]
-name = "qiskit_accelerate"
+name = "qiskit-accelerate"
 version = "1.1.0"
 dependencies = [
  "ahash",
@@ -1104,12 +1086,51 @@ dependencies = [
  "numpy",
  "pulp",
  "pyo3",
+ "qiskit-circuit",
  "rand",
  "rand_distr",
  "rand_pcg",
  "rayon",
  "rustworkx-core",
  "smallvec",
+]
+
+[[package]]
+name = "qiskit-circuit"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "pyo3",
+]
+
+[[package]]
+name = "qiskit-pyext"
+version = "1.1.0"
+dependencies = [
+ "pyo3",
+ "qiskit-accelerate",
+ "qiskit-circuit",
+ "qiskit-qasm2",
+ "qiskit-qasm3",
+]
+
+[[package]]
+name = "qiskit-qasm2"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "pyo3",
+ "qiskit-circuit",
+]
+
+[[package]]
+name = "qiskit-qasm3"
+version = "1.1.0"
+dependencies = [
+ "hashbrown 0.14.3",
+ "indexmap 2.2.6",
+ "oq3_semantics",
+ "pyo3",
 ]
 
 [[package]]
@@ -1312,18 +1333,18 @@ checksum = "a3f0bf26fd526d2a95683cd0f87bf103b8539e2ca1ef48ce002d67aad59aa0b4"
 
 [[package]]
 name = "serde"
-version = "1.0.197"
+version = "1.0.198"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb1c873e1b9b056a4dc4c0c198b24c3ffa059243875552b2bd0933b1aee4ce2"
+checksum = "9846a40c979031340571da2545a4e5b7c4163bdae79b301d5f86d03979451fcc"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.197"
+version = "1.0.198"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7eb0b34b42edc17f6b7cac84a52a1c5f0e1bb2227e997ca9011ea3dd34e8610b"
+checksum = "e88edab869b01783ba905e7d0153f9fc1a6505a96e4ad3018011eedb838566d9"
 dependencies = [
  "proc-macro2",
  "quote",
