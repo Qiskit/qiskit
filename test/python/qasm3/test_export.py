@@ -2598,6 +2598,76 @@ switch (switch_dummy__generated0) {
         test = dumps(qc, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
         self.assertEqual(test, expected)
 
+    def test_global_phase(self):
+        """Test that top-level global-phase statements are exported."""
+        scalar_exp = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+gphase(1.0);
+"""
+        scalar_test = dumps(QuantumCircuit(global_phase=1.0))
+        self.assertEqual(scalar_test, scalar_exp)
+        param_exp = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input float[64] a;
+gphase(a);
+"""
+        param_test = dumps(QuantumCircuit(global_phase=Parameter("a")))
+        self.assertEqual(param_test, param_exp)
+
+    def test_global_phase_inner_blocks(self):
+        """Test that global-phase statements in inner blocks are exported correctly.  These most
+        often arise during basis translation of control-flow blocks, and are still important for
+        single-shot unitary equivalence (in a funny philosphical way, if nothing else)."""
+        qr = QuantumRegister(2, "qr")
+        cr = ClassicalRegister(2, "cr")
+
+        qc = QuantumCircuit(qr, cr, global_phase=0.5)
+        with qc.if_test((cr, 0)) as else_:
+            qc.global_phase = 1.0
+        with else_:
+            qc.global_phase = 1.5
+        with qc.while_loop((cr, 0)):
+            qc.global_phase = 2.0
+        with qc.switch(cr) as case:
+            with case(0):
+                qc.global_phase = 2.5
+            with case(1):
+                qc.global_phase = 3.0
+            with case(case.DEFAULT):
+                qc.global_phase = 3.5
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+bit[2] cr;
+int switch_dummy;
+qubit[2] qr;
+gphase(0.5);
+if (cr == 0) {
+  gphase(1.0);
+} else {
+  gphase(1.5);
+}
+while (cr == 0) {
+  gphase(2.0);
+}
+switch_dummy = cr;
+switch (switch_dummy) {
+  case 0 {
+    gphase(2.5);
+  }
+  case 1 {
+    gphase(3.0);
+  }
+  default {
+    gphase(3.5);
+  }
+}
+"""
+        self.assertEqual(dumps(qc), expected)
+
 
 @ddt
 class TestQASM3ExporterFailurePaths(QiskitTestCase):
