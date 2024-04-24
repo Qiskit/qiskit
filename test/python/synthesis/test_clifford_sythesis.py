@@ -192,7 +192,10 @@ class TestCliffordSynthesis(QiskitTestCase):
                 target = Clifford(circ)
                 synth_circ_dag = dag_to_circuit(synth_clifford_bm(target, use_dag=True))
                 synth_circ = synth_clifford_bm(target)
-                self.assertEqual(synth_circ_dag.count_ops(), synth_circ.count_ops())
+                self.assertEqual(
+                    sorted(synth_circ_dag.count_ops().items(), key=lambda x: x[0]),
+                    sorted(synth_circ.count_ops().items(), key=lambda x: x[0]),
+                )
 
     @combine(num_qubits=[2, 3, 4, 5])
     def test_synth_ag(self, num_qubits):
@@ -217,7 +220,10 @@ class TestCliffordSynthesis(QiskitTestCase):
                 target = Clifford(circ)
                 synth_circ_dag = dag_to_circuit(synth_clifford_ag(target, use_dag=True))
                 synth_circ = synth_clifford_ag(target)
-                self.assertEqual(synth_circ_dag.count_ops(), synth_circ.count_ops())
+                self.assertEqual(
+                    sorted(synth_circ_dag.count_ops().items(), key=lambda x: x[0]),
+                    sorted(synth_circ.count_ops().items(), key=lambda x: x[0]),
+                )
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_greedy(self, num_qubits):
@@ -242,7 +248,10 @@ class TestCliffordSynthesis(QiskitTestCase):
                 target = Clifford(circ)
                 synth_circ_dag = dag_to_circuit(synth_clifford_greedy(target, use_dag=True))
                 synth_circ = synth_clifford_greedy(target)
-                self.assertEqual(synth_circ_dag.count_ops(), synth_circ.count_ops())
+                self.assertEqual(
+                    sorted(synth_circ_dag.count_ops().items(), key=lambda x: x[0]),
+                    sorted(synth_circ.count_ops().items(), key=lambda x: x[0]),
+                )
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
     def test_synth_full(self, num_qubits):
@@ -267,4 +276,7 @@ class TestCliffordSynthesis(QiskitTestCase):
                 target = Clifford(circ)
                 synth_circ_dag = dag_to_circuit(synth_clifford_full(target, use_dag=True))
                 synth_circ = synth_clifford_full(target)
-                self.assertEqual(synth_circ_dag.count_ops(), synth_circ.count_ops())
+                self.assertEqual(
+                    sorted(synth_circ_dag.count_ops().items(), key=lambda x: x[0]),
+                    sorted(synth_circ.count_ops().items(), key=lambda x: x[0]),
+                )
