@@ -417,43 +417,7 @@ class StabilizerState(QuantumState):
         return self._get_probabilities_dict(
             outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
         )
-
-    def _get_probabilities_dict(
-        self,
-        outcome_bitstring: None | str = None,
-        qargs: None | list = None,
-        decimals: None | int = None,
-    ) -> dict[str, float]:
-        """Helper Function for calculating the subsystem measurement probability dictionary
-
-        Args:
-            outcome_bitstring (None or str): targetted outcome bitstring
-                to perform a measurement calculation for, this will significantly
-                reduce the number of calculation performed (Default: None)
-            qargs (None or list): subsystems to return probabilities for,
-                if None return for all subsystems (Default: None).
-            decimals (None or int): the number of decimal places to round
-                values. If None no rounding is done (Default: None).
-
-        Returns:
-            dict: The measurement probabilities in dict (key) form.
-        """
-        if qargs is None:
-            qubits = range(self.clifford.num_qubits)
-        else:
-            qubits = qargs
-
-        outcome = ["X"] * len(qubits)
-        outcome_prob = 1.0
-        probs: dict[str, float] = {}  # Probabilities dict to return with the measured values
-
-        self._get_probabilities(qubits, outcome, outcome_prob, probs, outcome_bitstring)
-
-        if decimals is not None:
-            for key, value in probs.items():
-                probs[key] = round(value, decimals)
-
-        return probs
+    
 
     def probabilities_dict(
         self, qargs: None | list = None, decimals: None | int = None
@@ -765,3 +729,40 @@ class StabilizerState(QuantumState):
             stab_cpy._get_probabilities(
                 qubits, new_outcome, (0.5 * outcome_prob), probs, outcome_bitstring
             )
+
+    def _get_probabilities_dict(
+        self,
+        outcome_bitstring: None | str = None,
+        qargs: None | list = None,
+        decimals: None | int = None,
+    ) -> dict[str, float]:
+        """Helper Function for calculating the subsystem measurement probability dictionary
+
+        Args:
+            outcome_bitstring (None or str): targetted outcome bitstring
+                to perform a measurement calculation for, this will significantly
+                reduce the number of calculation performed (Default: None)
+            qargs (None or list): subsystems to return probabilities for,
+                if None return for all subsystems (Default: None).
+            decimals (None or int): the number of decimal places to round
+                values. If None no rounding is done (Default: None).
+
+        Returns:
+            dict: The measurement probabilities in dict (key) form.
+        """
+        if qargs is None:
+            qubits = range(self.clifford.num_qubits)
+        else:
+            qubits = qargs
+
+        outcome = ["X"] * len(qubits)
+        outcome_prob = 1.0
+        probs: dict[str, float] = {}  # Probabilities dict to return with the measured values
+
+        self._get_probabilities(qubits, outcome, outcome_prob, probs, outcome_bitstring)
+
+        if decimals is not None:
+            for key, value in probs.items():
+                probs[key] = round(value, decimals)
+
+        return probs
