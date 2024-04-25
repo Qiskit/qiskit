@@ -570,7 +570,7 @@ class TestStabilizerState(QiskitTestCase):
     @combine(num_qubits=[25, 50, 100, 200])
     def test_probabilities_dict_hgate_large_num_qubits(self, num_qubits):
         """Test probabilities_dict_from_bitstring method with large number of qubits using
-        random outcome_bitstring values for targetted bitstring calculations"""
+        random outcome_bitstring values for targeted bitstring calculations"""
         qc = QuantumCircuit(num_qubits)
         for qubit_num in range(0, num_qubits):
             qc.h(qubit_num)
