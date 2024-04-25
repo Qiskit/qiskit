@@ -268,7 +268,7 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
             # no measure in a circuit
             data = np.zeros((len(memory), num_bytes), dtype=np.uint8)
         lst.append(data)
-    ary = np.array(lst, copy=False)
+    ary = np.asarray(lst)
     return np.unpackbits(ary, axis=-1, bitorder="big")
 
 
