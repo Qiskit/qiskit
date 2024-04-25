@@ -212,6 +212,16 @@ impl InstructionProperties {
         Ok(())
     }
 
+    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<PyObject>)> {
+        Ok((self.duration, self.error, self._calibration.clone()))
+    }
+
+    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>, Option<PyObject>)) {
+        self.duration = state.0;
+        self.error = state.1;
+        self._calibration = state.2;
+    }
+
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
         let mut output = "InstructionProperties(".to_owned();
         if let Some(duration) = self.duration {
@@ -2061,6 +2071,57 @@ impl Target {
 
     fn __contains__(&self, item: String) -> PyResult<bool> {
         Ok(self.gate_map.contains_key(&item))
+    }
+
+    fn __getstate__(&self, py: Python<'_>) -> PyResult<Py<PyList>> {
+        let result_list = PyList::empty_bound(py);
+        result_list.append(self.description.clone())?;
+        result_list.append(self.num_qubits)?;
+        result_list.append(self.dt)?;
+        result_list.append(self.granularity)?;
+        result_list.append(self.min_length)?;
+        result_list.append(self.pulse_alignment)?;
+        result_list.append(self.acquire_alignment)?;
+        result_list.append(self.qubit_properties.clone())?;
+        result_list.append(self.concurrent_measurements.clone())?;
+        result_list.append(self.gate_map.clone().into_py(py))?;
+        result_list.append(self.gate_name_map.clone())?;
+        result_list.append(self.global_operations.clone())?;
+        result_list.append(self.qarg_gate_map.clone().into_py(py))?;
+        result_list.append(self.coupling_graph.clone())?;
+        result_list.append(self.instruction_durations.clone())?;
+        result_list.append(self.instruction_schedule_map.clone())?;
+        result_list.append(self.non_global_basis.clone())?;
+        result_list.append(self.non_global_strict_basis.clone())?;
+        Ok(result_list.to_owned().unbind())
+    }
+
+    fn __setstate__(&mut self, state: Bound<PyList>) -> PyResult<()> {
+        self.description = state.get_item(0)?.extract::<Option<String>>()?;
+        self.num_qubits = state.get_item(1)?.extract::<Option<usize>>()?;
+        self.dt = state.get_item(2)?.extract::<Option<f64>>()?;
+        self.granularity = state.get_item(3)?.extract::<i32>()?;
+        self.min_length = state.get_item(4)?.extract::<usize>()?;
+        self.pulse_alignment = state.get_item(5)?.extract::<i32>()?;
+        self.acquire_alignment = state.get_item(6)?.extract::<i32>()?;
+        self.qubit_properties = state.get_item(7)?.extract::<Vec<PyObject>>()?;
+        self.concurrent_measurements = state.get_item(8)?.extract::<Vec<Vec<usize>>>()?;
+        self.gate_map = state.get_item(9)?.extract::<GateMapType>()?;
+        self.gate_name_map = state
+            .get_item(10)?
+            .extract::<IndexMap<String, PyObject>>()?;
+        self.global_operations = state
+            .get_item(11)?
+            .extract::<IndexMap<usize, HashSet<String>>>()?;
+        self.qarg_gate_map = state
+            .get_item(12)?
+            .extract::<IndexMap<Option<HashableVec<u32>>, Option<HashSet<String>>>>()?;
+        self.coupling_graph = state.get_item(13)?.extract::<Option<PyObject>>()?;
+        self.instruction_durations = state.get_item(14)?.extract::<Option<PyObject>>()?;
+        self.instruction_schedule_map = state.get_item(15)?.extract::<Option<PyObject>>()?;
+        self.non_global_basis = state.get_item(16)?.extract::<Option<Vec<String>>>()?;
+        self.non_global_strict_basis = state.get_item(17)?.extract::<Option<Vec<String>>>()?;
+        Ok(())
     }
 
     fn keys(&self) -> PyResult<Vec<String>> {
