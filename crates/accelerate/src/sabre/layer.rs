@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ahash;
 use indexmap::IndexMap;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
@@ -29,7 +28,7 @@ use crate::nlayout::PhysicalQubit;
 /// extension, not for every swap trialled.
 pub struct FrontLayer {
     /// Map of the (index to the) node to the qubits it acts on.
-    nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ahash::RandomState>,
+    nodes: IndexMap<NodeIndex, [PhysicalQubit; 2], ::ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
     qubits: Vec<Option<(NodeIndex, PhysicalQubit)>>,
@@ -42,10 +41,16 @@ impl FrontLayer {
             // pair, and can only have one gate in the layer.
             nodes: IndexMap::with_capacity_and_hasher(
                 num_qubits as usize / 2,
-                ahash::RandomState::default(),
+                ::ahash::RandomState::default(),
             ),
             qubits: vec![None; num_qubits as usize],
         }
+    }
+
+    /// View onto the mapping between qubits and their `(node, other_qubit)` pair.  Index `i`
+    /// corresponds to physical qubit `i`.
+    pub fn qubits(&self) -> &[Option<(NodeIndex, PhysicalQubit)>] {
+        &self.qubits
     }
 
     /// Add a node into the front layer, with the two qubits it operates on.
@@ -103,27 +108,6 @@ impl FrontLayer {
             .map(|(_, &[a, b])| dist[[a.index(), b.index()]])
             .sum::<f64>()
             / self.nodes.len() as f64
-    }
-
-    /// Populate a of nodes that would be routable if the given swap was applied to a layout.  This
-    /// mutates `routable` to avoid heap allocations in the main logic loop.
-    pub fn routable_after(
-        &self,
-        routable: &mut Vec<NodeIndex>,
-        swap: &[PhysicalQubit; 2],
-        coupling: &DiGraph<(), ()>,
-    ) {
-        let [a, b] = *swap;
-        if let Some((node, c)) = self.qubits[a.index()] {
-            if coupling.contains_edge(NodeIndex::new(b.index()), NodeIndex::new(c.index())) {
-                routable.push(node);
-            }
-        }
-        if let Some((node, c)) = self.qubits[b.index()] {
-            if coupling.contains_edge(NodeIndex::new(a.index()), NodeIndex::new(c.index())) {
-                routable.push(node);
-            }
-        }
     }
 
     /// Apply a physical swap to the current layout data structure.
@@ -198,7 +182,7 @@ impl ExtendedSet {
 
     /// Calculate the score of applying the given swap, relative to not applying it.
     pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        if self.len == 0 {
+        if self.is_empty() {
             return 0.0;
         }
         let [a, b] = swap;
@@ -222,7 +206,7 @@ impl ExtendedSet {
 
     /// Calculate the total absolute score of this set of nodes over the given layout.
     pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
-        if self.len == 0 {
+        if self.is_empty() {
             return 0.0;
         }
         self.qubits
@@ -246,6 +230,10 @@ impl ExtendedSet {
     /// Number of nodes in the set.
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     /// Apply a physical swap to the current layout data structure.

@@ -1436,6 +1436,38 @@ class TestGeneratePresetPassManagers(QiskitTestCase):
         # Ensure the DAGs from both methods are identical
         self.assertEqual(transpiled_circuit_list, transpiled_circuit_object)
 
+    @data(0, 1, 2, 3)
+    def test_generate_preset_pass_manager_with_list_initial_layout(self, optimization_level):
+        """Test that generate_preset_pass_manager can handle list based initial layouts."""
+        coupling_map_list = [[0, 1]]
+
+        # Circuit that doesn't fit in the coupling map
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.measure_all()
+
+        pm_list = generate_preset_pass_manager(
+            optimization_level=optimization_level,
+            coupling_map=coupling_map_list,
+            basis_gates=["u", "cx"],
+            seed_transpiler=42,
+            initial_layout=[1, 0],
+        )
+        pm_object = generate_preset_pass_manager(
+            optimization_level=optimization_level,
+            coupling_map=coupling_map_list,
+            basis_gates=["u", "cx"],
+            seed_transpiler=42,
+            initial_layout=Layout.from_intlist([1, 0], *qc.qregs),
+        )
+        tqc_list = pm_list.run(qc)
+        tqc_obj = pm_list.run(qc)
+        self.assertIsInstance(pm_list, PassManager)
+        self.assertIsInstance(pm_object, PassManager)
+        self.assertEqual(tqc_list, tqc_obj)
+
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):

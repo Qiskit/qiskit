@@ -174,8 +174,16 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
     out_circuits = []
     for circuit in circuits:
         out = QuantumCircuit(
-            qubits, clbits, *circuit.qregs, *circuit.cregs, global_phase=circuit.global_phase
+            qubits,
+            clbits,
+            *circuit.qregs,
+            *circuit.cregs,
+            global_phase=circuit.global_phase,
+            inputs=circuit.iter_input_vars(),
+            captures=circuit.iter_captured_vars(),
         )
+        for var in circuit.iter_declared_vars():
+            out.add_uninitialized_var(var)
         for instruction in circuit.data:
             out._append(instruction)
         out_circuits.append(out)

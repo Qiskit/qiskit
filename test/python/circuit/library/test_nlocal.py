@@ -37,6 +37,7 @@ from qiskit.circuit.library import (
     RXXGate,
     RYYGate,
     CXGate,
+    SXGate,
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
@@ -696,6 +697,16 @@ class TestTwoLocal(QiskitTestCase):
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
+
+    def test_rzsx_blocks(self):
+        """Test that the EfficientSU2 circuit is instantiated correctly."""
+        two = EfficientSU2(3, ["rz", "sx", "rz", "sx", "rz"])
+        expected = [[RZGate], [SXGate], [RZGate], [SXGate], [RZGate]]
+        actual = [
+            [instruction.operation.base_class for instruction in block]
+            for block in two.rotation_blocks
+        ]
+        self.assertEqual(actual, expected)
 
     def test_ryrz_circuit(self):
         """Test an EfficientSU2 circuit."""
