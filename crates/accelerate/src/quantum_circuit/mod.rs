@@ -10,8 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+mod bit_packing;
 pub mod circuit_data;
 pub mod circuit_instruction;
+pub mod dag_circuit;
+pub mod dag_node;
 pub mod intern_context;
 
 use pyo3::prelude::*;
@@ -19,6 +22,11 @@ use pyo3::prelude::*;
 #[pymodule]
 pub fn quantum_circuit(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<dag_circuit::DAGCircuit>()?;
+    m.add_class::<dag_node::DAGNode>()?;
+    m.add_class::<dag_node::DAGInNode>()?;
+    m.add_class::<dag_node::DAGOutNode>()?;
+    m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     Ok(())
 }
