@@ -316,7 +316,6 @@ class ForwardMatch:
         while self.matched_nodes_list:
 
             first_matched = self.matched_nodes_list.pop(0)
-            print("\n\nFIRST MATCH", first_matched)
             if self.successorstovisit[first_matched] == []:
                 continue
 
@@ -400,11 +399,11 @@ class ForwardMatch:
                     match = True
                     continue
 
-            # If no match is found, block the node and all the successors.
+            # If no match is found, block the node and all the descendants.
             if not match:
                 self.isblocked[trial_successor] = True
-                if self.temp_match_class.get_node(self.circuit_dag_dep, trial_successor_id) not in self.descendants:
-                    self.temp_match_class.descendants[trial_successor_id] = self.temp_match_class.get_descendants(self.circuit_dag_dep, trial_successor)
+                if self.temp_match_class.get_node(self.circuit_dag_dep, trial_successor_id) not in self.temp_match_class.descendants:
+                    self.temp_match_class.descendants[trial_successor_id] = self.temp_match_class.get_descendants(self.circuit_dag_dep, trial_successor_id)
                 for desc in self.temp_match_class.descendants[trial_successor_id]:
                     self.isblocked[self.temp_match_class.get_node(self.circuit_dag_dep, desc)] = True
                     if self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)]:
@@ -414,108 +413,5 @@ class ForwardMatch:
                         match_id = self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)][0]
                         self.matchedwith[self.temp_match_class.get_node(template_dag_dep, match_id)] = []
                         self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)] = []
+        
         return (self.matchedwith, self.isblocked)
-
-            # # Return first element of the matched_nodes_list and removes it from the list
-            # v_first = self._get_node_forward(0)
-
-            # # If there is no successors to visit go to the end
-            # if not self.successorstovisit[v_first]:
-            #     continue
-
-            # # Get the label and the node of the first successor to visit
-            # label = self._get_successors_to_visit(v_first, 0)
-            # v = [label, self.circuit_dag_dep.get_node(label)]
-
-            # # Update of the SuccessorsToVisit attribute
-            # #v_first = self._update_successor(v_first, 0)
-
-            # # Update the matched_nodes_list with new attribute successor to visit and sort the list.
-            # self.matched_nodes_list.append([v_first.node_id, v_first])
-            # self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
-
-            # # If the node is blocked and already matched go to the end
-            # if v[1].isblocked | (v[1].matchedwith != []):
-            #     continue
-
-            # # Search for potential candidates in the template
-            # self._find_forward_candidates(v_first.matchedwith[0])
-
-            # qarg1 = self.circuit_dag_dep.get_node(label).qindices
-            # carg1 = self.circuit_dag_dep.get_node(label).cindices
-
-            # # Update the indices for both qubits and clbits in order to be comparable with  the
-            # # indices in the template circuit.
-            # self._update_qarg_indices(qarg1)
-            # self._update_carg_indices(carg1)
-
-            # match = False
-
-            # # For loop over the candidates (template) to find a match.
-            # for i in self.candidates:
-
-            #     # Break the for loop if a match is found.
-            #     if match:
-            #         break
-
-            #     # Compare the indices of qubits and the operation,
-            #     # if True; a match is found
-            #     node_circuit = self.circuit_dag_dep.get_node(label)
-            #     node_template = self.template_dag_dep.get_node(i)
-
-            #     # Necessary but not sufficient conditions for a match to happen.
-            #     if (
-            #         len(self.qarg_indices) != len(node_template.qindices)
-            #         or set(self.qarg_indices) != set(node_template.qindices)
-            #         or node_circuit.name != node_template.name
-            #     ):
-            #         continue
-
-            #     # Check if the qubit, clbit configuration are compatible for a match,
-            #     # also check if the operation are the same.
-            #     if (
-            #         self._is_same_q_conf(node_circuit, node_template)
-            #         and self._is_same_c_conf(node_circuit, node_template)
-            #         and self._is_same_op(node_circuit, node_template)
-            #     ):
-
-            #         v[1].matchedwith = [i]
-
-            #         self.template_dag_dep.get_node(i).matchedwith = [label]
-
-            #         # Append the new match to the list of matches.
-            #         self.match.append([i, label])
-
-            #         # Potential successors to visit (circuit) for a given match.
-            #         potential = self.circuit_dag_dep.direct_successors(label)
-
-            #         # If the potential successors to visit are blocked or match, it is removed.
-            #         for potential_id in potential:
-            #             if self.circuit_dag_dep.get_node(potential_id).isblocked | (
-            #                 self.circuit_dag_dep.get_node(potential_id).matchedwith != []
-            #             ):
-            #                 potential.remove(potential_id)
-
-            #         sorted_potential = sorted(potential)
-
-            #         #  Update the successor to visit attribute
-            #         v[1].successorstovisit = sorted_potential
-
-            #         # Add the updated node to the stack.
-            #         self.matched_nodes_list.append([v[0], v[1]])
-            #         self.matched_nodes_list.sort(key=lambda x: x[1].successorstovisit)
-            #         match = True
-            #         continue
-
-            # # If no match is found, block the node and all the successors.
-            # if not match:
-            #     v[1].isblocked = True
-            #     for succ in v[1].successors:
-            #         self.circuit_dag_dep.get_node(succ).isblocked = True
-            #         if self.circuit_dag_dep.get_node(succ).matchedwith:
-            #             self.match.remove(
-            #                 [self.circuit_dag_dep.get_node(succ).matchedwith[0], succ]
-            #             )
-            #             match_id = self.circuit_dag_dep.get_node(succ).matchedwith[0]
-            #             self.template_dag_dep.get_node(match_id).matchedwith = []
-            #             self.circuit_dag_dep.get_node(succ).matchedwith = []

@@ -248,10 +248,10 @@ class TemplateMatching:
     def cindices(self, dag, node):
         return [dag.find_bit(carg).index for carg in node.cargs]
 
-    def get_descendants(self, dag, node):
+    def get_descendants(self, dag, node_id):
         return list(rx.descendants(dag._multi_graph, node_id))
 
-    def get_ancestors(self, dag, node):
+    def get_ancestors(self, dag, node_id):
         return list(rx.ancestors(dag._multi_graph, node_id))
 
     def get_successors(self, dag, node):

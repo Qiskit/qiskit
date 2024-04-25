@@ -169,9 +169,9 @@ class BackwardMatch:
 
         current_dag = self.circuit_dag_dep
 
-        for node in current_dag.get_nodes():
-            if (not node.matchedwith) and (not node.isblocked):
-                gate_indices.append(node.node_id)
+        for node in current_dag.op_nodes():
+            if (not self.matchedwith[node]) and (not self.isblocked[node]):
+                gate_indices.append(node._node_id)
         gate_indices.reverse()
         return gate_indices
 
@@ -192,7 +192,7 @@ class BackwardMatch:
 
         matches_template = sorted(match[0] for match in matches)
 
-        successors = self.template_dag_dep.get_node(self.node_id_t).successors
+        successors = self.temp_match_class.get_successors(self.template_dag_dep, self.node_id_t)
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in successors) and (index not in template_block):
@@ -261,20 +261,22 @@ class BackwardMatch:
             bool: True if possible, False otherwise.
         """
         # If the gate is controlled, then the control qubits have to be compared as sets.
+        node_temp_qind = self.temp_match_class.qindices(self.template_dag_dep, node_template)
         if isinstance(node_circuit.op, ControlledGate):
 
             c_template = node_template.op.num_ctrl_qubits
 
             if c_template == 1:
-                return qarg_circuit == node_template.qindices
+                return qarg_circuit == node_temp_qind
 
             else:
-                control_qubits_template = node_template.qindices[:c_template]
+                node_temp_qind = self.temp_match_class.qindices(self.template_dag_dep, node_template)
+                control_qubits_template = node_temp_qind[:c_template]
                 control_qubits_circuit = qarg_circuit[:c_template]
 
                 if set(control_qubits_circuit) == set(control_qubits_template):
 
-                    target_qubits_template = node_template.qindices[c_template::]
+                    target_qubits_template = node_temp_qind[c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
                     if node_template.op.base_gate.name in [
@@ -294,9 +296,9 @@ class BackwardMatch:
         # But for non-symmetric gates the qubits indices have to be compared as lists.
         else:
             if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(qarg_circuit) == set(node_template.qindices)
+                return set(qarg_circuit) == set(node_temp_qind)
             else:
-                return qarg_circuit == node_template.qindices
+                return qarg_circuit == node_temp_qind
 
     def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
         """
@@ -309,12 +311,11 @@ class BackwardMatch:
             bool: True if possible, False otherwise.
         """
         if (
-            node_circuit.type == "op"
-            and getattr(node_circuit.op, "condition", None)
+            getattr(node_circuit.op, "condition", None)
             and node_template.type == "op"
             and getattr(node_template.op, "condition", None)
         ):
-            if set(carg_circuit) != set(node_template.cindices):
+            if set(carg_circuit) != set(self.temp_match_class.cindices(self.template_dag_dep, node_template)):
                 return False
             if (
                 getattr(node_circuit.op, "condition", None)[1]
@@ -336,16 +337,16 @@ class BackwardMatch:
         circuit_matched = []
         circuit_blocked = []
 
-        for node in self.circuit_dag_dep.get_nodes():
-            circuit_matched.append(node.matchedwith)
-            circuit_blocked.append(node.isblocked)
+        for node in self.circuit_dag_dep.op_nodes():
+            circuit_matched.append(self.matchedwith[node])
+            circuit_blocked.append(self.isblocked[node])
 
         template_matched = []
         template_blocked = []
 
-        for node in self.template_dag_dep.get_nodes():
-            template_matched.append(node.matchedwith)
-            template_blocked.append(node.isblocked)
+        for node in self.template_dag_dep.op_nodes():
+            template_matched.append(self.matchedwith[node])
+            template_blocked.append(self.isblocked[node])
 
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
@@ -466,7 +467,7 @@ class BackwardMatch:
 
             # First circuit candidate.
             circuit_id = gate_indices[counter_scenario - 1]
-            node_circuit = self.circuit_dag_dep.get_node(circuit_id)
+            node_circuit = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
 
             # If the circuit candidate is blocked, only the counter is changed.
             if circuit_blocked[circuit_id]:
@@ -485,8 +486,8 @@ class BackwardMatch:
             candidates_indices = self._find_backward_candidates(template_blocked, matches_scenario)
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
-            qarg1 = node_circuit.qindices
-            carg1 = node_circuit.cindices
+            qarg1 = self.temp_match_class.qindices(self.circuit_dag_dep, node_circuit)
+            carg1 = self.temp_match_class.cindices(self.circuit_dag_dep, node_circuit)
 
             qarg1 = self._update_qarg_indices(qarg1)
             carg1 = self._update_carg_indices(carg1)
@@ -497,8 +498,8 @@ class BackwardMatch:
             # Loop over the template candidates.
             for template_id in candidates_indices:
 
-                node_template = self.template_dag_dep.get_node(template_id)
-                qarg2 = self.template_dag_dep.get_node(template_id).qindices
+                node_template = self.temp_match_class.get_node(self.template_dag_dep, template_id)
+                qarg2 = self.temp_match_class.qindices(self.template_dag_dep, self.temp_match_class.get_node(self.template_dag_dep, template_id))
 
                 # Necessary but not sufficient conditions for a match to happen.
                 if (
@@ -530,12 +531,14 @@ class BackwardMatch:
 
                     # Loop to check if the match is not connected, in this case
                     # the successors matches are blocked and unmatched.
-                    for potential_block in self.template_dag_dep.successors(template_id):
+                    template_descs = self.temp_match_class.get_descendants(self.template_dag_dep, template_id)
+                    for potential_block in template_descs:
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
-                                for succ_id in self.template_dag_dep.successors(block_id):
+                                block_descs = self.temp_match_class.get_descendants(self.template_dag_dep, block_id)
+                                for succ_id in block_descs:
                                     template_blocked_match[succ_id] = True
                                     if template_matched_match[succ_id]:
                                         new_id = template_matched_match[succ_id][0]
@@ -596,7 +599,7 @@ class BackwardMatch:
 
                 # Second option, not a greedy match, block all successors (push the gate
                 # to the right).
-                for succ in self.circuit_dag_dep.get_node(circuit_id).successors:
+                for succ in self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id):
                     circuit_blocked_block_s[succ] = True
                     if circuit_matched_block_s[succ]:
                         broken_matches.append(succ)
@@ -642,7 +645,7 @@ class BackwardMatch:
 
                     circuit_blocked_block_p[circuit_id] = True
 
-                    for pred in self.circuit_dag_dep.get_node(circuit_id).predecessors:
+                    for pred in self.temp_match_class.get_ancestors(circuit_dag_dep, circuit_id):
                         circuit_blocked_block_p[pred] = True
 
                     matching_scenario = MatchingScenarios(
@@ -662,14 +665,14 @@ class BackwardMatch:
 
                 following_matches = []
 
-                successors = self.circuit_dag_dep.get_node(circuit_id).successors
+                successors = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
                 for succ in successors:
                     if circuit_matched[succ]:
                         following_matches.append(succ)
 
                 # First option, the circuit gate is not disturbing because there are no
                 # following match and no predecessors.
-                predecessors = self.circuit_dag_dep.get_node(circuit_id).predecessors
+                predecessors = self.temp_match_class.get_ancestors(self.circuit_dag_dep, circuit_id)
 
                 if not predecessors or not following_matches:
 
@@ -713,7 +716,7 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    successors = self.circuit_dag_dep.get_node(circuit_id).successors
+                    successors = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
 
                     for succ in successors:
                         circuit_blocked_nomatch[succ] = True
