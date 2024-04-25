@@ -394,7 +394,7 @@ class StabilizerState(QuantumState):
     ) -> dict[str, float]:
         """Return the subsystem measurement probability dictionary utilizing
         a targeted outcome_bitstring to perform the measurement for. This
-        will calculate a probability for only a single targeted 
+        will calculate a probability for only a single targeted
         outcome_bitstring value, giving a performance boost over calculating
         all possible outcomes.
 
@@ -421,7 +421,6 @@ class StabilizerState(QuantumState):
         return self._get_probabilities_dict(
             outcome_bitstring=outcome_bitstring, qargs=qargs, decimals=decimals
         )
-    
 
     def probabilities_dict(
         self, qargs: None | list = None, decimals: None | int = None
@@ -701,8 +700,8 @@ class StabilizerState(QuantumState):
                     if outcome_bitstring is None or (
                         int(outcome_bitstring[i]) == single_qubit_outcome
                     ):
-                        # No outcome_bitstring target, or using outcome_bitstring target and 
-                        # the single_qubit_outcome equals the desired outcome_bitstring target value, 
+                        # No outcome_bitstring target, or using outcome_bitstring target and
+                        # the single_qubit_outcome equals the desired outcome_bitstring target value,
                         # then use current outcome_prob value
                         outcome[i] = str(single_qubit_outcome)
                     else:

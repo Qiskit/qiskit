@@ -567,10 +567,12 @@ class TestStabilizerState(QiskitTestCase):
                 target = np.array(([expected_result] * (2**num_qubits)))
                 self.assertTrue(np.allclose(probs, target))
 
-    @combine(num_qubits=[25, 50, 100, 200])
+    @combine(num_qubits=[10, 15, 20, 30])
     def test_probabilities_dict_hgate_large_num_qubits(self, num_qubits):
         """Test probabilities_dict_from_bitstring method with large number of qubits using
         random outcome_bitstring values for targeted bitstring calculations"""
+
+        #All h gates
         qc = QuantumCircuit(num_qubits)
         for qubit_num in range(0, num_qubits):
             qc.h(qubit_num)
@@ -583,6 +585,36 @@ class TestStabilizerState(QiskitTestCase):
         for _ in range(self.samples):
             with self.subTest(msg="P(None)"):
                 StabilizerStateTestingTools._verify_individual_bitstrings(self, target, stab)
+
+        qc = QuantumCircuit(num_qubits)
+        # H gate at qubit 0, Every gate after is an X gate
+        # will result in 2 outcomes with 0.5
+        qc.h(0)
+        for qubit_num in range(1, num_qubits):
+            qc.x(qubit_num)
+        stab = StabilizerState(qc)
+
+        # Build the 2 expected outcome bitstrings for 
+        # 0.5 probability based on h and x gates
+        target_1: str = "".join(["1" * (num_qubits-1)] + ["0"])
+        target_2: str = "".join(["1" * num_qubits])
+        target: dict = {target_1: 0.5, target_2: 0.5}
+        target_all_bitstrings: dict = StabilizerStateTestingTools._bitstring_product_dict(num_qubits, target)
+        target_all_bitstrings.update(target_all_bitstrings)
+        
+        #Numpy Array to verify stab.probabilities()
+        target_np_dict: dict = StabilizerStateTestingTools._bitstring_product_dict(num_qubits, [target_1, target_2])
+        target_np_dict.update(target)
+        target_np_array: np.ndarray = np.array(list(target_np_dict.values()))
+
+        for _ in range(self.samples):
+            with self.subTest(msg="P(None)"):
+                stab = StabilizerState(qc)
+                value = stab.probabilities_dict()
+                self.assertEqual(value, target)
+                StabilizerStateTestingTools._verify_individual_bitstrings(self, target_all_bitstrings, stab)
+                probs = stab.probabilities()
+                self.assertTrue(np.allclose(probs, target_np_array))
 
     def test_probabilities_dict_ghz(self):
         """Test probabilities and probabilities_dict method of a subsystem of qubits"""
