@@ -136,7 +136,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 if filename.endswith("jpg"):
                     self.assertIn(im.format.lower(), "jpeg")
                 else:
-                    self.assertIn(im.format.lower(), filename.split(".")[-1])
+                    self.assertIn(im.format.lower(), filename.rsplit(".", maxsplit=1)[-1])
             os.remove(filename)
 
     def test_wire_order(self):

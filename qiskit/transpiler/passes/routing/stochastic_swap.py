@@ -323,7 +323,7 @@ class StochasticSwap(TransformationPass):
                     # Update the DAG
                     if not self.fake_run:
                         self._layer_update(
-                            dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
+                            dagcircuit_output, layer, best_layout, best_depth, best_circuit
                         )
                     continue
 

@@ -145,8 +145,7 @@ class PhaseGate(Gate):
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return PhaseGate(exponent * theta)
 
@@ -289,8 +288,7 @@ class CPhaseGate(ControlledGate):
             )
         return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return CPhaseGate(exponent * theta)
 
