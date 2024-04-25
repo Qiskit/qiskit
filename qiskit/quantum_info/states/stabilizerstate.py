@@ -733,11 +733,12 @@ class StabilizerState(QuantumState):
                     if outcome_bitstring is None or (
                         int(outcome_bitstring[i]) == single_qubit_outcome
                     ):
-                        # No Target, or using Target and the single_qubit_outcome
-                        # equals the desired target value, use current outcome_prob
+                        # No outcome_bitstring target, or using outcome_bitstring target and 
+                        # the single_qubit_outcome equals the desired outcome_bitstring target value, 
+                        # then use current outcome_prob value
                         outcome[i] = str(single_qubit_outcome)
                     else:
-                        # If the single_qubit_outcome does not equal the target
+                        # If the single_qubit_outcome does not equal the outcome_bitsring target
                         # then we know that the probability will be 0
                         outcome[i] = str(outcome_bitstring[i])
                         outcome_prob = 0
