@@ -30,10 +30,7 @@ from qiskit.circuit import (
     Reset,
     library as lib,
 )
-
-# This is the same C-extension problems as described in the `__init__.py` disable near the
-# `_qasm2` import.
-from qiskit._qasm2 import (  # pylint: disable=no-name-in-module
+from qiskit._accelerate.qasm2 import (
     OpCode,
     UnaryOpCode,
     BinaryOpCode,
