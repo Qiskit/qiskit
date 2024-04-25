@@ -182,7 +182,7 @@ impl ExtendedSet {
 
     /// Calculate the score of applying the given swap, relative to not applying it.
     pub fn score(&self, swap: [PhysicalQubit; 2], dist: &ArrayView2<f64>) -> f64 {
-        if self.len == 0 {
+        if self.is_empty() {
             return 0.0;
         }
         let [a, b] = swap;
@@ -206,7 +206,7 @@ impl ExtendedSet {
 
     /// Calculate the total absolute score of this set of nodes over the given layout.
     pub fn total_score(&self, dist: &ArrayView2<f64>) -> f64 {
-        if self.len == 0 {
+        if self.is_empty() {
             return 0.0;
         }
         self.qubits
@@ -230,6 +230,10 @@ impl ExtendedSet {
     /// Number of nodes in the set.
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
 
     /// Apply a physical swap to the current layout data structure.
