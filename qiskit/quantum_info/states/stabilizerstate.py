@@ -392,7 +392,11 @@ class StabilizerState(QuantumState):
         qargs: None | list = None,
         decimals: None | int = None,
     ) -> dict[str, float]:
-        """Return the subsystem measurement probability dictionary.
+        """Return the subsystem measurement probability dictionary utilizing
+        a targeted outcome_bitstring to perform the measurement for. This
+        will calculate a probability for only a single targeted 
+        outcome_bitstring value, giving a performance boost over calculating
+        all possible outcomes.
 
         Measurement probabilities are with respect to measurement in the
         computation (diagonal) basis.
@@ -403,7 +407,7 @@ class StabilizerState(QuantumState):
         inserted between integers so that subsystems can be distinguished.
 
         Args:
-            outcome_bitstring (None or str): targetted outcome bitstring
+            outcome_bitstring (None or str): targeted outcome bitstring
                 to perform a measurement calculation for, this will significantly
                 reduce the number of calculation performed (Default: None)
             qargs (None or list): subsystems to return probabilities for,
@@ -736,10 +740,12 @@ class StabilizerState(QuantumState):
         qargs: None | list = None,
         decimals: None | int = None,
     ) -> dict[str, float]:
-        """Helper Function for calculating the subsystem measurement probability dictionary
+        """Helper Function for calculating the subsystem measurement probability dictionary.
+        When the targeted outcome_bitstring value is set, then only the single outcome_bitstring
+        probability will be calculated.
 
         Args:
-            outcome_bitstring (None or str): targetted outcome bitstring
+            outcome_bitstring (None or str): targeted outcome bitstring
                 to perform a measurement calculation for, this will significantly
                 reduce the number of calculation performed (Default: None)
             qargs (None or list): subsystems to return probabilities for,
