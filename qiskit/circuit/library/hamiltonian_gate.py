@@ -98,7 +98,7 @@ class HamiltonianGate(Gate):
         import scipy.linalg
 
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         try:
             time = float(self.params[1])
         except TypeError as ex:

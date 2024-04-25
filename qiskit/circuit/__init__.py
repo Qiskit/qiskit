@@ -877,7 +877,7 @@ are unitary, so should be a :class:`Gate`::
 
         def __array__(self, dtype=None, copy=None):
             if copy is False:
-                raise ValueError("cannot produce a matrix without calculation")
+                raise ValueError("unable to avoid copy while creating an array as requested")
             cos = math.cos(0.5 * self.params[0])
             isin = 1j * math.sin(0.5 * self.params[0])
             return np.array([

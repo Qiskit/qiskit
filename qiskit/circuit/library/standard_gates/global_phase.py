@@ -72,7 +72,7 @@ class GlobalPhaseGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the global_phase gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta = self.params[0]
         return numpy.array([[numpy.exp(1j * theta)]], dtype=dtype or complex)
 

@@ -122,7 +122,7 @@ class RYGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RY gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
@@ -264,7 +264,7 @@ class CRYGate(ControlledGate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRY gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         sin = math.sin(half_theta)

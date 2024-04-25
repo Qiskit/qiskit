@@ -130,7 +130,7 @@ class U2Gate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U2 gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)

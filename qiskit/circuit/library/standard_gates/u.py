@@ -139,7 +139,7 @@ class UGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -342,7 +342,7 @@ class CUGate(ControlledGate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam, gamma = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)

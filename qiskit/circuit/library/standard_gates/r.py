@@ -96,7 +96,7 @@ class RGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the R gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)

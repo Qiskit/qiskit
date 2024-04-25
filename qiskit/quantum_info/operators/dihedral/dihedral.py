@@ -359,7 +359,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
 
     def __array__(self, dtype=None, copy=None):
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arr = self.to_matrix()
         return arr if dtype is None else arr.astype(dtype, copy=False)
 

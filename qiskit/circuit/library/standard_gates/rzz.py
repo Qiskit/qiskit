@@ -135,7 +135,7 @@ class RZZGate(Gate):
         import numpy
 
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [

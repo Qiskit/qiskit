@@ -123,7 +123,7 @@ class RXGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RX gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
@@ -269,7 +269,7 @@ class CRXGate(ControlledGate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRX gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)

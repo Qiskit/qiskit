@@ -135,7 +135,7 @@ class RZGate(Gate):
         import numpy as np
 
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
@@ -284,7 +284,7 @@ class CRZGate(ControlledGate):
         import numpy
 
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(

@@ -173,7 +173,7 @@ class XXPlusYYGate(Gate):
     def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the XX+YY gate."""
         if copy is False:
-            raise ValueError("cannot produce matrix without calculation")
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
