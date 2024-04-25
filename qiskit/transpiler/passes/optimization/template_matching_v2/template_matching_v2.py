@@ -25,9 +25,11 @@ Exact and practical pattern matching for quantum circuit optimization.
 
 import itertools
 
+import rustworkx as rx
+
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.transpiler.passes.optimization.template_matching.forward_match import ForwardMatch
-from qiskit.transpiler.passes.optimization.template_matching.backward_match import BackwardMatch
+from qiskit.transpiler.passes.optimization.template_matching_v2.forward_match_v2 import ForwardMatch
+from qiskit.transpiler.passes.optimization.template_matching_v2.backward_match_v2 import BackwardMatch
 
 
 class TemplateMatching:
@@ -59,6 +61,8 @@ class TemplateMatching:
         self.heuristics_backward_param = (
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
+        self.descendants = {}
+        self.ancestors = {}
 
     def _list_first_match_new(self, node_circuit, node_template, n_qubits_t, n_clbits_t):
         """
@@ -105,24 +109,24 @@ class TemplateMatching:
             # Symmetric gate
             if node_template.op.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 l_q_sub = [-1] * n_qubits_t
-                for q in node_template.qindices:
-                    l_q_sub[q] = node_circuit.qindices[node_template.qindices.index(q)]
+                for q in self.qindices(self.template_dag_dep, node_template):
+                    l_q_sub[q] = self.qindices(self.circuit_dag_dep, node_circuit)[self.qindices(self.template_dag_dep, node_template).index(q)]
                 l_q.append(l_q_sub)
             # Not symmetric
             else:
-                for perm_q in itertools.permutations(node_circuit.qindices):
+                for perm_q in itertools.permutations(self.qindices(self.circuit_dag_dep, node_circuit)):
                     l_q_sub = [-1] * n_qubits_t
                     for q in node_template.qindices:
-                        l_q_sub[q] = perm_q[node_template.qindices.index(q)]
+                        l_q_sub[q] = perm_q[self.qindices(self.template_dag_dep, node_template).index(q)]
                     l_q.append(l_q_sub)
 
         # Classical control
-        if not node_template.cindices or not node_circuit.cindices:
+        if not self.cindices(self.template_dag_dep, node_template) or not self.cindices(self.circuit_dag_dep, node_circuit):
             l_c = []
         else:
             l_c = [-1] * n_clbits_t
-            for c in node_template.cindices:
-                l_c[c] = node_circuit[node_template.cindices.index(c)]
+            for c in self.cindices(self.template_dag_dep, node_template):
+                l_c[c] = node_circuit[self.cindices(self.template_dag_dep, node_template).index(c)]
 
         return l_q, l_c
 
@@ -199,12 +203,13 @@ class TemplateMatching:
         """
         template_nodes = range(node_id_t + 1, self.template_dag_dep.size())
         circuit_nodes = range(0, self.circuit_dag_dep.size())
-        successors_template = self.template_dag_dep.get_node(node_id_t).successors
+        if self.template_dag_dep.get_node(node_id_t) not in self.descendants:
+            self.descendants[node_id_t] = self.get_descendants(self.template_dag_dep, self.template_dag_dep.get_node(node_id_t))
 
         counter = 1
         qubit_set = set(self.circuit_dag_dep.get_node(node_id_c).qindices)
-        if 2 * len(successors_template) > len(template_nodes):
-            successors = self.circuit_dag_dep.get_node(node_id_c).successors
+        if 2 * len(self.descendants[node_id_t]) > len(template_nodes):
+            successors = self.get_descendants(self.circuit_dag_dep, self.circuit_dag_dep.get_node(node_id_c))
             for succ in successors:
                 qarg = self.circuit_dag_dep.get_node(succ).qindices
                 if (len(qubit_set | set(qarg))) <= n_qubits_t and counter <= length:
@@ -215,8 +220,10 @@ class TemplateMatching:
             return list(qubit_set)
 
         else:
+            if self.get_node(self.circuit_dag_dep, node_id_c) not in self.descendants:
+                self.descendants[node_id_c] = self.get_descendants(self.circuit_dag_dep, self.get_node(circuit_dag_dep, node_id_c))
             not_successors = list(
-                set(circuit_nodes) - set(self.circuit_dag_dep.get_node(node_id_c).successors)
+                set(circuit_nodes) - set(self.descendants[node_id_c])
             )
             candidate = [
                 not_successors[j]
@@ -234,6 +241,24 @@ class TemplateMatching:
 
     def get_node(self, dag, node_id):
         return dag._multi_graph[node_id]
+
+    def qindices(self, dag, node):
+        return [dag.find_bit(qarg).index for qarg in node.qargs]
+
+    def cindices(self, dag, node):
+        return [dag.find_bit(carg).index for carg in node.cargs]
+
+    def get_descendants(self, dag, node):
+        return list(rx.descendants(dag._multi_graph, node_id))
+
+    def get_ancestors(self, dag, node):
+        return list(rx.ancestors(dag._multi_graph, node_id))
+
+    def get_successors(self, dag, node):
+        return [succ._node_id for succ in dag._multi_graph.successors(node)]
+
+    def get_predecessors(self, dag, node):
+        return [pred._node_id for pred in dag._multi_graph.predecessors(node)]
 
     def run_template_matching(self):
         """
@@ -256,15 +281,16 @@ class TemplateMatching:
         for template_index in range(0, self.template_dag_dep.size()):
             for circuit_index in range(0, self.circuit_dag_dep.size()):
                 # Operations match up to ParameterExpressions.
-                if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
-                    self.template_dag_dep.get_node(template_index).op
+                #if self.circuit_dag_dep.get_node(circuit_index).op.soft_compare(
+                if self.get_node(self.circuit_dag_dep, circuit_index).op.soft_compare(
+                    self.get_node(self.template_dag_dep, template_index).op
                 ):
 
-                    qarg_c = self.circuit_dag_dep.get_node(circuit_index).qindices
-                    carg_c = self.circuit_dag_dep.get_node(circuit_index).cindices
+                    qarg_c = self.qindices(self.circuit_dag_dep, self.get_node(self.circuit_dag_dep, circuit_index))
+                    carg_c = self.cindices(self.circuit_dag_dep, self.get_node(self.circuit_dag_dep, circuit_index))
 
-                    qarg_t = self.template_dag_dep.get_node(template_index).qindices
-                    carg_t = self.template_dag_dep.get_node(template_index).cindices
+                    qarg_t = self.qindices(self.template_dag_dep, self.get_node(self.template_dag_dep, template_index))
+                    carg_t = self.cindices(self.template_dag_dep, self.get_node(self.template_dag_dep, template_index))
 
                     node_id_c = circuit_index
                     node_id_t = template_index
@@ -272,8 +298,8 @@ class TemplateMatching:
                     # Fix the qubits and clbits configuration given the first match.
 
                     all_list_first_match_q, list_first_match_c = self._list_first_match_new(
-                        self.circuit_dag_dep.get_node(circuit_index),
-                        self.template_dag_dep.get_node(template_index),
+                        self.get_node(self.circuit_dag_dep, circuit_index),
+                        self.get_node(self.template_dag_dep, template_index),
                         n_qubits_t,
                         n_clbits_t,
                     )
@@ -321,9 +347,9 @@ class TemplateMatching:
                                                     self.template_dag_dep,
                                                     node_id_c,
                                                     node_id_t,
+                                                    self,
                                                     list_qubit_circuit,
                                                     list_clbit_circuit,
-                                                    self,
                                                 )
                                                 forward.run_forward_match()
 
@@ -334,6 +360,7 @@ class TemplateMatching:
                                                     forward.match,
                                                     node_id_c,
                                                     node_id_t,
+                                                    self,
                                                     list_qubit_circuit,
                                                     list_clbit_circuit,
                                                     self.heuristics_backward_param,
@@ -350,9 +377,10 @@ class TemplateMatching:
                                             self.template_dag_dep,
                                             node_id_c,
                                             node_id_t,
+                                            self,
                                             list_qubit_circuit,
                                         )
-                                        forward.run_forward_match()
+                                        matchedwith, isblocked = forward.run_forward_match()
 
                                         # Apply the backward match part of the algorithm.
                                         backward = BackwardMatch(
@@ -361,6 +389,9 @@ class TemplateMatching:
                                             forward.match,
                                             node_id_c,
                                             node_id_t,
+                                            self,
+                                            matchedwith,
+                                            isblocked,
                                             list_qubit_circuit,
                                             [],
                                             self.heuristics_backward_param,

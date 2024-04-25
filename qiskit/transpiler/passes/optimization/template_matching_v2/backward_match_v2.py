@@ -122,6 +122,9 @@ class BackwardMatch:
         forward_matches,
         node_id_c,
         node_id_t,
+        temp_match_class,
+        matchedwith,
+        isblocked,
         qubits,
         clbits=None,
         heuristics_backward_param=None,
@@ -139,8 +142,8 @@ class BackwardMatch:
             heuristics_backward_param (list): list that contains the two parameters for
             applying the heuristics (length and survivor).
         """
-        self.circuit_dag_dep = circuit_dag_dep.copy()
-        self.template_dag_dep = template_dag_dep.copy()
+        self.circuit_dag_dep = circuit_dag_dep
+        self.template_dag_dep = template_dag_dep
         self.qubits = qubits
         self.clbits = clbits if clbits is not None else []
         self.node_id_c = node_id_c
@@ -151,6 +154,9 @@ class BackwardMatch:
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
         self.matching_list = MatchingScenariosList()
+        self.temp_match_class = temp_match_class
+        self.matchedwith = matchedwith
+        self.isblocked = isblocked
 
     def _gate_indices(self):
         """
