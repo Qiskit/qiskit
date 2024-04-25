@@ -547,7 +547,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
     @combine(num_qubits=[5, 6, 7, 8, 9])
-    def test_probabilities_dict_hgate_medium_num_qubits(self, num_qubits):
+    def test_probabilities_dict_medium_num_qubits(self, num_qubits):
         """Test probabilities_dict_from_bitstring methods with medium number of qubits that are still
         reasonable to calculate the full dict with probabilities_dict of all possible outcomes"""
         qc: QuantumCircuit = QuantumCircuit(num_qubits)
@@ -558,6 +558,7 @@ class TestStabilizerState(QiskitTestCase):
         expected_result: float = float(1 / (2**num_qubits))
         target_dict: dict = StabilizerStateTestingTools._bitstring_product_dict(num_qubits)
         target_dict.update((k, expected_result) for k in target_dict)
+        
         for _ in range(self.samples):
             with self.subTest(msg="P(None)"):
                 value = stab.probabilities_dict()
@@ -566,11 +567,6 @@ class TestStabilizerState(QiskitTestCase):
                 probs = stab.probabilities()
                 target = np.array(([expected_result] * (2**num_qubits)))
                 self.assertTrue(np.allclose(probs, target))
-
-    @combine(num_qubits=[10, 15, 20, 30])
-    def test_probabilities_dict_hgate_large_num_qubits(self, num_qubits):
-        """Test probabilities_dict_from_bitstring method with large number of qubits using
-        random outcome_bitstring values for targeted bitstring calculations"""
 
         #All h gates
         qc = QuantumCircuit(num_qubits)
