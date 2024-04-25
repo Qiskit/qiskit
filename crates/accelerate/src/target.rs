@@ -97,6 +97,15 @@ fn qubit_props_list_from_props(
 }
 
 // Subclassable or Python Wrapping.
+/**
+ A representation of the properties of a gate implementation.
+
+This class provides the optional properties that a backend can provide
+about an instruction. These represent the set that the transpiler can
+currently work with if present. However, if your backend provides additional
+properties for instructions you should subclass this to add additional
+custom attributes for those custom/additional properties by the backend.
+*/
 #[pyclass(subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
@@ -111,14 +120,15 @@ pub struct InstructionProperties {
 #[pymethods]
 impl InstructionProperties {
     /**
-     A representation of the properties of a gate implementation.
+    Create a new ``InstructionProperties`` object
 
-    This class provides the optional properties that a backend can provide
-    about an instruction. These represent the set that the transpiler can
-    currently work with if present. However, if your backend provides additional
-    properties for instructions you should subclass this to add additional
-    custom attributes for those custom/additional properties by the backend.
-     */
+    Args:
+        duration (Option<f64>): The duration, in seconds, of the instruction on the
+            specified set of qubits
+        error (Option<f64>): The average error rate for the instruction on the specified
+            set of qubits.
+        calibration (Option<PyObject>): The pulse representation of the instruction.
+    */
     #[new]
     #[pyo3(text_signature = "(/, duration: float | None = None,
         error: float | None = None,
@@ -140,34 +150,34 @@ impl InstructionProperties {
         instruction_prop
     }
 
+    /**
+    The pulse representation of the instruction.
+
+    .. note::
+
+        This attribute always returns a Qiskit pulse program, but it is internally
+        wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
+        and to uniformly handle different data representation,
+        for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
+
+        This value can be overridden through the property setter in following manner.
+        When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
+        always treated as a user-defined (custom) calibration and
+        the transpiler may automatically attach the calibration data to the output circuit.
+        This calibration data may appear in the wire format as an inline calibration,
+        which may further update the backend standard instruction set architecture.
+
+        If you are a backend provider who provides a default calibration data
+        that is not needed to be attached to the transpiled quantum circuit,
+        you can directly set :class:`.CalibrationEntry` instance to this attribute,
+        in which you should set :code:`user_provided=False` when you define
+        calibration data for the entry. End users can still intentionally utilize
+        the calibration data, for example, to run pulse-level simulation of the circuit.
+        However, such entry doesn't appear in the wire format, and backend must
+        use own definition to compile the circuit down to the execution format.
+    */
     #[getter]
     pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
-        /*
-         The pulse representation of the instruction.
-
-        .. note::
-
-            This attribute always returns a Qiskit pulse program, but it is internally
-            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-            and to uniformly handle different data representation,
-            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
-
-            This value can be overridden through the property setter in following manner.
-            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-            always treated as a user-defined (custom) calibration and
-            the transpiler may automatically attach the calibration data to the output circuit.
-            This calibration data may appear in the wire format as an inline calibration,
-            which may further update the backend standard instruction set architecture.
-
-            If you are a backend provider who provides a default calibration data
-            that is not needed to be attached to the transpiled quantum circuit,
-            you can directly set :class:`.CalibrationEntry` instance to this attribute,
-            in which you should set :code:`user_provided=False` when you define
-            calibration data for the entry. End users can still intentionally utilize
-            the calibration data, for example, to run pulse-level simulation of the circuit.
-            However, such entry doesn't appear in the wire format, and backend must
-            use own definition to compile the circuit down to the execution format.
-         */
         match &self._calibration {
             Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
             None => None,
@@ -237,10 +247,94 @@ impl InstructionProperties {
     }
 }
 
+// Custom types
 type GateMapType =
     IndexMap<String, Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>>;
 type TargetValue = Option<IndexMap<Option<HashableVec<u32>>, Option<InstructionProperties>>>;
 type ErrorDictType<'a> = IndexMap<String, IndexMap<HashableVec<u32>, Bound<'a, PyAny>>>;
+
+/**
+The intent of the ``Target`` object is to inform Qiskit's compiler about
+the constraints of a particular backend so the compiler can compile an
+input circuit to something that works and is optimized for a device. It
+currently contains a description of instructions on a backend and their
+properties as well as some timing information. However, this exact
+interface may evolve over time as the needs of the compiler change. These
+changes will be done in a backwards compatible and controlled manner when
+they are made (either through versioning, subclassing, or mixins) to add
+on to the set of information exposed by a target.
+
+As a basic example, let's assume backend has two qubits, supports
+:class:`~qiskit.circuit.library.UGate` on both qubits and
+:class:`~qiskit.circuit.library.CXGate` in both directions. To model this
+you would create the target like::
+
+    from qiskit.transpiler import Target, InstructionProperties
+    from qiskit.circuit.library import UGate, CXGate
+    from qiskit.circuit import Parameter
+
+    gmap = Target()
+    theta = Parameter('theta')
+    phi = Parameter('phi')
+    lam = Parameter('lambda')
+    u_props = {
+        (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+        (1,): InstructionProperties(duration=4.52e-8, error=0.00032115),
+    }
+    gmap.add_instruction(UGate(theta, phi, lam), u_props)
+    cx_props = {
+        (0,1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        (1,0): InstructionProperties(duration=4.52e-7, error=0.00132115),
+    }
+    gmap.add_instruction(CXGate(), cx_props)
+
+Each instruction in the ``Target`` is indexed by a unique string name that uniquely
+identifies that instance of an :class:`~qiskit.circuit.Instruction` object in
+the Target. There is a 1:1 mapping between a name and an
+:class:`~qiskit.circuit.Instruction` instance in the target and each name must
+be unique. By default, the name is the :attr:`~qiskit.circuit.Instruction.name`
+attribute of the instruction, but can be set to anything. This lets a single
+target have multiple instances of the same instruction class with different
+parameters. For example, if a backend target has two instances of an
+:class:`~qiskit.circuit.library.RXGate` one is parameterized over any theta
+while the other is tuned up for a theta of pi/6 you can add these by doing something
+like::
+
+    import math
+
+    from qiskit.transpiler import Target, InstructionProperties
+    from qiskit.circuit.library import RXGate
+    from qiskit.circuit import Parameter
+
+    target = Target()
+    theta = Parameter('theta')
+    rx_props = {
+        (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+    }
+    target.add_instruction(RXGate(theta), rx_props)
+    rx_30_props = {
+        (0,): InstructionProperties(duration=1.74e-6, error=.00012)
+    }
+    target.add_instruction(RXGate(math.pi / 6), rx_30_props, name='rx_30')
+
+Then in the ``target`` object accessing by ``rx_30`` will get the fixed
+angle :class:`~qiskit.circuit.library.RXGate` while ``rx`` will get the
+parameterized :class:`~qiskit.circuit.library.RXGate`.
+
+.. note::
+
+    This class assumes that qubit indices start at 0 and are a contiguous
+    set if you want a submapping the bits will need to be reindexed in
+    a new``Target`` object.
+
+.. note::
+
+    This class only supports additions of gates, qargs, and qubits.
+    If you need to remove one of these the best option is to iterate over
+    an existing object and create a new subset (or use one of the methods
+    to do this). The object internally caches different views and these
+    would potentially be invalidated by removals.
+ */
 #[pyclass(mapping, subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct Target {
@@ -281,15 +375,58 @@ pub struct Target {
 
 #[pymethods]
 impl Target {
+    /**
+    Create a new ``Target`` object
+
+    Args:
+        description (str): An optional string to describe the Target.
+        num_qubits (int): An optional int to specify the number of qubits
+            the backend target has. If not set it will be implicitly set
+            based on the qargs when :meth:`~qiskit.Target.add_instruction`
+            is called. Note this must be set if the backend target is for a
+            noiseless simulator that doesn't have constraints on the
+            instructions so the transpiler knows how many qubits are
+            available.
+        dt (float): The system time resolution of input signals in seconds
+        granularity (int): An integer value representing minimum pulse gate
+            resolution in units of ``dt``. A user-defined pulse gate should
+            have duration of a multiple of this granularity value.
+        min_length (int): An integer value representing minimum pulse gate
+            length in units of ``dt``. A user-defined pulse gate should be
+            longer than this length.
+        pulse_alignment (int): An integer value representing a time
+            resolution of gate instruction starting time. Gate instruction
+            should start at time which is a multiple of the alignment
+            value.
+        acquire_alignment (int): An integer value representing a time
+            resolution of measure instruction starting time. Measure
+            instruction should start at time which is a multiple of the
+            alignment value.
+        qubit_properties (list): A list of :class:`~.QubitProperties`
+            objects defining the characteristics of each qubit on the
+            target device. If specified the length of this list must match
+            the number of qubits in the target, where the index in the list
+            matches the qubit number the properties are defined for. If some
+            qubits don't have properties available you can set that entry to
+            ``None``
+        concurrent_measurements(list): A list of sets of qubits that must be
+            measured together. This must be provided
+            as a nested list like ``[[0, 1], [2, 3, 4]]``.
+    Raises:
+        ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
+            defined and the value of ``num_qubits`` differs from the length of
+            ``qubit_properties``.
+     */
     #[new]
-    #[pyo3(text_signature = "(/, description=None,
-        num_qubits=0,
-        dt=None,
-        granularity=1,
-        min_length=1,
-        pulse_alignment=1,
-        acquire_alignment=1,
-        qubit_properties=None,
+    #[pyo3(text_signature = "(/,\
+        description=None,\
+        num_qubits=0,\
+        dt=None,\
+        granularity=1,\
+        min_length=1,\
+        pulse_alignment=1,\
+        acquire_alignment=1,\
+        qubit_properties=None,\
         concurrent_measurements=None,)")]
     fn new(
         description: Option<String>,
@@ -324,7 +461,74 @@ impl Target {
         }
     }
 
-    #[pyo3(text_signature = "(/, instruction, properties=None, name=None")]
+    /**
+    Add a new instruction to the :class:`~qiskit.transpiler.Target`
+
+    As ``Target`` objects are strictly additive this is the primary method
+    for modifying a ``Target``. Typically, you will use this to fully populate
+    a ``Target`` before using it in :class:`~qiskit.providers.BackendV2`. For
+    example::
+
+        from qiskit.circuit.library import CXGate
+        from qiskit.transpiler import Target, InstructionProperties
+
+        target = Target()
+        cx_properties = {
+            (0, 1): None,
+            (1, 0): None,
+            (0, 2): None,
+            (2, 0): None,
+            (0, 3): None,
+            (2, 3): None,
+            (3, 0): None,
+            (3, 2): None
+        }
+        target.add_instruction(CXGate(), cx_properties)
+
+    Will add a :class:`~qiskit.circuit.library.CXGate` to the target with no
+    properties (duration, error, etc) with the coupling edge list:
+    ``(0, 1), (1, 0), (0, 2), (2, 0), (0, 3), (2, 3), (3, 0), (3, 2)``. If
+    there are properties available for the instruction you can replace the
+    ``None`` value in the properties dictionary with an
+    :class:`~qiskit.transpiler.InstructionProperties` object. This pattern
+    is repeated for each :class:`~qiskit.circuit.Instruction` the target
+    supports.
+
+    Args:
+        instruction (Union[qiskit.circuit.Instruction, Type[qiskit.circuit.Instruction]]):
+            The operation object to add to the map. If it's parameterized any value
+            of the parameter can be set. Optionally for variable width
+            instructions (such as control flow operations such as :class:`~.ForLoop` or
+            :class:`~MCXGate`) you can specify the class. If the class is specified than the
+            ``name`` argument must be specified. When a class is used the gate is treated as global
+            and not having any properties set.
+        properties (dict): A dictionary of qarg entries to an
+            :class:`~qiskit.transpiler.InstructionProperties` object for that
+            instruction implementation on the backend. Properties are optional
+            for any instruction implementation, if there are no
+            :class:`~qiskit.transpiler.InstructionProperties` available for the
+            backend the value can be None. If there are no constraints on the
+            instruction (as in a noiseless/ideal simulation) this can be set to
+            ``{None, None}`` which will indicate it runs on all qubits (or all
+            available permutations of qubits for multi-qubit gates). The first
+            ``None`` indicates it applies to all qubits and the second ``None``
+            indicates there are no
+            :class:`~qiskit.transpiler.InstructionProperties` for the
+            instruction. By default, if properties is not set it is equivalent to
+            passing ``{None: None}``.
+        name (str): An optional name to use for identifying the instruction. If not
+            specified the :attr:`~qiskit.circuit.Instruction.name` attribute
+            of ``gate`` will be used. All gates in the ``Target`` need unique
+            names. Backends can differentiate between different
+            parameterization of a single gate by providing a unique name for
+            each (e.g. `"rx30"`, `"rx60", ``"rx90"`` similar to the example in the
+            documentation for the :class:`~qiskit.transpiler.Target` class).
+    Raises:
+        AttributeError: If gate is already in map
+        TranspilerError: If an operation class is passed in for ``instruction`` and no name
+            is specified or ``properties`` is set.
+     */
+    #[pyo3(text_signature = "(instruction, /, properties=None, name=None")]
     fn add_instruction(
         &mut self,
         py: Python<'_>,
@@ -413,7 +617,17 @@ impl Target {
         Ok(())
     }
 
-    #[pyo3(text_signature = "(/, instruction, qargs, properties)")]
+    /**
+    Update the property object for an instruction qarg pair already in the Target
+
+    Args:
+        instruction (str): The instruction name to update
+        qargs (tuple): The qargs to update the properties of
+        properties (InstructionProperties): The properties to set for this instruction
+    Raises:
+        KeyError: If ``instruction`` or ``qarg`` are not in the target
+     */
+    #[pyo3(text_signature = "(instruction, qargs, properties, /,)")]
     fn update_instruction_properties(
         &mut self,
         _py: Python<'_>,
@@ -421,15 +635,6 @@ impl Target {
         qargs: Option<HashableVec<u32>>,
         properties: Option<InstructionProperties>,
     ) -> PyResult<()> {
-        /* Update the property object for an instruction qarg pair already in the Target
-
-        Args:
-            instruction (str): The instruction name to update
-            qargs (tuple): The qargs to update the properties of
-            properties (InstructionProperties): The properties to set for this instruction
-        Raises:
-            KeyError: If ``instruction`` or ``qarg`` are not in the target */
-
         // For debugging
         if !self.gate_map.contains_key(&instruction) {
             return Err(PyKeyError::new_err(format!(
@@ -456,7 +661,33 @@ impl Target {
         Ok(())
     }
 
-    #[pyo3(text_signature = "(/, inst_map, inst_name_map=None, error_dict=None")]
+    /**
+    Update the target from an instruction schedule map.
+
+    If the input instruction schedule map contains new instructions not in
+    the target they will be added. However, if it contains additional qargs
+    for an existing instruction in the target it will error.
+
+    Args:
+        inst_map (InstructionScheduleMap): The instruction
+        inst_name_map (dict): An optional dictionary that maps any
+            instruction name in ``inst_map`` to an instruction object.
+            If not provided, instruction is pulled from the standard Qiskit gates,
+            and finally custom gate instance is created with schedule name.
+        error_dict (dict): A dictionary of errors of the form::
+
+            {gate_name: {qarg: error}}
+
+        for example::
+
+            {'rx': {(0, ): 1.4e-4, (1, ): 1.2e-4}}
+
+        For each entry in the ``inst_map`` if ``error_dict`` is defined
+        a when updating the ``Target`` the error value will be pulled from
+        this dictionary. If one is not found in ``error_dict`` then
+        ``None`` will be used.
+     */
+    #[pyo3(text_signature = "(inst_map, /, inst_name_map=None, error_dict=None")]
     fn update_from_instruction_schedule_map(
         &mut self,
         py: Python<'_>,
@@ -643,16 +874,16 @@ impl Target {
         Ok(())
     }
 
+    /**
+    Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
+    instructions in the target with a pulse schedule defined.
+
+    Returns:
+        InstructionScheduleMap: The instruction schedule map for the
+        instructions in this target with a pulse schedule defined.
+     */
     #[pyo3(text_signature = "(/)")]
     fn instruction_schedule_map(&mut self, py: Python<'_>) -> PyResult<PyObject> {
-        /*
-        Return an :class:`~qiskit.pulse.InstructionScheduleMap` for the
-        instructions in the target with a pulse schedule defined.
-
-        Returns:
-            InstructionScheduleMap: The instruction schedule map for the
-            instructions in this target with a pulse schedule defined.
-         */
         let inst_sched_map_module = py.import_bound("qiskit.pulse.instruction_schedule_map")?;
         let inst_sched_map_class = inst_sched_map_module.getattr("InstructionScheduleMap")?;
         let out_inst_schedule_map = inst_sched_map_class.call0()?;
@@ -678,19 +909,19 @@ impl Target {
         Ok(out_inst_schedule_map.unbind())
     }
 
-    #[pyo3(text_signature = "(/, operation)")]
+    /**
+    Get the qargs for a given operation name
+
+    Args:
+        operation (str): The operation name to get qargs for
+    Returns:
+        set: The set of qargs the gate instance applies to.
+    */
+    #[pyo3(text_signature = "(operation, /,)")]
     fn qargs_for_operation_name(
         &self,
         operation: String,
     ) -> PyResult<Option<Vec<Option<HashableVec<u32>>>>> {
-        /*
-        Get the qargs for a given operation name
-
-        Args:
-           operation (str): The operation name to get qargs for
-        Returns:
-            set: The set of qargs the gate instance applies to.
-         */
         if let Some(gate_map_oper) = self.gate_map.get(&operation).cloned() {
             if let Some(gate_map_op) = gate_map_oper {
                 if gate_map_op.contains_key(&None) {
@@ -708,6 +939,13 @@ impl Target {
         }
     }
 
+    /**
+    Get an InstructionDurations object from the target
+
+    Returns:
+        InstructionDurations: The instruction duration represented in the
+            target
+    */
     #[pyo3(text_signature = "(/,)")]
     fn durations(&mut self, py: Python<'_>) -> PyResult<Option<PyObject>> {
         if self.instruction_durations.is_some() {
@@ -742,6 +980,12 @@ impl Target {
         Ok(self.instruction_durations.to_owned())
     }
 
+    /**
+    Get an :class:`~qiskit.transpiler.TimingConstraints` object from the target
+
+    Returns:
+        TimingConstraints: The timing constraints represented in the ``Target``
+    */
     #[pyo3(text_signature = "(/,)")]
     fn timing_constraints(&self, py: Python<'_>) -> PyResult<PyObject> {
         let timing_constraints_class = py
@@ -757,7 +1001,18 @@ impl Target {
             .unbind())
     }
 
-    #[pyo3(text_signature = "(/,)")]
+    /**
+    Get the operation class object for a given name
+
+    Args:
+        instruction (str): The instruction name to get the
+            :class:`~qiskit.circuit.Instruction` instance for
+    Returns:
+        qiskit.circuit.Instruction: The Instruction instance corresponding to the
+        name. This also can also be the class for globally defined variable with
+        operations.
+    */
+    #[pyo3(text_signature = "(instruction, /)")]
     fn operation_from_name(&self, instruction: String) -> PyResult<PyObject> {
         if self.gate_name_map.contains_key(&instruction) {
             Ok(self.gate_name_map[&instruction].to_owned())
@@ -769,7 +1024,23 @@ impl Target {
         }
     }
 
-    #[pyo3(text_signature = "(/, qargs)")]
+    /**
+    Get the operation class object for a specified qargs tuple
+
+    Args:
+        qargs (tuple): A qargs tuple of the qubits to get the gates that apply
+            to it. For example, ``(0,)`` will return the set of all
+            instructions that apply to qubit 0. If set to ``None`` this will
+            return any globally defined operations in the target.
+    Returns:
+        list: The list of :class:`~qiskit.circuit.Instruction` instances
+        that apply to the specified qarg. This may also be a class if
+        a variable width operation is globally defined.
+
+    Raises:
+        KeyError: If qargs is not in target
+    */
+    #[pyo3(text_signature = "(/, qargs=None)")]
     fn operations_for_qargs(
         &self,
         py: Python<'_>,
@@ -817,6 +1088,20 @@ impl Target {
         Ok(res.into())
     }
 
+    /**
+    Get the operation names for a specified qargs tuple
+
+    Args:
+        qargs (tuple): A ``qargs`` tuple of the qubits to get the gates that apply
+            to it. For example, ``(0,)`` will return the set of all
+            instructions that apply to qubit 0. If set to ``None`` this will
+            return the names for any globally defined operations in the target.
+    Returns:
+        set: The set of operation names that apply to the specified ``qargs``.
+
+    Raises:
+        KeyError: If ``qargs`` is not in target
+    */
     #[pyo3(text_signature = "(/, qargs=None)")]
     fn operation_names_for_qargs(
         &self,
@@ -857,7 +1142,67 @@ impl Target {
         Ok(res)
     }
 
-    #[pyo3(text_signature = "(/, qargs)")]
+    /**
+    Return whether the instruction (operation + qubits) is supported by the target
+
+    Args:
+        operation_name (str): The name of the operation for the instruction. Either
+            this or ``operation_class`` must be specified, if both are specified
+            ``operation_class`` will take priority and this argument will be ignored.
+        qargs (tuple): The tuple of qubit indices for the instruction. If this is
+            not specified then this method will return ``True`` if the specified
+            operation is supported on any qubits. The typical application will
+            always have this set (otherwise it's the same as just checking if the
+            target contains the operation). Normally you would not set this argument
+            if you wanted to check more generally that the target supports an operation
+            with the ``parameters`` on any qubits.
+        operation_class (Type[qiskit.circuit.Instruction]): The operation class to check whether
+            the target supports a particular operation by class rather
+            than by name. This lookup is more expensive as it needs to
+            iterate over all operations in the target instead of just a
+            single lookup. If this is specified it will supersede the
+            ``operation_name`` argument. The typical use case for this
+            operation is to check whether a specific variant of an operation
+            is supported on the backend. For example, if you wanted to
+            check whether a :class:`~.RXGate` was supported on a specific
+            qubit with a fixed angle. That fixed angle variant will
+            typically have a name different from the object's
+            :attr:`~.Instruction.name` attribute (``"rx"``) in the target.
+            This can be used to check if any instances of the class are
+            available in such a case.
+        parameters (list): A list of parameters to check if the target
+            supports them on the specified qubits. If the instruction
+            supports the parameter values specified in the list on the
+            operation and qargs specified this will return ``True`` but
+            if the parameters are not supported on the specified
+            instruction it will return ``False``. If this argument is not
+            specified this method will return ``True`` if the instruction
+            is supported independent of the instruction parameters. If
+            specified with any :class:`~.Parameter` objects in the list,
+            that entry will be treated as supporting any value, however parameter names
+            will not be checked (for example if an operation in the target
+            is listed as parameterized with ``"theta"`` and ``"phi"`` is
+            passed into this function that will return ``True``). For
+            example, if called with::
+
+                parameters = [Parameter("theta")]
+                target.instruction_supported("rx", (0,), parameters=parameters)
+
+            will return ``True`` if an :class:`~.RXGate` is supported on qubit 0
+            that will accept any parameter. If you need to check for a fixed numeric
+            value parameter this argument is typically paired with the ``operation_class``
+            argument. For example::
+
+                target.instruction_supported("rx", (0,), RXGate, parameters=[pi / 4])
+
+            will return ``True`` if an RXGate(pi/4) exists on qubit 0.
+
+    Returns:
+        bool: Returns ``True`` if the instruction is supported and ``False`` if it isn't.
+    */
+    #[pyo3(
+        text_signature = "(/, operation_name=None, qargs=None, operation_class=None, parameters=None)"
+    )]
     fn instruction_supported(
         &self,
         py: Python<'_>,
@@ -1066,18 +1411,18 @@ impl Target {
         Ok(false)
     }
 
+    /**
+    Return whether the instruction (operation + qubits) defines a calibration.
+
+    Args:
+        operation_name: The name of the operation for the instruction.
+        qargs: The tuple of qubit indices for the instruction.
+
+    Returns:
+        Returns ``True`` if the calibration is supported and ``False`` if it isn't.
+    */
     #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
     fn has_calibration(&self, operation_name: String, qargs: HashableVec<u32>) -> PyResult<bool> {
-        /*
-        Return whether the instruction (operation + qubits) defines a calibration.
-
-        Args:
-            operation_name: The name of the operation for the instruction.
-            qargs: The tuple of qubit indices for the instruction.
-
-        Returns:
-            Returns ``True`` if the calibration is supported and ``False`` if it isn't.
-         */
         if !self.gate_map.contains_key(&operation_name) {
             return Ok(false);
         }
@@ -1091,26 +1436,29 @@ impl Target {
         Ok(false)
     }
 
-    #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
+    /**
+    Get calibrated pulse schedule for the instruction.
+
+    If calibration is templated with parameters, one can also provide those values
+    to build a schedule with assigned parameters.
+
+    Args:
+        operation_name: The name of the operation for the instruction.
+        qargs: The tuple of qubit indices for the instruction.
+        args: Parameter values to build schedule if any.
+        kwargs: Parameter values with name to build schedule if any.
+
+    Returns:
+        Calibrated pulse schedule of corresponding instruction.
+    */
+    #[pyo3(
+        text_signature = "( /, operation_name: str, qargs: tuple[int, ...], *args: ParameterValueType, **kwargs: ParameterValueType,)"
+    )]
     fn get_calibration(
         &self,
         operation_name: String,
         qargs: HashableVec<u32>,
     ) -> PyResult<&PyObject> {
-        /* Get calibrated pulse schedule for the instruction.
-
-        If calibration is templated with parameters, one can also provide those values
-        to build a schedule with assigned parameters.
-
-        Args:
-            operation_name: The name of the operation for the instruction.
-            qargs: The tuple of qubit indices for the instruction.
-            args: Parameter values to build schedule if any.
-            kwargs: Parameter values with name to build schedule if any.
-
-        Returns:
-            Calibrated pulse schedule of corresponding instruction.
-         */
         if !self.has_calibration(operation_name.clone(), qargs.clone())? {
             return Err(PyKeyError::new_err(format!(
                 "Calibration of instruction {:?} for qubit {:?} is not defined.",
@@ -1128,6 +1476,41 @@ impl Target {
         )
     }
 
+    /**
+    Get the instruction properties for a specific instruction tuple
+
+    This method is to be used in conjunction with the
+    :attr:`~qiskit.transpiler.Target.instructions` attribute of a
+    :class:`~qiskit.transpiler.Target` object. You can use this method to quickly
+    get the instruction properties for an element of
+    :attr:`~qiskit.transpiler.Target.instructions` by using the index in that list.
+    However, if you're not working with :attr:`~qiskit.transpiler.Target.instructions`
+    directly it is likely more efficient to access the target directly via the name
+    and qubits to get the instruction properties. For example, if
+    :attr:`~qiskit.transpiler.Target.instructions` returned::
+
+        [(XGate(), (0,)), (XGate(), (1,))]
+
+    you could get the properties of the ``XGate`` on qubit 1 with::
+
+        props = target.instruction_properties(1)
+
+    but just accessing it directly via the name would be more efficient::
+
+        props = target['x'][(1,)]
+
+    (assuming the ``XGate``'s canonical name in the target is ``'x'``)
+    This is especially true for larger targets as this will scale worse with the number
+    of instruction tuples in a target.
+
+    Args:
+        index (int): The index of the instruction tuple from the
+            :attr:`~qiskit.transpiler.Target.instructions` attribute. For, example
+            if you want the properties from the third element in
+            :attr:`~qiskit.transpiler.Target.instructions` you would set this to be ``2``.
+    Returns:
+        InstructionProperties: The instruction properties for the specified instruction tuple
+    */
     #[pyo3(text_signature = "(/, index: int)")]
     fn instruction_properties(&self, index: usize) -> PyResult<Option<InstructionProperties>> {
         let mut instruction_properties: Vec<Option<InstructionProperties>> = vec![];
@@ -1147,7 +1530,26 @@ impl Target {
         Ok(instruction_properties[index].to_owned())
     }
 
-    #[pyo3(text_signature = "(/, strict_direction=False)")]
+    /**
+    Return the non-global operation names for the target
+
+    The non-global operations are those in the target which don't apply
+    on all qubits (for single qubit operations) or all multi-qubit qargs
+    (for multi-qubit operations).
+
+    Args:
+        strict_direction (bool): If set to ``True`` the multi-qubit
+            operations considered as non-global respect the strict
+            direction (or order of qubits in the qargs is significant). For
+            example, if ``cx`` is defined on ``(0, 1)`` and ``ecr`` is
+            defined over ``(1, 0)`` by default neither would be considered
+            non-global, but if ``strict_direction`` is set ``True`` both
+            ``cx`` and ``ecr`` would be returned.
+
+    Returns:
+        List[str]: A list of operation names for operations that aren't global in this target
+    */
+    #[pyo3(signature = (strict_direction=false, /), text_signature = "(strict_direction=false, /)")]
     fn get_non_global_operation_names(&mut self, strict_direction: bool) -> PyResult<Vec<String>> {
         let mut search_set: HashSet<Option<HashableVec<u32>>> = HashSet::new();
         if strict_direction {
@@ -1236,6 +1638,8 @@ impl Target {
     }
 
     // Class properties
+
+    /// The set of qargs in the target.
     #[getter]
     fn qargs(&self) -> PyResult<Option<HashSet<Option<HashableVec<u32>>>>> {
         let qargs: HashSet<Option<HashableVec<u32>>> =
@@ -1248,6 +1652,14 @@ impl Target {
         Ok(Some(qargs))
     }
 
+    /**
+    Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
+    for the target
+
+    For globally defined variable width operations the tuple will be of the form
+    ``(class, None)`` where class is the actual operation class that
+    is globally defined.
+    */
     #[getter]
     fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, PyObject)>> {
         // Get list of instructions.
@@ -1265,26 +1677,89 @@ impl Target {
         // Return results.
         Ok(instruction_list)
     }
-
+    /// Get the operation names in the target.
     #[getter]
     fn operation_names(&self) -> HashSet<String> {
-        // Get the operation names in the target.
         return HashSet::from_iter(self.gate_map.keys().cloned());
     }
-
+    /// Get the operation names in the target.
     #[getter]
     fn operations(&self) -> Vec<PyObject> {
-        // Get the operation names in the target.
         return Vec::from_iter(self.gate_name_map.values().cloned());
     }
 
+    /// Returns a sorted list of physical qubits.
     #[getter]
     fn physical_qubits(&self) -> Vec<usize> {
-        // Returns a sorted list of physical qubits.
         Vec::from_iter(0..self.num_qubits.unwrap_or_default())
     }
 
-    // Class methods
+    /**
+    Create a target object from the individual global configuration
+
+    Prior to the creation of the :class:`~.Target` class, the constraints
+    of a backend were represented by a collection of different objects
+    which combined represent a subset of the information contained in
+    the :class:`~.Target`. This function provides a simple interface
+    to convert those separate objects to a :class:`~.Target`.
+
+    This constructor will use the input from ``basis_gates``, ``num_qubits``,
+    and ``coupling_map`` to build a base model of the backend and the
+    ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs
+    are then queried (in that order) based on that model to look up the properties
+    of each instruction and qubit. If there is an inconsistency between the inputs
+    any extra or conflicting information present in ``instruction_durations``,
+    ``backend_properties``, or ``inst_map`` will be ignored.
+
+    Args:
+        basis_gates: The list of basis gate names for the backend. For the
+            target to be created these names must either be in the output
+            from :func:`~.get_standard_gate_name_mapping` or present in the
+            specified ``custom_name_mapping`` argument.
+        num_qubits: The number of qubits supported on the backend.
+        coupling_map: The coupling map representing connectivity constraints
+            on the backend. If specified all gates from ``basis_gates`` will
+            be supported on all qubits (or pairs of qubits).
+        inst_map: The instruction schedule map representing the pulse
+            :class:`~.Schedule` definitions for each instruction. If this
+            is specified ``coupling_map`` must be specified. The
+            ``coupling_map`` is used as the source of truth for connectivity
+            and if ``inst_map`` is used the schedule is looked up based
+            on the instructions from the pair of ``basis_gates`` and
+            ``coupling_map``. If you want to define a custom gate for
+            a particular qubit or qubit pair, you can manually build :class:`.Target`.
+        backend_properties: The :class:`~.BackendProperties` object which is
+            used for instruction properties and qubit properties.
+            If specified and instruction properties are intended to be used
+            then the ``coupling_map`` argument must be specified. This is
+            only used to lookup error rates and durations (unless
+            ``instruction_durations`` is specified which would take
+            precedence) for instructions specified via ``coupling_map`` and
+            ``basis_gates``.
+        instruction_durations: Optional instruction durations for instructions. If specified
+            it will take priority for setting the ``duration`` field in the
+            :class:`~InstructionProperties` objects for the instructions in the target.
+        concurrent_measurements(list): A list of sets of qubits that must be
+            measured together. This must be provided
+            as a nested list like ``[[0, 1], [2, 3, 4]]``.
+        dt: The system time resolution of input signals in seconds
+        timing_constraints: Optional timing constraints to include in the
+            :class:`~.Target`
+        custom_name_mapping: An optional dictionary that maps custom gate/operation names in
+            ``basis_gates`` to an :class:`~.Operation` object representing that
+            gate/operation. By default, most standard gates names are mapped to the
+            standard gate object from :mod:`qiskit.circuit.library` this only needs
+            to be specified if the input ``basis_gates`` defines gates in names outside
+            that set.
+
+    Returns:
+        Target: the target built from the input configuration
+
+    Raises:
+        TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
+        specified.
+        KeyError: If no mapping is available for a specified ``basis_gate``.
+    */
     #[classmethod]
     fn from_configuration(
         _cls: &Bound<'_, PyType>,
@@ -1567,6 +2042,7 @@ impl Target {
     }
 
     // Magic methods:
+
     fn __iter__(&self) -> PyResult<Vec<String>> {
         Ok(self.gate_map.keys().cloned().collect())
     }
