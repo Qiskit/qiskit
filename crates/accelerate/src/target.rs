@@ -216,10 +216,15 @@ impl InstructionProperties {
         Ok((self.duration, self.error, self._calibration.clone()))
     }
 
-    fn __setstate__(&mut self, state: (Option<f64>, Option<f64>, Option<PyObject>)) {
+    fn __setstate__(
+        &mut self,
+        py: Python<'_>,
+        state: (Option<f64>, Option<f64>, Bound<PyAny>),
+    ) -> PyResult<()> {
         self.duration = state.0;
         self.error = state.1;
-        self._calibration = state.2;
+        self.set_calibration(py, state.2)?;
+        Ok(())
     }
 
     fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
@@ -597,9 +602,11 @@ impl Target {
             for qarg in properties.keys().cloned() {
                 if let Some(qarg) = qarg.clone() {
                     if qarg.vec.len() != inst_num_qubits {
-                        return Err(TranspilerError::new_err(
-                            format!("The number of qubits for {instruction} does not match the number of qubits in the properties dictionary: {:?}", qarg.vec)
-                        ));
+                        return Err(TranspilerError::new_err(format!(
+                            "The number of qubits for {instruction} does not match\
+                             the number of qubits in the properties dictionary: {:?}",
+                            qarg.vec
+                        )));
                     }
                     self.num_qubits = Some(
                         self.num_qubits
@@ -1559,7 +1566,7 @@ impl Target {
     Returns:
         List[str]: A list of operation names for operations that aren't global in this target
     */
-    #[pyo3(signature = (strict_direction=false, /), text_signature = "(strict_direction=false, /)")]
+    #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=false)")]
     fn get_non_global_operation_names(&mut self, strict_direction: bool) -> PyResult<Vec<String>> {
         let mut search_set: HashSet<Option<HashableVec<u32>>> = HashSet::new();
         if strict_direction {
