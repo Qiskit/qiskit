@@ -60,28 +60,14 @@ pub fn blocks_to_matrix(
         };
 
         let aux = matrix.clone();
-        match result {
-            Some(x) => {
-                matmul(
-                    matrix.as_mut(),
-                    x.as_ref(),
-                    aux.as_ref(),
-                    None,
-                    c64::new(1., 0.),
-                    Parallelism::None,
-                );
-            }
-            None => {
-                matmul(
-                    matrix.as_mut(),
-                    op_matrix,
-                    aux.as_ref(),
-                    None,
-                    c64::new(1., 0.),
-                    Parallelism::None,
-                );
-            }
-        };
+        matmul(
+            matrix.as_mut(),
+            result.as_ref().map(|x| x.as_ref()).unwrap_or(op_matrix),
+            aux.as_ref(),
+            None,
+            c64::new(1., 0.),
+            Parallelism::None,
+        );
     }
 
     Ok(matrix
