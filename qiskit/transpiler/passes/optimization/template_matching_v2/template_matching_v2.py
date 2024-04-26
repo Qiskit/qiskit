@@ -81,17 +81,17 @@ class TemplateMatching:
         # Controlled gate
         if isinstance(node_circuit.op, ControlledGate) and node_template.op.num_ctrl_qubits > 1:
             control = node_template.op.num_ctrl_qubits
-            control_qubits_circuit = node_circuit.qindices[:control]
-            not_control_qubits_circuit = node_circuit.qindices[control::]
+            control_qubits_circuit = self.qindices(self.circuit_dag_dep, node_circuit)[:control]
+            not_control_qubits_circuit = self.qindices(self.circuit_dag_dep, node_circuit)[control::]
 
             # Symmetric base gate
             if node_template.op.base_gate.name not in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 for control_perm_q in itertools.permutations(control_qubits_circuit):
                     control_perm_q = list(control_perm_q)
                     l_q_sub = [-1] * n_qubits_t
-                    for q in node_template.qindices:
+                    for q in self.qindices(self.template_dag_dep, node_template):
                         node_circuit_perm = control_perm_q + not_control_qubits_circuit
-                        l_q_sub[q] = node_circuit_perm[node_template.qindices.index(q)]
+                        l_q_sub[q] = node_circuit_perm[self.qindices(self.template_dag_dep, node_template).index(q)]
                     l_q.append(l_q_sub)
             # Not symmetric base gate
             else:
@@ -100,9 +100,9 @@ class TemplateMatching:
                     for not_control_perm_q in itertools.permutations(not_control_qubits_circuit):
                         not_control_perm_q = list(not_control_perm_q)
                         l_q_sub = [-1] * n_qubits_t
-                        for q in node_template.qindices:
+                        for q in self.qindices(self.template_dag_dep, node_template):
                             node_circuit_perm = control_perm_q + not_control_perm_q
-                            l_q_sub[q] = node_circuit_perm[node_template.qindices.index(q)]
+                            l_q_sub[q] = node_circuit_perm[self.qindices(self.template_dag_dep, node_template).index(q)]
                         l_q.append(l_q_sub)
         # Not controlled
         else:
@@ -116,7 +116,7 @@ class TemplateMatching:
             else:
                 for perm_q in itertools.permutations(self.qindices(self.circuit_dag_dep, node_circuit)):
                     l_q_sub = [-1] * n_qubits_t
-                    for q in node_template.qindices:
+                    for q in self.qindices(self.template_dag_dep, node_template):
                         l_q_sub[q] = perm_q[self.qindices(self.template_dag_dep, node_template).index(q)]
                     l_q.append(l_q_sub)
 
@@ -208,13 +208,13 @@ class TemplateMatching:
             self.descendants[node] = self.get_descendants(self.template_dag_dep, node)
 
         counter = 1
-        qubit_set = set(self.circuit_dag_dep.get_node(node_id_c).qindices)
+        qubit_set = set(self.qindices(circuit_dag_dep, self.get_node(self.circuit_dag_dep, node_id_c)))
         if 2 * len(self.descendants[node_id_t]) > len(template_nodes):
             node = self.get_node(self.circuit_dag_dep, node_id_c)
             if node not in self.descendants:
                 self.descendants[node] = self.get_descendants(self.circuit_dag_dep, node)
             for succ in self.descendants[node]:
-                qarg = self.circuit_dag_dep.get_node(succ).qindices
+                qarg = self.qindices(self.circuit_dag_dep, self.get_node(self.circuit_dag_dep, succ))
                 if (len(qubit_set | set(qarg))) <= n_qubits_t and counter <= length:
                     qubit_set = qubit_set | set(qarg)
                     counter += 1
@@ -235,7 +235,7 @@ class TemplateMatching:
             ]
 
             for not_succ in candidate:
-                qarg = self.circuit_dag_dep.get_node(not_succ).qindices
+                qarg = self.qindices(self.circuit_dag_dep, self.get_node(self.circuit_dag_dep, not_succ))
                 if counter <= length and (len(qubit_set | set(qarg))) <= n_qubits_t:
                     qubit_set = qubit_set | set(qarg)
                     counter += 1

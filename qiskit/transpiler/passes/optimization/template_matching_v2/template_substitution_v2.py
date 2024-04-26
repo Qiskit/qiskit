@@ -219,7 +219,7 @@ class TemplateSubstitution:
         for index in template_sublist:
             node = self.temp_match_class.get_node(self.template_dag_dep, index)
             if node not in self.temp_match_class.descendants:
-                self.temp_match_class.ancestors[node] = self.temp_match_class.get_descendants(self.template_dag_dep, index)
+                self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.template_dag_dep, index)
             succ = succ | set(self.temp_match_class.descendants[node])
         succ = list(succ - set(template_sublist))
 
@@ -420,7 +420,7 @@ class TemplateSubstitution:
                 for elem in pred:
                     node = self.temp_match_class.get_node(self.circuit_dag_dep, elem)
                     inst = node.op.copy()
-                    dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
+                    dag_dep_opt.apply_operation_back(inst, node.qargs, node.cargs)
                     already_sub.append(elem)
 
                 already_sub = already_sub + circuit_sub
@@ -443,16 +443,16 @@ class TemplateSubstitution:
                         cargs = []
                     node = self.temp_match_class.get_node(group.template_dag_dep, index)
                     inst = node.op.copy()
-                    dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
+                    dag_dep_opt.apply_operation_back(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
             for node_id in self.unmatched_list:
                 node = self.temp_match_class.get_node(self.circuit_dag_dep, node_id)
                 inst = node.op.copy()
-                dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
+                dag_dep_opt.apply_operation_back(inst, node.qargs, node.cargs)
 
-            dag_dep_opt._add_predecessors()
-            dag_dep_opt._add_successors()
+            # dag_dep_opt._add_predecessors()
+            # dag_dep_opt._add_successors()
         # If there is no valid match, it returns the original dag.
         else:
             dag_dep_opt = self.circuit_dag_dep
