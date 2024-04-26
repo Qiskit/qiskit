@@ -19,6 +19,8 @@ from qiskit.qpy import dump, load
 
 
 def test_io():
+    """Test QPy serialization and de-serialization."""
+
     circuit = QuantumCircuit(2)
     circuit.ms(1.23, [0, 1])
 
@@ -27,5 +29,5 @@ def test_io():
 
     try:
         _ = load(io.BytesIO(buf.getvalue()))
-    except Exception as e:
-        raise IOError("Loading to and from qpy failed.") from e
+    except Exception as exception:
+        raise IOError("Loading to and from qpy failed.") from exception
