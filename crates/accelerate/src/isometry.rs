@@ -30,7 +30,7 @@ use crate::two_qubit_decompose::ONE_QUBIT_IDENTITY;
 #[pyfunction]
 pub fn reverse_qubit_state(
     py: Python,
-    state: Vec<Complex64>,
+    state: [Complex64; 2],
     basis_state: usize,
     epsilon: f64,
 ) -> PyObject {
@@ -47,7 +47,7 @@ fn l2_norm(vec: &[Complex64]) -> f64 {
 }
 
 fn reverse_qubit_state_inner(
-    state: &[Complex64],
+    state: &[Complex64; 2],
     basis_state: usize,
     epsilon: f64,
 ) -> Array2<Complex64> {
