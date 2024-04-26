@@ -22,7 +22,6 @@ use hashbrown::HashSet;
 use itertools::Itertools;
 use ndarray::prelude::*;
 use numpy::{IntoPyArray, PyReadonlyArray2};
-use rayon::prelude::*;
 
 use crate::two_qubit_decompose::ONE_QUBIT_IDENTITY;
 
@@ -194,17 +193,16 @@ pub fn apply_diagonal_gate_to_diag(
 /// is acting on for a specific state state_free of the qubits we neither control nor act on
 fn construct_basis_states(
     state_free: &[u8],
-    control_labels: &[usize],
+    control_set: &HashSet<usize>,
     target_label: usize,
 ) -> [usize; 2] {
-    let size = state_free.len() + control_labels.len() + 1;
+    let size = state_free.len() + control_set.len() + 1;
     let mut e1: usize = 0;
     let mut e2: usize = 0;
     let mut j = 0;
-    let control_set: HashSet<usize> = control_labels.iter().copied().collect();
     for i in 0..size {
-            e1 <<= 1;
-            e2 <<= 1;
+        e1 <<= 1;
+        e2 <<= 1;
         if control_set.contains(&i) {
             e1 += 1;
             e2 += 1;
@@ -224,7 +222,7 @@ fn construct_basis_states(
 pub fn apply_multi_controlled_gate(
     py: Python,
     m: PyReadonlyArray2<Complex64>,
-    mut control_labels: Vec<usize>,
+    control_labels: Vec<usize>,
     target_label: usize,
     gate: PyReadonlyArray2<Complex64>,
 ) -> PyObject {
@@ -233,10 +231,10 @@ pub fn apply_multi_controlled_gate(
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
     let num_col = shape[1];
-    control_labels.par_sort();
     let free_qubits = num_qubits as usize - control_labels.len() - 1;
+    let control_set: HashSet<usize> = control_labels.into_iter().collect();
     if free_qubits == 0 {
-        let [e1, e2] = construct_basis_states(&[], &control_labels, target_label);
+        let [e1, e2] = construct_basis_states(&[], &control_set, target_label);
         for i in 0..num_col {
             let temp: Vec<_> = gate
                 .dot(&aview2(&[[m[[e1, i]]], [m[[e2, i]]]]))
@@ -252,7 +250,7 @@ pub fn apply_multi_controlled_gate(
         .take(free_qubits)
         .multi_cartesian_product()
     {
-        let [e1, e2] = construct_basis_states(&state_free, &control_labels, target_label);
+        let [e1, e2] = construct_basis_states(&state_free, &control_set, target_label);
         for i in 0..num_col {
             let temp: Vec<_> = gate
                 .dot(&aview2(&[[m[[e1, i]]], [m[[e2, i]]]]))
