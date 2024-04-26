@@ -932,8 +932,9 @@ class SparsePauliOp(LinearOp):
             sparse: if ``True`` return a sparse CSR matrix, otherwise return dense Numpy
                 array (the default).
             force_serial: if ``True``, use an unthreaded implementation, regardless of the state of
-                the ``RAYON_NUM_THREADS`` or ``QISKIT_IN_PARALLEL`` environment variables.  By
-                default, this will use threaded parallelism over the available CPUs.
+                the `Qiskit threading-control environment variables
+                <https://docs.quantum.ibm.com/start/configure-qiskit-local#environment-variables>`__.
+                By default, this will use threaded parallelism over the available CPUs.
 
         Returns:
             array: A dense matrix if `sparse=False`.
