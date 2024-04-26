@@ -12,6 +12,9 @@
 
 //! Extension structs for use with Rayon parallelism.
 
+// See https://github.com/rayon-rs/rayon/blob/v1.10.0/src/iter/plumbing/README.md (or a newer
+// version) for more of an explanation of how Rayon's plumbing works.
+
 use rayon::iter::plumbing::*;
 use rayon::prelude::*;
 
