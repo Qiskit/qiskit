@@ -15,6 +15,9 @@ import math
 from cmath import exp
 from math import pi
 from typing import Optional
+
+import numpy
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -167,10 +170,10 @@ class XXPlusYYGate(Gate):
         """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the XX+YY gate."""
-        import numpy
-
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
