@@ -192,7 +192,10 @@ class BackwardMatch:
 
         matches_template = sorted(match[0] for match in matches)
 
-        successors = self.temp_match_class.get_successors(self.template_dag_dep, self.node_id_t)
+        node = self.temp_match_class.get_node(self.template_dag_dep, self.node_id_t)
+        if node not in self.temp_match_class.descendants:
+            self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.template_dag_dep, self.node_id_t)
+        successors = self.temp_match_class.descendants[node]
         potential = []
         for index in range(self.node_id_t + 1, self.template_dag_dep.size()):
             if (index not in successors) and (index not in template_block):
@@ -531,14 +534,12 @@ class BackwardMatch:
 
                     # Loop to check if the match is not connected, in this case
                     # the successors matches are blocked and unmatched.
-                    template_descs = self.temp_match_class.get_descendants(self.template_dag_dep, template_id)
-                    for potential_block in template_descs:
+                    for potential_block in self.temp_match_class.get_descendants(self.template_dag_dep, template_id):
                         if not template_matched_match[potential_block]:
                             template_blocked_match[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
-                                block_descs = self.temp_match_class.get_descendants(self.template_dag_dep, block_id)
-                                for succ_id in block_descs:
+                                for succ_id in self.temp_match_class.get_descendants(self.template_dag_dep, block_id):
                                     template_blocked_match[succ_id] = True
                                     if template_matched_match[succ_id]:
                                         new_id = template_matched_match[succ_id][0]
@@ -599,7 +600,10 @@ class BackwardMatch:
 
                 # Second option, not a greedy match, block all successors (push the gate
                 # to the right).
-                for succ in self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id):
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
+                if node not in self.temp_match_class.descendants:
+                    self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
+                for succ in self.temp_match_class.descendants[node]:
                     circuit_blocked_block_s[succ] = True
                     if circuit_matched_block_s[succ]:
                         broken_matches.append(succ)
@@ -645,7 +649,10 @@ class BackwardMatch:
 
                     circuit_blocked_block_p[circuit_id] = True
 
-                    for pred in self.temp_match_class.get_ancestors(circuit_dag_dep, circuit_id):
+                    node = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
+                    if node not in self.temp_match_class.ancestors:
+                        self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.circuit_dag_dep, circuit_id)
+                    for pred in self.temp_match_class.ancestors[node]:
                         circuit_blocked_block_p[pred] = True
 
                     matching_scenario = MatchingScenarios(
@@ -665,14 +672,19 @@ class BackwardMatch:
 
                 following_matches = []
 
-                successors = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
-                for succ in successors:
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
+                if node not in self.temp_match_class.descendants:
+                    self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
+                for succ in self.temp_match_class.descendants[node]:
                     if circuit_matched[succ]:
                         following_matches.append(succ)
 
                 # First option, the circuit gate is not disturbing because there are no
                 # following match and no predecessors.
-                predecessors = self.temp_match_class.get_ancestors(self.circuit_dag_dep, circuit_id)
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
+                if node not in self.temp_match_class.ancestors:
+                    self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.circuit_dag_dep, circuit_id)
+                predecessors = self.temp_match_class.ancestors[node]
 
                 if not predecessors or not following_matches:
 
@@ -716,7 +728,10 @@ class BackwardMatch:
 
                     broken_matches = []
 
-                    successors = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
+                    node = self.temp_match_class.get_node(self.circuit_dag_dep, circuit_id)
+                    if node not in self.temp_match_class.descendants:
+                        self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.circuit_dag_dep, circuit_id)
+                    successors = self.temp_match_class.descendants[node]
 
                     for succ in successors:
                         circuit_blocked_nomatch[succ] = True

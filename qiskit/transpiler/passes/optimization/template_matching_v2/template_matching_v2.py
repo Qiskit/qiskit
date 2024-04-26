@@ -203,14 +203,17 @@ class TemplateMatching:
         """
         template_nodes = range(node_id_t + 1, self.template_dag_dep.size())
         circuit_nodes = range(0, self.circuit_dag_dep.size())
-        if self.template_dag_dep.get_node(node_id_t) not in self.descendants:
-            self.descendants[node_id_t] = self.get_descendants(self.template_dag_dep, self.template_dag_dep.get_node(node_id_t))
+        node = self.get_node(self.template_dag_dep, node_id_t)
+        if node not in self.descendants:
+            self.descendants[node] = self.get_descendants(self.template_dag_dep, node)
 
         counter = 1
         qubit_set = set(self.circuit_dag_dep.get_node(node_id_c).qindices)
         if 2 * len(self.descendants[node_id_t]) > len(template_nodes):
-            successors = self.get_descendants(self.circuit_dag_dep, self.circuit_dag_dep.get_node(node_id_c))
-            for succ in successors:
+            node = self.get_node(self.circuit_dag_dep, node_id_c)
+            if node not in self.descendants:
+                self.descendants[node] = self.get_descendants(self.circuit_dag_dep, node)
+            for succ in self.descendants[node]:
                 qarg = self.circuit_dag_dep.get_node(succ).qindices
                 if (len(qubit_set | set(qarg))) <= n_qubits_t and counter <= length:
                     qubit_set = qubit_set | set(qarg)
@@ -220,10 +223,11 @@ class TemplateMatching:
             return list(qubit_set)
 
         else:
-            if self.get_node(self.circuit_dag_dep, node_id_c) not in self.descendants:
-                self.descendants[node_id_c] = self.get_descendants(self.circuit_dag_dep, self.get_node(circuit_dag_dep, node_id_c))
+            node = self.get_node(self.circuit_dag_dep, node_id_c)
+            if node not in self.descendants:
+                self.descendants[node] = self.get_descendants(self.circuit_dag_dep, node)
             not_successors = list(
-                set(circuit_nodes) - set(self.descendants[node_id_c])
+                set(circuit_nodes) - set(self.descendants[node])
             )
             candidate = [
                 not_successors[j]

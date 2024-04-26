@@ -20,7 +20,7 @@ import itertools
 
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.dagdependency_v2 import _DAGDependencyV2
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.utils import optionals as _optionals
 
@@ -50,7 +50,7 @@ class SubstitutionConfig:
 
     def has_parameters(self):
         """Ensure that the template does not have parameters."""
-        for node in self.template_dag_dep.get_nodes():
+        for node in self.template_dag_dep.op_nodes():
             for param in node.op.params:
                 if isinstance(param, ParameterExpression):
                     return True
@@ -63,7 +63,7 @@ class TemplateSubstitution:
     Class to run the substitution algorithm from the list of maximal matches.
     """
 
-    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None):
+    def __init__(self, max_matches, circuit_dag_dep, template_dag_dep, temp_match_class, user_cost_dict=None):
         """
         Initialize TemplateSubstitution with necessary arguments.
         Args:
@@ -78,10 +78,11 @@ class TemplateSubstitution:
         self.match_stack = max_matches
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
+        self.temp_match_class = temp_match_class
 
         self.substitution_list = []
         self.unmatched_list = []
-        self.dag_dep_optimized = DAGDependency()
+        self.dag_dep_optimized = _DAGDependencyV2()
         self.dag_optimized = DAGCircuit()
 
         if user_cost_dict is not None:
@@ -138,7 +139,10 @@ class TemplateSubstitution:
         """
         predecessors = set()
         for node_id in circuit_sublist:
-            predecessors = predecessors | set(self.circuit_dag_dep.get_node(node_id).predecessors)
+            node = self.temp_match_class.get_node(self.circuit_dag_dep, node_id)
+            if node not in self.temp_match_class.ancestors:
+                self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.circuit_dag_dep, node)
+            predecessors = predecessors | set(self.temp_match_class.ancestors[node])
 
         exclude = set()
         for elem in self.substitution_list[:index]:
@@ -160,11 +164,11 @@ class TemplateSubstitution:
         """
         cost_left = 0
         for i in left:
-            cost_left += self.cost_dict[self.template_dag_dep.get_node(i).name]
+            cost_left += self.cost_dict[self.temp_match_class.get_node(self.template_dag_dep, i).name]
 
         cost_right = 0
         for j in right:
-            cost_right += self.cost_dict[self.template_dag_dep.get_node(j).name]
+            cost_right += self.cost_dict[self.temp_match_class.get_node(self.template_dag_dep, j).name]
 
         return cost_left > cost_right
 
@@ -205,12 +209,18 @@ class TemplateSubstitution:
 
         pred = set()
         for index in template_sublist:
-            pred = pred | set(self.template_dag_dep.get_node(index).predecessors)
+            node = self.temp_match_class.get_node(self.template_dag_dep, index)
+            if node not in self.temp_match_class.ancestors:
+                self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.template_dag_dep, index)
+            pred = pred | set(self.temp_match_class.ancestors[node])
         pred = list(pred - set(template_sublist))
 
         succ = set()
         for index in template_sublist:
-            succ = succ | set(self.template_dag_dep.get_node(index).successors)
+            node = self.temp_match_class.get_node(self.template_dag_dep, index)
+            if node not in self.temp_match_class.descendants:
+                self.temp_match_class.ancestors[node] = self.temp_match_class.get_descendants(self.template_dag_dep, index)
+            succ = succ | set(self.temp_match_class.descendants[node])
         succ = list(succ - set(template_sublist))
 
         comm = list(set(template_list) - set(pred) - set(succ))
@@ -249,7 +259,10 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             predecessors = set()
             for match in scenario.circuit_config:
-                predecessors = predecessors | set(self.circuit_dag_dep.get_node(match).predecessors)
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, match)
+                if node not in self.temp_match_class.ancestors:
+                    self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.circuit_dag_dep, match)
+                predecessors = predecessors | set(self.temp_match_class.ancestors[node])
             predecessors = predecessors - set(scenario.circuit_config)
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
@@ -275,7 +288,10 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             predecessors = set()
             for index in scenario.circuit_config:
-                predecessors = predecessors | set(self.circuit_dag_dep.get_node(index).predecessors)
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, index)
+                if node not in self.temp_match_class.ancestors:
+                    self.temp_match_class.ancestors[node] = self.temp_match_class.get_ancestors(self.circuit_dag_dep, index)
+                predecessors = predecessors | set(self.temp_match_class.ancestors[node])
             list_predecessors.append(predecessors)
 
         # Check if two groups of matches are incompatible.
@@ -369,7 +385,7 @@ class TemplateSubstitution:
         """
         self._substitution()
 
-        dag_dep_opt = DAGDependency()
+        dag_dep_opt = _DAGDependencyV2()
 
         dag_dep_opt.name = self.circuit_dag_dep.name
 
@@ -402,7 +418,7 @@ class TemplateSubstitution:
 
                 # First add all the predecessors of the given match.
                 for elem in pred:
-                    node = self.circuit_dag_dep.get_node(elem)
+                    node = self.temp_match_class.get_node(self.circuit_dag_dep, elem)
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
                     already_sub.append(elem)
@@ -412,25 +428,26 @@ class TemplateSubstitution:
                 # Then add the inverse of the template.
                 for index in template_inverse:
                     all_qubits = self.circuit_dag_dep.qubits
-                    qarg_t = group.template_dag_dep.get_node(index).qindices
+                    node = self.temp_match_class.get_node(group.template_dag_dep, index)
+                    qarg_t = self.temp_match_class.qindices(group.template_dag_dep, node)
                     qarg_c = [qubit[x] for x in qarg_t]
                     qargs = [all_qubits[x] for x in qarg_c]
 
                     all_clbits = self.circuit_dag_dep.clbits
-                    carg_t = group.template_dag_dep.get_node(index).cindices
+                    carg_t = self.temp_match_class.cindices(group.template_dag_dep, node)
 
                     if all_clbits and clbit:
                         carg_c = [clbit[x] for x in carg_t]
                         cargs = [all_clbits[x] for x in carg_c]
                     else:
                         cargs = []
-                    node = group.template_dag_dep.get_node(index)
+                    node = self.temp_match_class.get_node(group.template_dag_dep, index)
                     inst = node.op.copy()
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
             for node_id in self.unmatched_list:
-                node = self.circuit_dag_dep.get_node(node_id)
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, node_id)
                 inst = node.op.copy()
                 dag_dep_opt.add_op_node(inst, node.qargs, node.cargs)
 
@@ -515,7 +532,7 @@ class TemplateSubstitution:
         # add parameters from circuit to circuit_params
         for idx, _ in enumerate(template_sublist):
             qc_idx = circuit_sublist[idx]
-            parameters = self.circuit_dag_dep.get_node(qc_idx).op.params
+            parameters = self.temp_match_class.get_node(self.circuit_dag_dep, qc_idx).op.params
             circuit_params += parameters
             for parameter in parameters:
                 if isinstance(parameter, ParameterExpression):
@@ -535,7 +552,7 @@ class TemplateSubstitution:
         # add parameters from template to template_params, replacing parameters with names that
         # clash with those in the circuit.
         for t_idx in template_sublist:
-            node = template_dag_dep.get_node(t_idx)
+            node = self.temp_match_class.get_node(self.template_dag_dep, t_idx)
             sub_node_params = []
             for t_param_exp in node.op.params:
                 if isinstance(t_param_exp, ParameterExpression):
@@ -549,7 +566,7 @@ class TemplateSubstitution:
                 node.op = node.op.to_mutable()
             node.op.params = sub_node_params
 
-        for node in template_dag_dep.get_nodes():
+        for node in template_dag_dep.op_nodes():
             sub_node_params = []
             for param_exp in node.op.params:
                 if isinstance(param_exp, ParameterExpression):
@@ -600,7 +617,7 @@ class TemplateSubstitution:
         }
         fake_bind = {key: sol[key.name] for key in temp_symbols}
 
-        for node in template_dag_dep.get_nodes():
+        for node in template_dag_dep.op_nodes():
             bound_params = []
             for param_exp in node.op.params:
                 if isinstance(param_exp, ParameterExpression):
@@ -624,13 +641,13 @@ class TemplateSubstitution:
         parameters in the circuit.
         """
         template_params = set()
-        for param_list in (node.op.params for node in template.get_nodes()):
+        for param_list in (node.op.params for node in template.op_nodes()):
             for param_exp in param_list:
                 if isinstance(param_exp, ParameterExpression):
                     template_params.update(param_exp.parameters)
 
         circuit_params = set()
-        for param_list in (node.op.params for node in self.circuit_dag_dep.get_nodes()):
+        for param_list in (node.op.params for node in self.circuit_dag_dep.op_nodes()):
             for param_exp in param_list:
                 if isinstance(param_exp, ParameterExpression):
                     circuit_params.update(param_exp.parameters)

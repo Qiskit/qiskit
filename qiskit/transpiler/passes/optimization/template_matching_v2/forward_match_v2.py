@@ -153,7 +153,10 @@ class ForwardMatch:
         for node_id in pred:
             for dir_succ in self.temp_match_class.get_successors(self.template_dag_dep, node_id):
                 if dir_succ not in matches:
-                    succ = self.temp_match_class.get_descendants(self.template_dag_dep, dir_succ)
+                    node = self.temp_match_class.get_node(self.template_dag_dep, dir_succ)
+                    if node not in self.temp_match_class.descendants:
+                        self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.template_dag_dep, dir_succ)
+                    succ = self.temp_match_class.descendants[node]
                     block = block + succ
         self.candidates = list(
             set(temp_succs) - set(matches) - set(block)
@@ -270,7 +273,7 @@ class ForwardMatch:
                     return False
         else:
             if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
-                return set(self.qarg_indices) == set(node_template.qindices)
+                return set(self.qarg_indices) == set(self.temp_match_class.qindices(self.template_dag_dep, node_template))
             else:
                 return self.qarg_indices == node_temp_qind
 
@@ -402,16 +405,18 @@ class ForwardMatch:
             # If no match is found, block the node and all the descendants.
             if not match:
                 self.isblocked[trial_successor] = True
-                if self.temp_match_class.get_node(self.circuit_dag_dep, trial_successor_id) not in self.temp_match_class.descendants:
-                    self.temp_match_class.descendants[trial_successor_id] = self.temp_match_class.get_descendants(self.circuit_dag_dep, trial_successor_id)
-                for desc in self.temp_match_class.descendants[trial_successor_id]:
+                node = self.temp_match_class.get_node(self.circuit_dag_dep, trial_successor_id)
+                if node not in self.temp_match_class.descendants:
+                    self.temp_match_class.descendants[node] = self.temp_match_class.get_descendants(self.circuit_dag_dep, trial_successor_id)
+
+                for desc in self.temp_match_class.descendants[node]:
                     self.isblocked[self.temp_match_class.get_node(self.circuit_dag_dep, desc)] = True
-                    if self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)]:
+                    if self.matchedwith[self.temp_match_class.get_node(self.circuit_dag_dep, desc)]:
                         self.match.remove(
-                            [self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)][0], desc]
+                            [self.matchedwith[self.temp_match_class.get_node(self.circuit_dag_dep, desc)][0], desc]
                         )
-                        match_id = self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)][0]
-                        self.matchedwith[self.temp_match_class.get_node(template_dag_dep, match_id)] = []
-                        self.matchedwith[self.temp_match_class.get_node(circuit_dag_dep, desc)] = []
+                        match_id = self.matchedwith[self.temp_match_class.get_node(self.circuit_dag_dep, desc)][0]
+                        self.matchedwith[self.temp_match_class.get_node(self.template_dag_dep, match_id)] = []
+                        self.matchedwith[self.temp_match_class.get_node(self.circuit_dag_dep, desc)] = []
         
         return (self.matchedwith, self.isblocked)
