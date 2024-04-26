@@ -231,13 +231,12 @@ def _experiments_to_circuits(qobj):
         pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
         # The dict update method did not work here; could investigate in the future
         if hasattr(qobj.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib)
-            )
+            circuit.calibrations = {
+                **circuit.calibrations,
+                **_qobj_to_circuit_cals(qobj, pulse_lib),
+            }
         if hasattr(exp.config, "calibrations"):
-            circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)
-            )
+            circuit.calibrations = {**circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)}
         circuits.append(circuit)
     return circuits
 

@@ -23,6 +23,7 @@ import scipy.stats
 from ddt import ddt, data
 
 from qiskit import QiskitError, transpile
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit.library import (
@@ -270,6 +271,8 @@ class CheckDecompositions(QiskitTestCase):
     ):
         """Check exact decomposition for a particular target"""
         decomp_circuit = decomposer(target_unitary, _num_basis_uses=num_basis_uses)
+        if isinstance(decomp_circuit, DAGCircuit):
+            decomp_circuit = dag_to_circuit(decomp_circuit)
         if num_basis_uses is not None:
             self.assertEqual(num_basis_uses, decomp_circuit.count_ops().get("unitary", 0))
         decomp_unitary = Operator(decomp_circuit).data
@@ -1228,6 +1231,42 @@ class TestTwoQubitDecompose(CheckDecompositions):
             unitary = random_unitary(4, seed=seed)
             self.check_exact_decomposition(unitary.data, decomposer)
 
+            decomposition_basis = set(decomposer(unitary).count_ops())
+            requested_basis = set(oneq_gates + [kak_gate_name])
+            self.assertTrue(decomposition_basis.issubset(requested_basis))
+
+    @combine(
+        seed=range(10),
+        euler_bases=[
+            ("U321", ["u3", "u2", "u1"]),
+            ("U3", ["u3"]),
+            ("U", ["u"]),
+            ("U1X", ["u1", "rx"]),
+            ("RR", ["r"]),
+            ("PSX", ["p", "sx"]),
+            ("ZYZ", ["rz", "ry"]),
+            ("ZXZ", ["rz", "rx"]),
+            ("XYX", ["rx", "ry"]),
+            ("ZSX", ["rz", "sx"]),
+            ("ZSXX", ["rz", "sx", "x"]),
+        ],
+        kak_gates=[
+            (CXGate(), "cx"),
+            (CZGate(), "cz"),
+            (iSwapGate(), "iswap"),
+            (RXXGate(np.pi / 2), "rxx"),
+        ],
+        name="test_euler_basis_selection_{seed}_{euler_bases[0]}_{kak_gates[1]}",
+    )
+    def test_use_dag(self, euler_bases, kak_gates, seed):
+        """Test the use_dag flag returns a correct dagcircuit with various target bases."""
+        (euler_basis, oneq_gates) = euler_bases
+        (kak_gate, kak_gate_name) = kak_gates
+        with self.subTest(euler_basis=euler_basis, kak_gate=kak_gate):
+            decomposer = TwoQubitBasisDecomposer(kak_gate, euler_basis=euler_basis)
+            unitary = random_unitary(4, seed=seed)
+            self.assertIsInstance(decomposer(unitary, use_dag=True), DAGCircuit)
+            self.check_exact_decomposition(unitary.data, decomposer)
             decomposition_basis = set(decomposer(unitary).count_ops())
             requested_basis = set(oneq_gates + [kak_gate_name])
             self.assertTrue(decomposition_basis.issubset(requested_basis))
