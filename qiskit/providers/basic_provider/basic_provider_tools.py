@@ -23,30 +23,30 @@ import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.
-SINGLE_QUBIT_GATES = (
-    "U",
-    "u",
-    "u1",
-    "u2",
-    "u3",
-    "h",
-    "p",
-    "s",
-    "sdg",
-    "sx",
-    "sxdg",
-    "t",
-    "tdg",
-    "x",
-    "y",
-    "z",
-    "id",
-    "i",
-    "r",
-    "rx",
-    "ry",
-    "rz",
-)
+SINGLE_QUBIT_GATES = {
+    "U": gates.UGate,
+    "u": gates.UGate,
+    "u1": gates.U1Gate,
+    "u2": gates.U2Gate,
+    "u3": gates.U3Gate,
+    "h": gates.HGate,
+    "p": gates.PhaseGate,
+    "s": gates.SGate,
+    "sdg": gates.SdgGate,
+    "sx": gates.SXGate,
+    "sxdg": gates.SXdgGate,
+    "t": gates.TGate,
+    "tdg": gates.TdgGate,
+    "x": gates.XGate,
+    "y": gates.YGate,
+    "z": gates.ZGate,
+    "id": gates.IGate,
+    "i": gates.IGate,
+    "r": gates.RGate,
+    "rx": gates.RXGate,
+    "ry": gates.RYGate,
+    "rz": gates.RZGate,
+}
 
 
 def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarray:
@@ -63,46 +63,8 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     """
     if params is None:
         params = []
-    if gate in ("U", "u"):
-        gc = gates.UGate
-    elif gate == "u1":
-        gc = gates.U1Gate
-    elif gate == "u2":
-        gc = gates.U2Gate
-    elif gate == "u3":
-        gc = gates.U3Gate
-    elif gate == "h":
-        gc = gates.HGate
-    elif gate == "p":
-        gc = gates.PhaseGate
-    elif gate == "s":
-        gc = gates.SGate
-    elif gate == "sdg":
-        gc = gates.SdgGate
-    elif gate == "sx":
-        gc = gates.SXGate
-    elif gate == "sxdg":
-        gc = gates.SXdgGate
-    elif gate == "t":
-        gc = gates.TGate
-    elif gate == "tdg":
-        gc = gates.TdgGate
-    elif gate == "x":
-        gc = gates.XGate
-    elif gate == "y":
-        gc = gates.YGate
-    elif gate == "z":
-        gc = gates.ZGate
-    elif gate in ("id", "i"):
-        gc = gates.IGate
-    elif gate == "r":
-        gc = gates.RGate
-    elif gate == "rx":
-        gc = gates.RXGate
-    elif gate == "ry":
-        gc = gates.RYGate
-    elif gate == "rz":
-        gc = gates.RZGate
+    if gate in SINGLE_QUBIT_GATES:
+        gc = SINGLE_QUBIT_GATES[gate]
     else:
         raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
 
