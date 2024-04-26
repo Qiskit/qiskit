@@ -777,26 +777,38 @@ class QuantumCircuit:
 
         return repeated_circ
 
-    def power(self, power: float, matrix_power: bool = False) -> "QuantumCircuit":
+    def power(
+        self, power: float, matrix_power: bool = False, annotated: bool = False
+    ) -> "QuantumCircuit":
         """Raise this circuit to the power of ``power``.
 
-        If ``power`` is a positive integer and ``matrix_power`` is ``False``, this implementation
-        defaults to calling ``repeat``. Otherwise, if the circuit is unitary, the matrix is
-        computed to calculate the matrix power.
+        If ``power`` is a positive integer and both ``matrix_power`` and ``annotated``
+        are ``False``, this implementation defaults to calling ``repeat``. Otherwise,
+        the circuit is converted into a gate, and a new circuit, containing this gate
+        raised to the given power, is returned. The gate raised to the given power is
+        implemented either as a unitary gate if ``annotated`` is ``False`` or as an
+        annotated operation if ``annotated`` is ``True``.
 
         Args:
             power (float): The power to raise this circuit to.
-            matrix_power (bool): If True, the circuit is converted to a matrix and then the
-                matrix power is computed. If False, and ``power`` is a positive integer,
-                the implementation defaults to ``repeat``.
+            matrix_power (bool): indicates whether the inner power gate can be implemented
+                as a unitary gate.
+            annotated (bool): indicates whether the inner power gate can be implemented
+                as an annotated operation.
 
         Raises:
-            CircuitError: If the circuit needs to be converted to a gate but it is not unitary.
+            CircuitError: If the circuit needs to be converted to a unitary gate, but is
+                not unitary.
 
         Returns:
             QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
         """
-        if power >= 0 and isinstance(power, (int, np.integer)) and not matrix_power:
+        if (
+            power >= 0
+            and isinstance(power, (int, np.integer))
+            and not matrix_power
+            and not annotated
+        ):
             return self.repeat(power)
 
         # attempt conversion to gate
@@ -812,12 +824,12 @@ class QuantumCircuit:
         except QiskitError as ex:
             raise CircuitError(
                 "The circuit contains non-unitary operations and cannot be "
-                "controlled. Note that no qiskit.circuit.Instruction objects may "
-                "be in the circuit for this operation."
+                "raised to a power. Note that no qiskit.circuit.Instruction "
+                "objects may be in the circuit for this operation."
             ) from ex
 
         power_circuit = QuantumCircuit(self.qubits, self.clbits, *self.qregs, *self.cregs)
-        power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
+        power_circuit.append(gate.power(power, annotated=annotated), list(range(gate.num_qubits)))
         return power_circuit
 
     def control(
