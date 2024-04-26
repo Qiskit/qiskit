@@ -203,20 +203,16 @@ fn construct_basis_states(
     let mut j = 0;
     let control_set: HashSet<usize> = control_labels.iter().copied().collect();
     for i in 0..size {
-        if control_set.contains(&i) {
             e1 <<= 1;
-            e1 += 1;
             e2 <<= 1;
+        if control_set.contains(&i) {
+            e1 += 1;
             e2 += 1;
         } else if i == target_label {
-            e1 <<= 1;
-            e2 <<= 1;
             e2 += 1;
         } else {
             assert!(j <= 1);
-            e1 <<= 1;
             e1 += state_free[j] as usize;
-            e2 <<= 1;
             e2 += state_free[j] as usize;
             j += 1
         }
