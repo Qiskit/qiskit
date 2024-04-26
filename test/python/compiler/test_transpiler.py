@@ -1080,7 +1080,7 @@ class TestTranspile(QiskitTestCase):
 
         qc = QuantumCircuit(15, 15)
 
-        with self.assertRaises(CircuitTooWideForTarget):
+        with self.assertRaises(TranspilerError):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
@@ -1190,73 +1190,70 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(qc, out)
 
-    # ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float.
-    # @data(
-    #     ["cx", "u3"],
-    #     ["cz", "u3"],
-    #     ["cz", "rx", "rz"],
-    #     ["rxx", "rx", "ry"],
-    #     ["iswap", "rx", "rz"],
-    # )
-    # def test_block_collection_runs_for_non_cx_bases(self, basis_gates):
-    #     """Verify block collection is run when a single two qubit gate is in the basis."""
-    #     twoq_gate, *_ = basis_gates
-    #
-    #     qc = QuantumCircuit(2)
-    #     qc.cx(0, 1)
-    #     qc.cx(1, 0)
-    #     qc.cx(0, 1)
-    #     qc.cx(0, 1)
-    #
-    #     out = transpile(qc, basis_gates=basis_gates, optimization_level=3, seed_transpiler=42)
-    #
-    #     self.assertLessEqual(out.count_ops()[twoq_gate], 2)
+    @data(
+        ["cx", "u3"],
+        ["cz", "u3"],
+        ["cz", "rx", "rz"],
+        ["rxx", "rx", "ry"],
+        ["iswap", "rx", "rz"],
+    )
+    def test_block_collection_runs_for_non_cx_bases(self, basis_gates):
+        """Verify block collection is run when a single two qubit gate is in the basis."""
+        twoq_gate, *_ = basis_gates
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(λ)])) cannot be cast to a float.
-    # @unpack
-    # @data(
-    #     (["u3", "cx"], {"u3": 1, "cx": 1}),
-    #     (["rx", "rz", "iswap"], {"rx": 6, "rz": 12, "iswap": 2}),
-    #     (["rx", "ry", "rxx"], {"rx": 6, "ry": 5, "rxx": 1}),
-    # )
-    # def test_block_collection_reduces_1q_gate(self, basis_gates, gate_counts):
-    #     """For synthesis to non-U3 bases, verify we minimize 1q gates."""
-    #     qc = QuantumCircuit(2)
-    #     qc.h(0)
-    #     qc.cx(0, 1)
-    #
-    #     out = transpile(qc, basis_gates=basis_gates, optimization_level=3, seed_transpiler=42)
-    #
-    #     self.assertTrue(Operator(out).equiv(qc))
-    #     self.assertTrue(set(out.count_ops()).issubset(basis_gates))
-    #     for basis_gate in basis_gates:
-    #         self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float. (UnitarySynthesis)
-    # @combine(
-    #     optimization_level=[0, 1, 2, 3],
-    #     basis_gates=[
-    #         ["u3", "cx"],
-    #         ["rx", "rz", "iswap"],
-    #         ["rx", "ry", "rxx"],
-    #     ],
-    # )
-    # def test_translation_method_synthesis(self, optimization_level, basis_gates):
-    #     """Verify translation_method='synthesis' gets to the basis."""
-    #     qc = QuantumCircuit(2)
-    #     qc.h(0)
-    #     qc.cx(0, 1)
-    #
-    #     out = transpile(
-    #         qc,
-    #         translation_method="synthesis",
-    #         basis_gates=basis_gates,
-    #         optimization_level=optimization_level,
-    #         seed_transpiler=42,
-    #     )
-    #
-    #     self.assertTrue(Operator(out).equiv(qc))
-    #     self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3, seed_transpiler=42)
+
+        self.assertLessEqual(out.count_ops()[twoq_gate], 2)
+
+    @unpack
+    @data(
+        (["u3", "cx"], {"u3": 1, "cx": 1}),
+        (["rx", "rz", "iswap"], {"rx": 6, "rz": 12, "iswap": 2}),
+        (["rx", "ry", "rxx"], {"rx": 6, "ry": 5, "rxx": 1}),
+    )
+    def test_block_collection_reduces_1q_gate(self, basis_gates, gate_counts):
+        """For synthesis to non-U3 bases, verify we minimize 1q gates."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(qc, basis_gates=basis_gates, optimization_level=3, seed_transpiler=42)
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
+        for basis_gate in basis_gates:
+            self.assertLessEqual(out.count_ops()[basis_gate], gate_counts[basis_gate])
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        basis_gates=[
+            ["u3", "cx"],
+            ["rx", "rz", "iswap"],
+            ["rx", "ry", "rxx"],
+        ],
+    )
+    def test_translation_method_synthesis(self, optimization_level, basis_gates):
+        """Verify translation_method='synthesis' gets to the basis."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        out = transpile(
+            qc,
+            translation_method="synthesis",
+            basis_gates=basis_gates,
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        self.assertTrue(Operator(out).equiv(qc))
+        self.assertTrue(set(out.count_ops()).issubset(basis_gates))
 
     def test_transpiled_custom_gates_calibration(self):
         """Test if transpiled calibrations is equal to custom gates circuit calibrations."""
@@ -1460,27 +1457,25 @@ class TestTranspile(QiskitTestCase):
         )
         self.assertEqual({"measure": 5, "my_custom_gate": 1, "barrier": 1}, trans_circ.count_ops())
 
-    # instruction_durations with no coupling map -> fail
-    # qiskit.transpiler.exceptions.TranspilerError: 'Duration of cx on qubits [0, 1] is not found.'
-    # @data(0, 1, 2, 3)
-    # def test_circuit_with_delay(self, optimization_level):
-    #     """Verify a circuit with delay can transpile to a scheduled circuit."""
-    #
-    #     qc = QuantumCircuit(2)
-    #     qc.h(0)
-    #     qc.delay(500, 1)
-    #     qc.cx(0, 1)
-    #
-    #     out = transpile(
-    #         qc,
-    #         scheduling_method="alap",
-    #         basis_gates=["h", "cx"],
-    #         instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
-    #         optimization_level=optimization_level,
-    #         seed_transpiler=42,
-    #     )
-    #
-    #     self.assertEqual(out.duration, 1200)
+    @data(0, 1, 2, 3)
+    def test_circuit_with_delay(self, optimization_level):
+        """Verify a circuit with delay can transpile to a scheduled circuit."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+
+        out = transpile(
+            qc,
+            scheduling_method="alap",
+            basis_gates=["h", "cx"],
+            instruction_durations=[("h", 0, 200), ("cx", [0, 1], 700)],
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+
+        self.assertEqual(out.duration, 1200)
 
     def test_delay_converts_to_dt(self):
         """Test that a delay instruction is converted to units of dt given a backend."""
@@ -1737,70 +1732,66 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(len(out.qubits), backend.num_qubits)
         self.assertEqual(len(out.clbits), len(clbits))
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float. (UnitarySynthesis)
-    # @data(0, 1, 2, 3)
-    # def test_translate_ecr_basis(self, optimization_level):
-    #     """Verify that rewriting in ECR basis is efficient."""
-    #     circuit = QuantumCircuit(2)
-    #     circuit.append(random_unitary(4, seed=1), [0, 1])
-    #     circuit.barrier()
-    #     circuit.cx(0, 1)
-    #     circuit.barrier()
-    #     circuit.swap(0, 1)
-    #     circuit.barrier()
-    #     circuit.iswap(0, 1)
-    #
-    #     res = transpile(
-    #         circuit,
-    #         basis_gates=["u", "ecr"],
-    #         optimization_level=optimization_level,
-    #         seed_transpiler=42,
-    #     )
-    #     self.assertEqual(res.count_ops()["ecr"], 9)
-    #     self.assertTrue(Operator(res).equiv(circuit))
+    @data(0, 1, 2, 3)
+    def test_translate_ecr_basis(self, optimization_level):
+        """Verify that rewriting in ECR basis is efficient."""
+        circuit = QuantumCircuit(2)
+        circuit.append(random_unitary(4, seed=1), [0, 1])
+        circuit.barrier()
+        circuit.cx(0, 1)
+        circuit.barrier()
+        circuit.swap(0, 1)
+        circuit.barrier()
+        circuit.iswap(0, 1)
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float. (UnitarySynthesis)
-    # def test_optimize_ecr_basis(self):
-    #     """Test highest optimization level can optimize over ECR."""
-    #     circuit = QuantumCircuit(2)
-    #     circuit.swap(1, 0)
-    #     circuit.iswap(0, 1)
-    #
-    #     res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=3, seed_transpiler=42)
-    #     self.assertEqual(res.count_ops()["ecr"], 1)
-    #     self.assertTrue(Operator(res).equiv(circuit))
+        res = transpile(
+            circuit,
+            basis_gates=["u", "ecr"],
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+        self.assertEqual(res.count_ops()["ecr"], 9)
+        self.assertTrue(Operator(res).equiv(circuit))
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float. (UnitarySynthesis)
-    # def test_approximation_degree_invalid(self):
-    #     """Test invalid approximation degree raises."""
-    #     circuit = QuantumCircuit(2)
-    #     circuit.swap(0, 1)
-    #     with self.assertRaises(QiskitError):
-    #         transpile(
-    #             circuit, basis_gates=["u", "cz"], approximation_degree=1.1, seed_transpiler=42
-    #         )
+    def test_optimize_ecr_basis(self):
+        """Test highest optimization level can optimize over ECR."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(1, 0)
+        circuit.iswap(0, 1)
 
-    # TypeError: ParameterExpression with unbound parameters (dict_keys([Parameter(ϴ)])) cannot be cast to a float. (UnitarySynthesis)
-    # def test_approximation_degree(self):
-    #     """Test more approximation gives lower-cost circuit."""
-    #     circuit = QuantumCircuit(2)
-    #     circuit.swap(0, 1)
-    #     circuit.h(0)
-    #     circ_10 = transpile(
-    #         circuit,
-    #         basis_gates=["u", "cx"],
-    #         translation_method="synthesis",
-    #         approximation_degree=0.1,
-    #         seed_transpiler=42,
-    #     )
-    #     circ_90 = transpile(
-    #         circuit,
-    #         basis_gates=["u", "cx"],
-    #         translation_method="synthesis",
-    #         approximation_degree=0.9,
-    #         seed_transpiler=42,
-    #     )
-    #     self.assertLess(circ_10.depth(), circ_90.depth())
+        res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=3, seed_transpiler=42)
+        self.assertEqual(res.count_ops()["ecr"], 1)
+        self.assertTrue(Operator(res).equiv(circuit))
+
+    def test_approximation_degree_invalid(self):
+        """Test invalid approximation degree raises."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        with self.assertRaises(QiskitError):
+            transpile(
+                circuit, basis_gates=["u", "cz"], approximation_degree=1.1, seed_transpiler=42
+            )
+
+    def test_approximation_degree(self):
+        """Test more approximation gives lower-cost circuit."""
+        circuit = QuantumCircuit(2)
+        circuit.swap(0, 1)
+        circuit.h(0)
+        circ_10 = transpile(
+            circuit,
+            basis_gates=["u", "cx"],
+            translation_method="synthesis",
+            approximation_degree=0.1,
+            seed_transpiler=42,
+        )
+        circ_90 = transpile(
+            circuit,
+            basis_gates=["u", "cx"],
+            translation_method="synthesis",
+            approximation_degree=0.9,
+            seed_transpiler=42,
+        )
+        self.assertLess(circ_10.depth(), circ_90.depth())
 
     @data(0, 1, 2, 3)
     def test_synthesis_translation_method_with_single_qubit_gates(self, optimization_level):
@@ -1828,26 +1819,25 @@ class TestTranspile(QiskitTestCase):
         expected.rz(np.pi / 2, 2)
         self.assertEqual(res, expected)
 
-    # pyo3_runtime.PanicException: ndarray: inputs 4 × 4 and 2 × 2 are not compatible for matrix multiplication
-    # @data(0, 1, 2, 3)
-    # def test_synthesis_translation_method_with_gates_outside_basis(self, optimization_level):
-    #     """Test that synthesis translation works for circuits with single gates outside basis"""
-    #     qc = QuantumCircuit(2)
-    #     qc.swap(0, 1)
-    #     res = transpile(
-    #         qc,
-    #         basis_gates=["id", "rz", "x", "sx", "cx"],
-    #         translation_method="synthesis",
-    #         optimization_level=optimization_level,
-    #         seed_transpiler=42,
-    #     )
-    #     if optimization_level not in {2, 3}:
-    #         self.assertTrue(Operator(qc).equiv(res))
-    #         self.assertNotIn("swap", res.count_ops())
-    #     else:
-    #         # Optimization level 2 and 3 eliminates the swap by permuting the
-    #         # qubits
-    #         self.assertEqual(res, QuantumCircuit(2))
+    @data(0, 1, 2, 3)
+    def test_synthesis_translation_method_with_gates_outside_basis(self, optimization_level):
+        """Test that synthesis translation works for circuits with single gates outside basis"""
+        qc = QuantumCircuit(2)
+        qc.swap(0, 1)
+        res = transpile(
+            qc,
+            basis_gates=["id", "rz", "x", "sx", "cx"],
+            translation_method="synthesis",
+            optimization_level=optimization_level,
+            seed_transpiler=42,
+        )
+        if optimization_level not in {2, 3}:
+            self.assertTrue(Operator(qc).equiv(res))
+            self.assertNotIn("swap", res.count_ops())
+        else:
+            # Optimization level 2 and 3 eliminates the swap by permuting the
+            # qubits
+            self.assertEqual(res, QuantumCircuit(2))
 
     @data(0, 1, 2, 3)
     def test_target_ideal_gates(self, opt_level):
@@ -2690,31 +2680,41 @@ class TestTranspileParallel(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-    # # qiskit.transpiler.exceptions.TranspilerError: "HighLevelSynthesis was unable to synthesize Instruction(name='newgate', num_qubits=2, num_clbits=0, params=[])."
-    # @data(0, 1, 2, 3)
-    # def test_backend_and_custom_gate(self, opt_level):
-    #     """Test transpile() with BackendV2, custom basis pulse gate."""
-    #     backend = GenericBackendV2(
-    #         num_qubits=5,
-    #         coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
-    #     )
-    #     inst_map = InstructionScheduleMap()
-    #     inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
-    #     newgate = Gate("newgate", 2, [])
-    #     circ = QuantumCircuit(2)
-    #     circ.append(newgate, [0, 1])
-    #     tqc = transpile(
-    #         circ,
-    #         backend,
-    #         inst_map=inst_map,
-    #         basis_gates=["newgate"],
-    #         optimization_level=opt_level,
-    #         seed_transpiler=42,
-    #     )
-    #     self.assertEqual(len(tqc.data), 1)
-    #     self.assertEqual(tqc.data[0].operation, newgate)
-    #     qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
-    #     self.assertIn(qubits, backend.target.qargs)
+    @data(3)
+    def test_backend_and_custom_gate(self, opt_level):
+        """Test transpile() with BackendV2, custom basis pulse gate."""
+        backend = GenericBackendV2(
+            num_qubits=2,
+            basis_gates=["id", "rz", "sx", "x"],
+            coupling_map=[[0, 1]],
+        )
+        inst_map = InstructionScheduleMap()
+        inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
+        newgate = Gate("newgate", 2, [])
+        circ = QuantumCircuit(2)
+        circ.append(newgate, [0, 1])
+
+        def callback_func(**kwargs):
+            pass_ = kwargs["pass_"]
+            dag = kwargs["dag"]
+            time = kwargs["time"]
+            property_set = kwargs["property_set"]
+            count = kwargs["count"]
+            print(pass_)
+
+        tqc = transpile(
+            circ,
+            backend,
+            inst_map=inst_map,
+            basis_gates=["newgate"],
+            optimization_level=opt_level,
+            seed_transpiler=42,
+            callback=callback_func,
+        )
+        self.assertEqual(len(tqc.data), 1)
+        self.assertEqual(tqc.data[0].operation, newgate)
+        qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
+        self.assertIn(qubits, backend.target.qargs)
 
 
 @ddt

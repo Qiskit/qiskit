@@ -69,11 +69,11 @@ CONTROL_FLOW_GATES = [
     "break",
 ]
 
-DEFAULT_BASIS_GATES = [
-    key
-    for key, value in get_standard_gate_name_mapping().items()
-    if value.num_qubits > 0 and value.num_qubits <= 2
-] + CONTROL_FLOW_GATES
+# DEFAULT_BASIS_GATES = [
+#     key
+#     for key, value in get_standard_gate_name_mapping().items()
+#     if value.num_qubits > 0 and value.num_qubits <= 2
+# ] + CONTROL_FLOW_GATES
 
 
 def transpile(  # pylint: disable=too-many-return-statements
@@ -380,39 +380,77 @@ def transpile(  # pylint: disable=too-many-return-statements
     approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
 
-    _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
+    # Check if a custom constraint was specified before inst_map is overwritten
+    _given_inst_map = bool(inst_map)
+    # Check if a recorded edge case exists before the constraints are overwritten
+    _no_loose_constraints = (
+        basis_gates is None
+        and coupling_map is None
+        and instruction_durations is None
+        and backend_properties is None
+        and dt is None
+        and timing_constraints is None
+    )
+    _is_edge_case = (
+        target is None
+        and backend is None
+        and (
+            basis_gates is None
+            or coupling_map is None
+            or instruction_durations is not None
+            or _no_loose_constraints
+        )
+    )
+
+    # Resolve priority order of loose constraints.
+    # The order of priority is loose constraints > backend.
+    dt = _parse_dt(dt, backend)
+    instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
+    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
+    inst_map = _parse_inst_map(inst_map, backend)
+    basis_gates, name_mapping = _parse_basis_gates(basis_gates, backend, inst_map)
+    coupling_map = _parse_coupling_map(coupling_map, backend)
+    _check_circuits_coupling_map(circuits, coupling_map, backend)
+    backend_properties = _parse_backend_properties(backend_properties, backend)
 
     if target is None:
-        basis_gates, name_mapping = _parse_basis_gates(basis_gates, backend, inst_map)
-        coupling_map = _parse_coupling_map(coupling_map, backend)
-        _check_circuits_coupling_map(circuits, coupling_map, backend)
-        inst_map = _parse_inst_map(inst_map, backend)
-        backend_properties = _parse_backend_properties(backend_properties, backend)
-        instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
-        dt = _parse_dt(dt, backend)
-        timing_constraints = _parse_timing_constraints(backend, timing_constraints)
+        if backend is not None and _no_loose_constraints:
+            # If a backend is specified without loose constraints, use its target directly.
+            target = backend.target
+        elif not _is_edge_case:
+            # Build target from constraints.
+            target = Target.from_configuration(
+                basis_gates=basis_gates,
+                num_qubits=backend.num_qubits if backend is not None else None,
+                coupling_map=coupling_map,
+                # If the instruction map has custom gates, do not give as config,
+                # the information will be added to the target in line 442.
+                inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
+                backend_properties=backend_properties,
+                instruction_durations=instruction_durations,
+                concurrent_measurements=(
+                    backend.target.concurrent_measurements if backend is not None else None
+                ),
+                dt=dt,
+                timing_constraints=timing_constraints,
+                custom_name_mapping=name_mapping,
+            )
 
-        target = Target.from_configuration(
-            basis_gates=basis_gates,
-            num_qubits=backend.num_qubits if backend is not None else None,
-            coupling_map=coupling_map,
-            inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-            backend_properties=backend_properties,
-            instruction_durations=instruction_durations,
-            concurrent_measurements=(
-                backend.target.concurrent_measurements if backend is not None else None
-            ),
-            dt=dt,
-            timing_constraints=timing_constraints,
-            custom_name_mapping=name_mapping,
-        )
-
-    if _given_inst_map and inst_map.has_custom_gate():
+    # Update target with custom gate information. Note that this is an exception of the priority
+    # order (target > loose constraints), added to handle custom gates for scheduling passes.
+    if target is not None and _given_inst_map and inst_map.has_custom_gate():
         target.update_from_instruction_schedule_map(inst_map)
 
+    # Edge cases require using the old model (loose constraints) instead of building a target,
+    # do no send loose constraints unless it's one of the known edge cases.
     pm = generate_preset_pass_manager(
         optimization_level,
         target=target,
+        basis_gates=basis_gates if _is_edge_case else None,
+        coupling_map=coupling_map if _is_edge_case else None,
+        instruction_durations=instruction_durations if _is_edge_case else None,
+        backend_properties=backend_properties if _is_edge_case else None,
+        timing_constraints=timing_constraints if _is_edge_case else None,
         initial_layout=initial_layout,
         layout_method=layout_method,
         routing_method=routing_method,
@@ -470,14 +508,15 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
     # priority = basis_gates > backend
     try:
         instructions = set(basis_gates)
-        for name in {"measure", "delay", "reset"}:
+        default_gates = {"measure", "delay", "reset"}.union(set(CONTROL_FLOW_GATES))
+        for name in default_gates:
             if name not in instructions:
                 instructions.add(name)
     except TypeError:
         instructions = None
 
     if backend is None:
-        return list(instructions) if instructions else DEFAULT_BASIS_GATES, name_mapping
+        return list(instructions) if instructions else None, name_mapping
 
     instructions = instructions or backend.operation_names
     name_mapping.update(
@@ -490,10 +529,10 @@ def _parse_basis_gates(basis_gates, backend, inst_map):
         for inst in inst_map.instructions:
             for qubit in inst_map.qubits_with_instruction(inst):
                 entry = inst_map._get_calibration_entry(inst, qubit)
-                if entry.user_provided and entry in instructions:
+                if entry.user_provided and inst in instructions:
                     instructions.remove(inst)
 
-    return list(instructions) if instructions else DEFAULT_BASIS_GATES, name_mapping
+    return list(instructions) if instructions else None, name_mapping
 
 
 def _parse_inst_map(inst_map, backend):
