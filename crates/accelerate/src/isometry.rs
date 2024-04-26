@@ -68,6 +68,10 @@ fn reverse_qubit_state_inner(
     }
 }
 
+/// This method finds the single-qubit gates for a UCGate to disentangle a qubit:
+/// we consider the n-qubit state v[:,0] starting with k zeros (in the computational basis).
+/// The qubit with label n-s-1 is disentangled into the basis state k_s(k,s).
+
 #[pyfunction]
 pub fn find_squs_for_disentangling(
     py: Python,
