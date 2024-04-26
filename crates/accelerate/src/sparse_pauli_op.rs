@@ -248,8 +248,8 @@ impl<'py> ZXPaulisView<'py> {
                 coeffs: self.coeffs.to_vec(),
             });
         }
-        let x_like = pack_bits(self.x).unwrap();
-        let z_like = pack_bits(self.z).unwrap();
+        let x_like = pack_bits(self.x).expect("x should already be validated as <64 qubits");
+        let z_like = pack_bits(self.z).expect("z should already be validated as <64 qubits");
         let coeffs = x_like
             .iter()
             .zip(z_like.iter())

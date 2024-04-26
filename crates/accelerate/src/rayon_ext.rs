@@ -21,6 +21,7 @@ pub trait ParallelSliceMutExt<T: Send>: ParallelSliceMut<T> {
     /// # Panics
     ///
     /// Panics if the sums of the given lengths do not add up to the length of the slice.
+    #[track_caller]
     fn par_uneven_chunks_mut<'len, 'data>(
         &'data mut self,
         chunk_lengths: &'len [usize],
@@ -51,12 +52,14 @@ pub struct ParUnevenChunksMut<'len, 'data, T> {
 impl<'len, 'data, T: Send + 'data> ParallelIterator for ParUnevenChunksMut<'len, 'data, T> {
     type Item = &'data mut [T];
 
+    #[track_caller]
     fn drive_unindexed<C: UnindexedConsumer<Self::Item>>(self, consumer: C) -> C::Result {
         bridge(self, consumer)
     }
 }
 
 impl<'len, 'data, T: Send + 'data> IndexedParallelIterator for ParUnevenChunksMut<'len, 'data, T> {
+    #[track_caller]
     fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result {
         bridge(self, consumer)
     }
@@ -65,6 +68,7 @@ impl<'len, 'data, T: Send + 'data> IndexedParallelIterator for ParUnevenChunksMu
         self.chunk_lengths.len()
     }
 
+    #[track_caller]
     fn with_producer<CB: ProducerCallback<Self::Item>>(self, callback: CB) -> CB::Output {
         callback.callback(UnevenChunksMutProducer {
             chunk_lengths: self.chunk_lengths,
@@ -86,6 +90,7 @@ impl<'len, 'data, T: Send + 'data> Producer for UnevenChunksMutProducer<'len, 'd
         Self::IntoIter::new(self.chunk_lengths, self.data)
     }
 
+    #[track_caller]
     fn split_at(self, index: usize) -> (Self, Self) {
         // Technically quadratic for a full-depth split, but let's worry about that later if needed.
         let data_mid = self.chunk_lengths[..index].iter().sum();
@@ -127,6 +132,7 @@ impl<'len, 'data, T> UnevenChunksMutIter<'len, 'data, T> {
 impl<'len, 'data, T> Iterator for UnevenChunksMutIter<'len, 'data, T> {
     type Item = &'data mut [T];
 
+    #[track_caller]
     fn next(&mut self) -> Option<Self::Item> {
         if self.chunk_lengths.is_empty() {
             return None;
@@ -147,6 +153,7 @@ impl<'len, 'data, T> Iterator for UnevenChunksMutIter<'len, 'data, T> {
 }
 impl<'len, 'data, T> ExactSizeIterator for UnevenChunksMutIter<'len, 'data, T> {}
 impl<'len, 'data, T> DoubleEndedIterator for UnevenChunksMutIter<'len, 'data, T> {
+    #[track_caller]
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.chunk_lengths.is_empty() {
             return None;
