@@ -19,6 +19,7 @@ from test import combine
 
 from ddt import ddt, data
 
+from numpy.testing import assert_array_max_ulp
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
     CXGate,
@@ -66,9 +67,11 @@ class TestBackendV2(QiskitTestCase):
     def test_qubit_properties(self):
         """Test that qubit properties are returned as expected."""
         props = self.backend.qubit_properties([1, 0])
-        self.assertEqual([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
-        self.assertEqual([0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props])
-        self.assertEqual([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
+        assert_array_max_ulp([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
+        assert_array_max_ulp(
+            [0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props]
+        )
+        assert_array_max_ulp([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
 
     def test_legacy_qubit_properties(self):
         """Test that qubit props work for backends not using properties in target."""
@@ -82,9 +85,11 @@ class TestBackendV2(QiskitTestCase):
                 return [self.target.qubit_properties[i] for i in qubit]
 
         props = FakeBackendV2LegacyQubitProps(num_qubits=2, seed=42).qubit_properties([1, 0])
-        self.assertEqual([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
-        self.assertEqual([0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props])
-        self.assertEqual([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
+        assert_array_max_ulp([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
+        assert_array_max_ulp(
+            [0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props]
+        )
+        assert_array_max_ulp([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
 
     def test_no_qubit_properties_raises(self):
         """Ensure that if no qubit properties are defined we raise correctly."""
