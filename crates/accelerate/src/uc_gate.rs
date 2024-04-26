@@ -88,15 +88,15 @@ pub fn dec_ucg_help(
     let mut diag: Array1<Complex64> = Array1::ones(2_usize.pow(num_qubits));
     let num_controls = num_qubits - 1;
     for dec_step in 0..num_controls {
-        let num_ucgs = 2_u32.pow(dec_step);
+        let num_ucgs = 2_usize.pow(dec_step);
         // The decomposition works recursively and the followign loop goes over the different
         // UCGates that arise in the decomposition
         for ucg_index in 0..num_ucgs {
-            let len_ucg = 2_u32.pow(num_controls - dec_step);
+            let len_ucg = 2_usize.pow(num_controls - dec_step);
             for i in 0..len_ucg / 2 {
                 let shift = ucg_index * len_ucg;
-                let a = single_qubit_gates[(shift + i) as usize].view();
-                let b = single_qubit_gates[(shift + len_ucg / 2 + i) as usize].view();
+                let a = single_qubit_gates[shift + i].view();
+                let b = single_qubit_gates[shift + len_ucg / 2 + i].view();
                 // Apply the decomposition for UCGates given in equation (3) in
                 // https://arxiv.org/pdf/quant-ph/0410066.pdf
                 // to demultiplex one control of all the num_ucgs uniformly-controlled gates
@@ -104,8 +104,8 @@ pub fn dec_ucg_help(
                 let [v, u, r] = demultiplex_single_uc(a, b);
                 // replace the single-qubit gates with v,u (the already existing ones
                 // are not needed any more)
-                single_qubit_gates[(shift + i) as usize] = v;
-                single_qubit_gates[(shift + len_ucg / 2 + i) as usize] = u;
+                single_qubit_gates[shift + i] = v;
+                single_qubit_gates[shift + len_ucg / 2 + i] = u;
                 // Now we decompose the gates D as described in Figure 4 in
                 // https://arxiv.org/pdf/quant-ph/0410066.pdf and merge some of the gates
                 // into the UCGates and the diagonal at the end of the circuit
@@ -121,11 +121,11 @@ pub fn dec_ucg_help(
                     // Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and
                     // merge the UC-Rz rotation with the following UCGate,
                     // which hasn't been decomposed yet
-                    let k = (shift + len_ucg + i) as usize;
+                    let k = shift + len_ucg + i;
 
                     single_qubit_gates[k] = single_qubit_gates[k].dot(&r_conj_t);
                     single_qubit_gates[k].mapv_inplace(|x| x * rz_00);
-                    let k = k + len_ucg as usize / 2;
+                    let k = k + len_ucg / 2;
                     single_qubit_gates[k] = single_qubit_gates[k].dot(&r);
                     single_qubit_gates[k].mapv_inplace(|x| x * rz_11);
                 } else {
@@ -133,10 +133,10 @@ pub fn dec_ucg_help(
                     // the trailing UC-Rz rotation into a diagonal gate at the end of the circuit
                     for ucg_index_2 in 0..num_ucgs {
                         let shift_2 = ucg_index_2 * len_ucg;
-                        let k = (2 * (i + shift_2)) as usize;
+                        let k = 2 * (i + shift_2);
                         diag[k] *= r_conj_t[[0, 0]] * rz_00;
                         diag[k + 1] *= r_conj_t[[1, 1]] * rz_00;
-                        let k = len_ucg as usize + k;
+                        let k = len_ucg + k;
                         diag[k] *= r[[0, 0]] * rz_11;
                         diag[k + 1] *= r[[1, 1]] * rz_11;
                     }
