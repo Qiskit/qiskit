@@ -140,8 +140,7 @@ class ZGate(SingletonGate):
         """
         return ZGate()  # self-inverse
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         return PhaseGate(numpy.pi * exponent)
 
     def __eq__(self, other):
