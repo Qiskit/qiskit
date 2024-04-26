@@ -52,17 +52,18 @@ fn reverse_qubit_state_inner(
     epsilon: f64,
 ) -> Array2<Complex64> {
     let r = l2_norm(state);
+    let r_inv = 1. / r;
     if r < epsilon {
         Array2::eye(2)
     } else if basis_state == 0 {
         array![
-            [state[0].conj() / r, state[1].conj() / r],
-            [-state[1] / r, state[0] / r],
+            [state[0].conj() * r_inv, state[1].conj() * r_inv],
+            [-state[1] * r_inv, state[0] * r_inv],
         ]
     } else {
         array![
-            [-state[1] / r, state[0] / r],
-            [state[0].conj() / r, state[1].conj() / r],
+            [-state[1] * r_inv, state[0] * r_inv],
+            [state[0].conj() * r_inv, state[1].conj() * r_inv],
         ]
     }
 }
