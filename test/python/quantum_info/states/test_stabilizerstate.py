@@ -14,7 +14,6 @@
 """Tests for Stabilizerstate quantum state class."""
 
 from itertools import product
-from random import choice
 import unittest
 import logging
 from ddt import ddt, data, unpack
@@ -547,7 +546,7 @@ class TestStabilizerState(QiskitTestCase):
                 self.assertTrue(np.allclose(probs, target))
 
     @combine(num_qubits=[5, 6, 7, 8, 9])
-    def test_probabilities_dict_medium_num_qubits(self, num_qubits):
+    def test_probabilities_dict_from_bitstring(self, num_qubits):
         """Test probabilities_dict_from_bitstring methods with medium number of qubits that are still
         reasonable to calculate the full dict with probabilities_dict of all possible outcomes"""
 
