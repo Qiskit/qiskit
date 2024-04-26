@@ -528,7 +528,9 @@ class TestAssignFromProgram(QiskitTestCase):
         block += pulse.Play(waveform2, pulse.DriveChannel(10))
         block += pulse.ShiftPhase(param_vec[0], pulse.DriveChannel(10))
         block += pulse.ShiftPhase(param_vec[1], pulse.DriveChannel(10))
-        block1 = block.assign_parameters({"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False)
+        block1 = block.assign_parameters(
+            {"amp": 0.2, "sigma": 4, "param_vec": [3.14, 1.57]}, inplace=False
+        )
 
         self.assertEqual(block1.blocks[0].pulse.amp, 0.2)
         self.assertEqual(block1.blocks[0].pulse.sigma, 4.0)
