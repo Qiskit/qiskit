@@ -16,13 +16,14 @@ Matrix Operator class.
 
 from __future__ import annotations
 
-import copy
+import copy as _copy
 import re
 from numbers import Number
 from typing import TYPE_CHECKING
 
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, TGate, XGate, YGate, ZGate
 from qiskit.circuit.operation import Operation
@@ -117,10 +118,9 @@ class Operator(LinearOp):
             shape=self._data.shape,
         )
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     def __repr__(self):
         prefix = "Operator("
@@ -447,13 +447,13 @@ class Operator(LinearOp):
 
     def conjugate(self):
         # Make a shallow copy and update array
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
         # Make a shallow copy and update array
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.transpose(self._data)
         ret._op_shape = self._op_shape.transpose()
         return ret
@@ -523,7 +523,7 @@ class Operator(LinearOp):
         """
         if self.input_dims() != self.output_dims():
             raise QiskitError("Can only power with input_dims = output_dims.")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         if isinstance(n, int):
             ret._data = np.linalg.matrix_power(self.data, n)
         else:
@@ -550,7 +550,7 @@ class Operator(LinearOp):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = np.kron(a.data, b.data)
         return ret
@@ -585,7 +585,7 @@ class Operator(LinearOp):
         self._op_shape._validate_add(other._op_shape, qargs)
         other = ScalarOp._pad_with_identity(self, other, qargs)
 
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = self.data + other.data
         return ret
 
@@ -603,7 +603,7 @@ class Operator(LinearOp):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = other * self._data
         return ret
 
@@ -643,7 +643,7 @@ class Operator(LinearOp):
         Returns:
             Operator: the operator with reversed subsystem order.
         """
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         axes = tuple(range(self._op_shape._num_qargs_l - 1, -1, -1))
         axes = axes + tuple(len(axes) + i for i in axes)
         ret._data = np.reshape(
