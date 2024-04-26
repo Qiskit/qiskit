@@ -21,7 +21,7 @@ use pyo3::Python;
 use hashbrown::HashSet;
 use itertools::Itertools;
 use ndarray::prelude::*;
-use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray1};
+use numpy::{IntoPyArray, PyReadonlyArray1, PyReadonlyArray2};
 
 use crate::two_qubit_decompose::ONE_QUBIT_IDENTITY;
 
