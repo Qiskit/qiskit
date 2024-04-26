@@ -1831,11 +1831,12 @@ class TestTranspile(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        if optimization_level != 3:
+        if optimization_level not in {2, 3}:
             self.assertTrue(Operator(qc).equiv(res))
             self.assertNotIn("swap", res.count_ops())
         else:
-            # Optimization level 3 eliminates the pointless swap
+            # Optimization level 2 and 3 eliminates the swap by permuting the
+            # qubits
             self.assertEqual(res, QuantumCircuit(2))
 
     @data(0, 1, 2, 3)
