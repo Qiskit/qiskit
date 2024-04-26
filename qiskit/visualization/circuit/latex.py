@@ -216,13 +216,19 @@ class QCircuitImage:
         for wire, index in self._wire_map.items():
             if isinstance(wire, ClassicalRegister):
                 register = wire
+                wire_label = get_wire_label(
+                    "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
+                )
             else:
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
-                index = bit_index if register is None else reg_index
+                wire_label = get_wire_label(
+                    "latex",
+                    register,
+                    bit_index if register is None else reg_index,
+                    layout=self._layout,
+                    cregbundle=self._cregbundle,
+                )
 
-            wire_label = get_wire_label(
-                "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
-            )
             wire_label += " : "
             if self._initial_state:
                 wire_label += "\\ket{{0}}" if isinstance(wire, Qubit) else "0"
