@@ -60,11 +60,20 @@ CUSTOM_MAPPING = {
     "qsd2q": UnitaryGate,
 }
 
+CONTROL_FLOW_GATES = [
+    "if_else",
+    "for_loop",
+    "while_loop",
+    "switch_case",
+    "continue",
+    "break",
+]
+
 DEFAULT_BASIS_GATES = [
     key
     for key, value in get_standard_gate_name_mapping().items()
     if value.num_qubits > 0 and value.num_qubits <= 2
-]
+] + CONTROL_FLOW_GATES
 
 
 def transpile(  # pylint: disable=too-many-return-statements

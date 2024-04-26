@@ -1869,27 +1869,26 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
-    # qiskit.transpiler.exceptions.TranspilerError: "The control-flow constructs ['switch_case', 'while_loop', 'for_loop', 'if_else'] are not supported by the backend."
-    # @data(0, 1, 2, 3)
-    # def test_transpile_control_flow_no_backend(self, opt_level):
-    #     """Test `transpile` with control flow and no specified hardware constraints."""
-    #     qc = QuantumCircuit(QuantumRegister(1, "q"), ClassicalRegister(1, "c"))
-    #     qc.h(0)
-    #     qc.measure(0, 0)
-    #     with qc.if_test((qc.clbits[0], False)):
-    #         qc.x(0)
-    #     with qc.while_loop((qc.clbits[0], True)):
-    #         qc.x(0)
-    #     with qc.for_loop(range(2)):
-    #         qc.x(0)
-    #     with qc.switch(qc.cregs[0]) as case:
-    #         with case(case.DEFAULT):
-    #             qc.x(0)
-    #     qc.measure(0, 0)
-    #
-    #     transpiled = transpile(qc, optimization_level=opt_level)
-    #     # There's nothing that can be optimized here.
-    #     self.assertEqual(qc, transpiled)
+    @data(0, 1, 2, 3)
+    def test_transpile_control_flow_no_backend(self, opt_level):
+        """Test `transpile` with control flow and no specified hardware constraints."""
+        qc = QuantumCircuit(QuantumRegister(1, "q"), ClassicalRegister(1, "c"))
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], False)):
+            qc.x(0)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.x(0)
+        with qc.for_loop(range(2)):
+            qc.x(0)
+        with qc.switch(qc.cregs[0]) as case:
+            with case(case.DEFAULT):
+                qc.x(0)
+        qc.measure(0, 0)
+
+        transpiled = transpile(qc, optimization_level=opt_level)
+        # There's nothing that can be optimized here.
+        self.assertEqual(qc, transpiled)
 
     @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
