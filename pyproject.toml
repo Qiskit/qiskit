@@ -212,6 +212,7 @@ disable = [
     "no-else-return",  # relax "elif" after a clause with a return
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
+    "nested-min-max", # this gives false equivalencies if implemented for the current lint version
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
@@ -221,8 +222,6 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "modified-iterating-list",
-    "nested-min-max",
     "no-member",
     "no-value-for-parameter",
     "not-context-manager",
@@ -231,10 +230,8 @@ disable = [
     "unnecessary-dict-index-lookup",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
-    "unnecessary-list-index-lookup",
     "unspecified-encoding",
     "unsupported-assignment-operation",
-    "use-dict-literal",
     "use-implicit-booleaness-not-comparison",
 ]
 

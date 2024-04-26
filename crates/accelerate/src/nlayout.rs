@@ -91,7 +91,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
+#[pyclass(module = "qiskit._accelerate.nlayout")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
@@ -117,13 +117,13 @@ impl NLayout {
         res
     }
 
-    fn __getstate__(&self) -> (Vec<PhysicalQubit>, Vec<VirtualQubit>) {
-        (self.virt_to_phys.clone(), self.phys_to_virt.clone())
-    }
-
-    fn __setstate__(&mut self, state: (Vec<PhysicalQubit>, Vec<VirtualQubit>)) {
-        self.virt_to_phys = state.0;
-        self.phys_to_virt = state.1;
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((
+            py.get_type_bound::<Self>()
+                .getattr("from_virtual_to_physical")?,
+            (self.virt_to_phys.to_object(py),),
+        )
+            .into_py(py))
     }
 
     /// Return the layout mapping.
