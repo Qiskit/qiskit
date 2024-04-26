@@ -274,6 +274,23 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
         np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
 
+    def test_to_matrix_parallel_vs_serial(self):
+        """Parallel execution should produce the same results as serial execution up to
+        floating-point associativity effects."""
+        # Using powers-of-two coefficients to make floating-point arithmetic associative so we can
+        # do bit-for-bit assertions.  Choose labels that have at least few overlapping locations.
+        labels = ["XZIXYX", "YIIYXY", "ZZZIIZ", "IIIIII"]
+        coeffs = [0.25, 0.125j, 0.5 - 0.25j, -0.125 + 0.5j]
+        op = SparsePauliOp(labels, coeffs)
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=True, force_serial=False).toarray(),
+            op.to_matrix(sparse=True, force_serial=True).toarray(),
+        )
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=False, force_serial=False),
+            op.to_matrix(sparse=False, force_serial=True),
+        )
+
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
         labels = ["XI", "YZ", "YY", "ZZ"]
