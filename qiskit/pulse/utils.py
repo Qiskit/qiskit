@@ -11,13 +11,14 @@
 # that they have been altered from the originals.
 
 """Module for common pulse programming utilities."""
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Sequence
 import warnings
 
 import numpy as np
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
+from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError, PulseError
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -116,4 +117,18 @@ def instruction_duration_validation(duration: int):
     if not isinstance(duration, (int, np.integer)) or duration < 0:
         raise QiskitError(
             f"Instruction duration must be a non-negative integer, got {duration} instead."
+        )
+
+
+def _validate_parameter_vector(parameter: ParameterVector, value):
+    """Validate parameter vector and its value."""
+    if not isinstance(value, Sequence):
+        raise PulseError(
+            f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+            f" but was assigned to {value}."
+        )
+    if len(parameter) != len(value):
+        raise PulseError(
+            f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+            f" but was assigned to {len(value)} values."
         )

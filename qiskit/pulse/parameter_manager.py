@@ -62,7 +62,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import SymbolicPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import format_parameter_value, _validate_parameter_vector
 
 
 class NodeVisitor:
@@ -411,38 +411,23 @@ class ParameterManager:
             A dictionary from parameter to value.
         """
         out = {}
+        param_name_dict = {param.name: param for param in self.parameters}
+        param_vec_dict = {
+            param.vector.name: param.vector
+            for param in self.parameters
+            if isinstance(param, ParameterVectorElement)
+        }
         for parameter, value in parameter_binds.items():
             if isinstance(parameter, ParameterVector):
-                if not isinstance(value, Sequence):
-                    raise PulseError(
-                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
-                        f" but was assigned to {value}."
-                    )
-                if len(parameter) != len(value):
-                    raise PulseError(
-                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
-                        f" but was assigned to {len(value)} values."
-                    )
+                _validate_parameter_vector(parameter, value)
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
-                for param in self.parameters:
-                    if param.name == parameter:
-                        out[param] = value
-                    elif (
-                        isinstance(param, ParameterVectorElement) and param.vector.name == parameter
-                    ):
-                        if not isinstance(value, Sequence):
-                            raise PulseError(
-                                f"ParameterVector '{param.vector.name}' has length {len(param.vector)},"
-                                f" but was assigned to a single value."
-                            )
-                        if len(param.vector) != len(value):
-                            raise PulseError(
-                                f"ParameterVector '{param.vector.name}' has length {len(param.vector)},"
-                                f" but was assigned to {len(value)} values."
-                            )
-                        out[param] = value[param.index]
-
+                if parameter in param_vec_dict:
+                    param = param_vec_dict[parameter]
+                    _validate_parameter_vector(param, value)
+                    out.update(zip(param, value))
+                elif parameter in param_name_dict:
+                    out[param_name_dict[parameter]] = value
             else:
                 out[parameter] = value
         return out
