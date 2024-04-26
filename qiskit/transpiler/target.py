@@ -981,7 +981,7 @@ class Target(Mapping):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for _, qargs in self._gate_map.items() for _, inst_props in qargs.items()
+            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
         ]
         return instruction_properties[index]
 
