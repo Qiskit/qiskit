@@ -220,7 +220,7 @@ class Isometry(Instruction):
             # apply the MCG to the remaining isometry
             v = isometry_rs.apply_multi_controlled_gate(v, control_labels, target_label, gate)
             # correct for the implementation "up to diagonal"
-            diag_mcg_inverse = np.conj(diagonal_mcg).tolist()
+            diag_mcg_inverse = np.conj(diagonal_mcg).astype(complex, copy=False)
             v = isometry_rs.apply_diagonal_gate(
                 v, control_labels + [target_label], diag_mcg_inverse
             )
@@ -238,7 +238,7 @@ class Isometry(Instruction):
                 circuit, q, single_qubit_gates, control_labels, target_label
             )
             # merge the diagonal into the UCGate for efficient application of both together
-            diagonal_ucg_inverse = np.conj(diagonal_ucg).tolist()
+            diagonal_ucg_inverse = np.conj(diagonal_ucg).astype(complex, copy=False)
             single_qubit_gates = isometry_rs.merge_ucgate_and_diag(
                 single_qubit_gates, diagonal_ucg_inverse
             )

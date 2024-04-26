@@ -21,7 +21,7 @@ use pyo3::Python;
 use hashbrown::HashSet;
 use itertools::Itertools;
 use ndarray::prelude::*;
-use numpy::{IntoPyArray, PyReadonlyArray2};
+use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray1};
 
 use crate::two_qubit_decompose::ONE_QUBIT_IDENTITY;
 
@@ -145,8 +145,9 @@ pub fn apply_diagonal_gate(
     py: Python,
     m: PyReadonlyArray2<Complex64>,
     action_qubit_labels: Vec<usize>,
-    diag: Vec<Complex64>,
-) -> PyObject {
+    diag: PyReadonlyArray1<Complex64>,
+) -> PyResult<PyObject> {
+    let diag = diag.as_slice()?;
     let mut m = m.as_array().to_owned();
     let shape = m.shape();
     let num_qubits = shape[0].ilog2();
@@ -163,18 +164,19 @@ pub fn apply_diagonal_gate(
             m[[i, j]] = diag[diag_index] * m[[i, j]]
         }
     }
-    m.into_pyarray_bound(py).into()
+    Ok(m.into_pyarray_bound(py).into())
 }
 
 #[pyfunction]
 pub fn apply_diagonal_gate_to_diag(
     mut m_diagonal: Vec<Complex64>,
     action_qubit_labels: Vec<usize>,
-    diag: Vec<Complex64>,
+    diag: PyReadonlyArray1<Complex64>,
     num_qubits: usize,
-) -> Vec<Complex64> {
+) -> PyResult<Vec<Complex64>> {
+    let diag = diag.as_slice()?;
     if m_diagonal.is_empty() {
-        return m_diagonal;
+        return Ok(m_diagonal);
     }
     for state in std::iter::repeat([0_u8, 1_u8])
         .take(num_qubits)
@@ -187,7 +189,7 @@ pub fn apply_diagonal_gate_to_diag(
         let i = bin_to_int(&state);
         m_diagonal[i] *= diag[diag_index]
     }
-    m_diagonal
+    Ok(m_diagonal)
 }
 
 /// Helper method for _apply_multi_controlled_gate. This constructs the basis states the MG gate
