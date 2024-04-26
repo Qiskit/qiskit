@@ -16,7 +16,7 @@ import warnings
 
 import numpy as np
 
-from qiskit.circuit import ParameterVector
+from qiskit.circuit import ParameterVector, Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError, PulseError
 
@@ -132,3 +132,22 @@ def _validate_parameter_vector(parameter: ParameterVector, value):
             f"Parameter vector '{parameter.name}' has length {len(parameter)},"
             f" but was assigned to {len(value)} values."
         )
+
+
+def _validate_single_parameter(parameter: Parameter, value):
+    """Validate single parameter and its value."""
+    if not isinstance(value, (int, float, complex, ParameterExpression)):
+        raise PulseError(
+            f"Parameter '{parameter.name}' is not assignable to {value}."
+        )
+
+
+def _validate_parameter_value(parameter, value):
+    """Validate parameter and its value."""
+    if isinstance(parameter, ParameterVector):
+        _validate_parameter_vector(parameter, value)
+        return True
+    else:
+        _validate_single_parameter(parameter, value)
+        return False
+

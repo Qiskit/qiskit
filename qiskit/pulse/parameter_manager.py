@@ -62,7 +62,11 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import SymbolicPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import format_parameter_value, _validate_parameter_vector
+from qiskit.pulse.utils import (
+    format_parameter_value,
+    _validate_parameter_vector,
+    _validate_parameter_value,
+)
 
 
 class NodeVisitor:
@@ -411,23 +415,31 @@ class ParameterManager:
             A dictionary from parameter to value.
         """
         out = {}
-        param_name_dict = {param.name: param for param in self.parameters}
+        param_name_dict = {param.name: [] for param in self.parameters}
+        for param in self.parameters:
+            param_name_dict[param.name].append(param)
         param_vec_dict = {
             param.vector.name: param.vector
             for param in self.parameters
             if isinstance(param, ParameterVectorElement)
         }
+        for name in param_vec_dict.keys():
+            if name in param_name_dict:
+                param_name_dict[name].append(param_vec_dict[name])
+            else:
+                param_name_dict[name] = [param_vec_dict[name]]
+
         for parameter, value in parameter_binds.items():
             if isinstance(parameter, ParameterVector):
                 _validate_parameter_vector(parameter, value)
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
-                if parameter in param_vec_dict:
-                    param = param_vec_dict[parameter]
-                    _validate_parameter_vector(param, value)
-                    out.update(zip(param, value))
-                elif parameter in param_name_dict:
-                    out[param_name_dict[parameter]] = value
+                for param in param_name_dict[parameter]:
+                    is_vec = _validate_parameter_value(param, value)
+                    if is_vec:
+                        out.update(zip(param, value))
+                    else:
+                        out[param] = value
             else:
                 out[parameter] = value
         return out
