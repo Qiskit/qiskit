@@ -33,9 +33,13 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library.templates import template_nct_2a_1, template_nct_2a_2, template_nct_2a_3
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes.optimization.template_matching_v2 import (
+from qiskit.transpiler.passes.optimization.template_matching_v2.template_matching_v2 import (
     TemplateMatching,
+)
+from qiskit.transpiler.passes.optimization.template_matching_v2.template_substitution_v2 import (
     TemplateSubstitution,
+)
+from qiskit.transpiler.passes.optimization.template_matching_v2.maximal_matches_v2 import (
     MaximalMatches,
 )
 
