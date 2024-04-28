@@ -81,7 +81,7 @@ def random_pauli_list(
     z = rng.integers(2, size=(size, num_qubits)).astype(bool)
     x = rng.integers(2, size=(size, num_qubits)).astype(bool)
     if phase:
-        _phase = rng.integers(4, size=(size))
+        _phase = rng.integers(4, size=size)
         return PauliList.from_symplectic(z, x, _phase)
     return PauliList.from_symplectic(z, x)
 
