@@ -15,7 +15,7 @@ Circuit synthesis for a QFT circuit.
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.permutation import synth_permutation_reverse_lnn_kms
+from qiskit.synthesis.permutation.permutation_reverse_lnn import _append_reverse_permutation_lnn_kms
 
 
 def synth_qft_line(
@@ -65,7 +65,6 @@ def synth_qft_line(
     if not do_swaps:
         # Add a reversal network for LNN connectivity in depth 2*n+2,
         # based on Kutin at al., https://arxiv.org/abs/quant-ph/0701194, Section 5.
-        qc_rev = synth_permutation_reverse_lnn_kms(num_qubits)
-        qc = qc.compose(qc_rev)
+        _append_reverse_permutation_lnn_kms(qc, num_qubits)
 
     return qc
