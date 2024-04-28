@@ -111,6 +111,135 @@ and how the feature will be internally handled.
 
 .. autoexception:: QPYLoadingDeprecatedFeatureWarning
 
+QPY format version history
+--------------------------
+
+If you're planning to load a QPY file between different Qiskit versions knowing
+which versions were available in a given release are useful. As the QPY is
+backwards compatible but not forwards compatible you need to ensure a given
+QPY format version was released in the release you're calling :func:`.load`
+with. The following table lists the QPY versions that were supported in every
+Qiskit (and qiskit-terra prior to Qiskit 1.0.0) release going back to the introduction
+of QPY in qiskit-terra 0.18.0.
+
+.. list-table: QPY Format Version History
+   :header-rows: 1
+
+   * - Qiskit (qiskit-terra for < 1.0.0) version
+     - :func:`.dump` format(s) output versions
+     - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 1.1.0
+     - 10, 11, 12
+     - 12
+   * - 1.0.2
+     - 10, 11
+     - 12
+   * - 1.0.1
+     - 10, 11
+     - 11
+   * - 1.0.0
+     - 10, 11
+     - 11
+   * - 0.46.1
+     - 10
+     - 10
+   * - 0.45.3
+     - 10
+     - 10
+   * - 0.45.2
+     - 10
+     - 10
+   * - 0.45.1
+     - 10
+     - 10
+   * - 0.45.0
+     - 10
+     - 10
+   * - 0.25.3
+     - 9
+     - 9
+   * - 0.25.2
+     - 9
+     - 9
+   * - 0.25.1
+     - 9
+     - 9
+   * - 0.24.2
+     - 8
+     - 8
+   * - 0.24.1
+     - 7
+     - 7
+   * - 0.24.0
+     - 7
+     - 7
+   * - 0.23.3
+     - 6
+     - 6
+   * - 0.23.2
+     - 6
+     - 6
+   * - 0.23.1
+     - 6
+     - 6
+   * - 0.23.0
+     - 6
+     - 6
+   * - 0.22.4
+     - 5
+     - 5
+   * - 0.22.3
+     - 5
+     - 5
+   * - 0.22.2
+     - 5
+     - 5
+   * - 0.22.1
+     - 5
+     - 5
+   * - 0.22.0
+     - 5
+     - 5
+   * - 0.21.2
+     - 5
+     - 5
+   * - 0.21.1
+     - 5
+     - 5
+   * - 0.21.0
+     - 5
+     - 5
+   * - 0.20.2
+     - 4
+     - 4
+   * - 0.20.1
+     - 4
+     - 4
+   * - 0.20.0
+     - 4
+     - 4
+   * - 0.19.2
+     - 4
+     - 4
+   * - 0.19.1
+     - 3
+     - 3
+   * - 0.19.0
+     - 2
+     - 2
+   * - 0.18.3
+     - 1
+     - 1
+   * - 0.18.2
+     - 1
+     - 1
+   * - 0.18.1
+     - 1
+     - 1
+   * - 0.18.0
+     - 1
+     - 1
+
 .. _qpy_format:
 
 **********
@@ -1101,7 +1230,6 @@ The contents of HEADER are defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name
@@ -1134,7 +1262,6 @@ The contents of HEADER as defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name

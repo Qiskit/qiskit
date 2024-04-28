@@ -53,33 +53,34 @@ if sys.version_info < (3, 9):
 
 
 import qiskit._accelerate
-
+import qiskit._numpy_compat
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
 # We manually define them on import so people can directly import qiskit._accelerate.* submodules
 # and not have to rely on attribute access.  No action needed for top-level extension packages.
-sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
-sys.modules["qiskit._accelerate.quantum_circuit"] = qiskit._accelerate.quantum_circuit
-sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
-sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
-sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.circuit"] = qiskit._accelerate.circuit
+sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
+    qiskit._accelerate.convert_2q_block_matrix
+)
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
-sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
-sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
-sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimize_1q_gates
-sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
-sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
 sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     qiskit._accelerate.euler_one_qubit_decomposer
 )
-sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
-    qiskit._accelerate.convert_2q_block_matrix
-)
+sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
+sys.modules["qiskit._accelerate.optimize_1q_gates"] = qiskit._accelerate.optimize_1q_gates
+sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.qasm2"] = qiskit._accelerate.qasm2
+sys.modules["qiskit._accelerate.qasm3"] = qiskit._accelerate.qasm3
+sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
+sys.modules["qiskit._accelerate.sabre"] = qiskit._accelerate.sabre
+sys.modules["qiskit._accelerate.sampled_exp_val"] = qiskit._accelerate.sampled_exp_val
+sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
+sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.two_qubit_decompose"] = qiskit._accelerate.two_qubit_decompose
+sys.modules["qiskit._accelerate.vf2_layout"] = qiskit._accelerate.vf2_layout
 
-# qiskit errors operator
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 
 # The main qiskit operators
