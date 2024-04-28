@@ -12,7 +12,7 @@ features:
     superposition states, requiring only $O(\log_2 (M))$ qubits 
     and $O(\log_2 (M))$ gates. Usage example:
 
-    .. plot:: python
+    .. code-block:: python
 
        from qiskit import UniformSuperpositionGate, QuantumCircuit
        M = 5
@@ -20,4 +20,4 @@ features:
        usp_gate = UniformSuperpositionGate(M, n)
        qc = QuantumCircuit(n)
        qc.append(usp_gate, list(range(n)))
-       qc.draw('mpl',style="clifford")
+       qc.draw()
