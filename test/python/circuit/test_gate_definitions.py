@@ -68,7 +68,7 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
-from .gate_utils import _get_free_params
+# from .gate_utils import _get_free_params
 
 
 class TestGateDefinitions(QiskitTestCase):
@@ -277,7 +277,7 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         "ClassicalFunction",
         "ClassicalElement",
         "StatePreparation",
-        "GeneralizedUniformSuperpositionGate",
+        "UniformSuperpositionGate",
         "LinearFunction",
         "PermutationGate",
         "Commuting2qBlock",
