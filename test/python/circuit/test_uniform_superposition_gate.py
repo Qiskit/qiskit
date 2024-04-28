@@ -16,6 +16,7 @@ Uniform Superposition Gate test.
 
 import unittest
 import math
+from test import QiskitTestCase
 import numpy as np
 from ddt import ddt, data
 
@@ -26,8 +27,6 @@ from qiskit.compiler import transpile
 from qiskit.circuit.library.data_preparation import (
     UniformSuperpositionGate,
 )
-
-from test import QiskitTestCase
 
 
 @ddt
