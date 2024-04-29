@@ -257,6 +257,14 @@ class TestCircuitVars(QiskitTestCase):
         ]
         self.assertEqual(actual_initializers, expected_initializers)
 
+    def test_declaration_does_not_widen_bool_literal(self):
+        # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
+        # semantics...).  It's not in Qiskit's value type system, though.
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit()
+        with self.assertRaisesRegex(CircuitError, "explicit cast is required"):
+            qc.add_var(a, True)
+
     def test_cannot_shadow_vars(self):
         """Test that exact duplicate ``Var`` nodes within different combinations of the inputs are
         detected and rejected."""
