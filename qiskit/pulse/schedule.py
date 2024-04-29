@@ -715,16 +715,17 @@ class Schedule:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
         inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from parameters (parameter vectors) to either
-            numeric values (list of numeric values)
-            or another Parameter expression (list of Parameter expressions).
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1416,15 +1417,16 @@ class ScheduleBlock:
     def assign_parameters(
         self,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from parameters (parameter vectors) to either numeric values
-            (list of numeric values)
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
             or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
