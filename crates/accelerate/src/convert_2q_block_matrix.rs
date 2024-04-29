@@ -25,6 +25,8 @@ use faer::prelude::*;
 use faer::{Mat, Parallelism};
 use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
 
+use std::mem::swap;
+
 static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
     [Complex64::new(1., 0.), Complex64::new(0., 0.)],
     [Complex64::new(0., 0.), Complex64::new(1., 0.)],
@@ -48,6 +50,12 @@ pub fn blocks_to_matrix(
         [] => Mat::<c64>::identity(4, 4),
         _ => unreachable!(),
     };
+
+    let mut aux = Mat::<c64>::with_capacity(4, 4);
+    // SAFETY: `aux` is a 4x4 matrix whose values are uninitialized and it's used only to store the
+    // result of the `matmul` call inside the for loop
+    unsafe { aux.set_dims(4, 4) };
+
     for (op_matrix, q_list) in op_list.into_iter().skip(1) {
         let op_matrix = op_matrix.as_array().into_faer_complex();
 
@@ -59,15 +67,18 @@ pub fn blocks_to_matrix(
             _ => None,
         };
 
-        let aux = matrix.clone();
         matmul(
-            matrix.as_mut(),
+            aux.as_mut(),
             result.as_ref().map(|x| x.as_ref()).unwrap_or(op_matrix),
-            aux.as_ref(),
+            matrix.as_ref(),
             None,
             c64::new(1., 0.),
             Parallelism::None,
         );
+
+        // Swap values between `aux` and `matrix` to store the result of the `matmul` call
+        // in the matrix `matrix` and prepare it for a possible new iteration of the for loop
+        swap(&mut aux, &mut matrix);
     }
 
     Ok(matrix
