@@ -10,8 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
-use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
+use crate::circuit_instruction::CircuitInstruction;
+use crate::intern_context::{BitType, IndexType, InternContext};
 use hashbrown::HashMap;
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;

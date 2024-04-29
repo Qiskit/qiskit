@@ -10,17 +10,22 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use crate::circuit_instruction::CircuitInstruction;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList, PyTuple, PyType};
+use pyo3::sync::GILOnceCell;
+use pyo3::types::{PyDict, PyInt, PyList, PySequence, PyString, PyTuple, PyType};
 use pyo3::{intern, PyObject, PyResult};
 use std::hash::Hash;
+use std::mem;
+
+static SEMANTIC_EQ_PYTHON: GILOnceCell<PyResult<PyObject>> = GILOnceCell::new();
 
 /// Parent class for DAGOpNode, DAGInNode, and DAGOutNode.
-#[pyclass(module = "qiskit._accelerate.quantum_circuit", subclass)]
+#[pyclass(module = "qiskit._accelerate.circuit", subclass)]
 #[derive(Clone, Debug)]
 pub struct DAGNode {
     #[pyo3(get, set)]
-    _node_id: isize,
+    pub _node_id: isize,
 }
 
 #[pymethods]
@@ -29,6 +34,14 @@ impl DAGNode {
     #[pyo3(signature=(nid=-1))]
     fn new(nid: isize) -> Self {
         DAGNode { _node_id: nid }
+    }
+
+    fn __getstate__(&self) -> isize {
+        self._node_id
+    }
+
+    fn __setstate__(&mut self, nid: isize) {
+        self._node_id = nid;
     }
 
     fn __lt__(&self, other: &DAGNode) -> bool {
@@ -41,6 +54,10 @@ impl DAGNode {
 
     fn __str__(_self: &Bound<DAGNode>) -> String {
         format!("{}", _self.as_ptr() as usize)
+    }
+
+    fn __hash__(&self, py: Python) -> PyResult<isize> {
+        self._node_id.into_py(py).bind(py).hash()
     }
 
     /// Check if DAG nodes are considered equivalent, e.g., as a node_match for
@@ -57,34 +74,25 @@ impl DAGNode {
     /// Return:
     ///     Bool: If node1 == node2
     #[staticmethod]
-    fn semantic_eq(
-        py: Python,
-        node1: &Bound<PyAny>,
-        node2: &Bound<PyAny>,
-        bit_indices1: &Bound<PyAny>,
-        bit_indices2: &Bound<PyAny>,
-    ) -> PyResult<bool> {
-        if !node1.is_instance_of::<DAGOpNode>() || !node2.is_instance_of::<DAGOpNode>() {
-            let same_type = node1.get_type().is(&node2.get_type());
-            let indices1 = bit_indices1.get_item(node1.getattr(intern!(py, "wire"))?)?;
-            let indices2 = bit_indices2.get_item(node2.getattr(intern!(py, "wire"))?)?;
-            return Ok(same_type && indices1.eq(indices2)?)
-        }
-
-        let node1 = node1.downcast_exact::<DAGOpNode>()?;
-        let node2 = node2.downcast_exact::<DAGOpNode>()?;
-
-        // if node1.op.is_instance(PyType::)
+    #[pyo3(signature = (*args), text_signature = "(node1, node2, bit_indices1, bit_indices2)")]
+    fn semantic_eq<'py>(py: Python<'py>, args: &Bound<PyTuple>) -> PyResult<Bound<'py, PyAny>> {
+        let semantic_eq_fn = SEMANTIC_EQ_PYTHON
+            .get_or_init(py, || {
+                let module = PyModule::import_bound(py, "qiskit.dagcircuit.dagnode")?;
+                Ok(module.getattr("_semantic_eq")?.unbind())
+            })
+            .as_ref()
+            .map_err(|e| e.clone_ref(py))?;
+        semantic_eq_fn.bind(py).call1(args)
     }
 }
 
 /// Object to represent an Instruction at a node in the DAGCircuit.
-#[pyclass(module = "qiskit._accelerate.quantum_circuit", extends=DAGNode)]
+#[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGOpNode {
-    op: PyObject,
-    qargs: Py<PyTuple>,
-    cargs: Py<PyTuple>,
-    sort_key: PyObject,
+    pub instruction: CircuitInstruction,
+    #[pyo3(get)]
+    pub sort_key: PyObject,
 }
 
 #[pymethods]
@@ -93,80 +101,157 @@ impl DAGOpNode {
     fn new(
         py: Python,
         op: PyObject,
-        qargs: Option<&Bound<PyAny>>,
-        cargs: Option<&Bound<PyAny>>,
+        qargs: Option<&Bound<PySequence>>,
+        cargs: Option<&Bound<PySequence>>,
         dag: Option<&Bound<PyAny>>,
     ) -> PyResult<(Self, DAGNode)> {
-        fn as_tuple(py: Python<'_>, seq: Option<&Bound<PyAny>>) -> PyResult<Py<PyTuple>> {
-            match seq {
-                None => Ok(PyTuple::empty_bound(py).unbind()),
-                Some(seq) => {
-                    if seq.is_instance_of::<PyTuple>() {
-                        Ok(seq.downcast_exact::<PyTuple>()?.into_py(py))
-                    } else if seq.is_instance_of::<PyList>() {
-                        let seq = seq.downcast_exact::<PyList>()?;
-                        Ok(seq.to_tuple().unbind())
-                    } else {
-                        // New tuple from iterable.
-                        Ok(PyTuple::new_bound(
-                            py,
-                            seq.iter()?
-                                .map(|o| Ok(o?.unbind()))
-                                .collect::<PyResult<Vec<PyObject>>>()?,
-                        )
-                        .unbind())
+        let qargs =
+            qargs.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
+        let cargs =
+            cargs.map_or_else(|| Ok(PyTuple::empty_bound(py)), PySequenceMethods::to_tuple)?;
+
+        let sort_key = match dag {
+            Some(dag) => {
+                let cache = dag
+                    .getattr(intern!(py, "_key_cache"))?
+                    .downcast_into_exact::<PyDict>()?;
+                let cache_key = PyTuple::new_bound(py, [&qargs, &cargs]);
+                match cache.get_item(&cache_key)? {
+                    Some(key) => key,
+                    None => {
+                        let indices: PyResult<Vec<_>> = qargs
+                            .iter()
+                            .chain(cargs.iter())
+                            .map(|bit| {
+                                Ok(dag
+                                    .call_method1(intern!(py, "find_bit"), (bit,))?
+                                    .getattr(intern!(py, "index"))?)
+                            })
+                            .collect();
+                        let index_strs: Vec<_> =
+                            indices?.into_iter().map(|i| format!("{:04}", i)).collect();
+                        let key = PyString::new_bound(py, index_strs.join(",").as_str());
+                        cache.set_item(&cache_key, &key)?;
+                        key.into_any()
                     }
                 }
             }
-        }
-
-        let qargs = as_tuple(py, qargs)?;
-        let cargs = as_tuple(py, cargs)?;
-        let sort_key: PyObject = match dag {
-            Some(dag) => {
-                todo!()
-            }
-            None => qargs.bind(py).str()?.as_any().unbind(),
+            None => qargs.str()?.into_any(),
         };
 
         Ok((
             DAGOpNode {
-                op,
-                qargs,
-                cargs,
-                sort_key,
+                instruction: CircuitInstruction {
+                    operation: op,
+                    qubits: qargs.unbind(),
+                    clbits: cargs.unbind(),
+                },
+                sort_key: sort_key.unbind(),
             },
             DAGNode { _node_id: -1 },
         ))
     }
 
+    fn __getstate__(slf: PyRef<Self>, py: Python) -> PyObject {
+        (
+            (slf.instruction.__getstate__(py), &slf.sort_key),
+            (slf.as_ref()._node_id),
+        )
+            .into_py(py)
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
+        let (((operation, qubits, clbits), sort_key), nid): (
+            ((PyObject, Py<PyTuple>, Py<PyTuple>), PyObject),
+            isize,
+        ) = state.extract()?;
+        slf.instruction = CircuitInstruction {
+            operation,
+            qubits,
+            clbits,
+        };
+        slf.sort_key = sort_key;
+        slf.as_mut()._node_id = nid;
+        Ok(())
+    }
+
+    pub fn __getnewargs__(&self, py: Python<'_>) -> PyObject {
+        (
+            &self.instruction.operation,
+            &self.instruction.qubits,
+            &self.instruction.clbits,
+            None::<PyObject>,
+        )
+            .into_py(py)
+    }
+
+    #[getter]
+    fn get_op(&self, py: Python) -> PyObject {
+        self.instruction.operation.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_op(&mut self, op: PyObject) {
+        self.instruction.operation = op;
+    }
+
+    #[getter]
+    fn get_qargs(&self, py: Python) -> Py<PyTuple> {
+        self.instruction.qubits.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_qargs(&mut self, qargs: Py<PyTuple>) {
+        self.instruction.qubits = qargs;
+    }
+
+    #[getter]
+    fn get_cargs(&self, py: Python) -> Py<PyTuple> {
+        self.instruction.clbits.clone_ref(py)
+    }
+
+    #[setter]
+    fn set_cargs(&mut self, cargs: Py<PyTuple>) {
+        self.instruction.clbits = cargs;
+    }
+
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyResult<Bound<PyAny>> {
-        self.op.bind(py).getattr(intern!(py, "name"))
+    fn get_name(&self, py: Python) -> PyResult<PyObject> {
+        Ok(self
+            .instruction
+            .operation
+            .bind(py)
+            .getattr(intern!(py, "name"))?
+            .unbind())
     }
 
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
     fn set_name(&self, py: Python, new_name: PyObject) -> PyResult<()> {
-        self.op.bind(py).setattr(intern!(py, "name"), new_name)
+        self.instruction
+            .operation
+            .bind(py)
+            .setattr(intern!(py, "name"), new_name)
     }
 
     /// Returns a representation of the DAGOpNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
         Ok(format!(
             "DAGOpNode(op={}, qargs={}, cargs={})",
-            self.op.bind(py).str()?,
-            self.qargs.bind(py).str()?,
-            self.cargs.bind(py).str()?
+            self.instruction.operation.bind(py).str()?,
+            self.instruction.qubits.bind(py).str()?,
+            self.instruction.clbits.bind(py).str()?
         ))
     }
 }
 
 /// Object to represent an incoming wire node in the DAGCircuit.
-#[pyclass(module = "qiskit._accelerate.quantum_circuit", extends=DAGNode)]
+#[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGInNode {
+    #[pyo3(get)]
     wire: PyObject,
+    #[pyo3(get)]
     sort_key: PyObject,
 }
 
@@ -177,10 +262,25 @@ impl DAGInNode {
         Ok((
             DAGInNode {
                 wire,
-                sort_key: PyList::empty_bound(py).str()?.as_any().unbind(),
+                sort_key: PyList::empty_bound(py).str()?.into_any().unbind(),
             },
             DAGNode { _node_id: -1 },
         ))
+    }
+
+    fn __getstate__(slf: PyRef<Self>, py: Python) -> PyObject {
+        (&slf.wire, slf.as_ref()._node_id).into_py(py)
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
+        let (wire, nid): (PyObject, isize) = state.extract()?;
+        slf.wire = wire;
+        slf.as_mut()._node_id = nid;
+        Ok(())
+    }
+
+    pub fn __getnewargs__(&self, py: Python<'_>) -> PyObject {
+        (&self.wire,).into_py(py)
     }
 
     /// Returns a representation of the DAGInNode
@@ -190,9 +290,11 @@ impl DAGInNode {
 }
 
 /// Object to represent an outgoing wire node in the DAGCircuit.
-#[pyclass(module = "qiskit._accelerate.quantum_circuit", extends=DAGNode)]
+#[pyclass(module = "qiskit._accelerate.circuit", extends=DAGNode)]
 pub struct DAGOutNode {
+    #[pyo3(get)]
     wire: PyObject,
+    #[pyo3(get)]
     sort_key: PyObject,
 }
 
@@ -203,14 +305,29 @@ impl DAGOutNode {
         Ok((
             DAGOutNode {
                 wire,
-                sort_key: PyList::empty_bound(py).str()?.as_any().unbind(),
+                sort_key: PyList::empty_bound(py).str()?.into_any().unbind(),
             },
             DAGNode { _node_id: -1 },
         ))
     }
 
+    fn __getstate__(slf: PyRef<Self>, py: Python) -> PyObject {
+        (&slf.wire, slf.as_ref()._node_id).into_py(py)
+    }
+
+    fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
+        let (wire, nid): (PyObject, isize) = state.extract()?;
+        slf.wire = wire;
+        slf.as_mut()._node_id = nid;
+        Ok(())
+    }
+
+    pub fn __getnewargs__(&self, py: Python<'_>) -> PyObject {
+        (&self.wire,).into_py(py)
+    }
+
+    /// Returns a representation of the DAGOutNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
-        /// Returns a representation of the DAGOutNode
         Ok(format!("DAGOutNode(wire={})", self.wire.bind(py).str()?))
     }
 }

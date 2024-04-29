@@ -10,18 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::bit_packing::{pack, unpack, BitAsKey};
-use crate::quantum_circuit::circuit_data::PackedInstruction;
-use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
-use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
-use crate::utils::SliceOrInt;
+use crate::bit_packing::{pack, unpack, BitAsKey, PackedInstruction};
+use crate::circuit_instruction::CircuitInstruction;
+use crate::dag_node::{DAGNode, DAGOpNode};
+use crate::intern_context::{BitType, IndexType, InternContext};
+use crate::SliceOrInt;
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyFloat, PyInt, PyList, PySet, PySlice, PyString, PyTuple, PyType};
-use pyo3::{intern, PyObject, PyResult, PyTraverseError, PyVisit};
+use pyo3::{intern, PyObject, PyResult, PyVisit};
 use rustworkx_core::petgraph::prelude::StableDiGraph;
-use rustworkx_core::petgraph::visit::{NodeCount, NodeRef};
+use rustworkx_core::petgraph::visit::{IntoNodeReferences, NodeCount, NodeRef};
 use std::f64::consts::PI;
 use std::ffi::c_double;
 use std::hash::{Hash, Hasher};
@@ -33,14 +33,9 @@ enum NodeType {
     Out(BitType),
 }
 
-#[pyclass(module = "qiskit._accelerate.quantum_circuit")]
+#[pyclass(module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct DAGCircuit {
-    // TODO: remove these once DAGNode is ported to Rust
-    new_op_node: PyObject,
-    new_in_node: PyObject,
-    new_out_node: PyObject,
-
     #[pyo3(get)]
     name: Option<Py<PyString>>,
     #[pyo3(get)]
@@ -72,23 +67,17 @@ pub struct DAGCircuit {
 #[pymethods]
 impl DAGCircuit {
     #[new]
-    pub fn new(
-        py: Python<'_>,
-        new_op_node: PyObject,
-        new_in_node: PyObject,
-        new_out_node: PyObject,
-    ) -> Self {
+    pub fn new(py: Python<'_>) -> Self {
         DAGCircuit {
-            new_op_node,
-            new_in_node,
-            new_out_node,
-
             name: None,
             metadata: None,
             calibrations: PyDict::new_bound(py).unbind(),
             dag: StableDiGraph::default(),
+            intern_context: InternContext::new(),
             qubits_native: Vec::new(),
             clbits_native: Vec::new(),
+            qubit_indices_native: HashMap::new(),
+            clbit_indices_native: HashMap::new(),
             qubits: PyList::empty_bound(py).unbind(),
             clbits: PyList::empty_bound(py).unbind(),
             global_phase: PyFloat::new_bound(py, 0 as c_double).into_any().unbind(),
@@ -136,7 +125,7 @@ impl DAGCircuit {
             .into_any()
             .unbind();
         } else {
-            self.global_phase = angle.unbind()
+            self.global_phase = angle.clone().unbind()
         }
         Ok(())
     }
@@ -1636,25 +1625,43 @@ impl DAGCircuit {
     //        return nodes
     //
 
-    pub fn named_nodes(&self, py: Python<'_>, names: &Bound<PyTuple>) -> PyResult<Vec<PyObject>> {
-        todo!()
-        // let mut result: Vec<PyObject> = Vec::new();
-        // for n in self.dag.node_indices() {
-        //     match n.weight() {
-        //         NodeType::Op(ref packed) => {
-        //             let name = packed.op.bind(py).getattr(intern!("name"))?;
-        //             if names.contains(&name)? {
-        //                 let qargs = self.intern_context.lookup(packed.qubits_id as usize).iter()
-        //                 result.push(self.new_op_node.bind(py).call1((pack))self.unpack(py, packed)?);
-        //                 Some(Ok(n))
-        //             } else {
-        //                 None
-        //             }
-        //         },
-        //         _ => (),
-        //     }
-        // }
-        // Ok(result)
+    pub fn named_nodes(&self, py: Python<'_>, names: &Bound<PyTuple>) -> PyResult<PyObject> {
+        let mut result = Vec::new();
+        for (_, weight) in self.dag.node_references() {
+            match weight {
+                NodeType::Op(ref packed) => {
+                    let name = packed.op.bind(py).getattr(intern!(py, "name"))?;
+                    if names.contains(&name)? {
+                        result.push(Py::new(
+                            py,
+                            (
+                                DAGOpNode {
+                                    instruction: CircuitInstruction {
+                                        operation: packed.op.clone_ref(py),
+                                        qubits: PyTuple::new_bound(
+                                            py,
+                                            self.intern_context
+                                                .lookup(packed.qubits_id as IndexType),
+                                        )
+                                        .unbind(),
+                                        clbits: PyTuple::new_bound(
+                                            py,
+                                            self.intern_context
+                                                .lookup(packed.clbits_id as IndexType),
+                                        )
+                                        .unbind(),
+                                    },
+                                    sort_key: (packed.qubits_id, packed.clbits_id).into_py(py),
+                                },
+                                DAGNode { _node_id: -1 },
+                            ),
+                        )?);
+                    }
+                }
+                _ => (),
+            }
+        }
+        Ok(result.into_py(py))
     }
     //    def named_nodes(self, *names):
     //        """Get the set of "op" nodes with the given name."""
