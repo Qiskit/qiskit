@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
 from qiskit.qasm3.exporter import QASM3Builder
@@ -948,7 +948,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
     def test_simple_for_loop(self):
         """Test that a simple for loop outputs the expected result."""
-        parameter = Parameter("x")
+        parameter = Parameter("my_x")
         loop_body = QuantumCircuit(1)
         loop_body.rx(parameter, 0)
         loop_body.break_loop()
@@ -978,8 +978,8 @@ class TestCircuitQASM3(QiskitTestCase):
 
     def test_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result."""
-        inner_parameter = Parameter("x")
-        outer_parameter = Parameter("y")
+        inner_parameter = Parameter("my_x")
+        outer_parameter = Parameter("my_y")
 
         inner_body = QuantumCircuit(2)
         inner_body.rz(inner_parameter, 0)
@@ -1024,9 +1024,9 @@ class TestCircuitQASM3(QiskitTestCase):
     def test_regular_parameter_in_nested_for_loop(self):
         """Test that a for loop nested inside another outputs the expected result, including
         defining parameters that are used in nested loop scopes."""
-        inner_parameter = Parameter("x")
-        outer_parameter = Parameter("y")
-        regular_parameter = Parameter("t")
+        inner_parameter = Parameter("my_x")
+        outer_parameter = Parameter("my_y")
+        regular_parameter = Parameter("my_t")
 
         inner_body = QuantumCircuit(2)
         inner_body.h(0)
@@ -1736,6 +1736,145 @@ include "stdgates.inc";
 bit[8] cr;
 if (cr == 1) {
 }
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_use(self):
+        """Test that input and declared vars work in simple local scopes and can be set."""
+        qc = QuantumCircuit()
+        a = qc.add_input("a", types.Bool())
+        b = qc.add_input("b", types.Uint(8))
+        qc.store(a, expr.logic_not(a))
+        qc.store(b, expr.bit_and(b, 8))
+        qc.add_var("c", expr.bit_not(b))
+        # All inputs should come first, regardless of declaration order.
+        qc.add_input("d", types.Bool())
+
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool a;
+input uint[8] b;
+input bool d;
+uint[8] c;
+a = !a;
+b = b & 8;
+c = ~b;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_use_in_scopes(self):
+        """Test that usage of `Var` nodes works in capturing scopes."""
+        qc = QuantumCircuit(2, 2)
+        a = qc.add_input("a", types.Bool())
+        b_outer = qc.add_var("b", expr.lift(5, types.Uint(16)))
+        with qc.if_test(expr.logic_not(a)) as else_:
+            qc.store(b_outer, expr.bit_not(b_outer))
+            qc.h(0)
+        with else_:
+            # Shadow of the same type.
+            qc.add_var("b", expr.lift(7, b_outer.type))
+        with qc.while_loop(a):
+            # Shadow of a different type.
+            qc.add_var("b", a)
+        with qc.switch(b_outer) as case:
+            with case(0):
+                qc.store(b_outer, expr.lift(3, b_outer.type))
+            with case(case.DEFAULT):
+                qc.add_var("b", expr.logic_not(a))
+                qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool a;
+bit[2] c;
+int switch_dummy;
+qubit[2] q;
+uint[16] b;
+b = 5;
+if (!a) {
+  b = ~b;
+  h q[0];
+} else {
+  uint[16] b;
+  b = 7;
+}
+while (a) {
+  bool b;
+  b = a;
+}
+switch_dummy = b;
+switch (switch_dummy) {
+  case 0 {
+    b = 3;
+  }
+  default {
+    bool b;
+    b = !a;
+    cx q[0], q[1];
+  }
+}
+c[0] = measure q[0];
+c[1] = measure q[1];
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_parameter(self):
+        """We should support a `Var` clashing in name with a `Parameter` if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(1)
+        qc.add_var("a", False)
+        qc.rx(Parameter("a"), 0)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input float[64] a;
+qubit[1] q;
+bool a__generated0;
+a__generated0 = false;
+rx(a) q[0];
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_register(self):
+        """We should support a `Var` clashing in name with a `Register` if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(QuantumRegister(2, "q"), ClassicalRegister(2, "c"))
+        qc.add_input("c", types.Bool())
+        qc.add_var("q", False)
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool c__generated0;
+bit[2] c;
+qubit[2] q;
+bool q__generated1;
+q__generated1 = false;
+"""
+        self.assertEqual(dumps(qc), expected)
+
+    def test_var_naming_clash_gate(self):
+        """We should support a `Var` clashing in name with some gate if `QuantumCircuit` allows
+        it."""
+        qc = QuantumCircuit(2)
+        qc.add_input("cx", types.Bool())
+        qc.add_input("U", types.Bool())
+        qc.add_var("rx", expr.lift(5, types.Uint(8)))
+
+        qc.cx(0, 1)
+        qc.u(0.5, 0.125, 0.25, 0)
+        # We don't actually use `rx`, but it's still in the `stdgates` include.
+        expected = """\
+OPENQASM 3.0;
+include "stdgates.inc";
+input bool cx__generated0;
+input bool U__generated1;
+qubit[2] q;
+uint[8] rx__generated2;
+rx__generated2 = 5;
+cx q[0], q[1];
+U(0.5, 0.125, 0.25) q[0];
 """
         self.assertEqual(dumps(qc), expected)
 
@@ -2654,3 +2793,11 @@ class TestQASM3ExporterFailurePaths(QiskitTestCase):
             QASM3ExporterError, "Exporting opaque instructions .* is not yet supported"
         ):
             exporter.dumps(qc)
+
+    def test_disallow_export_of_inner_scope(self):
+        """A circuit with captures can't be a top-level OQ3 program."""
+        qc = QuantumCircuit(captures=[expr.Var.new("a", types.Bool())])
+        with self.assertRaisesRegex(
+            QASM3ExporterError, "cannot export an inner scope.*as a top-level program"
+        ):
+            dumps(qc)
