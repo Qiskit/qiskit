@@ -10,10 +10,11 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::bit_packing::{pack, unpack, BitAsKey, PackedInstruction};
-use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
-use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
-use crate::utils::SliceOrInt;
+use crate::bit_packing::{pack, unpack, BitAsKey, PackedInstruction};
+use crate::circuit_instruction::CircuitInstruction;
+use crate::intern_context::{BitType, IndexType, InternContext};
+use crate::SliceOrInt;
+
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
@@ -71,7 +72,7 @@ use std::hash::{Hash, Hasher};
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-#[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     /// The packed instruction listing.
@@ -284,8 +285,8 @@ impl CircuitData {
     /// Returns:
     ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
     pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
-        let qubits = PySet::empty(py)?;
-        let clbits = PySet::empty(py)?;
+        let qubits = PySet::empty_bound(py)?;
+        let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
             for b in self.intern_context.lookup(inst.qubits_id).iter() {
                 qubits.add(self.qubits_native[*b as usize].clone_ref(py))?;
