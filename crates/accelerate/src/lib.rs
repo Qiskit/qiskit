@@ -33,6 +33,10 @@ pub mod uc_gate;
 pub mod utils;
 pub mod vf2_layout;
 
+mod rayon_ext;
+#[cfg(test)]
+mod test;
+
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
     let parallel_context = env::var("QISKIT_IN_PARALLEL")
