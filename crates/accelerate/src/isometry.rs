@@ -43,6 +43,7 @@ pub fn reverse_qubit_state(
 fn l2_norm(vec: &[Complex64]) -> f64 {
     vec.iter()
         .fold(0., |acc, elem| acc + elem.norm_sqr())
+        .sqrt()
 }
 
 fn reverse_qubit_state_inner(
