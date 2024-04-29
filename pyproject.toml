@@ -225,14 +225,12 @@ disable = [
     "no-member",
     "no-value-for-parameter",
     "not-context-manager",
-    "superfluous-parens",
     "unexpected-keyword-arg",
     "unnecessary-dict-index-lookup",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
     "unsupported-assignment-operation",
-    "use-dict-literal",
     "use-implicit-booleaness-not-comparison",
 ]
 

@@ -443,6 +443,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # do no send loose constraints unless it's one of the known edge cases.
+
     pm = generate_preset_pass_manager(
         optimization_level,
         target=target,
@@ -465,9 +466,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         optimization_method=optimization_method,
     )
 
-    out_circuits = []
-    for circuit in circuits:
-        out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
+    out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
 
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
