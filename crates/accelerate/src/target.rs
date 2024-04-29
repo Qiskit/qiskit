@@ -216,8 +216,8 @@ impl InstructionProperties {
         Ok(())
     }
 
-    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<PyObject>)> {
-        Ok((self.duration, self.error, self._calibration.clone()))
+    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<&PyObject>)> {
+        Ok((self.duration, self.error, self._calibration.as_ref()))
     }
 
     fn __setstate__(
@@ -599,10 +599,10 @@ impl Target {
                     .and_modify(|e| {
                         e.insert(instruction_name.clone());
                     })
-                    .or_insert(HashSet::from_iter([instruction_name.clone()].into_iter()));
+                    .or_insert(HashSet::from_iter([instruction_name.clone()]));
             }
             for qarg in properties.keys().cloned() {
-                if let Some(qarg) = qarg.clone() {
+                if let Some(qarg) = &qarg {
                     if qarg.vec.len() != inst_num_qubits {
                         return Err(TranspilerError::new_err(format!(
                             "The number of qubits for {instruction} does not match\
@@ -611,13 +611,16 @@ impl Target {
                         )));
                     }
                     self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
-                        qarg.vec.iter().cloned().fold(0, |acc, x| {
-                            if acc > x.index() {
-                                acc
-                            } else {
-                                x.index()
-                            }
-                        }) + 1,
+                        qarg.vec.iter().fold(
+                            0,
+                            |acc, x| {
+                                if acc > x.index() {
+                                    acc
+                                } else {
+                                    x.index()
+                                }
+                            },
+                        ) + 1,
                     ));
                 }
                 qargs_val.insert(qarg.clone(), properties[&qarg].clone());
@@ -747,8 +750,8 @@ impl Target {
                 };
                 let mut props: Option<InstructionProperties> =
                     if let Some(Some(prop_value)) = self.gate_map.get(&inst_name) {
-                        if let Some(prop) = prop_value.get(&Some(qargs_.clone())) {
-                            prop.clone()
+                        if let Some(Some(prop)) = prop_value.get(&Some(qargs_.clone())) {
+                            Some(prop.to_owned())
                         } else {
                             None
                         }
@@ -906,12 +909,12 @@ impl Target {
      */
     #[pyo3(text_signature = "(/)")]
     fn instruction_schedule_map(&mut self, py: Python<'_>) -> PyResult<PyObject> {
+        if let Some(schedule_map) = self.instruction_schedule_map.as_ref() {
+            return Ok(schedule_map.to_owned());
+        }
         let inst_sched_map_module = py.import_bound("qiskit.pulse.instruction_schedule_map")?;
         let inst_sched_map_class = inst_sched_map_module.getattr("InstructionScheduleMap")?;
         let out_inst_schedule_map = inst_sched_map_class.call0()?;
-        if let Some(schedule_map) = self.instruction_schedule_map.clone() {
-            return Ok(schedule_map);
-        }
         for (instruction, qargs) in self.gate_map.iter() {
             if let Some(qargs) = qargs {
                 for (qarg, properties) in qargs.iter() {
@@ -1077,7 +1080,7 @@ impl Target {
         }
         if let Some(Some(gate_map_qarg)) = self.qarg_gate_map.get(&qargs) {
             for x in gate_map_qarg {
-                res.append(self.gate_name_map[x].clone())?;
+                res.append(&self.gate_name_map[x])?;
             }
         }
         if let Some(qargs) = qargs.as_ref() {
@@ -1122,7 +1125,7 @@ impl Target {
         &self,
         py: Python<'_>,
         qargs: Option<Qargs>,
-    ) -> PyResult<HashSet<String>> {
+    ) -> PyResult<HashSet<&String>> {
         // When num_qubits == 0 we return globally defined operators
         let mut res = HashSet::new();
         let mut qargs = qargs;
@@ -1139,16 +1142,18 @@ impl Target {
             }
         }
         if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
-            res.extend(qarg_gate_map_arg.to_owned());
+            res.extend(qarg_gate_map_arg);
         }
         for (name, op) in self.gate_name_map.iter() {
             if isclass(py, op.bind(py))? {
-                res.insert(name.into());
+                res.insert(name);
             }
         }
         if let Some(qargs) = qargs.as_ref() {
-            if let Some(ext) = self.global_operations.get(&qargs.vec.len()) {
-                res = ext.union(&res).cloned().collect();
+            if let Some(global_gates) = self.global_operations.get(&qargs.vec.len()) {
+                for gate_name_ref in global_gates {
+                    res.insert(gate_name_ref);
+                }
             }
         }
         if res.is_empty() {
@@ -1651,7 +1656,7 @@ impl Target {
     /// The set of qargs in the target.
     #[getter]
     fn qargs(&self) -> PyResult<Option<HashSet<Option<Qargs>>>> {
-        let qargs: HashSet<Option<Qargs>> = self.qarg_gate_map.clone().into_keys().collect();
+        let qargs: HashSet<Option<Qargs>> = self.qarg_gate_map.keys().cloned().collect();
         // Modify logic to account for the case of {None}
         let next_entry = qargs.iter().flatten().next();
         if qargs.len() == 1 && (qargs.iter().next().is_none() || next_entry.is_none()) {
@@ -1669,15 +1674,14 @@ impl Target {
     is globally defined.
     */
     #[getter]
-    fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, PyObject)>> {
+    fn instructions(&self) -> PyResult<Vec<(PyObject, Option<Qargs>)>> {
         // Get list of instructions.
-        let mut instruction_list: Vec<(PyObject, PyObject)> = vec![];
+        let mut instruction_list: Vec<(PyObject, Option<Qargs>)> = vec![];
         // Add all operations and dehash qargs.
         for op in self.gate_map.keys() {
             if let Some(gate_map_op) = self.gate_map[op].as_ref() {
                 for qarg in gate_map_op.keys() {
-                    let instruction_pair =
-                        (self.gate_name_map[op].clone(), qarg.clone().into_py(py));
+                    let instruction_pair = (self.gate_name_map[op].clone(), qarg.clone());
                     instruction_list.push(instruction_pair);
                 }
             }
@@ -2056,6 +2060,22 @@ impl Target {
             Ok(value.to_owned())
         } else {
             Err(PyKeyError::new_err(format!("{key} not in gate_map")))
+        }
+    }
+
+    #[pyo3(signature = (key, default=None))]
+    fn get(
+        &self,
+        py: Python<'_>,
+        key: String,
+        default: Option<Bound<PyAny>>,
+    ) -> PyResult<PyObject> {
+        match self.__getitem__(key) {
+            Ok(value) => Ok(value.into_py(py)),
+            Err(_) => Ok(match default {
+                Some(value) => value.into(),
+                None => py.None(),
+            }),
         }
     }
 
