@@ -213,6 +213,7 @@ disable = [
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
     "nested-min-max", # this gives false equivalencies if implemented for the current lint version
+    "unsupported-assignment-operation", # one instance needed for the dragon: qiskit/providers/options.py:232
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
@@ -230,7 +231,6 @@ disable = [
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
-    "unsupported-assignment-operation",
     "use-implicit-booleaness-not-comparison",
 ]
 
