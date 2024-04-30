@@ -733,6 +733,23 @@ class TestBackendSamplerV2(QiskitTestCase):
         self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
         self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
 
+    def test_iter_pub(self):
+        """Test of an iterable of pubs"""
+        backend = BasicSimulator()
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSamplerV2(backend=backend)
+        result = sampler.run(iter([qc, qc2]), shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
 
 if __name__ == "__main__":
     unittest.main()
