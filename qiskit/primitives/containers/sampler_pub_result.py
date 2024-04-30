@@ -53,6 +53,7 @@ class SamplerPubResult(PubResult):
             if not names:
                 raise ValueError("No entry exists in the data bin.")
         else:
+            names = list(names)
             if not names:
                 raise ValueError("An empty name list is given.")
             for name in names:
