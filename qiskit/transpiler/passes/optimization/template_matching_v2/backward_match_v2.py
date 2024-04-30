@@ -26,8 +26,15 @@ Exact and practical pattern matching for quantum circuit optimization.
 """
 import heapq
 
-import rustworkx as rx
-
+from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v2 import (
+    get_node,
+    get_qindices,
+    get_cindices,
+    get_descendants,
+    get_ancestors,
+    get_successors,
+    get_predecessors,
+)
 from qiskit.circuit.controlledgate import ControlledGate
 
 
@@ -66,7 +73,7 @@ class MatchingScenarios:
         Args:
             circuit_matched (list): list of matchedwith attributes in the circuit.
             circuit_blocked (list): list of isblocked attributes in the circuit.
-            template_matched (list): list of matchedwith attributes in the template.
+            template_matched (list): list of self.matchedwith.get(node)self.matchedwith.get(node) attributes in the template.
             template_blocked (list): list of isblocked attributes in the template.
             matches (list): list of matches.
             counter (int): counter of the number of circuit gates already considered.
@@ -172,7 +179,7 @@ class BackwardMatch:
         current_dag = self.circuit_dag_dep
 
         for node in current_dag.op_nodes():
-            if (not self.matchedwith[node]) and (not self.isblocked[node]):
+            if (not self.matchedwith.get(node)) and (not self.isblocked.get(node)):
                 gate_indices.append(node._node_id)
         gate_indices.reverse()
         return gate_indices
@@ -345,15 +352,15 @@ class BackwardMatch:
         circuit_blocked = []
 
         for node in self.circuit_dag_dep.op_nodes():
-            circuit_matched.append(self.matchedwith[node])
-            circuit_blocked.append(self.isblocked[node])
+            circuit_matched.append(self.matchedwith.get(node))
+            circuit_blocked.append(self.isblocked.get(node))
 
         template_matched = []
         template_blocked = []
 
         for node in self.template_dag_dep.op_nodes():
-            template_matched.append(self.matchedwith[node])
-            template_blocked.append(self.isblocked[node])
+            template_matched.append(self.matchedwith.get(node))
+            template_blocked.append(self.isblocked.get(node))
 
         return circuit_matched, circuit_blocked, template_matched, template_blocked
 
@@ -572,9 +579,9 @@ class BackwardMatch:
                             break
 
                     # First option greedy match.
-                    if ([self.node_t._node_id, self.node_c._node_id] in new_matches_scenario_match) and (
-                        condition or not match_backward
-                    ):
+                    if (
+                        [self.node_t._node_id, self.node_c._node_id] in new_matches_scenario_match
+                    ) and (condition or not match_backward):
                         template_matched_match[template_id] = [circuit_id]
                         circuit_matched_match[circuit_id] = [template_id]
                         new_matches_scenario_match.append([template_id, circuit_id])
@@ -630,9 +637,9 @@ class BackwardMatch:
                         condition_not_greedy = False
                         break
 
-                if ([self.node_t._node_id, self.node_c._node_id] in new_matches_scenario_block_s) and (
-                    condition_not_greedy or not match_backward
-                ):
+                if (
+                    [self.node_t._node_id, self.node_c._node_id] in new_matches_scenario_block_s
+                ) and (condition_not_greedy or not match_backward):
                     new_matching_scenario = MatchingScenarios(
                         circuit_matched_block_s,
                         circuit_blocked_block_s,
@@ -766,9 +773,9 @@ class BackwardMatch:
                             condition_block = False
                             break
 
-                    if ([self.node_t._node_id, self.node_c._node_id] in matches_scenario_nomatch) and (
-                        condition_block or not match_backward
-                    ):
+                    if (
+                        [self.node_t._node_id, self.node_c._node_id] in matches_scenario_nomatch
+                    ) and (condition_block or not match_backward):
                         new_matching_scenario = MatchingScenarios(
                             circuit_matched_nomatch,
                             circuit_blocked_nomatch,
@@ -787,31 +794,3 @@ class BackwardMatch:
                 scenario.match == x.match for x in self.match_final
             ):
                 self.match_final.append(scenario)
-
-
-def get_node(dag, node_id):
-    return dag._multi_graph[node_id]
-
-
-def get_qindices(dag, node):
-    return [dag.find_bit(qarg).index for qarg in node.qargs]
-
-
-def get_cindices(dag, node):
-    return [dag.find_bit(carg).index for carg in node.cargs]
-
-
-def get_descendants(dag, node_id):
-    return list(rx.descendants(dag._multi_graph, node_id))
-
-
-def get_ancestors(dag, node_id):
-    return list(rx.ancestors(dag._multi_graph, node_id))
-
-
-def get_successors(dag, node):
-    return [succ._node_id for succ in dag._multi_graph.successors(node)]
-
-
-def get_predecessors(dag, node):
-    return [pred._node_id for pred in dag._multi_graph.predecessors(node)]

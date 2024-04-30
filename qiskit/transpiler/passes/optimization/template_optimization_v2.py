@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020-2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -58,7 +58,7 @@ class TemplateOptimizationV2(TransformationPass):
     ):
         """
         Args:
-            template_list (list[QuantumCircuit()]): list of the different template circuit to apply.
+            template_list (list[QuantumCircuit()]): list of the different template circuits to apply.
             heuristics_backward_param (list[int]): [length, survivor] Those are the parameters for
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
@@ -69,8 +69,8 @@ class TemplateOptimizationV2(TransformationPass):
                 matches. Check reference for more details.
             heuristics_qubits_param (list[int]): [length] The heuristics for the qubit choice make
                 guesses from the dag dependency of the circuit in order to limit the number of
-                qubit configurations to explore. The length is the number of successors or not
-                predecessors that will be explored in the dag dependency of the circuit, each
+                qubit configurations to explore. The length is the number of descendants or not
+                ancestors that will be explored in the dag dependency of the circuit. Each of the
                 qubits of the nodes are added to the set of authorized qubits. We advise to use
                 length=1. Check reference for more details.
             user_cost_dict (Dict[str, int]): quantum cost dictionary passed to TemplateSubstitution
@@ -78,7 +78,7 @@ class TemplateOptimizationV2(TransformationPass):
                 is not given. The key is the name of the gate and the value its quantum cost.
         """
         super().__init__()
-        # If no template is given; the template are set as x-x, cx-cx, ccx-ccx.
+        # If no template is given; the templates are set as x-x, cx-cx, ccx-ccx.
         if template_list is None:
             template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
@@ -88,7 +88,6 @@ class TemplateOptimizationV2(TransformationPass):
         self.heuristics_backward_param = (
             heuristics_backward_param if heuristics_backward_param is not None else []
         )
-
         self.user_cost_dict = user_cost_dict
 
     def run(self, dag):
@@ -99,14 +98,14 @@ class TemplateOptimizationV2(TransformationPass):
             DAGCircuit: optimized DAG circuit.
         Raises:
             TranspilerError: If the template has not the right form or
-             if the output circuit acts differently as the input circuit.
+            if the output circuit acts differently as the input circuit.
         """
         circuit_dag = dag
         circuit_dag_dep = _dag_to_dagdependency_v2(circuit_dag)
 
         for template in self.template_list:
             if not isinstance(template, (QuantumCircuit, _DAGDependencyV2)):
-                raise TranspilerError("A template is a Quantumciruit or a DAGDependency.")
+                raise TranspilerError("A template is a Quantumciruit or a DAGDependencyV2.")
 
             if len(template.qubits) > len(circuit_dag_dep.qubits):
                 continue

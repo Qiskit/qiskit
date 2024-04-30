@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020-2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,8 +18,13 @@ import collections
 import copy
 import itertools
 
-import rustworkx as rx
-
+from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v2 import (
+    get_node,
+    get_qindices,
+    get_cindices,
+    get_descendants,
+    get_ancestors,
+)
 from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency_v2 import _DAGDependencyV2
@@ -663,31 +668,3 @@ class TemplateSubstitution:
                     circuit_params.update(param_exp.parameters)
 
         return len(template_params) > len(circuit_params)
-
-
-def get_node(dag, node_id):
-    return dag._multi_graph[node_id]
-
-
-def get_qindices(dag, node):
-    return [dag.find_bit(qarg).index for qarg in node.qargs]
-
-
-def get_cindices(dag, node):
-    return [dag.find_bit(carg).index for carg in node.cargs]
-
-
-def get_descendants(dag, node_id):
-    return list(rx.descendants(dag._multi_graph, node_id))
-
-
-def get_ancestors(dag, node_id):
-    return list(rx.ancestors(dag._multi_graph, node_id))
-
-
-def get_successors(dag, node):
-    return [succ._node_id for succ in dag._multi_graph.successors(node)]
-
-
-def get_predecessors(dag, node):
-    return [pred._node_id for pred in dag._multi_graph.predecessors(node)]

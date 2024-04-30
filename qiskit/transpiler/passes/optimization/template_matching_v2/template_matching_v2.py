@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020-2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,8 +25,12 @@ Exact and practical pattern matching for quantum circuit optimization.
 
 import itertools
 
-import rustworkx as rx
-
+from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v2 import (
+    get_node,
+    get_qindices,
+    get_cindices,
+    get_descendants,
+)
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.transpiler.passes.optimization.template_matching_v2.forward_match_v2 import ForwardMatch
 from qiskit.transpiler.passes.optimization.template_matching_v2.backward_match_v2 import (
@@ -49,8 +53,8 @@ class TemplateMatching:
         """
         Create a TemplateMatching object with necessary arguments.
         Args:
-            circuit_dag_dep (QuantumCircuit): circuit.
-            template_dag_dep (QuantumCircuit): template.
+            circuit_dag_dep (DAGDependencyV2): circuit dag.
+            template_dag_dep (DAGDependencyV2): template dag.
             heuristics_backward_param (list[int]): [length, survivor]
             heuristics_qubits_param (list[int]): [length]
         """
@@ -68,11 +72,11 @@ class TemplateMatching:
 
     def _list_first_match_new(self, node_circuit, node_template, n_qubits_t, n_clbits_t):
         """
-        Returns the list of qubit for circuit given the first match, the unknown qubit are
+        Returns the list of qubits for the circuit given the first match, the unknown qubits are
         replaced by -1.
         Args:
-            node_circuit (DAGDepNode): First match node in the circuit.
-            node_template (DAGDepNode): First match node in the template.
+            node_circuit (DAGOpNode): First match node in the circuit.
+            node_template (DAGOpNode): First match node in the template.
             n_qubits_t (int): number of qubit in the template.
             n_clbits_t (int): number of classical bit in the template.
         Returns:
@@ -144,30 +148,32 @@ class TemplateMatching:
 
         return l_q, l_c
 
-    def _sublist(self, lst, exclude, length):
+    def _sublist(self, qubit_id_list, exclude, length):
         """
         Function that returns all possible combinations of a given length, considering an
         excluded list of elements.
         Args:
-            lst (list): list of qubits indices from the circuit.
+            qubit_id_list (list): list of qubits indices from the circuit.
             exclude (list): list of qubits from the first matched circuit gate.
-            length (int): length of the list to be returned (number of template qubit -
-            number of qubit from the first matched template gate).
+            length (int): length of the list to be returned (number of template qubits -
+                number of qubits from the first matched template gate).
         Yield:
             iterator: Iterator of the possible lists.
         """
-        for sublist in itertools.combinations([e for e in lst if e not in exclude], length):
+        for sublist in itertools.combinations(
+            [e for e in qubit_id_list if e not in exclude], length
+        ):
             yield list(sublist)
 
     def _list_qubit_clbit_circuit(self, list_first_match, permutation):
         """
-        Function that returns the list of the circuit qubits and clbits give a permutation
+        Function that returns the list of the circuit qubits and clbits given a permutation
         and an initial match.
         Args:
-            list_first_match (list): list of qubits indices for the initial match.
-            permutation (list): possible permutation for the circuit qubit.
+            list_first_match (list): list of qubit indices for the initial match.
+            permutation (list): possible permutation for the circuit qubits.
         Returns:
-            list: list of circuit qubit for the given permutation and initial match.
+            list: list of circuit qubits for the given permutation and initial match.
         """
         list_circuit = []
 
@@ -184,9 +190,9 @@ class TemplateMatching:
 
     def _add_match(self, backward_match_list):
         """
-        Method to add a match in list only if it is not already in it.
+        Method to add a match in the list only if it is not already in it.
         If the match is already in the list, the qubit configuration
-        is append to the existing match.
+        is appended to the existing match.
         Args:
             backward_match_list (list): match from the backward part of the
             algorithm.
@@ -206,14 +212,14 @@ class TemplateMatching:
 
     def _explore_circuit(self, node_c, node_t, n_qubits_t, length):
         """
-        Explore the successors of the node_id_c (up to the given length).
+        Explore the descendants of the node_c (up to the given length).
         Args:
             node_c (DAGOpNode): first match in the circuit.
             node_t (DAGOpNode): first match in the template.
             n_qubits_t (int): number of qubits in the template.
             length (int): length for exploration of the successors.
         Returns:
-            list: qubits configuration for the 'length' successors of node_id_c.
+            list: qubit configuration for the 'length' descendants of node_c.
         """
         template_nodes = range(node_t._node_id + 1, self.template_dag_dep.size())
         circuit_nodes = range(0, self.circuit_dag_dep.size())
@@ -268,10 +274,16 @@ class TemplateMatching:
         n_clbits_t = len(self.template_dag_dep.clbits)
 
         # Loop over the indices of both template and circuit.
-        for node_id_t in range(0, self.template_dag_dep.size()):
-            for node_id_c in range(0, self.circuit_dag_dep.size()):
-                node_t = get_node(self.template_dag_dep, node_id_t)
-                node_c = get_node(self.circuit_dag_dep, node_id_c)
+        # for node_id_t in range(0, self.template_dag_dep.size()):
+        #     for node_id_c in range(0, self.circuit_dag_dep.size()):
+        for (
+            node_t
+        ) in self.template_dag_dep.topological_nodes():  # range(0, self.template_dag_dep.size()):
+            for (
+                node_c
+            ) in self.circuit_dag_dep.topological_nodes():  # range(0, self.circuit_dag_dep.size()):
+                # node_t = get_node(self.template_dag_dep, node_id_t)
+                # node_c = get_node(self.circuit_dag_dep, node_id_c)
 
                 # Operations match up to ParameterExpressions.
                 if node_c.op.soft_compare(node_t.op):
@@ -291,8 +303,8 @@ class TemplateMatching:
                     list_circuit_q = list(range(0, n_qubits_c))
                     list_circuit_c = list(range(0, n_clbits_c))
 
-                    # If the parameter for qubits heuristics is given then extracts
-                    # the list of qubits for the successors (length(int)) in the circuit.
+                    # If the parameter for qubit heuristics is given then extract
+                    # the list of qubits for the descendants (length(int)) in the circuit.
 
                     if self.heuristics_qubits_param:
                         heuristics_qubits = self._explore_circuit(
@@ -302,7 +314,7 @@ class TemplateMatching:
                         heuristics_qubits = []
 
                     for sub_q in self._sublist(list_circuit_q, qarg_c, n_qubits_t - len(qarg_t)):
-                        # If the heuristics qubits are a subset of the given qubits configuration,
+                        # If the heuristics qubits are a subset of the given qubit configuration,
                         # then this configuration is accepted.
                         if set(heuristics_qubits).issubset(set(sub_q) | set(qarg_c)):
                             # Permute the qubit configuration.
@@ -313,7 +325,7 @@ class TemplateMatching:
                                         list_first_match_q, perm_q
                                     )
 
-                                    # Check for clbits configurations if there are clbits.
+                                    # Check for clbit configurations if there are clbits.
                                     if list_circuit_c:
                                         for sub_c in self._sublist(
                                             list_circuit_c, carg_c, n_clbits_t - len(carg_t)
@@ -387,31 +399,3 @@ class TemplateMatching:
 
         # Sort the list of matches according to the length of the matches (decreasing order).
         self.match_list.sort(key=lambda x: len(x.match), reverse=True)
-
-
-def get_node(dag, node_id):
-    return dag._multi_graph[node_id]
-
-
-def get_qindices(dag, node):
-    return [dag.find_bit(qarg).index for qarg in node.qargs]
-
-
-def get_cindices(dag, node):
-    return [dag.find_bit(carg).index for carg in node.cargs]
-
-
-def get_descendants(dag, node_id):
-    return list(rx.descendants(dag._multi_graph, node_id))
-
-
-def get_ancestors(dag, node_id):
-    return list(rx.ancestors(dag._multi_graph, node_id))
-
-
-def get_successors(dag, node):
-    return [succ._node_id for succ in dag._multi_graph.successors(node)]
-
-
-def get_predecessors(dag, node):
-    return [pred._node_id for pred in dag._multi_graph.predecessors(node)]
