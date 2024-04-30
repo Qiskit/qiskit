@@ -14,3 +14,28 @@ features_transpiler:
       generate_preset_pass_manager(backend.Target)
 
     will construct a default pass manager for the 100 qubit :class`.GenericBackendV2` instance.
+upgrade_transpiler:
+  - |
+    The default ``optimization_level`` used by the :func:`.transpile` function when one is not
+    specified has been changed to level 2. This makes it consistent with the default used
+    by :func:`.generate_preset_pass_manager` which is used internally by :func:`.transpile`. If
+    you were previously relying on the implicit default of level 1, you can simply set
+    the argument ``optimization_level=1`` when you call :func:`.transpile`. There isn't an API
+    change though because fundamentally level 2 and level 1 have the same semantics. Similarly you
+    can change the default back in your local environment by using a user config file and setting
+    the ``transpile_optimization_level`` field to 1.
+
+    The only potential issue is that if you were relying on an implicit trivial layout (where qubit 0
+    in the circuit passed to :func:`.transpile` is mapped to qubit 0 on the target backend/coupling,
+    1->1, 2->2, etc.) without specifying ``optimization_level=1``, ``layout_method="trivial"``, or
+    explicitly setting ``initial_layout`` when calling :func:`.transpile`. This behavior was a side
+    effect of the preset pass manager construction in optimization level 1 and is not mirrored in
+    level 2. If you need this behavior you can use any of the three options list previously to make
+    this behavior explicit.
+
+    Similarly if you were targeting a discrete basis gate set you may encounter an issue using the
+    new default with optimization level 2 (or 3) as the additional optimization passes that run in
+    level 2 and 3 don't work in all cases with a discrete basis. You can explicitly set
+    ``optimization_level=1`` manually in this case. In general the transpiler does not currently
+    fully support discrete basis sets and if you're relying on this you should likely construct a
+    pass manager manually to build a compilation pipeline that will work with your target.

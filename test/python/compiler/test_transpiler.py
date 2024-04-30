@@ -517,11 +517,21 @@ class TestTranspile(QiskitTestCase):
 
         # Try with the initial layout in both directions to ensure we're dealing with the basis
         # having only a single direction.
+
+        # Use optimization level=1 because the synthesis that runs as part of optimization at
+        # higher optimization levels will create intermediate gates that the transpiler currently
+        # lacks logic to translate to a discrete basis.
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[0, 1], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[0, 1], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
         self.assertIsInstance(
-            transpile(qc, target=target, initial_layout=[1, 0], seed_transpiler=42), QuantumCircuit
+            transpile(
+                qc, target=target, initial_layout=[1, 0], seed_transpiler=42, optimization_level=1
+            ),
+            QuantumCircuit,
         )
 
     def test_transpile_one(self):

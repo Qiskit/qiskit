@@ -221,7 +221,7 @@ def transpile(  # pylint: disable=too-many-return-statements
             * 2: heavy optimization
             * 3: even heavier optimization
 
-            If ``None``, level 1 will be chosen as default.
+            If ``None``, level 2 will be chosen as default.
         callback: A callback function that will be called after each
             pass execution. The function will be called with 5 keyword
             arguments,
@@ -315,7 +315,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     if optimization_level is None:
         # Take optimization level from the configuration or 1 as default.
         config = user_config.get_config()
-        optimization_level = config.get("transpile_optimization_level", 1)
+        optimization_level = config.get("transpile_optimization_level", 2)
 
     if backend is not None and getattr(backend, "version", 0) <= 1:
         # This is a temporary conversion step to allow for a smoother transition

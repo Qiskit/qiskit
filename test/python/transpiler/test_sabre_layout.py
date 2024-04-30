@@ -194,7 +194,9 @@ measure q4835[0] -> c982[0];
 rz(0) q4835[1];
 """
         )
-        res = transpile(qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234)
+        res = transpile(
+            qc, Fake27QPulseV1(), layout_method="sabre", seed_transpiler=1234, optimization_level=1
+        )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
         self.assertEqual(
@@ -250,6 +252,7 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
             layout_method="sabre",
             routing_method="stochastic",
             seed_transpiler=12345,
+            optimization_level=1,
         )
         self.assertIsInstance(res, QuantumCircuit)
         layout = res._layout.initial_layout
