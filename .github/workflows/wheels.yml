@@ -41,7 +41,7 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
           name: wheels-${{ matrix.os }}
-  build_wheels_macos_arm:
+  build_wheels_macos_arm_py38:
     name: Build wheels on macOS arm
     runs-on: ${{ matrix.os }}
     strategy:
@@ -100,7 +100,7 @@ jobs:
     environment: release
     permissions:
       id-token: write
-    needs: ["build_wheels", "build_wheels_32bit", "build_wheels_macos_arm"]
+    needs: ["build_wheels", "build_wheels_32bit", "build_wheels_macos_arm_py38"]
     steps:
       - uses: actions/download-artifact@v4
         with:
