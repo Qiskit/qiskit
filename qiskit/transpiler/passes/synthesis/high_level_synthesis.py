@@ -798,7 +798,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
                 "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
             )
 
-        section_size = options.get("section_size", 2)
+        section_size = options.get("section_size", None)
         use_inverted = options.get("use_inverted", False)
         use_transposed = options.get("use_transposed", False)
 

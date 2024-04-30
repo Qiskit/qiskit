@@ -25,7 +25,7 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
 def synth_cnot_phase_aam(
-    cnots: list[list[int]], angles: list[str], section_size: int = 2
+    cnots: list[list[int]], angles: list[str], section_size: int = None
 ) -> QuantumCircuit:
     r"""This function is an implementation of the `GraySynth` algorithm of
     Amy, Azimadeh and Mosca.

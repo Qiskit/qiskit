@@ -95,12 +95,12 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=True)
-        self.assertEqual(optimized_qc.depth(), 17)
-        self.assertEqual(optimized_qc.count_ops()["cx"], 20)
+        self.assertEqual(optimized_qc.depth(), 12)
+        self.assertEqual(optimized_qc.count_ops()["cx"], 12)
 
         optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=False)
-        self.assertEqual(optimized_qc.depth(), 15)
-        self.assertEqual(optimized_qc.count_ops()["cx"], 23)
+        self.assertEqual(optimized_qc.depth(), 12)
+        self.assertEqual(optimized_qc.count_ops()["cx"], 12)
 
     @data(5, 6)
     def test_invertible_matrix(self, n):
