@@ -94,19 +94,11 @@ class TestLinearSynth(QiskitTestCase):
         qc.cx(1, 0)
         mat = LinearFunction(qc).linear
 
-        synth_cnot_pmh_section_size_2 = lambda state: synth_cnot_count_full_pmh(
-            state, section_size=2
-        )
-
-        optimized_qc = optimize_cx_4_options(
-            synth_cnot_pmh_section_size_2, mat, optimize_count=True
-        )
+        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=True)
         self.assertEqual(optimized_qc.depth(), 17)
         self.assertEqual(optimized_qc.count_ops()["cx"], 20)
 
-        optimized_qc = optimize_cx_4_options(
-            synth_cnot_pmh_section_size_2, mat, optimize_count=False
-        )
+        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=False)
         self.assertEqual(optimized_qc.depth(), 15)
         self.assertEqual(optimized_qc.count_ops()["cx"], 23)
 
