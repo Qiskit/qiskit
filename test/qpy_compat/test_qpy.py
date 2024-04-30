@@ -661,7 +661,7 @@ def generate_annotated_circuits():
         CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
     )
     op2 = AnnotatedOperation(XGate(), InverseModifier())
-    qc = QuantumCircuit(6, 1)
+    qc = QuantumCircuit(6, 1, name="Annotated circuits")
     qc.cx(0, 1)
     qc.append(op1, [0, 1, 2])
     qc.h(4)
