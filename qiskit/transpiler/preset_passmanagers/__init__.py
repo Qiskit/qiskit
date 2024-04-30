@@ -138,7 +138,7 @@ def generate_preset_pass_manager(
         instruction_durations (InstructionDurations): Dictionary of duration
             (in dt) for each instruction.
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        initial_layout (Layout): Initial position of virtual qubits on
+        initial_layout (Layout | List[int]): Initial position of virtual qubits on
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``,
