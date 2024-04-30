@@ -57,7 +57,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
-from qiskit.qpy import dump, load
+from qiskit.qpy import dump, load, UnsupportedFeatureForVersion, QPY_COMPATIBILITY_VERSION
 from qiskit.quantum_info import Pauli, SparsePauliOp, Clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
@@ -1915,6 +1915,16 @@ class TestLoadFromQPY(QiskitTestCase):
         for old, new in zip(old_switch.blocks, new_switch.blocks):
             self.assertMinimalVarEqual(old, new)
             self.assertDeprecatedBitProperties(old, new)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 12))
+    def test_pre_v12_rejects_standalone_var(self, version):
+        """Test that dumping to older QPY versions rejects standalone vars."""
+        a = expr.Var.new("a", types.Bool())
+        qc = QuantumCircuit(inputs=[a])
+        with io.BytesIO() as fptr, self.assertRaisesRegex(
+            UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+        ):
+            dump(qc, fptr, version=version)
 
 
 class TestSymengineLoadFromQPY(QiskitTestCase):

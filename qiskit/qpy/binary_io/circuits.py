@@ -1243,7 +1243,7 @@ def write_circuit(
     else:
         if circuit.num_vars:
             raise exceptions.UnsupportedFeatureForVersion(
-                "circuits containing runtime variables", required=12, target=version
+                "circuits containing realtime variables", required=12, target=version
             )
         header_raw = formats.CIRCUIT_HEADER_V2(
             name_size=len(circuit_name),
