@@ -14,7 +14,7 @@ use num_complex::{Complex64, ComplexFloat};
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 use pyo3::Python;
-use std::f64::consts::PI;
+use std::f64::consts::{FRAC_1_SQRT_2, PI};
 
 use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
 use ndarray::prelude::*;
@@ -24,6 +24,11 @@ use crate::euler_one_qubit_decomposer::det_one_qubit;
 
 const PI2: f64 = PI / 2.;
 const EPS: f64 = 1e-10;
+
+// These constants are the non-zero elements of an RZ gate's unitary with an
+// angle of pi / 2
+const RZ_PI2_11: Complex64 = Complex64::new(FRAC_1_SQRT_2, -FRAC_1_SQRT_2);
+const RZ_PI2_00: Complex64 = Complex64::new(FRAC_1_SQRT_2, FRAC_1_SQRT_2);
 
 /// This method implements the decomposition given in equation (3) in
 /// https://arxiv.org/pdf/quant-ph/0410066.pdf.
@@ -114,8 +119,6 @@ pub fn dec_ucg_help(
                 // gates arising in the decomposition of D are ignored for the moment (they will
                 // be added together with the C-NOT gates at the end of the decomposition
                 // (in the method dec_ucg()))
-                let rz_11 = (-Complex64::new(0., 0.5 * PI2)).exp();
-                let rz_00 = Complex64::new(0., 0.5 * PI2).exp();
                 let r_conj_t = r.mapv(|x| x.conj()).t().to_owned();
                 if ucg_index < num_ucgs - 1 {
                     // Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and
@@ -124,21 +127,21 @@ pub fn dec_ucg_help(
                     let k = shift + len_ucg + i;
 
                     single_qubit_gates[k] = single_qubit_gates[k].dot(&r_conj_t);
-                    single_qubit_gates[k].mapv_inplace(|x| x * rz_00);
+                    single_qubit_gates[k].mapv_inplace(|x| x * RZ_PI2_00);
                     let k = k + len_ucg / 2;
                     single_qubit_gates[k] = single_qubit_gates[k].dot(&r);
-                    single_qubit_gates[k].mapv_inplace(|x| x * rz_11);
+                    single_qubit_gates[k].mapv_inplace(|x| x * RZ_PI2_11);
                 } else {
                     // Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and merge
                     // the trailing UC-Rz rotation into a diagonal gate at the end of the circuit
                     for ucg_index_2 in 0..num_ucgs {
                         let shift_2 = ucg_index_2 * len_ucg;
                         let k = 2 * (i + shift_2);
-                        diag[k] *= r_conj_t[[0, 0]] * rz_00;
-                        diag[k + 1] *= r_conj_t[[1, 1]] * rz_00;
+                        diag[k] *= r_conj_t[[0, 0]] * RZ_PI2_00;
+                        diag[k + 1] *= r_conj_t[[1, 1]] * RZ_PI2_00;
                         let k = len_ucg + k;
-                        diag[k] *= r[[0, 0]] * rz_11;
-                        diag[k + 1] *= r[[1, 1]] * rz_11;
+                        diag[k] *= r[[0, 0]] * RZ_PI2_11;
+                        diag[k + 1] *= r[[1, 1]] * RZ_PI2_11;
                     }
                 }
             }
