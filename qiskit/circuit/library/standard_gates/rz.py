@@ -130,15 +130,16 @@ class RZGate(Gate):
         """
         return RZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZ gate."""
         import numpy as np
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZGate(exponent * theta)
 
@@ -277,10 +278,12 @@ class CRZGate(ControlledGate):
         """
         return CRZGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(

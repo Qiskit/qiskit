@@ -133,6 +133,22 @@ class TestStoreCircuit(QiskitTestCase):
         qc.store(b, 0xFFFF)
         self.assertEqual(qc.data[-1].operation, Store(b, expr.lift(0xFFFF)))
 
+    def test_lifts_integer_literals_to_full_width(self):
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        qc.store(a, 1)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(1, a.type)))
+        qc.store(a, 255)
+        self.assertEqual(qc.data[-1].operation, Store(a, expr.Value(255, a.type)))
+
+    def test_does_not_widen_bool_literal(self):
+        # `bool` is a subclass of `int` in Python (except some arithmetic operations have different
+        # semantics...).  It's not in Qiskit's value type system, though.
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "explicit cast is required"):
+            qc.store(a, True)
+
     def test_rejects_vars_not_in_circuit(self):
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())

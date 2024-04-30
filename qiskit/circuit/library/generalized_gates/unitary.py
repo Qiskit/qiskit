@@ -18,6 +18,7 @@ import math
 import typing
 import numpy
 
+from qiskit import _numpy_compat
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier
@@ -118,10 +119,10 @@ class UnitaryGate(Gate):
             return False
         return matrix_equal(self.params[0], other.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
         """Return matrix for the unitary."""
-        # pylint: disable=unused-argument
-        return self.params[0]
+        dtype = self.params[0].dtype if dtype is None else dtype
+        return numpy.array(self.params[0], dtype=dtype, copy=copy)
 
     def inverse(self, annotated: bool = False):
         """Return the adjoint of the unitary."""

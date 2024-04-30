@@ -11,13 +11,14 @@
 # that they have been altered from the originals.
 
 """Module for common pulse programming utilities."""
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Sequence
 import warnings
 
 import numpy as np
 
+from qiskit.circuit import ParameterVector, Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
-from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
+from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError, PulseError
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -117,3 +118,33 @@ def instruction_duration_validation(duration: int):
         raise QiskitError(
             f"Instruction duration must be a non-negative integer, got {duration} instead."
         )
+
+
+def _validate_parameter_vector(parameter: ParameterVector, value):
+    """Validate parameter vector and its value."""
+    if not isinstance(value, Sequence):
+        raise PulseError(
+            f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+            f" but was assigned to {value}."
+        )
+    if len(parameter) != len(value):
+        raise PulseError(
+            f"Parameter vector '{parameter.name}' has length {len(parameter)},"
+            f" but was assigned to {len(value)} values."
+        )
+
+
+def _validate_single_parameter(parameter: Parameter, value):
+    """Validate single parameter and its value."""
+    if not isinstance(value, (int, float, complex, ParameterExpression)):
+        raise PulseError(f"Parameter '{parameter.name}' is not assignable to {value}.")
+
+
+def _validate_parameter_value(parameter, value):
+    """Validate parameter and its value."""
+    if isinstance(parameter, ParameterVector):
+        _validate_parameter_vector(parameter, value)
+        return True
+    else:
+        _validate_single_parameter(parameter, value)
+        return False
