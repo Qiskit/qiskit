@@ -20,8 +20,12 @@ from ddt import ddt, data
 from qiskit.quantum_info.operators import Operator
 from qiskit.circuit.library import LinearFunction, PermutationGate
 from qiskit.converters import dag_to_circuit
-from qiskit.synthesis import synth_permutation_acg
-from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms, synth_permutation_basic
+from qiskit.synthesis.permutation import (
+    synth_permutation_acg,
+    synth_permutation_depth_lnn_kms,
+    synth_permutation_basic,
+    synth_permutation_reverse_lnn_kms,
+)
 from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -123,6 +127,26 @@ class TestPermutationSynthesis(QiskitTestCase):
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
+
+    @data(1, 2, 3, 4, 5, 10, 15, 20)
+    def test_synth_permutation_reverse_lnn_kms(self, num_qubits):
+        """Test synth_permutation_reverse_lnn_kms function produces the correct
+        circuit."""
+        pattern = list(reversed(range(num_qubits)))
+        qc = synth_permutation_reverse_lnn_kms(num_qubits)
+        self.assertListEqual((LinearFunction(qc).permutation_pattern()).tolist(), pattern)
+
+        # Check that the CX depth of the circuit is at 2*n+2
+        self.assertTrue(qc.depth() <= 2 * num_qubits + 2)
+
+        # Check that the synthesized circuit consists of CX gates only,
+        # and that these CXs adhere to the LNN connectivity.
+        for instruction in qc.data:
+            self.assertEqual(instruction.operation.name, "cx")
+            q0 = qc.find_bit(instruction.qubits[0]).index
+            q1 = qc.find_bit(instruction.qubits[1]).index
+            dist = abs(q0 - q1)
+            self.assertEqual(dist, 1)
 
     @data(4, 5, 6, 7)
     def test_permutation_matrix(self, width):

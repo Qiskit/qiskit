@@ -23,7 +23,30 @@ import qiskit.circuit.library.standard_gates as gates
 from qiskit.exceptions import QiskitError
 
 # Single qubit gates supported by ``single_gate_params``.
-SINGLE_QUBIT_GATES = ("U", "u", "h", "p", "u1", "u2", "u3", "rz", "sx", "x")
+SINGLE_QUBIT_GATES = {
+    "U": gates.UGate,
+    "u": gates.UGate,
+    "u1": gates.U1Gate,
+    "u2": gates.U2Gate,
+    "u3": gates.U3Gate,
+    "h": gates.HGate,
+    "p": gates.PhaseGate,
+    "s": gates.SGate,
+    "sdg": gates.SdgGate,
+    "sx": gates.SXGate,
+    "sxdg": gates.SXdgGate,
+    "t": gates.TGate,
+    "tdg": gates.TdgGate,
+    "x": gates.XGate,
+    "y": gates.YGate,
+    "z": gates.ZGate,
+    "id": gates.IGate,
+    "i": gates.IGate,
+    "r": gates.RGate,
+    "rx": gates.RXGate,
+    "ry": gates.RYGate,
+    "rz": gates.RZGate,
+}
 
 
 def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarray:
@@ -40,42 +63,55 @@ def single_gate_matrix(gate: str, params: list[float] | None = None) -> np.ndarr
     """
     if params is None:
         params = []
-
-    if gate == "U":
-        gc = gates.UGate
-    elif gate == "u3":
-        gc = gates.U3Gate
-    elif gate == "h":
-        gc = gates.HGate
-    elif gate == "u":
-        gc = gates.UGate
-    elif gate == "p":
-        gc = gates.PhaseGate
-    elif gate == "u2":
-        gc = gates.U2Gate
-    elif gate == "u1":
-        gc = gates.U1Gate
-    elif gate == "rz":
-        gc = gates.RZGate
-    elif gate == "id":
-        gc = gates.IGate
-    elif gate == "sx":
-        gc = gates.SXGate
-    elif gate == "x":
-        gc = gates.XGate
+    if gate in SINGLE_QUBIT_GATES:
+        gc = SINGLE_QUBIT_GATES[gate]
     else:
         raise QiskitError("Gate is not a valid basis gate for this simulator: %s" % gate)
 
     return gc(*params).to_matrix()
 
 
-# Cache CX matrix as no parameters.
-_CX_MATRIX = gates.CXGate().to_matrix()
+# Two qubit gates WITHOUT parameters: name -> matrix
+TWO_QUBIT_GATES = {
+    "CX": gates.CXGate().to_matrix(),
+    "cx": gates.CXGate().to_matrix(),
+    "ecr": gates.ECRGate().to_matrix(),
+    "cy": gates.CYGate().to_matrix(),
+    "cz": gates.CZGate().to_matrix(),
+    "swap": gates.SwapGate().to_matrix(),
+    "iswap": gates.iSwapGate().to_matrix(),
+    "ch": gates.CHGate().to_matrix(),
+    "cs": gates.CSGate().to_matrix(),
+    "csdg": gates.CSdgGate().to_matrix(),
+    "csx": gates.CSXGate().to_matrix(),
+    "dcx": gates.DCXGate().to_matrix(),
+}
+
+# Two qubit gates WITH parameters: name -> class
+TWO_QUBIT_GATES_WITH_PARAMETERS = {
+    "cp": gates.CPhaseGate,
+    "crx": gates.CRXGate,
+    "cry": gates.CRYGate,
+    "crz": gates.CRZGate,
+    "cu": gates.CUGate,
+    "cu1": gates.CU1Gate,
+    "cu3": gates.CU3Gate,
+    "rxx": gates.RXXGate,
+    "ryy": gates.RYYGate,
+    "rzz": gates.RZZGate,
+    "rzx": gates.RZXGate,
+    "xx_minus_yy": gates.XXMinusYYGate,
+    "xx_plus_yy": gates.XXPlusYYGate,
+}
 
 
-def cx_gate_matrix() -> np.ndarray:
-    """Get the matrix for a controlled-NOT gate."""
-    return _CX_MATRIX
+# Three qubit gates: name -> matrix
+THREE_QUBIT_GATES = {
+    "ccx": gates.CCXGate().to_matrix(),
+    "ccz": gates.CCZGate().to_matrix(),
+    "rccx": gates.RCCXGate().to_matrix(),
+    "cswap": gates.CSwapGate().to_matrix(),
+}
 
 
 def einsum_matmul_index(gate_indices: list[int], number_of_qubits: int) -> str:
