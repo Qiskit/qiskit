@@ -142,7 +142,7 @@ class BackendSamplerV2(BaseSamplerV2):
                     UserWarning,
                 )
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: list[SamplerPub]) -> PrimitiveResult[PubResult]:
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
         for i, pub in enumerate(pubs):
