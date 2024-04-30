@@ -12,7 +12,7 @@
 
 """Two-pulse single-qubit gate."""
 import cmath
-import copy
+import copy as _copy
 import math
 from cmath import exp
 from typing import Optional, Union
@@ -136,8 +136,10 @@ class UGate(Gate):
             )
         return gate
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -146,7 +148,7 @@ class UGate(Gate):
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )
 
     def __eq__(self, other):
@@ -337,8 +339,10 @@ class CUGate(ControlledGate):
             ctrl_state=self.ctrl_state,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam, gamma = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -372,5 +376,5 @@ class CUGate(ControlledGate):
         # assuming that `params` will be a view onto the base gate's `_params`.
         memo = memo if memo is not None else {}
         out = super().__deepcopy__(memo)
-        out._params = copy.deepcopy(out._params, memo)
+        out._params = _copy.deepcopy(out._params, memo)
         return out

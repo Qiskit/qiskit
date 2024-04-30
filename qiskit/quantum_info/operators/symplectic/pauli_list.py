@@ -148,14 +148,15 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         """Return settings."""
         return {"data": self.to_labels()}
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Convert to numpy array"""
-        # pylint: disable=unused-argument
+        if copy is False:
+            raise ValueError("cannot provide a matrix without calculation")
         shape = (len(self),) + 2 * (2**self.num_qubits,)
         ret = np.zeros(shape, dtype=complex)
         for i, mat in enumerate(self.matrix_iter()):
             ret[i] = mat
-        return ret
+        return ret if dtype is None else ret.astype(dtype, copy=False)
 
     @staticmethod
     def _from_paulis(data):
