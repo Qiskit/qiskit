@@ -12,4 +12,4 @@ fixes:
 
   - |
     Fixed a bug in :func:`.transpile` where the ``num_processes`` argument would only be used
-    if ``dt`` or ``instruction_durations`` were provided.
+    if ``dt`` or ``instruction_durations`` were provided. 

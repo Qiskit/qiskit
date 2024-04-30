@@ -48,7 +48,7 @@ class Fake1Q(FakeBackend):
             gates=[
                 Gate(
                     gate="u1",
-                    name="u1",
+                    name="u1_0",
                     qubits=[0],
                     parameters=[
                         Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
@@ -57,7 +57,7 @@ class Fake1Q(FakeBackend):
                 ),
                 Gate(
                     gate="u3",
-                    name="u3",
+                    name="u3_0",
                     qubits=[0],
                     parameters=[
                         Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
@@ -66,7 +66,7 @@ class Fake1Q(FakeBackend):
                 ),
                 Gate(
                     gate="u3",
-                    name="u3",
+                    name="u3_1",
                     qubits=[1],
                     parameters=[
                         Nduv(date=mock_time, name="gate_error", unit="", value=1.0),
@@ -75,7 +75,7 @@ class Fake1Q(FakeBackend):
                 ),
                 Gate(
                     gate="cx",
-                    name="cx0",
+                    name="cx0_1",
                     qubits=[0, 1],
                     parameters=[
                         Nduv(date=mock_time, name="gate_error", unit="", value=1.0),

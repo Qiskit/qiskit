@@ -1080,7 +1080,7 @@ class TestTranspile(QiskitTestCase):
 
         qc = QuantumCircuit(15, 15)
 
-        with self.assertRaises(TranspilerError):
+        with self.assertRaises(CircuitTooWideForTarget):
             transpile(qc, coupling_map=cmap)
 
     @data(0, 1, 2, 3)
@@ -2680,27 +2680,19 @@ class TestTranspileParallel(QiskitTestCase):
                 seed_transpiler=42,
             )
 
-    @data(3)
+    @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
         """Test transpile() with BackendV2, custom basis pulse gate."""
         backend = GenericBackendV2(
-            num_qubits=2,
-            basis_gates=["id", "rz", "sx", "x"],
-            coupling_map=[[0, 1]],
+            num_qubits=5,
+            coupling_map=[[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]],
+            seed=42,
         )
         inst_map = InstructionScheduleMap()
         inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
         newgate = Gate("newgate", 2, [])
         circ = QuantumCircuit(2)
         circ.append(newgate, [0, 1])
-
-        def callback_func(**kwargs):
-            pass_ = kwargs["pass_"]
-            dag = kwargs["dag"]
-            time = kwargs["time"]
-            property_set = kwargs["property_set"]
-            count = kwargs["count"]
-            print(pass_)
 
         tqc = transpile(
             circ,
@@ -2709,12 +2701,11 @@ class TestTranspileParallel(QiskitTestCase):
             basis_gates=["newgate"],
             optimization_level=opt_level,
             seed_transpiler=42,
-            callback=callback_func,
         )
         self.assertEqual(len(tqc.data), 1)
         self.assertEqual(tqc.data[0].operation, newgate)
-        qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
-        self.assertIn(qubits, backend.target.qargs)
+        for x in tqc.data[0].qubits:
+            self.assertIn((tqc.find_bit(x).index,), backend.target.qargs)
 
 
 @ddt
