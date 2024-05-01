@@ -246,9 +246,8 @@ class BackwardMatch:
         Returns:
             bool: True if possible, False otherwise.
         """
-        if (
-            getattr(node_circuit.op, "condition", None)
-            and getattr(node_template.op, "condition", None)
+        if getattr(node_circuit.op, "condition", None) and getattr(
+            node_template.op, "condition", None
         ):
             if set(carg_circuit) != set(get_cindices(self.template_dag_dep, node_template)):
                 return False
