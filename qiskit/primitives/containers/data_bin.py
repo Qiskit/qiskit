@@ -17,7 +17,16 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Sequence
 
+import numpy as np
+
 from .shape import ShapedMixin, ShapeInput, shape_tuple
+
+
+def _value_repr(value: Any) -> str:
+    """Helper function for :meth:`DataBin.__repr__`."""
+    if isinstance(value, np.ndarray):
+        return f"np.ndarray(<shape={value.shape}, dtype={value.dtype}>)"
+    return repr(value)
 
 
 class DataBin(ShapedMixin):
@@ -86,7 +95,9 @@ class DataBin(ShapedMixin):
         raise NotImplementedError
 
     def __repr__(self):
-        vals = (f"{name}={val}" for name, val in self.items())
+        vals = [f"{name}={_value_repr(val)}" for name, val in self.items()]
+        if self.ndim:
+            vals.append(f"shape={self.shape}")
         return f"{type(self).__name__}({', '.join(vals)})"
 
     def __getitem__(self, key: str) -> Any:
