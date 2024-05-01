@@ -38,8 +38,10 @@ from qiskit.circuit import (
     SwitchCaseOp,
     IfElseOp,
     WhileLoopOp,
+    CASE_DEFAULT,
+    Store,
 )
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import IGate, HGate, CXGate, CZGate, XGate, YGate, U1Gate, RXGate
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -420,6 +422,22 @@ class TestDagWireRemoval(QiskitTestCase):
         self.assertEqual(self.dag.qregs, result_dag.qregs)
         self.assertEqual(self.dag.duration, result_dag.duration)
         self.assertEqual(self.dag.unit, result_dag.unit)
+
+    def test_copy_empty_like_vars(self):
+        """Variables should be part of the empty copy."""
+        dag = DAGCircuit()
+        dag.add_input_var(expr.Var.new("a", types.Bool()))
+        dag.add_input_var(expr.Var.new("b", types.Uint(8)))
+        dag.add_declared_var(expr.Var.new("c", types.Bool()))
+        dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        self.assertEqual(dag, dag.copy_empty_like())
+
+        dag = DAGCircuit()
+        dag.add_captured_var(expr.Var.new("a", types.Bool()))
+        dag.add_captured_var(expr.Var.new("b", types.Uint(8)))
+        dag.add_declared_var(expr.Var.new("c", types.Bool()))
+        dag.add_declared_var(expr.Var.new("d", types.Uint(8)))
+        self.assertEqual(dag, dag.copy_empty_like())
 
     def test_remove_busy_clbit(self):
         """Classical bit removal of busy classical bits raises."""
@@ -1821,6 +1839,231 @@ class TestDagEquivalence(QiskitTestCase):
         qc2 = QuantumCircuit([Qubit(), clbit2], cr)
         qc2.switch(expr.bit_and(cr, 5), [(1, body)], [0], [])
         self.assertNotEqual(circuit_to_dag(qc1), circuit_to_dag(qc2))
+
+    def test_present_vars(self):
+        """The vars should be compared whether or not they're used."""
+        a_bool = expr.Var.new("a", types.Bool())
+        a_u8 = expr.Var.new("a", types.Uint(8))
+        a_u8_other = expr.Var.new("a", types.Uint(8))
+        b_bool = expr.Var.new("b", types.Bool())
+
+        left = DAGCircuit()
+        left.add_input_var(a_bool)
+        left.add_input_var(b_bool)
+        self.assertEqual(left.num_input_vars, 2)
+        self.assertEqual(left.num_captured_vars, 0)
+        self.assertEqual(left.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
+
+        right = DAGCircuit()
+        right.add_input_var(a_bool)
+        right.add_input_var(b_bool)
+        self.assertEqual(right.num_input_vars, 2)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
+        self.assertEqual(left, right)
+
+        right = DAGCircuit()
+        right.add_input_var(a_u8)
+        right.add_input_var(b_bool)
+        self.assertEqual(right.num_input_vars, 2)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_vars, 2)
+        self.assertNotEqual(left, right)
+
+        right = DAGCircuit()
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_vars, 0)
+        self.assertNotEqual(left, right)
+
+        right = DAGCircuit()
+        right.add_captured_var(a_bool)
+        right.add_captured_var(b_bool)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 2)
+        self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(right.num_vars, 2)
+        self.assertNotEqual(left, right)
+
+        right = DAGCircuit()
+        right.add_declared_var(a_bool)
+        right.add_declared_var(b_bool)
+        self.assertEqual(right.num_input_vars, 0)
+        self.assertEqual(right.num_captured_vars, 0)
+        self.assertEqual(right.num_declared_vars, 2)
+        self.assertEqual(right.num_vars, 2)
+        self.assertNotEqual(left, right)
+
+        left = DAGCircuit()
+        left.add_captured_var(a_u8)
+
+        right = DAGCircuit()
+        right.add_captured_var(a_u8)
+        self.assertEqual(left, right)
+
+        right = DAGCircuit()
+        right.add_captured_var(a_u8_other)
+        self.assertNotEqual(left, right)
+
+    def test_wires_added_for_simple_classical_vars(self):
+        """Var uses should be represented in the wire structure."""
+        a = expr.Var.new("a", types.Bool())
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        self.assertEqual(list(dag.iter_vars()), [a])
+        self.assertEqual(list(dag.iter_input_vars()), [a])
+        self.assertEqual(list(dag.iter_captured_vars()), [])
+        self.assertEqual(list(dag.iter_declared_vars()), [])
+
+        expected_nodes = [dag.input_map[a], dag.output_map[a]]
+        self.assertEqual(list(dag.topological_nodes()), expected_nodes)
+        self.assertTrue(dag.is_successor(dag.input_map[a], dag.output_map[a]))
+
+        op_mid = dag.apply_operation_back(Store(a, expr.lift(True)), (), ())
+        self.assertTrue(dag.is_successor(dag.input_map[a], op_mid))
+        self.assertTrue(dag.is_successor(op_mid, dag.output_map[a]))
+        self.assertFalse(dag.is_successor(dag.input_map[a], dag.output_map[a]))
+
+        op_front = dag.apply_operation_front(Store(a, expr.logic_not(a)), (), ())
+        self.assertTrue(dag.is_successor(dag.input_map[a], op_front))
+        self.assertTrue(dag.is_successor(op_front, op_mid))
+        self.assertFalse(dag.is_successor(dag.input_map[a], op_mid))
+
+        op_back = dag.apply_operation_back(Store(a, expr.logic_not(a)), (), ())
+        self.assertTrue(dag.is_successor(op_mid, op_back))
+        self.assertTrue(dag.is_successor(op_back, dag.output_map[a]))
+        self.assertFalse(dag.is_successor(op_mid, dag.output_map[a]))
+
+    def test_wires_added_for_var_control_flow_condition(self):
+        """Vars used in if/else or while conditionals should be added to the wire structure."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_input_var(b)
+
+        op_store = dag.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        op_if = dag.apply_operation_back(IfElseOp(a, QuantumCircuit()), (), ())
+        op_while = dag.apply_operation_back(
+            WhileLoopOp(expr.logic_or(a, b), QuantumCircuit()), (), ()
+        )
+
+        expected_edges = {
+            (dag.input_map[a], op_store, a),
+            (op_store, op_if, a),
+            (op_if, op_while, a),
+            (op_while, dag.output_map[a], a),
+            (dag.input_map[b], op_while, b),
+            (op_while, dag.output_map[b], b),
+        }
+        self.assertEqual(set(dag.edges()), expected_edges)
+
+    def test_wires_added_for_var_control_flow_target(self):
+        """Vars used in switch targets should be added to the wire structure."""
+        a = expr.Var.new("a", types.Uint(8))
+        b = expr.Var.new("b", types.Uint(8))
+        dag = DAGCircuit()
+        dag.add_declared_var(a)
+        dag.add_input_var(b)
+
+        op_store = dag.apply_operation_back(Store(a, expr.lift(3, a.type)), (), ())
+        op_switch = dag.apply_operation_back(
+            SwitchCaseOp(expr.bit_xor(a, b), [(CASE_DEFAULT, QuantumCircuit())]), (), ()
+        )
+
+        expected_edges = {
+            (dag.input_map[a], op_store, a),
+            (op_store, op_switch, a),
+            (op_switch, dag.output_map[a], a),
+            (dag.input_map[b], op_switch, b),
+            (op_switch, dag.output_map[b], b),
+        }
+        self.assertEqual(set(dag.edges()), expected_edges)
+
+    def test_wires_added_for_control_flow_captures(self):
+        """Vars captured in control-flow blocks should be in the wire structure."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Bool())
+        d = expr.Var.new("d", types.Uint(8))
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        dag.add_input_var(b)
+        dag.add_declared_var(c)
+        dag.add_input_var(d)
+        op_store = dag.apply_operation_back(Store(c, expr.lift(False)), (), ())
+        op_if = dag.apply_operation_back(IfElseOp(a, QuantumCircuit(captures=[b])), (), ())
+        op_switch = dag.apply_operation_back(
+            SwitchCaseOp(
+                d,
+                [
+                    (0, QuantumCircuit(captures=[b])),
+                    (CASE_DEFAULT, QuantumCircuit(captures=[c])),
+                ],
+            ),
+            (),
+            (),
+        )
+
+        expected_edges = {
+            # a
+            (dag.input_map[a], op_if, a),
+            (op_if, dag.output_map[a], a),
+            # b
+            (dag.input_map[b], op_if, b),
+            (op_if, op_switch, b),
+            (op_switch, dag.output_map[b], b),
+            # c
+            (dag.input_map[c], op_store, c),
+            (op_store, op_switch, c),
+            (op_switch, dag.output_map[c], c),
+            # d
+            (dag.input_map[d], op_switch, d),
+            (op_switch, dag.output_map[d], d),
+        }
+        self.assertEqual(set(dag.edges()), expected_edges)
+
+    def test_forbid_mixing_captures_inputs(self):
+        """Test that a DAG can't have both captures and inputs."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add captures to a circuit with inputs"
+        ):
+            dag.add_captured_var(b)
+
+        dag = DAGCircuit()
+        dag.add_captured_var(a)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add inputs to a circuit with captures"
+        ):
+            dag.add_input_var(b)
+
+    def test_forbid_adding_nonstandalone_var(self):
+        """Temporary "wrapping" vars aren't standalone and can't be tracked separately."""
+        dag = DAGCircuit()
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add variables that wrap"):
+            dag.add_input_var(expr.lift(ClassicalRegister(4, "c")))
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add variables that wrap"):
+            dag.add_declared_var(expr.lift(Clbit()))
+
+    def test_forbid_adding_conflicting_vars(self):
+        """Can't re-add a variable that exists, nor a shadowing variable in the same scope."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        dag = DAGCircuit()
+        dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
+            dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a2)
 
 
 class TestDagSubstitute(QiskitTestCase):
