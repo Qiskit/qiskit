@@ -441,19 +441,18 @@ class Layout:
 
 @dataclass
 class TranspileLayout:
-    r"""Layout attributes from output circuit from transpiler.
+    r"""Layout attributes for the output circuit from transpiler.
 
-    The transpiler in general is unitary-perserving up to permutations caused
-    by setting and applying initial layout during the :ref:`layout_stage`
-    and :class:`~.SwapGate` insertion during the :ref:`routing_stage`. To
-    provide an interface to reason about these permutations caused by
-    the :mod:`~qiskit.transpiler`. In general the normal interface to access
-    and reason about the layout transformations made by the transpiler is to
-    use the helper methods defined on this class.
+    The :mod:`~qiskit.transpiler` is unitary-preserving up to the "initial layout"
+    and "final layout" permutations. The initial layout permutation is caused by
+    setting and applying the initial layout during the :ref:`layout_stage`.
+    The final layout permutation is caused by :class:`~.SwapGate` insertion during
+    the :ref:`routing_stage`. This class provides an interface to reason about these
+    permutations using a variety of helper methods.
 
-    For example, looking at the initial layout, the transpiler can potentially
-    remap the order of the qubits in your circuit as it fits the circuit to
-    the target backend. If the input circuit was:
+    During the layout stage, the transpiler can potentially remap the order of the
+    qubits in the circuit as it fits the circuit to the target backend. For example,
+    let the input circuit be:
 
     .. plot:
        :include-source:
@@ -467,7 +466,8 @@ class TranspileLayout:
        qc.cx(0, 2)
        qc.draw("mpl")
 
-    Then during the layout stage the transpiler reorders the qubits to be:
+
+    Suppose that during the layout stage the transpiler reorders the qubits to be:
 
     .. plot:
        :include-source:
@@ -480,7 +480,7 @@ class TranspileLayout:
        qc.cx(2, 0)
        qc.draw("mpl")
 
-    then the output of the :meth:`.initial_virtual_layout` would be
+    Then the output of the :meth:`.initial_virtual_layout` method is
     equivalent to::
 
         Layout({
@@ -491,10 +491,11 @@ class TranspileLayout:
 
     (it is also this attribute in the :meth:`.QuantumCircuit.draw` and
     :func:`.circuit_drawer` which is used to display the mapping of qubits to
-    positions in circuit visualizations post-transpilation)
+    positions in circuit visualizations post-transpilation).
 
-    Building on this above example for final layout, if the transpiler needed to
-    insert swap gates during routing so the output circuit became:
+    Building on the above example, suppose that during the routing stage
+    the transpiler needs to insert swap gates, and the output circuit
+    becomes:
 
     .. plot:
        :include-source:
@@ -508,19 +509,19 @@ class TranspileLayout:
        qc.cx(2, 1)
        qc.draw("mpl")
 
-    then the output of the :meth:`routing_permutation` method would be::
+    Then the output of the :meth:`routing_permutation` method is::
 
         [1, 0, 2]
 
-    which maps the qubits at each position to their final position after any swap
-    insertions caused by routing.
+    which maps positions of qubits before routing to their final positions
+    after routing.
 
     There are three public attributes associated with the class, however these
     are mostly provided for backwards compatibility and represent the internal
     state from the transpiler. They are defined as:
 
       * :attr:`initial_layout` - This attribute is used to model the
-        permutation caused by the :ref:`layout_stage` it contains a
+        permutation caused by the :ref:`layout_stage`. It is a
         :class:`~.Layout` object that maps the input :class:`~.QuantumCircuit`\s
         :class:`~.circuit.Qubit` objects to the position in the output
         :class:`.QuantumCircuit.qubits` list.
@@ -531,18 +532,19 @@ class TranspileLayout:
         :attr:`.QuantumCircuit.qubits` in the original circuit. This
         is needed when computing the permutation of the :class:`Operator` of
         the circuit (and used by :meth:`.Operator.from_circuit`).
-      * :attr:`final_layout` - This is a :class:`~.Layout` object used to
-        model the output permutation caused ny any :class:`~.SwapGate`\s
-        inserted into the :class:`~.QuantumCircuit` during the
-        :ref:`routing_stage`. It maps the output circuit's qubits from
-        :class:`.QuantumCircuit.qubits` in the output circuit to the final
-        position after routing. It is **not** a mapping from the original
-        input circuit's position to the final position at the end of the
-        transpiled circuit. If you need this you can use the
-        :meth:`.final_index_layout` to generate this. If this is set to ``None``
-        this indicates that routing was not run and it can be considered
-        equivalent to a trivial layout with the qubits from the output circuit's
-        :attr:`~.QuantumCircuit.qubits` list.
+      * :attr:`final_layout` - This attribute is used to model the
+        permutation caused by the :ref:`routing_stage`. It is a
+        :class:`~.Layout` object that maps the output circuit's qubits from
+        :class:`.QuantumCircuit.qubits` in the output circuit to their final
+        positions after routing. Importantly, this only represents the
+        permutation caused by inserting :class:`~.SwapGate`\s into
+        the :class:`~.QuantumCircuit` during the :ref:`routing_stage`.
+        It is **not** a mapping from the original input circuit's position
+        to the final position at the end of the transpiled circuit.
+        If you need this, you can use the :meth:`.final_index_layout` to generate this.
+        If :attr:`final_layout` is set to ``None``, this indicates that routing was not
+        run, and can be considered equivalent to a trivial layout with the qubits from
+        the output circuit's :attr:`~.QuantumCircuit.qubits` list.
     """
 
     initial_layout: Layout
@@ -555,8 +557,8 @@ class TranspileLayout:
         """Return a :class:`.Layout` object for the initial layout.
 
         This returns a mapping of virtual :class:`~.circuit.Qubit` objects in the input
-        circuit to the physical qubit selected during layout. This is analogous
-        to the :attr:`.initial_layout` attribute.
+        circuit to the positions of the physical qubits selected during layout.
+        This is analogous to the :attr:`.initial_layout` attribute.
 
         Args:
             filter_ancillas: If set to ``True`` only qubits in the input circuit
@@ -564,7 +566,7 @@ class TranspileLayout:
                 output circuit will be filtered from the returned object.
         Returns:
             A layout object mapping the input circuit's :class:`~.circuit.Qubit`
-            objects to the selected physical qubits.
+            objects to the positions of the selected physical qubits.
         """
         if not filter_ancillas:
             return self.initial_layout
@@ -577,7 +579,7 @@ class TranspileLayout:
         )
 
     def initial_index_layout(self, filter_ancillas: bool = False) -> List[int]:
-        """Generate an initial layout as an array of integers
+        """Generate an initial layout as an array of integers.
 
         Args:
             filter_ancillas: If set to ``True`` any ancilla qubits added
@@ -601,16 +603,15 @@ class TranspileLayout:
         return output
 
     def routing_permutation(self) -> List[int]:
-        """Generate a final layout as an array of integers
+        """Generate a final layout as an array of integers.
 
         If there is no :attr:`.final_layout` attribute present then that indicates
         there was no output permutation caused by routing or other transpiler
-        transforms. In this case the function will return a list of ``[0, 1, 2, .., n]``
-        to indicate this
+        transforms. In this case the function will return a list of ``[0, 1, 2, .., n]``.
 
         Returns:
             A layout array that maps a position in the array to its new position in the output
-            circuit
+            circuit.
         """
         if self.final_layout is None:
             return list(range(len(self._output_qubit_list)))
@@ -618,9 +619,9 @@ class TranspileLayout:
         return [virtual_map[virt] for virt in self._output_qubit_list]
 
     def final_index_layout(self, filter_ancillas: bool = True) -> List[int]:
-        """Generate the final layout as an array of integers
+        """Generate the final layout as an array of integers.
 
-        This method will generate an array of final positions for each qubit in the output circuit.
+        This method will generate an array of final positions for each qubit in the input circuit.
         For example, if you had an input circuit like::
 
             qc = QuantumCircuit(3)
@@ -631,18 +632,22 @@ class TranspileLayout:
         and the output from the transpiler was::
 
             tqc = QuantumCircuit(3)
-            qc.h(2)
-            qc.cx(2, 1)
-            qc.swap(0, 1)
-            qc.cx(2, 1)
+            tqc.h(2)
+            tqc.cx(2, 1)
+            tqc.swap(0, 1)
+            tqc.cx(2, 1)
 
-        then the return from this function would be a list of::
+        then the :meth:`.final_index_layout` method returns::
 
             [2, 0, 1]
 
-        because qubit 0 in the original circuit's final state is on qubit 3 in the output circuit,
-        qubit 1 in the original circuit's final state is on qubit 0, and qubit 2's final state is
-        on qubit. The output list length will be as wide as the input circuit's number of qubits,
+        This can be seen as follows. Qubit 0 in the original circuit is mapped to qubit 2
+        in the output circuit during the layout stage, which is mapped to qubit 2 during the
+        routing stage. Qubit 1 in the original circuit is mapped to qubit 1 in the output
+        circuit during the layout stage, which is mapped to qubit 0 during the routing
+        stage. Qubit 2 in the original circuit is mapped to qubit 0 in the output circuit
+        during the layout stage, which is mapped to qubit 1 during the routing stage.
+        The output list length will be as wide as the input circuit's number of qubits,
         as the output list from this method is for tracking the permutation of qubits in the
         original circuit caused by the transpiler.
 
@@ -651,7 +656,7 @@ class TranspileLayout:
                 included in the layout.
 
         Returns:
-            A list of final positions for each input circuit qubit
+            A list of final positions for each input circuit qubit.
         """
         if self._input_qubit_count is None:
             # TODO: After there is a way to differentiate the ancilla qubits added by the transpiler
@@ -684,9 +689,9 @@ class TranspileLayout:
         return qubit_indices
 
     def final_virtual_layout(self, filter_ancillas: bool = True) -> Layout:
-        """Generate the final layout as a :class:`.Layout` object
+        """Generate the final layout as a :class:`.Layout` object.
 
-        This method will generate an array of final positions for each qubit in the output circuit.
+        This method will generate an array of final positions for each qubit in the input circuit.
         For example, if you had an input circuit like::
 
             qc = QuantumCircuit(3)
@@ -697,10 +702,10 @@ class TranspileLayout:
         and the output from the transpiler was::
 
             tqc = QuantumCircuit(3)
-            qc.h(2)
-            qc.cx(2, 1)
-            qc.swap(0, 1)
-            qc.cx(2, 1)
+            tqc.h(2)
+            tqc.cx(2, 1)
+            tqc.swap(0, 1)
+            tqc.cx(2, 1)
 
         then the return from this function would be a layout object::
 
@@ -710,9 +715,13 @@ class TranspileLayout:
                 qc.qubits[2]: 1,
             })
 
-        because qubit 0 in the original circuit's final state is on qubit 3 in the output circuit,
-        qubit 1 in the original circuit's final state is on qubit 0, and qubit 2's final state is
-        on qubit. The output list length will be as wide as the input circuit's number of qubits,
+        This can be seen as follows. Qubit 0 in the original circuit is mapped to qubit 2
+        in the output circuit during the layout stage, which is mapped to qubit 2 during the
+        routing stage. Qubit 1 in the original circuit is mapped to qubit 1 in the output
+        circuit during the layout stage, which is mapped to qubit 0 during the routing
+        stage. Qubit 2 in the original circuit is mapped to qubit 0 in the output circuit
+        during the layout stage, which is mapped to qubit 1 during the routing stage.
+        The output list length will be as wide as the input circuit's number of qubits,
         as the output list from this method is for tracking the permutation of qubits in the
         original circuit caused by the transpiler.
 
@@ -721,7 +730,7 @@ class TranspileLayout:
                 included in the layout.
 
         Returns:
-            A layout object mapping to the final positions for each qubit
+            A layout object mapping to the final positions for each qubit.
         """
         res = self.final_index_layout(filter_ancillas=filter_ancillas)
         pos_to_virt = {v: k for k, v in self.input_qubit_mapping.items()}

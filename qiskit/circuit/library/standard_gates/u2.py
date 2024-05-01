@@ -127,8 +127,10 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the U2 gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
@@ -137,5 +139,5 @@ class U2Gate(Gate):
                 [isqrt2, -exp(1j * lam) * isqrt2],
                 [exp(1j * phi) * isqrt2, exp(1j * (phi + lam)) * isqrt2],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )

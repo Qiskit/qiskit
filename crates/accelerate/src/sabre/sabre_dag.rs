@@ -35,7 +35,7 @@ pub struct DAGNode {
 /// Control-flow operations are represented by the presence of the Python [DAGCircuit]'s node id
 /// (the [DAGNode.py_node_id] field) as a key in [node_blocks], where the value is an array of the
 /// inner dataflow graphs.
-#[pyclass(module = "qiskit._accelerate.sabre_swap")]
+#[pyclass(module = "qiskit._accelerate.sabre")]
 #[derive(Clone, Debug)]
 pub struct SabreDAG {
     pub num_qubits: usize,

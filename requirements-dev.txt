@@ -5,6 +5,10 @@
 # never become actual package requirements, but still try to be as relaxed as
 # possible so it's easy to develop multiple packages from the same venv.
 
+# Build Rust directly
+setuptools
+setuptools-rust
+
 # Style
 black[jupyter]~=24.1
 

@@ -10,14 +10,14 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::circuit_instruction::CircuitInstruction;
-use crate::quantum_circuit::intern_context::{BitType, IndexType, InternContext};
-use crate::quantum_circuit::py_ext;
-use crate::utils::SliceOrInt;
+use crate::circuit_instruction::CircuitInstruction;
+use crate::intern_context::{BitType, IndexType, InternContext};
+use crate::SliceOrInt;
+
 use hashbrown::HashMap;
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::{PyIterator, PyList, PySet, PySlice, PyTuple, PyType};
+use pyo3::types::{PyList, PySet, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
 use std::hash::{Hash, Hasher};
 
@@ -51,7 +51,7 @@ struct BitAsKey {
 }
 
 impl BitAsKey {
-    fn new(bit: &PyAny) -> PyResult<Self> {
+    fn new(bit: &Bound<PyAny>) -> PyResult<Self> {
         Ok(BitAsKey {
             hash: bit.hash()?,
             bit: bit.into_py(bit.py()),
@@ -70,10 +70,10 @@ impl PartialEq for BitAsKey {
         self.bit.is(&other.bit)
             || Python::with_gil(|py| {
                 self.bit
-                    .as_ref(py)
+                    .bind(py)
                     .repr()
                     .unwrap()
-                    .eq(other.bit.as_ref(py).repr().unwrap())
+                    .eq(other.bit.bind(py).repr().unwrap())
                     .unwrap()
             })
     }
@@ -131,7 +131,7 @@ impl Eq for BitAsKey {}
 /// Raises:
 ///     KeyError: if ``data`` contains a reference to a bit that is not present
 ///         in ``qubits`` or ``clbits``.
-#[pyclass(sequence, module = "qiskit._accelerate.quantum_circuit")]
+#[pyclass(sequence, module = "qiskit._accelerate.circuit")]
 #[derive(Clone, Debug)]
 pub struct CircuitData {
     /// The packed instruction listing.
@@ -160,9 +160,9 @@ impl CircuitData {
     #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0))]
     pub fn new(
         py: Python<'_>,
-        qubits: Option<&PyAny>,
-        clbits: Option<&PyAny>,
-        data: Option<&PyAny>,
+        qubits: Option<&Bound<PyAny>>,
+        clbits: Option<&Bound<PyAny>>,
+        data: Option<&Bound<PyAny>>,
         reserve: usize,
     ) -> PyResult<Self> {
         let mut self_ = CircuitData {
@@ -172,17 +172,17 @@ impl CircuitData {
             clbits_native: Vec::new(),
             qubit_indices_native: HashMap::new(),
             clbit_indices_native: HashMap::new(),
-            qubits: PyList::empty(py).into_py(py),
-            clbits: PyList::empty(py).into_py(py),
+            qubits: PyList::empty_bound(py).unbind(),
+            clbits: PyList::empty_bound(py).unbind(),
         };
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
-                self_.add_qubit(py, bit?, true)?;
+                self_.add_qubit(py, &bit?, true)?;
             }
         }
         if let Some(clbits) = clbits {
             for bit in clbits.iter()? {
-                self_.add_clbit(py, bit?, true)?;
+                self_.add_clbit(py, &bit?, true)?;
             }
         }
         if let Some(data) = data {
@@ -192,8 +192,8 @@ impl CircuitData {
         Ok(self_)
     }
 
-    pub fn __reduce__(self_: &PyCell<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
-        let ty: &PyType = self_.get_type();
+    pub fn __reduce__(self_: &Bound<CircuitData>, py: Python<'_>) -> PyResult<PyObject> {
+        let ty: Bound<PyType> = self_.get_type();
         let args = {
             let self_ = self_.borrow();
             (
@@ -245,8 +245,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_qubit(&mut self, py: Python, bit: &PyAny, strict: bool) -> PyResult<()> {
-        if self.qubits_native.len() != self.qubits.as_ref(bit.py()).len() {
+    pub fn add_qubit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
+        if self.qubits_native.len() != self.qubits.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'qubits' list has become out of sync with the circuit data.",
                 " Did something modify it?"
@@ -263,7 +263,7 @@ impl CircuitData {
             .is_ok()
         {
             self.qubits_native.push(bit.into_py(py));
-            self.qubits.as_ref(py).append(bit)?;
+            self.qubits.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
@@ -283,8 +283,8 @@ impl CircuitData {
     ///     ValueError: The specified ``bit`` is already present and flag ``strict``
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
-    pub fn add_clbit(&mut self, py: Python, bit: &PyAny, strict: bool) -> PyResult<()> {
-        if self.clbits_native.len() != self.clbits.as_ref(bit.py()).len() {
+    pub fn add_clbit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
+        if self.clbits_native.len() != self.clbits.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'clbits' list has become out of sync with the circuit data.",
                 " Did something modify it?"
@@ -301,7 +301,7 @@ impl CircuitData {
             .is_ok()
         {
             self.clbits_native.push(bit.into_py(py));
-            self.clbits.as_ref(py).append(bit)?;
+            self.clbits.bind(py).append(bit)?;
         } else if strict {
             return Err(PyValueError::new_err(format!(
                 "Existing bit {:?} cannot be re-added in strict mode.",
@@ -318,8 +318,8 @@ impl CircuitData {
     pub fn copy(&self, py: Python<'_>) -> PyResult<Self> {
         let mut res = CircuitData::new(
             py,
-            Some(self.qubits.as_ref(py)),
-            Some(self.clbits.as_ref(py)),
+            Some(self.qubits.bind(py)),
+            Some(self.clbits.bind(py)),
             None,
             0,
         )?;
@@ -344,8 +344,8 @@ impl CircuitData {
     /// Returns:
     ///     tuple[set[:class:`.Qubit`], set[:class:`.Clbit`]]: The active qubits and clbits.
     pub fn active_bits(&self, py: Python<'_>) -> PyResult<Py<PyTuple>> {
-        let qubits = PySet::empty(py)?;
-        let clbits = PySet::empty(py)?;
+        let qubits = PySet::empty_bound(py)?;
+        let clbits = PySet::empty_bound(py)?;
         for inst in self.data.iter() {
             for b in self.intern_context.lookup(inst.qubits_id).iter() {
                 qubits.add(self.qubits_native[*b as usize].clone_ref(py))?;
@@ -364,9 +364,9 @@ impl CircuitData {
     ///     func (Callable[[:class:`~.Operation`], None]):
     ///         The callable to invoke.
     #[pyo3(signature = (func))]
-    pub fn foreach_op(&self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+    pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
-            func.call1((inst.op.as_ref(py),))?;
+            func.call1((inst.op.bind(py),))?;
         }
         Ok(())
     }
@@ -378,9 +378,9 @@ impl CircuitData {
     ///     func (Callable[[int, :class:`~.Operation`], None]):
     ///         The callable to invoke.
     #[pyo3(signature = (func))]
-    pub fn foreach_op_indexed(&self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+    pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
-            func.call1((index, inst.op.as_ref(py)))?;
+            func.call1((index, inst.op.bind(py)))?;
         }
         Ok(())
     }
@@ -393,9 +393,9 @@ impl CircuitData {
     ///         A callable used to map original operation to their
     ///         replacements.
     #[pyo3(signature = (func))]
-    pub fn map_ops(&mut self, py: Python<'_>, func: &PyAny) -> PyResult<()> {
+    pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            inst.op = func.call1((inst.op.as_ref(py),))?.into_py(py);
+            inst.op = func.call1((inst.op.bind(py),))?.into_py(py);
         }
         Ok(())
     }
@@ -455,8 +455,8 @@ impl CircuitData {
     pub fn replace_bits(
         &mut self,
         py: Python<'_>,
-        qubits: Option<&PyAny>,
-        clbits: Option<&PyAny>,
+        qubits: Option<&Bound<PyAny>>,
+        clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
         let mut temp = CircuitData::new(py, qubits, clbits, None, 0)?;
         if temp.qubits_native.len() < self.qubits_native.len() {
@@ -497,7 +497,7 @@ impl CircuitData {
     }
 
     // Note: we also rely on this to make us iterable!
-    pub fn __getitem__(&self, py: Python, index: &PyAny) -> PyResult<PyObject> {
+    pub fn __getitem__(&self, py: Python, index: &Bound<PyAny>) -> PyResult<PyObject> {
         // Internal helper function to get a specific
         // instruction by index.
         fn get_at(
@@ -532,7 +532,7 @@ impl CircuitData {
         match index {
             SliceOrInt::Slice(slice) => {
                 let slice = {
-                    let mut s = self.convert_py_slice(slice)?;
+                    let mut s = self.convert_py_slice(&slice)?;
                     if s.len() > 1 && s.first().unwrap() < s.last().unwrap() {
                         // Reverse the order so we're sure to delete items
                         // at the back first (avoids messing up indices).
@@ -564,13 +564,13 @@ impl CircuitData {
         &mut self,
         py: Python<'_>,
         index: SliceOrInt,
-        value: &PyAny,
+        value: &Bound<PyAny>,
     ) -> PyResult<()> {
         match index {
             SliceOrInt::Slice(slice) => {
                 let indices = slice.indices(self.data.len().try_into().unwrap())?;
-                let slice = self.convert_py_slice(slice)?;
-                let values = value.iter()?.collect::<PyResult<Vec<&PyAny>>>()?;
+                let slice = self.convert_py_slice(&slice)?;
+                let values = value.iter()?.collect::<PyResult<Vec<Bound<PyAny>>>>()?;
                 if indices.step != 1 && slice.len() != values.len() {
                     // A replacement of a different length when step isn't exactly '1'
                     // would result in holes.
@@ -587,7 +587,7 @@ impl CircuitData {
 
                 if slice.len() > values.len() {
                     // Delete any extras.
-                    let slice = PySlice::new(
+                    let slice = PySlice::new_bound(
                         py,
                         indices.start + values.len() as isize,
                         indices.stop,
@@ -629,8 +629,8 @@ impl CircuitData {
     pub fn pop(&mut self, py: Python<'_>, index: Option<PyObject>) -> PyResult<PyObject> {
         let index =
             index.unwrap_or_else(|| std::cmp::max(0, self.data.len() as isize - 1).into_py(py));
-        let item = self.__getitem__(py, index.as_ref(py))?;
-        self.__delitem__(index.as_ref(py).extract()?)?;
+        let item = self.__getitem__(py, index.bind(py))?;
+        self.__delitem__(index.bind(py).extract()?)?;
         Ok(item)
     }
 
@@ -640,11 +640,7 @@ impl CircuitData {
         Ok(())
     }
 
-    // To prevent the entire iterator from being loaded into memory,
-    // this function creates a `GILPool` for each iteration of the loop, which
-    // ensures that the `CircuitInstruction` returned by the call
-    // to `next` is dropped before the next iteration.
-    pub fn extend(&mut self, py: Python<'_>, itr: &PyAny) -> PyResult<()> {
+    pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
         if let Ok(other) = itr.extract::<PyRef<CircuitData>>() {
             // Fast path to avoid unnecessary construction of
             // CircuitInstruction instances.
@@ -656,7 +652,7 @@ impl CircuitData {
                     .iter()
                     .map(|b| {
                         Ok(self.qubit_indices_native
-                            [&BitAsKey::new(other.qubits_native[*b as usize].as_ref(py))?])
+                            [&BitAsKey::new(other.qubits_native[*b as usize].bind(py))?])
                     })
                     .collect::<PyResult<Vec<BitType>>>()?;
                 let clbits = other
@@ -665,7 +661,7 @@ impl CircuitData {
                     .iter()
                     .map(|b| {
                         Ok(self.clbit_indices_native
-                            [&BitAsKey::new(other.clbits_native[*b as usize].as_ref(py))?])
+                            [&BitAsKey::new(other.clbits_native[*b as usize].bind(py))?])
                     })
                     .collect::<PyResult<Vec<BitType>>>()?;
 
@@ -678,33 +674,8 @@ impl CircuitData {
             return Ok(());
         }
 
-        // To ensure proper lifetime management, we explicitly store
-        // the result of calling `iter(itr)` as a GIL-independent
-        // reference that we access only with the most recent GILPool.
-        // It would be dangerous to access the original `itr` or any
-        // GIL-dependent derivatives of it after creating the new pool.
-        let itr: Py<PyIterator> = itr.iter()?.into_py(py);
-        loop {
-            // Create a new pool, so that PyO3 can clear memory at
-            // the end of the loop.
-            let pool = unsafe { py.new_pool() };
-
-            // It is recommended to *always* immediately set py to the pool's
-            // Python, to help avoid creating references with invalid lifetimes.
-            let py = pool.python();
-
-            // Access the iterator using the new pool.
-            match itr.as_ref(py).next() {
-                None => {
-                    break;
-                }
-                Some(v) => {
-                    self.append(py, v?.extract()?)?;
-                }
-            }
-            // The GILPool is dropped here, which cleans up the ref
-            // returned from `next` as well as any resources used by
-            // `self.append`.
+        for v in itr.iter()? {
+            self.append(py, v?.extract()?)?;
         }
         Ok(())
     }
@@ -718,8 +689,8 @@ impl CircuitData {
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
 
-    fn __eq__(slf: &PyCell<Self>, other: &PyAny) -> PyResult<bool> {
-        let slf: &PyAny = slf;
+    fn __eq__(slf: &Bound<Self>, other: &Bound<PyAny>) -> PyResult<bool> {
+        let slf = slf.as_any();
         if slf.is(other) {
             return Ok(true);
         }
@@ -777,7 +748,7 @@ impl CircuitData {
 impl CircuitData {
     /// Converts a Python slice to a `Vec` of indices into
     /// the instruction listing, [CircuitData.data].
-    fn convert_py_slice(&self, slice: &PySlice) -> PyResult<Vec<isize>> {
+    fn convert_py_slice(&self, slice: &Bound<PySlice>) -> PyResult<Vec<isize>> {
         let indices = slice.indices(self.data.len().try_into().unwrap())?;
         if indices.step > 0 {
             Ok((indices.start..indices.stop)
@@ -833,11 +804,11 @@ impl CircuitData {
         inst: PyRef<CircuitInstruction>,
     ) -> PyResult<PackedInstruction> {
         let mut interned_bits =
-            |indices: &HashMap<BitAsKey, BitType>, bits: &PyTuple| -> PyResult<IndexType> {
+            |indices: &HashMap<BitAsKey, BitType>, bits: &Bound<PyTuple>| -> PyResult<IndexType> {
                 let args = bits
                     .into_iter()
                     .map(|b| {
-                        let key = BitAsKey::new(b)?;
+                        let key = BitAsKey::new(&b)?;
                         indices.get(&key).copied().ok_or_else(|| {
                             PyKeyError::new_err(format!(
                                 "Bit {:?} has not been added to this circuit.",
@@ -850,8 +821,8 @@ impl CircuitData {
             };
         Ok(PackedInstruction {
             op: inst.operation.clone_ref(py),
-            qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.as_ref(py))?,
-            clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.as_ref(py))?,
+            qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.bind(py))?,
+            clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.bind(py))?,
         })
     }
 
@@ -860,22 +831,24 @@ impl CircuitData {
             py,
             CircuitInstruction {
                 operation: inst.op.clone_ref(py),
-                qubits: py_ext::tuple_new(
+                qubits: PyTuple::new_bound(
                     py,
                     self.intern_context
                         .lookup(inst.qubits_id)
                         .iter()
                         .map(|i| self.qubits_native[*i as usize].clone_ref(py))
-                        .collect(),
-                ),
-                clbits: py_ext::tuple_new(
+                        .collect::<Vec<_>>(),
+                )
+                .unbind(),
+                clbits: PyTuple::new_bound(
                     py,
                     self.intern_context
                         .lookup(inst.clbits_id)
                         .iter()
                         .map(|i| self.clbits_native[*i as usize].clone_ref(py))
-                        .collect(),
-                ),
+                        .collect::<Vec<_>>(),
+                )
+                .unbind(),
             },
         )
     }
