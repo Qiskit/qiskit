@@ -1058,6 +1058,14 @@ def _lift_condition(condition):
     return expr.lift_legacy_condition(condition)
 
 
+def _build_ast_type(type_: types.Type) -> ast.ClassicalType:
+    if type_.kind is types.Bool:
+        return ast.BoolType()
+    if type_.kind is types.Uint:
+        return ast.UintType(type_.width)
+    raise RuntimeError(f"unhandled expr type '{type_}'")  # pragma: no cover
+
+
 class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
     __slots__ = ("lookup",)
 
@@ -1069,7 +1077,7 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         self.lookup = lookup
 
     def visit_var(self, node, /):
-        return self.lookup(node.var)
+        return self.lookup(node) if node.standalone else self.lookup(node.var)
 
     def visit_value(self, node, /):
         if node.type.kind is types.Bool:
@@ -1080,14 +1088,8 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
 
     def visit_cast(self, node, /):
         if node.implicit:
-            return node.accept(self)
-        if node.type.kind is types.Bool:
-            oq3_type = ast.BoolType()
-        elif node.type.kind is types.Uint:
-            oq3_type = ast.BitArrayType(node.type.width)
-        else:
-            raise RuntimeError(f"unhandled cast type '{node.type}'")
-        return ast.Cast(oq3_type, node.operand.accept(self))
+            return node.operand.accept(self)
+        return ast.Cast(_build_ast_type(node.type), node.operand.accept(self))
 
     def visit_unary(self, node, /):
         return ast.Unary(ast.Unary.Op[node.op.name], node.operand.accept(self))
