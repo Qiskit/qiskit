@@ -15,7 +15,6 @@
 
 
 import numpy as np
-import numpy.typing as npt
 
 from qiskit.primitives.containers.data_bin import DataBin
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -24,11 +23,18 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class DataBinTestCase(QiskitTestCase):
     """Test the DataBin class."""
 
-    def test_data_bin(self):
+    def test_make_databin_no_fields(self):
+        """Test DataBin when no fields are given."""
+        data_bin = DataBin()
+        self.assertEqual(len(data_bin), 0)
+        self.assertEqual(data_bin.shape, ())
+
+    def test_data_bin_basic(self):
         """Test DataBin function basic access."""
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
         my_bin = DataBin(alpha=alpha, beta=beta)
+
         self.assertEqual(len(my_bin), 2)
         self.assertTrue(np.all(my_bin.alpha == alpha))
         self.assertTrue(np.all(my_bin.beta == beta))
@@ -41,20 +47,25 @@ class DataBinTestCase(QiskitTestCase):
         self.assertTrue(np.all(my_bin.alpha == alpha))
         self.assertTrue(np.all(my_bin.beta == beta))
 
-    def test_make_databin_no_shape(self):
-        """Test DataBin with no shape."""
-        my_bin = DataBin(alpha={1: 2}, beta=5)
-        self.assertEqual(my_bin.alpha, {1: 2})
-        self.assertEqual(my_bin.beta, 5)
-        self.assertTrue("alpha=" in str(my_bin))
-        self.assertTrue(">" not in str(my_bin))
-        self.assertEqual(my_bin._FIELDS, ("alpha", "beta"))
-        self.assertEqual(my_bin._FIELD_TYPES, (dict, int))
+    def test_constructor_failures(self):
+        """Test that the constructor fails when expected."""
 
-    def test_make_databin_no_fields(self):
-        """Test DataBin when no fields are given."""
-        data_bin = DataBin()
-        self.assertEqual(len(data_bin), 0)
+        with self.assertRaisesRegex(ValueError, "Cannot assign with these field names"):
+            DataBin(values=6)
+
+        with self.assertRaisesRegex(ValueError, "does not lead with the shape"):
+            DataBin(x=np.empty((5,)), shape=(1,))
+
+        with self.assertRaisesRegex(ValueError, "does not lead with the shape"):
+            DataBin(x=np.empty((5, 2, 3)), shape=(5, 2, 3, 4))
+
+    def test_shape(self):
+        """Test shape setting and attributes."""
+        databin = DataBin(x=6, y=np.empty((2, 3)))
+        self.assertEqual(databin.shape, ())
+
+        databin = DataBin(x=np.empty((5, 2)), y=np.empty((5, 2, 6)), shape=(5, 2))
+        self.assertEqual(databin.shape, (5, 2))
 
     def test_make_databin_mapping(self):
         """Test the make_data_bin() function with mapping features."""

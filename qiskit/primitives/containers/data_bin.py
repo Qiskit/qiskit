@@ -17,8 +17,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Sequence
 
+from .shape import ShapedMixin, ShapeInput, shape_tuple
 
-class DataBin:
+
+class DataBin(ShapedMixin):
     """Namespace for storing data.
 
     .. code-block:: python
@@ -39,68 +41,93 @@ class DataBin:
             "_SHAPE",
             "_FIELDS",
             "_FIELD_TYPES",
-            "_fields",
+            "_data",
+            "_shape",
             "keys",
             "values",
             "items",
+            "shape",
+            "ndim",
+            "size",
         }
     )
 
-    def __init__(self, **kwargs):
-        super().__setattr__("_fields", list(kwargs))
-        self.__dict__.update(kwargs)
+    def __init__(self, *, shape: ShapeInput = (), **data):
+        """
+        Args:
+            data: Name/value data to place in the data bin.
+            shape: The leading shape common to all entries in the data bin. This defaults to
+                the trivial leading shape of ``()`` that is compatible with all objects.
+
+        Raises:
+            ValueError: If a name overlaps with a method name on this class.
+            ValueError: If some value is inconsistent with the provided shape.
+        """
+        if not self._RESTRICTED_NAMES.isdisjoint(data):
+            bad_names = sorted(self._RESTRICTED_NAMES.intersection(data))
+            raise ValueError(f"Cannot assign with these field names: {bad_names}")
+
+        _setattr = super().__setattr__
+        _setattr("_shape", shape_tuple(shape))
+        _setattr("_data", data)
+
+        ndim = len(self._shape)
+        for name, value in data.items():
+            if getattr(value, "shape", shape)[:ndim] != shape:
+                raise ValueError(f"The value of {name} does not lead with the shape {shape}.")
+            _setattr(name, value)
+
+        super().__init__()
 
     def __len__(self):
-        return len(self._fields)
+        return len(self._data)
 
     def __setattr__(self, *_):
         raise NotImplementedError
 
     def __repr__(self):
-        vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
+        vals = (f"{name}={val}" for name, val in self.items())
         return f"{type(self).__name__}({', '.join(vals)})"
 
     def __getitem__(self, key: str) -> Any:
         try:
-            return self.__dict__[key]
+            return self._data[key]
         except KeyError as ex:
             raise KeyError(f"Key ({key}) does not exist in this data bin.") from ex
 
     def __contains__(self, key: str) -> bool:
-        return key in self.__dict__ and key not in self._RESTRICTED_NAMES
+        return key in self._data
 
     def __iter__(self) -> Iterable[str]:
-        return iter(self._fields)
+        return iter(self._data)
 
     def keys(self) -> Sequence[str]:
         """Return a list of field names."""
-        # make sure to copy the list
-        return list(self._fields)
+        return list(self._data)
 
     def values(self) -> Sequence[Any]:
         """Return a list of values."""
-        return [self.__dict__[name] for name in self._fields]
+        return list(self._data.values())
 
     def items(self) -> Sequence[tuple[str, Any]]:
         """Return a list of field names and values"""
-        return list(zip(self._fields, self.values()))
+        return list(self._data.items())
 
     # The following properties exist to provide support to legacy private class attributes which
-    # gained widespread usage in several internal projects due to the lack of alternatives prior to
-    # qiskit 1.1. These properties will be removed once the internal projects have made the
-    # appropriate changes.
+    # gained widespread prior to qiskit 1.1. These properties will be removed once the internal
+    # projects have made the appropriate changes.
 
     @property
     def _FIELDS(self) -> tuple[str, ...]:  # pylint: disable=invalid-name
-        return tuple(self._fields)
+        return tuple(self._data)
 
     @property
     def _FIELD_TYPES(self) -> tuple[Any, ...]:  # pylint: disable=invalid-name
         return tuple(map(type, self.values()))
 
     @property
-    def _SHAPE(self) -> tuple[int, ...] | None:  # pylint: disable=invalid-name
-        return None
+    def _SHAPE(self) -> tuple[int, ...]:  # pylint: disable=invalid-name
+        return self.shape
 
 
 # pylint: disable=unused-argument
