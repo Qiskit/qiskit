@@ -27,10 +27,10 @@ from qiskit.primitives.backend_estimator import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
+    DataBin,
     PrimitiveResult,
     PubResult,
     SamplerPubLike,
-    make_data_bin,
 )
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
@@ -210,15 +210,10 @@ class BackendSamplerV2(BaseSamplerV2):
                 ary = _samples_to_packed_array(samples, item.num_bits, item.start)
                 arrays[item.creg_name][index] = ary
 
-        data_bin_cls = make_data_bin(
-            [(item.creg_name, BitArray) for item in meas_info],
-            shape=shape,
-        )
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={})
+        return PubResult(DataBin(**meas), metadata={})
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:

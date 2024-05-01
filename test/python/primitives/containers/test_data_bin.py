@@ -17,7 +17,6 @@
 import numpy as np
 import numpy.typing as npt
 
-from qiskit.primitives.containers import make_data_bin
 from qiskit.primitives.containers.data_bin import DataBin
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -25,17 +24,11 @@ from test import QiskitTestCase  # pylint: disable=wrong-import-order
 class DataBinTestCase(QiskitTestCase):
     """Test the DataBin class."""
 
-    def test_make_databin(self):
-        """Test the make_databin() function."""
-        data_bin_cls = make_data_bin(
-            [("alpha", npt.NDArray[np.uint16]), ("beta", np.ndarray)], shape=(10, 20)
-        )
-
-        self.assertTrue(issubclass(data_bin_cls, DataBin))
-
+    def test_data_bin(self):
+        """Test DataBin function basic access."""
         alpha = np.empty((10, 20), dtype=np.uint16)
         beta = np.empty((10, 20), dtype=int)
-        my_bin = data_bin_cls(alpha=alpha, beta=beta)
+        my_bin = DataBin(alpha=alpha, beta=beta)
         self.assertEqual(len(my_bin), 2)
         self.assertTrue(np.all(my_bin.alpha == alpha))
         self.assertTrue(np.all(my_bin.beta == beta))
@@ -44,17 +37,13 @@ class DataBinTestCase(QiskitTestCase):
         self.assertEqual(my_bin._FIELDS, ("alpha", "beta"))
         self.assertEqual(my_bin._FIELD_TYPES, (np.ndarray, np.ndarray))
 
-        my_bin = data_bin_cls(beta=beta, alpha=alpha)
+        my_bin = DataBin(beta=beta, alpha=alpha)
         self.assertTrue(np.all(my_bin.alpha == alpha))
         self.assertTrue(np.all(my_bin.beta == beta))
 
     def test_make_databin_no_shape(self):
-        """Test the make_databin() function with no shape."""
-        data_bin_cls = make_data_bin([("alpha", dict), ("beta", int)])
-
-        self.assertTrue(issubclass(data_bin_cls, DataBin))
-
-        my_bin = data_bin_cls(alpha={1: 2}, beta=5)
+        """Test DataBin with no shape."""
+        my_bin = DataBin(alpha={1: 2}, beta=5)
         self.assertEqual(my_bin.alpha, {1: 2})
         self.assertEqual(my_bin.beta, 5)
         self.assertTrue("alpha=" in str(my_bin))
@@ -63,15 +52,13 @@ class DataBinTestCase(QiskitTestCase):
         self.assertEqual(my_bin._FIELD_TYPES, (dict, int))
 
     def test_make_databin_no_fields(self):
-        """Test the make_data_bin() function when no fields are given."""
-        data_bin_cls = make_data_bin([])
-        data_bin = data_bin_cls()
+        """Test DataBin when no fields are given."""
+        data_bin = DataBin()
         self.assertEqual(len(data_bin), 0)
 
     def test_make_databin_mapping(self):
         """Test the make_data_bin() function with mapping features."""
-        data_bin_cls = make_data_bin([("alpha", int), ("beta", dict)])
-        data_bin = data_bin_cls(alpha=10, beta={1: 2})
+        data_bin = DataBin(alpha=10, beta={1: 2})
         self.assertEqual(len(data_bin), 2)
 
         with self.subTest("iterator"):
