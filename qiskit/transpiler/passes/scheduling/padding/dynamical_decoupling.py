@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -179,8 +179,30 @@ class PadDynamicalDecoupling(BasePadding):
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
 
+    def _update_inst_durations(self, dag):
+        """Update instruction durations with circuit information. If the dag contains gate
+        calibrations and no instruction durations were provided through the target or as a
+        standalone input, the circuit calibration durations will be used.
+        The priority order for instruction durations is: target > standalone > circuit.
+        """
+        circ_durations = InstructionDurations()
+
+        if dag.calibrations:
+            cal_durations = []
+            for gate, gate_cals in dag.calibrations.items():
+                for (qubits, parameters), schedule in gate_cals.items():
+                    cal_durations.append((gate, qubits, parameters, schedule.duration))
+            circ_durations.update(cal_durations, circ_durations.dt)
+
+        if self._durations is not None:
+            circ_durations.update(self._durations, getattr(self._durations, "dt", None))
+
+        return circ_durations
+
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
+
+        durations = self._update_inst_durations(dag)
 
         num_pulses = len(self._dd_sequence)
 
@@ -245,7 +267,7 @@ class PadDynamicalDecoupling(BasePadding):
                             f"is not acceptable in {self.__class__.__name__} pass."
                         )
                 except KeyError:
-                    gate_length = self._durations.get(gate, physical_index)
+                    gate_length = durations.get(gate, physical_index)
                 sequence_lengths.append(gate_length)
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 gate = gate.to_mutable()

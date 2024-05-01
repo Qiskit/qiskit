@@ -1765,7 +1765,18 @@ class QuantumCircuit:
         # Validate the initialiser first to catch cases where the variable to be declared is being
         # used in the initialiser.
         circuit_scope = self._current_scope()
-        initial = _validate_expr(circuit_scope, expr.lift(initial))
+        # Convenience method to widen Python integer literals to the right width during the initial
+        # lift, if the type is already known via the variable.
+        if (
+            isinstance(name_or_var, expr.Var)
+            and name_or_var.type.kind is types.Uint
+            and isinstance(initial, int)
+            and not isinstance(initial, bool)
+        ):
+            coerce_type = name_or_var.type
+        else:
+            coerce_type = None
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
@@ -2669,7 +2680,13 @@ class QuantumCircuit:
             :meth:`add_var`
                 Create a new variable in the circuit that can be written to with this method.
         """
-        return self.append(Store(expr.lift(lvalue), expr.lift(rvalue)), (), (), copy=False)
+        # As a convenience, lift integer-literal rvalues to the matching width.
+        lvalue = expr.lift(lvalue)
+        rvalue_type = (
+            lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
+        )
+        rvalue = expr.lift(rvalue, rvalue_type)
+        return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
