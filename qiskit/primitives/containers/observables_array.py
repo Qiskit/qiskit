@@ -52,7 +52,7 @@ class ObservablesArray(ShapedMixin):
 
     __slots__ = ("_array", "_shape")
     ALLOWED_BASIS: str = "IXYZ01+-lr"
-    """The allowed characters in :const:`BasisObservable` strings."""
+    """The allowed characters in basis strings."""
 
     def __init__(
         self,
@@ -66,10 +66,8 @@ class ObservablesArray(ShapedMixin):
             observables: An array-like of basis observable compatible objects.
             copy: Specify the ``copy`` kwarg of the :func:`.object_array` function
                 when initializing observables.
-            validate: If True, convert :const:`.BasisObservableLike` input objects
-                to :const:`.BasisObservable` objects and validate. If False the
-                input should already be an array-like of valid
-                :const:`.BasisObservble` objects.
+            validate: If true, coerce entries into the internal format and validate them. If false,
+                the input should already be an array-like.
 
         Raises:
             ValueError: If ``validate=True`` and the input observables is not valid.
@@ -103,10 +101,10 @@ class ObservablesArray(ShapedMixin):
         """Convert to a nested list"""
         return self._array.tolist()
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Convert to an Numpy.ndarray"""
         if dtype is None or dtype == object:
-            return self._array
+            return self._array.copy() if copy else self._array
         raise ValueError("Type must be 'None' or 'object'")
 
     @overload
@@ -148,13 +146,13 @@ class ObservablesArray(ShapedMixin):
 
     @classmethod
     def coerce_observable(cls, observable: ObservableLike) -> Mapping[str, float]:
-        """Format an observable-like object into a :const:`BasisObservable`.
+        """Format an observable-like object into the internal format.
 
         Args:
             observable: The observable-like to format.
 
         Returns:
-            The given observable as a :const:`~BasisObservable`.
+            The coerced observable.
 
         Raises:
             TypeError: If the input cannot be formatted because its type is not valid.
@@ -232,8 +230,6 @@ class ObservablesArray(ShapedMixin):
         """
         if isinstance(observables, ObservablesArray):
             return observables
-        if isinstance(observables, (str, SparsePauliOp, Pauli, _Mapping)):
-            observables = [observables]
         return cls(observables)
 
     def validate(self):

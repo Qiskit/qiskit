@@ -259,7 +259,8 @@ class TestBackendSampler(QiskitTestCase):
         qc = RealAmplitudes(num_qubits=2, reps=2)
         qc.measure_all()
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         sampler = BackendSampler(backend=backend)
@@ -351,7 +352,8 @@ class TestBackendSampler(QiskitTestCase):
             qc.measure(0, 0)
             qc.break_loop().c_if(0, True)
 
-        backend = Aer.get_backend("aer_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend = Aer.get_backend("aer_simulator")
         sampler = BackendSampler(backend, skip_transpilation=True)
         sampler.set_options(seed_simulator=15)
         sampler.set_transpile_options(seed_transpiler=15)

@@ -76,8 +76,8 @@ class OneQubitEulerDecomposer:
     parameters :math:`(\theta, \phi, \lambda)`, and a phase parameter
     :math:`\gamma`. The value of the parameters for an input unitary depends
     on the decomposition basis. Allowed bases and the resulting circuits are
-    shown in the following table. Note that for the non-Euler bases (U3, U1X,
-    RR), the ZYZ Euler parameters are used.
+    shown in the following table. Note that for the non-Euler bases (:math:`U3`,
+    :math:`U1X`, :math:`RR`), the :math:`ZYZ` Euler parameters are used.
 
     .. list-table:: Supported circuit bases
         :widths: auto
@@ -128,17 +128,19 @@ class OneQubitEulerDecomposer:
           - :math:`Z(\phi) Y(\theta) Z(\lambda)`
           - :math:`e^{i\gamma} R\left(-\pi,\frac{\phi-\lambda+\pi}{2}\right).`
             :math:`R\left(\theta+\pi,\frac{\pi}{2}-\lambda\right)`
+
+    .. automethod:: __call__
     """
 
     def __init__(self, basis: str = "U3", use_dag: bool = False):
         """Initialize decomposer
 
-        Supported bases are: 'U', 'PSX', 'ZSXX', 'ZSX', 'U321', 'U3', 'U1X', 'RR', 'ZYZ', 'ZXZ',
-        'XYX', 'XZX'.
+        Supported bases are: ``'U'``, ``'PSX'``, ``'ZSXX'``, ``'ZSX'``, ``'U321'``, ``'U3'``,
+        ``'U1X'``, ``'RR'``, ``'ZYZ'``, ``'ZXZ'``, ``'XYX'``, ``'XZX'``.
 
         Args:
-            basis (str): the decomposition basis [Default: 'U3']
-            use_dag (bool): If true the output from calls to the decomposer
+            basis: the decomposition basis [Default: ``'U3'``]
+            use_dag: If true the output from calls to the decomposer
                 will be a :class:`~qiskit.dagcircuit.DAGCircuit` object instead of
                 :class:`~qiskit.circuit.QuantumCircuit`.
 
@@ -188,10 +190,11 @@ class OneQubitEulerDecomposer:
         """Decompose single qubit gate into a circuit.
 
         Args:
-            unitary (Operator or Gate or array): 1-qubit unitary matrix
-            simplify (bool): reduce gate count in decomposition [Default: True].
-            atol (float): absolute tolerance for checking angles when simplifying
+            unitary: 1-qubit unitary matrix
+            simplify: reduce gate count in decomposition [Default: True].
+            atol: absolute tolerance for checking angles when simplifying
                          returned circuit [Default: 1e-12].
+
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
@@ -255,10 +258,10 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles for input array.
 
         Args:
-            unitary (np.ndarray): 2x2 unitary matrix.
+            unitary: :math:`2\\times2` unitary matrix.
 
         Returns:
-            tuple: (theta, phi, lambda).
+            tuple: ``(theta, phi, lambda)``.
         """
         unitary = np.asarray(unitary, dtype=complex)
         theta, phi, lam, _ = self._params(unitary)
@@ -268,10 +271,10 @@ class OneQubitEulerDecomposer:
         """Return the Euler angles and phase for input array.
 
         Args:
-            unitary (np.ndarray): 2x2 unitary matrix.
+            unitary: :math:`2\\times2`
 
         Returns:
-            tuple: (theta, phi, lambda, phase).
+            tuple: ``(theta, phi, lambda, phase)``.
         """
         unitary = np.asarray(unitary, dtype=complex)
         return self._params(unitary)

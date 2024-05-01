@@ -109,7 +109,7 @@ class BasisTranslator(TransformationPass):
             equivalence_library (EquivalenceLibrary): The equivalence library
                 which will be used by the BasisTranslator pass. (Instructions in
                 this library will not be unrolled by this pass.)
-            target_basis (list[str]): Target basis names to unroll to, e.g. `['u3', 'cx']`.
+            target_basis (list[str]): Target basis names to unroll to, e.g. ``['u3', 'cx']``.
             target (Target): The backend compilation target
             min_qubits (int): The minimum number of qubits for operations in the input
                 dag to translate.
@@ -207,7 +207,7 @@ class BasisTranslator(TransformationPass):
                     "target basis is not universal or there are additional equivalence rules "
                     "needed in the EquivalenceLibrary being used. For more details on this "
                     "error see: "
-                    "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                    "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
                     "BasisTranslator#translation-errors"
                 )
 
@@ -225,7 +225,7 @@ class BasisTranslator(TransformationPass):
                 f"basis: {list(target_basis)}. This likely means the target basis is not universal "
                 "or there are additional equivalence rules needed in the EquivalenceLibrary being "
                 "used. For more details on this error see: "
-                "https://docs.quantum-computing.ibm.com/api/qiskit/qiskit.transpiler.passes."
+                "https://docs.quantum.ibm.com/api/qiskit/transpiler_passes."
                 "BasisTranslator#translation-errors"
             )
 

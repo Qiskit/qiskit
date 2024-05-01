@@ -15,7 +15,10 @@
 import itertools as it
 import unittest
 import numpy as np
+import scipy.sparse
+import rustworkx as rx
 from ddt import ddt
+
 
 from qiskit import QiskitError
 from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
@@ -257,6 +260,36 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
         np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_zero(self):
+        """Test `to_matrix` with a zero operator."""
+        num_qubits = 4
+        zero_numpy = np.zeros((2**num_qubits, 2**num_qubits), dtype=np.complex128)
+        zero = SparsePauliOp.from_list([], num_qubits=num_qubits)
+
+        zero_dense = zero.to_matrix(sparse=False)
+        np.testing.assert_array_equal(zero_dense, zero_numpy)
+
+        zero_sparse = zero.to_matrix(sparse=True)
+        self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
+        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
+
+    def test_to_matrix_parallel_vs_serial(self):
+        """Parallel execution should produce the same results as serial execution up to
+        floating-point associativity effects."""
+        # Using powers-of-two coefficients to make floating-point arithmetic associative so we can
+        # do bit-for-bit assertions.  Choose labels that have at least few overlapping locations.
+        labels = ["XZIXYX", "YIIYXY", "ZZZIIZ", "IIIIII"]
+        coeffs = [0.25, 0.125j, 0.5 - 0.25j, -0.125 + 0.5j]
+        op = SparsePauliOp(labels, coeffs)
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=True, force_serial=False).toarray(),
+            op.to_matrix(sparse=True, force_serial=True).toarray(),
+        )
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=False, force_serial=False),
+            op.to_matrix(sparse=False, force_serial=True),
+        )
 
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
@@ -935,6 +968,42 @@ class TestSparsePauliOpMethods(QiskitTestCase):
             spp_op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
             self.assertNotEqual(spp_op1, spp_op2)
             self.assertTrue(spp_op1.equiv(spp_op2))
+
+    @combine(parameterized=[True, False], qubit_wise=[True, False])
+    def test_noncommutation_graph(self, parameterized, qubit_wise):
+        """Test noncommutation graph"""
+
+        def commutes(left: Pauli, right: Pauli, qubit_wise: bool) -> bool:
+            if len(left) != len(right):
+                return False
+            if not qubit_wise:
+                return left.commutes(right)
+            else:
+                # qubit-wise commuting check
+                vec_l = left.z + 2 * left.x
+                vec_r = right.z + 2 * right.x
+                qubit_wise_comparison = (vec_l * vec_r) * (vec_l - vec_r)
+                return np.all(qubit_wise_comparison == 0)
+
+        input_labels = ["IX", "IY", "IZ", "XX", "YY", "ZZ", "XY", "iYX", "ZX", "-iZY", "XZ", "YZ"]
+        np.random.shuffle(input_labels)
+        if parameterized:
+            coeffs = np.array(ParameterVector("a", len(input_labels)))
+        else:
+            coeffs = np.random.random(len(input_labels)) + np.random.random(len(input_labels)) * 1j
+        sparse_pauli_list = SparsePauliOp(input_labels, coeffs)
+        graph = sparse_pauli_list.noncommutation_graph(qubit_wise)
+
+        expected = rx.PyGraph()
+        expected.add_nodes_from(range(len(input_labels)))
+        edges = [
+            (ia, ib)
+            for (ia, a), (ib, b) in it.combinations(enumerate(input_labels), 2)
+            if not commutes(Pauli(a), Pauli(b), qubit_wise)
+        ]
+        expected.add_edges_from_no_data(edges)
+
+        self.assertTrue(rx.is_isomorphic(graph, expected))
 
     @combine(parameterized=[True, False], qubit_wise=[True, False])
     def test_group_commuting(self, parameterized, qubit_wise):

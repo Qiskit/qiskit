@@ -89,6 +89,11 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = evo.draw()
 
+    def test_empty_operator_list(self):
+        """Test setting an empty list of operators to be equal to an empty circuit."""
+        evo = EvolvedOperatorAnsatz([])
+        self.assertEqual(evo, QuantumCircuit())
+
     def test_matrix_operator(self):
         """Test passing a quantum_info.Operator uses the HamiltonianGate."""
         unitary = Operator([[0, 1], [1, 0]])

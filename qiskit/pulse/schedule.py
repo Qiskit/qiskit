@@ -39,11 +39,12 @@ import multiprocessing as mp
 import sys
 import warnings
 from collections.abc import Callable, Iterable
-from typing import List, Tuple, Union, Dict, Any
+from typing import List, Tuple, Union, Dict, Any, Sequence
 
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit import ParameterVector
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
@@ -52,6 +53,7 @@ from qiskit.pulse.instructions import Instruction, Reference
 from qiskit.pulse.utils import instruction_duration_validation
 from qiskit.pulse.reference_manager import ReferenceManager
 from qiskit.utils.multiprocessing import is_main_process
+from qiskit.utils import deprecate_arg
 
 
 Interval = Tuple[int, int]
@@ -711,13 +713,19 @@ class Schedule:
         return self._parameter_manager.is_parameterized()
 
     def assign_parameters(
-        self, value_dict: dict[ParameterExpression, ParameterValueType], inplace: bool = True
+        self,
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
+        inplace: bool = True,
     ) -> "Schedule":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1408,14 +1416,18 @@ class ScheduleBlock:
 
     def assign_parameters(
         self,
-        value_dict: dict[ParameterExpression, ParameterValueType],
+        value_dict: dict[
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
+        ],
         inplace: bool = True,
     ) -> "ScheduleBlock":
         """Assign the parameters in this schedule according to the input.
 
         Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
+            value_dict: A mapping from parameters or parameter names (parameter vector
+            or parameter vector name) to either numeric values (list of numeric values)
+            or another parameter expression (list of parameter expressions).
             inplace: Set ``True`` to override this instance with new parameter.
 
         Returns:
@@ -1634,6 +1646,7 @@ def _common_method(*classes):
     return decorator
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 @_common_method(Schedule, ScheduleBlock)
 def draw(
     self,
@@ -1645,9 +1658,10 @@ def draw(
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = "mpl2d",
     axis: Any | None = None,
+    show_barrier: bool = True,
 ):
     """Plot the schedule.
 
@@ -1659,16 +1673,16 @@ def draw(
             preset stylesheets.
         backend (Optional[BaseBackend]): Backend object to play the input pulse program.
             If provided, the plotter may use to make the visualization hardware aware.
-        time_range: Set horizontal axis limit. Tuple `(tmin, tmax)`.
-        time_unit: The unit of specified time range either `dt` or `ns`.
-            The unit of `ns` is available only when `backend` object is provided.
+        time_range: Set horizontal axis limit. Tuple ``(tmin, tmax)``.
+        time_unit: The unit of specified time range either ``dt`` or ``ns``.
+            The unit of `ns` is available only when ``backend`` object is provided.
         disable_channels: A control property to show specific pulse channel.
             Pulse channel instances provided as a list are not shown in the output image.
         show_snapshot: Show snapshot instructions.
         show_framechange: Show frame change instructions. The frame change represents
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show additional information about waveforms such as their name.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -1681,6 +1695,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -1690,6 +1705,7 @@ def draw(
     # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
+    del show_barrier
     return pulse_drawer(
         program=self,
         style=style,
@@ -1700,7 +1716,7 @@ def draw(
         show_snapshot=show_snapshot,
         show_framechange=show_framechange,
         show_waveform_info=show_waveform_info,
-        show_barrier=show_barrier,
+        plot_barrier=plot_barrier,
         plotter=plotter,
         axis=axis,
     )

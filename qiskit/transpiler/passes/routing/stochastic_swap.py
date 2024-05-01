@@ -323,7 +323,7 @@ class StochasticSwap(TransformationPass):
                     # Update the DAG
                     if not self.fake_run:
                         self._layer_update(
-                            dagcircuit_output, layerlist[i], best_layout, best_depth, best_circuit
+                            dagcircuit_output, layer, best_layout, best_depth, best_circuit
                         )
                     continue
 
@@ -375,8 +375,13 @@ class StochasticSwap(TransformationPass):
         # any measurements that needed to be removed earlier.
         logger.debug("mapper: self.initial_layout = %s", self.initial_layout)
         logger.debug("mapper: layout = %s", layout)
+        if self.property_set["final_layout"] is None:
+            self.property_set["final_layout"] = layout
+        else:
+            self.property_set["final_layout"] = layout.compose(
+                self.property_set["final_layout"], circuit_graph.qubits
+            )
 
-        self.property_set["final_layout"] = layout
         if self.fake_run:
             return circuit_graph
         return dagcircuit_output

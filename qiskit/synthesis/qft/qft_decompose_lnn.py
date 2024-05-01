@@ -15,7 +15,7 @@ Circuit synthesis for a QFT circuit.
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
-from qiskit.synthesis.linear_phase.cz_depth_lnn import _append_cx_stage1, _append_cx_stage2
+from qiskit.synthesis.permutation.permutation_reverse_lnn import _append_reverse_permutation_lnn_kms
 
 
 def synth_qft_line(
@@ -34,10 +34,10 @@ def synth_qft_line(
         approximation_degree: The degree of approximation (0 for no approximation).
         do_swaps: Whether to include the final swaps in the QFT.
 
-    Return:
+    Returns:
         A circuit implementation of the QFT circuit.
 
-    Reference:
+    References:
         1. A. G. Fowler, S. J. Devitt, and L. C. L. Hollenberg,
            *Implementation of Shor's algorithm on a linear nearest neighbour qubit array*,
            Quantum Info. Comput. 4, 4 (July 2004), 237–251.
@@ -65,10 +65,6 @@ def synth_qft_line(
     if not do_swaps:
         # Add a reversal network for LNN connectivity in depth 2*n+2,
         # based on Kutin at al., https://arxiv.org/abs/quant-ph/0701194, Section 5.
-        for _ in range((num_qubits + 1) // 2):
-            qc = _append_cx_stage1(qc, num_qubits)
-            qc = _append_cx_stage2(qc, num_qubits)
-        if (num_qubits % 2) == 0:
-            qc = _append_cx_stage1(qc, num_qubits)
+        _append_reverse_permutation_lnn_kms(qc, num_qubits)
 
     return qc

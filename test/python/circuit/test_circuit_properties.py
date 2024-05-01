@@ -1240,8 +1240,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(0, 1)
 
         with self.assertRaises(AttributeError):
-            # pylint: disable=pointless-statement
-            qc.op_start_times
+            _ = qc.op_start_times
 
 
 if __name__ == "__main__":

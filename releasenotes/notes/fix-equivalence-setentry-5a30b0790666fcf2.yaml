@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Calling :meth:`.EquivalenceLibrary.set_entry` will now correctly update the internal graph
+    object of the library.  Previously, the metadata would be updated, but the graph structure would
+    be unaltered, meaning that users like :class:`.BasisTranslator` would still use the old rules.
+    Fixed `#11958 <https://github.com/Qiskit/qiskit/issues/11958>`__.
