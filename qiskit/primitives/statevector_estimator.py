@@ -160,4 +160,6 @@ class StatevectorEstimator(BaseEstimatorV2):
                     raise ValueError("Given operator is not Hermitian and noise cannot be added.")
                 expectation_value = rng.normal(expectation_value, precision)
             evs[index] = expectation_value
-        return PubResult(DataBin(evs=evs, stds=stds), metadata={"precision": precision})
+
+        data = DataBin(evs=evs, stds=stds, shape=evs.shape)
+        return PubResult(data, metadata={"precision": precision})

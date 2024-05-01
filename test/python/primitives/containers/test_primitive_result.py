@@ -28,8 +28,8 @@ class PrimitiveResultCase(QiskitTestCase):
         beta = np.empty((10, 20), dtype=int)
 
         pub_results = [
-            PubResult(DataBin(alpha=alpha, beta=beta)),
-            PubResult(DataBin(alpha=alpha, beta=beta)),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
+            PubResult(DataBin(alpha=alpha, beta=beta, shape=(10, 20))),
         ]
         result = PrimitiveResult(pub_results, {"x": 2})
 
