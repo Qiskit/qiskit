@@ -229,7 +229,7 @@ class HLSConfig:
 
     def __init__(
         self,
-        use_default_on_unspecified=True,
+        use_default_on_unspecified: bool = True,
         plugin_selection: str = "sequential",
         plugin_evaluation_fn: Optional[Callable[[QuantumCircuit], int]] = None,
         **kwargs,
@@ -240,9 +240,9 @@ class HLSConfig:
             use_default_on_unspecified: if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
                 algorithm if it exists.
-            plugin_selection: if set to "sequential" (default), for every higher-level-object
+            plugin_selection: if set to ``"sequential"`` (default), for every higher-level-object
                 the synthesis pass will consider the specified methods sequentially, stopping
-                at the first method that is able to synthesize the object. If set to "all",
+                at the first method that is able to synthesize the object. If set to ``"all"``,
                 all the specified methods will be considered, and the best synthesized circuit,
                 according to ``plugin_evaluation_fn`` will be chosen.
             plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
