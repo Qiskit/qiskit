@@ -12,7 +12,7 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 use hashbrown::HashSet;
 use indexmap::IndexMap;
@@ -29,20 +29,20 @@ use crate::nlayout::PhysicalQubit;
 use self::exceptions::{QiskitError, TranspilerError};
 
 // This struct allows quick transformation of qargs to tuple from and to python.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Qargs {
     pub vec: SmallVec<[PhysicalQubit; 4]>,
 }
 
-impl Hash for Qargs {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.vec.hash(state)
+impl IntoPy<PyObject> for Qargs {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        PyTuple::new_bound(py, self.vec).into_py(py)
     }
 }
 
-impl IntoPy<PyObject> for Qargs {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        PyTuple::new_bound(py, self.vec).to_object(py)
+impl ToPyObject for Qargs {
+    fn to_object(&self, py: Python<'_>) -> PyObject {
+        PyTuple::new_bound(py, self.vec.to_vec()).to_object(py)
     }
 }
 
@@ -118,7 +118,7 @@ pub struct InstructionProperties {
     #[pyo3(get, set)]
     pub error: Option<f64>,
     #[pyo3(get)]
-    _calibration: Option<PyObject>,
+    _calibration: PyObject,
 }
 
 #[pymethods]
@@ -146,7 +146,7 @@ impl InstructionProperties {
         let mut instruction_prop = InstructionProperties {
             error,
             duration,
-            _calibration: None,
+            _calibration: py.None(),
         };
         if let Some(calibration) = calibration {
             let _ = instruction_prop.set_calibration(py, calibration);
@@ -181,11 +181,11 @@ impl InstructionProperties {
         use own definition to compile the circuit down to the execution format.
     */
     #[getter]
-    pub fn get_calibration(&self, py: Python<'_>) -> Option<PyObject> {
-        match &self._calibration {
-            Some(calibration) => calibration.call_method0(py, "get_schedule").ok(),
-            None => None,
+    pub fn get_calibration(&self, py: Python<'_>) -> PyResult<PyObject> {
+        if !&self._calibration.is_none(py) {
+            return self._calibration.call_method0(py, "get_schedule");
         }
+        Ok(py.None())
     }
 
     #[setter]
@@ -209,15 +209,15 @@ impl InstructionProperties {
             let args = (calibration,);
             let kwargs = [("user_provided", true)].into_py_dict_bound(py);
             new_entry.call_method("define", args, Some(&kwargs))?;
-            self._calibration = Some(new_entry.unbind());
+            self._calibration = new_entry.unbind();
         } else {
-            self._calibration = Some(calibration.unbind());
+            self._calibration = calibration.unbind();
         }
         Ok(())
     }
 
     fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<&PyObject>)> {
-        Ok((self.duration, self.error, self._calibration.as_ref()))
+        Ok((self.duration, self.error, Some(&self._calibration)))
     }
 
     fn __setstate__(
@@ -249,11 +249,11 @@ impl InstructionProperties {
             output.push_str("error=None, ");
         }
 
-        if let Some(calibration) = self.get_calibration(py) {
+        if !self.get_calibration(py)?.is_none(py) {
             output.push_str(
                 format!(
                     "calibration={:?})",
-                    calibration
+                    self.get_calibration(py)?
                         .call_method0(py, "__str__")?
                         .extract::<String>(py)?
                 )
@@ -546,7 +546,7 @@ impl Target {
         TranspilerError: If an operation class is passed in for ``instruction`` and no name
             is specified or ``properties`` is set.
      */
-    #[pyo3(text_signature = "(instruction, /, properties=None, name=None")]
+    #[pyo3(signature = (instruction, /, properties=None, name=None))]
     fn add_instruction(
         &mut self,
         py: Python<'_>,
@@ -711,7 +711,7 @@ impl Target {
         this dictionary. If one is not found in ``error_dict`` then
         ``None`` will be used.
      */
-    #[pyo3(text_signature = "(inst_map, /, inst_name_map=None, error_dict=None")]
+    #[pyo3(text_signature = "(inst_map, /, inst_name_map=None, error_dict=None)")]
     fn update_from_instruction_schedule_map(
         &mut self,
         py: Python<'_>,
@@ -760,7 +760,7 @@ impl Target {
 
                 let entry = get_calibration.call1((&inst_name, qargs_.to_owned()))?;
                 let entry_comparison: bool = if let Some(props) = &props {
-                    !entry.eq(props._calibration.as_ref())?
+                    !entry.eq(&props._calibration)?
                 } else {
                     !entry.is_none()
                 };
@@ -834,7 +834,7 @@ impl Target {
                         };
                         qlen.insert(qargs_.vec.len());
                         let cal = if let Some(Some(prop)) = out_prop.get(&Some(qargs_.to_owned())) {
-                            prop._calibration.as_ref()
+                            Some(&prop._calibration)
                         } else {
                             None
                         };
@@ -921,7 +921,7 @@ impl Target {
                 // This keeps PulseQobjDef unparsed.
                 if let Some(properties) = properties {
                     let cal_entry = &properties._calibration;
-                    if let Some(cal_entry) = cal_entry {
+                    if !cal_entry.is_none(py) {
                         let _ = out_inst_schedule_map
                             .call_method1("_add", (instruction, qarg.to_owned(), cal_entry));
                     }
@@ -1439,14 +1439,19 @@ impl Target {
         Returns ``True`` if the calibration is supported and ``False`` if it isn't.
     */
     #[pyo3(text_signature = "( /, operation_name: str, qargs: tuple[int, ...],)")]
-    fn has_calibration(&self, operation_name: String, qargs: Qargs) -> PyResult<bool> {
+    fn has_calibration(
+        &self,
+        py: Python<'_>,
+        operation_name: String,
+        qargs: Qargs,
+    ) -> PyResult<bool> {
         if !self.gate_map.contains_key(&operation_name) {
             return Ok(false);
         }
         if self.gate_map.contains_key(&operation_name) {
             let gate_map_qarg = &self.gate_map[&operation_name];
             if let Some(oper_qarg) = &gate_map_qarg[&Some(qargs)] {
-                return Ok(oper_qarg._calibration.is_some());
+                return Ok(!oper_qarg._calibration.is_none(py));
             } else {
                 return Ok(false);
             }
@@ -1472,20 +1477,23 @@ impl Target {
     #[pyo3(
         text_signature = "( /, operation_name: str, qargs: tuple[int, ...], *args: ParameterValueType, **kwargs: ParameterValueType,)"
     )]
-    fn get_calibration(&self, operation_name: String, qargs: Qargs) -> PyResult<&PyObject> {
-        if !self.has_calibration(operation_name.clone(), qargs.clone())? {
+    fn get_calibration(
+        &self,
+        py: Python<'_>,
+        operation_name: String,
+        qargs: Qargs,
+    ) -> PyResult<&PyObject> {
+        if !self.has_calibration(py, operation_name.clone(), qargs.clone())? {
             return Err(PyKeyError::new_err(format!(
                 "Calibration of instruction {:?} for qubit {:?} is not defined.",
                 operation_name, qargs.vec
             )));
         }
 
-        Ok(self.gate_map[&operation_name][&Some(qargs)]
+        Ok(&self.gate_map[&operation_name][&Some(qargs)]
             .as_ref()
             .unwrap()
-            ._calibration
-            .as_ref()
-            .unwrap())
+            ._calibration)
     }
 
     /**
