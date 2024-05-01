@@ -732,9 +732,9 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     * use_inverted: Indicates whether to run the algorithm on the inverse matrix
         and to invert the synthesized circuit.
-        In certain cases this provides a better decomposition then the direct approach.
+        In certain cases this provides a better decomposition than the direct approach.
     * use_transposed: Indicates whether to run the algorithm on the transposed matrix
-        and to invert the order oF CX gates in the synthesized circuit.
+        and to invert the order of CX gates in the synthesized circuit.
         In certain cases this provides a better decomposition than the direct approach.
 
     """
@@ -778,9 +778,9 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
     * section size: The size of each section used in the Patel–Markov–Hayes algorithm [1].
     * use_inverted: Indicates whether to run the algorithm on the inverse matrix
         and to invert the synthesized circuit.
-        In certain cases this provides a better decomposition then the direct approach.
+        In certain cases this provides a better decomposition than the direct approach.
     * use_transposed: Indicates whether to run the algorithm on the transposed matrix
-        and to invert the order oF CX gates in the synthesized circuit.
+        and to invert the order of CX gates in the synthesized circuit.
         In certain cases this provides a better decomposition than the direct approach.
 
     References:
