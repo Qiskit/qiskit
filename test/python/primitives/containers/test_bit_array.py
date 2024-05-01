@@ -91,6 +91,13 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(bit_array.get_counts(1), {bs5: 2})
         self.assertEqual(bit_array.get_counts((0, 1)), {bs5: 1})
 
+        bit_array = BitArray(np.zeros([1024, 1], dtype=np.uint8), num_bits=8)
+        bs6 = "00000000"
+        self.assertEqual(bit_array.get_counts(), {bs6: 1024})
+        self.assertEqual(bit_array.get_counts(1), {bs6: 1})
+        with self.assertRaises(IndexError):
+            bit_array.get_counts((0, 1))
+
         # test with no classical register
         bit_array = BitArray(np.zeros([1024, 0], dtype=np.uint8), num_bits=0)
         self.assertEqual(bit_array.get_counts(), {"": 1024})
@@ -126,6 +133,12 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(bit_array.get_int_counts(), {val5: 1024})
         self.assertEqual(bit_array.get_int_counts(1), {val5: 2})
         self.assertEqual(bit_array.get_int_counts((0, 1)), {val5: 1})
+
+        bit_array = BitArray(np.zeros([1024, 1], dtype=np.uint8), num_bits=8)
+        self.assertEqual(bit_array.get_int_counts(), {0: 1024})
+        self.assertEqual(bit_array.get_int_counts(1), {0: 1})
+        with self.assertRaises(IndexError):
+            bit_array.get_int_counts((0, 1))
 
         # test with no classical register
         bit_array = BitArray(np.zeros([1024, 0], dtype=np.uint8), num_bits=0)
