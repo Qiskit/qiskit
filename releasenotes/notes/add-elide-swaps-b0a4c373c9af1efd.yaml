@@ -41,7 +41,7 @@ features:
     the permutation of the virtual qubits that was optimized away.
 
   - |
-    Added a new optimization transpiler pass, :class:`~.FinalizeLayouts`,
+    Added a new transpiler pass, :class:`~.FinalizeLayouts`,
     which is designed to run after the :ref:`routing_stage` and update the
     ``final_layout`` property set based on ``layout`` and
     ``virtual_permutation_layout``.

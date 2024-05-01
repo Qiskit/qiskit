@@ -34,7 +34,7 @@ class FinalizeLayouts(AnalysisPass):
         """
 
         if (
-            virtual_permutation_layout := self.property_set.get("virtual_permutation_layout", None)
+            virtual_permutation_layout := self.property_set["virtual_permutation_layout"]
         ) is None:
             return
 

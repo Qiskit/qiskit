@@ -79,9 +79,9 @@ class ElidePermutations(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if not isinstance(node.op, (SwapGate, PermutationGate)):
-                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
+                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs, check=False)
             elif getattr(node.op, "condition", None) is not None:
-                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
+                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs, check=False)
             elif isinstance(node.op, SwapGate):
                 index_0 = dag.find_bit(node.qargs[0]).index
                 index_1 = dag.find_bit(node.qargs[1]).index
