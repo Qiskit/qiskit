@@ -68,7 +68,7 @@ class DataBinTestCase(QiskitTestCase):
         self.assertEqual(databin.shape, (5, 2))
 
     def test_make_databin_mapping(self):
-        """Test the make_data_bin() function with mapping features."""
+        """Test DataBin with mapping features."""
         data_bin = DataBin(alpha=10, beta={1: 2})
         self.assertEqual(len(data_bin), 2)
 

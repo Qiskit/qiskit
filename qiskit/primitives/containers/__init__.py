@@ -16,7 +16,7 @@ Data containers for primitives.
 
 
 from .bit_array import BitArray
-from .data_bin import DataBin
+from .data_bin import make_data_bin, DataBin
 from .primitive_result import PrimitiveResult
 from .pub_result import PubResult
 from .estimator_pub import EstimatorPubLike
