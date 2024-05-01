@@ -32,10 +32,7 @@ from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v
     get_descendants,
 )
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.transpiler.passes.optimization.template_matching_v2.forward_match_v2 import ForwardMatch
-from qiskit.transpiler.passes.optimization.template_matching_v2.backward_match_v2 import (
-    BackwardMatch,
-)
+from qiskit.transpiler.passes.optimization.template_matching_v2 import ForwardMatch, BackwardMatch
 
 
 class TemplateMatching:

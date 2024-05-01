@@ -31,6 +31,7 @@ from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v
     get_descendants,
     get_successors,
 )
+
 from qiskit.circuit.controlledgate import ControlledGate
 
 
@@ -66,10 +67,10 @@ class ForwardMatch:
         # The dag dependency representation of the template
         self.template_dag_dep = template_dag_dep
 
-        # List of qubit on which the node of the circuit is acting on
+        # List of qubits on which the node of the circuit is acting
         self.qubits = qubits
 
-        # List of qubit on which the node of the circuit is acting on
+        # List of clbits on which the node of the circuit is acting
         self.clbits = clbits if clbits is not None else []
 
         # Id of the node in the circuit
@@ -78,7 +79,7 @@ class ForwardMatch:
         # Id of the node in the template
         self.node_t = node_t
 
-        # List of match
+        # List of matches
         self.match = []
 
         # List of candidates for the forward match
@@ -93,18 +94,15 @@ class ForwardMatch:
         # Transformation of the carg indices of the circuit to be adapted to the template indices
         self.carg_indices = []
 
+        # Class instance of TemplateMatching caller
         self.temp_match_class = temp_match_class
 
+        # Dicts for storing lists of node ids
         self.successorstovisit = {}
         self.matchedwith = {}
-        self.isblocked = {}
 
-    def _init_list_match(self):
-        """
-        Initialize the list of matched nodes between the circuit and the template
-        with the first match found.
-        """
-        self.match.append([self.node_t._node_id, self.node_c._node_id])
+        # Bool indicating if a node is blocked due to no match
+        self.isblocked = {}
 
     def _find_forward_candidates(self, node_id_t):
         """
@@ -136,38 +134,8 @@ class ForwardMatch:
                         self.temp_match_class.descendants[node] = get_descendants(
                             self.template_dag_dep, succ
                         )
-                    desc = self.temp_match_class.descendants[node]
-                    block = block + desc
+                    block = block + self.temp_match_class.descendants[node]
         self.candidates = list(set(temp_succs) - set(matches) - set(block))
-
-    def _init_matched_nodes(self):
-        """
-        Initialize the list of current matched nodes.
-        """
-        self.matched_nodes_list.append(get_node(self.circuit_dag_dep, self.node_c._node_id))
-
-    def _get_node_forward(self, list_id):
-        """
-        Return a node from the matched_node_list for a given list id.
-        Args:
-            list_id (int): considered list id of the desired node.
-
-        Returns:
-            DAGOpNode: DAGOpNode object corresponding to i-th node of the matched_node_list.
-        """
-        return self.matched_nodes_list.pop(list_id)[1]
-
-    def _get_successors_to_visit(self, node, list_id):
-        """
-        Return the successor for a given node and id.
-        Args:
-            node (DAGOpNode): current node.
-            list_id (int): id in the list for the successor to get.
-
-        Returns:
-            int: id of the successor to get.
-        """
-        return self.successorstovisit[node].pop(list_id)
 
     def _update_qarg_indices(self, qarg):
         """
@@ -197,17 +165,6 @@ class ForwardMatch:
                     self.carg_indices.append(self.clbits.index(q))
             if len(carg) != len(self.carg_indices):
                 self.carg_indices = []
-
-    def _is_same_op(self, node_circuit, node_template):
-        """
-        Check if two instructions are the same.
-        Args:
-            node_circuit (DAGOpNode): node in the circuit.
-            node_template (DAGOpNode): node in the template.
-        Returns:
-            bool: True if the same, False otherwise.
-        """
-        return node_circuit.op.soft_compare(node_template.op)
 
     def _is_same_q_conf(self, node_circuit, node_template):
         """
@@ -294,8 +251,8 @@ class ForwardMatch:
         self.matchedwith[self.node_t] = [self.node_c._node_id]
 
         # Initialize the list of matches and the stack of matched nodes (circuit)
-        self._init_list_match()
-        self._init_matched_nodes()
+        self.match.append([self.node_t._node_id, self.node_c._node_id])
+        self.matched_nodes_list.append(get_node(self.circuit_dag_dep, self.node_c._node_id))
 
         # While the list of matched nodes is not empty
         while self.matched_nodes_list:
@@ -358,7 +315,7 @@ class ForwardMatch:
                 if (
                     self._is_same_q_conf(node_circuit, node_template)
                     and self._is_same_c_conf(node_circuit, node_template)
-                    and self._is_same_op(node_circuit, node_template)
+                    and node_circuit.op.soft_compare(node_template.op)
                 ):
                     self.matchedwith[trial_successor] = [i]
                     self.matchedwith[node_template] = [trial_successor_id]

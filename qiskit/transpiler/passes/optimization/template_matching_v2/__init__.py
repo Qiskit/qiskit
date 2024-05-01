@@ -12,8 +12,8 @@
 
 """Module containing template matching methods."""
 
-# from .forward_match_v2 import ForwardMatch
-# from .backward_match_v2 import BackwardMatch, Match, MatchingScenarios, MatchingScenariosList
-# from .template_matching_v2 import TemplateMatching
-# from .maximal_matches_v2 import MaximalMatches
-# from .template_substitution_v2 import SubstitutionConfig, TemplateSubstitution
+from .forward_match_v2 import ForwardMatch
+from .backward_match_v2 import BackwardMatch, Match, MatchingScenarios, MatchingScenariosList
+from .template_matching_v2 import TemplateMatching
+from .maximal_matches_v2 import MaximalMatches
+from .template_substitution_v2 import SubstitutionConfig, TemplateSubstitution
