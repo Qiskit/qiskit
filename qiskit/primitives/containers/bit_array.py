@@ -27,6 +27,7 @@ from numpy.typing import NDArray
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts, sampled_expectation_value
 
+from .observables_array import ObservablesArray, ObservablesArrayLike
 from .shape import ShapedMixin, ShapeInput, shape_tuple
 
 # this lookup table tells you how many bits are 1 in each uint8 value
@@ -440,8 +441,8 @@ class BitArray(ShapedMixin):
         arr, num_bits = _pack(arr)
         return BitArray(arr, num_bits)
 
-    def expectation_values(self, operator: str | Pauli | SparsePauliOp) -> NDArray[np.float64]:
-        """Compute the expectation value of the operator for every entry of this bit array.
+    def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
+        """Compute the expectation values of the provided observables, broadcasted against this bit arrays.
 
         .. note::
 
@@ -450,15 +451,25 @@ class BitArray(ShapedMixin):
             :func:`~.sampled_expectation_value`.
 
         Args:
-            operator: The operator to take the expectation value of.
+            operator: The operator(s) to take the expectation value of. Must have a shape broadcastable with
+            with this bit array.
 
         Returns:
-            An array of expectation values whose shape matches this bit array's :attr:`~shape`.
+            An array of expectation values whose shape is the broadcast shape of ``operator`` and this bit array.
+
+        Raises:
+            ValueError: If the provided operator does not have a shape broadcastable with this bit array.
         """
-        arr = np.empty(self.shape, dtype=float)
-        for loc in np.ndindex(self.shape):
-            counts = self.get_counts(loc)
-            arr[loc] = sampled_expectation_value(counts, operator)
+        observables = ObservablesArray.coerce(observables)
+        arr_indices = np.fromiter(np.ndindex(self.shape), dtype=object).reshape(self.shape)
+        bc_indices, bc_obs = np.broadcast_arrays(arr_indices, observables)
+        arr = np.zeros_like(bc_indices, dtype=float)
+        for index in np.ndindex(bc_indices.shape):
+            loc = bc_indices[index]
+            for pauli, coeff in bc_obs[index].items():
+                counts = self.get_counts(loc)
+                expval = sampled_expectation_value(counts, pauli)
+                arr[index] += expval * coeff
         return arr
 
     @staticmethod

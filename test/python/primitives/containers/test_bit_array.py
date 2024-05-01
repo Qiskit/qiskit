@@ -18,7 +18,8 @@ from test import QiskitTestCase
 import ddt
 import numpy as np
 
-from qiskit.primitives.containers import BitArray
+from qiskit.primitives.containers import BitArray, ObservableLike
+from qiskit.primitives.containers.observables_array import ObservablesArray
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts
 
@@ -522,6 +523,14 @@ class BitArrayTestCase(QiskitTestCase):
             # 6th bit are all 0
             self.assertEqual(expval.shape, ba.shape)
             np.testing.assert_allclose(expval, np.ones((ba.shape)))
+
+        with self.subTest("ObservableArray"):
+            obs = ObservablesArray.coerce(["Z", "0", "1"])
+            ba2 = ba.slice_bits(5)
+            expval = ba2.expectation_values(obs)
+            expected = np.array([[[1, 1, 0], [-0.6, 0, 1]]])
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, expected)
 
     def test_concatenate_shots(self):
         """Test the concatenate_shots function."""
