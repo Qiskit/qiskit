@@ -12,7 +12,7 @@
 
 """Search for star connectivity patterns and replace them with."""
 from typing import Iterable, Union, Optional, List, Tuple
-from numpy import floor, log10
+from math import floor, log10
 
 from qiskit.circuit import Barrier
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
@@ -356,6 +356,7 @@ class StarPreRouting(TransformationPass):
                             inner_node.op,
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                             inner_node.cargs,
+                            check=False,
                         )
                     continue
                 swap_source = None
@@ -366,6 +367,7 @@ class StarPreRouting(TransformationPass):
                             inner_node.op,
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                             inner_node.cargs,
+                            check=False,
                         )
                         continue
                     if is_first_star and swap_source is None:
@@ -374,6 +376,7 @@ class StarPreRouting(TransformationPass):
                             inner_node.op,
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                             inner_node.cargs,
+                            check=False,
                         )
 
                         prev = inner_node.qargs
@@ -383,6 +386,7 @@ class StarPreRouting(TransformationPass):
                         inner_node.op,
                         _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                         inner_node.cargs,
+                        check=False,
                     )
 
                     if not inner_node is last_2q_gate and not isinstance(inner_node.op, Barrier):
@@ -390,6 +394,7 @@ class StarPreRouting(TransformationPass):
                             SwapGate(),
                             _apply_mapping(inner_node.qargs, qubit_mapping, dag.qubits),
                             inner_node.cargs,
+                            check=False,
                         )
                         # Swap mapping
                         index_0 = dag.find_bit(inner_node.qargs[0]).index
@@ -404,6 +409,6 @@ class StarPreRouting(TransformationPass):
             else:
                 # the node is not part of a block
                 new_dag.apply_operation_back(
-                    node.op, _apply_mapping(node.qargs, qubit_mapping, dag.qubits), node.cargs
+                    node.op, _apply_mapping(node.qargs, qubit_mapping, dag.qubits), node.cargs, check=False
                 )
         return new_dag, qubit_mapping
