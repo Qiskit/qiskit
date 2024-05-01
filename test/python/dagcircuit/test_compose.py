@@ -545,18 +545,45 @@ class TestDagCompose(QiskitTestCase):
         """This isn't expected to be common, but should work anyway."""
         a = expr.Var.new("a", types.Bool())
         b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
 
         dest = DAGCircuit()
         dest.add_input_var(a)
         dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
         source = DAGCircuit()
         source.add_declared_var(b)
+        source.add_input_var(c)
         source.apply_operation_back(Store(b, expr.lift(True)), (), ())
         dest.compose(source)
 
         expected = DAGCircuit()
         expected.add_input_var(a)
         expected.add_declared_var(b)
+        expected.add_input_var(c)
+        expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
+
+        self.assertEqual(dest, expected)
+
+    def test_join_unrelated_dags_captures(self):
+        """This isn't expected to be common, but should work anyway."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        dest = DAGCircuit()
+        dest.add_captured_var(a)
+        dest.apply_operation_back(Store(a, expr.lift(False)), (), ())
+        source = DAGCircuit()
+        source.add_declared_var(b)
+        source.add_captured_var(c)
+        source.apply_operation_back(Store(b, expr.lift(True)), (), ())
+        dest.compose(source, inline_captures=False)
+
+        expected = DAGCircuit()
+        expected.add_captured_var(a)
+        expected.add_declared_var(b)
+        expected.add_captured_var(c)
         expected.apply_operation_back(Store(a, expr.lift(False)), (), ())
         expected.apply_operation_back(Store(b, expr.lift(True)), (), ())
 
