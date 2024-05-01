@@ -9,8 +9,8 @@ features_primitives:
     The shape can be passed to the constructor.
 upgrade_primitives:
   - |
-  The function `qiskit.primitives.containers.make_data_bin()` no longer creates and returns a 
-  `qiskit.primitives.containers.DataBin` subclass. It instead always returns the `DataBin` class.
-  However, it continues to exist for backwards compatibility, though will eventually be deprecated. 
-  All users should migrate to construct `DataBin` instances directly, instead of instantiating 
-  subclasses as output by `make_data_bin()`.
+    The function `qiskit.primitives.containers.make_data_bin()` no longer creates and returns a 
+    `qiskit.primitives.containers.DataBin` subclass. It instead always returns the `DataBin` class.
+    However, it continues to exist for backwards compatibility, though will eventually be deprecated. 
+    All users should migrate to construct `DataBin` instances directly, instead of instantiating 
+    subclasses as output by `make_data_bin()`.
