@@ -15,7 +15,7 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 
 class DataBinMeta(type):
@@ -37,13 +37,17 @@ class DataBin(metaclass=DataBinMeta):
 
     """
 
-    _RESTRICTED_NAMES = ("_RESTRICTED_NAMES", "_SHAPE", "_FIELDS", "_FIELD_TYPES")
-
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    def __setattr__(self, key, value):
-        raise NotImplementedError
+    _RESTRICTED_NAMES = frozenset(
+        {
+            "_RESTRICTED_NAMES",
+            "_SHAPE",
+            "_FIELDS",
+            "_FIELD_TYPES",
+            "keys",
+            "values",
+            "items",
+        }
+    )
 
     def __len__(self):
         return len(self.__dict__)
@@ -51,6 +55,29 @@ class DataBin(metaclass=DataBinMeta):
     def __repr__(self):
         vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
         return f"{type(self).__name__}({', '.join(vals)})"
+
+    def __getitem__(self, key: str) -> Any:
+        if key not in self._FIELDS:
+            raise KeyError(f"Key ({key}) does not exist in this data bin.")
+        return getattr(self, key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._FIELDS
+
+    def __iter__(self) -> Iterable[str]:
+        return iter(self._FIELDS)
+
+    def keys(self) -> Sequence[str]:
+        """Return a list of field names."""
+        return tuple(self._FIELDS)
+
+    def values(self) -> Sequence[Any]:
+        """Return a list of values."""
+        return tuple(getattr(self, key) for key in self._FIELDS)
+
+    def items(self) -> Sequence[tuple[str, Any]]:
+        """Return a list of field names and values"""
+        return tuple((key, getattr(self, key)) for key in self._FIELDS)
 
     # The following properties exist to provide support to legacy private class attributes which
     # gained widespread usage in several internal projects due to the lack of alternatives prior to

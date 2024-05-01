@@ -201,6 +201,24 @@ class AnnotatedOperation(Operation):
         extended_modifiers.append(InverseModifier())
         return AnnotatedOperation(self.base_op, extended_modifiers)
 
+    def power(self, exponent: float, annotated: bool = False):
+        """
+        Raise this gate to the power of ``exponent``.
+
+        Implemented as an annotated operation, see  :class:`.AnnotatedOperation`.
+
+        Args:
+            exponent: the power to raise the gate to
+            annotated: ignored (used for consistency with other power methods)
+
+        Returns:
+            An operation implementing ``gate^exponent``
+        """
+        # pylint: disable=unused-argument
+        extended_modifiers = self.modifiers.copy()
+        extended_modifiers.append(PowerModifier(exponent))
+        return AnnotatedOperation(self.base_op, extended_modifiers)
+
 
 def _canonicalize_modifiers(modifiers):
     """
