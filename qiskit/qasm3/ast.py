@@ -124,7 +124,7 @@ class FloatType(ClassicalType, enum.Enum):
 
 
 class BoolType(ClassicalType):
-    """Type informatino for a Boolean."""
+    """Type information for a Boolean."""
 
 
 class IntType(ClassicalType):

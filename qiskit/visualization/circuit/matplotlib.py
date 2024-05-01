@@ -495,7 +495,7 @@ class MatplotlibDrawer:
                             if isinstance(var, ClassicalRegister):
                                 return ast.Identifier(var.name)
                             # Single clbit.  This is not actually the correct way to lookup a bit on
-                            # the circuit (it doesn't handle bit bindings fully), but the text
+                            # the circuit (it doesn't handle bit bindings fully), but the mpl
                             # drawer doesn't completely track inner-outer _bit_ bindings, only
                             # inner-indices, so we can't fully recover the information losslessly.
                             # Since most control-flow uses the control-flow builders, we should
