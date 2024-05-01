@@ -304,11 +304,27 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
     as to preserve unitary equivalence.
     """
 
-    # ToDo: update the tests when ElidePermutations is merged into transpiler flow.
+    def test_not_run_after_layout(self):
+        """Test ElidePermutations doesn't do anything after layout."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.h(1)
+
+        spm = generate_preset_pass_manager(
+            optimization_level=3, initial_layout=list(range(2, -1, -1)), seed_transpiler=42
+        )
+        spm.layout += ElidePermutations()
+        spm.post_optimization = PassManager([FinalizeLayouts()])
+        res = spm.run(qc)
+        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+        self.assertIn("swap", res.count_ops())
+        self.assertTrue(res.layout.final_index_layout(), [0, 1, 2])
 
     def test_unitary_equivalence(self):
         """Test unitary equivalence of the original and transpiled circuits."""
-
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.swap(0, 2)
