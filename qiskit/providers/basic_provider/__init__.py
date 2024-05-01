@@ -27,36 +27,15 @@ via the `BasicProvider` provider, e.g.:
    backend = BasicProvider().get_backend('basic_simulator')
 
 
-Simulators
+Classes
 ==========
 
 .. autosummary::
    :toctree: ../stubs/
 
    BasicSimulator
-
-Provider
-========
-
-.. autosummary::
-   :toctree: ../stubs/
-
    BasicProvider
-
-Job Class
-=========
-
-.. autosummary::
-   :toctree: ../stubs/
-
    BasicProviderJob
-
-Exceptions
-==========
-
-.. autosummary::
-   :toctree: ../stubs/
-
    BasicProviderError
 """
 

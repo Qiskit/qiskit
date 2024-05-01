@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """
-###########################################################
+=====================================
 QPY serialization (:mod:`qiskit.qpy`)
-###########################################################
+=====================================
 
 .. currentmodule:: qiskit.qpy
 
@@ -32,9 +32,8 @@ which will preserve the Qiskit object exactly but will only work for a single Qi
 version (it is also
 `potentially insecure <https://docs.python.org/3/library/pickle.html#module-pickle>`__).
 
-*********
-Using QPY
-*********
+Basic Usage
+===========
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
@@ -248,9 +247,8 @@ of QPY in qiskit-terra 0.18.0.
 
 .. _qpy_format:
 
-**********
 QPY Format
-**********
+==========
 
 The QPY serialization format is a portable cross-platform binary
 serialization format for :class:`~qiskit.circuit.QuantumCircuit` objects in Qiskit. The basic
@@ -303,14 +301,14 @@ circuits in the data.
 .. _qpy_version_12:
 
 Version 12
-==========
+----------
 
 Version 12 adds support for:
 
 * circuits containing memory-owning :class:`.expr.Var` variables.
 
 Changes to HEADER
------------------
+~~~~~~~~~~~~~~~~~
 
 The HEADER struct for an individual circuit has added three ``uint32_t`` counts of the input,
 captured and locally declared variables in the circuit.  The new form looks like:
@@ -336,7 +334,7 @@ that, the data continues with custom definitions and instructions as in prior ve
 
 
 EXPR_VAR_DECLARATION
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 An ``EXPR_VAR_DECLARATION`` defines an :class:`.expr.Var` instance that is standalone; that is, it
 represents a self-owned memory location rather than wrapping a :class:`.Clbit` or
@@ -367,7 +365,7 @@ Type code  Meaning
 
 
 Changes to EXPR_VAR
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 The EXPR_VAR variable has gained a new type code and payload, in addition to the pre-existing ones:
 
@@ -385,7 +383,7 @@ redefining the variable again in each location it is used.
 .. _qpy_version_11:
 
 Version 11
-==========
+----------
 
 Version 11 is identical to Version 10 except for the following.
 First, the names in the CUSTOM_INSTRUCTION blocks
@@ -403,7 +401,7 @@ MODIFIER struct.
 .. _modifier_qpy:
 
 MODIFIER
---------
+~~~~~~~~
 
 This represents :class:`~qiskit.circuit.annotated_operation.Modifier`
 
@@ -426,7 +424,7 @@ operation, and in the third case the field ``power`` represents the power of the
 .. _qpy_version_10:
 
 Version 10
-==========
+----------
 
 Version 10 adds support for:
 
@@ -439,7 +437,7 @@ is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
 encoding and ``e`` refers to symengine encoding.
 
 Changes to FILE_HEADER
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 The contents of FILE_HEADER after V10 are defined as a C struct as:
 
@@ -455,7 +453,7 @@ The contents of FILE_HEADER after V10 are defined as a C struct as:
     } FILE_HEADER_V10;
 
 Changes to LAYOUT
------------------
+~~~~~~~~~~~~~~~~~
 
 The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
 With version 10 the ``LAYOUT`` struct is now:
@@ -478,14 +476,14 @@ and ``_output_qubit_list`` in the :class:`~.TranspileLayout` object are ``None``
 .. _qpy_version_9:
 
 Version 9
-=========
+---------
 
 Version 9 adds support for classical :class:`~.expr.Expr` nodes and their associated
 :class:`~.types.Type`\\ s.
 
 
 EXPRESSION
-----------
+~~~~~~~~~~
 
 An :class:`~.expr.Expr` node is represented by a stream of variable-width data.  A node itself is
 represented by (in order in the byte stream):
@@ -517,7 +515,7 @@ Qiskit class            Type code  Payload                                      
 
 
 EXPR_TYPE
----------
+~~~~~~~~~
 
 A :class:`~.types.Type` is encoded by a single-byte ASCII ``char`` that encodes the kind of type,
 followed by a payload that varies depending on the type.  The defined codes are:
@@ -532,7 +530,7 @@ Qiskit class            Type code  Payload
 
 
 EXPR_VAR
---------
+~~~~~~~~
 
 This represents a runtime variable of a :class:`~.expr.Var` node.  These are a type code, followed
 by a type-code-specific payload:
@@ -549,7 +547,7 @@ Python class                 Type code  Payload
 
 
 EXPR_VALUE
-----------
+~~~~~~~~~~
 
 This represents a literal object in the classical type system, such as an integer.  Currently there
 are very few such literals.  These are encoded as a type code, followed by a type-code-specific
@@ -567,7 +565,7 @@ Python type  Type code  Payload
 
 
 Changes to INSTRUCTION
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 To support the use of :class:`~.expr.Expr` nodes in the fields :attr:`.IfElseOp.condition`,
 :attr:`.WhileLoopOp.condition` and :attr:`.SwitchCaseOp.target`, the INSTRUCTION struct is changed
@@ -614,7 +612,7 @@ Value  Effects
 
 
 Changes to INSTRUCTION_PARAM
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A new type code ``x`` is added that defines an EXPRESSION parameter.
 
@@ -622,7 +620,7 @@ A new type code ``x`` is added that defines an EXPRESSION parameter.
 .. _qpy_version_8:
 
 Version 8
-=========
+---------
 
 Version 8 adds support for handling a :class:`~.TranspileLayout` stored in the
 :attr:`.QuantumCircuit.layout` attribute. In version 8 immediately following the
@@ -631,7 +629,7 @@ calibrations block at the end of the circuit payload there is now the
 :class:`~.TranspileLayout` class.
 
 LAYOUT
-------
+~~~~~~
 
 .. code-block:: c
 
@@ -653,7 +651,7 @@ are ``initial_layout_size`` ``INITIAL_LAYOUT_BIT`` structs to define the
 :attr:`.TranspileLayout.initial_layout` attribute.
 
 INITIAL_LAYOUT_BIT
-------------------
+~~~~~~~~~~~~~~~~~~
 
 .. code-block:: c
 
@@ -679,7 +677,7 @@ circuit.
 .. _qpy_version_7:
 
 Version 7
-=========
+---------
 
 Version 7 adds support for :class:`.~Reference` instruction and serialization of
 a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
@@ -725,7 +723,7 @@ condition of an INSTRUCTION field <qpy_instructions>`.
 .. _qpy_version_6:
 
 Version 6
-=========
+---------
 
 Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
 like `SymbolicPulse` objects, and the class name is added to the data to correctly handle
@@ -752,7 +750,7 @@ identical to :ref:`qpy_version_5`.
 .. _qpy_version_5:
 
 Version 5
-=========
+---------
 
 Version 5 changes from :ref:`qpy_version_4` by adding support for :class:`.~ScheduleBlock`
 and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
@@ -787,7 +785,7 @@ immediately follows the file header block to represent the program type stored i
 .. _qpy_schedule_block:
 
 SCHEDULE_BLOCK
---------------
+~~~~~~~~~~~~~~
 
 :class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
 users to save pulse programs in the QPY binary format as follows:
@@ -812,7 +810,7 @@ no extra option is required to save the schedule block.
 .. _qpy_schedule_block_header:
 
 SCHEDULE_BLOCK_HEADER
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 :class:`~.ScheduleBlock` block starts with the following header:
 
@@ -831,7 +829,7 @@ attached to the schedule.
 .. _qpy_schedule_alignments:
 
 SCHEDULE_BLOCK_ALIGNMENTS
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Then, alignment context of the schedule block starts with ``char``
 representing the supported context type followed by the :ref:`qpy_sequence` block representing
@@ -849,7 +847,7 @@ stored in the context parameters.
 .. _qpy_schedule_instructions:
 
 SCHEDULE_BLOCK_INSTRUCTIONS
----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This alignment block is further followed by ``num_element`` length of block elements which may
 consist of nested schedule blocks and schedule instructions.
@@ -874,7 +872,7 @@ The mapping of type char to the instruction subclass is defined as follows:
 .. _qpy_schedule_operands:
 
 SCHEDULE_BLOCK_OPERANDS
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The operands of these instances can be serialized through the standard QPY value serialization
 mechanism, however there are special object types that only appear in the schedule operands.
@@ -891,7 +889,7 @@ Special objects start with the following type key:
 .. _qpy_schedule_channel:
 
 CHANNEL
--------
+~~~~~~~
 
 Channel block starts with channel subtype ``char`` that maps an object data to
 :class:`~qiskit.pulse.channels.Channel` subclass. Mapping is defined as follows:
@@ -908,7 +906,7 @@ The key is immediately followed by the channel index serialized as the INSTRUCTI
 .. _qpy_schedule_waveform:
 
 Waveform
---------
+~~~~~~~~
 
 Waveform block starts with WAVEFORM header:
 
@@ -930,7 +928,7 @@ INSTRUCTION_PARAM pack struct, which can be string or ``None``.
 .. _qpy_schedule_symbolic_pulse:
 
 SymbolicPulse
--------------
+~~~~~~~~~~~~~
 
 SymbolicPulse block starts with SYMBOLIC_PULSE header:
 
@@ -964,7 +962,7 @@ INSTRUCTION_PARAM pack struct, which can be string or ``None``.
 .. _qpy_mapping:
 
 MAPPING
--------
+~~~~~~~
 
 The MAPPING is a representation for arbitrary mapping object. This is a fixed length
 :ref:`qpy_sequence` of key-value pair represented by the MAP_ITEM payload.
@@ -986,7 +984,7 @@ QPY serializable ``type``.
 .. _qpy_circuit_calibrations:
 
 CIRCUIT_CALIBRATIONS
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 The CIRCUIT_CALIBRATIONS block is a dictionary to define pulse calibrations of the custom
 instruction set. This block starts with the following CALIBRATION header:
@@ -1021,7 +1019,7 @@ Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF en
 .. _qpy_instruction_v5:
 
 INSTRUCTION
------------
+~~~~~~~~~~~
 
 The INSTRUCTION block was modified to add two new fields ``num_ctrl_qubits`` and ``ctrl_state``
 which are used to model the :attr:`.ControlledGate.num_ctrl_qubits` and
@@ -1047,7 +1045,7 @@ The rest of the instruction payload is the same. You can refer to
 :ref:`qpy_instructions` for the details of the full payload.
 
 CUSTOM_INSTRUCTION
-------------------
+~~~~~~~~~~~~~~~~~~
 
 The CUSTOM_INSTRUCTION block in QPY version 5 adds a new field
 ``base_gate_size`` which is used to define the size of the
@@ -1090,7 +1088,7 @@ indicate the custom instruction is a custom :class:`~.ControlledGate`.
 .. _qpy_version_4:
 
 Version 4
-=========
+---------
 
 Version 4 is identical to :ref:`qpy_version_3` except that it adds 2 new type strings
 to the INSTRUCTION_PARAM struct, ``z`` to represent ``None`` (which is encoded as
@@ -1120,7 +1118,7 @@ part of the circuit or not.
 .. _qpy_range_pack:
 
 RANGE
------
+~~~~~
 
 A RANGE is a representation of a ``range`` object. It is defined as:
 
@@ -1135,7 +1133,7 @@ A RANGE is a representation of a ``range`` object. It is defined as:
 .. _qpy_sequence:
 
 SEQUENCE
---------
+~~~~~~~~
 
 A SEQUENCE is a representation of an arbitrary sequence object. As sequence are just fixed length
 containers of arbitrary python objects their QPY can't fully represent any sequence,
@@ -1157,7 +1155,7 @@ into proper type, e.g. ``tuple``, afterwards.
 .. _qpy_version_3:
 
 Version 3
-=========
+---------
 
 Version 3 of the QPY format is identical to :ref:`qpy_version_2` except that it defines
 a struct format to represent a :class:`~qiskit.circuit.library.PauliEvolutionGate`
@@ -1172,7 +1170,7 @@ as follows:
 .. _pauli_evo_qpy:
 
 PAULI_EVOLUTION
----------------
+~~~~~~~~~~~~~~~
 
 This represents the high level :class:`~qiskit.circuit.library.PauliEvolutionGate`
 
@@ -1200,7 +1198,7 @@ the :class:`.EvolutionSynthesis` class used by the gate.
 .. _qpy_pauli_sum_op:
 
 SPARSE_PAULI_OP_LIST_ELEM
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This represents an instance of :class:`.SparsePauliOp`.
 
@@ -1224,7 +1222,7 @@ parameters are defined below as :ref:`qpy_param_vector`.
 .. _qpy_param_vector:
 
 PARAMETER_VECTOR_ELEMENT
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 A PARAMETER_VECTOR_ELEMENT represents a :class:`~qiskit.circuit.ParameterVectorElement`
 object the data for a INSTRUCTION_PARAM. The contents of the PARAMETER_VECTOR_ELEMENT are
@@ -1246,7 +1244,7 @@ the parameter's vector name.
 
 
 PARAMETER_EXPR
---------------
+~~~~~~~~~~~~~~
 
 Additionally, since QPY format version v3 distinguishes between a
 :class:`~qiskit.circuit.Parameter` and :class:`~qiskit.circuit.ParameterVectorElement`
@@ -1300,14 +1298,14 @@ and size will be 0 as the value will just be the same as the key. If
 .. _qpy_version_2:
 
 Version 2
-=========
+---------
 
 Version 2 of the QPY format is identical to version 1 except for the HEADER
 section is slightly different. You can refer to the :ref:`qpy_version_1` section
 for the details on the rest of the payload format.
 
 HEADER
-------
+~~~~~~
 
 The contents of HEADER are defined as a C struct are:
 
@@ -1337,10 +1335,10 @@ object  which is represented by a PARAM struct (see below), ``e`` defines a
 .. _qpy_version_1:
 
 Version 1
-=========
+---------
 
 HEADER
-------
+~~~~~~
 
 The contents of HEADER as defined as a C struct are:
 
@@ -1360,7 +1358,7 @@ This is immediately followed by ``name_size`` bytes of utf8 data for the name
 of the circuit.
 
 METADATA
---------
+~~~~~~~~
 
 The METADATA field is a UTF8 encoded JSON string. After reading the HEADER
 (which is a fixed size at the start of the QPY file) and the ``name`` string
@@ -1370,7 +1368,7 @@ the metadata for the circuit.
 .. _qpy_registers:
 
 REGISTERS
----------
+~~~~~~~~~
 
 The contents of REGISTERS is a number of REGISTER object. If num_registers is
 > 0 then after reading METADATA you read that number of REGISTER structs defined
@@ -1420,7 +1418,7 @@ the register ``qr`` would be a standalone register. While something like::
 .. _qpy_custom_definition:
 
 CUSTOM_DEFINITIONS
-------------------
+~~~~~~~~~~~~~~~~~~
 
 This section specifies custom definitions for any of the instructions in the circuit.
 
@@ -1460,7 +1458,7 @@ it will be a :class:`~qiskit.circuit.Instruction` object.
 .. _qpy_instructions:
 
 INSTRUCTIONS
-------------
+~~~~~~~~~~~~
 
 The contents of INSTRUCTIONS is a list of INSTRUCTION metadata objects
 
@@ -1536,7 +1534,7 @@ and in QPY :ref:`qpy_version_3` ``'v'`` represents a
 .. _qpy_param_struct:
 
 PARAMETER
----------
+~~~~~~~~~
 
 A PARAMETER represents a :class:`~qiskit.circuit.Parameter` object the data for
 a INSTRUCTION_PARAM. The contents of the PARAMETER are defined as:
@@ -1554,7 +1552,7 @@ parameter name.
 .. _qpy_param_expr:
 
 PARAMETER_EXPR
---------------
+~~~~~~~~~~~~~~
 
 A PARAMETER_EXPR represents a :class:`~qiskit.circuit.ParameterExpression`
 object that the data for an INSTRUCTION_PARAM. The contents of a PARAMETER_EXPR
@@ -1593,7 +1591,7 @@ Finally, if type is ``i`` it represents an integer which is an ``int64_t``.
 .. _qpy_complex:
 
 COMPLEX
--------
+~~~~~~~
 
 When representing a double precision complex value in QPY the following
 struct is used:

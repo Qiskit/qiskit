@@ -152,8 +152,10 @@ The synthesis transpiler plugin documentation can be found in the
    HLSConfig
    SolovayKitaev
 
-Post Layout (Post transpile qubit selection)
-============================================
+Post Layout
+===========
+
+These are post qubit selection.
 
 .. autosummary::
    :toctree: ../stubs/
