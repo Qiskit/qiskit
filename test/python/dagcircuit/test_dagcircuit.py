@@ -1853,6 +1853,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(left.num_input_vars, 2)
         self.assertEqual(left.num_captured_vars, 0)
         self.assertEqual(left.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
 
         right = DAGCircuit()
         right.add_input_var(a_bool)
@@ -1860,6 +1861,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 2)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
         self.assertEqual(left, right)
 
         right = DAGCircuit()
@@ -1868,12 +1870,14 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 2)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 0)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
@@ -1882,6 +1886,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 2)
         self.assertEqual(right.num_declared_vars, 0)
+        self.assertEqual(left.num_vars, 2)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
@@ -1890,6 +1895,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 2)
+        self.assertEqual(left.num_vars, 2)
         self.assertNotEqual(left, right)
 
         left = DAGCircuit()
@@ -2020,6 +2026,44 @@ class TestDagEquivalence(QiskitTestCase):
             (op_switch, dag.output_map[d], d),
         }
         self.assertEqual(set(dag.edges()), expected_edges)
+
+    def test_forbid_mixing_captures_inputs(self):
+        """Test that a DAG can't have both captures and inputs."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        dag = DAGCircuit()
+        dag.add_input_var(a)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add captures to a circuit with inputs"
+        ):
+            dag.add_captured_var(b)
+
+        dag = DAGCircuit()
+        dag.add_captured_var(a)
+        with self.assertRaisesRegex(
+            DAGCircuitError, "cannot add inputs to a circuit with captures"
+        ):
+            dag.add_input_var(b)
+
+    def test_forbid_adding_nonstandalone_var(self):
+        """Temporary "wrapping" vars aren't standalone and can't be tracked separately."""
+        dag = DAGCircuit()
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add variables that wrap"):
+            dag.add_input_var(expr.lift(ClassicalRegister(4, "c")))
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add variables that wrap"):
+            dag.add_declared_var(expr.lift(Clbit()))
+
+    def test_forbid_adding_conflicting_vars(self):
+        """Can't re-add a variable that exists, nor a shadowing variable in the same scope."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        dag = DAGCircuit()
+        dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "already present in the circuit"):
+            dag.add_declared_var(a1)
+        with self.assertRaisesRegex(DAGCircuitError, "cannot add .* as its name shadows"):
+            dag.add_declared_var(a2)
 
 
 class TestDagSubstitute(QiskitTestCase):
