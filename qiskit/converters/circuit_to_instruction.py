@@ -61,6 +61,28 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+    if circuit.num_input_vars:
+        # This could be supported by moving the `input` variables to be parameters of the
+        # instruction, but we don't really have a good reprssentation of that yet, so safer to
+        # forbid it.
+        raise QiskitError("Circuits with 'input' variables cannot yet be converted to instructions")
+    if circuit.num_captured_vars:
+        raise QiskitError("Circuits that capture variables cannot be converted to instructions")
+    if circuit.num_declared_vars:
+        # This could very easily be supported in representations, since the variables are allocated
+        # and freed within the instruction itself.  The reason to initially forbid it is to avoid
+        # needing to support unrolling such instructions within the transpiler; we would potentially
+        # need to remap variables to unique names in the larger context, and we don't yet have a way
+        # to return that information from the transpiler.  We have to catch that in the transpiler
+        # as well since a user could manually make an instruction with such a definition, but
+        # forbidding it here means users get a more meaningful error at the point that the
+        # instruction actually gets created (since users often aren't aware that
+        # `QuantumCircuit.append(QuantumCircuit)` implicitly converts to an instruction).
+        raise QiskitError(
+            "Circuits with internal variables cannot yet be converted to instructions."
+            " You may be able to use `QuantumCircuit.compose` to inline this circuit into another."
+        )
+
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
     else:

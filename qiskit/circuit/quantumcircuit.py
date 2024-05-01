@@ -36,7 +36,7 @@ from typing import (
     overload,
 )
 import numpy as np
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -777,26 +777,38 @@ class QuantumCircuit:
 
         return repeated_circ
 
-    def power(self, power: float, matrix_power: bool = False) -> "QuantumCircuit":
+    def power(
+        self, power: float, matrix_power: bool = False, annotated: bool = False
+    ) -> "QuantumCircuit":
         """Raise this circuit to the power of ``power``.
 
-        If ``power`` is a positive integer and ``matrix_power`` is ``False``, this implementation
-        defaults to calling ``repeat``. Otherwise, if the circuit is unitary, the matrix is
-        computed to calculate the matrix power.
+        If ``power`` is a positive integer and both ``matrix_power`` and ``annotated``
+        are ``False``, this implementation defaults to calling ``repeat``. Otherwise,
+        the circuit is converted into a gate, and a new circuit, containing this gate
+        raised to the given power, is returned. The gate raised to the given power is
+        implemented either as a unitary gate if ``annotated`` is ``False`` or as an
+        annotated operation if ``annotated`` is ``True``.
 
         Args:
             power (float): The power to raise this circuit to.
-            matrix_power (bool): If True, the circuit is converted to a matrix and then the
-                matrix power is computed. If False, and ``power`` is a positive integer,
-                the implementation defaults to ``repeat``.
+            matrix_power (bool): indicates whether the inner power gate can be implemented
+                as a unitary gate.
+            annotated (bool): indicates whether the inner power gate can be implemented
+                as an annotated operation.
 
         Raises:
-            CircuitError: If the circuit needs to be converted to a gate but it is not unitary.
+            CircuitError: If the circuit needs to be converted to a unitary gate, but is
+                not unitary.
 
         Returns:
             QuantumCircuit: A circuit implementing this circuit raised to the power of ``power``.
         """
-        if power >= 0 and isinstance(power, (int, np.integer)) and not matrix_power:
+        if (
+            power >= 0
+            and isinstance(power, (int, np.integer))
+            and not matrix_power
+            and not annotated
+        ):
             return self.repeat(power)
 
         # attempt conversion to gate
@@ -812,12 +824,12 @@ class QuantumCircuit:
         except QiskitError as ex:
             raise CircuitError(
                 "The circuit contains non-unitary operations and cannot be "
-                "controlled. Note that no qiskit.circuit.Instruction objects may "
-                "be in the circuit for this operation."
+                "raised to a power. Note that no qiskit.circuit.Instruction "
+                "objects may be in the circuit for this operation."
             ) from ex
 
         power_circuit = QuantumCircuit(self.qubits, self.clbits, *self.qregs, *self.cregs)
-        power_circuit.append(gate.power(power), list(range(gate.num_qubits)))
+        power_circuit.append(gate.power(power, annotated=annotated), list(range(gate.num_qubits)))
         return power_circuit
 
     def control(
@@ -1753,7 +1765,18 @@ class QuantumCircuit:
         # Validate the initialiser first to catch cases where the variable to be declared is being
         # used in the initialiser.
         circuit_scope = self._current_scope()
-        initial = _validate_expr(circuit_scope, expr.lift(initial))
+        # Convenience method to widen Python integer literals to the right width during the initial
+        # lift, if the type is already known via the variable.
+        if (
+            isinstance(name_or_var, expr.Var)
+            and name_or_var.type.kind is types.Uint
+            and isinstance(initial, int)
+            and not isinstance(initial, bool)
+        ):
+            coerce_type = name_or_var.type
+        else:
+            coerce_type = None
+        initial = _validate_expr(circuit_scope, expr.lift(initial, coerce_type))
         if isinstance(name_or_var, str):
             var = expr.Var.new(name_or_var, initial.type)
         elif not name_or_var.standalone:
@@ -2657,7 +2680,13 @@ class QuantumCircuit:
             :meth:`add_var`
                 Create a new variable in the circuit that can be written to with this method.
         """
-        return self.append(Store(expr.lift(lvalue), expr.lift(rvalue)), (), (), copy=False)
+        # As a convenience, lift integer-literal rvalues to the matching width.
+        lvalue = expr.lift(lvalue)
+        rvalue_type = (
+            lvalue.type if isinstance(rvalue, int) and not isinstance(rvalue, bool) else None
+        )
+        rvalue = expr.lift(rvalue, rvalue_type)
+        return self.append(Store(lvalue, rvalue), (), (), copy=False)
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).

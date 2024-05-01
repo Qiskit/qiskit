@@ -754,6 +754,54 @@ def generate_control_flow_expr():
     return [qc1, qc2, qc3, qc4]
 
 
+def generate_standalone_var():
+    """Circuits that use standalone variables."""
+    import uuid
+    from qiskit.circuit.classical import expr, types
+
+    # This is the low-level, non-preferred way to construct variables, but we need the UUIDs to be
+    # deterministic between separate invocations of the script.
+    uuids = [
+        uuid.UUID(bytes=b"hello, qpy world", version=4),
+        uuid.UUID(bytes=b"not a good uuid4", version=4),
+        uuid.UUID(bytes=b"but it's ok here", version=4),
+        uuid.UUID(bytes=b"any old 16 bytes", version=4),
+        uuid.UUID(bytes=b"and another load", version=4),
+    ]
+    a = expr.Var(uuids[0], types.Bool(), name="a")
+    b = expr.Var(uuids[1], types.Bool(), name="θψφ")
+    b_other = expr.Var(uuids[2], types.Bool(), name=b.name)
+    c = expr.Var(uuids[3], types.Uint(8), name="🐍🐍🐍")
+    d = expr.Var(uuids[4], types.Uint(8), name="d")
+
+    qc = QuantumCircuit(1, 1, inputs=[a], name="standalone_var")
+    qc.add_var(b, expr.logic_not(a))
+
+    qc.add_var(c, expr.lift(0, c.type))
+    with qc.if_test(b) as else_:
+        qc.store(c, expr.lift(3, c.type))
+        with qc.while_loop(b):
+            qc.add_var(c, expr.lift(7, c.type))
+    with else_:
+        qc.add_var(d, expr.lift(7, d.type))
+
+    qc.measure(0, 0)
+    with qc.switch(c) as case:
+        with case(0):
+            qc.store(b, True)
+        with case(1):
+            qc.store(qc.clbits[0], False)
+        with case(2):
+            # Explicit shadowing.
+            qc.add_var(b_other, True)
+        with case(3):
+            qc.store(a, False)
+        with case(case.DEFAULT):
+            pass
+
+    return [qc]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -802,6 +850,8 @@ def generate_circuits(version_parts):
         output_circuits["clifford.qpy"] = generate_clifford_circuits()
     if version_parts >= (1, 0, 0):
         output_circuits["annotated.qpy"] = generate_annotated_circuits()
+    if version_parts >= (1, 1, 0):
+        output_circuits["standalone_vars.qpy"] = generate_standalone_var()
     return output_circuits
 
 

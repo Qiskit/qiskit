@@ -281,6 +281,15 @@ class TestStatevectorEstimator(QiskitTestCase):
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956])
 
+    def test_iter_pub(self):
+        """test for an iterable of pubs"""
+        estimator = StatevectorEstimator()
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
+        observable = self.observable.apply_layout(circuit.layout)
+        result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
+        np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
+        np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733])
+
 
 if __name__ == "__main__":
     unittest.main()
