@@ -26,11 +26,11 @@ class UnitaryOverlap(QuantumCircuit):
     names `"p1"` (for circuit ``unitary1``) and `"p2"` (for circuit ``unitary_2``) in the output
     circuit.
 
-    This circuit is usually employed in computing the fidelity::
+    This circuit is usually employed in computing the fidelity:
 
-        .. math::
+    .. math::
 
-            \left|\langle 0| U_2^{\dag} U_1|0\rangle\right|^{2}
+        \left|\langle 0| U_2^{\dag} U_1|0\rangle\right|^{2}
 
     by computing the probability of being in the all-zeros bit-string, or equivalently,
     the expectation value of projector :math:`|0\rangle\langle 0|`.
