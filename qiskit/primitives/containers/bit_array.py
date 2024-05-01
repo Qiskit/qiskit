@@ -323,7 +323,13 @@ class BitArray(ShapedMixin):
         """
         mask = 2**self.num_bits - 1
         converter = partial(self._bytes_to_bitstring, num_bits=self.num_bits, mask=mask)
-        arr = self._array.reshape(-1, self._array.shape[-1]) if loc is None else self._array[loc]
+        if loc is None:
+            _order = self._array.shape[-1]
+            arr = self._array.reshape(-1, _order) if _order else self._array
+        else:
+            arr = self._array[loc]
+            if isinstance(arr, np.uint8) or arr.size == 0:
+                arr = np.array([self._array[loc]])
         return [converter(shot_row.tobytes()) for shot_row in arr]
 
     def reshape(self, *shape: ShapeInput) -> "BitArray":

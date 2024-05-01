@@ -157,6 +157,27 @@ class BitArrayTestCase(QiskitTestCase):
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_bitstrings(), [bs1, bs1, bs2, bs3, bs4, bs4])
 
+        bit_array = BitArray(np.zeros([16, 1], dtype=np.uint8), num_bits=8)
+        bs5 = ["00000000"] * 16
+        self.assertEqual(bit_array.get_bitstrings(), bs5)
+        self.assertEqual(bit_array.get_bitstrings(1), ["00000000"])
+        with self.assertRaises(IndexError):
+            bit_array.get_bitstrings((0, 1))
+
+        bit_array = BitArray(np.zeros([16, 2], dtype=np.uint8), num_bits=16)
+        bs6 = ["0000000000000000"] * 16
+        self.assertEqual(bit_array.get_bitstrings(), bs6)
+        self.assertEqual(bit_array.get_bitstrings(1), ["0000000000000000", "0000000000000000"])
+        self.assertEqual(bit_array.get_bitstrings((0, 1)), ["0000000000000000"])
+
+        # test with no classical register
+        bit_array = BitArray(np.zeros([16, 0], dtype=np.uint8), num_bits=0)
+        bs7 = [""] * 16
+        self.assertEqual(bit_array.get_bitstrings(), bs7)
+        self.assertEqual(bit_array.get_bitstrings(0), [""])
+        with self.assertRaises(IndexError):
+            bit_array.get_bitstrings((0, 1))
+
     def test_equality(self):
         """Test the equality operator"""
         ba1 = BitArray.from_bool_array([[1, 0, 0], [1, 1, 0]])
