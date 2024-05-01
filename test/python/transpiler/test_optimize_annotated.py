@@ -220,9 +220,6 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_def.x(2)  # Q
         custom = qc_def.to_gate().control(annotated=True)
 
-        print("")
-        print(qc_def)
-
         # Create a quantum circuit with an annotated operation.
         qc = QuantumCircuit(8)
         qc.cx(0, 2)
