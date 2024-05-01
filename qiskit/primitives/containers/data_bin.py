@@ -83,7 +83,7 @@ class DataBin(ShapedMixin):
         ndim = len(self._shape)
         for name, value in data.items():
             if getattr(value, "shape", shape)[:ndim] != shape:
-                raise ValueError(f"The value of {name} does not lead with the shape {shape}.")
+                raise ValueError(f"The value of '{name}' does not lead with the shape {shape}.")
             _setattr(name, value)
 
         super().__init__()
