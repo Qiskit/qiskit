@@ -18,11 +18,7 @@ from __future__ import annotations
 from typing import Any, Iterable, Sequence
 
 
-class DataBinMeta(type):
-    """This metaclass no longer has a purpose and will be removed."""
-
-
-class DataBin(metaclass=DataBinMeta):
+class DataBin:
     """Namespace for storing data.
 
     .. code-block:: python
@@ -100,7 +96,7 @@ class DataBin(metaclass=DataBinMeta):
 # pylint: disable=unused-argument
 def make_data_bin(
     fields: Iterable[tuple[str, type]], shape: tuple[int, ...] | None = None
-) -> DataBinMeta:
+) -> type[DataBin]:
     """Return the :class:`~DataBin` type.
 
     .. note::
