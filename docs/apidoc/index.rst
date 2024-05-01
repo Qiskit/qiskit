@@ -4,6 +4,8 @@
 API Reference
 =============
 
+Circuit construction:
+
 .. toctree::
    :maxdepth: 1
 
@@ -11,32 +13,74 @@ API Reference
    circuit_library
    circuit_classical
    circuit_singleton
-   compiler
-   visualization
    classicalfunction
+
+Quantum information:
+
+.. toctree::
+   :maxdepth: 1
+
+   quantum_info
+
+Transpilation:
+
+.. toctree::
+   :maxdepth: 1
+
    converters
-   assembler
    dagcircuit
    passmanager
-   providers
-   providers_basic_provider
-   providers_fake_provider
-   providers_models
-   pulse
-   scheduler
    synthesis
    qiskit.synthesis.unitary.aqc
-   primitives
-   qasm2
-   qasm3
-   qobj
-   qpy
-   quantum_info
-   result
    transpiler
    transpiler_passes
    transpiler_preset
    transpiler_plugins
    transpiler_synthesis_plugins
-   utils
+
+Primitives and providers:
+
+.. toctree::
+   :maxdepth: 1
+
+   primitives
+   providers
+   providers_basic_provider
+   providers_fake_provider
+   providers_models
+
+Results and visualizations:
+
+.. toctree::
+   :maxdepth: 1
+
+   result
+   visualization
+
+Serialization:
+
+.. toctree::
+   :maxdepth: 1
+
+   qasm2
+   qasm3
+   qpy
+
+Pulse-level programming:
+
+.. toctree::
+   :maxdepth: 1
+
+   pulse
+   scheduler
+
+Other:
+
+.. toctree::
+   :maxdepth: 1
+
+   assembler
+   compiler
    exceptions
+   qobj
+   utils
