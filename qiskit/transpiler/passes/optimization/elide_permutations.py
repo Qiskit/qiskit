@@ -67,7 +67,7 @@ class ElidePermutations(TransformationPass):
             )
             return dag
 
-        op_count = dag.count_ops()
+        op_count = dag.count_ops(recurse=False)
         if op_count.get("swap", 0) == 0 and op_count.get("permutation", 0) == 0:
             return dag
 
