@@ -18,7 +18,7 @@ from test import QiskitTestCase
 import ddt
 import numpy as np
 
-from qiskit.primitives.containers import BitArray, ObservableLike
+from qiskit.primitives.containers import BitArray
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts

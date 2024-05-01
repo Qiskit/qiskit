@@ -24,7 +24,6 @@ from typing import Callable, Iterable, Literal, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
-from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.result import Counts, sampled_expectation_value
 
 from .observables_array import ObservablesArray, ObservablesArrayLike
@@ -442,7 +441,8 @@ class BitArray(ShapedMixin):
         return BitArray(arr, num_bits)
 
     def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
-        """Compute the expectation values of the provided observables, broadcasted against this bit arrays.
+        """Compute the expectation values of the provided observables, broadcasted against
+        this bit arrays.
 
         .. note::
 
@@ -451,11 +451,12 @@ class BitArray(ShapedMixin):
             :func:`~.sampled_expectation_value`.
 
         Args:
-            operator: The operator(s) to take the expectation value of. Must have a shape broadcastable with
-            with this bit array.
+            observables: The observable(s) to take the expectation value of. Must have a shape
+            broadcastable with with this bit array.
 
         Returns:
-            An array of expectation values whose shape is the broadcast shape of ``operator`` and this bit array.
+            An array of expectation values whose shape is the broadcast shape of ``operator``
+            and this bit array.
 
         Raises:
             ValueError: If the provided operator does not have a shape broadcastable with this bit array.
