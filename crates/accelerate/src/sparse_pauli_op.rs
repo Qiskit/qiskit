@@ -478,7 +478,7 @@ fn decompose_middle_levels(
 ) {
     let side = 1 << num_qubits;
     let zero = Complex64::new(0.0, 0.0);
-    // The stack is a LIFO queue, which is how we implement the depth-first iteration.  Depth-first
+    // The stack is a LIFO, which is how we implement the depth-first iteration.  Depth-first
     // means `stack` never grows very large; it reaches at most `3*num_qubits - 2` elements (if all
     // terms are zero all the way through the first subblock decomposition).  `out_list`, on the
     // other hand, can be `4 ** (num_qubits - 1)` entries in the worst-case scenario of a
