@@ -71,7 +71,7 @@ class DataBinTestCase(QiskitTestCase):
     def test_make_databin_mapping(self):
         """Test the make_data_bin() function with mapping features."""
         data_bin_cls = make_data_bin([("alpha", int), ("beta", dict)])
-        data_bin = data_bin_cls(10, {1: 2})
+        data_bin = data_bin_cls(alpha=10, beta={1: 2})
         self.assertEqual(len(data_bin), 2)
 
         with self.subTest("iterator"):

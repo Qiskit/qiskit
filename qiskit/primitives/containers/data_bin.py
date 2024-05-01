@@ -39,41 +39,51 @@ class DataBin:
             "_SHAPE",
             "_FIELDS",
             "_FIELD_TYPES",
+            "_fields",
             "keys",
             "values",
             "items",
         }
     )
 
+    def __init__(self, **kwargs):
+        super().__setattr__("_fields", list(kwargs))
+        self.__dict__.update(kwargs)
+
     def __len__(self):
-        return len(self.__dict__)
+        return len(self._fields)
+
+    def __setattr__(self, *_):
+        raise NotImplementedError
 
     def __repr__(self):
         vals = (f"{name}={getattr(self, name)}" for name in self._FIELDS if hasattr(self, name))
         return f"{type(self).__name__}({', '.join(vals)})"
 
     def __getitem__(self, key: str) -> Any:
-        if key not in self._FIELDS:
-            raise KeyError(f"Key ({key}) does not exist in this data bin.")
-        return getattr(self, key)
+        try:
+            return self.__dict__[key]
+        except KeyError as ex:
+            raise KeyError(f"Key ({key}) does not exist in this data bin.") from ex
 
     def __contains__(self, key: str) -> bool:
-        return key in self._FIELDS
+        return key in self.__dict__ and key not in self._RESTRICTED_NAMES
 
     def __iter__(self) -> Iterable[str]:
-        return iter(self._FIELDS)
+        return iter(self._fields)
 
     def keys(self) -> Sequence[str]:
         """Return a list of field names."""
-        return tuple(self._FIELDS)
+        # make sure to copy the list
+        return list(self._fields)
 
     def values(self) -> Sequence[Any]:
         """Return a list of values."""
-        return tuple(getattr(self, key) for key in self._FIELDS)
+        return [self.__dict__[name] for name in self._fields]
 
     def items(self) -> Sequence[tuple[str, Any]]:
         """Return a list of field names and values"""
-        return tuple((key, getattr(self, key)) for key in self._FIELDS)
+        return list(zip(self._fields, self.values()))
 
     # The following properties exist to provide support to legacy private class attributes which
     # gained widespread usage in several internal projects due to the lack of alternatives prior to
@@ -82,11 +92,11 @@ class DataBin:
 
     @property
     def _FIELDS(self) -> tuple[str, ...]:  # pylint: disable=invalid-name
-        return tuple(self.__dict__)
+        return tuple(self._fields)
 
     @property
     def _FIELD_TYPES(self) -> tuple[Any, ...]:  # pylint: disable=invalid-name
-        return tuple(type(val) for val in self.__dict__.values())
+        return tuple(map(type, self.values()))
 
     @property
     def _SHAPE(self) -> tuple[int, ...] | None:  # pylint: disable=invalid-name
