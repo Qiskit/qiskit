@@ -1870,14 +1870,14 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 2)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 0)
-        self.assertEqual(left.num_vars, 2)
+        self.assertEqual(right.num_vars, 2)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 0)
-        self.assertEqual(left.num_vars, 0)
+        self.assertEqual(right.num_vars, 0)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
@@ -1886,7 +1886,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 2)
         self.assertEqual(right.num_declared_vars, 0)
-        self.assertEqual(left.num_vars, 2)
+        self.assertEqual(right.num_vars, 2)
         self.assertNotEqual(left, right)
 
         right = DAGCircuit()
@@ -1895,7 +1895,7 @@ class TestDagEquivalence(QiskitTestCase):
         self.assertEqual(right.num_input_vars, 0)
         self.assertEqual(right.num_captured_vars, 0)
         self.assertEqual(right.num_declared_vars, 2)
-        self.assertEqual(left.num_vars, 2)
+        self.assertEqual(right.num_vars, 2)
         self.assertNotEqual(left, right)
 
         left = DAGCircuit()
