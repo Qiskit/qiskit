@@ -463,7 +463,7 @@ class BitArray(ShapedMixin):
         return sampled_expectation_value(counts, operator)
 
     @staticmethod
-    def concatenate(bitarrays: Sequence[BitArray], axis: int = 0) -> BitArray:
+    def concatenate(bit_arrays: Sequence[BitArray], axis: int = 0) -> BitArray:
         """Join a sequence of bit arrays along an existing axis.
 
         Args:
@@ -474,7 +474,7 @@ class BitArray(ShapedMixin):
             axis: The axis along which the arrays will be joined. Default is 0.
 
         Returns:
-            BitArray: The concatenated bit array.
+            The concatenated bit array.
 
         Raises:
             ValueError: If the sequence of bit arrays is empty.
@@ -515,14 +515,14 @@ class BitArray(ShapedMixin):
 
     @staticmethod
     def stack_shots(bitarrays: Sequence[BitArray]) -> BitArray:
-        """Join a sequence of bit arrays along shots.
+        """Join a sequence of bit arrays along the shots axis.
 
         Args:
             bitarrays: The bit arrays must have (1) the same number of bits,
                 and (2) the same shape.
 
         Returns:
-            BitArray: The stacked bit array.
+            The stacked bit array.
 
         Raises:
             ValueError: If the sequence of bit arrays is empty.
@@ -551,14 +551,17 @@ class BitArray(ShapedMixin):
 
     @staticmethod
     def stack_bits(bitarrays: Sequence[BitArray]) -> BitArray:
-        """Join a sequence of bit arrays along bits.
+        """Join a sequence of bit arrays along the bits axis.
+
+        .. note::
+            This method is equivalent to per-shot bitstring concatenation.
 
         Args:
-            bitarrays: The bit arrays must have (1) the same number of shots,
+            bitarrays: Bit arrays that have (1) the same number of shots,
                 and (2) the same shape.
 
         Returns:
-            BitArray: The stacked bit array.
+            The stacked bit array.
 
         Raises:
             ValueError: If the sequence of bit arrays is empty.
