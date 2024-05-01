@@ -1328,6 +1328,7 @@ class TestTranspile(QiskitTestCase):
                 backend=GenericBackendV2(num_qubits=4),
                 layout_method="trivial",
                 seed_transpiler=42,
+                optimization_level=1,
             )
 
     def test_transpile_calibrated_nonbasis_gate_on_diff_qubit(self):
