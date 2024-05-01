@@ -472,10 +472,8 @@ def _get_gate_span(qubits, node):
     for qreg in node.qargs:
         index = qubits.index(qreg)
 
-        if index < min_index:
-            min_index = index
-        if index > max_index:
-            max_index = index
+        min_index = min(index, min_index)
+        max_index = max(index, max_index)
 
     # Because of wrapping boxes for mpl control flow ops, this
     # type of op must be the only op in the layer

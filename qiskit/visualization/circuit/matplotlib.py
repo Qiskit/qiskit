@@ -608,8 +608,7 @@ class MatplotlibDrawer:
                         gate_width += 0.21
 
                 box_width = max(gate_width, ctrl_width, param_width, WID)
-                if box_width > widest_box:
-                    widest_box = box_width
+                widest_box = max(box_width, widest_box)
                 if not isinstance(node.op, ControlFlowOp):
                     node_data[node].width = max(raw_gate_width, raw_param_width)
             for node in layer:
@@ -666,8 +665,7 @@ class MatplotlibDrawer:
                 )
                 * 1.15
             )
-            if text_width > longest_wire_label_width:
-                longest_wire_label_width = text_width
+            longest_wire_label_width = max(text_width, longest_wire_label_width)
 
             if isinstance(wire, Qubit):
                 pos = -ii

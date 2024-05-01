@@ -31,6 +31,7 @@ from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
+# pylint: disable=invalid-name
 _CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
 
 

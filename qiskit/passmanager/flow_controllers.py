@@ -45,8 +45,7 @@ class FlowControllerLinear(BaseController):
         return list(self.tasks)
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
-        for task in self.tasks:
-            state = yield task
+        yield from self.tasks
 
 
 class DoWhileController(BaseController):
@@ -78,8 +77,7 @@ class DoWhileController(BaseController):
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         max_iteration = self._options.get("max_iteration", 1000)
         for _ in range(max_iteration):
-            for task in self.tasks:
-                state = yield task
+            yield from self.tasks
             if not self.do_while(state.property_set):
                 return
             # Remove stored tasks from the completed task collection for next loop
@@ -112,5 +110,4 @@ class ConditionalController(BaseController):
 
     def iter_tasks(self, state: PassManagerState) -> Generator[Task, PassManagerState, None]:
         if self.condition(state.property_set):
-            for task in self.tasks:
-                state = yield task
+            yield from self.tasks
