@@ -416,8 +416,8 @@ class BitArrayTestCase(QiskitTestCase):
             for j in range(2):
                 self.assertEqual(ba.get_counts(loc=(0, j, 2)), ba2.get_counts(loc=j))
 
-    def test_marginalize(self):
-        """Test the marginalize method."""
+    def test_slice_bits(self):
+        """Test the slice_bits method."""
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
@@ -425,28 +425,28 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(ba.shape, (1, 2, 3))
 
         with self.subTest("all"):
-            ba2 = ba.marginalize(range(ba.num_bits))
+            ba2 = ba.slice_bits(range(ba.num_bits))
             self.assertEqual(ba2.shape, ba.shape)
             self.assertEqual(ba2.num_bits, ba.num_bits)
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
 
         with self.subTest("1 bit, int"):
-            ba2 = ba.marginalize(0)
+            ba2 = ba.slice_bits(0)
             self.assertEqual(ba2.shape, ba.shape)
             self.assertEqual(ba2.num_bits, 1)
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba2.get_counts(loc=(i, j, k)), {"0": 5, "1": 5})
 
         with self.subTest("1 bit, list"):
-            ba2 = ba.marginalize([0])
+            ba2 = ba.slice_bits([0])
             self.assertEqual(ba2.shape, ba.shape)
             self.assertEqual(ba2.num_bits, 1)
             for i, j, k in product(range(1), range(2), range(3)):
                 self.assertEqual(ba2.get_counts(loc=(i, j, k)), {"0": 5, "1": 5})
 
         with self.subTest("2 bits"):
-            ba2 = ba.marginalize([0, 1])
+            ba2 = ba.slice_bits([0, 1])
             self.assertEqual(ba2.shape, ba.shape)
             self.assertEqual(ba2.num_bits, 2)
             even = {"00": 3, "01": 3, "10": 2, "11": 2}
@@ -457,9 +457,9 @@ class BitArrayTestCase(QiskitTestCase):
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "index -1 is out of bounds"):
-                _ = ba.marginalize(-1)
+                _ = ba.slice_bits(-1)
             with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
-                _ = ba.marginalize(9)
+                _ = ba.slice_bits(9)
 
     def test_expectation_value(self):
         """Test the expectation_value method."""
@@ -487,7 +487,7 @@ class BitArrayTestCase(QiskitTestCase):
             expval = ba.expectation_value(op3)
             self.assertAlmostEqual(expval, 0.5)
 
-            ba2 = ba.marginalize(6)
+            ba2 = ba.slice_bits(6)
             # 6th bit are all 0
             expval = ba2.expectation_value("Z")
             self.assertAlmostEqual(expval, 1)
@@ -509,17 +509,17 @@ class BitArrayTestCase(QiskitTestCase):
             expval = ba.expectation_value(sp_op3, (0, 1, 2))
             self.assertAlmostEqual(expval, -1)
 
-    def test_stack_shots(self):
-        """Test the stack_shots function."""
+    def test_concatenate_shots(self):
+        """Test the concatenate_shots function."""
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
-        stack_shots = BitArray.stack_shots
+        concatenate_shots = BitArray.concatenate_shots
 
         with self.subTest("default"):
-            ba2 = stack_shots([ba, ba])
+            ba2 = concatenate_shots([ba, ba])
             self.assertEqual(ba2.shape, (1, 2, 3))
             self.assertEqual(ba2.num_bits, 9)
             self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
@@ -530,28 +530,28 @@ class BitArrayTestCase(QiskitTestCase):
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
-                _ = stack_shots([])
+                _ = concatenate_shots([])
 
             ba2 = BitArray(data, 10)
             with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
-                _ = stack_shots([ba, ba2])
+                _ = concatenate_shots([ba, ba2])
 
             ba2 = ba.reshape(2, 3)
             with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
-                _ = stack_shots([ba, ba2])
+                _ = concatenate_shots([ba, ba2])
 
-    def test_stack_bits(self):
-        """Test the stack_bits function."""
+    def test_concatenate_bits(self):
+        """Test the concatenate_bits function."""
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
         ba = BitArray(data, 9)
         self.assertEqual(ba.shape, (1, 2, 3))
-        stack_bits = BitArray.stack_bits
+        concatenate_bits = BitArray.concatenate_bits
 
         with self.subTest("default"):
-            ba_01 = ba.marginalize([0, 1])
-            ba2 = stack_bits([ba, ba_01])
+            ba_01 = ba.slice_bits([0, 1])
+            ba2 = concatenate_bits([ba, ba_01])
             self.assertEqual(ba2.shape, (1, 2, 3))
             self.assertEqual(ba2.num_bits, 11)
             self.assertEqual(ba2.num_shots, ba.num_shots)
@@ -564,7 +564,7 @@ class BitArrayTestCase(QiskitTestCase):
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
-                _ = stack_bits([])
+                _ = concatenate_bits([])
 
             data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
             data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
@@ -572,8 +572,8 @@ class BitArrayTestCase(QiskitTestCase):
             with self.assertRaisesRegex(
                 ValueError, "All bit arrays must have same number of shots"
             ):
-                _ = stack_bits([ba, ba2])
+                _ = concatenate_bits([ba, ba2])
 
             ba2 = ba.reshape(2, 3)
             with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
-                _ = stack_bits([ba, ba2])
+                _ = concatenate_bits([ba, ba2])
