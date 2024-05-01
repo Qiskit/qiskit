@@ -148,8 +148,6 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
     data.map_ops(fix_condition)
 
     qc = QuantumCircuit(*regs, name=out_instruction.name)
-    for var in circuit.iter_declared_vars():
-        qc.add_uninitialized_var(var)
     qc._data = data
     qc._parameter_table = ParameterTable(
         {
