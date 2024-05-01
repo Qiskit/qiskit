@@ -28,7 +28,7 @@ via the `BasicProvider` provider, e.g.:
 
 
 Classes
-==========
+=======
 
 .. autosummary::
    :toctree: ../stubs/

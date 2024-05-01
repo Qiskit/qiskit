@@ -15,10 +15,11 @@
 Circuit and Schedule Assembler (:mod:`qiskit.assembler`)
 ========================================================
 
+.. currentmodule:: qiskit.assembler
+
 Functions
 =========
 
-.. currentmodule:: qiskit.assembler
 
 .. autofunction:: assemble_circuits
 

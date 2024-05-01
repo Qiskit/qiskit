@@ -452,7 +452,7 @@ This way if these two compilation steps are **required** for running or providin
 efficient output on ``Mybackend`` the transpiler will be able to perform these
 custom steps without any manual user input.
 
-Backend's.run Method
+Backend.run Method
 --------------------
 
 Of key importance is the :meth:`~qiskit.providers.BackendV2.run` method, which
