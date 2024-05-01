@@ -85,6 +85,19 @@ class BitArrayTestCase(QiskitTestCase):
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_counts(), {bs1: 2, bs2: 1, bs3: 1, bs4: 2})
 
+        bit_array = BitArray(np.zeros([1024, 2], dtype=np.uint8), num_bits=16)
+        bs5 = "00000000" + "00000000"
+        self.assertEqual(bit_array.get_counts(), {bs5: 1024})
+        self.assertEqual(bit_array.get_counts(1), {bs5: 2})
+        self.assertEqual(bit_array.get_counts((0, 1)), {bs5: 1})
+
+        # test with no classical register
+        bit_array = BitArray(np.zeros([1024, 0], dtype=np.uint8), num_bits=0)
+        self.assertEqual(bit_array.get_counts(), {"": 1024})
+        self.assertEqual(bit_array.get_counts(1), {})
+        with self.assertRaises(IndexError):
+            bit_array.get_counts((0, 1))
+
     def test_get_int_counts(self):
         """Test conversion to int counts."""
         # note that [234, 100] requires 16 bits, not 15; we are testing that get_counts ignores the
@@ -107,6 +120,19 @@ class BitArrayTestCase(QiskitTestCase):
 
         # test that providing no location takes the union over all shots
         self.assertEqual(bit_array.get_int_counts(), {val1: 2, val2: 1, val3: 1, val4: 2})
+
+        bit_array = BitArray(np.zeros([1024, 2], dtype=np.uint8), num_bits=16)
+        val5 = 0
+        self.assertEqual(bit_array.get_int_counts(), {val5: 1024})
+        self.assertEqual(bit_array.get_int_counts(1), {val5: 2})
+        self.assertEqual(bit_array.get_int_counts((0, 1)), {val5: 1})
+
+        # test with no classical register
+        bit_array = BitArray(np.zeros([1024, 0], dtype=np.uint8), num_bits=0)
+        self.assertEqual(bit_array.get_int_counts(), {0: 1024})
+        self.assertEqual(bit_array.get_int_counts(1), {})
+        with self.assertRaises(IndexError):
+            bit_array.get_int_counts((0, 1))
 
     def test_get_bitstrings(self):
         """Test conversion to bitstrings."""
