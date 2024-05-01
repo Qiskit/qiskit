@@ -1776,11 +1776,11 @@ class DAGCircuit:
 
     def op_successors(self, node):
         """Get the list of "op" successors of a node in the dag."""
-        return list(pred for pred in self.successors(node) if isinstance(pred, DAGOpNode))
+        return [pred for pred in self.successors(node) if isinstance(pred, DAGOpNode)]
 
     def op_predecessors(self, node):
         """Get the list of "op" predecessors of a node in the dag."""
-        return list(pred for pred in self.predecessors(node) if isinstance(pred, DAGOpNode))
+        return [pred for pred in self.predecessors(node) if isinstance(pred, DAGOpNode)]
 
     def is_successor(self, node, node_succ):
         """Checks if a second node is in the successors of node."""
