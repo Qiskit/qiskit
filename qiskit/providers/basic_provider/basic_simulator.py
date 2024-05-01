@@ -40,7 +40,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import UnitaryGate
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping, GlobalPhaseGate
 from qiskit.providers import Provider
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.models import BackendConfiguration
@@ -51,8 +51,12 @@ from qiskit.transpiler import Target
 
 from .basic_provider_job import BasicProviderJob
 from .basic_provider_tools import single_gate_matrix
-from .basic_provider_tools import SINGLE_QUBIT_GATES
-from .basic_provider_tools import cx_gate_matrix
+from .basic_provider_tools import (
+    SINGLE_QUBIT_GATES,
+    TWO_QUBIT_GATES,
+    TWO_QUBIT_GATES_WITH_PARAMETERS,
+    THREE_QUBIT_GATES,
+)
 from .basic_provider_tools import einsum_vecmul_index
 from .exceptions import BasicProviderError
 
@@ -138,21 +142,59 @@ class BasicSimulator(BackendV2):
             num_qubits=None,
         )
         basis_gates = [
+            "ccx",
+            "ccz",
+            "ch",
+            "cp",
+            "crx",
+            "cry",
+            "crz",
+            "cs",
+            "csdg",
+            "cswap",
+            "csx",
+            "cu",
+            "cu1",
+            "cu3",
+            "cx",
+            "cy",
+            "cz",
+            "dcx",
+            "delay",
+            "ecr",
+            "global_phase",
             "h",
-            "u",
+            "id",
+            "iswap",
+            "measure",
             "p",
+            "r",
+            "rccx",
+            "reset",
+            "rx",
+            "rxx",
+            "ry",
+            "ryy",
+            "rz",
+            "rzx",
+            "rzz",
+            "s",
+            "sdg",
+            "swap",
+            "sx",
+            "sxdg",
+            "t",
+            "tdg",
+            "u",
             "u1",
             "u2",
             "u3",
-            "rz",
-            "sx",
-            "x",
-            "cx",
-            "id",
             "unitary",
-            "measure",
-            "delay",
-            "reset",
+            "x",
+            "xx_minus_yy",
+            "xx_plus_yy",
+            "y",
+            "z",
         ]
         inst_mapping = get_standard_gate_name_mapping()
         for name in basis_gates:
@@ -617,24 +659,41 @@ class BasicSimulator(BackendV2):
                             value >>= 1
                         if value != int(operation.conditional.val, 16):
                             continue
-                # Check if single  gate
                 if operation.name == "unitary":
                     qubits = operation.qubits
                     gate = operation.params[0]
                     self._add_unitary(gate, qubits)
+                elif operation.name in ("id", "u0", "delay"):
+                    pass
+                elif operation.name == "global_phase":
+                    params = getattr(operation, "params", None)
+                    gate = GlobalPhaseGate(*params).to_matrix()
+                    self._add_unitary(gate, [])
+                # Check if single qubit gate
                 elif operation.name in SINGLE_QUBIT_GATES:
                     params = getattr(operation, "params", None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)
                     self._add_unitary(gate, [qubit])
-                # Check if CX gate
-                elif operation.name in ("id", "u0"):
-                    pass
-                elif operation.name in ("CX", "cx"):
+                elif operation.name in TWO_QUBIT_GATES_WITH_PARAMETERS:
+                    params = getattr(operation, "params", None)
                     qubit0 = operation.qubits[0]
                     qubit1 = operation.qubits[1]
-                    gate = cx_gate_matrix()
+                    gate = TWO_QUBIT_GATES_WITH_PARAMETERS[operation.name](*params).to_matrix()
                     self._add_unitary(gate, [qubit0, qubit1])
+                elif operation.name in ("id", "u0"):
+                    pass
+                elif operation.name in TWO_QUBIT_GATES:
+                    qubit0 = operation.qubits[0]
+                    qubit1 = operation.qubits[1]
+                    gate = TWO_QUBIT_GATES[operation.name]
+                    self._add_unitary(gate, [qubit0, qubit1])
+                elif operation.name in THREE_QUBIT_GATES:
+                    qubit0 = operation.qubits[0]
+                    qubit1 = operation.qubits[1]
+                    qubit2 = operation.qubits[2]
+                    gate = THREE_QUBIT_GATES[operation.name]
+                    self._add_unitary(gate, [qubit0, qubit1, qubit2])
                 # Check if reset
                 elif operation.name == "reset":
                     qubit = operation.qubits[0]
