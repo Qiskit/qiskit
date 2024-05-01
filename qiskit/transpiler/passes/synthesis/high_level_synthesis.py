@@ -135,6 +135,7 @@ Permutation Synthesis
 
 from typing import Optional, Union, List, Tuple
 
+import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.operation import Operation
@@ -142,6 +143,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -163,7 +165,12 @@ from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,
 )
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from qiskit.synthesis.linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+    calc_inverse_matrix,
+)
+from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ
 from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
@@ -720,11 +727,43 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     This plugin name is :``linear_function.kms`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following plugin-specific options:
+
+    * use_inverted: Indicates whether to run the algorithm on the inverse matrix
+        and to invert the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+    * use_transposed: Indicates whether to run the algorithm on the transposed matrix
+        and to invert the order of CX gates in the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+
+        if not isinstance(high_level_object, LinearFunction):
+            raise TranspilerError(
+                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
+            )
+
+        use_inverted = options.get("use_inverted", False)
+        use_transposed = options.get("use_transposed", False)
+
+        mat = high_level_object.linear.astype(int)
+
+        if use_transposed:
+            mat = np.transpose(mat)
+        if use_inverted:
+            mat = calc_inverse_matrix(mat)
+
+        decomposition = synth_cnot_depth_line_kms(mat)
+
+        if use_transposed:
+            decomposition = transpose_cx_circ(decomposition)
+        if use_inverted:
+            decomposition = decomposition.inverse()
+
         return decomposition
 
 
@@ -733,11 +772,50 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     This plugin name is :``linear_function.pmh`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following plugin-specific options:
+
+    * section size: The size of each section used in the Patel–Markov–Hayes algorithm [1].
+    * use_inverted: Indicates whether to run the algorithm on the inverse matrix
+        and to invert the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+    * use_transposed: Indicates whether to run the algorithm on the transposed matrix
+        and to invert the order of CX gates in the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+
+    References:
+        1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
+           *Optimal synthesis of linear reversible circuits*,
+           Quantum Information & Computation 8.3 (2008): 282-294.
+           `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+
+        if not isinstance(high_level_object, LinearFunction):
+            raise TranspilerError(
+                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
+            )
+
+        section_size = options.get("section_size", 2)
+        use_inverted = options.get("use_inverted", False)
+        use_transposed = options.get("use_transposed", False)
+
+        mat = high_level_object.linear.astype(int)
+
+        if use_transposed:
+            mat = np.transpose(mat)
+        if use_inverted:
+            mat = calc_inverse_matrix(mat)
+
+        decomposition = synth_cnot_count_full_pmh(mat, section_size=section_size)
+
+        if use_transposed:
+            decomposition = transpose_cx_circ(decomposition)
+        if use_inverted:
+            decomposition = decomposition.inverse()
+
         return decomposition
 
 

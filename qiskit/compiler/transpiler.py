@@ -24,6 +24,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
+from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models import BackendProperties
 from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
@@ -316,6 +317,12 @@ def transpile(  # pylint: disable=too-many-return-statements
         config = user_config.get_config()
         optimization_level = config.get("transpile_optimization_level", 1)
 
+    if backend is not None and getattr(backend, "version", 0) <= 1:
+        # This is a temporary conversion step to allow for a smoother transition
+        # to a fully target-based transpiler pipeline while maintaining the behavior
+        # of `transpile` with BackendV1 inputs.
+        backend = BackendV2Converter(backend)
+
     if (
         scheduling_method is not None
         and backend is None
@@ -330,7 +337,7 @@ def transpile(  # pylint: disable=too-many-return-statements
 
     _skip_target = False
     _given_inst_map = bool(inst_map)  # check before inst_map is overwritten
-    # If a target is specified have it override any implicit selections from a backend
+    # If a target is specified, have it override any implicit selections from a backend
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
@@ -347,7 +354,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
     # If target is not specified and any hardware constraint object is
-    # manually specified then do not use the target from the backend as
+    # manually specified, do not use the target from the backend as
     # it is invalidated by a custom basis gate list, custom coupling map,
     # custom dt or custom instruction_durations
     elif (
@@ -372,6 +379,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     _check_circuits_coupling_map(circuits, coupling_map, backend)
 
     timing_constraints = _parse_timing_constraints(backend, timing_constraints)
+    instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
 
     if _given_inst_map and inst_map.has_custom_gate() and target is not None:
         # Do not mutate backend target
@@ -383,51 +391,6 @@ def transpile(  # pylint: disable=too-many-return-statements
             scheduling_method = backend.get_scheduling_stage_plugin()
         if translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
             translation_method = backend.get_translation_stage_plugin()
-
-    if instruction_durations or dt:
-        # If durations are provided and there is more than one circuit
-        # we need to serialize the execution because the full durations
-        # is dependent on the circuit calibrations which are per circuit
-        if len(circuits) > 1:
-            out_circuits = []
-            for circuit in circuits:
-                instruction_durations = _parse_instruction_durations(
-                    backend, instruction_durations, dt, circuit
-                )
-                pm = generate_preset_pass_manager(
-                    optimization_level,
-                    backend=backend,
-                    target=target,
-                    basis_gates=basis_gates,
-                    inst_map=inst_map,
-                    coupling_map=coupling_map,
-                    instruction_durations=instruction_durations,
-                    backend_properties=backend_properties,
-                    timing_constraints=timing_constraints,
-                    initial_layout=initial_layout,
-                    layout_method=layout_method,
-                    routing_method=routing_method,
-                    translation_method=translation_method,
-                    scheduling_method=scheduling_method,
-                    approximation_degree=approximation_degree,
-                    seed_transpiler=seed_transpiler,
-                    unitary_synthesis_method=unitary_synthesis_method,
-                    unitary_synthesis_plugin_config=unitary_synthesis_plugin_config,
-                    hls_config=hls_config,
-                    init_method=init_method,
-                    optimization_method=optimization_method,
-                    _skip_target=_skip_target,
-                )
-                out_circuits.append(pm.run(circuit, callback=callback, num_processes=num_processes))
-            for name, circ in zip(output_name, out_circuits):
-                circ.name = name
-                end_time = time()
-            _log_transpile_time(start_time, end_time)
-            return out_circuits
-        else:
-            instruction_durations = _parse_instruction_durations(
-                backend, instruction_durations, dt, circuits[0]
-            )
 
     pm = generate_preset_pass_manager(
         optimization_level,
@@ -453,7 +416,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         optimization_method=optimization_method,
         _skip_target=_skip_target,
     )
-    out_circuits = pm.run(circuits, callback=callback)
+    out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
     for name, circ in zip(output_name, out_circuits):
         circ.name = name
     end_time = time()
@@ -471,14 +434,8 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
     if cmap is not None:
         max_qubits = cmap.size()
     elif backend is not None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if not backend.configuration().simulator:
-                max_qubits = backend.configuration().n_qubits
-            else:
-                max_qubits = None
-        else:
-            max_qubits = backend.num_qubits
+        max_qubits = backend.num_qubits
+
     for circuit in circuits:
         # If coupling_map is not None or num_qubits == 1
         num_qubits = len(circuit.qubits)
@@ -496,27 +453,15 @@ def _log_transpile_time(start_time, end_time):
 
 def _parse_inst_map(inst_map, backend):
     # try getting inst_map from user, else backend
-    if inst_map is None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if hasattr(backend, "defaults"):
-                inst_map = getattr(backend.defaults(), "instruction_schedule_map", None)
-        else:
-            inst_map = backend.target.instruction_schedule_map()
+    if inst_map is None and backend is not None:
+        inst_map = backend.target.instruction_schedule_map()
     return inst_map
 
 
 def _parse_coupling_map(coupling_map, backend):
     # try getting coupling_map from user, else backend
-    if coupling_map is None:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if getattr(backend, "configuration", None):
-                configuration = backend.configuration()
-                if hasattr(configuration, "coupling_map") and configuration.coupling_map:
-                    coupling_map = CouplingMap(configuration.coupling_map)
-        else:
-            coupling_map = backend.coupling_map
+    if coupling_map is None and backend is not None:
+        coupling_map = backend.coupling_map
 
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
@@ -546,38 +491,20 @@ def _parse_initial_layout(initial_layout):
     return initial_layout
 
 
-def _parse_instruction_durations(backend, inst_durations, dt, circuit):
+def _parse_instruction_durations(backend, inst_durations, dt):
     """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
     the backend will be ignored, otherwise, the durations will be populated from the
-    backend. If any circuits have gate calibrations, those calibration durations would
-    take precedence over backend durations, but be superceded by ``inst_duration``s.
+    backend.
     """
+    final_durations = InstructionDurations()
     if not inst_durations:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            backend_durations = InstructionDurations()
-            try:
-                backend_durations = InstructionDurations.from_backend(backend)
-            except AttributeError:
-                pass
-        else:
+        backend_durations = InstructionDurations()
+        if backend is not None:
             backend_durations = backend.instruction_durations
-
-    circ_durations = InstructionDurations()
-    if not inst_durations:
-        circ_durations.update(backend_durations, dt or backend_durations.dt)
-
-    if circuit.calibrations:
-        cal_durations = []
-        for gate, gate_cals in circuit.calibrations.items():
-            for (qubits, parameters), schedule in gate_cals.items():
-                cal_durations.append((gate, qubits, parameters, schedule.duration))
-        circ_durations.update(cal_durations, circ_durations.dt)
-
-    if inst_durations:
-        circ_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
-
-    return circ_durations
+        final_durations.update(backend_durations, dt or backend_durations.dt)
+    else:
+        final_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
+    return final_durations
 
 
 def _parse_approximation_degree(approximation_degree):
@@ -629,13 +556,6 @@ def _parse_timing_constraints(backend, timing_constraints):
         return timing_constraints
     if backend is None and timing_constraints is None:
         timing_constraints = TimingConstraints()
-    else:
-        backend_version = getattr(backend, "version", 0)
-        if backend_version <= 1:
-            if timing_constraints is None:
-                # get constraints from backend
-                timing_constraints = getattr(backend.configuration(), "timing_constraints", {})
-            timing_constraints = TimingConstraints(**timing_constraints)
-        else:
-            timing_constraints = backend.target.timing_constraints()
+    elif backend is not None:
+        timing_constraints = backend.target.timing_constraints()
     return timing_constraints

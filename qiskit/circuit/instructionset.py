@@ -87,7 +87,11 @@ class InstructionSet:
         self._instructions.append((data, pos))
 
     def inverse(self, annotated: bool = False):
-        """Invert all instructions."""
+        """Invert all instructions.
+
+        .. note::
+            It is preferable to take the inverse *before* appending the gate(s) to the circuit.
+        """
         for i, instruction in enumerate(self._instructions):
             if isinstance(instruction, CircuitInstruction):
                 self._instructions[i] = instruction.replace(
@@ -104,6 +108,10 @@ class InstructionSet:
     def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
+
+        .. note::
+            You should prefer to use the :meth:`.QuantumCircuit.if_test` builder interface, rather
+            than using this method.
 
         .. note::
 
@@ -124,27 +132,6 @@ class InstructionSet:
         Raises:
             CircuitError: if the passed classical resource is invalid, or otherwise not resolvable
                 to a concrete resource that these instructions are permitted to access.
-
-        Example:
-            .. plot::
-               :include-source:
-
-               from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-
-               qr = QuantumRegister(2)
-               cr = ClassicalRegister(2)
-               qc = QuantumCircuit(qr, cr)
-               qc.h(range(2))
-               qc.measure(range(2), range(2))
-
-               # apply x gate if the classical register has the value 2 (10 in binary)
-               qc.x(0).c_if(cr, 2)
-
-               # apply y gate if bit 0 is set to 1
-               qc.y(1).c_if(0, 1)
-
-               qc.draw('mpl')
-
         """
         if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):
             raise CircuitError(
