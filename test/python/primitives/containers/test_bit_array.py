@@ -461,8 +461,8 @@ class BitArrayTestCase(QiskitTestCase):
             with self.assertRaisesRegex(ValueError, "index 9 is out of bounds"):
                 _ = ba.slice_bits(9)
 
-    def test_expectation_value(self):
-        """Test the expectation_value method."""
+    def test_expectation_values(self):
+        """Test the expectation_values method."""
         # this creates incrementing bitstrings from 0 to 59
         data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
         data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
@@ -474,40 +474,54 @@ class BitArrayTestCase(QiskitTestCase):
         pauli = Pauli(op)
         sp_op = SparsePauliOp(op)
         sp_op2 = SparsePauliOp.from_sparse_list([("Z", [6], 1)], num_qubits=9)
-        sp_op3 = SparsePauliOp.from_sparse_list([("Z", [5], 1)], num_qubits=9)
 
         with self.subTest("str"):
-            expval = ba.expectation_value(op)
+            expval = ba.expectation_values(op)
             # both 0 and 1 appear 5 times
-            self.assertAlmostEqual(expval, 0)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
 
-            expval = ba.expectation_value(op2)
-            self.assertAlmostEqual(expval, 0.5)
+            expval = ba.expectation_values(op2)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.full((ba.shape), 0.5))
 
-            expval = ba.expectation_value(op3)
-            self.assertAlmostEqual(expval, 0.5)
+            expval = ba.expectation_values(op3)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.full((ba.shape), 0.5))
 
             ba2 = ba.slice_bits(6)
             # 6th bit are all 0
-            expval = ba2.expectation_value("Z")
-            self.assertAlmostEqual(expval, 1)
+            expval = ba2.expectation_values("Z")
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.ones(ba.shape))
+
+            ba3 = ba.slice_bits(5)
+            # 5th bit distributes as follows.
+            # (0, 0, 0) {'0': 10}
+            # (0, 0, 1) {'0': 10}
+            # (0, 0, 2) {'0': 10}
+            # (0, 1, 0) {'0': 2, '1': 8}
+            # (0, 1, 1) {'1': 10}
+            # (0, 1, 2) {'1': 10}
+            expval = ba3.expectation_values("0")
+            expected = np.array([[[1, 1, 1], [0.2, 0, 0]]])
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, expected)
 
         with self.subTest("Pauli"):
-            expval = ba.expectation_value(pauli)
-            self.assertAlmostEqual(expval, 0)
+            expval = ba.expectation_values(pauli)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
 
         with self.subTest("SparsePauliOp"):
-            expval = ba.expectation_value(sp_op)
-            self.assertAlmostEqual(expval, 0)
+            expval = ba.expectation_values(sp_op)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.zeros((ba.shape)))
 
-            expval = ba.expectation_value(sp_op2)
+            expval = ba.expectation_values(sp_op2)
             # 6th bit are all 0
-            self.assertAlmostEqual(expval, 1)
-
-        with self.subTest("loc"):
-            # 5th bit are all 1
-            expval = ba.expectation_value(sp_op3, (0, 1, 2))
-            self.assertAlmostEqual(expval, -1)
+            self.assertEqual(expval.shape, ba.shape)
+            np.testing.assert_allclose(expval, np.ones((ba.shape)))
 
     def test_concatenate_shots(self):
         """Test the concatenate_shots function."""

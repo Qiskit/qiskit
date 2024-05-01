@@ -440,10 +440,8 @@ class BitArray(ShapedMixin):
         arr, num_bits = _pack(arr)
         return BitArray(arr, num_bits)
 
-    def expectation_value(
-        self, operator: str | Pauli | SparsePauliOp, loc: int | tuple[int, ...] | None = None
-    ) -> float:
-        """Compute the expectation value of an operator.
+    def expectation_values(self, operator: str | Pauli | SparsePauliOp) -> NDArray[np.float64]:
+        """Compute the expectation value of the operator for every entry of this bit array.
 
         .. note::
 
@@ -452,15 +450,16 @@ class BitArray(ShapedMixin):
             :func:`~.sampled_expectation_value`.
 
         Args:
-            operator: The operator for the expectation value
-            loc: Which entry of this array to compute the expectation value.
-                If ``None``, counts from all positions in this array are unioned together.
+            operator: The operator to take the expectation value of.
 
         Returns:
-            The expectation value.
+            An array of expectation values whose shape matches this bit array's :attr:`~shape`.
         """
-        counts = self.get_counts(loc)
-        return sampled_expectation_value(counts, operator)
+        arr = np.empty(self.shape, dtype=float)
+        for loc in np.ndindex(self.shape):
+            counts = self.get_counts(loc)
+            arr[loc] = sampled_expectation_value(counts, operator)
+        return arr
 
     @staticmethod
     def concatenate(bit_arrays: Sequence[BitArray], axis: int = 0) -> BitArray:
