@@ -5,13 +5,20 @@ features:
     that consist of a base operation ``B`` and a list ``M`` of control, inverse and power
     modifiers) with the following properties:
 
-    * the base operation needs to be synthesized (i.e. it's not already supported
+    * the base operation ``B`` needs to be synthesized (i.e. it's not already supported
       by the target or belongs to the equivalence library)
 
     * the definition circuit for ``B`` can be expressed as ``P -- Q -- R`` with :math:`R = P^{-1}`
 
-    In this case the modifiers can moved to the ``Q``-part only. As a specific example, controlled
-    QFT-based adders have the form ``control - [QFT -- U -- IQFT]``, which can be simplified to
-    ``QFT -- control-[U] -- IQFT. By removing the controls over ``QFT`` and ``IQFT`` parts of the
-    circuit, one obtains significantly fewer gates in the transpiled circuit.
+    In this case the modifiers can be moved to the ``Q``-part only. As a specific example,
+    controlled QFT-based adders have the form ``control - [QFT -- U -- IQFT]``, which can be
+    simplified to ``QFT -- control-[U] -- IQFT``. By removing the controls over ``QFT`` and
+    ``IQFT`` parts of the circuit, one obtains significantly fewer gates in the transpiled
+    circuit.
+  - |
+    Added two new methods to the :class:`~qiskit.dagcircuit.DAGCircuit` class:
+    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns the list of
+    :class:`.DAGOpNode` successors of a node, and
+    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns the list of
+    :class:`.DAGOpNode` predecessors of a node.
 
