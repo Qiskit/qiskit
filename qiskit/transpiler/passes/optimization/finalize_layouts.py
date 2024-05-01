@@ -33,9 +33,7 @@ class FinalizeLayouts(AnalysisPass):
             dag (DAGCircuit): the DAG circuit.
         """
 
-        if (
-            virtual_permutation_layout := self.property_set["virtual_permutation_layout"]
-        ) is None:
+        if (virtual_permutation_layout := self.property_set["virtual_permutation_layout"]) is None:
             return
 
         self.property_set.pop("virtual_permutation_layout")
