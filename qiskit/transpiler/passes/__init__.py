@@ -46,6 +46,7 @@ Routing
    StochasticSwap
    SabreSwap
    Commuting2qGateRouter
+   StarPreRouting
 
 Basis Change
 ============
@@ -205,6 +206,7 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import Commuting2qGateRouter
+from .routing import StarPreRouting
 
 # basis change
 from .basis import Decompose
