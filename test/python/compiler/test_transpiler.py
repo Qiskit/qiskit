@@ -1750,8 +1750,11 @@ class TestTranspile(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        self.assertEqual(res.count_ops()["ecr"], 9)
-        self.assertTrue(Operator(res).equiv(circuit))
+
+        # Swap gates get optimized away in opt. level 2, 3
+        expected_num_ecr_gates = 6 if optimization_level in (2, 3) else 9
+        self.assertEqual(res.count_ops()["ecr"], expected_num_ecr_gates)
+        self.assertEqual(Operator(circuit), Operator.from_circuit(res))
 
     def test_optimize_ecr_basis(self):
         """Test highest optimization level can optimize over ECR."""
@@ -1760,8 +1763,13 @@ class TestTranspile(QiskitTestCase):
         circuit.iswap(0, 1)
 
         res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=3, seed_transpiler=42)
-        self.assertEqual(res.count_ops()["ecr"], 1)
-        self.assertTrue(Operator(res).equiv(circuit))
+
+        # an iswap gate is equivalent to (swap, CZ) up to single-qubit rotations. Normally, the swap gate
+        # in the circuit would cancel with the swap gate of the (swap, CZ), leaving a single CZ gate that
+        # can be realized via one ECR gate. However, with the introduction of ElideSwap, the swap gate
+        # cancellation can not occur anymore, thus requiring two ECR gates for the iswap gate.
+        self.assertEqual(res.count_ops()["ecr"], 2)
+        self.assertEqual(Operator(circuit), Operator.from_circuit(res))
 
     def test_approximation_degree_invalid(self):
         """Test invalid approximation degree raises."""
