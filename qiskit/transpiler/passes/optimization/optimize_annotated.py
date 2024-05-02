@@ -77,7 +77,7 @@ class OptimizeAnnotated(TransformationPass):
         self._top_level_only = not recurse or (self._basis_gates is None and self._target is None)
 
         if not self._top_level_only and self._target is None:
-            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
+            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             self._device_insts = basic_insts | set(self._basis_gates)
 
     def run(self, dag: DAGCircuit):
