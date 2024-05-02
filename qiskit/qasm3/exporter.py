@@ -1165,3 +1165,6 @@ class _ExprBuilder(expr.ExprVisitor[ast.Expression]):
         return ast.Binary(
             ast.Binary.Op[node.op.name], node.left.accept(self), node.right.accept(self)
         )
+
+    def visit_index(self, node, /):
+        return ast.Index(node.target.accept(self), node.index.accept(self))

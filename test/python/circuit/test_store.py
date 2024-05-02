@@ -29,6 +29,14 @@ class TestStoreInstruction(QiskitTestCase):
         self.assertEqual(constructed.lvalue, lvalue)
         self.assertEqual(constructed.rvalue, rvalue)
 
+    def test_store_to_index(self):
+        lvalue = expr.index(expr.Var.new("a", types.Uint(8)), 3)
+        rvalue = expr.lift(False)
+        constructed = Store(lvalue, rvalue)
+        self.assertIsInstance(constructed, Store)
+        self.assertEqual(constructed.lvalue, lvalue)
+        self.assertEqual(constructed.rvalue, rvalue)
+
     def test_implicit_cast(self):
         lvalue = expr.Var.new("a", types.Bool())
         rvalue = expr.Var.new("b", types.Uint(8))
@@ -42,6 +50,11 @@ class TestStoreInstruction(QiskitTestCase):
             expr.Var.new("a", types.Bool()), expr.Var.new("b", types.Bool())
         )
         rvalue = expr.lift(False)
+        with self.assertRaisesRegex(CircuitError, "not an l-value"):
+            Store(not_an_lvalue, rvalue)
+
+        not_an_lvalue = expr.index(expr.shift_right(expr.Var.new("a", types.Uint(8)), 1), 2)
+        rvalue = expr.lift(True)
         with self.assertRaisesRegex(CircuitError, "not an l-value"):
             Store(not_an_lvalue, rvalue)
 
@@ -118,6 +131,21 @@ class TestStoreCircuit(QiskitTestCase):
             Store(expr.lift(cregs[0]), expr.lift(cregs[1])),
             Store(expr.lift(cregs[0]), expr.lift(cregs[1])),
             Store(a, expr.lift(cregs[1])),
+        ]
+        actual = [instruction.operation for instruction in qc.data]
+        self.assertEqual(actual, expected)
+
+    def test_allows_stores_with_index(self):
+        cr = ClassicalRegister(8, "cr")
+        a = expr.Var.new("a", types.Uint(3))
+        qc = QuantumCircuit(cr, inputs=[a])
+        qc.store(expr.index(cr, 0), False)
+        qc.store(expr.index(a, 3), True)
+        qc.store(expr.index(cr, a), expr.index(cr, 0))
+        expected = [
+            Store(expr.index(cr, 0), expr.lift(False)),
+            Store(expr.index(a, 3), expr.lift(True)),
+            Store(expr.index(cr, a), expr.index(cr, 0)),
         ]
         actual = [instruction.operation for instruction in qc.data]
         self.assertEqual(actual, expected)
