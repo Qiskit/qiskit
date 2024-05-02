@@ -28,7 +28,7 @@ import itertools
 import math
 from collections import OrderedDict, defaultdict, deque, namedtuple
 from collections.abc import Callable, Sequence, Generator, Iterable
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import rustworkx as rx
@@ -56,6 +56,8 @@ from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
+# The allowable arguments to :meth:`DAGCircuit.copy_empty_like`'s ``vars_mode``.
+_VarsMode = Literal["alike", "captures", "drop"]
 
 
 class DAGCircuit:
@@ -652,7 +654,7 @@ class DAGCircuit:
         else:
             self._op_names[op.name] -= 1
 
-    def copy_empty_like(self):
+    def copy_empty_like(self, *, vars_mode: _VarsMode = "alike"):
         """Return a copy of self with the same structure but empty.
 
         That structure includes:
@@ -660,7 +662,24 @@ class DAGCircuit:
             * global phase
             * duration
             * all the qubits and clbits, including the registers
-            * all the classical variables.
+            * all the classical variables, with a mode defined by ``vars_mode``.
+
+        Args:
+            vars_mode: The mode to handle realtime variables in.
+
+                alike
+                    The variables in the output DAG will have the same declaration semantics as
+                    in the original circuit.  For example, ``input`` variables in the source will be
+                    ``input`` variables in the output DAG.
+
+                captures
+                    All variables will be converted to captured variables.  This is useful when you
+                    are building a new layer for an existing DAG that you will want to
+                    :meth:`compose` onto the base, since :meth:`compose` can inline captures onto
+                    the base circuit (but not other variables).
+
+                drop
+                    The output DAG will have no variables defined.
 
         Returns:
             DAGCircuit: An empty copy of self.
@@ -681,12 +700,20 @@ class DAGCircuit:
         for creg in self.cregs.values():
             target_dag.add_creg(creg)
 
-        for var in self.iter_input_vars():
-            target_dag.add_input_var(var)
-        for var in self.iter_captured_vars():
-            target_dag.add_captured_var(var)
-        for var in self.iter_declared_vars():
-            target_dag.add_declared_var(var)
+        if vars_mode == "alike":
+            for var in self.iter_input_vars():
+                target_dag.add_input_var(var)
+            for var in self.iter_captured_vars():
+                target_dag.add_captured_var(var)
+            for var in self.iter_declared_vars():
+                target_dag.add_declared_var(var)
+        elif vars_mode == "captures":
+            for var in self.iter_vars():
+                target_dag.add_captured_var(var)
+        elif vars_mode == "drop":
+            pass
+        else:  # pragma: no cover
+            raise ValueError(f"unknown vars_mode: '{vars_mode}'")
 
         return target_dag
 
@@ -795,7 +822,9 @@ class DAGCircuit:
         )
         return node
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
+    def compose(
+        self, other, qubits=None, clbits=None, front=False, inplace=True, *, inline_captures=False
+    ):
         """Compose the ``other`` circuit onto the output of this circuit.
 
         A subset of input wires of ``other`` are mapped
@@ -809,6 +838,18 @@ class DAGCircuit:
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed (not implemented yet)
             inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            inline_captures (bool): If ``True``, variables marked as "captures" in the ``other`` DAG
+                will inlined onto existing uses of those same variables in ``self``.  If ``False``,
+                all variables in ``other`` are required to be distinct from ``self``, and they will
+                be added to ``self``.
+
+        ..
+            Note: unlike `QuantumCircuit.compose`, there's no `var_remap` argument here.  That's
+            because the `DAGCircuit` inner-block structure isn't set up well to allow the recursion,
+            and `DAGCircuit.compose` is generally only used to rebuild a DAG from layers within
+            itself than to join unrelated circuits.  While there's no strong motivating use-case
+            (unlike the `QuantumCircuit` equivalent), it's safer and more performant to not provide
+            the option.
 
         Returns:
             DAGCircuit: the composed dag (returns None if inplace==True).
@@ -871,27 +912,52 @@ class DAGCircuit:
         for gate, cals in other.calibrations.items():
             dag._calibrations[gate].update(cals)
 
+        # This is all the handling we need for realtime variables, if there's no remapping. They:
+        #
+        # * get added to the DAG and then operations involving them get appended on normally.
+        # * get inlined onto an existing variable, then operations get appended normally.
+        # * there's a clash or a failed inlining, and we just raise an error.
+        #
+        # Notably if there's no remapping, there's no need to recurse into control-flow or to do any
+        # Var rewriting during the Expr visits.
+        for var in other.iter_input_vars():
+            dag.add_input_var(var)
+        if inline_captures:
+            for var in other.iter_captured_vars():
+                if not dag.has_var(var):
+                    raise DAGCircuitError(
+                        f"Variable '{var}' to be inlined is not in the base DAG."
+                        " If you wanted it to be automatically added, use `inline_captures=False`."
+                    )
+        else:
+            for var in other.iter_captured_vars():
+                dag.add_captured_var(var)
+        for var in other.iter_declared_vars():
+            dag.add_declared_var(var)
+
         # Ensure that the error raised here is a `DAGCircuitError` for backwards compatibility.
         def _reject_new_register(reg):
             raise DAGCircuitError(f"No register with '{reg.bits}' to map this expression onto.")
 
         variable_mapper = _classical_resource_map.VariableMapper(
-            dag.cregs.values(), edge_map, _reject_new_register
+            dag.cregs.values(), edge_map, add_register=_reject_new_register
         )
         for nd in other.topological_nodes():
             if isinstance(nd, DAGInNode):
-                # if in edge_map, get new name, else use existing name
-                m_wire = edge_map.get(nd.wire, nd.wire)
-                # the mapped wire should already exist
-                if m_wire not in dag.output_map:
-                    raise DAGCircuitError(
-                        "wire %s[%d] not in self" % (m_wire.register.name, m_wire.index)
-                    )
-                if nd.wire not in other._wires:
-                    raise DAGCircuitError(
-                        "inconsistent wire type for %s[%d] in other"
-                        % (nd.register.name, nd.wire.index)
-                    )
+                if isinstance(nd.wire, Bit):
+                    # if in edge_map, get new name, else use existing name
+                    m_wire = edge_map.get(nd.wire, nd.wire)
+                    # the mapped wire should already exist
+                    if m_wire not in dag.output_map:
+                        raise DAGCircuitError(
+                            "wire %s[%d] not in self" % (m_wire.register.name, m_wire.index)
+                        )
+                    if nd.wire not in other._wires:
+                        raise DAGCircuitError(
+                            "inconsistent wire type for %s[%d] in other"
+                            % (nd.register.name, nd.wire.index)
+                        )
+                # If it's a Var wire, we already checked that it exists in the destination.
             elif isinstance(nd, DAGOutNode):
                 # ignore output nodes
                 pass
@@ -1115,6 +1181,16 @@ class DAGCircuit:
         """Iterable over the declared local classical variables tracked by the circuit."""
         return iter(self._vars_by_type[_DAGVarType.DECLARE])
 
+    def has_var(self, var: str | expr.Var) -> bool:
+        """Is this realtime variable in the DAG?
+
+        Args:
+            var: the variable or name to check.
+        """
+        if isinstance(var, str):
+            return var in self._vars_info
+        return (info := self._vars_info.get(var.name, False)) and info.var is var
+
     def __eq__(self, other):
         # Try to convert to float, but in case of unbound ParameterExpressions
         # a TypeError will be raise, fallback to normal equality in those
@@ -1220,7 +1296,8 @@ class DAGCircuit:
                 multiple gates in the combined single op node.  If a :class:`.Bit` is not in the
                 dictionary, it will not be added to the args; this can be useful when dealing with
                 control-flow operations that have inherent bits in their ``condition`` or ``target``
-                fields.
+                fields.  :class:`.expr.Var` wires similarly do not need to be in this map, since
+                they will never be in ``qargs`` or ``cargs``.
             cycle_check (bool): When set to True this method will check that
                 replacing the provided ``node_block`` with a single node
                 would introduce a cycle (which would invalidate the
@@ -1287,12 +1364,22 @@ class DAGCircuit:
 
         Args:
             node (DAGOpNode): node to substitute
-            input_dag (DAGCircuit): circuit that will substitute the node
+            input_dag (DAGCircuit): circuit that will substitute the node.
             wires (list[Bit] | Dict[Bit, Bit]): gives an order for (qu)bits
                 in the input circuit. If a list, then the bits refer to those in the ``input_dag``,
                 and the order gets matched to the node wires by qargs first, then cargs, then
                 conditions.  If a dictionary, then a mapping of bits in the ``input_dag`` to those
                 that the ``node`` acts on.
+
+                Standalone :class:`~.expr.Var` nodes cannot currently be remapped as part of the
+                substitution; the ``input_dag`` should be defined over the correct set of variables
+                already.
+
+                ..
+                    The rule about not remapping `Var`s is to avoid performance pitfalls and reduce
+                    complexity; the creator of the input DAG should easily be able to arrange for
+                    the correct `Var`s to be used, and doing so avoids us needing to recurse through
+                    control-flow operations to do deep remappings.
             propagate_condition (bool): If ``True`` (default), then any ``condition`` attribute on
                 the operation within ``node`` is propagated to each node in the ``input_dag``.  If
                 ``False``, then the ``input_dag`` is assumed to faithfully implement suitable
@@ -1331,12 +1418,27 @@ class DAGCircuit:
         for input_dag_wire, our_wire in wire_map.items():
             if our_wire not in self.input_map:
                 raise DAGCircuitError(f"bit mapping invalid: {our_wire} is not in this DAG")
+            if isinstance(our_wire, expr.Var) or isinstance(input_dag_wire, expr.Var):
+                raise DAGCircuitError("`Var` nodes cannot be remapped during substitution")
             # Support mapping indiscriminately between Qubit and AncillaQubit, etc.
             check_type = Qubit if isinstance(our_wire, Qubit) else Clbit
             if not isinstance(input_dag_wire, check_type):
                 raise DAGCircuitError(
                     f"bit mapping invalid: {input_dag_wire} and {our_wire} are different bit types"
                 )
+        if _may_have_additional_wires(node.op):
+            node_vars = {var for var in _additional_wires(node.op) if isinstance(var, expr.Var)}
+        else:
+            node_vars = set()
+        dag_vars = set(input_dag.iter_vars())
+        if dag_vars - node_vars:
+            raise DAGCircuitError(
+                "Cannot replace a node with a DAG with more variables."
+                f" Variables in node: {node_vars}."
+                f" Variables in DAG: {dag_vars}."
+            )
+        for var in dag_vars:
+            wire_map[var] = var
 
         reverse_wire_map = {b: a for a, b in wire_map.items()}
         # It doesn't make sense to try and propagate a condition from a control-flow op; a
@@ -1415,14 +1517,22 @@ class DAGCircuit:
                     node._node_id, lambda edge, wire=self_wire: edge == wire
                 )[0]
                 self._multi_graph.add_edge(pred._node_id, succ._node_id, self_wire)
+        for contracted_var in node_vars - dag_vars:
+            pred = self._multi_graph.find_predecessors_by_edge(
+                node._node_id, lambda edge, wire=contracted_var: edge == wire
+            )[0]
+            succ = self._multi_graph.find_successors_by_edge(
+                node._node_id, lambda edge, wire=contracted_var: edge == wire
+            )[0]
+            self._multi_graph.add_edge(pred._node_id, succ._node_id, contracted_var)
 
         # Exlude any nodes from in_dag that are not a DAGOpNode or are on
-        # bits outside the set specified by the wires kwarg
+        # wires outside the set specified by the wires kwarg
         def filter_fn(node):
             if not isinstance(node, DAGOpNode):
                 return False
-            for qarg in node.qargs:
-                if qarg not in wire_map:
+            for _, _, wire in in_dag.edges(node):
+                if wire not in wire_map:
                     return False
             return True
 
@@ -1459,7 +1569,7 @@ class DAGCircuit:
         self._decrement_op(node.op)
 
         variable_mapper = _classical_resource_map.VariableMapper(
-            self.cregs.values(), wire_map, self.add_creg
+            self.cregs.values(), wire_map, add_register=self.add_creg
         )
         # Iterate over nodes of input_circuit and update wires in node objects migrated
         # from in_dag
@@ -1531,21 +1641,12 @@ class DAGCircuit:
         # This might include wires that are inherent to the node, like in its `condition` or
         # `target` fields, so might be wider than `node.op.num_{qu,cl}bits`.
         current_wires = {wire for _, _, wire in self.edges(node)}
-        new_wires = set(node.qargs) | set(node.cargs)
-        if (new_condition := getattr(op, "condition", None)) is not None:
-            new_wires.update(condition_resources(new_condition).clbits)
-        elif isinstance(op, SwitchCaseOp):
-            if isinstance(op.target, Clbit):
-                new_wires.add(op.target)
-            elif isinstance(op.target, ClassicalRegister):
-                new_wires.update(op.target)
-            else:
-                new_wires.update(node_resources(op.target).clbits)
+        new_wires = set(node.qargs) | set(node.cargs) | set(_additional_wires(op))
 
         if propagate_condition and not (
             isinstance(node.op, ControlFlowOp) or isinstance(op, ControlFlowOp)
         ):
-            if new_condition is not None:
+            if getattr(op, "condition", None) is not None:
                 raise DAGCircuitError(
                     "Cannot propagate a condition to an operation that already has one."
                 )
@@ -1581,13 +1682,17 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def separable_circuits(self, remove_idle_qubits: bool = False) -> list["DAGCircuit"]:
+    def separable_circuits(
+        self, remove_idle_qubits: bool = False, *, vars_mode: _VarsMode = "alike"
+    ) -> list["DAGCircuit"]:
         """Decompose the circuit into sets of qubits with no gates connecting them.
 
         Args:
             remove_idle_qubits (bool): Flag denoting whether to remove idle qubits from
                 the separated circuits. If ``False``, each output circuit will contain the
                 same number of qubits as ``self``.
+            vars_mode: how any realtime :class:`~.expr.Var` nodes should be handled in the output
+                DAGs.  See :meth:`copy_empty_like` for details on the modes.
 
         Returns:
             List[DAGCircuit]: The circuits resulting from separating ``self`` into sets
@@ -1612,7 +1717,7 @@ class DAGCircuit:
         # Create new DAGCircuit objects from each of the rustworkx subgraph objects
         decomposed_dags = []
         for subgraph in disconnected_subgraphs:
-            new_dag = self.copy_empty_like()
+            new_dag = self.copy_empty_like(vars_mode=vars_mode)
             new_dag.global_phase = 0
             subgraph_is_classical = True
             for node in rx.lexicographical_topological_sort(subgraph, key=_key):
@@ -1902,7 +2007,7 @@ class DAGCircuit:
 
         return op_nodes
 
-    def layers(self):
+    def layers(self, *, vars_mode: _VarsMode = "captures"):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.
 
         A layer is a circuit whose gates act on disjoint qubits, i.e.,
@@ -1919,6 +2024,10 @@ class DAGCircuit:
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
         the desired behavior.
+
+        Args:
+            vars_mode: how any realtime :class:`~.expr.Var` nodes should be handled in the output
+                DAGs.  See :meth:`copy_empty_like` for details on the modes.
         """
         graph_layers = self.multigraph_layers()
         try:
@@ -1943,7 +2052,7 @@ class DAGCircuit:
                 return
 
             # Construct a shallow copy of self
-            new_layer = self.copy_empty_like()
+            new_layer = self.copy_empty_like(vars_mode=vars_mode)
 
             for node in op_nodes:
                 # this creates new DAGOpNodes in the new_layer
@@ -1958,14 +2067,18 @@ class DAGCircuit:
 
             yield {"graph": new_layer, "partition": support_list}
 
-    def serial_layers(self):
+    def serial_layers(self, *, vars_mode: _VarsMode = "captures"):
         """Yield a layer for all gates of this circuit.
 
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
+
+        Args:
+            vars_mode: how any realtime :class:`~.expr.Var` nodes should be handled in the output
+                DAGs.  See :meth:`copy_empty_like` for details on the modes.
         """
         for next_node in self.topological_op_nodes():
-            new_layer = self.copy_empty_like()
+            new_layer = self.copy_empty_like(vars_mode=vars_mode)
 
             # Save the support of the operation we add to the layer
             support_list = []
