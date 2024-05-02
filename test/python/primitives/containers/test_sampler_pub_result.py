@@ -47,3 +47,58 @@ class SamplerPubResultCase(QiskitTestCase):
         data_bin = DataBin(a=ba, b=ba)
         self.assertTrue(repr(SamplerPubResult(data_bin)).startswith("SamplerPubResult"))
         self.assertTrue(repr(SamplerPubResult(data_bin, {"x": 1})).startswith("SamplerPubResult"))
+
+    def test_join_data_failures(self):
+        """Test the join_data() failure mechanisms work."""
+
+        result = SamplerPubResult(DataBin())
+        with self.assertRaisesRegex(ValueError, "No entry exists in the data bin"):
+            result.join_data()
+
+        alpha = BitArray.from_samples(["00", "11"], 2)
+        beta = BitArray.from_samples(["010", "101"], 3)
+        result = SamplerPubResult(DataBin(alpha=alpha, beta=beta))
+        with self.assertRaisesRegex(ValueError, "An empty name list is given"):
+            result.join_data([])
+
+        alpha = BitArray.from_samples(["00", "11"], 2)
+        beta = BitArray.from_samples(["010", "101"], 3)
+        result = SamplerPubResult(DataBin(alpha=alpha, beta=beta))
+        with self.assertRaisesRegex(ValueError, "Name 'foo' does not exist"):
+            result.join_data(["alpha", "foo"])
+
+        alpha = BitArray.from_samples(["00", "11"], 2)
+        beta = np.empty((2,))
+        result = SamplerPubResult(DataBin(alpha=alpha, beta=beta))
+        with self.assertRaisesRegex(TypeError, "Data comes from incompatible types"):
+            result.join_data()
+
+        alpha = np.empty((2,))
+        beta = BitArray.from_samples(["00", "11"], 2)
+        result = SamplerPubResult(DataBin(alpha=alpha, beta=beta))
+        with self.assertRaisesRegex(TypeError, "Data comes from incompatible types"):
+            result.join_data()
+
+        result = SamplerPubResult(DataBin(alpha=1, beta={}))
+        with self.assertRaisesRegex(TypeError, "Data comes from incompatible types"):
+            result.join_data()
+
+    def test_join_data_bit_array_default(self):
+        """Test the join_data() method with no arguments and bit arrays."""
+        alpha = BitArray.from_samples(["00", "11"], 2)
+        beta = BitArray.from_samples(["010", "101"], 3)
+        data_bin = DataBin(alpha=alpha, beta=beta)
+        result = SamplerPubResult(data_bin)
+
+        gamma = result.join_data()
+        self.assertEqual(list(gamma.get_bitstrings()), ["010" "00", "101" "11"])
+
+    def test_join_data_ndarray_default(self):
+        """Test the join_data() method with no arguments and ndarrays."""
+        alpha = np.linspace(0, 1, 30).reshape((2, 3, 5))
+        beta = np.linspace(0, 1, 12).reshape((2, 3, 2))
+        data_bin = DataBin(alpha=alpha, beta=beta, shape=(2, 3))
+        result = SamplerPubResult(data_bin)
+
+        gamma = result.join_data()
+        np.testing.assert_allclose(gamma, np.concatenate([alpha, beta], axis=2))

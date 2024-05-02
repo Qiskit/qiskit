@@ -58,13 +58,13 @@ class SamplerPubResult(PubResult):
                 raise ValueError("An empty name list is given.")
             for name in names:
                 if name not in self.data:
-                    raise ValueError(f"Name {name} does not exist.")
+                    raise ValueError(f"Name '{name}' does not exist.")
 
         data = [self.data[name] for name in names]
         if isinstance(data[0], BitArray):
             if not all(isinstance(datum, BitArray) for datum in data):
                 raise TypeError("Data comes from incompatible types.")
-            joint_data = BitArray.stack_bits(data)
+            joint_data = BitArray.concatenate_bits(data)
         elif isinstance(data[0], np.ndarray):
             if not all(isinstance(datum, np.ndarray) for datum in data):
                 raise TypeError("Data comes from incompatible types.")
