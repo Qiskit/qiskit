@@ -10,38 +10,35 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
-use std::vec::Vec;
 use pyo3::PyErr;
-use pyo3::exceptions::PyValueError;
+use std::vec::Vec;
 
 fn validate_permutation(pattern: &[i64]) -> Result<(), PyErr> {
     let n = pattern.len();
-    let mut seen : Vec<bool> = vec![false; n];
-    
+    let mut seen: Vec<bool> = vec![false; n];
+
     for &x in pattern {
         if x < 0 {
-            return Err(
-                PyValueError::new_err(
-                    "Invalid permutation: input contains a negative number."
-                )
-            );
+            return Err(PyValueError::new_err(
+                "Invalid permutation: input contains a negative number.",
+            ));
         }
-        
+
         if x as usize >= n {
-            return Err(
-                PyValueError::new_err(
-                format!("Invalid permutation: input has length {} and contains {}.", n, x)
-                )
-            );
+            return Err(PyValueError::new_err(format!(
+                "Invalid permutation: input has length {} and contains {}.",
+                n, x
+            )));
         }
 
         if seen[x as usize] {
-            return Err(PyValueError::new_err(
-                format!("Invalid permutation: input contains duplicate value {}", x)
-                )
-            );
+            return Err(PyValueError::new_err(format!(
+                "Invalid permutation: input contains {} more than once.",
+                x
+            )));
         }
         seen[x as usize] = true;
     }
@@ -50,12 +47,13 @@ fn validate_permutation(pattern: &[i64]) -> Result<(), PyErr> {
 }
 
 fn invert(pattern: &[i64]) -> Vec<usize> {
-    let mut inverse : Vec<usize> = vec![0; pattern.len()];
-    pattern.iter().enumerate().for_each(|(ii, &jj)| { inverse[jj as usize] = ii; } );
+    let mut inverse: Vec<usize> = vec![0; pattern.len()];
+    pattern.iter().enumerate().for_each(|(ii, &jj)| {
+        inverse[jj as usize] = ii;
+    });
     inverse
 }
 
-/// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 pub fn _inverse_pattern(py: Python, pattern: Vec<i64>) -> PyResult<PyObject> {
@@ -63,15 +61,6 @@ pub fn _inverse_pattern(py: Python, pattern: Vec<i64>) -> PyResult<PyObject> {
     Ok(invert(&pattern).to_object(py))
 }
 
-/// Sorts the input permutation by iterating through the permutation list
-/// and putting each element to its correct position via a SWAP (if it's not
-/// at the correct position already). If ``n`` is the length of the input
-/// permutation, this requires at most ``n`` SWAPs.
-/// 
-/// More precisely, if the input permutation is a cycle of length ``m``,
-/// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
-/// if the input  permutation consists of several disjoint cycles, then each cycle
-/// is essentially treated independently.
 #[pyfunction]
 #[pyo3(signature = (permutation_in))]
 pub fn _get_ordered_swap(py: Python, permutation_in: Vec<i64>) -> PyResult<PyObject> {
@@ -81,7 +70,7 @@ pub fn _get_ordered_swap(py: Python, permutation_in: Vec<i64>) -> PyResult<PyObj
     let mut index_map = invert(&permutation_in);
 
     let s: usize = permutation_in.len();
-    let mut swaps : Vec<(i64, i64)> = Vec::with_capacity(s);
+    let mut swaps: Vec<(i64, i64)> = Vec::with_capacity(s);
     for ii in 0..s {
         let val = permutation[ii];
         if val == ii {
@@ -93,7 +82,7 @@ pub fn _get_ordered_swap(py: Python, permutation_in: Vec<i64>) -> PyResult<PyObj
         index_map[val] = jj;
         index_map[ii] = ii;
     }
-    
+
     swaps[..].reverse();
     Ok(swaps.to_object(py))
 }

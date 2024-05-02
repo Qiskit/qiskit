@@ -25,10 +25,7 @@ from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_reverse_lnn_kms,
 )
-from qiskit.synthesis.permutation.permutation_utils import (
-    _inverse_pattern,
-    _get_ordered_swap
-)
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern, _get_ordered_swap
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -72,20 +69,20 @@ class TestPermutationSynthesis(QiskitTestCase):
             with self.assertRaises(ValueError) as exc:
                 _ = synth_permutation_basic(pattern_out_of_range)
                 self.assertIn("input contains a negative number", str(exc.exception))
-            
+
             pattern_out_of_range = np.copy(pattern)
             pattern_out_of_range[0] = width
             with self.assertRaises(ValueError) as exc:
                 _ = synth_permutation_basic(pattern_out_of_range)
-                self.assertIn("input has length {} and contains {}".format(width, width),
-                              str(exc.exception))
-            
+                self.assertIn(
+                    "input has length {0} and contains {0}".format(width), str(exc.exception)
+                )
+
             pattern_duplicate = np.copy(pattern)
             pattern_duplicate[-1] = pattern[0]
             with self.assertRaises(ValueError) as exc:
                 _ = synth_permutation_basic(pattern_duplicate)
                 self.assertIn("input contains duplicate value", str(exc.exception))
-            
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):
