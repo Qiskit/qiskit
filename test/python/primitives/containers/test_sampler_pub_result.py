@@ -91,7 +91,7 @@ class SamplerPubResultCase(QiskitTestCase):
         result = SamplerPubResult(data_bin)
 
         gamma = result.join_data()
-        self.assertEqual(list(gamma.get_bitstrings()), ["010" "00", "101" "11"])
+        self.assertEqual(list(gamma.get_bitstrings()), ["01000", "10111"])
 
     def test_join_data_ndarray_default(self):
         """Test the join_data() method with no arguments and ndarrays."""
