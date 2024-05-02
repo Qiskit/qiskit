@@ -24,6 +24,7 @@ from typing import Callable, Iterable, Literal, Mapping, Sequence
 import numpy as np
 from numpy.typing import NDArray
 
+from qiskit.exceptions import QiskitError
 from qiskit.result import Counts, sampled_expectation_value
 
 from .observables_array import ObservablesArray, ObservablesArrayLike
@@ -440,6 +441,29 @@ class BitArray(ShapedMixin):
         arr, num_bits = _pack(arr)
         return BitArray(arr, num_bits)
 
+    def slice_shots(self, indices: int | Sequence[int]) -> "BitArray":
+        """Return a bit array sliced along the shots axis of some indices of interest.
+
+        Args:
+            indices: The shots positions of interest to slice along.
+
+        Returns:
+            A bit array sliced along the shots axis.
+
+        Raises:
+            ValueError: If there are any invalid indices of the shots axis.
+        """
+        if isinstance(indices, int):
+            indices = (indices,)
+        for index in indices:
+            if index < 0 or index >= self.num_shots:
+                raise ValueError(
+                    f"index {index} is out of bounds for the number of shots {self.num_shots}."
+                )
+        arr = self._array
+        arr = arr[..., indices, :]
+        return BitArray(arr, self.num_bits)
+
     def expectation_values(self, observables: ObservablesArrayLike) -> NDArray[np.float64]:
         """Compute the expectation values of the provided observables, broadcasted against
         this bit array.
@@ -451,25 +475,36 @@ class BitArray(ShapedMixin):
             :func:`~.sampled_expectation_value`.
 
         Args:
-            observables: The observable(s) to take the expectation value of. Must have a shape
-            broadcastable with with this bit array.
+            observables: The observable(s) to take the expectation value of.
+            Must have a shape broadcastable with with this bit array and
+            the same number of qubits as the number of bits of this bit array.
+            The observables must be diagonal (I, Z, 0 or 1) too.
 
         Returns:
-            An array of expectation values whose shape is the broadcast shape of ``operator``
+            An array of expectation values whose shape is the broadcast shape of ``observables``
             and this bit array.
 
         Raises:
-            ValueError: If the provided operator does not have a shape broadcastable with this bit array.
+            ValueError: If the provided observables does not have a shape broadcastable with
+                this bit array.
+            ValueError: If the provided observables does not have the same number of qubits as
+                the number of bits of this bit array.
+            ValueError: If the provided observables are not diagonal.
         """
         observables = ObservablesArray.coerce(observables)
         arr_indices = np.fromiter(np.ndindex(self.shape), dtype=object).reshape(self.shape)
         bc_indices, bc_obs = np.broadcast_arrays(arr_indices, observables)
+        counts = {}
         arr = np.zeros_like(bc_indices, dtype=float)
         for index in np.ndindex(bc_indices.shape):
             loc = bc_indices[index]
             for pauli, coeff in bc_obs[index].items():
-                counts = self.get_counts(loc)
-                expval = sampled_expectation_value(counts, pauli)
+                if loc not in counts:
+                    counts[loc] = self.get_counts(loc)
+                try:
+                    expval = sampled_expectation_value(counts[loc], pauli)
+                except QiskitError as ex:
+                    raise ValueError(ex.message) from ex
                 arr[index] += expval * coeff
         return arr
 
@@ -596,6 +631,9 @@ class BitArray(ShapedMixin):
                     f"but the bit array at index 0 has shape {shape} "
                     f"and the bit array at index {i} has shape {ba.shape}."
                 )
+        # This implementation introduces a temporary 8x memory overhead due to bit
+        # unpacking. This could be fixed using bitwise functions, at the expense of a
+        # more complicated implementation.
         data = np.concatenate([_unpack(ba) for ba in bit_arrays], axis=-1)
         data, num_bits = _pack(data)
         return BitArray(data, num_bits)
