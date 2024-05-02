@@ -17,8 +17,8 @@ features:
     circuit.
   - |
     Added two new methods to the :class:`~qiskit.dagcircuit.DAGCircuit` class:
-    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns the list of
+    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns an iterator to
     :class:`.DAGOpNode` successors of a node, and
-    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns the list of
+    :meth:`qiskit.dagcircuit.DAGCircuit.op_successors` returns an iterator to
     :class:`.DAGOpNode` predecessors of a node.
 

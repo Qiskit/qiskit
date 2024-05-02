@@ -1775,12 +1775,12 @@ class DAGCircuit:
         return iter(self._multi_graph.predecessors(node._node_id))
 
     def op_successors(self, node):
-        """Get the list of "op" successors of a node in the dag."""
-        return [pred for pred in self.successors(node) if isinstance(pred, DAGOpNode)]
+        """Returns iterator of "op" successors of a node in the dag."""
+        return iter(pred for pred in self.successors(node) if isinstance(pred, DAGOpNode))
 
     def op_predecessors(self, node):
-        """Get the list of "op" predecessors of a node in the dag."""
-        return [pred for pred in self.predecessors(node) if isinstance(pred, DAGOpNode)]
+        """Returns the iterator of "op" predecessors of a node in the dag."""
+        return iter(pred for pred in self.predecessors(node) if isinstance(pred, DAGOpNode))
 
     def is_successor(self, node, node_succ):
         """Checks if a second node is in the successors of node."""

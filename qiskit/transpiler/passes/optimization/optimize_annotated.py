@@ -205,13 +205,13 @@ class OptimizeAnnotated(TransformationPass):
         # compute in- and out- degree for every node
         # also update information for nodes at the start and at the end of the circuit
         for node in dag.op_nodes():
-            preds = dag.op_predecessors(node)
+            preds = list(dag.op_predecessors(node))
             in_degree[node] = len(preds)
             if len(preds) == 0:
                 for q in node.qargs:
                     q_to_f[q] = node
                     unchecked_qubits.add(q)
-            succs = dag.op_successors(node)
+            succs = list(dag.op_successors(node))
             out_degree[node] = len(succs)
             if len(succs) == 0:
                 for q in node.qargs:
