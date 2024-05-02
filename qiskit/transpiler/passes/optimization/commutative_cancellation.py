@@ -99,7 +99,7 @@ class CommutativeCancellation(TransformationPass):
         #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
         #    sec_commutation_set_id), the value is the list gates that share the same gate type,
         #    qubits and commutation sets.
-        for wire in dag.wires:
+        for wire in dag.qubits:
             wire_commutation_set = self.property_set["commutation_set"][wire]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):

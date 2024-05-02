@@ -696,6 +696,7 @@ def _dumps_instruction_parameter(
             index_map=index_map,
             use_symengine=use_symengine,
             standalone_var_indices=standalone_var_indices,
+            version=version,
         )
 
     return type_key, data_bytes
@@ -808,6 +809,7 @@ def _write_instruction(
         value.write_value(
             file_obj,
             op_condition,
+            version=version,
             index_map=index_map,
             standalone_var_indices=standalone_var_indices,
         )
@@ -837,7 +839,7 @@ def _write_instruction(
     return custom_operations_list
 
 
-def _write_pauli_evolution_gate(file_obj, evolution_gate):
+def _write_pauli_evolution_gate(file_obj, evolution_gate, version):
     operator_list = evolution_gate.operator
     standalone = False
     if not isinstance(operator_list, list):
@@ -856,7 +858,7 @@ def _write_pauli_evolution_gate(file_obj, evolution_gate):
         data = common.data_to_binary(operator, _write_elem)
         pauli_data_buf.write(data)
 
-    time_type, time_data = value.dumps_value(evolution_gate.time)
+    time_type, time_data = value.dumps_value(evolution_gate.time, version=version)
     time_size = len(time_data)
     synth_class = str(type(evolution_gate.synthesis).__name__)
     settings_dict = evolution_gate.synthesis.settings
@@ -918,7 +920,7 @@ def _write_custom_operation(
 
     if type_key == type_keys.CircuitInstruction.PAULI_EVOL_GATE:
         has_definition = True
-        data = common.data_to_binary(operation, _write_pauli_evolution_gate)
+        data = common.data_to_binary(operation, _write_pauli_evolution_gate, version=version)
         size = len(data)
     elif type_key == type_keys.CircuitInstruction.CONTROLLED_GATE:
         # For ControlledGate, we have to access and store the private `_definition` rather than the
@@ -976,7 +978,7 @@ def _write_custom_operation(
     return new_custom_instruction
 
 
-def _write_calibrations(file_obj, calibrations, metadata_serializer):
+def _write_calibrations(file_obj, calibrations, metadata_serializer, version):
     flatten_dict = {}
     for gate, caldef in calibrations.items():
         for (qubits, params), schedule in caldef.items():
@@ -1000,8 +1002,8 @@ def _write_calibrations(file_obj, calibrations, metadata_serializer):
         for qubit in qubits:
             file_obj.write(struct.pack("!q", qubit))
         for param in params:
-            value.write_value(file_obj, param)
-        schedules.write_schedule_block(file_obj, schedule, metadata_serializer)
+            value.write_value(file_obj, param, version=version)
+        schedules.write_schedule_block(file_obj, schedule, metadata_serializer, version=version)
 
 
 def _write_registers(file_obj, in_circ_regs, full_bits):
@@ -1211,7 +1213,7 @@ def write_circuit(
     metadata_size = len(metadata_raw)
     num_instructions = len(circuit)
     circuit_name = circuit.name.encode(common.ENCODE)
-    global_phase_type, global_phase_data = value.dumps_value(circuit.global_phase)
+    global_phase_type, global_phase_data = value.dumps_value(circuit.global_phase, version=version)
 
     with io.BytesIO() as reg_buf:
         num_qregs = _write_registers(reg_buf, circuit.qregs, circuit.qubits)
@@ -1305,7 +1307,7 @@ def write_circuit(
     instruction_buffer.close()
 
     # Write calibrations
-    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
+    _write_calibrations(file_obj, circuit.calibrations, metadata_serializer, version=version)
     _write_layout(file_obj, circuit)
 
 

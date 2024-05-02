@@ -661,7 +661,7 @@ def generate_annotated_circuits():
         CXGate(), [InverseModifier(), ControlModifier(1), PowerModifier(1.4), InverseModifier()]
     )
     op2 = AnnotatedOperation(XGate(), InverseModifier())
-    qc = QuantumCircuit(6, 1)
+    qc = QuantumCircuit(6, 1, name="Annotated circuits")
     qc.cx(0, 1)
     qc.append(op1, [0, 1, 2])
     qc.h(4)
@@ -802,6 +802,24 @@ def generate_standalone_var():
     return [qc]
 
 
+def generate_v12_expr():
+    """Circuits that contain the `Index` and bitshift operators new in QPY v12."""
+    import uuid
+    from qiskit.circuit.classical import expr, types
+
+    a = expr.Var(uuid.UUID(bytes=b"hello, qpy world", version=4), types.Uint(8), name="a")
+    cr = ClassicalRegister(4, "cr")
+
+    index = QuantumCircuit(cr, inputs=[a], name="index_expr")
+    index.store(expr.index(cr, 0), expr.index(a, a))
+
+    shift = QuantumCircuit(cr, inputs=[a], name="shift_expr")
+    with shift.if_test(expr.equal(expr.shift_right(expr.shift_left(a, 1), 1), a)):
+        pass
+
+    return [index, shift]
+
+
 def generate_circuits(version_parts):
     """Generate reference circuits."""
     output_circuits = {
@@ -852,6 +870,7 @@ def generate_circuits(version_parts):
         output_circuits["annotated.qpy"] = generate_annotated_circuits()
     if version_parts >= (1, 1, 0):
         output_circuits["standalone_vars.qpy"] = generate_standalone_var()
+        output_circuits["v12_expr.qpy"] = generate_v12_expr()
     return output_circuits
 
 

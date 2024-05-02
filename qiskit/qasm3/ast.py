@@ -123,8 +123,19 @@ class FloatType(ClassicalType, enum.Enum):
     OCT = 256
 
 
+class BoolType(ClassicalType):
+    """Type information for a Boolean."""
+
+
 class IntType(ClassicalType):
     """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class UintType(ClassicalType):
+    """Type information for an unsigned integer."""
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
@@ -241,6 +252,8 @@ class Binary(Expression):
         GREATER_EQUAL = ">="
         EQUAL = "=="
         NOT_EQUAL = "!="
+        SHIFT_LEFT = "<<"
+        SHIFT_RIGHT = ">>"
 
     def __init__(self, op: Op, left: Expression, right: Expression):
         self.op = op
@@ -252,6 +265,12 @@ class Cast(Expression):
     def __init__(self, type: ClassicalType, operand: Expression):
         self.type = type
         self.operand = operand
+
+
+class Index(Expression):
+    def __init__(self, target: Expression, index: Expression):
+        self.target = target
+        self.index = index
 
 
 class IndexSet(ASTNode):
