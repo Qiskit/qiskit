@@ -103,8 +103,10 @@ class ElidePermutations(TransformationPass):
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:
             self.property_set["original_qubit_indices"] = input_qubit_mapping
-        # ToDo: check if this exists; then compose
-        self.property_set["virtual_permutation_layout"] = Layout(
-            {dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)}
-        )
+
+        new_layout = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
+        if current_layout := self.property_set["virtual_permutation_layout"] is not None:
+            self.property_set["virtual_permutation_layout"] = current_layout.compose(new_layout)
+        else:
+            self.property_set["virtual_permutation_layout"] = new_layout
         return new_dag
