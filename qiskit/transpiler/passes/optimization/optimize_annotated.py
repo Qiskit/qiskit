@@ -186,20 +186,27 @@ class OptimizeAnnotated(TransformationPass):
         in_degree = {}
         out_degree = {}
 
-        # For each qubit, keep the nodes at the start or at the back of the circuit involving this qubit
-        # (also allowing None and empty values).
-        q_to_f = {}
-        q_to_b = {}
+        # We use dicts to track for each qubit a DAG node at the front of the circuit that involves
+        # this qubit and a DAG node at the end of the circuit that involves this qubit (when exist).
+        # Note that for the DAGCircuit structure for each qubit there can be at most one such front
+        # and such back node.
+        # This allows for an efficient way to find an inverse pair of gates (one from the front and
+        # one from the back of the circuit).
+        # A qubit that was never examined does not appear in these dicts, and a qubit that was examined
+        # but currently is not involved at the front (resp. at the back) of the circuit has the value of
+        # None.
+        front_node_for_qubit = {}
+        back_node_for_qubit = {}
 
-        # keep the set of nodes that have been moved either to front_block or to back_block
+        # Keep the set of nodes that have been moved either to front_block or to back_block
         processed_nodes = set()
 
-        # optimization to only consider qubits involved in nodes at the front or at the back of the
-        # circuit
-        unchecked_qubits = set()
+        # Keep the set of qubits that are involved in nodes at the front or at the back of the circuit.
+        # When looking for inverse pairs of gates we will only iterate over these qubits.
+        active_qubits = set()
 
-        # optimization to keep pairs of nodes for which the inverse check was performed and the nodes
-        # were found to be not inverse to each other
+        # Keep pairs of nodes for which the inverse check was performed and the nodes
+        # were found to be not inverse to each other (memoization).
         checked_node_pairs = set()
 
         # compute in- and out- degree for every node
@@ -209,27 +216,27 @@ class OptimizeAnnotated(TransformationPass):
             in_degree[node] = len(preds)
             if len(preds) == 0:
                 for q in node.qargs:
-                    q_to_f[q] = node
-                    unchecked_qubits.add(q)
+                    front_node_for_qubit[q] = node
+                    active_qubits.add(q)
             succs = list(dag.op_successors(node))
             out_degree[node] = len(succs)
             if len(succs) == 0:
                 for q in node.qargs:
-                    q_to_b[q] = node
-                    unchecked_qubits.add(q)
+                    back_node_for_qubit[q] = node
+                    active_qubits.add(q)
 
         # iterate while there is a possibility to find more inverse pairs
-        while len(unchecked_qubits) > 0:
-            to_check = unchecked_qubits.copy()
-            unchecked_qubits.clear()
+        while len(active_qubits) > 0:
+            to_check = active_qubits.copy()
+            active_qubits.clear()
 
             # For each qubit q, check whether the gate at the front of the circuit that involves q
             # and the gate at the end of the circuit that involves q are inverse
             for q in to_check:
 
-                if (fn := q_to_f.get(q, None)) is None:
+                if (fn := front_node_for_qubit.get(q, None)) is None:
                     continue
-                if (bn := q_to_b.get(q, None)) is None:
+                if (bn := back_node_for_qubit.get(q, None)) is None:
                     continue
 
                 # fn or bn could be already collected when considering other qubits
@@ -252,11 +259,11 @@ class OptimizeAnnotated(TransformationPass):
                 # in the future we want to include a more precise check whether a pair
                 # of nodes are inverse
                 if fn.op == bn.op.inverse():
-                    # update q_to_f, q_to_b maps
+                    # update front_node_for_qubit, back_node_for_qubit maps
                     for q in fn.qargs:
-                        q_to_f[q] = None
+                        front_node_for_qubit[q] = None
                     for q in bn.qargs:
-                        q_to_b[q] = None
+                        back_node_for_qubit[q] = None
 
                     # see which other nodes become at the front and update information
                     for node in dag.op_successors(fn):
@@ -264,8 +271,8 @@ class OptimizeAnnotated(TransformationPass):
                             in_degree[node] -= 1
                             if in_degree[node] == 0:
                                 for q in node.qargs:
-                                    q_to_f[q] = node
-                                    unchecked_qubits.add(q)
+                                    front_node_for_qubit[q] = node
+                                    active_qubits.add(q)
 
                     # see which other nodes become at the back and update information
                     for node in dag.op_predecessors(bn):
@@ -273,8 +280,8 @@ class OptimizeAnnotated(TransformationPass):
                             out_degree[node] -= 1
                             if out_degree[node] == 0:
                                 for q in node.qargs:
-                                    q_to_b[q] = node
-                                    unchecked_qubits.add(q)
+                                    back_node_for_qubit[q] = node
+                                    active_qubits.add(q)
 
                     # collect and mark as processed
                     front_block.append(fn)
