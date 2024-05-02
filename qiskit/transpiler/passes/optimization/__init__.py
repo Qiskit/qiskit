@@ -35,5 +35,6 @@ from .collect_linear_functions import CollectLinearFunctions
 from .reset_after_measure_simplification import ResetAfterMeasureSimplification
 from .optimize_cliffords import OptimizeCliffords
 from .collect_cliffords import CollectCliffords
+from .elide_permutations import ElidePermutations
 from .normalize_rx_angle import NormalizeRXAngle
 from .optimize_annotated import OptimizeAnnotated
