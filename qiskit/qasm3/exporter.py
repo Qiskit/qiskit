@@ -353,8 +353,8 @@ class QASM3Builder:
         self.includeslist = includeslist
         # `_global_io_declarations` and `_global_classical_declarations` are stateful, and any
         # operation that needs a parameter can append to them during the build.  We make all
-        # classical declarations global because the IBM QSS stack (our initial consumer of OQ3
-        # strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
+        # classical declarations global because the IBM qe-compiler stack (our initial consumer of
+        # OQ3 strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
         # lock-in.  It's possibly slightly memory inefficient, but that's not likely to be a problem
         # in the near term.
         self._global_io_declarations = []
@@ -477,7 +477,7 @@ class QASM3Builder:
         # Similarly, QuantumCircuit qubits/registers are only new variables in the global scope.
         quantum_declarations = self.build_quantum_declarations()
         # This call has side-effects - it can populate `self._global_io_declarations` and
-        # `self._global_classical_declarations` as a courtesy to the QSS stack that prefers our
+        # `self._global_classical_declarations` as a courtesy to the qe-compiler that prefers our
         # hacky temporary `switch` target variables to be globally defined.
         main_statements = self.build_current_scope()
 
@@ -1072,8 +1072,8 @@ def _infer_variable_declaration(
 
     This is very simplistic; it assumes all parameters are real numbers that need to be input to the
     program, unless one is used as a loop variable, in which case it shouldn't be declared at all,
-    because the ``for`` loop declares it implicitly (per the Qiskit/QSS reading of the OpenQASM
-    spec at Qiskit/openqasm@8ee55ec).
+    because the ``for`` loop declares it implicitly (per the Qiskit/qe-compiler reading of the
+    OpenQASM spec at openqasm/openqasm@8ee55ec).
 
     .. note::
 
