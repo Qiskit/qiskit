@@ -51,6 +51,7 @@ class VGate(Gate):
         qc.h(0)
         self.definition = qc
 
+
 class WGate(Gate):
     """W Gate used in Clifford synthesis."""
 
@@ -124,38 +125,51 @@ class HLSPluginsSuite:
         return circ
 
     def setUp(self):
-        num_qubits = 100
-        rng = np.random.default_rng(1234)
-        self.qc_clifford = self.random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+        self.num_qubits = 150
+        self.rng = np.random.default_rng(1234)
 
-        linear_function = LinearFunction(self._construct_linear_circuit(num_qubits))
-        self.qc_linear = QuantumCircuit(num_qubits)
-        self.qc_linear.append(linear_function, list(range(num_qubits)))
+        linear_function = LinearFunction(self._construct_linear_circuit(self.num_qubits))
+        self.qc_linear = QuantumCircuit(self.num_qubits)
+        self.qc_linear.append(linear_function, list(range(self.num_qubits)))
+
+        self.num_samples = 20
 
     # Clifford Synthesis Plugins
     def time_synth_ag(self):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         hls_config = HLSConfig(clifford=["ag"])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_clifford)
+
+        for _ in range(self.num_samples):
+            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
+            _ = pm.run(qc_clifford)
 
     def time_synth_bm(self):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         hls_config = HLSConfig(clifford=["bm"])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_clifford)
+
+        for _ in range(self.num_samples):
+            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
+            _ = pm.run(qc_clifford)
 
     def time_synth_greedy(self):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         hls_config = HLSConfig(clifford=["greedy"])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_clifford)
+
+        for _ in range(self.num_samples):
+            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
+            _ = pm.run(qc_clifford)
 
     def time_synth_full(self):
         """Test synthesis for set of {num_qubits}-qubit Cliffords"""
         hls_config = HLSConfig(clifford=["full"])
         pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_clifford)
+
+        for _ in range(self.num_samples):
+            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
+            _ = pm.run(qc_clifford)
 
     # Linear Synthesis Plugins
     def time_pmh_linear_func_plugin(self):
