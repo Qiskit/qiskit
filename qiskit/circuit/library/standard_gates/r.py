@@ -93,8 +93,10 @@ class RGate(Gate):
         """
         return RGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the R gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi = float(self.params[0]), float(self.params[1])
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -102,8 +104,7 @@ class RGate(Gate):
         exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, phi = self.params
         return RGate(exponent * theta, phi)
 

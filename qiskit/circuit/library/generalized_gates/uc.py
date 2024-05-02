@@ -21,7 +21,6 @@
 
 from __future__ import annotations
 
-import cmath
 import math
 
 import numpy as np
@@ -33,14 +32,11 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
-
-# pylint: disable=cyclic-import
-from qiskit.synthesis.one_qubit.one_qubit_decompose import OneQubitEulerDecomposer
+from qiskit._accelerate import uc_gate
 
 from .diagonal import Diagonal
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
-_DECOMPOSER1Q = OneQubitEulerDecomposer("U3")
 
 
 class UCGate(Gate):
@@ -203,99 +199,7 @@ class UCGate(Gate):
         https://arxiv.org/pdf/quant-ph/0410066.pdf.
         """
         single_qubit_gates = [gate.astype(complex) for gate in self.params]
-        diag = np.ones(2**self.num_qubits, dtype=complex)
-        num_contr = self.num_qubits - 1
-        for dec_step in range(num_contr):
-            num_ucgs = 2**dec_step
-            # The decomposition works recursively and the following loop goes over the different
-            # UCGates that arise in the decomposition
-            for ucg_index in range(num_ucgs):
-                len_ucg = 2 ** (num_contr - dec_step)
-                for i in range(int(len_ucg / 2)):
-                    shift = ucg_index * len_ucg
-                    a = single_qubit_gates[shift + i]
-                    b = single_qubit_gates[shift + len_ucg // 2 + i]
-                    # Apply the decomposition for UCGates given in equation (3) in
-                    # https://arxiv.org/pdf/quant-ph/0410066.pdf
-                    # to demultiplex one control of all the num_ucgs uniformly-controlled gates
-                    #  with log2(len_ucg) uniform controls
-                    v, u, r = self._demultiplex_single_uc(a, b)
-                    #  replace the single-qubit gates with v,u (the already existing ones
-                    #  are not needed any more)
-                    single_qubit_gates[shift + i] = v
-                    single_qubit_gates[shift + len_ucg // 2 + i] = u
-                    # Now we decompose the gates D as described in Figure 4  in
-                    # https://arxiv.org/pdf/quant-ph/0410066.pdf and merge some of the gates
-                    # into the UCGates and the diagonal at the end of the circuit
-
-                    # Remark: The Rz(pi/2) rotation acting on the target qubit and the Hadamard
-                    # gates arising in the decomposition of D are ignored for the moment (they will
-                    # be added together with the C-NOT gates at the end of the decomposition
-                    # (in the method dec_ucg()))
-                    if ucg_index < num_ucgs - 1:
-                        # Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and
-                        # merge the UC-Rz rotation with the following UCGate,
-                        # which hasn't been decomposed yet.
-                        k = shift + len_ucg + i
-                        single_qubit_gates[k] = single_qubit_gates[k].dot(
-                            UCGate._ct(r)
-                        ) * UCGate._rz(np.pi / 2).item((0, 0))
-                        k = k + len_ucg // 2
-                        single_qubit_gates[k] = single_qubit_gates[k].dot(r) * UCGate._rz(
-                            np.pi / 2
-                        ).item((1, 1))
-                    else:
-                        # Absorb the Rz(pi/2) rotation on the control into the UC-Rz gate and merge
-                        # the trailing UC-Rz rotation into a diagonal gate at the end of the circuit
-                        for ucg_index_2 in range(num_ucgs):
-                            shift_2 = ucg_index_2 * len_ucg
-                            k = 2 * (i + shift_2)
-                            diag[k] = (
-                                diag[k]
-                                * UCGate._ct(r).item((0, 0))
-                                * UCGate._rz(np.pi / 2).item((0, 0))
-                            )
-                            diag[k + 1] = (
-                                diag[k + 1]
-                                * UCGate._ct(r).item((1, 1))
-                                * UCGate._rz(np.pi / 2).item((0, 0))
-                            )
-                            k = len_ucg + k
-                            diag[k] *= r.item((0, 0)) * UCGate._rz(np.pi / 2).item((1, 1))
-                            diag[k + 1] *= r.item((1, 1)) * UCGate._rz(np.pi / 2).item((1, 1))
-        return single_qubit_gates, diag
-
-    def _demultiplex_single_uc(self, a, b):
-        """
-        This method implements the decomposition given in equation (3) in
-        https://arxiv.org/pdf/quant-ph/0410066.pdf.
-        The decomposition is used recursively to decompose uniformly controlled gates.
-        a,b = single qubit unitaries
-        v,u,r = outcome of the decomposition given in the reference mentioned above
-        (see there for the details).
-        """
-        # The notation is chosen as in https://arxiv.org/pdf/quant-ph/0410066.pdf.
-        x = a.dot(UCGate._ct(b))
-        det_x = np.linalg.det(x)
-        x11 = x.item((0, 0)) / cmath.sqrt(det_x)
-        phi = cmath.phase(det_x)
-        r1 = cmath.exp(1j / 2 * (np.pi / 2 - phi / 2 - cmath.phase(x11)))
-        r2 = cmath.exp(1j / 2 * (np.pi / 2 - phi / 2 + cmath.phase(x11) + np.pi))
-        r = np.array([[r1, 0], [0, r2]], dtype=complex)
-        d, u = np.linalg.eig(r.dot(x).dot(r))
-        # If d is not equal to diag(i,-i), then we put it into this "standard" form
-        # (see eq. (13) in https://arxiv.org/pdf/quant-ph/0410066.pdf) by interchanging
-        # the eigenvalues and eigenvectors.
-        if abs(d[0] + 1j) < _EPS:
-            d = np.flip(d, 0)
-            u = np.flip(u, 1)
-        d = np.diag(np.sqrt(d))
-        v = d.dot(UCGate._ct(u)).dot(UCGate._ct(r)).dot(b)
-        return v, u, r
-
-    @staticmethod
-    def _ct(m):
-        return np.transpose(np.conjugate(m))
+        return uc_gate.dec_ucg_help(single_qubit_gates, self.num_qubits)
 
     @staticmethod
     def _rz(alpha):

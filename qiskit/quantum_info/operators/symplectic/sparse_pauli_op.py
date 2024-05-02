@@ -23,7 +23,13 @@ from copy import deepcopy
 import numpy as np
 import rustworkx as rx
 
-from qiskit._accelerate.sparse_pauli_op import unordered_unique, decompose_dense
+from qiskit._accelerate.sparse_pauli_op import (
+    ZXPaulis,
+    decompose_dense,
+    to_matrix_dense,
+    to_matrix_sparse,
+    unordered_unique,
+)
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
@@ -142,7 +148,12 @@ class SparsePauliOp(LinearOp):
         if coeffs is None:
             coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
-            coeffs = np.array(coeffs, copy=copy, dtype=dtype)
+            coeffs_asarray = np.asarray(coeffs, dtype=dtype)
+            coeffs = (
+                coeffs_asarray.copy()
+                if copy and np.may_share_memory(coeffs, coeffs_asarray)
+                else coeffs_asarray
+            )
 
         if ignore_pauli_phase:
             # Fast path used in copy operations, where the phase of the PauliList is already known
@@ -166,10 +177,11 @@ class SparsePauliOp(LinearOp):
         # Initialize LinearOp
         super().__init__(num_qubits=self._pauli_list.num_qubits)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def __repr__(self):
         prefix = "SparsePauliOp("
@@ -919,24 +931,39 @@ class SparsePauliOp(LinearOp):
             return labels
         return labels.tolist()
 
-    def to_matrix(self, sparse: bool = False) -> np.ndarray:
+    def to_matrix(self, sparse: bool = False, force_serial: bool = False) -> np.ndarray:
         """Convert to a dense or sparse matrix.
 
         Args:
-            sparse (bool): if True return a sparse CSR matrix, otherwise
-                           return dense Numpy array (Default: False).
+            sparse: if ``True`` return a sparse CSR matrix, otherwise return dense Numpy
+                array (the default).
+            force_serial: if ``True``, use an unthreaded implementation, regardless of the state of
+                the `Qiskit threading-control environment variables
+                <https://docs.quantum.ibm.com/start/configure-qiskit-local#environment-variables>`__.
+                By default, this will use threaded parallelism over the available CPUs.
 
         Returns:
             array: A dense matrix if `sparse=False`.
             csr_matrix: A sparse matrix in CSR format if `sparse=True`.
         """
-        mat = None
-        for i in self.matrix_iter(sparse=sparse):
-            if mat is None:
-                mat = i
-            else:
-                mat += i
-        return mat
+        if self.coeffs.dtype == object:
+            # Fallback to slow Python-space method.
+            return sum(self.matrix_iter(sparse=sparse))
+
+        pauli_list = self.paulis
+        zx = ZXPaulis(
+            pauli_list.x.astype(np.bool_),
+            pauli_list.z.astype(np.bool_),
+            pauli_list.phase.astype(np.uint8),
+            self.coeffs.astype(np.complex128),
+        )
+        if sparse:
+            from scipy.sparse import csr_matrix
+
+            data, indices, indptr = to_matrix_sparse(zx, force_serial=force_serial)
+            side = 1 << self.num_qubits
+            return csr_matrix((data, indices, indptr), shape=(side, side))
+        return to_matrix_dense(zx, force_serial=force_serial)
 
     def to_operator(self) -> Operator:
         """Convert to a matrix Operator object"""
