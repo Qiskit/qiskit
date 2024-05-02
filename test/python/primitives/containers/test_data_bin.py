@@ -82,14 +82,14 @@ class DataBinTestCase(QiskitTestCase):
                 _ = next(iterator)
 
         with self.subTest("keys"):
-            lst = data_bin.keys()
+            lst = list(data_bin.keys())
             key = lst[0]
             self.assertEqual(key, "alpha")
             key = lst[1]
             self.assertEqual(key, "beta")
 
         with self.subTest("values"):
-            lst = data_bin.values()
+            lst = list(data_bin.values())
             val = lst[0]
             self.assertIsInstance(val, int)
             self.assertEqual(val, 10)
@@ -98,7 +98,7 @@ class DataBinTestCase(QiskitTestCase):
             self.assertEqual(val, {1: 2})
 
         with self.subTest("items"):
-            lst = data_bin.items()
+            lst = list(data_bin.items())
             key, val = lst[0]
             self.assertEqual(key, "alpha")
             self.assertIsInstance(val, int)

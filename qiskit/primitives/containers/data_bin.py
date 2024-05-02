@@ -15,7 +15,7 @@ Dataclass tools for data namespaces (bins)
 """
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from typing import Any, ItemsView, Iterable, KeysView, ValuesView
 
 import numpy as np
 
@@ -43,6 +43,8 @@ class DataBin(ShapedMixin):
         print("beta data:", data.beta)
 
     """
+
+    __slots__ = ("_data", "_shape")
 
     _RESTRICTED_NAMES = frozenset(
         {
@@ -112,17 +114,17 @@ class DataBin(ShapedMixin):
     def __iter__(self) -> Iterable[str]:
         return iter(self._data)
 
-    def keys(self) -> Sequence[str]:
-        """Return a list of field names."""
-        return list(self._data)
+    def keys(self) -> KeysView[str]:
+        """Return a view of field names."""
+        return self._data.keys()
 
-    def values(self) -> Sequence[Any]:
-        """Return a list of values."""
-        return list(self._data.values())
+    def values(self) -> ValuesView[Any]:
+        """Return a view of values."""
+        return self._data.values()
 
-    def items(self) -> Sequence[tuple[str, Any]]:
-        """Return a list of field names and values"""
-        return list(self._data.items())
+    def items(self) -> ItemsView[str, Any]:
+        """Return a view of field names and values"""
+        return self._data.items()
 
     # The following properties exist to provide support to legacy private class attributes which
     # gained widespread prior to qiskit 1.1. These properties will be removed once the internal
