@@ -33,6 +33,7 @@ from qiskit.circuit import (
     Qubit,
     Reset,
     Delay,
+    Store,
 )
 from qiskit.circuit.bit import Bit
 from qiskit.circuit.classical import expr, types
@@ -62,7 +63,6 @@ from .printer import BasicPrinter
 _RESERVED_KEYWORDS = frozenset(
     {
         "OPENQASM",
-        "U",
         "angle",
         "array",
         "barrier",
@@ -239,6 +239,7 @@ class GlobalNamespace:
 
     def __init__(self, includelist, basis_gates=()):
         self._data = {gate: self.BASIS_GATE for gate in basis_gates}
+        self._data["U"] = self.BASIS_GATE
 
         for includefile in includelist:
             if includefile == "stdgates.inc":
@@ -282,6 +283,10 @@ class GlobalNamespace:
             return True
         return False
 
+    def has_symbol(self, name: str) -> bool:
+        """Whether a symbol's name is present in the table."""
+        return name in self._data
+
     def register(self, instruction):
         """Register an instruction in the namespace"""
         # The second part of the condition is a nasty hack to ensure that gates that come with at
@@ -324,7 +329,7 @@ _Scope = collections.namedtuple("_Scope", ("circuit", "bit_map", "symbol_map"))
 class QASM3Builder:
     """QASM3 builder constructs an AST from a QuantumCircuit."""
 
-    builtins = (Barrier, Measure, Reset, Delay, BreakLoopOp, ContinueLoopOp)
+    builtins = (Barrier, Measure, Reset, Delay, BreakLoopOp, ContinueLoopOp, Store)
     loose_bit_prefix = "_bit"
     loose_qubit_prefix = "_qubit"
     gate_parameter_prefix = "_gate_p"
@@ -348,14 +353,12 @@ class QASM3Builder:
         self.includeslist = includeslist
         # `_global_io_declarations` and `_global_classical_declarations` are stateful, and any
         # operation that needs a parameter can append to them during the build.  We make all
-        # classical declarations global because the IBM QSS stack (our initial consumer of OQ3
-        # strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
+        # classical declarations global because the IBM qe-compiler stack (our initial consumer of
+        # OQ3 strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
         # lock-in.  It's possibly slightly memory inefficient, but that's not likely to be a problem
         # in the near term.
         self._global_io_declarations = []
-        self._global_classical_declarations = []
-        self._gate_to_declare = {}
-        self._opaque_to_declare = {}
+        self._global_classical_forward_declarations = []
         # An arbitrary counter to help with generation of unique ids for symbol names when there are
         # clashes (though we generally prefer to keep user names if possible).
         self._counter = itertools.count()
@@ -367,18 +370,15 @@ class QASM3Builder:
     def _unique_name(self, prefix: str, scope: _Scope) -> str:
         table = scope.symbol_map
         name = basename = _escape_invalid_identifier(prefix)
-        while name in table or name in _RESERVED_KEYWORDS:
+        while name in table or name in _RESERVED_KEYWORDS or self.global_namespace.has_symbol(name):
             name = f"{basename}__generated{next(self._counter)}"
         return name
 
     def _register_gate(self, gate):
         self.global_namespace.register(gate)
-        self._gate_to_declare[id(gate)] = gate
 
     def _register_opaque(self, instruction):
-        if instruction not in self.global_namespace:
-            self.global_namespace.register(instruction)
-            self._opaque_to_declare[id(instruction)] = instruction
+        self.global_namespace.register(instruction)
 
     def _register_variable(self, variable, scope: _Scope, name=None) -> ast.Identifier:
         """Register a variable in the symbol table for the given scope, returning the name that
@@ -398,6 +398,10 @@ class QASM3Builder:
             if name in table:
                 raise QASM3ExporterError(
                     f"tried to reserve '{name}', but it is already used by '{table[name]}'"
+                )
+            if self.global_namespace.has_symbol(name):
+                raise QASM3ExporterError(
+                    f"tried to reserve '{name}', but it is already used by a gate"
                 )
         else:
             name = self._unique_name(variable.name, scope)
@@ -441,15 +445,66 @@ class QASM3Builder:
 
     def build_program(self):
         """Builds a Program"""
-        self.hoist_declarations(self.global_scope(assert_=True).circuit.data)
-        return ast.Program(self.build_header(), self.build_global_statements())
+        circuit = self.global_scope(assert_=True).circuit
+        if circuit.num_captured_vars:
+            raise QASM3ExporterError(
+                "cannot export an inner scope with captured variables as a top-level program"
+            )
+        header = self.build_header()
 
-    def hoist_declarations(self, instructions):
-        """Walks the definitions in gates/instructions to make a list of gates to declare."""
+        opaques_to_declare, gates_to_declare = self.hoist_declarations(
+            circuit.data, opaques=[], gates=[]
+        )
+        opaque_definitions = [
+            self.build_opaque_definition(instruction) for instruction in opaques_to_declare
+        ]
+        gate_definitions = [
+            self.build_gate_definition(instruction) for instruction in gates_to_declare
+        ]
+
+        # Early IBM runtime paramterisation uses unbound `Parameter` instances as `input` variables,
+        # not the explicit realtime `Var` variables, so we need this explicit scan.
+        self.hoist_global_parameter_declarations()
+        # Qiskit's clbits and classical registers need to get mapped to implicit OQ3 variables, but
+        # only if they're in the top-level circuit.  The QuantumCircuit data model is that inner
+        # clbits are bound to outer bits, and inner registers must be closing over outer ones.
+        self.hoist_classical_register_declarations()
+        # We hoist registers before new-style vars because registers are an older part of the data
+        # model (and used implicitly in PrimitivesV2 outputs) so they get the first go at reserving
+        # names in the symbol table.
+        self.hoist_classical_io_var_declarations()
+
+        # Similarly, QuantumCircuit qubits/registers are only new variables in the global scope.
+        quantum_declarations = self.build_quantum_declarations()
+        # This call has side-effects - it can populate `self._global_io_declarations` and
+        # `self._global_classical_declarations` as a courtesy to the qe-compiler that prefers our
+        # hacky temporary `switch` target variables to be globally defined.
+        main_statements = self.build_current_scope()
+
+        statements = [
+            statement
+            for source in (
+                # In older versions of the reference OQ3 grammar, IO declarations had to come before
+                # anything else, so we keep doing that as a courtesy.
+                self._global_io_declarations,
+                opaque_definitions,
+                gate_definitions,
+                self._global_classical_forward_declarations,
+                quantum_declarations,
+                main_statements,
+            )
+            for statement in source
+        ]
+        return ast.Program(header, statements)
+
+    def hoist_declarations(self, instructions, *, opaques, gates):
+        """Walks the definitions in gates/instructions to make a list of gates to declare.
+
+        Mutates ``opaques`` and ``gates`` in-place if given, and returns them."""
         for instruction in instructions:
             if isinstance(instruction.operation, ControlFlowOp):
                 for block in instruction.operation.blocks:
-                    self.hoist_declarations(block.data)
+                    self.hoist_declarations(block.data, opaques=opaques, gates=gates)
                 continue
             if instruction.operation in self.global_namespace or isinstance(
                 instruction.operation, self.builtins
@@ -461,15 +516,20 @@ class QASM3Builder:
                 # tree, but isn't an OQ3 built-in.  We use `isinstance` because we haven't fully
                 # fixed what the name/class distinction is (there's a test from the original OQ3
                 # exporter that tries a naming collision with 'cx').
-                if instruction.operation not in self.global_namespace:
-                    self._register_gate(instruction.operation)
-            if instruction.operation.definition is None:
+                self._register_gate(instruction.operation)
+                gates.append(instruction.operation)
+            elif instruction.operation.definition is None:
                 self._register_opaque(instruction.operation)
+                opaques.append(instruction.operation)
             elif not isinstance(instruction.operation, Gate):
                 raise QASM3ExporterError("Exporting non-unitary instructions is not yet supported.")
             else:
-                self.hoist_declarations(instruction.operation.definition.data)
+                self.hoist_declarations(
+                    instruction.operation.definition.data, opaques=opaques, gates=gates
+                )
                 self._register_gate(instruction.operation)
+                gates.append(instruction.operation)
+        return opaques, gates
 
     def global_scope(self, assert_=False):
         """Return the global circuit scope that is used as the basis of the full program.  If
@@ -540,40 +600,6 @@ class QASM3Builder:
         """Builds a list of included files."""
         return [ast.Include(filename) for filename in self.includeslist]
 
-    def build_global_statements(self) -> List[ast.Statement]:
-        """Get a list of the statements that form the global scope of the program."""
-        definitions = self.build_definitions()
-        # These two "declarations" functions populate stateful variables, since the calls to
-        # `build_quantum_instructions` might also append to those declarations.
-        self.build_parameter_declarations()
-        self.build_classical_declarations()
-        context = self.global_scope(assert_=True).circuit
-        quantum_declarations = self.build_quantum_declarations()
-        quantum_instructions = self.build_quantum_instructions(context.data)
-
-        return [
-            statement
-            for source in (
-                # In older versions of the reference OQ3 grammar, IO declarations had to come before
-                # anything else, so we keep doing that as a courtesy.
-                self._global_io_declarations,
-                definitions,
-                self._global_classical_declarations,
-                quantum_declarations,
-                quantum_instructions,
-            )
-            for statement in source
-        ]
-
-    def build_definitions(self):
-        """Builds all the definition."""
-        ret = []
-        for instruction in self._opaque_to_declare.values():
-            ret.append(self.build_opaque_definition(instruction))
-        for instruction in self._gate_to_declare.values():
-            ret.append(self.build_gate_definition(instruction))
-        return ret
-
     def build_opaque_definition(self, instruction):
         """Builds an Opaque gate definition as a CalibrationDefinition"""
         # We can't do anything sensible with this yet, so it's better to loudly say that.
@@ -604,7 +630,7 @@ class QASM3Builder:
 
         self.push_context(gate.definition)
         signature = self.build_gate_signature(gate)
-        body = ast.QuantumBlock(self.build_quantum_instructions(gate.definition.data))
+        body = ast.QuantumBlock(self.build_current_scope())
         self.pop_context()
         return ast.QuantumGateDefinition(signature, body)
 
@@ -627,8 +653,10 @@ class QASM3Builder:
         ]
         return ast.QuantumGateSignature(ast.Identifier(name), quantum_arguments, params or None)
 
-    def build_parameter_declarations(self):
-        """Builds lists of the input, output and standard variables used in this program."""
+    def hoist_global_parameter_declarations(self):
+        """Extend ``self._global_io_declarations`` and ``self._global_classical_declarations`` with
+        any implicit declarations used to support the early IBM efforts to use :class:`.Parameter`
+        as an input variable."""
         global_scope = self.global_scope(assert_=True)
         for parameter in global_scope.circuit.parameters:
             parameter_name = self._register_variable(parameter, global_scope)
@@ -640,11 +668,13 @@ class QASM3Builder:
             if isinstance(declaration, ast.IODeclaration):
                 self._global_io_declarations.append(declaration)
             else:
-                self._global_classical_declarations.append(declaration)
+                self._global_classical_forward_declarations.append(declaration)
 
-    def build_classical_declarations(self):
-        """Extend the global classical declarations with AST nodes declaring all the classical bits
-        and registers.
+    def hoist_classical_register_declarations(self):
+        """Extend the global classical declarations with AST nodes declaring all the global-scope
+        circuit :class:`.Clbit` and :class:`.ClassicalRegister` instances.  Qiskit's data model
+        doesn't involve the declaration of *new* bits or registers in inner scopes; only the
+        :class:`.expr.Var` mechanism allows that.
 
         The behaviour of this function depends on the setting ``allow_aliasing``. If this
         is ``True``, then the output will be in the same form as the output of
@@ -670,12 +700,14 @@ class QASM3Builder:
                 )
                 for i, clbit in enumerate(scope.circuit.clbits)
             )
-            self._global_classical_declarations.extend(clbits)
-            self._global_classical_declarations.extend(self.build_aliases(scope.circuit.cregs))
+            self._global_classical_forward_declarations.extend(clbits)
+            self._global_classical_forward_declarations.extend(
+                self.build_aliases(scope.circuit.cregs)
+            )
             return
         # If we're here, we're in the clbit happy path where there are no clbits that are in more
         # than one register.  We can output things very naturally.
-        self._global_classical_declarations.extend(
+        self._global_classical_forward_declarations.extend(
             ast.ClassicalDeclaration(
                 ast.BitType(),
                 self._register_variable(
@@ -691,8 +723,24 @@ class QASM3Builder:
                 scope.symbol_map[bit] = ast.SubscriptedIdentifier(
                     name.string, ast.IntegerLiteral(i)
                 )
-            self._global_classical_declarations.append(
+            self._global_classical_forward_declarations.append(
                 ast.ClassicalDeclaration(ast.BitArrayType(len(register)), name)
+            )
+
+    def hoist_classical_io_var_declarations(self):
+        """Hoist the declarations of classical IO :class:`.expr.Var` nodes into the global state.
+
+        Local :class:`.expr.Var` declarations are handled by the regular local-block scope builder,
+        and the :class:`.QuantumCircuit` data model ensures that the only time an IO variable can
+        occur is in an outermost block."""
+        scope = self.global_scope(assert_=True)
+        for var in scope.circuit.iter_input_vars():
+            self._global_io_declarations.append(
+                ast.IODeclaration(
+                    ast.IOModifier.INPUT,
+                    _build_ast_type(var.type),
+                    self._register_variable(var, scope),
+                )
             )
 
     def build_quantum_declarations(self):
@@ -760,21 +808,37 @@ class QASM3Builder:
             out.append(ast.AliasStatement(name, ast.IndexSet(elements)))
         return out
 
-    def build_quantum_instructions(self, instructions):
-        """Builds a list of call statements"""
-        ret = []
-        for instruction in instructions:
-            if isinstance(instruction.operation, ForLoopOp):
-                ret.append(self.build_for_loop(instruction))
-                continue
-            if isinstance(instruction.operation, WhileLoopOp):
-                ret.append(self.build_while_loop(instruction))
-                continue
-            if isinstance(instruction.operation, IfElseOp):
-                ret.append(self.build_if_statement(instruction))
-                continue
-            if isinstance(instruction.operation, SwitchCaseOp):
-                ret.extend(self.build_switch_statement(instruction))
+    def build_current_scope(self) -> List[ast.Statement]:
+        """Build the instructions that occur in the current scope.
+
+        In addition to everything literally in the circuit's ``data`` field, this also includes
+        declarations for any local :class:`.expr.Var` nodes.
+        """
+        scope = self.current_scope()
+
+        # We forward-declare all local variables uninitialised at the top of their scope. It would
+        # be nice to declare the variable at the point of first store (so we can write things like
+        # `uint[8] a = 12;`), but there's lots of edge-case logic to catch with that around
+        # use-before-definition errors in the OQ3 output, for example if the user has side-stepped
+        # the `QuantumCircuit` API protection to produce a circuit that uses an uninitialised
+        # variable, or the initial write to a variable is within a control-flow scope.  (It would be
+        # easier to see the def/use chain needed to do this cleanly if we were using `DAGCircuit`.)
+        statements = [
+            ast.ClassicalDeclaration(_build_ast_type(var.type), self._register_variable(var, scope))
+            for var in scope.circuit.iter_declared_vars()
+        ]
+        for instruction in scope.circuit.data:
+            if isinstance(instruction.operation, ControlFlowOp):
+                if isinstance(instruction.operation, ForLoopOp):
+                    statements.append(self.build_for_loop(instruction))
+                elif isinstance(instruction.operation, WhileLoopOp):
+                    statements.append(self.build_while_loop(instruction))
+                elif isinstance(instruction.operation, IfElseOp):
+                    statements.append(self.build_if_statement(instruction))
+                elif isinstance(instruction.operation, SwitchCaseOp):
+                    statements.extend(self.build_switch_statement(instruction))
+                else:  # pragma: no cover
+                    raise RuntimeError(f"unhandled control-flow construct: {instruction.operation}")
                 continue
             # Build the node, ignoring any condition.
             if isinstance(instruction.operation, Gate):
@@ -795,6 +859,13 @@ class QASM3Builder:
                 ]
             elif isinstance(instruction.operation, Delay):
                 nodes = [self.build_delay(instruction)]
+            elif isinstance(instruction.operation, Store):
+                nodes = [
+                    ast.AssignmentStatement(
+                        self.build_expression(instruction.operation.lvalue),
+                        self.build_expression(instruction.operation.rvalue),
+                    )
+                ]
             elif isinstance(instruction.operation, BreakLoopOp):
                 nodes = [ast.BreakStatement()]
             elif isinstance(instruction.operation, ContinueLoopOp):
@@ -803,16 +874,16 @@ class QASM3Builder:
                 nodes = [self.build_subroutine_call(instruction)]
 
             if instruction.operation.condition is None:
-                ret.extend(nodes)
+                statements.extend(nodes)
             else:
                 body = ast.ProgramBlock(nodes)
-                ret.append(
+                statements.append(
                     ast.BranchingStatement(
                         self.build_expression(_lift_condition(instruction.operation.condition)),
                         body,
                     )
                 )
-        return ret
+        return statements
 
     def build_if_statement(self, instruction: CircuitInstruction) -> ast.BranchingStatement:
         """Build an :obj:`.IfElseOp` into a :obj:`.ast.BranchingStatement`."""
@@ -820,14 +891,14 @@ class QASM3Builder:
 
         true_circuit = instruction.operation.blocks[0]
         self.push_scope(true_circuit, instruction.qubits, instruction.clbits)
-        true_body = self.build_program_block(true_circuit.data)
+        true_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         if len(instruction.operation.blocks) == 1:
             return ast.BranchingStatement(condition, true_body, None)
 
         false_circuit = instruction.operation.blocks[1]
         self.push_scope(false_circuit, instruction.qubits, instruction.clbits)
-        false_body = self.build_program_block(false_circuit.data)
+        false_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.BranchingStatement(condition, true_body, false_body)
 
@@ -838,7 +909,7 @@ class QASM3Builder:
         target = self._reserve_variable_name(
             ast.Identifier(self._unique_name("switch_dummy", global_scope)), global_scope
         )
-        self._global_classical_declarations.append(
+        self._global_classical_forward_declarations.append(
             ast.ClassicalDeclaration(ast.IntType(), target, None)
         )
 
@@ -851,7 +922,7 @@ class QASM3Builder:
                     for v in values
                 ]
                 self.push_scope(case_block, instruction.qubits, instruction.clbits)
-                case_body = self.build_program_block(case_block.data)
+                case_body = ast.ProgramBlock(self.build_current_scope())
                 self.pop_scope()
                 return values, case_body
 
@@ -871,7 +942,7 @@ class QASM3Builder:
         default = None
         for values, block in instruction.operation.cases_specifier():
             self.push_scope(block, instruction.qubits, instruction.clbits)
-            case_body = self.build_program_block(block.data)
+            case_body = ast.ProgramBlock(self.build_current_scope())
             self.pop_scope()
             if CASE_DEFAULT in values:
                 # Even if it's mixed in with other cases, we can skip them and only output the
@@ -891,7 +962,7 @@ class QASM3Builder:
         condition = self.build_expression(_lift_condition(instruction.operation.condition))
         loop_circuit = instruction.operation.blocks[0]
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
-        loop_body = self.build_program_block(loop_circuit.data)
+        loop_body = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.WhileLoopStatement(condition, loop_body)
 
@@ -921,7 +992,7 @@ class QASM3Builder:
                     "The values in OpenQASM 3 'for' loops must all be integers, but received"
                     f" '{indexset}'."
                 ) from None
-        body_ast = self.build_program_block(loop_circuit)
+        body_ast = ast.ProgramBlock(self.build_current_scope())
         self.pop_scope()
         return ast.ForLoopStatement(indexset_ast, loop_parameter_ast, body_ast)
 
@@ -960,10 +1031,6 @@ class QASM3Builder:
             # somewhere, but no valid Terra object should trigger this.
             raise QASM3ExporterError(f"'{value}' is not an integer")  # pragma: no cover
         return ast.IntegerLiteral(int(value))
-
-    def build_program_block(self, instructions):
-        """Builds a ProgramBlock"""
-        return ast.ProgramBlock(self.build_quantum_instructions(instructions))
 
     def _rebind_scoped_parameters(self, expression):
         """If the input is a :class:`.ParameterExpression`, rebind any internal
@@ -1008,8 +1075,8 @@ def _infer_variable_declaration(
 
     This is very simplistic; it assumes all parameters are real numbers that need to be input to the
     program, unless one is used as a loop variable, in which case it shouldn't be declared at all,
-    because the ``for`` loop declares it implicitly (per the Qiskit/QSS reading of the OpenQASM
-    spec at Qiskit/openqasm@8ee55ec).
+    because the ``for`` loop declares it implicitly (per the Qiskit/qe-compiler reading of the
+    OpenQASM spec at openqasm/openqasm@8ee55ec).
 
     .. note::
 
