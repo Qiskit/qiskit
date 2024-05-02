@@ -319,29 +319,18 @@ class OptimizeAnnotated(TransformationPass):
         i.e. ``B = P * Q * R``, with ``R = P^{-1}`` (with ``P``, ``Q`` and ``R`` represented as
         ``DAGCircuit`` objects).
 
-        Let ``IP``, ``IQ`` and ``IR`` denote new custom instructions with definitions ``P``, ``Q`` and
-        ``R`` respectively.
+        Let ``IQ`` denote a new custom instruction with definitions ``Q``.
 
         We return the operation ``op_new`` which a new custom instruction with definition
-        ``IP * A * IR``, where ``A`` is a new annotated-operation with modifiers ``M`` and
+        ``P * A * R``, where ``A`` is a new annotated-operation with modifiers ``M`` and
         base gate ``IQ``.
         """
         p_dag, q_dag, r_dag = base_decomposition
-
-        p_instr = Instruction(
-            name="ip", num_qubits=op.base_op.num_qubits, num_clbits=op.base_op.num_clbits, params=[]
-        )
-        p_instr.definition = dag_to_circuit(p_dag)
 
         q_instr = Instruction(
             name="iq", num_qubits=op.base_op.num_qubits, num_clbits=op.base_op.num_clbits, params=[]
         )
         q_instr.definition = dag_to_circuit(q_dag)
-
-        r_instr = Instruction(
-            name="ir", num_qubits=op.base_op.num_qubits, num_clbits=op.base_op.num_clbits, params=[]
-        )
-        r_instr.definition = dag_to_circuit(r_dag)
 
         op_new = Instruction(
             "optimized", num_qubits=op.num_qubits, num_clbits=op.num_clbits, params=[]
@@ -349,11 +338,16 @@ class OptimizeAnnotated(TransformationPass):
         num_control_qubits = op.num_qubits - op.base_op.num_qubits
 
         circ = QuantumCircuit(op.num_qubits, op.num_clbits)
-        circ.append(p_instr, range(num_control_qubits, op.num_qubits))
+        qubits = circ.qubits
+        circ.compose(
+            dag_to_circuit(p_dag), qubits[num_control_qubits : op.num_qubits], inplace=True
+        )
         circ.append(
             AnnotatedOperation(base_op=q_instr, modifiers=op.modifiers), range(op.num_qubits)
         )
-        circ.append(r_instr, range(num_control_qubits, op.num_qubits))
+        circ.compose(
+            dag_to_circuit(r_dag), qubits[num_control_qubits : op.num_qubits], inplace=True
+        )
         op_new.definition = circ
         return op_new
 
