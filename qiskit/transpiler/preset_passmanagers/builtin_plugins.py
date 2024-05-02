@@ -14,7 +14,7 @@
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BasicSwap, StarPreRouting
+from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
@@ -783,7 +783,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
-            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found)),
+            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found))
             layout.append(ConditionalController(choose_layout_0, condition=_star_prerouting_check))
             layout.append(
                 ConditionalController(
@@ -817,7 +817,7 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
-            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found)),
+            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found))
             layout.append(ConditionalController(choose_layout_0, condition=_star_prerouting_check))
             layout.append(
                 ConditionalController(
