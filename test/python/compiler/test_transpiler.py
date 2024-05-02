@@ -294,10 +294,10 @@ class TestTranspile(QiskitTestCase):
 
         qr = QuantumRegister(8)
         circuit = QuantumCircuit(qr)
-        for i, _ in enumerate(qr):
+        for i, q in enumerate(qr):
             for j in range(i):
-                circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
-            circuit.h(qr[i])
+                circuit.cp(math.pi / float(2 ** (i - j)), q, qr[j])
+            circuit.h(q)
 
         new_circuit = transpile(
             circuit, basis_gates=basis_gates, coupling_map=MELBOURNE_CMAP, seed_transpiler=42
@@ -1839,11 +1839,12 @@ class TestTranspile(QiskitTestCase):
             optimization_level=optimization_level,
             seed_transpiler=42,
         )
-        if optimization_level != 3:
+        if optimization_level not in {2, 3}:
             self.assertTrue(Operator(qc).equiv(res))
             self.assertNotIn("swap", res.count_ops())
         else:
-            # Optimization level 3 eliminates the pointless swap
+            # Optimization level 2 and 3 eliminates the swap by permuting the
+            # qubits
             self.assertEqual(res, QuantumCircuit(2))
 
     @data(0, 1, 2, 3)

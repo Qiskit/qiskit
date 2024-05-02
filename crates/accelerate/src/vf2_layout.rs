@@ -90,7 +90,7 @@ pub fn score_layout(
             .filter_map(edge_filter_map)
             .product()
     };
-    fidelity *= if bit_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
+    fidelity *= if bit_list.len()? < PARALLEL_THRESHOLD || !run_in_parallel {
         bit_counts
             .iter()
             .enumerate()
@@ -107,7 +107,7 @@ pub fn score_layout(
 }
 
 #[pymodule]
-pub fn vf2_layout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn vf2_layout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(score_layout))?;
     m.add_class::<EdgeList>()?;
     Ok(())

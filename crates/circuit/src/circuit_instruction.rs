@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::quantum_circuit::py_ext;
 use pyo3::basic::CompareOp;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyTuple};
@@ -52,7 +51,7 @@ use pyo3::{PyObject, PyResult};
     freelist = 20,
     sequence,
     get_all,
-    module = "qiskit._accelerate.quantum_circuit"
+    module = "qiskit._accelerate.circuit"
 )]
 #[derive(Clone, Debug)]
 pub struct CircuitInstruction {
@@ -70,26 +69,27 @@ impl CircuitInstruction {
     pub fn new(
         py: Python<'_>,
         operation: PyObject,
-        qubits: Option<&PyAny>,
-        clbits: Option<&PyAny>,
+        qubits: Option<&Bound<PyAny>>,
+        clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<Self> {
-        fn as_tuple(py: Python<'_>, seq: Option<&PyAny>) -> PyResult<Py<PyTuple>> {
+        fn as_tuple(py: Python<'_>, seq: Option<&Bound<PyAny>>) -> PyResult<Py<PyTuple>> {
             match seq {
-                None => Ok(py_ext::tuple_new_empty(py)),
+                None => Ok(PyTuple::empty_bound(py).unbind()),
                 Some(seq) => {
                     if seq.is_instance_of::<PyTuple>() {
                         Ok(seq.downcast_exact::<PyTuple>()?.into_py(py))
                     } else if seq.is_instance_of::<PyList>() {
                         let seq = seq.downcast_exact::<PyList>()?;
-                        Ok(py_ext::tuple_from_list(seq))
+                        Ok(seq.to_tuple().unbind())
                     } else {
                         // New tuple from iterable.
-                        Ok(py_ext::tuple_new(
+                        Ok(PyTuple::new_bound(
                             py,
                             seq.iter()?
-                                .map(|o| Ok(o?.into_py(py)))
+                                .map(|o| Ok(o?.unbind()))
                                 .collect::<PyResult<Vec<PyObject>>>()?,
-                        ))
+                        )
+                        .unbind())
                     }
                 }
             }
@@ -118,27 +118,27 @@ impl CircuitInstruction {
         &self,
         py: Python<'_>,
         operation: Option<PyObject>,
-        qubits: Option<&PyAny>,
-        clbits: Option<&PyAny>,
+        qubits: Option<&Bound<PyAny>>,
+        clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<Self> {
         CircuitInstruction::new(
             py,
             operation.unwrap_or_else(|| self.operation.clone_ref(py)),
-            Some(qubits.unwrap_or_else(|| self.qubits.as_ref(py))),
-            Some(clbits.unwrap_or_else(|| self.clbits.as_ref(py))),
+            Some(qubits.unwrap_or_else(|| self.qubits.bind(py))),
+            Some(clbits.unwrap_or_else(|| self.clbits.bind(py))),
         )
     }
 
     fn __getstate__(&self, py: Python<'_>) -> PyObject {
         (
-            self.operation.as_ref(py),
-            self.qubits.as_ref(py),
-            self.clbits.as_ref(py),
+            self.operation.bind(py),
+            self.qubits.bind(py),
+            self.clbits.bind(py),
         )
             .into_py(py)
     }
 
-    fn __setstate__(&mut self, _py: Python<'_>, state: &PyTuple) -> PyResult<()> {
+    fn __setstate__(&mut self, _py: Python<'_>, state: &Bound<PyTuple>) -> PyResult<()> {
         self.operation = state.get_item(0)?.extract()?;
         self.qubits = state.get_item(1)?.extract()?;
         self.clbits = state.get_item(2)?.extract()?;
@@ -147,15 +147,15 @@ impl CircuitInstruction {
 
     pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
         Ok((
-            self.operation.as_ref(py),
-            self.qubits.as_ref(py),
-            self.clbits.as_ref(py),
+            self.operation.bind(py),
+            self.qubits.bind(py),
+            self.clbits.bind(py),
         )
             .into_py(py))
     }
 
-    pub fn __repr__(self_: &PyCell<Self>, py: Python<'_>) -> PyResult<String> {
-        let type_name = self_.get_type().name()?;
+    pub fn __repr__(self_: &Bound<Self>, py: Python<'_>) -> PyResult<String> {
+        let type_name = self_.get_type().qualname()?;
         let r = self_.try_borrow()?;
         Ok(format!(
             "{}(\
@@ -164,9 +164,9 @@ impl CircuitInstruction {
             , clbits={}\
             )",
             type_name,
-            r.operation.as_ref(py).repr()?,
-            r.qubits.as_ref(py).repr()?,
-            r.clbits.as_ref(py).repr()?
+            r.operation.bind(py).repr()?,
+            r.qubits.bind(py).repr()?,
+            r.clbits.bind(py).repr()?
         ))
     }
 
@@ -176,28 +176,23 @@ impl CircuitInstruction {
     // the interface to behave exactly like the old 3-tuple `(inst, qargs, cargs)` if it's treated
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
-    pub fn _legacy_format(&self, py: Python<'_>) -> PyObject {
-        PyTuple::new(
+    pub fn _legacy_format<'py>(&self, py: Python<'py>) -> Bound<'py, PyTuple> {
+        PyTuple::new_bound(
             py,
             [
-                self.operation.as_ref(py),
-                self.qubits.as_ref(py).to_list(),
-                self.clbits.as_ref(py).to_list(),
+                self.operation.bind(py),
+                &self.qubits.bind(py).to_list(),
+                &self.clbits.bind(py).to_list(),
             ],
         )
-        .into_py(py)
     }
 
-    pub fn __getitem__(&self, py: Python<'_>, key: &PyAny) -> PyResult<PyObject> {
-        Ok(self
-            ._legacy_format(py)
-            .as_ref(py)
-            .get_item(key)?
-            .into_py(py))
+    pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        Ok(self._legacy_format(py).as_any().get_item(key)?.into_py(py))
     }
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
-        Ok(self._legacy_format(py).as_ref(py).iter()?.into_py(py))
+        Ok(self._legacy_format(py).as_any().iter()?.into_py(py))
     }
 
     pub fn __len__(&self) -> usize {
@@ -205,15 +200,15 @@ impl CircuitInstruction {
     }
 
     pub fn __richcmp__(
-        self_: &PyCell<Self>,
-        other: &PyAny,
+        self_: &Bound<Self>,
+        other: &Bound<PyAny>,
         op: CompareOp,
         py: Python<'_>,
     ) -> PyResult<PyObject> {
         fn eq(
             py: Python<'_>,
-            self_: &PyCell<CircuitInstruction>,
-            other: &PyAny,
+            self_: &Bound<CircuitInstruction>,
+            other: &Bound<PyAny>,
         ) -> PyResult<Option<bool>> {
             if self_.is(other) {
                 return Ok(Some(true));
@@ -221,19 +216,19 @@ impl CircuitInstruction {
 
             let self_ = self_.try_borrow()?;
             if other.is_instance_of::<CircuitInstruction>() {
-                let other: PyResult<&PyCell<CircuitInstruction>> = other.extract();
+                let other: PyResult<Bound<CircuitInstruction>> = other.extract();
                 return other.map_or(Ok(Some(false)), |v| {
                     let v = v.try_borrow()?;
                     Ok(Some(
-                        self_.clbits.as_ref(py).eq(v.clbits.as_ref(py))?
-                            && self_.qubits.as_ref(py).eq(v.qubits.as_ref(py))?
-                            && self_.operation.as_ref(py).eq(v.operation.as_ref(py))?,
+                        self_.clbits.bind(py).eq(v.clbits.bind(py))?
+                            && self_.qubits.bind(py).eq(v.qubits.bind(py))?
+                            && self_.operation.bind(py).eq(v.operation.bind(py))?,
                     ))
                 });
             }
 
             if other.is_instance_of::<PyTuple>() {
-                return Ok(Some(self_._legacy_format(py).as_ref(py).eq(other)?));
+                return Ok(Some(self_._legacy_format(py).eq(other)?));
             }
 
             Ok(None)

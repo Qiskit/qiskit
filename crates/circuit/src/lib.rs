@@ -13,12 +13,22 @@
 pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod intern_context;
-mod py_ext;
 
 use pyo3::prelude::*;
+use pyo3::types::PySlice;
+
+/// A private enumeration type used to extract arguments to pymethod
+/// that may be either an index or a slice
+#[derive(FromPyObject)]
+pub enum SliceOrInt<'a> {
+    // The order here defines the order the variants are tried in the FromPyObject` derivation.
+    // `Int` is _much_ more common, so that should be first.
+    Int(isize),
+    Slice(Bound<'a, PySlice>),
+}
 
 #[pymodule]
-pub fn quantum_circuit(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     Ok(())
