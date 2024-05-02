@@ -230,11 +230,11 @@ impl BuilderState {
     // Encountering any gates not in the standard library results in raising an exception.
     // Gates mapped via CustomGates will not raise an exception.
     fn map_gate_ids(&mut self, _py: Python, ast_symbols: &SymbolTable) -> PyResult<()> {
-        for (name, name_id, defined_num_params, defined_num_qubits) in ast_symbols.gates().iter() {
-            let pygate = self.pygates.get(*name).ok_or_else(|| {
+        for (name, name_id, defined_num_params, defined_num_qubits) in ast_symbols.gates() {
+            let pygate = self.pygates.get(name).ok_or_else(|| {
                 QASM3ImporterError::new_err(format!("can't handle non-built-in gate: '{}'", name))
             })?;
-            if pygate.num_params() != *defined_num_params {
+            if pygate.num_params() != defined_num_params {
                 return Err(QASM3ImporterError::new_err(format!(
                     "given constructor for '{}' expects {} parameters, but is defined as taking {}",
                     pygate.name(),
@@ -242,7 +242,7 @@ impl BuilderState {
                     defined_num_params,
                 )));
             }
-            if pygate.num_qubits() != *defined_num_qubits {
+            if pygate.num_qubits() != defined_num_qubits {
                 return Err(QASM3ImporterError::new_err(format!(
                     "given constructor for '{}' expects {} qubits, but is defined as taking {}",
                     pygate.name(),
