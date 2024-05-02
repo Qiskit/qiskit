@@ -26,7 +26,6 @@ from qiskit.converters import (
 )
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.passes import VF2Layout, ApplyLayout, SabreSwap, SabreLayout
-from qiskit.transpiler.passes.optimization.finalize_layouts import FinalizeLayouts
 from qiskit.transpiler.passes.routing.star_prerouting import StarPreRouting
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager import PassManager
@@ -63,9 +62,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.h(0)
         qc.cx(0, range(1, 5))
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
 
         result = pm.run(qc)
 
@@ -78,9 +76,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
         new_qc = pm.run(qc)
 
         self.assertTrue(Operator.from_circuit(new_qc).equiv(Operator(qc)))
@@ -91,9 +88,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(0, range(1, 5))
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
         new_qc = pm.run(qc)
 
         self.assertTrue(Operator(qc).equiv(Operator.from_circuit(new_qc)))
@@ -126,9 +122,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(3, 2)
         # qc.measure_all()
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
 
         result = pm.run(qc)
 
@@ -141,9 +136,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.h(9)
         qc.cx(9, range(8, 4, -1))
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
         result = pm.run(qc)
 
         self.assertEqual(Operator.from_circuit(result), Operator(qc))
@@ -157,9 +151,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(3, 4)
         qc.cx(4, 5)
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
 
         result = pm.run(qc)
 
@@ -175,9 +168,8 @@ class TestStarPreRouting(QiskitTestCase):
         qc.cx(1, 4)
         qc.cx(2, 1)
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
         result = pm.run(qc)
 
         self.assertTrue(Operator.from_circuit(result).equiv(qc))
@@ -264,7 +256,7 @@ class TestStarPreRouting(QiskitTestCase):
         pm = generate_preset_pass_manager(
             opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
         )
-        pm.pre_layout = PassManager(StarPreRouting())
+        pm.init += StarPreRouting()
         result = pm.run(qc)
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
@@ -279,9 +271,8 @@ class TestStarPreRouting(QiskitTestCase):
             qc.cx(i, num_qubits - 1)
         qc.h(qc.qubits[:-1])
 
-        pm = PassManager()
-        pm.append(StarPreRouting())
-        pm.append(FinalizeLayouts())
+        pm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+        pm.init += StarPreRouting()
 
         result = pm.run(qc)
         self.assertTrue(Operator.from_circuit(result).equiv(Operator(qc)))
@@ -305,7 +296,7 @@ class TestStarPreRouting(QiskitTestCase):
         pm = generate_preset_pass_manager(
             opt_level, basis_gates=["h", "cx", "x"], coupling_map=coupling_map
         )
-        pm.pre_layout = PassManager(StarPreRouting())
+        pm.init += StarPreRouting()
         result = pm.run(qc)
         counts_before = AerSimulator().run(qc).result().get_counts()
         counts_after = AerSimulator().run(result).result().get_counts()
@@ -476,16 +467,15 @@ class TestStarPreRouting(QiskitTestCase):
         qc = QFT(nq, do_swaps=False, insert_barriers=True).decompose()
         cm = CouplingMap.from_line(nq)
 
+
         pm_preroute = PassManager()
         pm_preroute.append(StarPreRouting())
         pm_preroute.append(VF2Layout(coupling_map=cm, seed=17))
         pm_preroute.append(ApplyLayout())
         pm_preroute.append(SabreSwap(coupling_map=cm, seed=17))
-        pm_preroute.append(FinalizeLayouts())
 
         pm_sabre = PassManager()
         pm_sabre.append(SabreLayout(coupling_map=cm, seed=17))
-        pm_sabre.append(FinalizeLayouts())
 
         res_sabre = pm_sabre.run(qc)
         res_star = pm_sabre.run(qc)
