@@ -34,7 +34,7 @@ from qiskit.circuit import (
     CircuitError,
 )
 from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -901,6 +901,118 @@ class TestCircuitCompose(QiskitTestCase):
 
         self.assertEqual(dest, expected)
 
+    def test_join_unrelated_vars(self):
+        """Composing disjoint sets of vars should produce an additive output."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        base = QuantumCircuit(inputs=[a])
+        other = QuantumCircuit(inputs=[b])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a, b}, set(out.iter_input_vars()))
+        # Assert that base was unaltered.
+        self.assertEqual({a}, set(base.iter_vars()))
+
+        base = QuantumCircuit(captures=[a])
+        other = QuantumCircuit(captures=[b])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a, b}, set(out.iter_captured_vars()))
+        self.assertEqual({a}, set(base.iter_vars()))
+
+        base = QuantumCircuit(inputs=[a])
+        other = QuantumCircuit(declarations=[(b, 255)])
+        out = base.compose(other)
+        self.assertEqual({a, b}, set(out.iter_vars()))
+        self.assertEqual({a}, set(out.iter_input_vars()))
+        self.assertEqual({b}, set(out.iter_declared_vars()))
+
+    def test_var_remap_to_avoid_collisions(self):
+        """We can use `var_remap` to avoid a variable collision."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+
+        base = QuantumCircuit(inputs=[a1])
+        other = QuantumCircuit(inputs=[a2])
+
+        out = base.compose(other, var_remap={a2: b})
+        self.assertEqual([a1, b], list(out.iter_input_vars()))
+        self.assertEqual([a1, b], list(out.iter_vars()))
+
+        out = base.compose(other, var_remap={"a": b})
+        self.assertEqual([a1, b], list(out.iter_input_vars()))
+        self.assertEqual([a1, b], list(out.iter_vars()))
+
+        out = base.compose(other, var_remap={"a": "c"})
+        self.assertTrue(out.has_var("c"))
+        c = out.get_var("c")
+        self.assertEqual(c.name, "c")
+        self.assertEqual([a1, c], list(out.iter_input_vars()))
+        self.assertEqual([a1, c], list(out.iter_vars()))
+
+    def test_simple_inline_captures(self):
+        """We should be able to inline captures onto other variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        base = QuantumCircuit(inputs=[a, b])
+        base.add_var(c, 255)
+        base.store(a, expr.logic_or(a, b))
+        other = QuantumCircuit(captures=[a, b, c])
+        other.store(c, 254)
+        other.store(b, expr.logic_or(a, b))
+        new = base.compose(other, inline_captures=True)
+
+        expected = QuantumCircuit(inputs=[a, b])
+        expected.add_var(c, 255)
+        expected.store(a, expr.logic_or(a, b))
+        expected.store(c, 254)
+        expected.store(b, expr.logic_or(a, b))
+        self.assertEqual(new, expected)
+
+    def test_can_inline_a_capture_after_remapping(self):
+        """We can use `var_remap` to redefine a capture variable _and then_ inline it in deeply
+        nested scopes.  This is a stress test of capture inlining."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        c = expr.Var.new("c", types.Uint(8))
+
+        # We shouldn't be able to inline `qc`'s variable use as-is because it closes over the wrong
+        # variable, but it should work after variable remapping.  (This isn't expected to be super
+        # useful, it's just a consequence of how the order between `var_remap` and `inline_captures`
+        # is defined).
+        base = QuantumCircuit(inputs=[a])
+        qc = QuantumCircuit(declarations=[(c, 255)], captures=[b])
+        qc.store(b, expr.logic_and(b, b))
+        with qc.if_test(expr.logic_not(b)):
+            with qc.while_loop(b):
+                qc.store(b, expr.logic_not(b))
+            # Note that 'c' is captured in this scope, so this is also a test that 'inline_captures'
+            # doesn't do something silly in nested scopes.
+            with qc.switch(c) as case:
+                with case(0):
+                    qc.store(c, expr.bit_and(c, 255))
+                with case(case.DEFAULT):
+                    qc.store(b, expr.equal(c, 255))
+        base.compose(qc, inplace=True, inline_captures=True, var_remap={b: a})
+
+        expected = QuantumCircuit(inputs=[a], declarations=[(c, 255)])
+        expected.store(a, expr.logic_and(a, a))
+        with expected.if_test(expr.logic_not(a)):
+            with expected.while_loop(a):
+                expected.store(a, expr.logic_not(a))
+            # Note that 'c' is not remapped.
+            with expected.switch(c) as case:
+                with case(0):
+                    expected.store(c, expr.bit_and(c, 255))
+                with case(case.DEFAULT):
+                    expected.store(a, expr.equal(c, 255))
+
+        self.assertEqual(base, expected)
+
     def test_rejects_duplicate_bits(self):
         """Test that compose rejects duplicates in either qubits or clbits."""
         base = QuantumCircuit(5, 5)
@@ -910,6 +1022,55 @@ class TestCircuitCompose(QiskitTestCase):
             base.compose(attempt, [1, 1], [0, 1])
         with self.assertRaisesRegex(CircuitError, "Duplicate clbits"):
             base.compose(attempt, [0, 1], [1, 1])
+
+    def test_cannot_mix_inputs_and_captures(self):
+        """The rules about mixing `input` and `capture` vars should still apply."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        with self.assertRaisesRegex(CircuitError, "circuits with input variables cannot be"):
+            QuantumCircuit(inputs=[a]).compose(QuantumCircuit(captures=[b]))
+        with self.assertRaisesRegex(CircuitError, "circuits to be enclosed with captures cannot"):
+            QuantumCircuit(captures=[a]).compose(QuantumCircuit(inputs=[b]))
+
+    def test_reject_var_naming_collision(self):
+        """We can't have multiple vars with the same name."""
+        a1 = expr.Var.new("a", types.Bool())
+        a2 = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        self.assertNotEqual(a1, a2)
+
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(inputs=[a1]).compose(QuantumCircuit(inputs=[a2]))
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(captures=[a1]).compose(QuantumCircuit(declarations=[(a2, False)]))
+        with self.assertRaisesRegex(CircuitError, "cannot add.*shadows"):
+            QuantumCircuit(declarations=[(a1, True)]).compose(
+                QuantumCircuit(inputs=[b]), var_remap={b: a2}
+            )
+
+    def test_reject_remap_var_to_bad_type(self):
+        """Can't map a var to a different type."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        qc = QuantumCircuit(inputs=[a])
+        with self.assertRaisesRegex(CircuitError, "mismatched types"):
+            QuantumCircuit().compose(qc, var_remap={a: b})
+        qc = QuantumCircuit(captures=[b])
+        with self.assertRaisesRegex(CircuitError, "mismatched types"):
+            QuantumCircuit().compose(qc, var_remap={b: a})
+
+    def test_reject_inlining_missing_var(self):
+        """Can't inline a var that doesn't exist."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Bool())
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Variable '.*' to be inlined is not in the base"):
+            QuantumCircuit().compose(qc, inline_captures=True)
+
+        # 'a' _would_ be present, except we also say to remap it before attempting the inline.
+        qc = QuantumCircuit(captures=[a])
+        with self.assertRaisesRegex(CircuitError, "Replacement '.*' for variable '.*' is not in"):
+            QuantumCircuit(inputs=[a]).compose(qc, var_remap={a: b}, inline_captures=True)
 
 
 if __name__ == "__main__":

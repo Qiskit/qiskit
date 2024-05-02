@@ -123,8 +123,19 @@ class FloatType(ClassicalType, enum.Enum):
     OCT = 256
 
 
+class BoolType(ClassicalType):
+    """Type information for a Boolean."""
+
+
 class IntType(ClassicalType):
     """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
+
+
+class UintType(ClassicalType):
+    """Type information for an unsigned integer."""
 
     def __init__(self, size: Optional[int] = None):
         self.size = size
