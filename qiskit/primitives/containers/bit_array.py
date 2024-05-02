@@ -533,6 +533,8 @@ class BitArray(ShapedMixin):
         num_bits = bit_arrays[0].num_bits
         num_shots = bit_arrays[0].num_shots
         ndim = bit_arrays[0].ndim
+        if ndim == 0:
+            raise ValueError("Zero-dimensional bit arrays cannot be concatenated")
         for i, ba in enumerate(bit_arrays):
             if ba.num_bits != num_bits:
                 raise ValueError(
