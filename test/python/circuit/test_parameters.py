@@ -111,10 +111,14 @@ class TestParameters(QiskitTestCase):
         param = Parameter("a")
         param_copy = Parameter(param.name, uuid=param.uuid)
         param_different = Parameter("a")
+        param_same_uuid_diff_name = Parameter("b", uuid=param.uuid)
 
         self.assertEqual(param, param, "Parameter does not equal itself")
         self.assertEqual(param, param_copy, "Parameters with same data are not equal")
         self.assertNotEqual(param, param_different, "Different Parameters are treated as equal")
+        self.assertNotEqual(
+            param, param_same_uuid_diff_name, "Parameters with different names are treated as equal"
+        )
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -140,6 +144,29 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(param_a, 0)
         self.assertRaises(CircuitError, qc.rx, param_a_again, 0)
+
+    def test_append_copies_parametric(self):
+        """Test that `QuantumCircuit.append` copies instructions when they contain compile
+        parameters and expressions."""
+        param = Parameter("a")
+        expr = param * 2
+        gate_param = RZGate(param)
+        gate_expr = RZGate(expr)
+
+        qc = QuantumCircuit(1)
+        qc.append(gate_param, [0], copy=True)
+        self.assertIsNot(qc.data[-1].operation, gate_param)
+        self.assertEqual(qc.data[-1].operation, gate_param)
+
+        qc.append(gate_param, [0], copy=False)
+        self.assertIs(qc.data[-1].operation, gate_param)
+
+        qc.append(gate_expr, [0], copy=True)
+        self.assertIsNot(qc.data[-1].operation, gate_expr)
+        self.assertEqual(qc.data[-1].operation, gate_expr)
+
+        qc.append(gate_expr, [0], copy=False)
+        self.assertIs(qc.data[-1].operation, gate_expr)
 
     def test_parameters_property(self):
         """Test instantiating gate with variable parameters"""

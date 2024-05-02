@@ -139,7 +139,7 @@ target-version = ['py38', 'py39', 'py310', 'py311']
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686"
+skip = "pp* cp36-* cp37-* *musllinux* *win32 *i686 cp38-macosx_arm64"
 test-skip = "*win32 *linux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -174,7 +174,8 @@ select = [
   "F632",  # is-literal
   "F634",  # if-tuple
   "F823",  # undefined-local
-  "C4",  # category: flake8-comprehensions
+  "G",     # flake8-logging-format
+  "T10",   # category: flake8-debugger
 ]
 
 [tool.pylint.main]
@@ -214,6 +215,7 @@ disable = [
     "no-else-return",  # relax "elif" after a clause with a return
     "docstring-first-line-empty", # relax docstring style
     "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
+    "nested-min-max", # this gives false equivalencies if implemented for the current lint version
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
@@ -223,27 +225,16 @@ disable = [
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "modified-iterating-list",
-    "nested-min-max",
     "no-member",
     "no-value-for-parameter",
-    "non-ascii-name",
     "not-context-manager",
-    "superfluous-parens",
-    "unknown-option-value",
     "unexpected-keyword-arg",
     "unnecessary-dict-index-lookup",
-    "unnecessary-direct-lambda-call",
     "unnecessary-dunder-call",
-    "unnecessary-ellipsis",
     "unnecessary-lambda-assignment",
-    "unnecessary-list-index-lookup",
     "unspecified-encoding",
     "unsupported-assignment-operation",
-    "use-dict-literal",
-    "use-list-literal",
     "use-implicit-booleaness-not-comparison",
-    "use-maxsplit-arg",
 ]
 
 enable = [

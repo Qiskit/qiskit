@@ -18,6 +18,12 @@ from __future__ import annotations
 
 import datetime
 import doctest
+import importlib
+import inspect
+import os
+import re
+from pathlib import Path
+
 
 project = "Qiskit"
 project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"
@@ -30,10 +36,6 @@ release = "1.1.0"
 
 language = "en"
 
-# This tells 'qiskit_sphinx_theme' that we're based at 'https://qiskit.org/<docs_url_prefix>'.
-# Should not include the subdirectory for the stable version.
-docs_url_prefix = "documentation"
-
 rst_prolog = f".. |version| replace:: {version}"
 
 extensions = [
@@ -43,7 +45,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
     # This is used by qiskit/documentation to generate links to github.com.
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "matplotlib.sphinxext.plot_directive",
     "reno.sphinxext",
     "sphinxcontrib.katex",
@@ -79,7 +81,7 @@ modindex_common_prefix = ["qiskit."]
 intersphinx_mapping = {
     "rustworkx": ("https://www.rustworkx.org/", None),
     "qiskit-ibm-runtime": ("https://docs.quantum.ibm.com/api/qiskit-ibm-runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
+    "qiskit-aer": ("https://qiskit.github.io/qiskit-aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "python": ("https://docs.python.org/3/", None),
@@ -159,3 +161,54 @@ doctest_test_doctest_blocks = ""
 # ----------------------------------------------------------------------------------
 
 plot_html_show_formats = False
+
+
+# ----------------------------------------------------------------------------------
+# Source code links
+# ----------------------------------------------------------------------------------
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def linkcode_resolve(domain, info):
+    if domain != "py":
+        return None
+
+    module_name = info["module"]
+    if "qiskit" not in module_name:
+        return None
+
+    try: 
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        return None
+
+    obj = module
+    for part in info["fullname"].split("."):
+        try:
+            obj = getattr(obj, part)
+        except AttributeError:
+            return None
+
+    try:
+        full_file_name = inspect.getsourcefile(obj)
+    except TypeError:
+        return None
+    if full_file_name is None:
+        return None
+    try:
+        relative_file_name = Path(full_file_name).resolve().relative_to(REPO_ROOT)
+        file_name = re.sub(r"\.tox\/.+\/site-packages\/", "", str(relative_file_name))
+    except ValueError:
+        return None
+
+    try:
+        source, lineno = inspect.getsourcelines(obj)
+    except (OSError, TypeError):
+        linespec = ""
+    else:
+        ending_lineno = lineno + len(source) - 1
+        linespec = f"#L{lineno}-L{ending_lineno}"
+
+    github_branch = os.environ.get("QISKIT_DOCS_GITHUB_BRANCH_NAME", "main")
+    return f"https://github.com/Qiskit/qiskit/tree/{github_branch}/{file_name}{linespec}"

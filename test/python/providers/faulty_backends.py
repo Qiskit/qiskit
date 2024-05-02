@@ -34,6 +34,18 @@ class Fake7QV1FaultyQ1(Fake7QPulseV1):
         return BackendProperties.from_dict(props)
 
 
+class Fake7QV1MissingQ1Property(Fake7QPulseV1):
+    """A fake 7 qubit backend, with a missing T1 property in q1."""
+
+    def properties(self):
+        """Returns a snapshot of device properties as recorded on 8/30/19.
+        Remove property from qubit 1.
+        """
+        props = super().properties().to_dict()
+        props["qubits"][1] = filter(lambda q: q["name"] != "T1", props["qubits"][1])
+        return BackendProperties.from_dict(props)
+
+
 class Fake7QV1FaultyCX01CX10(Fake7QPulseV1):
     """A fake 5 qubit backend, with faulty CX(Q1, Q0) and CX(Q0, Q1)
     0 (↔) 1 ↔ 3 ↔ 4

@@ -117,13 +117,25 @@ class RZZGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse RZZ gate (i.e. with the negative rotation angle)."""
+        """Return inverse RZZ gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RZZGate` with an inverted parameter value.
+
+        Returns:
+            RZZGate: inverse gate.
+        """
         return RZZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [
@@ -135,8 +147,7 @@ class RZZGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZZGate(exponent * theta)
 

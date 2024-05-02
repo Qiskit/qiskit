@@ -62,10 +62,10 @@ class ParametricPulseShapes(Enum):
         Raises:
             QiskitError: When pulse instance is not recognizable type.
         """
-        try:
+        if isinstance(instance, library.SymbolicPulse):
             return cls(instance.pulse_type)
-        except ValueError as ex:
-            raise QiskitError(f"'{instance}' is not valid pulse type.") from ex
+
+        raise QiskitError(f"'{instance}' is not valid pulse type.")
 
     @classmethod
     def to_type(cls, name: str) -> library.SymbolicPulse:

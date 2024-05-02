@@ -11,10 +11,131 @@
 # that they have been altered from the originals.
 
 
-"""Synthesize higher-level objects and unroll custom definitions."""
+"""
 
-from typing import Optional, Union, List, Tuple
+High Level Synthesis Plugins
+-----------------------------
 
+Clifford Synthesis
+''''''''''''''''''
+
+.. list-table:: Plugins for :class:`qiskit.quantum_info.Clifford` (key = ``"clifford"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"ag"``
+      - :class:`~.AGSynthesisClifford`
+      - all-to-all
+      - greedily optimizes CX-count
+    * - ``"bm"``
+      - :class:`~.BMSynthesisClifford`
+      - all-to-all
+      - optimal count for `n=2,3`; used in ``"default"`` for `n=2,3`
+    * - ``"greedy"``
+      - :class:`~.GreedySynthesisClifford`
+      - all-to-all
+      - greedily optimizes CX-count; used in ``"default"`` for `n>=4`
+    * - ``"layers"``
+      - :class:`~.LayerSynthesisClifford`
+      - all-to-all
+      -
+    * - ``"lnn"``
+      - :class:`~.LayerLnnSynthesisClifford`
+      - linear
+      - many CX-gates but guarantees CX-depth of at most `7*n+2`
+    * - ``"default"``
+      - :class:`~.DefaultSynthesisClifford`
+      - all-to-all
+      - usually best for optimizing CX-count (and optimal CX-count for `n=2,3`)
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   AGSynthesisClifford
+   BMSynthesisClifford
+   GreedySynthesisClifford
+   LayerSynthesisClifford
+   LayerLnnSynthesisClifford
+   DefaultSynthesisClifford
+
+
+Linear Function Synthesis
+'''''''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.LinearFunction` (key = ``"linear"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"kms"``
+      - :class:`~.KMSSynthesisLinearFunction`
+      - linear
+      - many CX-gates but guarantees CX-depth of at most `5*n`
+    * - ``"pmh"``
+      - :class:`~.PMHSynthesisLinearFunction`
+      - all-to-all
+      - greedily optimizes CX-count; used in ``"default"``
+    * - ``"default"``
+      - :class:`~.DefaultSynthesisLinearFunction`
+      - all-to-all
+      - best for optimizing CX-count
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   KMSSynthesisLinearFunction
+   PMHSynthesisLinearFunction
+   DefaultSynthesisLinearFunction
+
+
+Permutation Synthesis
+'''''''''''''''''''''
+
+.. list-table:: Plugins for :class:`.PermutationGate` (key = ``"permutation"``)
+    :header-rows: 1
+
+    * - Plugin name
+      - Plugin class
+      - Targeted connectivity
+      - Description
+    * - ``"basic"``
+      - :class:`~.BasicSynthesisPermutation`
+      - all-to-all
+      - optimal SWAP-count; used in ``"default"``
+    * - ``"acg"``
+      - :class:`~.ACGSynthesisPermutation`
+      - all-to-all
+      - guarantees SWAP-depth of at most `2`
+    * - ``"kms"``
+      - :class:`~.KMSSynthesisPermutation`
+      - linear
+      - many SWAP-gates, but guarantees SWAP-depth of at most `n`
+    * - ``"token_swapper"``
+      - :class:`~.TokenSwapperSynthesisPermutation`
+      - any
+      - greedily optimizes SWAP-count for arbitrary connectivity
+    * - ``"default"``
+      - :class:`~.BasicSynthesisPermutation`
+      - all-to-all
+      - best for optimizing SWAP-count
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BasicSynthesisPermutation
+   ACGSynthesisPermutation
+   KMSSynthesisPermutation
+   TokenSwapperSynthesisPermutation
+"""
+
+from typing import Optional, Union, List, Tuple, Callable
+
+import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit.operation import Operation
@@ -22,6 +143,7 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import ControlFlowOp, ControlledGate, EquivalenceLibrary
+from qiskit.circuit.library import LinearFunction
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.coupling import CouplingMap
@@ -44,7 +166,12 @@ from qiskit.synthesis.clifford import (
     synth_clifford_ag,
     synth_clifford_bm,
 )
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from qiskit.synthesis.linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+    calc_inverse_matrix,
+)
+from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ
 from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
@@ -105,16 +232,34 @@ class HLSConfig:
     :ref:`using-high-level-synthesis-plugins`.
     """
 
-    def __init__(self, use_default_on_unspecified=True, **kwargs):
+    def __init__(
+        self,
+        use_default_on_unspecified: bool = True,
+        plugin_selection: str = "sequential",
+        plugin_evaluation_fn: Optional[Callable[[QuantumCircuit], int]] = None,
+        **kwargs,
+    ):
         """Creates a high-level-synthesis config.
 
         Args:
-            use_default_on_unspecified (bool): if True, every higher-level-object without an
+            use_default_on_unspecified: if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
                 algorithm if it exists.
+            plugin_selection: if set to ``"sequential"`` (default), for every higher-level-object
+                the synthesis pass will consider the specified methods sequentially, stopping
+                at the first method that is able to synthesize the object. If set to ``"all"``,
+                all the specified methods will be considered, and the best synthesized circuit,
+                according to ``plugin_evaluation_fn`` will be chosen.
+            plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
+                quantum circuit; a smaller value means a better circuit. If ``None``, the
+                quality of the circuit its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
+        self.plugin_selection = plugin_selection
+        self.plugin_evaluation_fn = (
+            plugin_evaluation_fn if plugin_evaluation_fn is not None else lambda qc: qc.size()
+        )
         self.methods = {}
 
         for key, value in kwargs.items():
@@ -124,9 +269,6 @@ class HLSConfig:
         """Sets the list of synthesis methods for a given higher-level-object. This overwrites
         the lists of methods if also set previously."""
         self.methods[hls_name] = hls_methods
-
-
-# ToDo: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -378,6 +520,9 @@ class HighLevelSynthesis(TransformationPass):
         else:
             methods = []
 
+        best_decomposition = None
+        best_score = np.inf
+
         for method in methods:
             # There are two ways to specify a synthesis method. The more explicit
             # way is to specify it as a tuple consisting of a synthesis algorithm and a
@@ -416,11 +561,22 @@ class HighLevelSynthesis(TransformationPass):
             )
 
             # The synthesis methods that are not suited for the given higher-level-object
-            # will return None, in which case the next method in the list will be used.
+            # will return None.
             if decomposition is not None:
-                return decomposition
+                if self.hls_config.plugin_selection == "sequential":
+                    # In the "sequential" mode the first successful decomposition is
+                    # returned.
+                    best_decomposition = decomposition
+                    break
 
-        return None
+                # In the "run everything" mode we update the best decomposition
+                # discovered
+                current_score = self.hls_config.plugin_evaluation_fn(decomposition)
+                if current_score < best_score:
+                    best_decomposition = decomposition
+                    best_score = current_score
+
+        return best_decomposition
 
     def _synthesize_annotated_op(self, op: Operation) -> Union[Operation, None]:
         """
@@ -527,7 +683,6 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
 
 class BMSynthesisClifford(HighLevelSynthesisPlugin):
     """Clifford synthesis plugin based on the Bravyi-Maslov method.
-    The plugin is named
 
     The method only works on Cliffords with at most 3 qubits, for which it
     constructs the optimal CX cost decomposition.
@@ -606,11 +761,43 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     This plugin name is :``linear_function.kms`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following plugin-specific options:
+
+    * use_inverted: Indicates whether to run the algorithm on the inverse matrix
+        and to invert the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+    * use_transposed: Indicates whether to run the algorithm on the transposed matrix
+        and to invert the order of CX gates in the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+
+        if not isinstance(high_level_object, LinearFunction):
+            raise TranspilerError(
+                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
+            )
+
+        use_inverted = options.get("use_inverted", False)
+        use_transposed = options.get("use_transposed", False)
+
+        mat = high_level_object.linear.astype(int)
+
+        if use_transposed:
+            mat = np.transpose(mat)
+        if use_inverted:
+            mat = calc_inverse_matrix(mat)
+
+        decomposition = synth_cnot_depth_line_kms(mat)
+
+        if use_transposed:
+            decomposition = transpose_cx_circ(decomposition)
+        if use_inverted:
+            decomposition = decomposition.inverse()
+
         return decomposition
 
 
@@ -619,11 +806,50 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     This plugin name is :``linear_function.pmh`` which can be used as the key on
     an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+
+    The plugin supports the following plugin-specific options:
+
+    * section size: The size of each section used in the Patel–Markov–Hayes algorithm [1].
+    * use_inverted: Indicates whether to run the algorithm on the inverse matrix
+        and to invert the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+    * use_transposed: Indicates whether to run the algorithm on the transposed matrix
+        and to invert the order of CX gates in the synthesized circuit.
+        In certain cases this provides a better decomposition than the direct approach.
+
+    References:
+        1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
+           *Optimal synthesis of linear reversible circuits*,
+           Quantum Information & Computation 8.3 (2008): 282-294.
+           `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
         """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+
+        if not isinstance(high_level_object, LinearFunction):
+            raise TranspilerError(
+                "PMHSynthesisLinearFunction only accepts objects of type LinearFunction"
+            )
+
+        section_size = options.get("section_size", 2)
+        use_inverted = options.get("use_inverted", False)
+        use_transposed = options.get("use_transposed", False)
+
+        mat = high_level_object.linear.astype(int)
+
+        if use_transposed:
+            mat = np.transpose(mat)
+        if use_inverted:
+            mat = calc_inverse_matrix(mat)
+
+        decomposition = synth_cnot_count_full_pmh(mat, section_size=section_size)
+
+        if use_transposed:
+            decomposition = transpose_cx_circ(decomposition)
+        if use_inverted:
+            decomposition = decomposition.inverse()
+
         return decomposition
 
 

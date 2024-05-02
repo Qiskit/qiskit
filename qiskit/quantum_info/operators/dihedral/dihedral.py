@@ -328,6 +328,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
+        # pylint: disable=cyclic-import
         from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
 
         return synth_cnotdihedral_full(self)
@@ -356,10 +357,11 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         _append_circuit(elem, circuit)
         return elem
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""

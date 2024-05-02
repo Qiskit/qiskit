@@ -73,7 +73,7 @@ class TestStatevectorEstimator(QiskitTestCase):
         # Note that passing objects has an overhead
         # since the corresponding indices need to be searched.
         # User can append a circuit and observable.
-        # calculate [ <psi2(theta2)|H2|psi2(theta2)> ]
+        # calculate [ <psi2(theta2)|H1|psi2(theta2)> ]
         result2 = estimator.run([(psi2, hamiltonian1, theta2)]).result()
         np.testing.assert_allclose(result2[0].data.evs, [2.97797666])
 
@@ -236,13 +236,17 @@ class TestStatevectorEstimator(QiskitTestCase):
             est.run([(qc, op)], precision=-1).result()
         with self.assertRaises(ValueError):
             est.run([(qc, 1j * op)], precision=0.1).result()
+        with self.subTest("missing []"):
+            with self.assertRaisesRegex(ValueError, "An invalid Estimator pub-like was given"):
+                _ = est.run((qc, op)).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
         qc = RealAmplitudes(num_qubits=2, reps=2)
         op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
         k = 5
-        params_array = np.random.rand(k, qc.num_parameters)
+        rng = np.random.default_rng(12)
+        params_array = rng.random((k, qc.num_parameters))
         params_list = params_array.tolist()
         params_list_array = list(params_array)
         estimator = StatevectorEstimator()
@@ -276,6 +280,15 @@ class TestStatevectorEstimator(QiskitTestCase):
         job = estimator.run([(psi1, hamiltonian1, [theta1])], precision=0)
         result = job.result()
         np.testing.assert_allclose(result[0].data.evs, [1.5555572817900956])
+
+    def test_iter_pub(self):
+        """test for an iterable of pubs"""
+        estimator = StatevectorEstimator()
+        circuit = self.ansatz.assign_parameters([0, 1, 1, 2, 3, 5])
+        observable = self.observable.apply_layout(circuit.layout)
+        result = estimator.run(iter([(circuit, observable), (circuit, observable)])).result()
+        np.testing.assert_allclose(result[0].data.evs, [-1.284366511861733])
+        np.testing.assert_allclose(result[1].data.evs, [-1.284366511861733])
 
 
 if __name__ == "__main__":

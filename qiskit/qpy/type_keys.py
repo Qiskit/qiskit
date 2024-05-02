@@ -16,6 +16,7 @@
 QPY Type keys for several namespace.
 """
 
+import uuid
 from abc import abstractmethod
 from enum import Enum, IntEnum
 
@@ -471,6 +472,22 @@ class Expression(TypeKeyBase):
         raise NotImplementedError
 
 
+class ExprVarDeclaration(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR_DECLARATION`` QPY item."""
+
+    INPUT = b"I"
+    CAPTURE = b"C"
+    LOCAL = b"L"
+
+    @classmethod
+    def assign(cls, obj):
+        raise NotImplementedError
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
 class ExprType(TypeKeyBase):
     """Type keys for the ``EXPR_TYPE`` QPY item."""
 
@@ -496,9 +513,12 @@ class ExprVar(TypeKeyBase):
 
     CLBIT = b"C"
     REGISTER = b"R"
+    UUID = b"U"
 
     @classmethod
     def assign(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return cls.UUID
         if isinstance(obj, Clbit):
             return cls.CLBIT
         if isinstance(obj, ClassicalRegister):
@@ -541,7 +561,7 @@ class SymExprEncoding(TypeKeyBase):
 
     @classmethod
     def assign(cls, obj):
-        if obj is True:
+        if obj:
             return cls.SYMENGINE
         else:
             return cls.SYMPY

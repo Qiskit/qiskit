@@ -47,7 +47,7 @@ from qiskit.circuit.annotated_operation import (
 )
 from qiskit.circuit import Parameter, Qubit, Clbit, IfElseOp, SwitchCaseOp
 from qiskit.circuit.library import IQP
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
@@ -1010,15 +1010,16 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
+        style = {
+            "name": "user_style",
+            "displaytext": {"H2": "H_2"},
+            "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+        }
         fname = "user_style.png"
         self.circuit_drawer(
             circuit,
             output="mpl",
-            style={
-                "name": "user_style",
-                "displaytext": {"H2": "H_2"},
-                "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
-            },
+            style=style,
             filename=fname,
         )
 
@@ -1029,7 +1030,19 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             FAILURE_DIFF_DIR,
             FAILURE_PREFIX,
         )
-        self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check image"):
+            self.assertGreaterEqual(ratio, self.threshold)
+
+        with self.subTest(msg="check style dict unchanged"):
+            self.assertEqual(
+                style,
+                {
+                    "name": "user_style",
+                    "displaytext": {"H2": "H_2"},
+                    "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
+                },
+            )
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -2215,6 +2228,27 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         )
         self.assertGreaterEqual(ratio, self.threshold)
 
+    def test_control_flow_with_fold_minus_one(self):
+        """Test control flow works with fold=-1. Qiskit issue #12012"""
+        qreg = QuantumRegister(2, "qr")
+        creg = ClassicalRegister(2, "cr")
+        circuit = QuantumCircuit(qreg, creg)
+        with circuit.if_test((creg[1], 1)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+
+        fname = "control_flow_fold_minus_one.png"
+        self.circuit_drawer(circuit, output="mpl", filename=fname, fold=-1)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
     def test_annotated_operation(self):
         """Test AnnotatedOperations and other non-Instructions."""
         circuit = QuantumCircuit(3)
@@ -2256,6 +2290,59 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         fname = "qreg_names_after_layout.png"
         self.circuit_drawer(circuit, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_if_else_standalone_var(self):
+        """Test if/else with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", False)
+        qc.store(a, 128)
+        with qc.if_test(expr.logic_not(b)):
+            # Mix old-style and new-style.
+            with qc.if_test(expr.equal(b, qc.clbits[0])):
+                qc.cx(0, 1)
+            c = qc.add_var("c", b)
+            with qc.if_test(expr.logic_and(c, expr.equal(a, 128))):
+                qc.h(0)
+        fname = "if_else_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
+
+        ratio = VisualTestUtilities._save_diff(
+            self._image_path(fname),
+            self._reference_path(fname),
+            fname,
+            FAILURE_DIFF_DIR,
+            FAILURE_PREFIX,
+        )
+        self.assertGreaterEqual(ratio, self.threshold)
+
+    def test_switch_standalone_var(self):
+        """Test switch with standalone Var."""
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", expr.lift(5, a.type))
+        with qc.switch(expr.bit_not(a)) as case:
+            with case(0):
+                with qc.switch(b) as case2:
+                    with case2(2):
+                        qc.cx(0, 1)
+                    with case2(case2.DEFAULT):
+                        qc.cx(1, 0)
+            with case(case.DEFAULT):
+                c = qc.add_var("c", expr.equal(a, b))
+                with qc.if_test(c):
+                    qc.h(0)
+        fname = "switch_standalone_var.png"
+        self.circuit_drawer(qc, output="mpl", filename=fname)
 
         ratio = VisualTestUtilities._save_diff(
             self._image_path(fname),

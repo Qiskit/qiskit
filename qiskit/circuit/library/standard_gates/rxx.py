@@ -109,11 +109,23 @@ class RXXGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse RXX gate (i.e. with the negative rotation angle)."""
+        """Return inverse RXX gate (i.e. with the negative rotation angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.RXXGate` with an inverted parameter value.
+
+        Returns:
+            RXXGate: inverse gate.
+        """
         return RXXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the RXX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta2 = float(self.params[0]) / 2
         cos = math.cos(theta2)
         isin = 1j * math.sin(theta2)
@@ -122,8 +134,7 @@ class RXXGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RXXGate(exponent * theta)
 

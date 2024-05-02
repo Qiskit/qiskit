@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-import copy
+import cmath
+import copy as _copy
 import math
 from cmath import exp
 from typing import Optional, Union
@@ -83,7 +84,16 @@ class UGate(Gate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.
 
-        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi)`)
+        :math:`U(\theta,\phi,\lambda)^{\dagger} =U(-\theta,-\lambda,-\phi))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the
+                inverse of this gate is always a :class:`.UGate` with inverse parameter values.
+
+        Returns:
+            UGate: inverse gate.
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
@@ -97,10 +107,10 @@ class UGate(Gate):
         """Return a (multi-)controlled-U gate.
 
         Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
+            num_ctrl_qubits: number of control qubits.
+            label: An optional label for the gate [Default: ``None``]
+            ctrl_state: control state expressed as integer,
+                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -126,8 +136,10 @@ class UGate(Gate):
             )
         return gate
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the U gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam = (float(param) for param in self.params)
         cos = math.cos(theta / 2)
         sin = math.sin(theta / 2)
@@ -136,7 +148,7 @@ class UGate(Gate):
                 [cos, -exp(1j * lam) * sin],
                 [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
-            dtype=dtype,
+            dtype=dtype or complex,
         )
 
     def __eq__(self, other):
@@ -307,7 +319,17 @@ class CUGate(ControlledGate):
     def inverse(self, annotated: bool = False):
         r"""Return inverted CU gate.
 
-        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma)`)
+        :math:`CU(\theta,\phi,\lambda,\gamma)^{\dagger} = CU(-\theta,-\phi,-\lambda,-\gamma))`
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.CUGate` with inverse parameter
+                values.
+
+        Returns:
+            CUGate: inverse gate.
         """
         return CUGate(
             -self.params[0],
@@ -317,15 +339,17 @@ class CUGate(ControlledGate):
             ctrl_state=self.ctrl_state,
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CU gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta, phi, lam, gamma = (float(param) for param in self.params)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
-        a = numpy.exp(1j * gamma) * cos
-        b = -numpy.exp(1j * (gamma + lam)) * sin
-        c = numpy.exp(1j * (gamma + phi)) * sin
-        d = numpy.exp(1j * (gamma + phi + lam)) * cos
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
+        a = cmath.exp(1j * gamma) * cos
+        b = -cmath.exp(1j * (gamma + lam)) * sin
+        c = cmath.exp(1j * (gamma + phi)) * sin
+        d = cmath.exp(1j * (gamma + phi + lam)) * cos
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, a, 0, b], [0, 0, 1, 0], [0, c, 0, d]], dtype=dtype
@@ -352,5 +376,5 @@ class CUGate(ControlledGate):
         # assuming that `params` will be a view onto the base gate's `_params`.
         memo = memo if memo is not None else {}
         out = super().__deepcopy__(memo)
-        out._params = copy.deepcopy(out._params, memo)
+        out._params = _copy.deepcopy(out._params, memo)
         return out

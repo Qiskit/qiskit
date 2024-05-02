@@ -16,32 +16,34 @@ circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
 for optimal synthesis of linear (CNOT-only) reversible circuits.
 """
 
+from __future__ import annotations
 import copy
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
 
-def synth_cnot_count_full_pmh(state, section_size=2):
+def synth_cnot_count_full_pmh(
+    state: list[list[bool]] | np.ndarray[bool], section_size: int = 2
+) -> QuantumCircuit:
     """
     Synthesize linear reversible circuits for all-to-all architecture
     using Patel, Markov and Hayes method.
 
     This function is an implementation of the Patel, Markov and Hayes algorithm from [1]
     for optimal synthesis of linear reversible circuits for all-to-all architecture,
-    as specified by an n x n matrix.
+    as specified by an :math:`n \\times n` matrix.
 
     Args:
-        state (list[list] or ndarray): n x n boolean invertible matrix, describing the state
-            of the input circuit
-        section_size (int): the size of each section, used in the
-            Patel–Markov–Hayes algorithm [1]. section_size must be a factor of num_qubits.
+        state: :math:`n \\times n` boolean invertible matrix, describing
+            the state of the input circuit
+        section_size: The size of each section in the Patel–Markov–Hayes algorithm [1].
 
     Returns:
         QuantumCircuit: a CX-only circuit implementing the linear transformation.
 
     Raises:
-        QiskitError: when variable "state" isn't of type numpy.ndarray
+        QiskitError: when variable ``state`` isn't of type ``numpy.ndarray``
 
     References:
         1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,

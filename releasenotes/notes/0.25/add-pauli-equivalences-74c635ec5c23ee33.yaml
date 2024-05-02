@@ -2,6 +2,6 @@
 features:
   - |
     The transpiler's built-in :class:`.EquivalenceLibrary` has been taught the circular Pauli
-    relations :math:`X = iYZ`, :math:`Y = iZX` and :math:`Z = iXY`.  This should make transpiling
+    relations :math:`X = iZY`, :math:`Y = iXZ` and :math:`Z = iYX`.  This should make transpiling
     to constrained, and potentially incomplete, basis sets more reliable.
     See `#10293 <https://github.com/Qiskit/qiskit-terra/issues/10293>`__ for more detail.

@@ -36,7 +36,8 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ.compose(meas)
 
-        backend_sim = BasicProvider().get_backend("basic_simulator")
+        with self.assertWarns(DeprecationWarning):
+            backend_sim = BasicProvider().get_backend("basic_simulator")
 
         result = backend_sim.run(qc).result()
         counts = result.get_counts(qc)

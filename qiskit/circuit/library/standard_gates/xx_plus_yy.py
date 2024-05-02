@@ -15,6 +15,9 @@ import math
 from cmath import exp
 from math import pi
 from typing import Optional
+
+import numpy
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -153,13 +156,24 @@ class XXPlusYYGate(Gate):
         self.definition = qc
 
     def inverse(self, annotated: bool = False):
-        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
+        """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle).
+
+        Args:
+            annotated: when set to ``True``, this is typically used to return an
+                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
+                :class:`.Gate`. However, for this class this argument is ignored as the inverse
+                of this gate is always a :class:`.XXPlusYYGate` with inverse
+                parameter values.
+
+        Returns:
+            XXPlusYYGate: inverse gate.
+        """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the XX+YY gate."""
-        import numpy
-
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
@@ -174,8 +188,7 @@ class XXPlusYYGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, beta = self.params
         return XXPlusYYGate(exponent * theta, beta)
 

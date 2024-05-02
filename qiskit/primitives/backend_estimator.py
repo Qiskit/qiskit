@@ -413,14 +413,12 @@ def _paulis2inds(paulis: PauliList) -> list[int]:
     # Treat Z, X, Y the same
     nonid = paulis.z | paulis.x
 
-    inds = [0] * paulis.size
     # bits are packed into uint8 in little endian
     # e.g., i-th bit corresponds to coefficient 2^i
     packed_vals = np.packbits(nonid, axis=1, bitorder="little")
-    for i, vals in enumerate(packed_vals):
-        for j, val in enumerate(vals):
-            inds[i] += val.item() * (1 << (8 * j))
-    return inds
+    power_uint8 = 1 << (8 * np.arange(packed_vals.shape[1], dtype=object))
+    inds = packed_vals @ power_uint8
+    return inds.tolist()
 
 
 def _parity(integer: int) -> int:
