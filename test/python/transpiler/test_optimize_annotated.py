@@ -197,11 +197,11 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(qc_optimized, expected_qc)
 
-    def test_conjugate_reduction(self):
+    def test_conjugate_reduction_1(self):
         """Test conjugate reduction optimization."""
 
-        # Create a control-annotated operation;
-        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        # Create a control-annotated operation.
+        # The definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
         qc_def = QuantumCircuit(6)
         qc_def.cx(0, 1)  # P
         qc_def.z(0)  # P
@@ -220,7 +220,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_def.x(2)  # Q
         custom = qc_def.to_gate().control(annotated=True)
 
-        # Create a quantum circuit with an annotated operation.
+        # Create a quantum circuit with an annotated operation
         qc = QuantumCircuit(8)
         qc.cx(0, 2)
         qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
@@ -230,7 +230,7 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc_keys = qc.count_ops().keys()
         self.assertIn("annotated", qc_keys)
 
-        # Run optimization pass.
+        # Run optimization pass
         qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
 
         # THe pass should simplify the gate
@@ -238,3 +238,30 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         self.assertIn("optimized", qc_optimized_keys)
         self.assertNotIn("annotated", qc_optimized_keys)
         self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+    def test_conjugate_reduction_2(self):
+        """Test conjugate reduction optimization."""
+
+        # Create a control-annotated operation.
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.swap(0, 1)  # P
+        qc_def.cz(1, 2)  # Q
+        qc_def.swap(0, 1)  # R
+        qc_def.cx(0, 1)  # R
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2, "swap": 2})
