@@ -1879,6 +1879,14 @@ class DAGCircuit:
         """Returns iterator of the predecessors of a node as DAGOpNodes and DAGInNodes."""
         return iter(self._multi_graph.predecessors(node._node_id))
 
+    def op_successors(self, node):
+        """Returns iterator of "op" successors of a node in the dag."""
+        return (succ for succ in self.successors(node) if isinstance(succ, DAGOpNode))
+
+    def op_predecessors(self, node):
+        """Returns the iterator of "op" predecessors of a node in the dag."""
+        return (pred for pred in self.predecessors(node) if isinstance(pred, DAGOpNode))
+
     def is_successor(self, node, node_succ):
         """Checks if a second node is in the successors of node."""
         return self._multi_graph.has_edge(node._node_id, node_succ._node_id)

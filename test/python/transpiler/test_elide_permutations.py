@@ -304,6 +304,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
 
     def test_not_run_after_layout(self):
         """Test ElidePermutations doesn't do anything after layout."""
+
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.swap(0, 2)
@@ -312,7 +313,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
         qc.h(1)
 
         spm = generate_preset_pass_manager(
-            optimization_level=3, initial_layout=list(range(2, -1, -1)), seed_transpiler=42
+            optimization_level=1, initial_layout=list(range(2, -1, -1)), seed_transpiler=42
         )
         spm.layout += ElidePermutations()
         res = spm.run(qc)

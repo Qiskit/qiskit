@@ -12,12 +12,19 @@
 
 """Optimize annotated operations on a circuit."""
 
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Union
 
 from qiskit.circuit.controlflow import CONTROL_FLOW_OP_NAMES
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.annotated_operation import AnnotatedOperation, _canonicalize_modifiers
-from qiskit.circuit import EquivalenceLibrary, ControlledGate, Operation, ControlFlowOp
+from qiskit.circuit import (
+    QuantumCircuit,
+    Instruction,
+    EquivalenceLibrary,
+    ControlledGate,
+    Operation,
+    ControlFlowOp,
+)
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.target import Target
@@ -43,6 +50,11 @@ class OptimizeAnnotated(TransformationPass):
       ``g2 = AnnotatedOperation(g1, ControlModifier(2))``, then ``g2`` can be replaced with
       ``AnnotatedOperation(SwapGate(), [InverseModifier(), ControlModifier(2)])``.
 
+    * Applies conjugate reduction to annotated operations. As an example,
+      ``control - [P -- Q -- P^{-1}]`` can be rewritten as ``P -- control - [Q] -- P^{-1}``,
+      that is, only the middle part needs to be controlled. This also works for inverse
+      and power modifiers.
+
     """
 
     def __init__(
@@ -51,6 +63,7 @@ class OptimizeAnnotated(TransformationPass):
         equivalence_library: Optional[EquivalenceLibrary] = None,
         basis_gates: Optional[List[str]] = None,
         recurse: bool = True,
+        do_conjugate_reduction: bool = True,
     ):
         """
         OptimizeAnnotated initializer.
@@ -67,12 +80,14 @@ class OptimizeAnnotated(TransformationPass):
                 not applied when neither is specified since such objects do not need to
                 be synthesized). Setting this value to ``False`` precludes the recursion in
                 every case.
+            do_conjugate_reduction: controls whether conjugate reduction should be performed.
         """
         super().__init__()
 
         self._target = target
         self._equiv_lib = equivalence_library
         self._basis_gates = basis_gates
+        self._do_conjugate_reduction = do_conjugate_reduction
 
         self._top_level_only = not recurse or (self._basis_gates is None and self._target is None)
 
@@ -122,7 +137,11 @@ class OptimizeAnnotated(TransformationPass):
             # as they may remove annotated gates.
             dag, opt2 = self._recurse(dag)
 
-        return dag, opt1 or opt2
+        opt3 = False
+        if not self._top_level_only and self._do_conjugate_reduction:
+            dag, opt3 = self._conjugate_reduction(dag)
+
+        return dag, opt1 or opt2 or opt3
 
     def _canonicalize(self, dag) -> Tuple[DAGCircuit, bool]:
         """
@@ -148,17 +167,219 @@ class OptimizeAnnotated(TransformationPass):
             did_something = True
         return dag, did_something
 
-    def _recursively_process_definitions(self, op: Operation) -> bool:
+    def _conjugate_decomposition(
+        self, dag: DAGCircuit
+    ) -> Union[Tuple[DAGCircuit, DAGCircuit, DAGCircuit], None]:
         """
-        Recursively applies optimizations to op's definition (or to op.base_op's
-        definition if op is an annotated operation).
-        Returns True if did something.
+        Decomposes a circuit ``A`` into 3 sub-circuits ``P``, ``Q``, ``R`` such that
+        ``A = P -- Q -- R`` and ``R = P^{-1}``.
+
+        This is accomplished by iteratively finding inverse nodes at the front and at the back of the
+        circuit.
         """
 
-        # If op is an annotated operation, we descend into its base_op
-        if isinstance(op, AnnotatedOperation):
-            return self._recursively_process_definitions(op.base_op)
+        front_block = []  # nodes collected from the front of the circuit (aka P)
+        back_block = []  # nodes collected from the back of the circuit (aka R)
 
+        # Stores in- and out- degree for each node. These degrees are computed at the start of this
+        # function and are updated when nodes are collected into front_block or into back_block.
+        in_degree = {}
+        out_degree = {}
+
+        # We use dicts to track for each qubit a DAG node at the front of the circuit that involves
+        # this qubit and a DAG node at the end of the circuit that involves this qubit (when exist).
+        # Note that for the DAGCircuit structure for each qubit there can be at most one such front
+        # and such back node.
+        # This allows for an efficient way to find an inverse pair of gates (one from the front and
+        # one from the back of the circuit).
+        # A qubit that was never examined does not appear in these dicts, and a qubit that was examined
+        # but currently is not involved at the front (resp. at the back) of the circuit has the value of
+        # None.
+        front_node_for_qubit = {}
+        back_node_for_qubit = {}
+
+        # Keep the set of nodes that have been moved either to front_block or to back_block
+        processed_nodes = set()
+
+        # Keep the set of qubits that are involved in nodes at the front or at the back of the circuit.
+        # When looking for inverse pairs of gates we will only iterate over these qubits.
+        active_qubits = set()
+
+        # Keep pairs of nodes for which the inverse check was performed and the nodes
+        # were found to be not inverse to each other (memoization).
+        checked_node_pairs = set()
+
+        # compute in- and out- degree for every node
+        # also update information for nodes at the start and at the end of the circuit
+        for node in dag.op_nodes():
+            preds = list(dag.op_predecessors(node))
+            in_degree[node] = len(preds)
+            if len(preds) == 0:
+                for q in node.qargs:
+                    front_node_for_qubit[q] = node
+                    active_qubits.add(q)
+            succs = list(dag.op_successors(node))
+            out_degree[node] = len(succs)
+            if len(succs) == 0:
+                for q in node.qargs:
+                    back_node_for_qubit[q] = node
+                    active_qubits.add(q)
+
+        # iterate while there is a possibility to find more inverse pairs
+        while len(active_qubits) > 0:
+            to_check = active_qubits.copy()
+            active_qubits.clear()
+
+            # For each qubit q, check whether the gate at the front of the circuit that involves q
+            # and the gate at the end of the circuit that involves q are inverse
+            for q in to_check:
+
+                if (front_node := front_node_for_qubit.get(q, None)) is None:
+                    continue
+                if (back_node := back_node_for_qubit.get(q, None)) is None:
+                    continue
+
+                # front_node or back_node could be already collected when considering other qubits
+                if front_node in processed_nodes or back_node in processed_nodes:
+                    continue
+
+                # it is possible that the same node is both at the front and at the back,
+                # it should not be collected
+                if front_node == back_node:
+                    continue
+
+                # have been checked before
+                if (front_node, back_node) in checked_node_pairs:
+                    continue
+
+                # fast check based on the arguments
+                if front_node.qargs != back_node.qargs or front_node.cargs != back_node.cargs:
+                    continue
+
+                # in the future we want to include a more precise check whether a pair
+                # of nodes are inverse
+                if front_node.op == back_node.op.inverse():
+                    # update front_node_for_qubit and back_node_for_qubit
+                    for q in front_node.qargs:
+                        front_node_for_qubit[q] = None
+                    for q in back_node.qargs:
+                        back_node_for_qubit[q] = None
+
+                    # see which other nodes become at the front and update information
+                    for node in dag.op_successors(front_node):
+                        if node not in processed_nodes:
+                            in_degree[node] -= 1
+                            if in_degree[node] == 0:
+                                for q in node.qargs:
+                                    front_node_for_qubit[q] = node
+                                    active_qubits.add(q)
+
+                    # see which other nodes become at the back and update information
+                    for node in dag.op_predecessors(back_node):
+                        if node not in processed_nodes:
+                            out_degree[node] -= 1
+                            if out_degree[node] == 0:
+                                for q in node.qargs:
+                                    back_node_for_qubit[q] = node
+                                    active_qubits.add(q)
+
+                    # collect and mark as processed
+                    front_block.append(front_node)
+                    back_block.append(back_node)
+                    processed_nodes.add(front_node)
+                    processed_nodes.add(back_node)
+
+                else:
+                    checked_node_pairs.add((front_node, back_node))
+
+        # if nothing is found, return None
+        if len(front_block) == 0:
+            return None
+
+        # create the output DAGs
+        front_circuit = dag.copy_empty_like()
+        middle_circuit = dag.copy_empty_like()
+        back_circuit = dag.copy_empty_like()
+        front_circuit.global_phase = 0
+        back_circuit.global_phase = 0
+
+        for node in front_block:
+            front_circuit.apply_operation_back(node.op, node.qargs, node.cargs)
+
+        for node in back_block:
+            back_circuit.apply_operation_front(node.op, node.qargs, node.cargs)
+
+        for node in dag.op_nodes():
+            if node not in processed_nodes:
+                middle_circuit.apply_operation_back(node.op, node.qargs, node.cargs)
+
+        return front_circuit, middle_circuit, back_circuit
+
+    def _conjugate_reduce_op(
+        self, op: AnnotatedOperation, base_decomposition: Tuple[DAGCircuit, DAGCircuit, DAGCircuit]
+    ) -> Operation:
+        """
+        We are given an annotated-operation ``op = M [ B ]`` (where ``B`` is the base operation and
+        ``M`` is the list of modifiers) and the "conjugate decomposition" of the definition of ``B``,
+        i.e. ``B = P * Q * R``, with ``R = P^{-1}`` (with ``P``, ``Q`` and ``R`` represented as
+        ``DAGCircuit`` objects).
+
+        Let ``IQ`` denote a new custom instruction with definitions ``Q``.
+
+        We return the operation ``op_new`` which a new custom instruction with definition
+        ``P * A * R``, where ``A`` is a new annotated-operation with modifiers ``M`` and
+        base gate ``IQ``.
+        """
+        p_dag, q_dag, r_dag = base_decomposition
+
+        q_instr = Instruction(
+            name="iq", num_qubits=op.base_op.num_qubits, num_clbits=op.base_op.num_clbits, params=[]
+        )
+        q_instr.definition = dag_to_circuit(q_dag)
+
+        op_new = Instruction(
+            "optimized", num_qubits=op.num_qubits, num_clbits=op.num_clbits, params=[]
+        )
+        num_control_qubits = op.num_qubits - op.base_op.num_qubits
+
+        circ = QuantumCircuit(op.num_qubits, op.num_clbits)
+        qubits = circ.qubits
+        circ.compose(
+            dag_to_circuit(p_dag), qubits[num_control_qubits : op.num_qubits], inplace=True
+        )
+        circ.append(
+            AnnotatedOperation(base_op=q_instr, modifiers=op.modifiers), range(op.num_qubits)
+        )
+        circ.compose(
+            dag_to_circuit(r_dag), qubits[num_control_qubits : op.num_qubits], inplace=True
+        )
+        op_new.definition = circ
+        return op_new
+
+    def _conjugate_reduction(self, dag) -> Tuple[DAGCircuit, bool]:
+        """
+        Looks for annotated operations whose base operation has a nontrivial conjugate decomposition.
+        In such cases, the modifiers of the annotated operation can be moved to the "middle" part of
+        the decomposition.
+
+        Returns the modified DAG and whether it did something.
+        """
+        did_something = False
+        for node in dag.op_nodes(op=AnnotatedOperation):
+            base_op = node.op.base_op
+            if not self._skip_definition(base_op):
+                base_dag = circuit_to_dag(base_op.definition, copy_operations=False)
+                base_decomposition = self._conjugate_decomposition(base_dag)
+                if base_decomposition is not None:
+                    new_op = self._conjugate_reduce_op(node.op, base_decomposition)
+                    dag.substitute_node(node, new_op)
+                    did_something = True
+        return dag, did_something
+
+    def _skip_definition(self, op: Operation) -> bool:
+        """
+        Returns True if we should not recurse into a gate's definition.
+        """
         # Similar to HighLevelSynthesis transpiler pass, we do not recurse into a gate's
         # `definition` for a gate that is supported by the target or in equivalence library.
 
@@ -170,7 +391,22 @@ class OptimizeAnnotated(TransformationPass):
                 else op.name in self._device_insts
             )
             if inst_supported or (self._equiv_lib is not None and self._equiv_lib.has_entry(op)):
-                return False
+                return True
+        return False
+
+    def _recursively_process_definitions(self, op: Operation) -> bool:
+        """
+        Recursively applies optimizations to op's definition (or to op.base_op's
+        definition if op is an annotated operation).
+        Returns True if did something.
+        """
+
+        # If op is an annotated operation, we descend into its base_op
+        if isinstance(op, AnnotatedOperation):
+            return self._recursively_process_definitions(op.base_op)
+
+        if self._skip_definition(op):
+            return False
 
         try:
             # extract definition

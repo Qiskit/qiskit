@@ -22,6 +22,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
 )
 from qiskit.transpiler.passes import OptimizeAnnotated
+from qiskit.quantum_info import Operator
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -102,7 +103,9 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         qc.h(0)
         qc.append(gate, [0, 1, 3])
 
-        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+        # Add "swap" to the basis gates to prevent conjugate reduction from replacing
+        # control-[SWAP] by CX(0,1) -- CCX(1, 0) -- CX(0, 1)
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u", "swap"])(qc)
         self.assertEqual(qc_optimized[1].operation.definition, expected_qc_def_optimized)
 
     def test_do_not_optimize_definitions_without_basis_gates(self):
@@ -194,6 +197,227 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         )
 
         self.assertEqual(qc_optimized, expected_qc)
+
+    def test_conjugate_reduction(self):
+        """Test conjugate reduction optimization."""
+
+        # Create a control-annotated operation.
+        # The definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.z(0)  # P
+        qc_def.s(0)  # P
+        qc_def.cx(0, 4)  # P
+        qc_def.cx(4, 3)  # P
+        qc_def.y(3)  # Q
+        qc_def.cx(3, 0)  # Q
+        qc_def.cx(4, 3)  # R
+        qc_def.cx(0, 4)  # R
+        qc_def.sdg(0)  # R
+        qc_def.z(0)  # R
+        qc_def.cx(0, 1)  # R
+        qc_def.z(5)  # P
+        qc_def.z(5)  # R
+        qc_def.x(2)  # Q
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation
+        qc = QuantumCircuit(8)
+        qc.cx(0, 2)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+        qc.h(0)
+        qc.z(4)
+
+        qc_keys = qc.count_ops().keys()
+        self.assertIn("annotated", qc_keys)
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # The pass should simplify the gate
+        qc_optimized_keys = qc_optimized.count_ops().keys()
+        self.assertIn("optimized", qc_optimized_keys)
+        self.assertNotIn("annotated", qc_optimized_keys)
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+    def test_conjugate_reduction_collection(self):
+        """Test conjugate reduction optimization including an assertion on which gates
+        are collected (using annotated gate from the previous example).
+        """
+
+        # Create a control-annotated operation.
+        # The definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.z(0)  # P
+        qc_def.s(0)  # P
+        qc_def.cx(0, 4)  # P
+        qc_def.cx(4, 3)  # P
+        qc_def.y(3)  # Q
+        qc_def.cx(3, 0)  # Q
+        qc_def.cx(4, 3)  # R
+        qc_def.cx(0, 4)  # R
+        qc_def.sdg(0)  # R
+        qc_def.z(0)  # R
+        qc_def.cx(0, 1)  # R
+        qc_def.z(5)  # P
+        qc_def.z(5)  # R
+        qc_def.x(2)  # Q
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "s": 1, "sdg": 1, "z": 4, "cx": 6})
+
+    def test_conjugate_reduction_consecutive_gates(self):
+        """Test conjugate reduction optimization including an assertion on which gates
+        are collected (multiple consecutive gates on the same pair of qubits).
+        """
+
+        # Create a control-annotated operation.
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.swap(0, 1)  # P
+        qc_def.cz(1, 2)  # Q
+        qc_def.swap(0, 1)  # R
+        qc_def.cx(0, 1)  # R
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2, "swap": 2})
+
+    def test_conjugate_reduction_chain_of_gates(self):
+        """Test conjugate reduction optimization including an assertion on which gates
+        are collected (chain of gates).
+        """
+
+        # Create a control-annotated operation.
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.cx(1, 2)  # P
+        qc_def.cx(2, 3)  # P
+        qc_def.h(3)  # Q
+        qc_def.cx(2, 3)  # R
+        qc_def.cx(1, 2)  # R
+        qc_def.cx(0, 1)  # R
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 6})
+
+    def test_conjugate_reduction_empty_middle(self):
+        """Test conjugate reduction optimization including an assertion on which gates
+        are collected (with no gates in the middle circuit).
+        """
+
+        # Create a control-annotated operation.
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.swap(0, 1)  # P
+        qc_def.cz(1, 2)  # P
+        qc_def.cz(1, 2)  # R
+        qc_def.swap(0, 1)  # R
+        qc_def.cx(0, 1)  # R
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2, "cz": 2, "swap": 2})
+
+    def test_conjugate_reduction_parallel_gates(self):
+        """Test conjugate reduction optimization including an assertion on which gates
+        are collected (multiple gates in front and back layers).
+        """
+
+        # Create a control-annotated operation.
+        # the definition of the base operation has conjugate decomposition P -- Q -- R with R = P^{-1}
+        qc_def = QuantumCircuit(6)
+        qc_def.cx(0, 1)  # P
+        qc_def.swap(2, 3)  # P
+        qc_def.cz(4, 5)  # P
+        qc_def.h(0)  # Q
+        qc_def.h(1)  # Q
+        qc_def.cx(0, 1)  # R
+        qc_def.swap(2, 3)  # R
+        qc_def.cz(4, 5)  # R
+        custom = qc_def.to_gate().control(annotated=True)
+
+        # Create a quantum circuit with an annotated operation.
+        qc = QuantumCircuit(8)
+        qc.append(custom, [0, 1, 3, 4, 5, 7, 6])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Check that the optimization finds correct pairs of inverse gates
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2, "cz": 2, "swap": 2})
+
+    def test_conjugate_reduction_cswap(self):
+        """Test conjugate reduction optimization for control-SWAP."""
+
+        # Create a circuit with a control-annotated swap
+        qc = QuantumCircuit(3)
+        qc.append(SwapGate().control(annotated=True), [0, 1, 2])
+
+        # Run optimization pass
+        qc_optimized = OptimizeAnnotated(basis_gates=["cx", "u"])(qc)
+
+        # Check that the optimization is correct
+        self.assertEqual(Operator(qc), Operator(qc_optimized))
+
+        # Swap(0, 1) gets translated to CX(0, 1), CX(1, 0), CX(0, 1).
+        # The first and the last of the CXs should be detected as inverse of each other.
+        new_def_ops = dict(qc_optimized[0].operation.definition.count_ops())
+        self.assertEqual(new_def_ops, {"annotated": 1, "cx": 2})
 
     def test_standalone_var(self):
         """Test that standalone vars work."""
