@@ -347,7 +347,7 @@ def transpile(  # pylint: disable=too-many-return-statements
     _check_circuits_coupling_map(circuits, coupling_map, backend)
 
     # Edge cases require using the old model (loose constraints) instead of building a target,
-    # byt we don't populate the passmanager config with loose constraints unless it's one of
+    # but we don't populate the passmanager config with loose constraints unless it's one of
     # the known edge cases to control the execution path.
     pm = generate_preset_pass_manager(
         optimization_level,
