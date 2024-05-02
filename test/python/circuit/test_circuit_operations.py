@@ -1013,9 +1013,9 @@ class TestCircuitOperations(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 1)
         with qc.if_test(a):
-            # We don't really comment on what should happen to control-flow operations in this
-            # method, and Sabre doesn't care (nor use this method, in the fast paths), so this is
-            # deliberately using a body of length 1 (a single `Store`).
+            # We don't really comment on what should happen within control-flow operations in this
+            # method - it's not really defined in a non-linear CFG.  This deliberately uses a body
+            # of length 1 (a single `Store`), so there's only one possibility.
             qc.add_var(c, 12)
 
         expected = qc.copy_empty_like()
