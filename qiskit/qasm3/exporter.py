@@ -816,10 +816,13 @@ class QASM3Builder:
         """
         scope = self.current_scope()
 
-        # We forward-declare all local variables; it's much easier to ensure that we don't introduce
-        # use-before-definition errors in the OQ3 output this way, if the user has side-stepped the
-        # `QuantumCircuit` API protection to produce a circuit that uses an uninitialised variable.
-        # (It would naturally be easier to see the def/use chain if we were using `DAGCircuit`.)
+        # We forward-declare all local variables uninitialised at the top of their scope. It would
+        # be nice to declare the variable at the point of first store (so we can write things like
+        # `uint[8] a = 12;`), but there's lots of edge-case logic to catch with that around
+        # use-before-definition errors in the OQ3 output, for example if the user has side-stepped
+        # the `QuantumCircuit` API protection to produce a circuit that uses an uninitialised
+        # variable, or the initial write to a variable is within a control-flow scope.  (It would be
+        # easier to see the def/use chain needed to do this cleanly if we were using `DAGCircuit`.)
         statements = [
             ast.ClassicalDeclaration(_build_ast_type(var.type), self._register_variable(var, scope))
             for var in scope.circuit.iter_declared_vars()
