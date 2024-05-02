@@ -13,25 +13,14 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
-import copy
 import logging
 from time import time
 from typing import List, Union, Dict, Callable, Any, Optional, TypeVar
 import warnings
 
 from qiskit import user_config
-from qiskit.circuit.controlflow import (
-    IfElseOp,
-    ForLoopOp,
-    WhileLoopOp,
-    SwitchCaseOp,
-    ContinueLoopOp,
-    BreakLoopOp,
-)
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import Qubit
-from qiskit.circuit.library import UnitaryGate
-from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend_compat import BackendV2Converter
@@ -40,26 +29,14 @@ from qiskit.pulse import Schedule, InstructionScheduleMap
 from qiskit.transpiler import Layout, CouplingMap, PropertySet
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.exceptions import TranspilerError, CircuitTooWideForTarget
-from qiskit.transpiler.instruction_durations import InstructionDurations, InstructionDurationsType
+from qiskit.transpiler.instruction_durations import InstructionDurationsType
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.transpiler.target import Target, target_to_backend_properties
+from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
 _CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
-
-CUSTOM_MAPPING = {
-    "if_else": IfElseOp,
-    "for_loop": ForLoopOp,
-    "while_loop": WhileLoopOp,
-    "switch_case": SwitchCaseOp,
-    "continue": ContinueLoopOp,
-    "break": BreakLoopOp,
-    "unitary": UnitaryGate,
-    "qsd2q": UnitaryGate,
-}
 
 
 def transpile(  # pylint: disable=too-many-return-statements
@@ -366,69 +343,8 @@ def transpile(  # pylint: disable=too-many-return-statements
     approximation_degree = _parse_approximation_degree(approximation_degree)
     output_name = _parse_output_name(output_name, circuits)
 
-    # Check if a custom inst_map was specified before overwriting inst_map
-    _given_inst_map = bool(inst_map)
-    # If there are no loose constraints => use backend target if available
-    _no_loose_constraints = (
-        basis_gates is None
-        and coupling_map is None
-        and dt is None
-        and instruction_durations is None
-        and backend_properties is None
-        and timing_constraints is None
-    )
-    # If it's an edge case => do not build target
-    _skip_target = (
-        target is None
-        and backend is None
-        and (basis_gates is None or coupling_map is None or instruction_durations is not None)
-    )
-
-    # Resolve loose constraints case-by-case against backend constraints.
-    # The order of priority is loose constraints > backend.
-    dt = _parse_dt(dt, backend)
-    instruction_durations = _parse_instruction_durations(backend, instruction_durations, dt)
-    timing_constraints = _parse_timing_constraints(backend, timing_constraints)
-    inst_map = _parse_inst_map(inst_map, backend)
-    # The basis gates parser will set _skip_target to True if a custom basis gate is found
-    # (known edge case).
-    basis_gates, name_mapping, _skip_target = _parse_basis_gates(
-        basis_gates, backend, inst_map, _skip_target
-    )
-    coupling_map = _parse_coupling_map(coupling_map, backend)
+    coupling_map = _parse_coupling_map(coupling_map)
     _check_circuits_coupling_map(circuits, coupling_map, backend)
-
-    if target is None:
-        if backend is not None and _no_loose_constraints:
-            # If a backend is specified without loose constraints, use its target directly.
-            target = backend.target
-        elif not _skip_target:
-            # Only parse backend properties when the target isn't skipped to
-            # preserve the former behavior of transpile.
-            backend_properties = _parse_backend_properties(backend_properties, backend)
-            # Build target from constraints.
-            target = Target.from_configuration(
-                basis_gates=basis_gates,
-                num_qubits=backend.num_qubits if backend is not None else None,
-                coupling_map=coupling_map,
-                # If the instruction map has custom gates, do not give as config, the information
-                # will be added to the target with update_from_instruction_schedule_map
-                inst_map=inst_map if inst_map and not inst_map.has_custom_gate() else None,
-                backend_properties=backend_properties,
-                instruction_durations=instruction_durations,
-                concurrent_measurements=(
-                    backend.target.concurrent_measurements if backend is not None else None
-                ),
-                dt=dt,
-                timing_constraints=timing_constraints,
-                custom_name_mapping=name_mapping,
-            )
-
-    # Update target with custom gate information. Note that this is an exception to the priority
-    # order (target > loose constraints), added to handle custom gates for scheduling passes.
-    if target is not None and _given_inst_map and inst_map.has_custom_gate():
-        target = copy.deepcopy(target)
-        target.update_from_instruction_schedule_map(inst_map)
 
     # Edge cases require using the old model (loose constraints) instead of building a target,
     # byt we don't populate the passmanager config with loose constraints unless it's one of
@@ -436,12 +352,13 @@ def transpile(  # pylint: disable=too-many-return-statements
     pm = generate_preset_pass_manager(
         optimization_level,
         target=target,
-        basis_gates=basis_gates if _skip_target else None,
-        coupling_map=coupling_map if _skip_target else None,
-        instruction_durations=instruction_durations if _skip_target else None,
-        backend_properties=backend_properties if _skip_target else None,
-        timing_constraints=timing_constraints if _skip_target else None,
-        inst_map=inst_map if _skip_target else None,
+        backend=backend,
+        basis_gates=basis_gates,
+        coupling_map=coupling_map,
+        instruction_durations=instruction_durations,
+        backend_properties=backend_properties,
+        timing_constraints=timing_constraints,
+        inst_map=inst_map,
         initial_layout=initial_layout,
         layout_method=layout_method,
         routing_method=routing_method,
@@ -454,7 +371,7 @@ def transpile(  # pylint: disable=too-many-return-statements
         hls_config=hls_config,
         init_method=init_method,
         optimization_method=optimization_method,
-        _skip_target=_skip_target,
+        dt=dt,
     )
 
     out_circuits = pm.run(circuits, callback=callback, num_processes=num_processes)
@@ -492,88 +409,7 @@ def _log_transpile_time(start_time, end_time):
     logger.info(log_msg)
 
 
-def _parse_basis_gates(basis_gates, backend, inst_map, skip_target):
-    name_mapping = CUSTOM_MAPPING
-    standard_gates = get_standard_gate_name_mapping()
-    control_flow_gates = {
-        "if_else",
-        "for_loop",
-        "while_loop",
-        "switch_case",
-        "continue",
-        "break",
-    }
-    # Add control flow gates by default to basis set
-    default_gates = {"measure", "delay", "reset"}.union(control_flow_gates)
-
-    try:
-        instructions = set(basis_gates)
-        for name in default_gates:
-            if name not in instructions:
-                instructions.add(name)
-    except TypeError:
-        instructions = None
-
-    if backend is None:
-        # Check for custom instructions
-        if instructions is None:
-            return None, name_mapping, skip_target
-
-        for inst in instructions:
-            if inst not in standard_gates or inst not in default_gates:
-                skip_target = True
-                break
-
-        return list(instructions), name_mapping, skip_target
-
-    instructions = instructions or backend.operation_names
-    name_mapping.update(
-        {name: backend.target.operation_from_name(name) for name in backend.operation_names}
-    )
-
-    # Check for custom instructions before removing calibrations
-    for inst in instructions:
-        if inst not in standard_gates or inst not in default_gates:
-            skip_target = True
-            break
-
-    # Remove calibrated instructions, as they will be added later from the instruction schedule map
-    if inst_map is not None and not skip_target:
-        for inst in inst_map.instructions:
-            for qubit in inst_map.qubits_with_instruction(inst):
-                entry = inst_map._get_calibration_entry(inst, qubit)
-                if entry.user_provided and inst in instructions:
-                    instructions.remove(inst)
-
-    return list(instructions) if instructions else None, name_mapping, skip_target
-
-
-def _parse_inst_map(inst_map, backend):
-    # try getting inst_map from user, else backend
-    if inst_map is None and backend is not None:
-        inst_map = backend.target.instruction_schedule_map()
-    return inst_map
-
-
-def _parse_backend_properties(backend_properties, backend):
-    # try getting backend_props from user, else backend
-    if backend_properties is None and backend is not None:
-        backend_properties = target_to_backend_properties(backend.target)
-    return backend_properties
-
-
-def _parse_dt(dt, backend):
-    # try getting dt from user, else backend
-    if dt is None and backend is not None:
-        dt = backend.target.dt
-    return dt
-
-
-def _parse_coupling_map(coupling_map, backend):
-    # try getting coupling_map from user, else backend
-    if coupling_map is None and backend is not None:
-        coupling_map = backend.coupling_map
-
+def _parse_coupling_map(coupling_map):
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
     if coupling_map is None or isinstance(coupling_map, CouplingMap):
         return coupling_map
@@ -581,7 +417,7 @@ def _parse_coupling_map(coupling_map, backend):
         isinstance(i, list) and len(i) == 2 for i in coupling_map
     ):
         return CouplingMap(coupling_map)
-    else:
+    elif isinstance(coupling_map, list):
         raise TranspilerError(
             "Only a single input coupling map can be used with transpile() if you need to "
             "target different coupling maps for different circuits you must call transpile() "
@@ -600,22 +436,6 @@ def _parse_initial_layout(initial_layout):
     if all(phys is None or isinstance(phys, Qubit) for phys in initial_layout):
         return Layout.from_qubit_list(initial_layout)
     return initial_layout
-
-
-def _parse_instruction_durations(backend, inst_durations, dt):
-    """Create a list of ``InstructionDuration``s. If ``inst_durations`` is provided,
-    the backend will be ignored, otherwise, the durations will be populated from the
-    backend.
-    """
-    final_durations = InstructionDurations()
-    if not inst_durations:
-        backend_durations = InstructionDurations()
-        if backend is not None:
-            backend_durations = backend.instruction_durations
-        final_durations.update(backend_durations, dt or backend_durations.dt)
-    else:
-        final_durations.update(inst_durations, dt or getattr(inst_durations, "dt", None))
-    return final_durations
 
 
 def _parse_approximation_degree(approximation_degree):
@@ -660,13 +480,3 @@ def _parse_output_name(output_name, circuits):
             )
     else:
         return [circuit.name for circuit in circuits]
-
-
-def _parse_timing_constraints(backend, timing_constraints):
-    if isinstance(timing_constraints, TimingConstraints):
-        return timing_constraints
-    if backend is None and timing_constraints is None:
-        timing_constraints = TimingConstraints()
-    elif backend is not None:
-        timing_constraints = backend.target.timing_constraints()
-    return timing_constraints
