@@ -368,7 +368,7 @@ pub fn convert_asg(
         module,
     };
 
-    let _ = state.map_gate_ids(py, ast_symbols);
+    state.map_gate_ids(py, ast_symbols)?;
 
     for statement in program.stmts().iter() {
         match statement {
