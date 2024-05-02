@@ -1751,7 +1751,7 @@ class TestTranspile(QiskitTestCase):
             seed_transpiler=42,
         )
 
-        # Swap gates get optimized away in opt. level 3
+        # Swap gates get optimized away in opt. level 2, 3
         expected_num_ecr_gates = 6 if optimization_level in (2, 3) else 9
         self.assertEqual(res.count_ops()["ecr"], expected_num_ecr_gates)
         self.assertEqual(Operator(circuit), Operator.from_circuit(res))
