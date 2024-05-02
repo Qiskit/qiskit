@@ -16,7 +16,6 @@ import unittest
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PermutationGate
-from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
