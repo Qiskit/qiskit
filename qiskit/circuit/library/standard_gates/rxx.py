@@ -122,8 +122,10 @@ class RXXGate(Gate):
         """
         return RXXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a Numpy.array for the RXX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         theta2 = float(self.params[0]) / 2
         cos = math.cos(theta2)
         isin = 1j * math.sin(theta2)
