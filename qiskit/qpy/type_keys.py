@@ -457,6 +457,7 @@ class Expression(TypeKeyBase):
     CAST = b"c"
     UNARY = b"u"
     BINARY = b"b"
+    INDEX = b"i"
 
     @classmethod
     def assign(cls, obj):

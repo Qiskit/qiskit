@@ -300,6 +300,11 @@ class Binary(Expr):
         The binary mathematical relations :data:`EQUAL`, :data:`NOT_EQUAL`, :data:`LESS`,
         :data:`LESS_EQUAL`, :data:`GREATER` and :data:`GREATER_EQUAL` take unsigned integers
         (with an implicit cast to make them the same width), and return a Boolean.
+
+        The bitshift operations :data:`SHIFT_LEFT` and :data:`SHIFT_RIGHT` can take bit-like
+        container types (e.g. unsigned integers) as the left operand, and any integer type as the
+        right-hand operand.  In all cases, the output bit width is the same as the input, and zeros
+        fill in the "exposed" spaces.
         """
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
@@ -327,6 +332,10 @@ class Binary(Expr):
         """Numeric greater than. ``lhs > rhs``."""
         GREATER_EQUAL = 11
         """Numeric greater than or equal to. ``lhs >= rhs``."""
+        SHIFT_LEFT = 12
+        """Zero-padding bitshift to the left.  ``lhs << rhs``."""
+        SHIFT_RIGHT = 13
+        """Zero-padding bitshift to the right.  ``lhs >> rhs``."""
 
         def __str__(self):
             return f"Binary.{super().__str__()}"
@@ -354,3 +363,35 @@ class Binary(Expr):
 
     def __repr__(self):
         return f"Binary({self.op}, {self.left}, {self.right}, {self.type})"
+
+
+@typing.final
+class Index(Expr):
+    """An indexing expression.
+
+    Args:
+        target: The object being indexed.
+        index: The expression doing the indexing.
+        type: The resolved type of the result.
+    """
+
+    __slots__ = ("target", "index")
+
+    def __init__(self, target: Expr, index: Expr, type: types.Type):
+        self.target = target
+        self.index = index
+        self.type = type
+
+    def accept(self, visitor, /):
+        return visitor.visit_index(self)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Index)
+            and self.type == other.type
+            and self.target == other.target
+            and self.index == other.index
+        )
+
+    def __repr__(self):
+        return f"Index({self.target}, {self.index}, {self.type})"

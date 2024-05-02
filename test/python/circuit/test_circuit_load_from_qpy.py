@@ -1916,6 +1916,33 @@ class TestLoadFromQPY(QiskitTestCase):
             self.assertMinimalVarEqual(old, new)
             self.assertDeprecatedBitProperties(old, new)
 
+    def test_roundtrip_index_expr(self):
+        """Test that the `Index` node round-trips."""
+        a = expr.Var.new("a", types.Uint(8))
+        cr = ClassicalRegister(4, "cr")
+        qc = QuantumCircuit(cr, inputs=[a])
+        qc.store(expr.index(cr, 0), expr.index(a, a))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
+    def test_roundtrip_bitshift_expr(self):
+        """Test that bit-shift expressions can round-trip."""
+        a = expr.Var.new("a", types.Uint(8))
+        cr = ClassicalRegister(4, "cr")
+        qc = QuantumCircuit(cr, inputs=[a])
+        with qc.if_test(expr.equal(expr.shift_right(expr.shift_left(a, 1), 1), a)):
+            pass
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_qc = load(fptr)[0]
+        self.assertEqual(qc, new_qc)
+        self.assertDeprecatedBitProperties(qc, new_qc)
+
     @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 12))
     def test_pre_v12_rejects_standalone_var(self, version):
         """Test that dumping to older QPY versions rejects standalone vars."""
@@ -1923,6 +1950,17 @@ class TestLoadFromQPY(QiskitTestCase):
         qc = QuantumCircuit(inputs=[a])
         with io.BytesIO() as fptr, self.assertRaisesRegex(
             UnsupportedFeatureForVersion, "version 12 is required.*realtime variables"
+        ):
+            dump(qc, fptr, version=version)
+
+    @ddt.idata(range(QPY_COMPATIBILITY_VERSION, 12))
+    def test_pre_v12_rejects_index(self, version):
+        """Test that dumping to older QPY versions rejects the `Index` node."""
+        # Be sure to use a register, since standalone vars would be rejected for other reasons.
+        qc = QuantumCircuit(ClassicalRegister(2, "cr"))
+        qc.store(expr.index(qc.cregs[0], 0), False)
+        with io.BytesIO() as fptr, self.assertRaisesRegex(
+            UnsupportedFeatureForVersion, "version 12 is required.*Index"
         ):
             dump(qc, fptr, version=version)
 
