@@ -382,6 +382,21 @@ Python class                 Type code  Payload
 Notably, this new type-code indexes into pre-defined variables from the circuit header, rather than
 redefining the variable again in each location it is used.
 
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``i``, corresponding to :class:`.expr.Index`
+nodes.
+
+======================  =========  =======================================================  ========
+Qiskit class            Type code  Payload                                                  Children
+======================  =========  =======================================================  ========
+:class:`~.expr.Index`   ``i``      No additional payload. The children are the target       2
+                                   and the index, in that order.
+======================  =========  =======================================================  ========
+
+
 .. _qpy_version_11:
 
 Version 11

@@ -1585,11 +1585,20 @@ while (cr == 3) {
         qc.if_test(expr.equal(expr.bit_and(expr.bit_and(cr1, cr2), cr3), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_or(expr.bit_or(cr1, cr2), cr3), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_xor(expr.bit_xor(cr1, cr2), cr3), 7), body.copy(), [], [])
+        qc.if_test(
+            expr.equal(expr.shift_left(expr.shift_left(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_right(expr.shift_right(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_left(expr.shift_right(cr1, cr2), cr3), 7), body.copy(), [], []
+        )
         qc.if_test(expr.logic_and(expr.logic_and(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
         qc.if_test(expr.logic_or(expr.logic_or(cr1[0], cr1[1]), cr1[2]), body.copy(), [], [])
 
-        # Note that bitwise operations have lower priority than `==` so there's extra parentheses.
-        # All these operators are left-associative in OQ3.
+        # Note that bitwise operations except shift have lower priority than `==` so there's extra
+        # parentheses.  All these operators are left-associative in OQ3.
         expected = """\
 OPENQASM 3.0;
 include "stdgates.inc";
@@ -1601,6 +1610,12 @@ if ((cr1 & cr2 & cr3) == 7) {
 if ((cr1 | cr2 | cr3) == 7) {
 }
 if ((cr1 ^ cr2 ^ cr3) == 7) {
+}
+if (cr1 << cr2 << cr3 == 7) {
+}
+if (cr1 >> cr2 >> cr3 == 7) {
+}
+if (cr1 >> cr2 << cr3 == 7) {
 }
 if (cr1[0] && cr1[1] && cr1[2]) {
 }
@@ -1621,6 +1636,15 @@ if (cr1[0] || cr1[1] || cr1[2]) {
         qc.if_test(expr.equal(expr.bit_and(cr1, expr.bit_and(cr2, cr3)), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_or(cr1, expr.bit_or(cr2, cr3)), 7), body.copy(), [], [])
         qc.if_test(expr.equal(expr.bit_xor(cr1, expr.bit_xor(cr2, cr3)), 7), body.copy(), [], [])
+        qc.if_test(
+            expr.equal(expr.shift_left(cr1, expr.shift_left(cr2, cr3)), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_right(cr1, expr.shift_right(cr2, cr3)), 7), body.copy(), [], []
+        )
+        qc.if_test(
+            expr.equal(expr.shift_left(cr1, expr.shift_right(cr2, cr3)), 7), body.copy(), [], []
+        )
         qc.if_test(expr.logic_and(cr1[0], expr.logic_and(cr1[1], cr1[2])), body.copy(), [], [])
         qc.if_test(expr.logic_or(cr1[0], expr.logic_or(cr1[1], cr1[2])), body.copy(), [], [])
 
@@ -1639,6 +1663,12 @@ if ((cr1 & (cr2 & cr3)) == 7) {
 if ((cr1 | (cr2 | cr3)) == 7) {
 }
 if ((cr1 ^ (cr2 ^ cr3)) == 7) {
+}
+if (cr1 << (cr2 << cr3) == 7) {
+}
+if (cr1 >> (cr2 >> cr3) == 7) {
+}
+if (cr1 << (cr2 >> cr3) == 7) {
 }
 if (cr1[0] && (cr1[1] && cr1[2])) {
 }
@@ -1709,10 +1739,21 @@ if (!!cr[0]) {
             ),
         )
 
+        # An extra test of the bitshifting rules, since we have to pick one or the other of
+        # bitshifts vs comparisons due to the typing.  The first operand is inside out, the second
+        bitshifts = expr.equal(
+            expr.shift_left(expr.bit_and(expr.bit_xor(cr, cr), cr), expr.bit_or(cr, cr)),
+            expr.bit_or(
+                expr.bit_xor(expr.shift_right(cr, 3), expr.shift_left(cr, 4)),
+                expr.shift_left(cr, 1),
+            ),
+        )
+
         qc = QuantumCircuit(cr)
         qc.if_test(inside_out, body.copy(), [], [])
         qc.if_test(outside_in, body.copy(), [], [])
         qc.if_test(logics, body.copy(), [], [])
+        qc.if_test(bitshifts, body.copy(), [], [])
 
         expected = """\
 OPENQASM 3.0;
@@ -1725,6 +1766,8 @@ if ((cr | cr) == (cr & cr) && (cr & cr) == (cr | cr)\
  || (cr | cr) > (cr ^ cr) && (cr ^ cr) <= (cr | cr)) {
 }
 if ((!cr[0] || !cr[0]) && !(cr[0] && cr[0]) || !(cr[0] && cr[0]) && (!cr[0] || !cr[0])) {
+}
+if (((cr ^ cr) & cr) << (cr | cr) == (cr >> 3 ^ cr << 4 | cr << 1)) {
 }
 """
         self.assertEqual(dumps(qc), expected)
