@@ -411,8 +411,6 @@ def _log_transpile_time(start_time, end_time):
 
 def _parse_coupling_map(coupling_map):
     # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
-    if coupling_map is None or isinstance(coupling_map, CouplingMap):
-        return coupling_map
     if isinstance(coupling_map, list) and all(
         isinstance(i, list) and len(i) == 2 for i in coupling_map
     ):
@@ -423,6 +421,8 @@ def _parse_coupling_map(coupling_map):
             "target different coupling maps for different circuits you must call transpile() "
             "multiple times"
         )
+    else:
+        return coupling_map
 
 
 def _parse_initial_layout(initial_layout):

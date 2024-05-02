@@ -190,7 +190,7 @@ def generate_preset_pass_manager(
 
             If ``unit`` is omitted, the default is ``'dt'``, which is a sample time depending on backend.
             If the time unit is ``'dt'``, the duration must be an integer.
-        dt: Backend sample time (resolution) in seconds.
+        dt (float): Backend sample time (resolution) in seconds.
             If provided, this value will overwrite the ``dt`` value in ``instruction_durations``.
             If ``None`` (default) and a backend is provided, ``backend.dt`` is used.
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
