@@ -48,7 +48,6 @@ from qiskit.transpiler.passes import ConstrainedReschedule
 from qiskit.transpiler.passes import PulseGates
 from qiskit.transpiler.passes import ContainsInstruction
 from qiskit.transpiler.passes import VF2PostLayout
-from qiskit.transpiler.passes import FinalizeLayouts
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
@@ -406,13 +405,6 @@ def generate_pre_op_passmanager(target=None, coupling_map=None, remove_reset_in_
     if remove_reset_in_zero:
         pre_opt.append(RemoveResetInZeroState())
     return pre_opt
-
-
-def generate_post_op_passmanager():
-    """Generates the post-optimization pass manager."""
-    out = PassManager()
-    out.append(FinalizeLayouts())
-    return out
 
 
 def generate_translation_passmanager(
