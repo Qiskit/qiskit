@@ -90,7 +90,6 @@ Optimizations
    ElidePermutations
    NormalizeRXAngle
    OptimizeAnnotated
-   FinalizeLayouts
 
 Calibration
 =============
@@ -241,7 +240,6 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
-from .optimization import FinalizeLayouts
 
 # circuit analysis
 from .analysis import ResourceEstimation
