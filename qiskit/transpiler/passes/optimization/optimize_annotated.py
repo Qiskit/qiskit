@@ -234,39 +234,39 @@ class OptimizeAnnotated(TransformationPass):
             # and the gate at the end of the circuit that involves q are inverse
             for q in to_check:
 
-                if (fn := front_node_for_qubit.get(q, None)) is None:
+                if (front_node := front_node_for_qubit.get(q, None)) is None:
                     continue
-                if (bn := back_node_for_qubit.get(q, None)) is None:
+                if (back_node := back_node_for_qubit.get(q, None)) is None:
                     continue
 
-                # fn or bn could be already collected when considering other qubits
-                if fn in processed_nodes or bn in processed_nodes:
+                # front_node or back_node could be already collected when considering other qubits
+                if front_node in processed_nodes or back_node in processed_nodes:
                     continue
 
                 # it is possible that the same node is both at the front and at the back,
                 # it should not be collected
-                if fn == bn:
+                if front_node == back_node:
                     continue
 
                 # have been checked before
-                if (fn, bn) in checked_node_pairs:
+                if (front_node, back_node) in checked_node_pairs:
                     continue
 
                 # fast check based on the arguments
-                if fn.qargs != bn.qargs or fn.cargs != bn.cargs:
+                if front_node.qargs != back_node.qargs or front_node.cargs != back_node.cargs:
                     continue
 
                 # in the future we want to include a more precise check whether a pair
                 # of nodes are inverse
-                if fn.op == bn.op.inverse():
-                    # update front_node_for_qubit, back_node_for_qubit maps
-                    for q in fn.qargs:
+                if front_node.op == back_node.op.inverse():
+                    # update front_node_for_qubit and back_node_for_qubit
+                    for q in front_node.qargs:
                         front_node_for_qubit[q] = None
-                    for q in bn.qargs:
+                    for q in back_node.qargs:
                         back_node_for_qubit[q] = None
 
                     # see which other nodes become at the front and update information
-                    for node in dag.op_successors(fn):
+                    for node in dag.op_successors(front_node):
                         if node not in processed_nodes:
                             in_degree[node] -= 1
                             if in_degree[node] == 0:
@@ -275,7 +275,7 @@ class OptimizeAnnotated(TransformationPass):
                                     active_qubits.add(q)
 
                     # see which other nodes become at the back and update information
-                    for node in dag.op_predecessors(bn):
+                    for node in dag.op_predecessors(back_node):
                         if node not in processed_nodes:
                             out_degree[node] -= 1
                             if out_degree[node] == 0:
@@ -284,19 +284,17 @@ class OptimizeAnnotated(TransformationPass):
                                     active_qubits.add(q)
 
                     # collect and mark as processed
-                    front_block.append(fn)
-                    back_block.append(bn)
-                    processed_nodes.add(fn)
-                    processed_nodes.add(bn)
+                    front_block.append(front_node)
+                    back_block.append(back_node)
+                    processed_nodes.add(front_node)
+                    processed_nodes.add(back_node)
 
                 else:
-                    checked_node_pairs.add((fn, bn))
+                    checked_node_pairs.add((front_node, back_node))
 
         # if nothing is found, return None
         if len(front_block) == 0:
             return None
-
-        back_block = back_block[::-1]
 
         # create the output DAGs
         front_circuit = dag.copy_empty_like()
@@ -309,7 +307,7 @@ class OptimizeAnnotated(TransformationPass):
             front_circuit.apply_operation_back(node.op, node.qargs, node.cargs)
 
         for node in back_block:
-            back_circuit.apply_operation_back(node.op, node.qargs, node.cargs)
+            back_circuit.apply_operation_front(node.op, node.qargs, node.cargs)
 
         for node in dag.op_nodes():
             if node not in processed_nodes:
