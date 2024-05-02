@@ -28,9 +28,15 @@ from qiskit.quantum_info import Statevector
 
 from .base import BaseSamplerV2
 from .base.validation import _has_measure
-from .containers import BitArray, PrimitiveResult, SamplerPubLike, SamplerPubResult, make_data_bin
-from .containers.bit_array import _min_num_bytes
+from .containers import (
+    BitArray,
+    DataBin,
+    PrimitiveResult,
+    SamplerPubResult,
+    SamplerPubLike,
+)
 from .containers.sampler_pub import SamplerPub
+from .containers.bit_array import _min_num_bytes
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
 
@@ -188,15 +194,10 @@ class StatevectorSampler(BaseSamplerV2):
                 ary = _samples_to_packed_array(samples_array, item.num_bits, item.qreg_indices)
                 arrays[item.creg_name][index] = ary
 
-        data_bin_cls = make_data_bin(
-            [(item.creg_name, BitArray) for item in meas_info],
-            shape=bound_circuits.shape,
-        )
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        data_bin = data_bin_cls(**meas)
-        return SamplerPubResult(data_bin, metadata={"shots": pub.shots})
+        return SamplerPubResult(DataBin(**meas, shape=pub.shape), metadata={"shots": pub.shots})
 
 
 def _preprocess_circuit(circuit: QuantumCircuit):

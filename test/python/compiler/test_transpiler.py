@@ -42,13 +42,13 @@ from qiskit.circuit import (
     SwitchCaseOp,
     WhileLoopOp,
 )
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     InverseModifier,
     ControlModifier,
     PowerModifier,
 )
-from qiskit.circuit.classical import expr
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.reset import Reset
@@ -2175,6 +2175,38 @@ class TestPostTranspileIntegration(QiskitTestCase):
                 base.append(CustomCX(), [3, 4])
         return base
 
+    def _standalone_var_circuit(self):
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+
+        qc = QuantumCircuit(5, 5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.store(a, expr.bit_xor(qc.clbits[0], qc.clbits[1]))
+        with qc.if_test(a) as else_:
+            qc.cx(2, 3)
+            qc.cx(3, 4)
+            qc.cx(4, 2)
+        with else_:
+            qc.add_var(c, 12)
+        with qc.while_loop(a):
+            with qc.while_loop(a):
+                qc.add_var(c, 12)
+                qc.cz(1, 0)
+                qc.cz(4, 1)
+                qc.store(a, False)
+        with qc.switch(expr.bit_and(b, 7)) as case:
+            with case(0):
+                qc.cz(0, 1)
+                qc.cx(1, 2)
+                qc.cy(2, 0)
+            with case(case.DEFAULT):
+                qc.store(b, expr.bit_and(b, 7))
+        return qc
+
     @data(0, 1, 2, 3)
     def test_qpy_roundtrip(self, optimization_level):
         """Test that the output of a transpiled circuit can be round-tripped through QPY."""
@@ -2301,6 +2333,46 @@ class TestPostTranspileIntegration(QiskitTestCase):
         self.assertEqual(round_tripped, transpiled)
 
     @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_standalone_var(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including standalone `Var`
+        nodes can be round-tripped through QPY."""
+        backend = GenericBackendV2(num_qubits=7)
+        transpiled = transpile(
+            self._standalone_var_circuit(),
+            backend=backend,
+            basis_gates=backend.operation_names
+            + ["if_else", "for_loop", "while_loop", "switch_case"],
+            optimization_level=optimization_level,
+            seed_transpiler=2024_05_01,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
+    def test_qpy_roundtrip_standalone_var_target(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow including standalone `Var`
+        nodes can be round-tripped through QPY."""
+        backend = GenericBackendV2(num_qubits=11)
+        backend.target.add_instruction(IfElseOp, name="if_else")
+        backend.target.add_instruction(ForLoopOp, name="for_loop")
+        backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
+        transpiled = transpile(
+            self._standalone_var_circuit(),
+            backend=backend,
+            optimization_level=optimization_level,
+            seed_transpiler=2024_05_01,
+        )
+        buffer = io.BytesIO()
+        qpy.dump(transpiled, buffer)
+        buffer.seek(0)
+        round_tripped = qpy.load(buffer)[0]
+        self.assertEqual(round_tripped, transpiled)
+
+    @data(0, 1, 2, 3)
     def test_qasm3_output(self, optimization_level):
         """Test that the output of a transpiled circuit can be dumped into OpenQASM 3."""
         transpiled = transpile(
@@ -2349,6 +2421,21 @@ class TestPostTranspileIntegration(QiskitTestCase):
             qasm3.dumps(transpiled, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1).strip(),
             str,
         )
+
+    @data(0, 1, 2, 3)
+    def test_qasm3_output_standalone_var(self, optimization_level):
+        """Test that the output of a transpiled circuit with control flow and standalone `Var` nodes
+        can be dumped into OpenQASM 3."""
+        transpiled = transpile(
+            self._standalone_var_circuit(),
+            backend=GenericBackendV2(num_qubits=13, control_flow=True),
+            optimization_level=optimization_level,
+            seed_transpiler=2024_05_01,
+        )
+        # TODO: There's not a huge amount we can sensibly test for the output here until we can
+        # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
+        # itself doesn't throw an error, though.
+        self.assertIsInstance(qasm3.dumps(transpiled), str)
 
     @data(0, 1, 2, 3)
     def test_transpile_target_no_measurement_error(self, opt_level):

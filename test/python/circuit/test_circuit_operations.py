@@ -1002,6 +1002,31 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc.reverse_ops(), expected)
 
+    def test_reverse_with_standlone_vars(self):
+        """Test that instruction-reversing works in the presence of stand-alone variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+
+        qc = QuantumCircuit(2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        with qc.if_test(a):
+            # We don't really comment on what should happen within control-flow operations in this
+            # method - it's not really defined in a non-linear CFG.  This deliberately uses a body
+            # of length 1 (a single `Store`), so there's only one possibility.
+            qc.add_var(c, 12)
+
+        expected = qc.copy_empty_like()
+        with expected.if_test(a):
+            expected.add_var(c, 12)
+        expected.cx(0, 1)
+        expected.h(0)
+        expected.store(b, 12)
+
+        self.assertEqual(qc.reverse_ops(), expected)
+
     def test_repeat(self):
         """Test repeating the circuit works."""
         qr = QuantumRegister(2)
