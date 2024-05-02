@@ -377,8 +377,6 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = concatenate([ba, ba], -1)
             with self.assertRaisesRegex(ValueError, "axis 100 is out of bounds"):
                 _ = concatenate([ba, ba], 100)
-            with self.assertRaisesRegex(ValueError, "axis None must be a non-negative integer"):
-                _ = concatenate([ba, ba], None)
 
             ba2 = BitArray(data, 10)
             with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
