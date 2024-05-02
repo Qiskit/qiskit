@@ -10,14 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""QftGate: gate class for natively reasoning about Quantum Fourier Transforms."""
+"""QFTGate: gate class for natively reasoning about Quantum Fourier Transforms."""
 
 from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import Gate
 
 
-class QftGate(Gate):
+class QFTGate(Gate):
     r"""Quantum Fourier Transform Circuit.
 
     The Quantum Fourier Transform (QFT) on :math:`n` qubits is the operation
@@ -40,7 +40,7 @@ class QftGate(Gate):
         super().__init__(name="qft", num_qubits=num_qubits, params=[])
 
     def __array__(self, dtype=complex):
-        """Return a numpy array for the QftGate."""
+        """Return a numpy array for the QFTGate."""
         num_qubits = self.num_qubits
         mat = np.empty((2**num_qubits, 2**num_qubits), dtype=dtype)
         for i in range(2**num_qubits):
@@ -66,7 +66,7 @@ class QftGate(Gate):
 
     def _define(self):
         """Populate self.definition with a specific decomposition of the gate.
-        This is used for constructing Operators from QftGates, creating qasm
+        This is used for constructing Operator from QFTGate, creating qasm
         representations and more.
         """
         self.definition = self._basic_decomposition()

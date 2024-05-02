@@ -35,7 +35,7 @@ from qiskit.circuit.annotated_operation import (
     ControlModifier,
     PowerModifier,
 )
-from qiskit.circuit.library import QftGate
+from qiskit.circuit.library import QFTGate
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
@@ -675,9 +675,9 @@ class QftSynthesisFull(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * do_swaps (bool): Whether to include Swap gates at the end of the synthesized
-        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        circuit. Some implementation of the ``QFTGate`` include a layer of Swap gates
         at the end of the synthesized circuit, which cna in principle be dropped if
-        the ``QftGate`` itself is the last gate in the circuit.
+        the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): The degree of approximation (0 for no approximation).
         It is impossible ti implement the QFT approximately by ignoring
         controlled-phase rotations with the angle is beneath a threshold. This is discussed
@@ -690,10 +690,10 @@ class QftSynthesisFull(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        """Run synthesis for the given QftGate."""
-        if not isinstance(high_level_object, QftGate):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
             raise TranspilerError(
-                "The synthesis plugin 'qft.full` only applies to objects of type QftGate."
+                "The synthesis plugin 'qft.full` only applies to objects of type QFTGate."
             )
 
         do_swaps = options.get("do_swaps", True)
@@ -722,9 +722,9 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
     The plugin supports the following additional options:
 
     * do_swaps (bool): whether to include Swap gates at the end of the synthesized
-        circuit. Some implementation of the ``QftGate`` include a layer of Swap gates
+        circuit. Some implementation of the ``QFTGate`` include a layer of Swap gates
         at the end of the synthesized circuit, which cna in principle be dropped if
-        the ``QftGate`` itself is the last gate in the circuit.
+        the ``QFTGate`` itself is the last gate in the circuit.
     * approximation_degree (int): the degree of approximation (0 for no approximation).
         It is impossible ti implement the QFT approximately by ignoring
         controlled-phase rotations with the angle is beneath a threshold. This is discussed
@@ -733,10 +733,10 @@ class QftSynthesisLine(HighLevelSynthesisPlugin):
     """
 
     def run(self, high_level_object, coupling_map=None, target=None, qubits=None, **options):
-        """Run synthesis for the given QftGate."""
-        if not isinstance(high_level_object, QftGate):
+        """Run synthesis for the given QFTGate."""
+        if not isinstance(high_level_object, QFTGate):
             raise TranspilerError(
-                "The synthesis plugin 'qft.line` only applies to objects of type QftGate."
+                "The synthesis plugin 'qft.line` only applies to objects of type QFTGate."
             )
 
         do_swaps = options.get("do_swaps", True)

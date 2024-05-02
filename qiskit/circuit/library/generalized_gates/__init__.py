@@ -28,4 +28,4 @@ from .ucry import UCRYGate
 from .ucrz import UCRZGate
 from .unitary import UnitaryGate
 from .mcg_up_to_diagonal import MCGupDiag
-from .qft import QftGate
+from .qft import QFTGate
