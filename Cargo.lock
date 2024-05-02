@@ -891,7 +891,7 @@ checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 [[package]]
 name = "oq3_lexer"
 version = "0.5.0"
-source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=update-for-qiskit-importer#fa3738e6c02c9a25f5528b2a915f8cf053b35b84"
+source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=no-U-in-gate-list#fc8dfa7a561c48106946b7ef14724dbc9c71d791"
 dependencies = [
  "unicode-properties",
  "unicode-xid",
@@ -900,7 +900,7 @@ dependencies = [
 [[package]]
 name = "oq3_parser"
 version = "0.5.0"
-source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=update-for-qiskit-importer#fa3738e6c02c9a25f5528b2a915f8cf053b35b84"
+source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=no-U-in-gate-list#fc8dfa7a561c48106946b7ef14724dbc9c71d791"
 dependencies = [
  "drop_bomb",
  "oq3_lexer",
@@ -910,7 +910,7 @@ dependencies = [
 [[package]]
 name = "oq3_semantics"
 version = "0.5.0"
-source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=update-for-qiskit-importer#fa3738e6c02c9a25f5528b2a915f8cf053b35b84"
+source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=no-U-in-gate-list#fc8dfa7a561c48106946b7ef14724dbc9c71d791"
 dependencies = [
  "boolenum",
  "hashbrown 0.12.3",
@@ -922,7 +922,7 @@ dependencies = [
 [[package]]
 name = "oq3_source_file"
 version = "0.5.0"
-source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=update-for-qiskit-importer#fa3738e6c02c9a25f5528b2a915f8cf053b35b84"
+source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=no-U-in-gate-list#fc8dfa7a561c48106946b7ef14724dbc9c71d791"
 dependencies = [
  "ariadne",
  "oq3_syntax",
@@ -931,7 +931,7 @@ dependencies = [
 [[package]]
 name = "oq3_syntax"
 version = "0.5.0"
-source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=update-for-qiskit-importer#fa3738e6c02c9a25f5528b2a915f8cf053b35b84"
+source = "git+https://github.com/jlapeyre/openqasm3_parser?branch=no-U-in-gate-list#fc8dfa7a561c48106946b7ef14724dbc9c71d791"
 dependencies = [
  "cov-mark",
  "either",

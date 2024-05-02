@@ -231,10 +231,6 @@ impl BuilderState {
     // Gates mapped via CustomGates will not raise an exception.
     fn map_gate_ids(&mut self, _py: Python, ast_symbols: &SymbolTable) -> PyResult<()> {
         for (name, name_id, defined_num_params, defined_num_qubits) in ast_symbols.gates().iter() {
-            if *name == "U" {
-                // The sole built in gate. `gphase` is treated specially.
-                continue;
-            }
             let pygate = self.pygates.get(*name).ok_or_else(|| {
                 QASM3ImporterError::new_err(format!("can't handle non-built-in gate: '{}'", name))
             })?;
