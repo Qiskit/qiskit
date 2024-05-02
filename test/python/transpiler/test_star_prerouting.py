@@ -467,7 +467,6 @@ class TestStarPreRouting(QiskitTestCase):
         qc = QFT(nq, do_swaps=False, insert_barriers=True).decompose()
         cm = CouplingMap.from_line(nq)
 
-
         pm_preroute = PassManager()
         pm_preroute.append(StarPreRouting())
         pm_preroute.append(VF2Layout(coupling_map=cm, seed=17))
