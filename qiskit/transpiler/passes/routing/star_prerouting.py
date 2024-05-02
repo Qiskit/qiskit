@@ -109,10 +109,9 @@ class StarPreRouting(TransformationPass):
 
         self._pending_nodes: Optional[list[Union[DAGOpNode, DAGDepNode]]] = None
         self._in_degree: Optional[dict[Union[DAGOpNode, DAGDepNode], int]] = None
-        self.dag = None
         super().__init__()
 
-    def _setup_in_degrees(self):
+    def _setup_in_degrees(self, dag):
         """For an efficient implementation, for every node we keep the number of its
         unprocessed immediate predecessors (called ``_in_degree``). This ``_in_degree``
         is set up at the start and updated throughout the algorithm.
@@ -124,48 +123,44 @@ class StarPreRouting(TransformationPass):
         """
         self._pending_nodes = []
         self._in_degree = {}
-        for node in self._op_nodes():
-            deg = len(self._direct_preds(node))
+        for node in self._op_nodes(dag):
+            deg = len(self._direct_preds(dag, node))
             self._in_degree[node] = deg
             if deg == 0:
                 self._pending_nodes.append(node)
 
-    def _op_nodes(self) -> Iterable[Union[DAGOpNode, DAGDepNode]]:
+    def _op_nodes(self, dag) -> Iterable[Union[DAGOpNode, DAGDepNode]]:
         """Returns DAG nodes."""
-        if not isinstance(self.dag, DAGDependency):
-            return self.dag.op_nodes()
+        if not isinstance(dag, DAGDependency):
+            return dag.op_nodes()
         else:
-            return self.dag.get_nodes()
+            return dag.get_nodes()
 
-    def _direct_preds(self, node):
+    def _direct_preds(self, dag, node):
         """Returns direct predecessors of a node. This function takes into account the
         direction of collecting blocks, that is node's predecessors when collecting
         backwards are the direct successors of a node in the DAG.
         """
-        if not isinstance(self.dag, DAGDependency):
-            return [pred for pred in self.dag.predecessors(node) if isinstance(pred, DAGOpNode)]
+        if not isinstance(dag, DAGDependency):
+            return [pred for pred in dag.predecessors(node) if isinstance(pred, DAGOpNode)]
         else:
-            return [
-                self.dag.get_node(pred_id) for pred_id in self.dag.direct_predecessors(node.node_id)
-            ]
+            return [dag.get_node(pred_id) for pred_id in dag.direct_predecessors(node.node_id)]
 
-    def _direct_succs(self, node):
+    def _direct_succs(self, dag, node):
         """Returns direct successors of a node. This function takes into account the
         direction of collecting blocks, that is node's successors when collecting
         backwards are the direct predecessors of a node in the DAG.
         """
-        if not isinstance(self.dag, DAGDependency):
-            return [succ for succ in self.dag.successors(node) if isinstance(succ, DAGOpNode)]
+        if not isinstance(dag, DAGDependency):
+            return [succ for succ in dag.successors(node) if isinstance(succ, DAGOpNode)]
         else:
-            return [
-                self.dag.get_node(succ_id) for succ_id in self.dag.direct_successors(node.node_id)
-            ]
+            return [dag.get_node(succ_id) for succ_id in dag.direct_successors(node.node_id)]
 
     def _have_uncollected_nodes(self):
         """Returns whether there are uncollected (pending) nodes"""
         return len(self._pending_nodes) > 0
 
-    def collect_matching_block(self, filter_fn):
+    def collect_matching_block(self, dag, filter_fn):
         """Iteratively collects the largest block of input nodes (that is, nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
         Examples of this include collecting blocks of swap gates,
@@ -190,7 +185,7 @@ class StarPreRouting(TransformationPass):
                 added = filter_fn(node) and current_block.append_node(node)
                 if added:
                     # update the _in_degree of node's successors
-                    for suc in self._direct_succs(node):
+                    for suc in self._direct_succs(dag, node):
                         self._in_degree[suc] -= 1
                         if self._in_degree[suc] == 0:
                             new_pending_nodes.append(suc)
@@ -202,6 +197,7 @@ class StarPreRouting(TransformationPass):
 
     def collect_all_matching_blocks(
         self,
+        dag,
         min_block_size=2,
     ):
         """Collects all blocks that match a given filtering function filter_fn.
@@ -232,16 +228,14 @@ class StarPreRouting(TransformationPass):
             return not filter_fn(node)
 
         # Note: the collection direction must be specified before setting in-degrees
-        self._setup_in_degrees()
+        self._setup_in_degrees(dag)
 
         # Iteratively collect non-matching and matching blocks.
         matching_blocks: list[StarBlock] = []
         processing_order = []
         while self._have_uncollected_nodes():
-            self.collect_matching_block(
-                filter_fn=not_filter_fn,
-            )
-            matching_block = self.collect_matching_block(filter_fn=filter_fn)
+            self.collect_matching_block(dag, filter_fn=not_filter_fn)
+            matching_block = self.collect_matching_block(dag, filter_fn=filter_fn)
             if matching_block.size() >= min_block_size:
                 matching_blocks.append(matching_block)
             processing_order.append(matching_block)
@@ -271,9 +265,12 @@ class StarPreRouting(TransformationPass):
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:
             self.property_set["original_qubit_indices"] = input_qubit_mapping
-        self.property_set["virtual_permutation_layout"] = Layout(
-            {dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)}
-        )
+
+        new_layout = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
+        if current_layout := self.property_set["virtual_permutation_layout"] is not None:
+            self.property_set["virtual_permutation_layout"] = current_layout.compose(new_layout)
+        else:
+            self.property_set["virtual_permutation_layout"] = new_layout
 
         return new_dag
 
@@ -289,14 +286,15 @@ class StarPreRouting(TransformationPass):
             List[StarBlock]: a list of star blocks in the given dag
             Union[List[DAGOpNode], List[DAGDepNode]]: a list of operations specifying processing order
         """
-        self.dag = dag
-        blocks, processing_order = self.collect_all_matching_blocks(min_block_size=min_block_size)
+        blocks, processing_order = self.collect_all_matching_blocks(
+            dag, min_block_size=min_block_size
+        )
         return blocks, processing_order
 
     def star_preroute(self, dag, blocks, processing_order):
         """Returns star blocks in dag and the processing order of nodes within these star blocks
         Args:
-            dag (DAGCircuit or DAGDependency): a dag on which star blocks should be determined.
+            dag (DAGCircuit or DAGDependency): a dag on which star prerouting should be performed.
             blocks (List[StarBlock]): a list of star blocks in the given dag.
             processing_order (Union[List[DAGOpNode], List[DAGDepNode]]): a list of operations specifying
             processing order
@@ -409,6 +407,9 @@ class StarPreRouting(TransformationPass):
             else:
                 # the node is not part of a block
                 new_dag.apply_operation_back(
-                    node.op, _apply_mapping(node.qargs, qubit_mapping, dag.qubits), node.cargs, check=False
+                    node.op,
+                    _apply_mapping(node.qargs, qubit_mapping, dag.qubits),
+                    node.cargs,
+                    check=False,
                 )
         return new_dag, qubit_mapping

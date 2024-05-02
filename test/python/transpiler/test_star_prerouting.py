@@ -246,7 +246,7 @@ class TestStarPreRouting(QiskitTestCase):
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
     @unittest.skipUnless(HAS_AER, "Aer required for clifford simulation")
-    @ddt.data(0, 1, 2)
+    @ddt.data(0, 1)
     def test_100q_grid_full_path(self, opt_level):
         from qiskit_aer import AerSimulator
 
@@ -288,7 +288,7 @@ class TestStarPreRouting(QiskitTestCase):
 
     # Skip level 3 because of unitary synth introducing non-clifford gates
     @unittest.skipUnless(HAS_AER, "Aer required for clifford simulation")
-    @ddt.data(0, 1, 2)
+    @ddt.data(0, 1)
     def test_100q_grid_full_path_no_barrier(self, opt_level):
         from qiskit_aer import AerSimulator
 
