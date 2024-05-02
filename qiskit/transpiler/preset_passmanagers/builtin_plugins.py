@@ -28,6 +28,7 @@ from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
+from qiskit.transpiler.passes import StarPreRouting
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePlugin,
@@ -154,7 +155,6 @@ class DefaultInitPassManager(PassManagerStagePlugin):
                 )
             )
             init.append(CommutativeCancellation())
-            init.append(StarPreRouting())
 
         else:
             raise TranspilerError(f"Invalid optimization level {optimization_level}")
@@ -705,6 +705,9 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 and property_set["VF2Layout_stop_reason"] is not VF2LayoutStopReason.SOLUTION_FOUND
             )
 
+        def _star_prerouting_check(property_set):
+            return _vf2_match_not_found(property_set) and property_set["stars_prerouted"]
+
         def _swap_mapped(property_set):
             return property_set["final_layout"] is None
 
@@ -780,6 +783,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
+            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found)),
+            layout.append(ConditionalController(choose_layout_0, condition=_star_prerouting_check))
             layout.append(
                 ConditionalController(
                     [
@@ -812,6 +817,8 @@ class DefaultLayoutPassManager(PassManagerStagePlugin):
                 skip_routing=pass_manager_config.routing_method is not None
                 and pass_manager_config.routing_method != "sabre",
             )
+            layout.append(ConditionalController(StarPreRouting(), condition=_vf2_match_not_found)),
+            layout.append(ConditionalController(choose_layout_0, condition=_star_prerouting_check))
             layout.append(
                 ConditionalController(
                     [
