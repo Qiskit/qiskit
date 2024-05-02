@@ -1471,6 +1471,17 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertIn("clash", parameter_name["name"])
         self.assertNotEqual(register_name["name"], parameter_name["name"])
 
+    def test_parameters_and_gates_cannot_have_naming_clashes(self):
+        """Test that parameters are renamed to avoid collisions with gate names."""
+        qc = QuantumCircuit(QuantumRegister(1, "q"))
+        qc.rz(Parameter("rz"), 0)
+
+        out_qasm = dumps(qc)
+        parameter_name = self.scalar_parameter_regex.search(out_qasm)
+        self.assertTrue(parameter_name)
+        self.assertIn("rz", parameter_name["name"])
+        self.assertNotEqual(parameter_name["name"], "rz")
+
     # Not necessarily all the reserved keywords, just a sensibly-sized subset.
     @data("bit", "const", "def", "defcal", "float", "gate", "include", "int", "let", "measure")
     def test_reserved_keywords_as_names_are_escaped(self, keyword):
