@@ -554,8 +554,6 @@ class BitArray(ShapedMixin):
                     f"but the bit array at index 0 has {ndim} dimension(s) "
                     f"and the bit array at index {i} has {ba.ndim} dimension(s)."
                 )
-        if axis is None:
-            raise ValueError(f"axis {axis} must be a non-negative integer.")
         if axis < 0 or axis >= ndim:
             raise ValueError(f"axis {axis} is out of bounds for bit array of dimension {ndim}.")
         data = np.concatenate([ba.array for ba in bit_arrays], axis=axis)
