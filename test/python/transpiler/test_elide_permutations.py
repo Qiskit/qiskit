@@ -302,11 +302,26 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
     as to preserve unitary equivalence.
     """
 
-    # ToDo: update the tests when ElidePermutations is merged into transpiler flow.
+    def test_not_run_after_layout(self):
+        """Test ElidePermutations doesn't do anything after layout."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.h(1)
+
+        spm = generate_preset_pass_manager(
+            optimization_level=3, initial_layout=list(range(2, -1, -1)), seed_transpiler=42
+        )
+        spm.layout += ElidePermutations()
+        res = spm.run(qc)
+        self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
+        self.assertIn("swap", res.count_ops())
+        self.assertTrue(res.layout.final_index_layout(), [0, 1, 2])
 
     def test_unitary_equivalence(self):
         """Test unitary equivalence of the original and transpiled circuits."""
-
         qc = QuantumCircuit(3)
         qc.h(0)
         qc.swap(0, 2)
@@ -316,6 +331,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
 
         with self.subTest("no coupling map"):
             spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -323,6 +339,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
             spm = generate_preset_pass_manager(
                 optimization_level=3, seed_transpiler=42, coupling_map=CouplingMap.from_line(3)
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -343,6 +360,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
 
         with self.subTest("no coupling map"):
             spm = generate_preset_pass_manager(optimization_level=3, seed_transpiler=42)
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -353,6 +371,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 coupling_map=CouplingMap.from_line(5),
                 basis_gates=["u", "cz"],
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -363,6 +382,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 initial_layout=[4, 2, 1, 3, 0],
                 basis_gates=["u", "cz"],
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -374,6 +394,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 basis_gates=["u", "cz"],
                 coupling_map=CouplingMap.from_line(5),
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
@@ -383,6 +404,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 seed_transpiler=42,
                 coupling_map=CouplingMap.from_line(8),
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
 
             qc_with_ancillas = QuantumCircuit(8)
@@ -396,6 +418,7 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
                 initial_layout=[4, 2, 7, 3, 6],
                 coupling_map=CouplingMap.from_line(8),
             )
+            spm.init += ElidePermutations()
             res = spm.run(qc)
 
             qc_with_ancillas = QuantumCircuit(8)

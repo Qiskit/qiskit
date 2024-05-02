@@ -13,7 +13,8 @@
 """Test OptimizeAnnotated pass"""
 
 from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.circuit.library import SwapGate, CXGate
+from qiskit.circuit.classical import expr, types
+from qiskit.circuit.library import SwapGate, CXGate, HGate
 from qiskit.circuit.annotated_operation import (
     AnnotatedOperation,
     ControlModifier,
@@ -193,3 +194,24 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         )
 
         self.assertEqual(qc_optimized, expected_qc)
+
+    def test_standalone_var(self):
+        """Test that standalone vars work."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(3, 3, inputs=[a])
+        qc.add_var(b, 12)
+        qc.append(AnnotatedOperation(HGate(), [ControlModifier(1), ControlModifier(1)]), [0, 1, 2])
+        qc.append(AnnotatedOperation(CXGate(), [InverseModifier(), InverseModifier()]), [0, 1])
+        qc.measure([0, 1, 2], [0, 1, 2])
+        qc.store(a, expr.logic_and(qc.clbits[0], qc.clbits[1]))
+
+        expected = qc.copy_empty_like()
+        expected.store(b, 12)
+        expected.append(HGate().control(2, annotated=True), [0, 1, 2])
+        expected.cx(0, 1)
+        expected.measure([0, 1, 2], [0, 1, 2])
+        expected.store(a, expr.logic_and(expected.clbits[0], expected.clbits[1]))
+
+        self.assertEqual(OptimizeAnnotated()(qc), expected)

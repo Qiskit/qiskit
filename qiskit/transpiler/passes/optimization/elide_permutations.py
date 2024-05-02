@@ -67,7 +67,7 @@ class ElidePermutations(TransformationPass):
             )
             return dag
 
-        op_count = dag.count_ops()
+        op_count = dag.count_ops(recurse=False)
         if op_count.get("swap", 0) == 0 and op_count.get("permutation", 0) == 0:
             return dag
 
@@ -79,9 +79,13 @@ class ElidePermutations(TransformationPass):
 
         for node in dag.topological_op_nodes():
             if not isinstance(node.op, (SwapGate, PermutationGate)):
-                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
+                new_dag.apply_operation_back(
+                    node.op, _apply_mapping(node.qargs), node.cargs, check=False
+                )
             elif getattr(node.op, "condition", None) is not None:
-                new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
+                new_dag.apply_operation_back(
+                    node.op, _apply_mapping(node.qargs), node.cargs, check=False
+                )
             elif isinstance(node.op, SwapGate):
                 index_0 = dag.find_bit(node.qargs[0]).index
                 index_1 = dag.find_bit(node.qargs[1]).index
@@ -99,8 +103,9 @@ class ElidePermutations(TransformationPass):
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         if self.property_set["original_qubit_indices"] is None:
             self.property_set["original_qubit_indices"] = input_qubit_mapping
-        # ToDo: check if this exists; then compose
-        self.property_set["virtual_permutation_layout"] = Layout(
-            {dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)}
-        )
+        new_layout = Layout({dag.qubits[out]: idx for idx, out in enumerate(qubit_mapping)})
+        if current_layout := self.property_set["virtual_permutation_layout"] is not None:
+            self.property_set["virtual_permutation_layout"] = current_layout.compose(new_layout)
+        else:
+            self.property_set["virtual_permutation_layout"] = new_layout
         return new_dag
