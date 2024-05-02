@@ -298,37 +298,37 @@ class BitArrayTestCase(QiskitTestCase):
             ba2 = ba.transpose()
             self.assertEqual(ba2.shape, (3, 2, 1))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
 
         with self.subTest("tuple 1"):
             ba2 = ba.transpose((2, 1, 0))
             self.assertEqual(ba2.shape, (3, 2, 1))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
 
         with self.subTest("tuple 2"):
             ba2 = ba.transpose((0, 1, 2))
             self.assertEqual(ba2.shape, (1, 2, 3))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
 
         with self.subTest("tuple 3"):
             ba2 = ba.transpose((0, 2, 1))
             self.assertEqual(ba2.shape, (1, 3, 2))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, k, j)))
 
         with self.subTest("tuple, negative indices"):
             ba2 = ba.transpose((0, -1, -2))
             self.assertEqual(ba2.shape, (1, 3, 2))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, k, j)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, k, j)))
 
         with self.subTest("ints"):
             ba2 = ba.transpose(2, 1, 0)
             self.assertEqual(ba2.shape, (3, 2, 1))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(k, j, i)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((k, j, i)))
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "axes don't match bit array"):
@@ -351,17 +351,24 @@ class BitArrayTestCase(QiskitTestCase):
         self.assertEqual(ba.shape, (1, 2, 3))
         concatenate = BitArray.concatenate
 
-        with self.subTest("default"):
+        with self.subTest("2 arrays, default"):
             ba2 = concatenate([ba, ba])
             self.assertEqual(ba2.shape, (2, 2, 3))
             for j, k in product(range(2), range(3)):
-                self.assertEqual(ba2.get_counts(loc=(0, j, k)), ba2.get_counts(loc=(1, j, k)))
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((1, j, k)))
 
-        with self.subTest("arg"):
+        with self.subTest("2 arrays, axis"):
             ba2 = concatenate([ba, ba], axis=1)
             self.assertEqual(ba2.shape, (1, 4, 3))
             for j, k in product(range(2), range(3)):
-                self.assertEqual(ba2.get_counts(loc=(0, j, k)), ba2.get_counts(loc=(0, j + 2, k)))
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((0, j + 2, k)))
+
+        with self.subTest("3 arrays"):
+            ba2 = concatenate([ba, ba, ba])
+            self.assertEqual(ba2.shape, (3, 2, 3))
+            for j, k in product(range(2), range(3)):
+                self.assertEqual(ba2.get_counts((0, j, k)), ba2.get_counts((1, j, k)))
+                self.assertEqual(ba2.get_counts((1, j, k)), ba2.get_counts((2, j, k)))
 
         with self.subTest("errors"):
             with self.assertRaisesRegex(ValueError, "Need at least one bit array to concatenate"):
@@ -391,6 +398,98 @@ class BitArrayTestCase(QiskitTestCase):
             ):
                 _ = concatenate([ba, ba2])
 
+    def test_concatenate_shots(self):
+        """Test the concatenate_shots function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate_shots = BitArray.concatenate_shots
+
+        with self.subTest("2 arrays"):
+            ba2 = concatenate_shots([ba, ba])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 9)
+            self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                expected = {key: val * 2 for key, val in ba.get_counts((i, j, k)).items()}
+                counts2 = ba2.get_counts((i, j, k))
+                self.assertEqual(counts2, expected)
+
+        with self.subTest("3 arrays"):
+            ba2 = concatenate_shots([ba, ba, ba])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 9)
+            self.assertEqual(ba2.num_shots, 3 * ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                expected = {key: val * 3 for key, val in ba.get_counts((i, j, k)).items()}
+                counts2 = ba2.get_counts((i, j, k))
+                self.assertEqual(counts2, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
+                _ = concatenate_shots([])
+
+            ba2 = BitArray(data, 10)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
+                _ = concatenate_shots([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
+                _ = concatenate_shots([ba, ba2])
+
+    def test_concatenate_bits(self):
+        """Test the concatenate_bits function."""
+        # this creates incrementing bitstrings from 0 to 59
+        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
+        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
+        ba = BitArray(data, 9)
+        self.assertEqual(ba.shape, (1, 2, 3))
+        concatenate_bits = BitArray.concatenate_bits
+
+        with self.subTest("2 arrays"):
+            ba_01 = ba.slice_bits([0, 1])
+            ba2 = concatenate_bits([ba, ba_01])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 11)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                bs = ba.get_bitstrings((i, j, k))
+                bs_01 = ba_01.get_bitstrings((i, j, k))
+                expected = [s1 + s2 for s1, s2 in zip(bs_01, bs)]
+                bs2 = ba2.get_bitstrings((i, j, k))
+                self.assertEqual(bs2, expected)
+
+        with self.subTest("3 arrays"):
+            ba_01 = ba.slice_bits([0, 1])
+            ba2 = concatenate_bits([ba, ba_01, ba_01])
+            self.assertEqual(ba2.shape, (1, 2, 3))
+            self.assertEqual(ba2.num_bits, 13)
+            self.assertEqual(ba2.num_shots, ba.num_shots)
+            for i, j, k in product(range(1), range(2), range(3)):
+                bs = ba.get_bitstrings((i, j, k))
+                bs_01 = ba_01.get_bitstrings((i, j, k))
+                expected = [s1 + s1 + s2 for s1, s2 in zip(bs_01, bs)]
+                bs2 = ba2.get_bitstrings((i, j, k))
+                self.assertEqual(bs2, expected)
+
+        with self.subTest("errors"):
+            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
+                _ = concatenate_bits([])
+
+            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
+            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
+            ba2 = BitArray(data2, 9)
+            with self.assertRaisesRegex(
+                ValueError, "All bit arrays must have same number of shots"
+            ):
+                _ = concatenate_bits([ba, ba2])
+
+            ba2 = ba.reshape(2, 3)
+            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
+                _ = concatenate_bits([ba, ba2])
+
     def test_getitem(self):
         """Test the __getitem__ method."""
         # this creates incrementing bitstrings from 0 to 59
@@ -403,18 +502,18 @@ class BitArrayTestCase(QiskitTestCase):
             ba2 = ba[:]
             self.assertEqual(ba2.shape, (1, 2, 3))
             for i, j, k in product(range(1), range(2), range(3)):
-                self.assertEqual(ba.get_counts(loc=(i, j, k)), ba2.get_counts(loc=(i, j, k)))
+                self.assertEqual(ba.get_counts((i, j, k)), ba2.get_counts((i, j, k)))
 
         with self.subTest("no slice"):
             ba2 = ba[0, 1, 2]
             self.assertEqual(ba2.shape, ())
-            self.assertEqual(ba.get_counts(loc=(0, 1, 2)), ba2.get_counts())
+            self.assertEqual(ba.get_counts((0, 1, 2)), ba2.get_counts())
 
         with self.subTest("slice"):
             ba2 = ba[0, :, 2]
             self.assertEqual(ba2.shape, (2,))
             for j in range(2):
-                self.assertEqual(ba.get_counts(loc=(0, j, 2)), ba2.get_counts(loc=j))
+                self.assertEqual(ba.get_counts((0, j, 2)), ba2.get_counts(j))
 
     def test_slice_bits(self):
         """Test the slice_bits method."""
@@ -598,72 +697,3 @@ class BitArrayTestCase(QiskitTestCase):
                 _ = ba.expectation_values("Z")
             with self.assertRaisesRegex(ValueError, "is not diagonal"):
                 _ = ba.expectation_values("X" * ba.num_bits)
-
-    def test_concatenate_shots(self):
-        """Test the concatenate_shots function."""
-        # this creates incrementing bitstrings from 0 to 59
-        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
-        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
-        ba = BitArray(data, 9)
-        self.assertEqual(ba.shape, (1, 2, 3))
-        concatenate_shots = BitArray.concatenate_shots
-
-        with self.subTest("default"):
-            ba2 = concatenate_shots([ba, ba])
-            self.assertEqual(ba2.shape, (1, 2, 3))
-            self.assertEqual(ba2.num_bits, 9)
-            self.assertEqual(ba2.num_shots, 2 * ba.num_shots)
-            for i, j, k in product(range(1), range(2), range(3)):
-                counts_x2 = {key: val * 2 for key, val in ba.get_counts((i, j, k)).items()}
-                counts2 = ba2.get_counts((i, j, k))
-                self.assertEqual(counts_x2, counts2)
-
-        with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
-                _ = concatenate_shots([])
-
-            ba2 = BitArray(data, 10)
-            with self.assertRaisesRegex(ValueError, "All bit arrays must have same number of bits"):
-                _ = concatenate_shots([ba, ba2])
-
-            ba2 = ba.reshape(2, 3)
-            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
-                _ = concatenate_shots([ba, ba2])
-
-    def test_concatenate_bits(self):
-        """Test the concatenate_bits function."""
-        # this creates incrementing bitstrings from 0 to 59
-        data = np.frombuffer(np.arange(60, dtype=np.uint16).tobytes(), dtype=np.uint8)
-        data = data.reshape(1, 2, 3, 10, 2)[..., ::-1]
-        ba = BitArray(data, 9)
-        self.assertEqual(ba.shape, (1, 2, 3))
-        concatenate_bits = BitArray.concatenate_bits
-
-        with self.subTest("default"):
-            ba_01 = ba.slice_bits([0, 1])
-            ba2 = concatenate_bits([ba, ba_01])
-            self.assertEqual(ba2.shape, (1, 2, 3))
-            self.assertEqual(ba2.num_bits, 11)
-            self.assertEqual(ba2.num_shots, ba.num_shots)
-            for i, j, k in product(range(1), range(2), range(3)):
-                bs = ba.get_bitstrings((i, j, k))
-                bs_01 = ba_01.get_bitstrings((i, j, k))
-                expected = [s1 + s2 for s1, s2 in zip(bs_01, bs)]
-                bs2 = ba2.get_bitstrings((i, j, k))
-                self.assertEqual(bs2, expected)
-
-        with self.subTest("errors"):
-            with self.assertRaisesRegex(ValueError, "Need at least one bit array to stack"):
-                _ = concatenate_bits([])
-
-            data2 = np.frombuffer(np.arange(30, dtype=np.uint16).tobytes(), dtype=np.uint8)
-            data2 = data2.reshape(1, 2, 3, 5, 2)[..., ::-1]
-            ba2 = BitArray(data2, 9)
-            with self.assertRaisesRegex(
-                ValueError, "All bit arrays must have same number of shots"
-            ):
-                _ = concatenate_bits([ba, ba2])
-
-            ba2 = ba.reshape(2, 3)
-            with self.assertRaisesRegex(ValueError, "All bit arrays must have same shape"):
-                _ = concatenate_bits([ba, ba2])
