@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2024
+# (C) Copyright IBM 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,170 +14,100 @@
 # pylint: disable=attribute-defined-outside-init
 
 import numpy as np
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import (
-    CXGate,
-    CYGate,
-    CZGate,
-    DCXGate,
-    ECRGate,
-    HGate,
-    IGate,
-    SdgGate,
-    SGate,
-    SXGate,
-    SXdgGate,
-    SwapGate,
-    XGate,
-    YGate,
-    ZGate,
-    iSwapGate,
     LinearFunction,
 )
-class VGate(Gate):
-    """V Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new V Gate."""
-        super().__init__("v", 1, [])
-
-    def _define(self):
-        """V Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.sdg(0)
-        qc.h(0)
-        self.definition = qc
+from qiskit.quantum_info.operators.symplectic.random import random_clifford
+from qiskit.synthesis.linear import random_invertible_binary_matrix
 
 
-class WGate(Gate):
-    """W Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new W Gate."""
-        super().__init__("w", 1, [])
-
-    def _define(self):
-        """W Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.append(VGate(), [q[0]], [])
-        qc.append(VGate(), [q[0]], [])
-        self.definition = qc
-
+# TODO: track depth, num. 2q gates, 2q depth
 class HLSPluginsSuite:
 
-    def _construct_linear_circuit(self, num_qubits: int):
-        """Construct linear circuit."""
+    def rand_benchmarking_clifford_circuit(self, num_qubits, depth, seed=None):
+        """Build Clifford circuit <randomized benchmarking style> (wide and deep)."""
         qc = QuantumCircuit(num_qubits)
-        for i in range(1, num_qubits):
-            qc.cx(i - 1, i)
+        for i in range(0, depth):
+            for _ in range(depth):
+                cliff = random_clifford(2, seed=seed)
+                qc.append(cliff, [2 * i, 2 * i + 1])
         return qc
 
-    def random_clifford_circuit(self, num_qubits, num_gates, gates="all", seed=None):
-        """Generate a pseudo random Clifford circuit."""
+    def random_wide_clifford_circuit(self, num_qubits, seed=None):
+        """Build a wide (but shallow) random Clifford circuit."""
+        qc = QuantumCircuit(num_qubits)
+        cliff = random_clifford(num_qubits, seed=seed)
+        qc.append(cliff, range(num_qubits))
+        return qc
 
-        qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
-        qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
-        if gates == "all":
-            if num_qubits == 1:
-                gates = qubits_1_gates
-            else:
-                gates = qubits_1_gates + qubits_2_gates
-
-        instructions = {
-            "i": (IGate(), 1),
-            "x": (XGate(), 1),
-            "y": (YGate(), 1),
-            "z": (ZGate(), 1),
-            "h": (HGate(), 1),
-            "s": (SGate(), 1),
-            "sdg": (SdgGate(), 1),
-            "sx": (SXGate(), 1),
-            "sxdg": (SXdgGate(), 1),
-            "v": (VGate(), 1),
-            "w": (WGate(), 1),
-            "cx": (CXGate(), 2),
-            "cy": (CYGate(), 2),
-            "cz": (CZGate(), 2),
-            "swap": (SwapGate(), 2),
-            "iswap": (iSwapGate(), 2),
-            "ecr": (ECRGate(), 2),
-            "dcx": (DCXGate(), 2),
-        }
-
-        if isinstance(seed, np.random.Generator):
-            rng = seed
-        else:
-            rng = np.random.default_rng(seed)
-
-        samples = rng.choice(gates, num_gates)
-
-        circ = QuantumCircuit(num_qubits)
-
-        for name in samples:
-            gate, nqargs = instructions[name]
-            qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
-            circ.append(gate, qargs)
-
-        return circ
+    def random_linear_circuit(self, num_qubits, seed=None):
+        """Build a wide circuit out of a random linear function."""
+        mat = random_invertible_binary_matrix(self.num_qubits, seed=seed)
+        qc = QuantumCircuit(self.num_qubits)
+        qc.append(LinearFunction(mat), list(range(self.num_qubits)))
+        return qc
 
     def setUp(self):
-        self.num_qubits = 150
+        # Set seed and num qubits
+        self.num_qubits = 100
         self.rng = np.random.default_rng(1234)
 
-        linear_function = LinearFunction(self._construct_linear_circuit(self.num_qubits))
-        self.qc_linear = QuantumCircuit(self.num_qubits)
-        self.qc_linear.append(linear_function, list(range(self.num_qubits)))
+        # Define circuits for benchmarking
+        self.qc_wide_clifford = self.random_wide_clifford_circuit(self.num_qubits, seed=self.rng)
+        self.qc_rand_clifford = self.rand_benchmarking_clifford_circuit(
+            self.num_qubits, self.num_qubits // 2, seed=self.rng
+        )
+        self.qc_linear = self.random_linear_circuit(self.num_qubits, seed=self.rng)
 
-        self.num_samples = 20
+        # Define pm with different synthesis plugin configurations
+        self.pm_ag = PassManager([HighLevelSynthesis(hls_config=HLSConfig(clifford=["ag"]))])
+        self.pm_bm = PassManager([HighLevelSynthesis(hls_config=HLSConfig(clifford=["bm"]))])
+        self.pm_greedy = PassManager(
+            [HighLevelSynthesis(hls_config=HLSConfig(clifford=["greedy"]))]
+        )
+        self.pm_default = PassManager(
+            [HighLevelSynthesis(hls_config=HLSConfig(clifford=["default"]))]
+        )
 
-    # Clifford Synthesis Plugins
-    def time_synth_ag(self):
-        """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
-        hls_config = HLSConfig(clifford=["ag"])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+        self.pm_pmh = PassManager(
+            [HighLevelSynthesis(hls_config=HLSConfig(linear_function=[("pmh", {})]))]
+        )
+        self.pm_kms = PassManager(
+            [HighLevelSynthesis(hls_config=HLSConfig(linear_function=[("kms", {})]))]
+        )
 
-        for _ in range(self.num_samples):
-            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
-            _ = pm.run(qc_clifford)
+    # Time Clifford synthesis plugins with random wide circuit
+    def time_clifford_ag_wide_circuit(self):
+        _ = self.pm_ag.run(self.qc_wide_clifford)
 
-    def time_synth_bm(self):
-        """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
-        hls_config = HLSConfig(clifford=["bm"])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+    def time_clifford_bm_wide_circuit(self):
+        _ = self.pm_bm.run(self.qc_wide_clifford)
 
-        for _ in range(self.num_samples):
-            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
-            _ = pm.run(qc_clifford)
+    def time_clifford_greedy_wide_circuit(self):
+        _ = self.pm_greedy.run(self.qc_wide_clifford)
 
-    def time_synth_greedy(self):
-        """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
-        hls_config = HLSConfig(clifford=["greedy"])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+    def time_clifford_default_wide_circuit(self):
+        _ = self.pm_default.run(self.qc_wide_clifford)
 
-        for _ in range(self.num_samples):
-            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
-            _ = pm.run(qc_clifford)
+    # Time Clifford synthesis plugins with randomized benchmarking circuit
+    def time_clifford_ag_rand_benchmarking(self):
+        _ = self.pm_ag.run(self.qc_rand_clifford)
 
-    def time_synth_full(self):
-        """Test synthesis for set of {num_qubits}-qubit Cliffords"""
-        hls_config = HLSConfig(clifford=["full"])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+    def time_clifford_bm_rand_benchmarking(self):
+        _ = self.pm_bm.run(self.qc_rand_clifford)
 
-        for _ in range(self.num_samples):
-            qc_clifford = self.random_clifford_circuit(self.num_qubits, 5 * self.num_qubits, seed=self.rng)
-            _ = pm.run(qc_clifford)
+    def time_clifford_greedy_rand_benchmarking(self):
+        _ = self.pm_greedy.run(self.qc_rand_clifford)
 
-    # Linear Synthesis Plugins
-    def time_pmh_linear_func_plugin(self):
-        hls_config = HLSConfig(linear_function=[("pmh", {})])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_linear)
+    def time_clifford_default_rand_benchmarking(self):
+        _ = self.pm_default.run(self.qc_rand_clifford)
 
-    def time_kms_linear_func_plugin(self):
-        hls_config = HLSConfig(linear_function=[("kms", {})])
-        pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
-        _ = pm.run(self.qc_linear)
+    # Time Linear synthesis plugins
+    def time_linear_func_pmh(self):
+        _ = self.pm_pmh.run(self.qc_linear)
+
+    def time_linear_func_kms(self):
+        _ = self.pm_kms.run(self.qc_linear)
