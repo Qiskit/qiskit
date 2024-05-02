@@ -34,13 +34,16 @@ from .experimental import ExperimentalFeatures
 # indexing and casting are all higher priority than these, so we just ignore them.
 _BindingPower = collections.namedtuple("_BindingPower", ("left", "right"), defaults=(255, 255))
 _BINDING_POWER = {
-    # Power: (21, 22)
+    # Power: (24, 23)
     #
-    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=20),
-    ast.Unary.Op.BIT_NOT: _BindingPower(right=20),
+    ast.Unary.Op.LOGIC_NOT: _BindingPower(right=22),
+    ast.Unary.Op.BIT_NOT: _BindingPower(right=22),
     #
-    # Multiplication/division/modulo: (17, 18)
-    # Addition/subtraction: (15, 16)
+    # Multiplication/division/modulo: (19, 20)
+    # Addition/subtraction: (17, 18)
+    #
+    ast.Binary.Op.SHIFT_LEFT: _BindingPower(15, 16),
+    ast.Binary.Op.SHIFT_RIGHT: _BindingPower(15, 16),
     #
     ast.Binary.Op.LESS: _BindingPower(13, 14),
     ast.Binary.Op.LESS_EQUAL: _BindingPower(13, 14),
@@ -331,6 +334,17 @@ class BasicPrinter:
         self.stream.write("(")
         self.visit(node.operand)
         self.stream.write(")")
+
+    def _visit_Index(self, node: ast.Index):
+        if isinstance(node.target, (ast.Unary, ast.Binary)):
+            self.stream.write("(")
+            self.visit(node.target)
+            self.stream.write(")")
+        else:
+            self.visit(node.target)
+        self.stream.write("[")
+        self.visit(node.index)
+        self.stream.write("]")
 
     def _visit_ClassicalDeclaration(self, node: ast.ClassicalDeclaration) -> None:
         self._start_line()
