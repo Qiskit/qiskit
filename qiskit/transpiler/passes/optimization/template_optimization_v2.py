@@ -23,7 +23,6 @@ Exact and practical pattern matching for quantum circuit optimization.
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.dagcircuit import DAGDependency
 from qiskit.dagcircuit.dagdependency_v2 import _DAGDependencyV2
 from qiskit.converters.circuit_to_dagdependency_v2 import _circuit_to_dagdependency_v2
 from qiskit.converters.dagdependency_to_circuit import dagdependency_to_circuit
@@ -150,10 +149,8 @@ class TemplateOptimizationV2(TransformationPass):
                     template_m,
                     self.user_cost_dict,
                 )
-                substitution.run_dag_opt()
-
-                circuit_dag_dep = substitution.dag_dep_optimized
+                circuit_dag_dep = substitution.run_dag_opt()
             else:
                 continue
-        circuit_dag = dagdependency_to_dag(circuit_dag_dep)
-        return circuit_dag
+
+        return dagdependency_to_dag(circuit_dag_dep)

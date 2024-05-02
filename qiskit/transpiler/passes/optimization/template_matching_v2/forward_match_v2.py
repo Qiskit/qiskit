@@ -244,7 +244,7 @@ class ForwardMatch:
         """
 
         # Initialize certain attributes
-        for node in self.circuit_dag_dep.topological_nodes():
+        for node in self.circuit_dag_dep.op_nodes():
             self.successorstovisit[node] = get_successors(self.circuit_dag_dep, node._node_id)
 
         self.matchedwith[self.node_c] = [self.node_t._node_id]

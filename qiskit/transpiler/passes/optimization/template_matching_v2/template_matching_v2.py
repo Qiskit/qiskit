@@ -32,7 +32,8 @@ from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v
     get_descendants,
 )
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.transpiler.passes.optimization.template_matching_v2 import ForwardMatch, BackwardMatch
+from qiskit.transpiler.passes.optimization.template_matching_v2.forward_match_v2 import ForwardMatch
+from qiskit.transpiler.passes.optimization.template_matching_v2.backward_match_v2 import BackwardMatch
 
 
 class TemplateMatching:
@@ -270,17 +271,9 @@ class TemplateMatching:
         n_qubits_t = len(self.template_dag_dep.qubits)
         n_clbits_t = len(self.template_dag_dep.clbits)
 
-        # Loop over the indices of both template and circuit.
-        # for node_id_t in range(0, self.template_dag_dep.size()):
-        #     for node_id_c in range(0, self.circuit_dag_dep.size()):
-        for (
-            node_t
-        ) in self.template_dag_dep.topological_nodes():  # range(0, self.template_dag_dep.size()):
-            for (
-                node_c
-            ) in self.circuit_dag_dep.topological_nodes():  # range(0, self.circuit_dag_dep.size()):
-                # node_t = get_node(self.template_dag_dep, node_id_t)
-                # node_c = get_node(self.circuit_dag_dep, node_id_c)
+        # Loop over the nodes of both template and circuit.
+        for node_t in self.template_dag_dep.op_nodes():
+            for node_c in self.circuit_dag_dep.op_nodes():
 
                 # Operations match up to ParameterExpressions.
                 if node_c.op.soft_compare(node_t.op):

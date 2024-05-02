@@ -26,9 +26,7 @@ from qiskit.transpiler.passes.optimization.template_matching_v2.template_utils_v
     get_ancestors,
 )
 from qiskit.circuit import Parameter, ParameterExpression
-from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency_v2 import _DAGDependencyV2
-from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
 from qiskit.utils import optionals as _optionals
 
 
@@ -92,8 +90,6 @@ class TemplateSubstitution:
 
         self.substitution_list = []
         self.unmatched_list = []
-        self.dag_dep_optimized = _DAGDependencyV2()
-        self.dag_optimized = DAGCircuit()
 
         if user_cost_dict is not None:
             self.cost_dict = dict(user_cost_dict)
@@ -151,7 +147,7 @@ class TemplateSubstitution:
         for node_id in circuit_sublist:
             node_c = get_node(self.circuit_dag_dep, node_id)
             if node_c not in self.temp_match_class.ancestors:
-                self.temp_match_class.ancestors[node] = get_ancestors(self.circuit_dag_dep, node_c)
+                self.temp_match_class.ancestors[node_c] = get_ancestors(self.circuit_dag_dep, node_c)
             ancestors = ancestors | set(self.temp_match_class.ancestors[node_c])
 
         exclude = set()
@@ -342,12 +338,8 @@ class TemplateSubstitution:
             # Get the first match scenario of the list
             current = self.match_stack.pop(0)
 
-            current_match = current.match
-            current_qubit = current.qubit
-            current_clbit = current.clbit
-
-            template_sublist = [x[0] for x in current_match]
-            circuit_sublist = [x[1] for x in current_match]
+            template_sublist = [x[0] for x in current.match]
+            circuit_sublist = [x[1] for x in current.match]
             circuit_sublist.sort()
 
             # Fake bind any parameters in the template
@@ -367,9 +359,9 @@ class TemplateSubstitution:
                     circuit_sublist,
                     template_sublist_inverse,
                     [],
-                    current_qubit,
+                    current.qubit,
                     template,
-                    current_clbit,
+                    current.clbit,
                 )
                 self.substitution_list.append(config)
 
@@ -395,12 +387,14 @@ class TemplateSubstitution:
 
     def run_dag_opt(self):
         """
-        Runs the substitution algorithm and creates the optimized DAGCircuit().
+        Runs the substitution algorithm and creates the optimized _DAGDependencyV2().
         """
         self._substitution()
 
-        dag_dep_opt = _DAGDependencyV2()
+        if not self.substitution_list:
+            return self.circuit_dag_dep
 
+        dag_dep_opt = _DAGDependencyV2()
         dag_dep_opt.name = self.circuit_dag_dep.name
 
         qregs = list(self.circuit_dag_dep.qregs.values())
@@ -414,63 +408,55 @@ class TemplateSubstitution:
 
         already_sub = []
 
-        if self.substitution_list:
-            # Loop over the different matches.
-            for group in self.substitution_list:
+        # Loop over the different matches.
+        for group in self.substitution_list:
 
-                circuit_sub = group.circuit_config
-                template_inverse = group.template_config
+            circuit_sub = group.circuit_config
+            template_inverse = group.template_config
 
-                anc_group = group.anc_block
+            qubit = group.qubit_config[0]
 
-                qubit = group.qubit_config[0]
+            if group.clbit_config:
+                clbit = group.clbit_config[0]
+            else:
+                clbit = []
 
-                if group.clbit_config:
-                    clbit = group.clbit_config[0]
-                else:
-                    clbit = []
-
-                # First add all the ancestors of the given match.
-                for elem in anc_group:
-                    node_c = get_node(self.circuit_dag_dep, elem)
-                    inst = node_c.op.copy()
-                    dag_dep_opt.apply_operation_back(inst, node_c.qargs, node_c.cargs)
-                    already_sub.append(elem)
-
-                already_sub = already_sub + circuit_sub
-
-                # Then add the inverse of the template.
-                for index in template_inverse:
-                    all_qubits = self.circuit_dag_dep.qubits
-                    node_t = get_node(group.template_dag_dep, index)
-                    qarg_t = get_qindices(group.template_dag_dep, node_t)
-                    qarg_c = [qubit[x] for x in qarg_t]
-                    qargs = [all_qubits[x] for x in qarg_c]
-
-                    all_clbits = self.circuit_dag_dep.clbits
-                    carg_t = get_cindices(group.template_dag_dep, node_t)
-
-                    if all_clbits and clbit:
-                        carg_c = [clbit[x] for x in carg_t]
-                        cargs = [all_clbits[x] for x in carg_c]
-                    else:
-                        cargs = []
-                    node_t = get_node(group.template_dag_dep, index)
-                    inst = node_t.op.copy()
-                    dag_dep_opt.apply_operation_back(inst.inverse(), qargs, cargs)
-
-            # Add the unmatched gates.
-            for node_id in self.unmatched_list:
-                node_c = get_node(self.circuit_dag_dep, node_id)
+            # First add all the ancestors of the given match.
+            for elem in group.anc_block:
+                node_c = get_node(self.circuit_dag_dep, elem)
                 inst = node_c.op.copy()
                 dag_dep_opt.apply_operation_back(inst, node_c.qargs, node_c.cargs)
+                already_sub.append(elem)
 
-        # If there is no valid match, it returns the original dag.
-        else:
-            dag_dep_opt = self.circuit_dag_dep
+            already_sub = already_sub + circuit_sub
 
-        self.dag_dep_optimized = dag_dep_opt
-        self.dag_optimized = dagdependency_to_dag(dag_dep_opt)
+            # Then add the inverse of the template.
+            for index in template_inverse:
+                all_qubits = self.circuit_dag_dep.qubits
+                node_t = get_node(group.template_dag_dep, index)
+                qarg_t = get_qindices(group.template_dag_dep, node_t)
+                qarg_c = [qubit[x] for x in qarg_t]
+                qargs = [all_qubits[x] for x in qarg_c]
+
+                all_clbits = self.circuit_dag_dep.clbits
+                carg_t = get_cindices(group.template_dag_dep, node_t)
+
+                if all_clbits and clbit:
+                    carg_c = [clbit[x] for x in carg_t]
+                    cargs = [all_clbits[x] for x in carg_c]
+                else:
+                    cargs = []
+                node_t = get_node(group.template_dag_dep, index)
+                inst = node_t.op.copy()
+                dag_dep_opt.apply_operation_back(inst.inverse(), qargs, cargs)
+
+        # Add the unmatched gates.
+        for node_id in self.unmatched_list:
+            node_c = get_node(self.circuit_dag_dep, node_id)
+            inst = node_c.op.copy()
+            dag_dep_opt.apply_operation_back(inst, node_c.qargs, node_c.cargs)
+
+        return dag_dep_opt
 
     def _attempt_bind(self, template_sublist, circuit_sublist):
         """

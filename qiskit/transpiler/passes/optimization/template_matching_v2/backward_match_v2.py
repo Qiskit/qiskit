@@ -299,17 +299,10 @@ class BackwardMatch:
         counter = 1
 
         # Initialize the list of attributes matchedwith and isblocked.
-        circuit_matched = []
-        circuit_blocked = []
-        for node in self.circuit_dag_dep.op_nodes():
-            circuit_matched.append(self.matchedwith.get(node))
-            circuit_blocked.append(self.isblocked.get(node))
-
-        template_matched = []
-        template_blocked = []
-        for node in self.template_dag_dep.op_nodes():
-            template_matched.append(self.matchedwith.get(node))
-            template_blocked.append(self.isblocked.get(node))
+        circuit_matched = [self.matchedwith.get(node) for node in self.circuit_dag_dep.op_nodes()]
+        circuit_blocked = [self.isblocked.get(node) for node in self.circuit_dag_dep.op_nodes()]
+        template_matched = [self.matchedwith.get(node) for node in self.template_dag_dep.op_nodes()]
+        template_blocked = [self.isblocked.get(node) for node in self.template_dag_dep.op_nodes()]
 
         # First Scenario is stored in the MatchingScenariosList().
         first_match = MatchingScenarios(
@@ -320,18 +313,18 @@ class BackwardMatch:
             self.forward_matches,
             counter,
         )
-
         self.matching_list = MatchingScenariosList()
         self.matching_list.append_scenario(first_match)
 
         # Set the circuit indices that can be matched.
-        gate_indices = []
-        for node in self.circuit_dag_dep.op_nodes():
-            if (not self.matchedwith.get(node)) and (not self.isblocked.get(node)):
-                gate_indices.append(node._node_id)
+        gate_indices = [
+            node._node_id
+            for node in self.circuit_dag_dep.op_nodes()
+            if (not self.matchedwith.get(node) and not self.isblocked.get(node))
+        ]
         gate_indices.reverse()
 
-        number_of_gate_to_match = (
+        number_of_gates_to_match = (
             self.template_dag_dep.size() - (self.node_t._node_id - 1) - len(self.forward_matches)
         )
 
@@ -365,7 +358,7 @@ class BackwardMatch:
             # the length of the backward part of the match.
             if (
                 counter_scenario > len(gate_indices)
-                or len(match_backward) == number_of_gate_to_match
+                or len(match_backward) == number_of_gates_to_match
             ):
                 matches_scenario.sort(key=lambda x: x[0])
                 match_store_list.append(Match(matches_scenario, self.qubits, self.clbits))
@@ -390,6 +383,7 @@ class BackwardMatch:
 
             # The candidates in the template.
             candidates_indices = self._find_backward_candidates(template_blocked, matches_scenario)
+
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
             qarg_indices = get_qindices(self.circuit_dag_dep, node_circuit)
@@ -399,7 +393,7 @@ class BackwardMatch:
             if len(qarg1) != len(qarg_indices):
                 qarg1 = []
 
-            carg1 = [self.clbits.index(c) for q in carg_indices if c in self.clbits]
+            carg1 = [self.clbits.index(c) for c in carg_indices if c in self.clbits]
             if len(carg1) != len(carg_indices):
                 carg1 = []
 
@@ -429,32 +423,22 @@ class BackwardMatch:
                     and self._is_same_c_conf(node_circuit, node_template, carg1)
                     and node_circuit.op == node_template.op
                 ):
-
-                    # If there is a match the attributes are copied.
-                    circuit_matched_match = circuit_matched.copy()
-                    circuit_blocked_match = circuit_blocked.copy()
-
-                    template_matched_match = template_matched.copy()
-                    template_blocked_match = template_blocked.copy()
-
-                    matches_scenario_match = matches_scenario.copy()
-
                     block_list = []
                     broken_matches_match = []
 
                     # Loop to check if the match is not connected, in this case
                     # the descendants matches are blocked and unmatched.
                     for potential_block in get_descendants(self.template_dag_dep, template_id):
-                        if not template_matched_match[potential_block]:
-                            template_blocked_match[potential_block] = True
+                        if not template_matched[potential_block]:
+                            template_blocked[potential_block] = True
                             block_list.append(potential_block)
                             for block_id in block_list:
                                 for desc_id in get_descendants(self.template_dag_dep, block_id):
-                                    template_blocked_match[desc_id] = True
-                                    if template_matched_match[desc_id]:
-                                        new_id = template_matched_match[desc_id][0]
-                                        circuit_matched_match[new_id] = []
-                                        template_matched_match[desc_id] = []
+                                    template_blocked[desc_id] = True
+                                    if template_matched[desc_id]:
+                                        new_id = template_matched[desc_id][0]
+                                        circuit_matched[new_id] = []
+                                        template_matched[desc_id] = []
                                         broken_matches_match.append(desc_id)
 
                     if broken_matches_match:
@@ -462,33 +446,31 @@ class BackwardMatch:
                     else:
                         global_broken.append(False)
 
-                    new_matches_scenario_match = [
-                        elem
-                        for elem in matches_scenario_match
-                        if elem[0] not in broken_matches_match
+                    new_matches_scenario = [
+                        elem for elem in matches_scenario if elem[0] not in broken_matches_match
                     ]
 
                     condition = True
 
                     for back_match in match_backward:
-                        if back_match not in new_matches_scenario_match:
+                        if back_match not in new_matches_scenario:
                             condition = False
                             break
 
                     # First option greedy match.
-                    if (
-                        [self.node_t._node_id, self.node_c._node_id] in new_matches_scenario_match
-                    ) and (condition or not match_backward):
-                        template_matched_match[template_id] = [circuit_id]
-                        circuit_matched_match[circuit_id] = [template_id]
-                        new_matches_scenario_match.append([template_id, circuit_id])
+                    if ([self.node_t._node_id, self.node_c._node_id] in new_matches_scenario) and (
+                        condition or not match_backward
+                    ):
+                        template_matched[template_id] = [circuit_id]
+                        circuit_matched[circuit_id] = [template_id]
+                        new_matches_scenario.append([template_id, circuit_id])
 
                         new_matching_scenario = MatchingScenarios(
-                            circuit_matched_match,
-                            circuit_blocked_match,
-                            template_matched_match,
-                            template_blocked_match,
-                            new_matches_scenario_match,
+                            circuit_matched,
+                            circuit_blocked,
+                            template_matched,
+                            template_blocked,
+                            new_matches_scenario,
                             counter_scenario + 1,
                         )
                         self.matching_list.append_scenario(new_matching_scenario)
@@ -550,16 +532,7 @@ class BackwardMatch:
                 # Third option: if blocking the descendants breaks a match, we consider
                 # also the possibility to block all ancestors (push the gate to the left).
                 if broken_matches and all(global_broken):
-
-                    circuit_matched_block_p = circuit_matched.copy()
-                    circuit_blocked_block_p = circuit_blocked.copy()
-
-                    template_matched_block_p = template_matched.copy()
-                    template_blocked_block_p = template_blocked.copy()
-
-                    matches_scenario_block_p = matches_scenario.copy()
-
-                    circuit_blocked_block_p[circuit_id] = True
+                    circuit_blocked[circuit_id] = True
 
                     node = get_node(self.circuit_dag_dep, circuit_id)
                     if node not in self.temp_match_class.ancestors:
@@ -567,23 +540,21 @@ class BackwardMatch:
                             self.circuit_dag_dep, circuit_id
                         )
                     for anc in self.temp_match_class.ancestors[node]:
-                        circuit_blocked_block_p[anc] = True
+                        circuit_blocked[anc] = True
 
                     matching_scenario = MatchingScenarios(
-                        circuit_matched_block_p,
-                        circuit_blocked_block_p,
-                        template_matched_block_p,
-                        template_blocked_block_p,
-                        matches_scenario_block_p,
+                        circuit_matched,
+                        circuit_blocked,
+                        template_matched,
+                        template_blocked,
+                        matches_scenario,
                         counter_scenario + 1,
                     )
                     self.matching_list.append_scenario(matching_scenario)
 
             # If there is no match then there are three options.
-            if not global_match:
-
+            else:
                 circuit_blocked[circuit_id] = True
-
                 following_matches = []
 
                 node = get_node(self.circuit_dag_dep, circuit_id)
@@ -605,7 +576,6 @@ class BackwardMatch:
                 ancestors = self.temp_match_class.ancestors[node]
 
                 if not ancestors or not following_matches:
-
                     matching_scenario = MatchingScenarios(
                         circuit_matched,
                         circuit_blocked,
@@ -617,15 +587,6 @@ class BackwardMatch:
                     self.matching_list.append_scenario(matching_scenario)
 
                 else:
-
-                    circuit_matched_nomatch = circuit_matched.copy()
-                    circuit_blocked_nomatch = circuit_blocked.copy()
-
-                    template_matched_nomatch = template_matched.copy()
-                    template_blocked_nomatch = template_blocked.copy()
-
-                    matches_scenario_nomatch = matches_scenario.copy()
-
                     # Second option, all ancestors are blocked (circuit gate is
                     # moved to the left).
                     for pred in ancestors:
@@ -654,31 +615,31 @@ class BackwardMatch:
                     descendants = self.temp_match_class.descendants[node]
 
                     for desc in descendants:
-                        circuit_blocked_nomatch[desc] = True
-                        if circuit_matched_nomatch[desc]:
+                        circuit_blocked[desc] = True
+                        if circuit_matched[desc]:
                             broken_matches.append(desc)
-                            circuit_matched_nomatch[desc] = []
+                            circuit_matched[desc] = []
 
-                    new_matches_scenario_nomatch = [
-                        elem for elem in matches_scenario_nomatch if elem[1] not in broken_matches
+                    new_matches_scenario = [
+                        elem for elem in matches_scenario if elem[1] not in broken_matches
                     ]
 
                     condition_block = True
 
                     for back_match in match_backward:
-                        if back_match not in new_matches_scenario_nomatch:
+                        if back_match not in new_matches_scenario:
                             condition_block = False
                             break
 
-                    if (
-                        [self.node_t._node_id, self.node_c._node_id] in matches_scenario_nomatch
-                    ) and (condition_block or not match_backward):
+                    if ([self.node_t._node_id, self.node_c._node_id] in matches_scenario) and (
+                        condition_block or not match_backward
+                    ):
                         new_matching_scenario = MatchingScenarios(
-                            circuit_matched_nomatch,
-                            circuit_blocked_nomatch,
-                            template_matched_nomatch,
-                            template_blocked_nomatch,
-                            new_matches_scenario_nomatch,
+                            circuit_matched,
+                            circuit_blocked,
+                            template_matched,
+                            template_blocked,
+                            new_matches_scenario,
                             counter_scenario + 1,
                         )
                         self.matching_list.append_scenario(new_matching_scenario)
