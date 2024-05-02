@@ -14,7 +14,7 @@
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.passes import BasicSwap
+from qiskit.transpiler.passes import BasicSwap, StarPreRouting
 from qiskit.transpiler.passes import LookaheadSwap
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import SabreSwap
