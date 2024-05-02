@@ -407,6 +407,17 @@ Sampler V2
    StatevectorSampler
    BackendSamplerV2
 
+Inputs V2
+---------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BindingsArray
+   EstimatorPub
+   ObservablesArray
+   SamplerPub
+
 Results V2
 ----------
 
@@ -461,12 +472,16 @@ from .base.estimator_result import EstimatorResult
 from .base.sampler_result import SamplerResult
 from .containers import (
     BitArray,
+    BindingsArray,
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
     BindingsArrayLike,
+    ObservablesArray,
     ObservableLike,
     ObservablesArrayLike,
 )
