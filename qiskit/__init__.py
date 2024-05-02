@@ -53,6 +53,7 @@ if sys.version_info < (3, 9):
 
 
 import qiskit._accelerate
+import qiskit._numpy_compat
 
 # Globally define compiled submodules. The normal import mechanism will not find compiled submodules
 # in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
@@ -64,6 +65,8 @@ sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
 )
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
+sys.modules["qiskit._accelerate.isometry"] = qiskit._accelerate.isometry
+sys.modules["qiskit._accelerate.uc_gate"] = qiskit._accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     qiskit._accelerate.euler_one_qubit_decomposer
 )

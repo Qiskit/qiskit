@@ -204,8 +204,16 @@ class BasicPrinter:
     def _visit_FloatType(self, node: ast.FloatType) -> None:
         self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
 
+    def _visit_BoolType(self, _node: ast.BoolType) -> None:
+        self.stream.write("bool")
+
     def _visit_IntType(self, node: ast.IntType) -> None:
         self.stream.write("int")
+        if node.size is not None:
+            self.stream.write(f"[{node.size}]")
+
+    def _visit_UintType(self, node: ast.UintType) -> None:
+        self.stream.write("uint")
         if node.size is not None:
             self.stream.write(f"[{node.size}]")
 

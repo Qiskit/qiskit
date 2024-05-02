@@ -65,6 +65,7 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 )
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
+
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
 # higher-level objects written by a user.
 # For OpA we define two synthesis methods:
@@ -585,6 +586,78 @@ class TestPMHSynthesisLinearFunctionPlugin(QiskitTestCase):
             self.assertEqual(LinearFunction(qct), LinearFunction(qc))
             self.assertEqual(qct.size(), 6)
             self.assertEqual(qct.depth(), 6)
+
+    def test_plugin_selection_all(self):
+        """Test setting plugin_selection to all."""
+
+        linear_function = LinearFunction(self.construct_linear_circuit(7))
+        qc = QuantumCircuit(7)
+        qc.append(linear_function, [0, 1, 2, 3, 4, 5, 6])
+
+        with self.subTest("sequential"):
+            # In the default "run sequential" mode, we stop as soon as a plugin
+            # in the list returns a circuit.
+            # For this specific example the default options lead to a suboptimal circuit.
+            hls_config = HLSConfig(linear_function=[("pmh", {}), ("pmh", {"use_inverted": True})])
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 12)
+            self.assertEqual(qct.depth(), 8)
+
+        with self.subTest("all"):
+            # In the non-default "run all" mode, we examine all plugins in the list.
+            # For this specific example we get the better result for the second plugin in the list.
+            hls_config = HLSConfig(
+                linear_function=[("pmh", {}), ("pmh", {"use_inverted": True})],
+                plugin_selection="all",
+            )
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 6)
+            self.assertEqual(qct.depth(), 6)
+
+    def test_plugin_selection_all_with_metrix(self):
+        """Test setting plugin_selection to all and specifying different evaluation functions."""
+
+        # The seed is chosen so that we get different best circuits depending on whether we
+        # want to minimize size or depth.
+        mat = random_invertible_binary_matrix(7, seed=37)
+        qc = QuantumCircuit(7)
+        qc.append(LinearFunction(mat), [0, 1, 2, 3, 4, 5, 6])
+
+        with self.subTest("size_fn"):
+            # We want to minimize the "size" (aka the number of gates) in the circuit
+            hls_config = HLSConfig(
+                linear_function=[
+                    ("pmh", {}),
+                    ("pmh", {"use_inverted": True}),
+                    ("pmh", {"use_transposed": True}),
+                    ("pmh", {"use_inverted": True, "use_transposed": True}),
+                ],
+                plugin_selection="all",
+                plugin_evaluation_fn=lambda qc: qc.size(),
+            )
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 20)
+            self.assertEqual(qct.depth(), 15)
+
+        with self.subTest("depth_fn"):
+            # We want to minimize the "depth" (aka the number of layers) in the circuit
+            hls_config = HLSConfig(
+                linear_function=[
+                    ("pmh", {}),
+                    ("pmh", {"use_inverted": True}),
+                    ("pmh", {"use_transposed": True}),
+                    ("pmh", {"use_inverted": True, "use_transposed": True}),
+                ],
+                plugin_selection="all",
+                plugin_evaluation_fn=lambda qc: qc.depth(),
+            )
+            qct = HighLevelSynthesis(hls_config=hls_config)(qc)
+            self.assertEqual(LinearFunction(qct), LinearFunction(qc))
+            self.assertEqual(qct.size(), 23)
+            self.assertEqual(qct.depth(), 12)
 
 
 class TestKMSSynthesisLinearFunctionPlugin(QiskitTestCase):

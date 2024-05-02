@@ -133,7 +133,7 @@ Permutation Synthesis
    TokenSwapperSynthesisPermutation
 """
 
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Callable
 
 import numpy as np
 import rustworkx as rx
@@ -227,16 +227,34 @@ class HLSConfig:
     :ref:`using-high-level-synthesis-plugins`.
     """
 
-    def __init__(self, use_default_on_unspecified=True, **kwargs):
+    def __init__(
+        self,
+        use_default_on_unspecified: bool = True,
+        plugin_selection: str = "sequential",
+        plugin_evaluation_fn: Optional[Callable[[QuantumCircuit], int]] = None,
+        **kwargs,
+    ):
         """Creates a high-level-synthesis config.
 
         Args:
-            use_default_on_unspecified (bool): if True, every higher-level-object without an
+            use_default_on_unspecified: if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
                 algorithm if it exists.
+            plugin_selection: if set to ``"sequential"`` (default), for every higher-level-object
+                the synthesis pass will consider the specified methods sequentially, stopping
+                at the first method that is able to synthesize the object. If set to ``"all"``,
+                all the specified methods will be considered, and the best synthesized circuit,
+                according to ``plugin_evaluation_fn`` will be chosen.
+            plugin_evaluation_fn: a callable that evaluates the quality of the synthesized
+                quantum circuit; a smaller value means a better circuit. If ``None``, the
+                quality of the circuit its size (i.e. the number of gates that it contains).
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
+        self.plugin_selection = plugin_selection
+        self.plugin_evaluation_fn = (
+            plugin_evaluation_fn if plugin_evaluation_fn is not None else lambda qc: qc.size()
+        )
         self.methods = {}
 
         for key, value in kwargs.items():
@@ -246,9 +264,6 @@ class HLSConfig:
         """Sets the list of synthesis methods for a given higher-level-object. This overwrites
         the lists of methods if also set previously."""
         self.methods[hls_name] = hls_methods
-
-
-# ToDo: Do we have a way to specify optimization criteria (e.g., 2q gate count vs. depth)?
 
 
 class HighLevelSynthesis(TransformationPass):
@@ -500,6 +515,9 @@ class HighLevelSynthesis(TransformationPass):
         else:
             methods = []
 
+        best_decomposition = None
+        best_score = np.inf
+
         for method in methods:
             # There are two ways to specify a synthesis method. The more explicit
             # way is to specify it as a tuple consisting of a synthesis algorithm and a
@@ -538,11 +556,22 @@ class HighLevelSynthesis(TransformationPass):
             )
 
             # The synthesis methods that are not suited for the given higher-level-object
-            # will return None, in which case the next method in the list will be used.
+            # will return None.
             if decomposition is not None:
-                return decomposition
+                if self.hls_config.plugin_selection == "sequential":
+                    # In the "sequential" mode the first successful decomposition is
+                    # returned.
+                    best_decomposition = decomposition
+                    break
 
-        return None
+                # In the "run everything" mode we update the best decomposition
+                # discovered
+                current_score = self.hls_config.plugin_evaluation_fn(decomposition)
+                if current_score < best_score:
+                    best_decomposition = decomposition
+                    best_score = current_score
+
+        return best_decomposition
 
     def _synthesize_annotated_op(self, op: Operation) -> Union[Operation, None]:
         """
@@ -732,9 +761,9 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
     * use_inverted: Indicates whether to run the algorithm on the inverse matrix
         and to invert the synthesized circuit.
-        In certain cases this provides a better decomposition then the direct approach.
+        In certain cases this provides a better decomposition than the direct approach.
     * use_transposed: Indicates whether to run the algorithm on the transposed matrix
-        and to invert the order oF CX gates in the synthesized circuit.
+        and to invert the order of CX gates in the synthesized circuit.
         In certain cases this provides a better decomposition than the direct approach.
 
     """
@@ -778,9 +807,9 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
     * section size: The size of each section used in the Patel–Markov–Hayes algorithm [1].
     * use_inverted: Indicates whether to run the algorithm on the inverse matrix
         and to invert the synthesized circuit.
-        In certain cases this provides a better decomposition then the direct approach.
+        In certain cases this provides a better decomposition than the direct approach.
     * use_transposed: Indicates whether to run the algorithm on the transposed matrix
-        and to invert the order oF CX gates in the synthesized circuit.
+        and to invert the order of CX gates in the synthesized circuit.
         In certain cases this provides a better decomposition than the direct approach.
 
     References:

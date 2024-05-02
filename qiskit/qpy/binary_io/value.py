@@ -95,11 +95,12 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
-    __slots__ = ("file_obj", "clbit_indices")
+    __slots__ = ("file_obj", "clbit_indices", "standalone_var_indices")
 
-    def __init__(self, file_obj, clbit_indices):
+    def __init__(self, file_obj, clbit_indices, standalone_var_indices):
         self.file_obj = file_obj
         self.clbit_indices = clbit_indices
+        self.standalone_var_indices = standalone_var_indices
 
     def visit_generic(self, node, /):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
@@ -107,7 +108,15 @@ class _ExprWriter(expr.ExprVisitor[None]):
     def visit_var(self, node, /):
         self.file_obj.write(type_keys.Expression.VAR)
         _write_expr_type(self.file_obj, node.type)
-        if isinstance(node.var, Clbit):
+        if node.standalone:
+            self.file_obj.write(type_keys.ExprVar.UUID)
+            self.file_obj.write(
+                struct.pack(
+                    formats.EXPR_VAR_UUID_PACK,
+                    *formats.EXPR_VAR_UUID(self.standalone_var_indices[node]),
+                )
+            )
+        elif isinstance(node.var, Clbit):
             self.file_obj.write(type_keys.ExprVar.CLBIT)
             self.file_obj.write(
                 struct.pack(
@@ -178,8 +187,13 @@ class _ExprWriter(expr.ExprVisitor[None]):
         node.right.accept(self)
 
 
-def _write_expr(file_obj, node: expr.Expr, clbit_indices: collections.abc.Mapping[Clbit, int]):
-    node.accept(_ExprWriter(file_obj, clbit_indices))
+def _write_expr(
+    file_obj,
+    node: expr.Expr,
+    clbit_indices: collections.abc.Mapping[Clbit, int],
+    standalone_var_indices: collections.abc.Mapping[expr.Var, int],
+):
+    node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices))
 
 
 def _write_expr_type(file_obj, type_: types.Type):
@@ -315,12 +329,18 @@ def _read_expr(
     file_obj,
     clbits: collections.abc.Sequence[Clbit],
     cregs: collections.abc.Mapping[str, ClassicalRegister],
+    standalone_vars: collections.abc.Sequence[expr.Var],
 ) -> expr.Expr:
     # pylint: disable=too-many-return-statements
     type_key = file_obj.read(formats.EXPRESSION_DISCRIMINATOR_SIZE)
     type_ = _read_expr_type(file_obj)
     if type_key == type_keys.Expression.VAR:
         var_type_key = file_obj.read(formats.EXPR_VAR_DISCRIMINATOR_SIZE)
+        if var_type_key == type_keys.ExprVar.UUID:
+            payload = formats.EXPR_VAR_UUID._make(
+                struct.unpack(formats.EXPR_VAR_UUID_PACK, file_obj.read(formats.EXPR_VAR_UUID_SIZE))
+            )
+            return standalone_vars[payload.var_index]
         if var_type_key == type_keys.ExprVar.CLBIT:
             payload = formats.EXPR_VAR_CLBIT._make(
                 struct.unpack(
@@ -360,14 +380,20 @@ def _read_expr(
         payload = formats.EXPRESSION_CAST._make(
             struct.unpack(formats.EXPRESSION_CAST_PACK, file_obj.read(formats.EXPRESSION_CAST_SIZE))
         )
-        return expr.Cast(_read_expr(file_obj, clbits, cregs), type_, implicit=payload.implicit)
+        return expr.Cast(
+            _read_expr(file_obj, clbits, cregs, standalone_vars), type_, implicit=payload.implicit
+        )
     if type_key == type_keys.Expression.UNARY:
         payload = formats.EXPRESSION_UNARY._make(
             struct.unpack(
                 formats.EXPRESSION_UNARY_PACK, file_obj.read(formats.EXPRESSION_UNARY_SIZE)
             )
         )
-        return expr.Unary(expr.Unary.Op(payload.opcode), _read_expr(file_obj, clbits, cregs), type_)
+        return expr.Unary(
+            expr.Unary.Op(payload.opcode),
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            type_,
+        )
     if type_key == type_keys.Expression.BINARY:
         payload = formats.EXPRESSION_BINARY._make(
             struct.unpack(
@@ -376,8 +402,8 @@ def _read_expr(
         )
         return expr.Binary(
             expr.Binary.Op(payload.opcode),
-            _read_expr(file_obj, clbits, cregs),
-            _read_expr(file_obj, clbits, cregs),
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
             type_,
         )
     raise exceptions.QpyError("Invalid classical-expression Expr key '{type_key}'")
@@ -395,7 +421,80 @@ def _read_expr_type(file_obj) -> types.Type:
     raise exceptions.QpyError(f"Invalid classical-expression Type key '{type_key}'")
 
 
-def dumps_value(obj, *, index_map=None, use_symengine=False):
+def read_standalone_vars(file_obj, num_vars):
+    """Read the ``num_vars`` standalone variable declarations from the file.
+
+    Args:
+        file_obj (File): a file-like object to read from.
+        num_vars (int): the number of variables to read.
+
+    Returns:
+        tuple[dict, list]: the first item is a mapping of the ``ExprVarDeclaration`` type keys to
+        the variables defined by that type key, and the second is the total order of variable
+        declarations.
+    """
+    read_vars = {
+        type_keys.ExprVarDeclaration.INPUT: [],
+        type_keys.ExprVarDeclaration.CAPTURE: [],
+        type_keys.ExprVarDeclaration.LOCAL: [],
+    }
+    var_order = []
+    for _ in range(num_vars):
+        data = formats.EXPR_VAR_DECLARATION._make(
+            struct.unpack(
+                formats.EXPR_VAR_DECLARATION_PACK,
+                file_obj.read(formats.EXPR_VAR_DECLARATION_SIZE),
+            )
+        )
+        type_ = _read_expr_type(file_obj)
+        name = file_obj.read(data.name_size).decode(common.ENCODE)
+        var = expr.Var(uuid.UUID(bytes=data.uuid_bytes), type_, name=name)
+        read_vars[data.usage].append(var)
+        var_order.append(var)
+    return read_vars, var_order
+
+
+def _write_standalone_var(file_obj, var, type_key):
+    name = var.name.encode(common.ENCODE)
+    file_obj.write(
+        struct.pack(
+            formats.EXPR_VAR_DECLARATION_PACK,
+            *formats.EXPR_VAR_DECLARATION(var.var.bytes, type_key, len(name)),
+        )
+    )
+    _write_expr_type(file_obj, var.type)
+    file_obj.write(name)
+
+
+def write_standalone_vars(file_obj, circuit):
+    """Write the standalone variables out from a circuit.
+
+    Args:
+        file_obj (File): the file-like object to write to.
+        circuit (QuantumCircuit): the circuit to take the variables from.
+
+    Returns:
+        dict[expr.Var, int]: a mapping of the variables written to the index that they were written
+        at.
+    """
+    index = 0
+    out = {}
+    for var in circuit.iter_input_vars():
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.INPUT)
+        out[var] = index
+        index += 1
+    for var in circuit.iter_captured_vars():
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.CAPTURE)
+        out[var] = index
+        index += 1
+    for var in circuit.iter_declared_vars():
+        _write_standalone_var(file_obj, var, type_keys.ExprVarDeclaration.LOCAL)
+        out[var] = index
+        index += 1
+    return out
+
+
+def dumps_value(obj, *, index_map=None, use_symengine=False, standalone_var_indices=None):
     """Serialize input value object.
 
     Args:
@@ -407,6 +506,8 @@ def dumps_value(obj, *, index_map=None, use_symengine=False):
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        standalone_var_indices (dict): Dictionary that maps standalone :class:`.expr.Var` entries to
+            the index that should be used to refer to them.
 
     Returns:
         tuple: TypeKey and binary data.
@@ -438,14 +539,20 @@ def dumps_value(obj, *, index_map=None, use_symengine=False):
         )
     elif type_key == type_keys.Value.EXPRESSION:
         clbit_indices = {} if index_map is None else index_map["c"]
-        binary_data = common.data_to_binary(obj, _write_expr, clbit_indices=clbit_indices)
+        standalone_var_indices = {} if standalone_var_indices is None else standalone_var_indices
+        binary_data = common.data_to_binary(
+            obj,
+            _write_expr,
+            clbit_indices=clbit_indices,
+            standalone_var_indices=standalone_var_indices,
+        )
     else:
         raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
     return type_key, binary_data
 
 
-def write_value(file_obj, obj, *, index_map=None, use_symengine=False):
+def write_value(file_obj, obj, *, index_map=None, use_symengine=False, standalone_var_indices=None):
     """Write a value to the file like object.
 
     Args:
@@ -458,13 +565,28 @@ def write_value(file_obj, obj, *, index_map=None, use_symengine=False):
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        standalone_var_indices (dict): Dictionary that maps standalone :class:`.expr.Var` entries to
+            the index that should be used to refer to them.
     """
-    type_key, data = dumps_value(obj, index_map=index_map, use_symengine=use_symengine)
+    type_key, data = dumps_value(
+        obj,
+        index_map=index_map,
+        use_symengine=use_symengine,
+        standalone_var_indices=standalone_var_indices,
+    )
     common.write_generic_typed_data(file_obj, type_key, data)
 
 
 def loads_value(
-    type_key, binary_data, version, vectors, *, clbits=(), cregs=None, use_symengine=False
+    type_key,
+    binary_data,
+    version,
+    vectors,
+    *,
+    clbits=(),
+    cregs=None,
+    use_symengine=False,
+    standalone_vars=(),
 ):
     """Deserialize input binary data to value object.
 
@@ -479,6 +601,8 @@ def loads_value(
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        standalone_vars (Sequence[Var]): standalone :class:`.expr.Var` nodes in the order that they
+            were declared by the circuit header.
 
     Returns:
         any: Deserialized value object.
@@ -520,12 +644,27 @@ def loads_value(
                 use_symengine=use_symengine,
             )
     if type_key == type_keys.Value.EXPRESSION:
-        return common.data_from_binary(binary_data, _read_expr, clbits=clbits, cregs=cregs or {})
+        return common.data_from_binary(
+            binary_data,
+            _read_expr,
+            clbits=clbits,
+            cregs=cregs or {},
+            standalone_vars=standalone_vars,
+        )
 
     raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
 
 
-def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengine=False):
+def read_value(
+    file_obj,
+    version,
+    vectors,
+    *,
+    clbits=(),
+    cregs=None,
+    use_symengine=False,
+    standalone_vars=(),
+):
     """Read a value from the file like object.
 
     Args:
@@ -538,6 +677,8 @@ def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengi
             native mechanism. This is a faster serialization alternative, but not supported in all
             platforms. Please check that your target platform is supported by the symengine library
             before setting this option, as it will be required by qpy to deserialize the payload.
+        standalone_vars (Sequence[expr.Var]): standalone variables in the order they were defined in
+            the QPY payload.
 
     Returns:
         any: Deserialized value object.
@@ -545,5 +686,12 @@ def read_value(file_obj, version, vectors, *, clbits=(), cregs=None, use_symengi
     type_key, data = common.read_generic_typed_data(file_obj)
 
     return loads_value(
-        type_key, data, version, vectors, clbits=clbits, cregs=cregs, use_symengine=use_symengine
+        type_key,
+        data,
+        version,
+        vectors,
+        clbits=clbits,
+        cregs=cregs,
+        use_symengine=use_symengine,
+        standalone_vars=standalone_vars,
     )

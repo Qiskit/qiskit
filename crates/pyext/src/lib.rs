@@ -15,11 +15,12 @@ use pyo3::wrap_pymodule;
 
 use qiskit_accelerate::{
     convert_2q_block_matrix::convert_2q_block_matrix, dense_layout::dense_layout,
-    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer, nlayout::nlayout,
-    optimize_1q_gates::optimize_1q_gates, pauli_exp_val::pauli_expval, results::results,
-    sabre::sabre, sampled_exp_val::sampled_exp_val, sparse_pauli_op::sparse_pauli_op,
-    stochastic_swap::stochastic_swap, target::target, two_qubit_decompose::two_qubit_decompose,
-    utils::utils, vf2_layout::vf2_layout,
+    error_map::error_map, euler_one_qubit_decomposer::euler_one_qubit_decomposer,
+    isometry::isometry, nlayout::nlayout, optimize_1q_gates::optimize_1q_gates,
+    pauli_exp_val::pauli_expval, results::results, sabre::sabre, sampled_exp_val::sampled_exp_val,
+    sparse_pauli_op::sparse_pauli_op, stochastic_swap::stochastic_swap, target::target,
+    two_qubit_decompose::two_qubit_decompose, uc_gate::uc_gate, utils::utils,
+    vf2_layout::vf2_layout,
 };
 
 #[pymodule]
@@ -31,6 +32,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(dense_layout))?;
     m.add_wrapped(wrap_pymodule!(error_map))?;
     m.add_wrapped(wrap_pymodule!(euler_one_qubit_decomposer))?;
+    m.add_wrapped(wrap_pymodule!(isometry))?;
     m.add_wrapped(wrap_pymodule!(nlayout))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates))?;
     m.add_wrapped(wrap_pymodule!(pauli_expval))?;
@@ -41,6 +43,7 @@ fn _accelerate(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(stochastic_swap))?;
     m.add_wrapped(wrap_pymodule!(target))?;
     m.add_wrapped(wrap_pymodule!(two_qubit_decompose))?;
+    m.add_wrapped(wrap_pymodule!(uc_gate))?;
     m.add_wrapped(wrap_pymodule!(utils))?;
     m.add_wrapped(wrap_pymodule!(vf2_layout))?;
     Ok(())
