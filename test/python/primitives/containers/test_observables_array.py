@@ -16,11 +16,10 @@ import itertools as it
 import ddt
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 import qiskit.quantum_info as qi
 from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from qiskit.transpiler import TranspileLayout, Layout
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
 from test import QiskitTestCase
