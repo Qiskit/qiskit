@@ -22,6 +22,7 @@ from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
+
 from test import QiskitTestCase
 
 
