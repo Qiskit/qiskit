@@ -17,6 +17,7 @@ import unittest
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
+from qiskit.transpiler.passes.routing import StarPreRouting
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.coupling import CouplingMap
@@ -425,6 +426,33 @@ class TestElidePermutationsInTranspileFlow(QiskitTestCase):
             qc_with_ancillas = QuantumCircuit(8)
             qc_with_ancillas.append(qc, [0, 1, 2, 3, 4])
             self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc_with_ancillas)))
+
+    def test_unitary_equivalence_virtual_permutation_layout_composition(self):
+        """Test on a larger example that includes routing and basis translation."""
+
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.append(PermutationGate([0, 2, 1]), [0, 1, 2])
+        qc.h(1)
+
+        with self.subTest("with coupling map"):
+            spm = generate_preset_pass_manager(
+                optimization_level=3,
+                seed_transpiler=1234,
+                coupling_map=CouplingMap.from_line(5),
+                basis_gates=["u", "cz"],
+            )
+            spm.init += ElidePermutations()
+            spm.init += StarPreRouting()
+            res = spm.run(qc)
+            self.assertTrue(Operator.from_circuit(res).equiv(Operator(qc)))
 
 
 if __name__ == "__main__":
