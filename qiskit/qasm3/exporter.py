@@ -1102,7 +1102,8 @@ def _infer_variable_declaration(
         # _should_ be an intrinsic part of the parameter, or somewhere publicly accessible, but
         # Terra doesn't have those concepts yet.  We can only try and guess at the type by looking
         # at all the places it's used in the circuit.
-        for instruction, index in circuit._parameter_table[parameter]:
+        for instr_index, index in circuit._data._get_param(parameter.uuid.int):
+            instruction = circuit.data[instr_index].operation
             if isinstance(instruction, ForLoopOp):
                 # The parameters of ForLoopOp are (indexset, loop_parameter, body).
                 if index == 1:

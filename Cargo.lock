@@ -619,6 +619,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b23360e99b8717f20aaa4598f5a6541efbe30630039fbc7706cf954a87947ae"
 
 [[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+
+[[package]]
 name = "libc"
 version = "0.2.154"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,7 +1130,12 @@ name = "qiskit-circuit"
 version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
+ "lazy_static",
+ "ndarray",
+ "num-complex",
+ "numpy",
  "pyo3",
+ "smallvec",
 ]
 
 [[package]]

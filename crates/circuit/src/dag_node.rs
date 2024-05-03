@@ -10,7 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::circuit_instruction::CircuitInstruction;
+use crate::circuit_instruction::{
+    convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
+};
+use crate::operations::Operation;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, PyObject, PyResult};
@@ -106,13 +109,19 @@ impl DAGOpNode {
             }
             None => qargs.str()?.into_any(),
         };
+        let res = convert_py_to_operation_type(py, op)?;
 
         Ok((
             DAGOpNode {
                 instruction: CircuitInstruction {
-                    operation: op,
+                    operation: res.operation,
                     qubits: qargs.unbind(),
                     clbits: cargs.unbind(),
+                    params: res.params,
+                    label: res.label,
+                    duration: res.duration,
+                    unit: res.unit,
+                    condition: res.condition,
                 },
                 sort_key: sort_key.unbind(),
             },
@@ -120,18 +129,18 @@ impl DAGOpNode {
         ))
     }
 
-    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyObject {
+    fn __reduce__(slf: PyRef<Self>, py: Python) -> PyResult<PyObject> {
         let state = (slf.as_ref()._node_id, &slf.sort_key);
-        (
+        Ok((
             py.get_type_bound::<Self>(),
             (
-                &slf.instruction.operation,
+                operation_type_to_py(py, &slf.instruction)?,
                 &slf.instruction.qubits,
                 &slf.instruction.clbits,
             ),
             state,
         )
-            .into_py(py)
+            .into_py(py))
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
@@ -142,13 +151,20 @@ impl DAGOpNode {
     }
 
     #[getter]
-    fn get_op(&self, py: Python) -> PyObject {
-        self.instruction.operation.clone_ref(py)
+    fn get_op(&self, py: Python) -> PyResult<PyObject> {
+        operation_type_to_py(py, &self.instruction)
     }
 
     #[setter]
-    fn set_op(&mut self, op: PyObject) {
-        self.instruction.operation = op;
+    fn set_op(&mut self, py: Python, op: PyObject) -> PyResult<()> {
+        let res = convert_py_to_operation_type(py, op)?;
+        self.instruction.operation = res.operation;
+        self.instruction.params = res.params;
+        self.instruction.label = res.label;
+        self.instruction.duration = res.duration;
+        self.instruction.unit = res.unit;
+        self.instruction.condition = res.condition;
+        Ok(())
     }
 
     #[getter]
@@ -173,29 +189,27 @@ impl DAGOpNode {
 
     /// Returns the Instruction name corresponding to the op for this node
     #[getter]
-    fn get_name(&self, py: Python) -> PyResult<PyObject> {
-        Ok(self
-            .instruction
-            .operation
-            .bind(py)
-            .getattr(intern!(py, "name"))?
-            .unbind())
+    fn get_name(&self, py: Python) -> PyObject {
+        self.instruction.operation.name().to_object(py)
     }
 
     /// Sets the Instruction name corresponding to the op for this node
     #[setter]
-    fn set_name(&self, py: Python, new_name: PyObject) -> PyResult<()> {
-        self.instruction
-            .operation
-            .bind(py)
-            .setattr(intern!(py, "name"), new_name)
+    fn set_name(&mut self, py: Python, new_name: PyObject) -> PyResult<()> {
+        let op = operation_type_to_py(py, &self.instruction)?;
+        op.bind(py).setattr(intern!(py, "name"), new_name)?;
+        let res = convert_py_to_operation_type(py, op)?;
+        self.instruction.operation = res.operation;
+        Ok(())
     }
 
     /// Returns a representation of the DAGOpNode
     fn __repr__(&self, py: Python) -> PyResult<String> {
         Ok(format!(
             "DAGOpNode(op={}, qargs={}, cargs={})",
-            self.instruction.operation.bind(py).repr()?,
+            operation_type_to_py(py, &self.instruction)?
+                .bind(py)
+                .repr()?,
             self.instruction.qubits.bind(py).repr()?,
             self.instruction.clbits.bind(py).repr()?
         ))

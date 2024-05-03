@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 
 from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit.parametertable import ParameterTable, ParameterView
+from qiskit.circuit.parametertable import ParameterView
 
 
 class BlueprintCircuit(QuantumCircuit, ABC):
@@ -68,7 +68,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     def _invalidate(self) -> None:
         """Invalidate the current circuit build."""
         self._data = CircuitData(self._data.qubits, self._data.clbits)
-        self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
 
@@ -88,7 +87,6 @@ class BlueprintCircuit(QuantumCircuit, ABC):
         self._ancillas = []
         self._qubit_indices = {}
         self._data = CircuitData(clbits=self._data.clbits)
-        self._parameter_table = ParameterTable()
         self.global_phase = 0
         self._is_built = False
 

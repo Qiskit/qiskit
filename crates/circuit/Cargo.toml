@@ -11,4 +11,15 @@ doctest = false
 
 [dependencies]
 hashbrown.workspace = true
-pyo3.workspace = true
+num-complex.workspace = true
+ndarray.workspace = true
+numpy.workspace = true
+lazy_static = "1.4"
+
+[dependencies.pyo3]
+workspace = true
+features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
+
+[dependencies.smallvec]
+workspace = true
+features = ["union"]

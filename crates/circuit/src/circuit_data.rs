@@ -10,12 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use crate::circuit_instruction::CircuitInstruction;
+use crate::circuit_instruction::{
+    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction,
+};
 use crate::intern_context::{BitType, IndexType, InternContext};
+use crate::operations::{OperationType, Param};
+use crate::parameter_table::{ParamEntry, ParamTable};
 use crate::SliceOrInt;
+use smallvec::SmallVec;
 
-use hashbrown::HashMap;
+use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PySet, PySlice, PyTuple, PyType};
 use pyo3::{PyObject, PyResult, PyTraverseError, PyVisit};
@@ -25,11 +31,16 @@ use std::hash::{Hash, Hasher};
 #[derive(Clone, Debug)]
 struct PackedInstruction {
     /// The Python-side operation instance.
-    op: PyObject,
+    op: OperationType,
     /// The index under which the interner has stored `qubits`.
     qubits_id: IndexType,
     /// The index under which the interner has stored `clbits`.
     clbits_id: IndexType,
+    params: Option<SmallVec<[Param; 3]>>,
+    label: Option<String>,
+    duration: Option<PyObject>,
+    unit: Option<String>,
+    condition: Option<PyObject>,
 }
 
 /// Private wrapper for Python-side Bit instances that implements
@@ -152,18 +163,281 @@ pub struct CircuitData {
     qubits: Py<PyList>,
     /// The clbits registered, cached as a ``list[Clbit]``.
     clbits: Py<PyList>,
+    param_table: ParamTable,
+    #[pyo3(get)]
+    global_phase: Param,
+}
+
+type InstructionEntryType<'a> = (OperationType, Option<&'a [Param]>, &'a [u32]);
+
+impl CircuitData {
+    /// A helper method to build a new CircuitData from an owned definition
+    /// as a slice of OperationType, parameters, and qubits.
+    pub fn build_new_from(
+        py: Python,
+        num_qubits: usize,
+        num_clbits: usize,
+        instructions: &[InstructionEntryType],
+        global_phase: Param,
+    ) -> PyResult<Self> {
+        let mut res = CircuitData {
+            data: Vec::with_capacity(instructions.len()),
+            intern_context: InternContext::new(),
+            qubits_native: Vec::with_capacity(num_qubits),
+            clbits_native: Vec::with_capacity(num_clbits),
+            qubit_indices_native: HashMap::with_capacity(num_qubits),
+            clbit_indices_native: HashMap::with_capacity(num_clbits),
+            qubits: PyList::empty_bound(py).unbind(),
+            clbits: PyList::empty_bound(py).unbind(),
+            param_table: ParamTable::new(),
+            global_phase,
+        };
+        if num_qubits > 0 {
+            let qubit_mod = py.import_bound("qiskit.circuit.quantumregister")?;
+            let qubit_cls = qubit_mod.getattr("Qubit")?;
+            for _i in 0..num_qubits {
+                let bit = qubit_cls.call0()?;
+                res.add_qubit(py, &bit, true)?;
+            }
+        }
+        if num_clbits > 0 {
+            let clbit_mod = py.import_bound(intern!(py, "qiskit.circuit.classicalregister"))?;
+            let clbit_cls = clbit_mod.getattr(intern!(py, "Clbit"))?;
+            for _i in 0..num_clbits {
+                let bit = clbit_cls.call0()?;
+                res.add_clbit(py, &bit, true)?;
+            }
+        }
+        for (operation, params, qargs) in instructions {
+            let qubits = PyTuple::new_bound(
+                py,
+                qargs
+                    .iter()
+                    .map(|x| res.qubits_native[*x as usize].clone_ref(py))
+                    .collect::<Vec<PyObject>>(),
+            )
+            .unbind();
+            let empty: [u8; 0] = [];
+            let clbits = PyTuple::new_bound(py, empty);
+            let params: Option<SmallVec<[Param; 3]>> =
+                params.as_ref().map(|p| p.iter().cloned().collect());
+            let inst = res.pack_owned(
+                py,
+                &CircuitInstruction {
+                    operation: operation.clone(),
+                    qubits,
+                    clbits: clbits.into(),
+                    params,
+                    label: None,
+                    duration: None,
+                    unit: None,
+                    condition: None,
+                },
+            )?;
+            res.data.push(inst);
+        }
+        Ok(res)
+    }
+
+    /// Add an instruction's entries to the parameter table
+    fn update_param_table(
+        &mut self,
+        py: Python,
+        inst_index: usize,
+        _params: Option<Vec<(usize, Vec<PyObject>)>>,
+    ) -> PyResult<bool> {
+        if let Some(params) = _params {
+            let mut new_param = false;
+            for (param_index, raw_param_objs) in &params {
+                let atomic_parameters: HashMap<u128, PyObject> = raw_param_objs
+                    .iter()
+                    .map(|x| {
+                        (
+                            x.getattr(py, intern!(py, "_uuid"))
+                                .expect("Not a parameter")
+                                .getattr(py, intern!(py, "int"))
+                                .expect("Not a uuid")
+                                .extract::<u128>(py)
+                                .unwrap(),
+                            x.clone_ref(py),
+                        )
+                    })
+                    .collect();
+                for (param_uuid, param_obj) in atomic_parameters.into_iter() {
+                    match self.param_table.table.get_mut(&param_uuid) {
+                        Some(entry) => entry.add(inst_index, *param_index),
+                        None => {
+                            new_param = true;
+                            let new_entry = ParamEntry::new(inst_index, *param_index);
+                            self.param_table.insert(py, param_obj, new_entry)?;
+                        }
+                    };
+                }
+            }
+            return Ok(new_param);
+        }
+        // Update the parameter table
+        let mut new_param = false;
+        let inst_params = &self.data[inst_index].params;
+        if let Some(raw_params) = inst_params {
+            let param_mod =
+                PyModule::import_bound(py, intern!(py, "qiskit.circuit.parameterexpression"))?;
+            let param_class = param_mod.getattr(intern!(py, "ParameterExpression"))?;
+            let circuit_mod =
+                PyModule::import_bound(py, intern!(py, "qiskit.circuit.quantumcircuit"))?;
+            let circuit_class = circuit_mod.getattr(intern!(py, "QuantumCircuit"))?;
+            let params: Vec<(usize, PyObject)> = raw_params
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, x)| match x {
+                    Param::ParameterExpression(param_obj) => {
+                        if param_obj
+                            .clone_ref(py)
+                            .into_bound(py)
+                            .is_instance(&param_class)
+                            .unwrap()
+                            || param_obj
+                                .clone_ref(py)
+                                .into_bound(py)
+                                .is_instance(&circuit_class)
+                                .unwrap()
+                        {
+                            Some((idx, param_obj.clone_ref(py)))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .collect();
+            if !params.is_empty() {
+                let builtins = PyModule::import_bound(py, "builtins")?;
+                let list_builtin = builtins.getattr("list")?;
+
+                for (param_index, param) in &params {
+                    let temp: PyObject = param.getattr(py, intern!(py, "parameters"))?;
+                    let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
+                    let atomic_parameters: HashMap<u128, PyObject> = raw_param_objs
+                        .into_iter()
+                        .map(|x| {
+                            (
+                                x.getattr(py, intern!(py, "_uuid"))
+                                    .expect("Not a parameter")
+                                    .getattr(py, intern!(py, "int"))
+                                    .expect("Not a uuid")
+                                    .extract(py)
+                                    .unwrap(),
+                                x,
+                            )
+                        })
+                        .collect();
+                    for (param_uuid, param_obj) in atomic_parameters.into_iter() {
+                        match self.param_table.table.get_mut(&param_uuid) {
+                            Some(entry) => entry.add(inst_index, *param_index),
+                            None => {
+                                new_param = true;
+                                let new_entry = ParamEntry::new(inst_index, *param_index);
+                                self.param_table.insert(py, param_obj, new_entry)?;
+                            }
+                        };
+                    }
+                }
+            }
+        }
+        Ok(new_param)
+    }
+
+    /// Remove an index's entries from the parameter table.
+    fn remove_from_parameter_table(&mut self, py: Python, inst_index: usize) -> PyResult<()> {
+        let builtins = PyModule::import_bound(py, "builtins")?;
+        let list_builtin = builtins.getattr(intern!(py, "list"))?;
+        if inst_index == usize::MAX {
+            if let Param::ParameterExpression(global_phase) = &self.global_phase {
+                let temp: PyObject = global_phase.getattr(py, intern!(py, "parameters"))?;
+                let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
+                for (param_index, param_obj) in raw_param_objs.iter().enumerate() {
+                    let uuid: u128 = param_obj
+                        .getattr(py, intern!(py, "_uuid"))?
+                        .getattr(py, intern!(py, "int"))?
+                        .extract(py)?;
+                    let name: String = param_obj.getattr(py, intern!(py, "name"))?.extract(py)?;
+                    self.param_table
+                        .discard_references(uuid, inst_index, param_index, name);
+                }
+            }
+        } else if let Some(raw_params) = &self.data[inst_index].params {
+            let params: Vec<(usize, PyObject)> = raw_params
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, x)| match x {
+                    Param::ParameterExpression(param_obj) => {
+                        let param_mod =
+                            PyModule::import_bound(py, "qiskit.circuit.parameterexpression")
+                                .ok()?;
+                        let param_class =
+                            param_mod.getattr(intern!(py, "ParameterExpression")).ok()?;
+                        if param_obj
+                            .clone_ref(py)
+                            .into_bound(py)
+                            .is_instance(&param_class)
+                            .unwrap()
+                        {
+                            Some((idx, param_obj.clone_ref(py)))
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                })
+                .collect();
+            if !params.is_empty() {
+                for (param_index, param) in &params {
+                    let temp: PyObject = param.getattr(py, intern!(py, "parameters"))?;
+                    let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
+                    let mut atomic_parameters: HashSet<(u128, String)> =
+                        HashSet::with_capacity(params.len());
+                    for x in raw_param_objs {
+                        let uuid = x
+                            .getattr(py, intern!(py, "_uuid"))?
+                            .getattr(py, intern!(py, "int"))?
+                            .extract(py)?;
+                        let name = x.getattr(py, intern!(py, "name"))?.extract(py)?;
+                        atomic_parameters.insert((uuid, name));
+                    }
+                    for (uuid, name) in atomic_parameters {
+                        self.param_table
+                            .discard_references(uuid, inst_index, *param_index, name);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn reindex_parameter_table(&mut self, py: Python) -> PyResult<()> {
+        self.param_table.clear();
+
+        for inst_index in 0..self.data.len() {
+            self.update_param_table(py, inst_index, None)?;
+        }
+        // Technically we could keep the global phase entry directly if it exists, but we're
+        // the incremental cost is minimal after reindexing everything.
+        self.global_phase(py, self.global_phase.clone())?;
+        Ok(())
+    }
 }
 
 #[pymethods]
 impl CircuitData {
     #[new]
-    #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0))]
+    #[pyo3(signature = (qubits=None, clbits=None, data=None, reserve=0, global_phase=Param::Float(0.0)))]
     pub fn new(
         py: Python<'_>,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
         data: Option<&Bound<PyAny>>,
         reserve: usize,
+        global_phase: Param,
     ) -> PyResult<Self> {
         let mut self_ = CircuitData {
             data: Vec::new(),
@@ -174,7 +448,10 @@ impl CircuitData {
             clbit_indices_native: HashMap::new(),
             qubits: PyList::empty_bound(py).unbind(),
             clbits: PyList::empty_bound(py).unbind(),
+            param_table: ParamTable::new(),
+            global_phase: Param::Float(0.),
         };
+        self_.global_phase(py, global_phase)?;
         if let Some(qubits) = qubits {
             for bit in qubits.iter()? {
                 self_.add_qubit(py, &bit?, true)?;
@@ -322,9 +599,11 @@ impl CircuitData {
             Some(self.clbits.bind(py)),
             None,
             0,
+            self.global_phase.clone(),
         )?;
         res.intern_context = self.intern_context.clone();
         res.data.clone_from(&self.data);
+        res.param_table.clone_from(&self.param_table);
         Ok(res)
     }
 
@@ -366,7 +645,16 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
-            func.call1((inst.op.bind(py),))?;
+            let op = operation_type_and_data_to_py(
+                py,
+                &inst.op,
+                &inst.params,
+                &inst.label,
+                &inst.duration,
+                &inst.unit,
+                &inst.condition,
+            )?;
+            func.call1((op,))?;
         }
         Ok(())
     }
@@ -380,7 +668,16 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
-            func.call1((index, inst.op.bind(py)))?;
+            let op = operation_type_and_data_to_py(
+                py,
+                &inst.op,
+                &inst.params,
+                &inst.label,
+                &inst.duration,
+                &inst.unit,
+                &inst.condition,
+            )?;
+            func.call1((index, op))?;
         }
         Ok(())
     }
@@ -395,7 +692,23 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            inst.op = func.call1((inst.op.bind(py),))?.into_py(py);
+            let old_op = operation_type_and_data_to_py(
+                py,
+                &inst.op,
+                &inst.params,
+                &inst.label,
+                &inst.duration,
+                &inst.unit,
+                &inst.condition,
+            )?;
+            let new_op = func.call1((old_op,))?;
+            let new_inst_details = convert_py_to_operation_type(py, new_op.into())?;
+            inst.op = new_inst_details.operation;
+            inst.params = new_inst_details.params;
+            inst.label = new_inst_details.label;
+            inst.duration = new_inst_details.duration;
+            inst.unit = new_inst_details.unit;
+            inst.condition = new_inst_details.condition;
         }
         Ok(())
     }
@@ -458,7 +771,7 @@ impl CircuitData {
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
-        let mut temp = CircuitData::new(py, qubits, clbits, None, 0)?;
+        let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
         if qubits.is_some() {
             if temp.qubits_native.len() < self.qubits_native.len() {
                 return Err(PyValueError::new_err(format!(
@@ -528,7 +841,7 @@ impl CircuitData {
         }
     }
 
-    pub fn __delitem__(&mut self, index: SliceOrInt) -> PyResult<()> {
+    pub fn __delitem__(&mut self, py: Python, index: SliceOrInt) -> PyResult<()> {
         match index {
             SliceOrInt::Slice(slice) => {
                 let slice = {
@@ -541,14 +854,24 @@ impl CircuitData {
                     s
                 };
                 for i in slice.into_iter() {
-                    self.__delitem__(SliceOrInt::Int(i))?;
+                    self.__delitem__(py, SliceOrInt::Int(i))?;
                 }
+                self.reindex_parameter_table(py)?;
                 Ok(())
             }
             SliceOrInt::Int(index) => {
                 let index = self.convert_py_index(index)?;
                 if self.data.get(index).is_some() {
-                    self.data.remove(index);
+                    if index == self.data.len() {
+                        // For individual removal from param table before
+                        // deletion
+                        self.remove_from_parameter_table(py, index)?;
+                        self.data.remove(index);
+                    } else {
+                        // For delete in the middle delete before reindexing
+                        self.data.remove(index);
+                        self.reindex_parameter_table(py)?;
+                    }
                     Ok(())
                 } else {
                     Err(PyIndexError::new_err(format!(
@@ -558,6 +881,19 @@ impl CircuitData {
                 }
             }
         }
+    }
+
+    pub fn setitem_no_param_table_update(
+        &mut self,
+        py: Python<'_>,
+        index: isize,
+        value: &Bound<PyAny>,
+    ) -> PyResult<()> {
+        let index = self.convert_py_index(index)?;
+        let value: PyRef<CircuitInstruction> = value.extract()?;
+        let mut packed = self.pack(py, value)?;
+        std::mem::swap(&mut packed, &mut self.data[index]);
+        Ok(())
     }
 
     pub fn __setitem__(
@@ -593,7 +929,7 @@ impl CircuitData {
                         indices.stop,
                         1isize,
                     );
-                    self.__delitem__(SliceOrInt::Slice(slice))?;
+                    self.__delitem__(py, SliceOrInt::Slice(slice))?;
                 } else {
                     // Insert any extra values.
                     for v in values.iter().skip(slice.len()).rev() {
@@ -608,7 +944,9 @@ impl CircuitData {
                 let index = self.convert_py_index(index)?;
                 let value: PyRef<CircuitInstruction> = value.extract()?;
                 let mut packed = self.pack(py, value)?;
+                self.remove_from_parameter_table(py, index)?;
                 std::mem::swap(&mut packed, &mut self.data[index]);
+                self.update_param_table(py, index, None)?;
                 Ok(())
             }
         }
@@ -621,8 +959,14 @@ impl CircuitData {
         value: PyRef<CircuitInstruction>,
     ) -> PyResult<()> {
         let index = self.convert_py_index_clamped(index);
+        let old_len = self.data.len();
         let packed = self.pack(py, value)?;
         self.data.insert(index, packed);
+        if index == old_len {
+            self.update_param_table(py, old_len, None)?;
+        } else {
+            self.reindex_parameter_table(py)?;
+        }
         Ok(())
     }
 
@@ -630,14 +974,21 @@ impl CircuitData {
         let index =
             index.unwrap_or_else(|| std::cmp::max(0, self.data.len() as isize - 1).into_py(py));
         let item = self.__getitem__(py, index.bind(py))?;
-        self.__delitem__(index.bind(py).extract()?)?;
+
+        self.__delitem__(py, index.bind(py).extract()?)?;
         Ok(item)
     }
 
-    pub fn append(&mut self, py: Python<'_>, value: PyRef<CircuitInstruction>) -> PyResult<()> {
+    pub fn append(
+        &mut self,
+        py: Python<'_>,
+        value: PyRef<CircuitInstruction>,
+        _params: Option<Vec<(usize, Vec<PyObject>)>>,
+    ) -> PyResult<bool> {
         let packed = self.pack(py, value)?;
+        let new_index = self.data.len();
         self.data.push(packed);
-        Ok(())
+        self.update_param_table(py, new_index, _params)
     }
 
     pub fn extend(&mut self, py: Python<'_>, itr: &Bound<PyAny>) -> PyResult<()> {
@@ -664,24 +1015,30 @@ impl CircuitData {
                             [&BitAsKey::new(other.clbits_native[*b as usize].bind(py))?])
                     })
                     .collect::<PyResult<Vec<BitType>>>()?;
-
+                let new_index = self.data.len();
                 self.data.push(PackedInstruction {
-                    op: inst.op.clone_ref(py),
+                    op: inst.op.clone(),
                     qubits_id: self.intern_context.intern(qubits)?,
                     clbits_id: self.intern_context.intern(clbits)?,
+                    params: inst.params.clone(),
+                    label: inst.label.clone(),
+                    duration: inst.duration.clone(),
+                    unit: inst.unit.clone(),
+                    condition: inst.condition.clone(),
                 });
+                self.update_param_table(py, new_index, None)?;
             }
             return Ok(());
         }
-
         for v in itr.iter()? {
-            self.append(py, v?.extract()?)?;
+            self.append(py, v?.extract()?, None)?;
         }
         Ok(())
     }
 
     pub fn clear(&mut self, _py: Python<'_>) -> PyResult<()> {
         std::mem::take(&mut self.data);
+        self.param_table.clear();
         Ok(())
     }
 
@@ -720,7 +1077,7 @@ impl CircuitData {
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
         for packed in self.data.iter() {
-            visit.call(&packed.op)?;
+            visit.call(&packed.duration)?;
         }
         for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
             visit.call(bit)?;
@@ -742,6 +1099,127 @@ impl CircuitData {
         self.clbits_native.clear();
         self.qubit_indices_native.clear();
         self.clbit_indices_native.clear();
+    }
+
+    #[setter]
+    pub fn global_phase(&mut self, py: Python, angle: Param) -> PyResult<()> {
+        let builtins = PyModule::import_bound(py, "builtins")?;
+        let list_builtin = builtins.getattr(intern!(py, "list"))?;
+        self.remove_from_parameter_table(py, usize::MAX)?;
+        match angle {
+            Param::Float(angle) => {
+                self.global_phase = Param::Float(angle.rem_euclid(2. * std::f64::consts::PI));
+            }
+            Param::ParameterExpression(angle) => {
+                // usize::MAX is the global phase sentinel value for the inst index
+                let inst_index = usize::MAX;
+                let temp: PyObject = angle.getattr(py, intern!(py, "parameters"))?;
+                let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
+
+                for (param_index, param_obj) in raw_param_objs.into_iter().enumerate() {
+                    let param_uuid: u128 = param_obj
+                        .getattr(py, intern!(py, "_uuid"))?
+                        .getattr(py, intern!(py, "int"))?
+                        .extract(py)?;
+                    match self.param_table.table.get_mut(&param_uuid) {
+                        Some(entry) => entry.add(inst_index, param_index),
+                        None => {
+                            let new_entry = ParamEntry::new(inst_index, param_index);
+                            self.param_table.insert(py, param_obj, new_entry)?;
+                        }
+                    };
+                }
+                self.global_phase = Param::ParameterExpression(angle);
+            }
+        };
+        Ok(())
+    }
+
+    /// Get the global_phase sentinel value
+    #[staticmethod]
+    pub fn global_phase_param_index() -> usize {
+        usize::MAX
+    }
+
+    // Below are functions to interact with the parameter table. These methods
+    // are done to avoid needing to deal with shared references and provide
+    // an entry point via python through an owned CircuitData object.
+    pub fn num_params(&self) -> usize {
+        self.param_table.table.len()
+    }
+
+    pub fn get_param_from_name(&self, py: Python, name: String) -> Option<PyObject> {
+        self.param_table.get_param_from_name(py, name)
+    }
+
+    pub fn get_params_unsorted(&self, py: Python) -> Vec<PyObject> {
+        self.param_table
+            .uuid_map
+            .values()
+            .map(|x| x.clone_ref(py))
+            .collect()
+    }
+
+    pub fn pop_param(
+        &mut self,
+        py: Python,
+        uuid: u128,
+        name: String,
+        default: PyObject,
+    ) -> PyObject {
+        match self.param_table.pop(uuid, name) {
+            Some(res) => res.into_py(py),
+            None => default.clone_ref(py),
+        }
+    }
+
+    pub fn _get_param(&self, py: Python, uuid: u128) -> PyObject {
+        self.param_table.table[&uuid].clone().into_py(py)
+    }
+
+    pub fn contains_param(&self, uuid: u128) -> bool {
+        self.param_table.table.contains_key(&uuid)
+    }
+
+    pub fn add_new_parameter(
+        &mut self,
+        py: Python,
+        param: PyObject,
+        inst_index: usize,
+        param_index: usize,
+    ) -> PyResult<()> {
+        self.param_table.insert(
+            py,
+            param.clone_ref(py),
+            ParamEntry::new(inst_index, param_index),
+        )?;
+        Ok(())
+    }
+
+    pub fn update_parameter_entry(
+        &mut self,
+        uuid: u128,
+        inst_index: usize,
+        param_index: usize,
+    ) -> PyResult<()> {
+        match self.param_table.table.get_mut(&uuid) {
+            Some(entry) => {
+                entry.add(inst_index, param_index);
+                Ok(())
+            }
+            None => Err(PyIndexError::new_err(format!(
+                "Invalid parameter uuid: {:?}",
+                uuid
+            ))),
+        }
+    }
+
+    pub fn _get_entry_count(&self, py: Python, param_obj: PyObject) -> PyResult<usize> {
+        let uuid: u128 = param_obj
+            .getattr(py, intern!(py, "_uuid"))?
+            .getattr(py, intern!(py, "int"))?
+            .extract(py)?;
+        Ok(self.param_table.table[&uuid].index_ids.len())
     }
 }
 
@@ -820,9 +1298,43 @@ impl CircuitData {
                 self.intern_context.intern(args)
             };
         Ok(PackedInstruction {
-            op: inst.operation.clone_ref(py),
+            op: inst.operation.clone(),
             qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.bind(py))?,
             clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.bind(py))?,
+            params: inst.params.clone(),
+            label: inst.label.clone(),
+            duration: inst.duration.clone(),
+            unit: inst.unit.clone(),
+            condition: inst.condition.clone(),
+        })
+    }
+
+    fn pack_owned(&mut self, py: Python, inst: &CircuitInstruction) -> PyResult<PackedInstruction> {
+        let mut interned_bits =
+            |indices: &HashMap<BitAsKey, BitType>, bits: &Bound<PyTuple>| -> PyResult<IndexType> {
+                let args = bits
+                    .into_iter()
+                    .map(|b| {
+                        let key = BitAsKey::new(&b)?;
+                        indices.get(&key).copied().ok_or_else(|| {
+                            PyKeyError::new_err(format!(
+                                "Bit {:?} has not been added to this circuit.",
+                                b
+                            ))
+                        })
+                    })
+                    .collect::<PyResult<Vec<BitType>>>()?;
+                self.intern_context.intern(args)
+            };
+        Ok(PackedInstruction {
+            op: inst.operation.clone(),
+            qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.bind(py))?,
+            clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.bind(py))?,
+            params: inst.params.clone(),
+            label: inst.label.clone(),
+            duration: inst.duration.clone(),
+            unit: inst.unit.clone(),
+            condition: inst.condition.clone(),
         })
     }
 
@@ -830,7 +1342,7 @@ impl CircuitData {
         Py::new(
             py,
             CircuitInstruction {
-                operation: inst.op.clone_ref(py),
+                operation: inst.op.clone(),
                 qubits: PyTuple::new_bound(
                     py,
                     self.intern_context
@@ -849,6 +1361,11 @@ impl CircuitData {
                         .collect::<Vec<_>>(),
                 )
                 .unbind(),
+                params: inst.params.clone(),
+                label: inst.label.clone(),
+                duration: inst.duration.clone(),
+                unit: inst.unit.clone(),
+                condition: inst.condition.clone(),
             },
         )
     }
