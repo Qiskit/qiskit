@@ -584,6 +584,7 @@ def generate_scheduling(
             InstructionDurationCheck(
                 acquire_alignment=timing_constraints.acquire_alignment,
                 pulse_alignment=timing_constraints.pulse_alignment,
+                target=target,
             )
         )
         scheduling.append(
@@ -591,6 +592,7 @@ def generate_scheduling(
                 ConstrainedReschedule(
                     acquire_alignment=timing_constraints.acquire_alignment,
                     pulse_alignment=timing_constraints.pulse_alignment,
+                    target=target,
                 ),
                 condition=_require_alignment,
             )
@@ -599,6 +601,7 @@ def generate_scheduling(
             ValidatePulseGates(
                 granularity=timing_constraints.granularity,
                 min_length=timing_constraints.min_length,
+                target=target,
             )
         )
     if scheduling_method:
@@ -624,15 +627,10 @@ def get_vf2_limits(
     """
     limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
-        if optimization_level == 1:
+        if optimization_level in {1, 2}:
             limits = VF2Limits(
                 int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
                 2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
-            )
-        elif optimization_level == 2:
-            limits = VF2Limits(
-                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
-                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
             )
         elif optimization_level == 3:
             limits = VF2Limits(

@@ -16,6 +16,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.pulse import Play
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler import Target
 
 
 class ValidatePulseGates(AnalysisPass):
@@ -43,6 +44,7 @@ class ValidatePulseGates(AnalysisPass):
         self,
         granularity: int = 1,
         min_length: int = 1,
+        target: Target = None,
     ):
         """Create new pass.
 
@@ -53,10 +55,16 @@ class ValidatePulseGates(AnalysisPass):
             min_length: Integer number representing the minimum data point length to
                 define the pulse gate in units of ``dt``. This value depends on
                 the control electronics of your quantum processor.
+            target: The :class:`~.Target` representing the target backend, if
+                ``target`` is specified then this argument will take
+                precedence and ``granularity`` and ``min_length`` will be ignored.
         """
         super().__init__()
         self.granularity = granularity
         self.min_length = min_length
+        if target is not None:
+            self.granularity = target.granularity
+            self.min_length = target.min_length
 
     def run(self, dag: DAGCircuit):
         """Run the pulse gate validation attached to ``dag``.

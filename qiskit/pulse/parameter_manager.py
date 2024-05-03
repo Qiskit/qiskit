@@ -54,7 +54,7 @@ from __future__ import annotations
 from copy import copy
 from typing import Any, Mapping, Sequence
 
-from qiskit.circuit import ParameterVector
+from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse import instructions, channels
@@ -62,7 +62,11 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library import SymbolicPulse, Waveform
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
-from qiskit.pulse.utils import format_parameter_value
+from qiskit.pulse.utils import (
+    format_parameter_value,
+    _validate_parameter_vector,
+    _validate_parameter_value,
+)
 
 
 class NodeVisitor:
@@ -362,7 +366,8 @@ class ParameterManager:
         self,
         pulse_program: Any,
         value_dict: dict[
-            ParameterExpression | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            ParameterExpression | ParameterVector | str,
+            ParameterValueType | Sequence[ParameterValueType],
         ],
     ) -> Any:
         """Modify and return program data with parameters assigned according to the input.
@@ -397,7 +402,7 @@ class ParameterManager:
     def _unroll_param_dict(
         self,
         parameter_binds: Mapping[
-            Parameter | ParameterVector, ParameterValueType | Sequence[ParameterValueType]
+            Parameter | ParameterVector | str, ParameterValueType | Sequence[ParameterValueType]
         ],
     ) -> Mapping[Parameter, ParameterValueType]:
         """
@@ -410,21 +415,31 @@ class ParameterManager:
             A dictionary from parameter to value.
         """
         out = {}
+        param_name_dict = {param.name: [] for param in self.parameters}
+        for param in self.parameters:
+            param_name_dict[param.name].append(param)
+        param_vec_dict = {
+            param.vector.name: param.vector
+            for param in self.parameters
+            if isinstance(param, ParameterVectorElement)
+        }
+        for name in param_vec_dict.keys():
+            if name in param_name_dict:
+                param_name_dict[name].append(param_vec_dict[name])
+            else:
+                param_name_dict[name] = [param_vec_dict[name]]
+
         for parameter, value in parameter_binds.items():
             if isinstance(parameter, ParameterVector):
-                if not isinstance(value, Sequence):
-                    raise PulseError(
-                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
-                        f" but was assigned to a single value."
-                    )
-                if len(parameter) != len(value):
-                    raise PulseError(
-                        f"Parameter vector '{parameter.name}' has length {len(parameter)},"
-                        f" but was assigned to {len(value)} values."
-                    )
+                _validate_parameter_vector(parameter, value)
                 out.update(zip(parameter, value))
             elif isinstance(parameter, str):
-                out[self.get_parameters(parameter)] = value
+                for param in param_name_dict[parameter]:
+                    is_vec = _validate_parameter_value(param, value)
+                    if is_vec:
+                        out.update(zip(param, value))
+                    else:
+                        out[param] = value
             else:
                 out[parameter] = value
         return out

@@ -107,7 +107,7 @@ class XGate(SingletonGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -250,7 +250,7 @@ class CXGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -444,7 +444,7 @@ class CCXGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -585,7 +585,7 @@ class C3SXGate(SingletonControlledGate):
         Args:
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
         """
         from .sx import SXGate
 
@@ -785,7 +785,7 @@ class C3XGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1029,7 +1029,7 @@ class C4XGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1095,7 +1095,7 @@ class MCXGate(ControlledGate):
         explicit CX, CCX, C3X or C4X instance or a generic MCX gate.
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
-        # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
+        # the C3XGate and C4XGate are handled in the gate definition.
         explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         gate_class = explicit.get(num_ctrl_qubits, None)
         if gate_class is not None:
@@ -1166,14 +1166,25 @@ class MCXGate(ControlledGate):
         raise AttributeError(f"Unsupported mode ({mode}) specified!")
 
     def _define(self):
-        """The standard definition used the Gray code implementation."""
+        """This definition is based on MCPhaseGate implementation."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        qc._append(MCXGrayCode(self.num_ctrl_qubits), q[:], [])
-        self.definition = qc
+        if self.num_qubits == 4:
+            qc._append(C3XGate(), q[:], [])
+            self.definition = qc
+        elif self.num_qubits == 5:
+            qc._append(C4XGate(), q[:], [])
+            self.definition = qc
+        else:
+            q_controls = list(range(self.num_ctrl_qubits))
+            q_target = self.num_ctrl_qubits
+            qc.h(q_target)
+            qc.mcp(numpy.pi, q_controls, q_target)
+            qc.h(q_target)
+            self.definition = qc
 
     @property
     def num_ancilla_qubits(self):
@@ -1193,7 +1204,7 @@ class MCXGate(ControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 

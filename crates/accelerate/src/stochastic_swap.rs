@@ -25,7 +25,6 @@ use rayon::prelude::*;
 
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
-use pyo3::Python;
 
 use rand::prelude::*;
 use rand_distr::{Distribution, Normal};
@@ -255,7 +254,7 @@ pub fn swap_trials(
     let cdist_arr = cdist.as_array();
     let cdist2_arr = cdist2.as_array();
     let edges_arr = edges.as_slice()?;
-    let num_gates: usize = int_gates.len() / 2;
+    let num_gates: usize = int_gates.len()? / 2;
     let mut best_possible: Option<(u64, f64, EdgeCollection, NLayout)> = None;
     let locked_best_possible: RwLock<&mut Option<(u64, f64, EdgeCollection, NLayout)>> =
         RwLock::new(&mut best_possible);
@@ -337,7 +336,7 @@ pub fn swap_trials(
 }
 
 #[pymodule]
-pub fn stochastic_swap(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn stochastic_swap(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(swap_trials))?;
     m.add_class::<EdgeCollection>()?;
     Ok(())

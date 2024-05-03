@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a new method :meth:`.Layout.inverse` which is used for taking
+    the inverse of a :class:`.Layout` object.
+    Added a new method :meth:`.Layout.compose` which is used for composing
+    two :class:`.Layout` objects together.
+    Added a new method :meth:`.Layout.to_permutation` which is used for
+    creating a permutation corresponding to a :class:`.Layout` object.

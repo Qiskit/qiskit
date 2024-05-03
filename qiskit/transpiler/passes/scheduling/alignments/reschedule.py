@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,9 +17,11 @@ from collections.abc import Generator
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.reset import Reset
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler import Target
 
 
 class ConstrainedReschedule(AnalysisPass):
@@ -63,6 +65,7 @@ class ConstrainedReschedule(AnalysisPass):
         self,
         acquire_alignment: int = 1,
         pulse_alignment: int = 1,
+        target: Target = None,
     ):
         """Create new rescheduler pass.
 
@@ -73,10 +76,16 @@ class ConstrainedReschedule(AnalysisPass):
                 trigger acquisition instruction in units of ``dt``.
             pulse_alignment: Integer number representing the minimum time resolution to
                 trigger gate instruction in units of ``dt``.
+            target: The :class:`~.Target` representing the target backend, if
+                ``target`` is specified then this argument will take
+                precedence and ``acquire_alignment`` and ``pulse_alignment`` will be ignored.
         """
         super().__init__()
         self.acquire_align = acquire_alignment
         self.pulse_align = pulse_alignment
+        if target is not None:
+            self.acquire_align = target.acquire_alignment
+            self.pulse_align = target.pulse_alignment
 
     @classmethod
     def _get_next_gate(cls, dag: DAGCircuit, node: DAGOpNode) -> Generator[DAGOpNode, None, None]:
@@ -113,7 +122,7 @@ class ConstrainedReschedule(AnalysisPass):
 
         if isinstance(node.op, Gate):
             alignment = self.pulse_align
-        elif isinstance(node.op, Measure):
+        elif isinstance(node.op, (Measure, Reset)):
             alignment = self.acquire_align
         elif isinstance(node.op, Delay) or getattr(node.op, "_directive", False):
             # Directive or delay. These can start at arbitrary time.
@@ -135,7 +144,7 @@ class ConstrainedReschedule(AnalysisPass):
         # Compute shifted t1 of this node separately for qreg and creg
         new_t1q = this_t0 + node.op.duration
         this_qubits = set(node.qargs)
-        if isinstance(node.op, Measure):
+        if isinstance(node.op, (Measure, Reset)):
             # creg access ends at the end of instruction
             new_t1c = new_t1q
             this_clbits = set(node.cargs)
@@ -153,7 +162,7 @@ class ConstrainedReschedule(AnalysisPass):
             # Compute next node start time separately for qreg and creg
             next_t0q = node_start_time[next_node]
             next_qubits = set(next_node.qargs)
-            if isinstance(next_node.op, Measure):
+            if isinstance(next_node.op, (Measure, Reset)):
                 # creg access starts after write latency
                 next_t0c = next_t0q + clbit_write_latency
                 next_clbits = set(next_node.cargs)

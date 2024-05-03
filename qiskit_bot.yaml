@@ -18,13 +18,10 @@ notifications:
         - "`@nkanazawa1989`"
     "two_qubit_decompose":
         - "`@levbishop`"
-    "quantum_info":
-        - "`@ikkoham`"
     "circuit/library":
         - "`@Cryoris`"
         - "`@ajavadia`"
     "primitives":
-        - "`@ikkoham`"
         - "`@t-imamichi`"
         - "`@ajavadia`"
         - "`@levbishop`"

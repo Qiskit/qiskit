@@ -131,7 +131,7 @@ class ConsolidateBlocks(TransformationPass):
                 if (  # pylint: disable=too-many-boolean-expressions
                     self.force_consolidate
                     or unitary.num_qubits > 2
-                    or self.decomposer.num_basis_gates(unitary) < basis_count
+                    or self.decomposer.num_basis_gates(matrix) < basis_count
                     or len(block) > max_2q_depth
                     or ((self.basis_gates is not None) and outside_basis)
                     or ((self.target is not None) and outside_basis)
