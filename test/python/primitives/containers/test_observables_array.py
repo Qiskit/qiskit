@@ -12,6 +12,8 @@
 
 """Test ObservablesArray"""
 
+from test import QiskitTestCase
+
 import itertools as it
 import ddt
 import numpy as np
@@ -22,8 +24,6 @@ from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.observables_array import ObservablesArray
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit.providers.fake_provider import GenericBackendV2
-
-from test import QiskitTestCase
 
 
 @ddt.ddt
