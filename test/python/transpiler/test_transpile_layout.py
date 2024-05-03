@@ -189,9 +189,6 @@ class TranspileLayoutTest(QiskitTestCase):
             {
                 qr[0]: 2,
                 qr[1]: 4,
-                qr[2]: 1,
-                qr[3]: 0,
-                qr[4]: 3,
             }
         )
         layout_obj = TranspileLayout(

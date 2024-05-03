@@ -16,9 +16,14 @@ import itertools as it
 import ddt
 import numpy as np
 
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 import qiskit.quantum_info as qi
+from qiskit.primitives import StatevectorEstimator
 from qiskit.primitives.containers.observables_array import ObservablesArray
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
+from qiskit.transpiler import TranspileLayout, Layout
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+from qiskit.providers.fake_provider import GenericBackendV2
+from test import QiskitTestCase
 
 
 @ddt.ddt
@@ -357,3 +362,67 @@ class ObservablesArrayTestCase(QiskitTestCase):
         obs = ObservablesArray([{"XX": 1}, {"XYZ": 1}], validate=False)
         with self.assertRaisesRegex(ValueError, "number of qubits must be the same"):
             obs.validate()
+
+    def test_apply_layout_errors(self):
+        """Test the apply_layout() method errors as expected."""
+        obs = ObservablesArray({"XYZ": 1})
+        layout = [1, 0, 2]
+        with self.assertRaisesRegex(ValueError, "num_qubits is too small"):
+            obs.apply_layout(layout, 2)
+
+    def test_apply_layout_trivial(self):
+        """Test the apply_layout() method for trivial inputs."""
+        obs = ObservablesArray("XYZ")
+        self.assertEqual(obs.apply_layout(None).tolist(), obs.tolist())
+        self.assertEqual(obs.apply_layout(None, 3).tolist(), obs.tolist())
+
+    def test_apply_layout_padding(self):
+        """Test the apply_layout() method with identity padding."""
+        obs = ObservablesArray({"XYZ": 1, "XYY": 2})
+        self.assertEqual(obs.apply_layout(None, 5).tolist(), {"IIXYZ": 1, "IIXYY": 2})
+        self.assertEqual(obs.apply_layout([2, 1, 0], 5).tolist(), {"IIZYX": 1, "IIYYX": 2})
+        self.assertEqual(obs.apply_layout([4, 1, 0], 5).tolist(), {"ZIIYX": 1, "YIIYX": 2})
+
+    def test_apply_layout_permutations(self):
+        """Test the apply_layout() method under permutations."""
+        obs_in = ObservablesArray([{"XYZ": 1}])
+        obs_out = obs_in.apply_layout([0, 1, 2])
+        self.assertEqual(obs_out.tolist(), [{"XYZ": 1}])
+
+        obs_in = ObservablesArray([{"XYZ": 1}])
+        obs_out = obs_in.apply_layout([1, 0, 2])
+        self.assertEqual(obs_out.tolist(), [{"XZY": 1}])
+
+        obs_in = ObservablesArray([{"XYZ": 1}])
+        obs_out = obs_in.apply_layout([2, 1, 0])
+        self.assertEqual(obs_out.tolist(), [{"ZYX": 1}])
+
+    def test_apply_layout_from_transpiled_circuit(self):
+        """Test that the apply_layout() method interfaces properly with transpiler routing."""
+
+        circuit = QuantumCircuit(5)
+        circuit.h(0)
+        circuit.cx(0, 4)
+        circuit.cx(3, 0)
+        for idx in range(5):
+            circuit.rz(idx / 5, idx)
+        circuit.cx(0, 4)
+        circuit.cx(2, 1)
+        circuit.h(0)
+
+        obs = ObservablesArray(
+            [["I" * idx + pauli + "I" * (4 - idx) for pauli in "XYZ"] for idx in range(5)]
+        )
+
+        backend = GenericBackendV2(num_qubits=5, coupling_map=[[idx, idx + 1] for idx in range(4)])
+        pm = generate_preset_pass_manager(optimization_level=1, backend=backend)
+        isa_circuit = pm.run(circuit)
+        isa_obs = obs.apply_layout(isa_circuit.layout)
+
+        # sanity check that we have a non-trivial layout
+        self.assertNotEqual(isa_circuit.layout.final_index_layout(), [0, 1, 2, 3, 4])
+
+        # the estimates before and after the rerouting should be the same for any observables
+        estimator = StatevectorEstimator()
+        result = estimator.run([(circuit, obs), (isa_circuit, isa_obs)]).result()
+        np.testing.assert_allclose(result[0].data.evs, result[1].data.evs, rtol=0, atol=1e-10)

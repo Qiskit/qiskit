@@ -27,7 +27,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
-from qiskit.exceptions import QiskitError
 from qiskit.transpiler import TranspileLayout
 
 from .object_array import object_array
@@ -113,10 +112,15 @@ class ObservablesArray(ShapedMixin):
                 number of the transpiler output circuit qubits will be used by
                 default. However, if ``layout`` is a list of integers, the permutation
                 specified will be applied without any expansion. If layout is
-                ``None``, the operator will be expanded to the given number of qubits.
+                ``None``, the operator will be expanded to the given ``num_qubits``.
 
         Returns:
             A new observables array with the provided layout applied.
+
+        Raises:
+            ValueError: If a :class:`~.TranspileLayout` is given that maps to qubit numbers that
+                are larger than the number of qubits in this array.
+            ValueError: If ``num_qubits`` is less than the number of
         """
         if layout is None and num_qubits is None or self.size == 0:
             return ObservablesArray(self._array, copy=True, validate=False)
@@ -131,11 +135,13 @@ class ObservablesArray(ShapedMixin):
             n_qubits = len(layout._output_qubit_list)
             layout = layout.final_index_layout()
             if layout is not None and any(x >= n_qubits for x in layout):
-                raise QiskitError("Provided layout contains indicies outside the number of qubits.")
+                raise ValueError("Provided layout contains indices outside the number of qubits.")
+        else:
+            n_qubits = len(layout)
 
         if num_qubits is not None:
             if num_qubits < n_qubits:
-                raise QiskitError(
+                raise ValueError(
                     f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
                     f"applied to a {n_qubits} qubit operator"
                 )
