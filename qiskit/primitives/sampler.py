@@ -66,6 +66,22 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         self._qargs_list = []
         self._circuit_ids = {}
 
+    def __repr__(self):
+        circ_names = []
+        for circuit in self._circuits:
+            circ_names.append(circuit.name)
+        param_counts = []
+        for param in self._parameters:
+            param_counts.append(str(len(param)))
+
+        return "< {} with {} circuits ('{}',) parameter counts ({},) and {} >".format(
+            type(self).__name__,
+            len(self._circuits),
+            "','".join(circ_names),
+            ",".join(param_counts),
+            repr(self._run_options),
+        )
+
     def _call(
         self,
         circuits: Sequence[int],

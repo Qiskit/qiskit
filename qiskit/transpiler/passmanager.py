@@ -139,6 +139,28 @@ class PassManager(BasePassManager):
         self.property_set["layout"] = t_initial_layout
         self.property_set["final_layout"] = new_final_layout
 
+    def __repr__(self):
+        if self.property_set is None or len(self.property_set) == 0:
+            nprops = 0
+            properties = "0 properties"
+        else:
+            prop_keys = list(self.property_set.keys())
+            nprops = len(prop_keys)
+            if nprops > 3:
+                _plist = "','".join(prop_keys[0:3]) + "',..."
+            else:
+                _plist = "','".join(prop_keys) + "'"
+            properties = f"{nprops} properties ('{_plist},)"
+        npass = 0
+        for cur_set in self._pass_sets:
+            npass += len(cur_set["passes"])
+
+        return (
+            f"<{type(self).__name__} with "
+            f"{len(self._pass_sets)} sets, {npass} passes, "
+            f"{self.max_iteration} max iterations, and {properties} >"
+        )
+
     def append(
         self,
         passes: Task | list[Task],

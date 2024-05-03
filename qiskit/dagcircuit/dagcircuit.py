@@ -146,6 +146,21 @@ class DAGCircuit:
         self.duration = None
         self.unit = "dt"
 
+    def __repr__(self):
+        op_names = "','".join(self._op_names.keys())
+        edges = self._multi_graph.edges()
+        if not isinstance(edges, list):
+            edges = []
+        num_edges = len(edges)
+
+        return (
+            f"< {type(self).__name__} '{self.name}' with "
+            f"{ len(self._op_names.keys()) } operations ('{op_names}'),"
+            f" {len(self._wires)} wires, {self.node_counter} nodes, {num_edges} edges, "
+            f" {len(self._calibrations)} calibrations"
+            f", and global_phase={self._global_phase} >"
+        )
+
     @property
     def wires(self):
         """Return a list of the wires in order."""

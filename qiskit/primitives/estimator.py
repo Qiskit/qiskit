@@ -66,6 +66,27 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         self._circuit_ids = {}
         self._observable_ids = {}
 
+    def __repr__(self):
+        circ_names = []
+        for circuit in self._circuits:
+            circ_names.append(circuit.name)
+        param_counts = []
+        for param in self._parameters:
+            param_counts.append(str(len(param)))
+        circ_names = "','".join(circ_names)
+        param_counts = ",".join(param_counts)
+        observables = []
+        for observation in self._observables:
+            observables.append(repr(observation))
+        observables = ",".join(observables)
+        observables = " ".join(observables.split()).replace("\n", "")
+        return (
+            f"< {type(self).__name__} with "
+            f"{len(self._circuits)} circuits ('{circ_names}',), "
+            f"{len(self._observables)} observables ('{observables}'), "
+            f"parameter counts ({param_counts},) and {repr(self._run_options)} >"
+        )
+
     def _call(
         self,
         circuits: Sequence[int],

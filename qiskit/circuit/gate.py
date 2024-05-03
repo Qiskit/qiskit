@@ -48,6 +48,16 @@ class Gate(Instruction):
     # Set higher priority than Numpy array and matrix classes
     __array_priority__ = 20
 
+    def __repr__(self):
+        """Generates a representation of the Gate object instance
+        Returns:
+            str: A representation of the Gate instance with class name, name,
+                 number of qubits, number of classical bits and  params( if any )"""
+        return (
+            f"<{self.__class__.__name__} '{self.name}' labeled '{self.label}' with"
+            f" {self.num_qubits} qubits, {self.num_clbits} clbits and params={self.params}>"
+        )
+
     def to_matrix(self) -> np.ndarray:
         """Return a Numpy.array for the gate unitary matrix.
 
