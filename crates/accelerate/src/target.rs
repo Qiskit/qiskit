@@ -762,7 +762,7 @@ impl Target {
                         qargs_to_tuple
                     } else {
                         Qargs {
-                            vec: smallvec![PhysicalQubit::new(qargs.extract::<u32>()?)],
+                            vec: smallvec![qargs.extract::<PhysicalQubit>()?],
                         }
                     });
                 let mut props: Option<Py<InstructionProperties>> =
@@ -791,9 +791,10 @@ impl Target {
                             duration = Some(dt * entry_duration.extract::<f64>()?);
                         }
                     }
-                    let inst_prop =
-                        InstructionProperties::new(py, duration, None, Some(entry)).into_py(py);
-                    props = Some(inst_prop.downcast_bound(py)?.to_owned().unbind());
+                    props = Some(Py::new(
+                        py,
+                        InstructionProperties::new(py, duration, None, Some(entry)),
+                    )?);
                 } else if props.is_none() {
                     continue;
                 }
@@ -849,7 +850,7 @@ impl Target {
                             qargs_ext
                         } else {
                             Qargs {
-                                vec: smallvec![PhysicalQubit::new(qargs.extract::<u32>()?)],
+                                vec: qargs.extract::<SmallVec<[PhysicalQubit; 4]>>()?,
                             }
                         };
                         qlen.insert(qargs_.vec.len());
@@ -1960,19 +1961,14 @@ impl Target {
                             None,
                         );
                     } else {
-                        let instr_prop =
-                            InstructionProperties::new(py, duration, error, calibration)
-                                .into_py(py);
                         gate_properties.insert(
                             Some(Qargs {
                                 vec: smallvec![PhysicalQubit::new(qubit as u32)],
                             }),
-                            Some(
-                                instr_prop
-                                    .downcast_bound::<InstructionProperties>(py)?
-                                    .clone()
-                                    .unbind(),
-                            ),
+                            Some(Py::new(
+                                py,
+                                InstructionProperties::new(py, duration, error, calibration),
+                            )?),
                         );
                     }
                 }
@@ -2050,19 +2046,14 @@ impl Target {
                             None,
                         );
                     } else {
-                        let inst_prop =
-                            InstructionProperties::new(py, duration, error, calibration);
                         gate_properties.insert(
                             Some(Qargs {
                                 vec: edge.into_iter().map(PhysicalQubit::new).collect(),
                             }),
-                            Some(
-                                inst_prop
-                                    .into_py(py)
-                                    .downcast_bound::<InstructionProperties>(py)?
-                                    .clone()
-                                    .unbind(),
-                            ),
+                            Some(Py::new(
+                                py,
+                                InstructionProperties::new(py, duration, error, calibration),
+                            )?),
                         );
                     }
                 }
