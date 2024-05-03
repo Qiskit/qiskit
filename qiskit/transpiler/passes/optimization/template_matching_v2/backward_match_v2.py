@@ -38,7 +38,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 
 class Match:
     """
-    Object to represent a match and its qubit configurations.
+    Object to represent a match and its qubit and clbit configurations.
     """
 
     def __init__(self, match, qubit, clbit):
@@ -121,17 +121,17 @@ class BackwardMatch:
         matchedwith,
         isblocked,
         qubits,
-        clbits=None,
-        heuristics_backward_param=None,
+        clbits=[],
+        heuristics_backward_param=[],
     ):
         """
         Create a BackwardMatch class with necessary arguments.
         Args:
             circuit_dag_dep (_DAGDependencyV2): circuit in the dag dependency form.
             template_dag_dep (_DAGDependencyV2): template in the dag dependency form.
-            forward_matches (list): list of match obtained in the forward direction.
+            forward_matches (list): list of matches obtained in the forward direction.
             node_c (DAGOpNode): node of the first gate matched in the circuit.
-            node_id_t (DAGOpNode): node of the first gate matched in the template.
+            node_t (DAGOpNode): node of the first gate matched in the template.
             temp_match_class (TemplateMatchingV2): instance of the calling class
             matchedwith (dict): per node list of matches
             isblocked (dict): per node indicator of blocked node
@@ -143,14 +143,12 @@ class BackwardMatch:
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
         self.qubits = qubits
-        self.clbits = clbits if clbits is not None else []
+        self.clbits = clbits
         self.node_c = node_c
         self.node_t = node_t
         self.forward_matches = forward_matches
         self.match_final = []
-        self.heuristics_backward_param = (
-            heuristics_backward_param if heuristics_backward_param is not None else []
-        )
+        self.heuristics_backward_param = heuristics_backward_param
         self.matching_list = MatchingScenariosList()
         self.temp_match_class = temp_match_class
         self.matchedwith = matchedwith
@@ -189,20 +187,20 @@ class BackwardMatch:
 
         return candidates_indices
 
-    def _is_same_q_conf(self, node_circuit, node_template, qarg_circuit):
+    def _is_same_q_conf(self, node_c, node_t, qarg_circuit):
         """
         Check if the qubit configurations are compatible.
         Args:
-            node_circuit (DAGOpNode): node in the circuit.
-            node_template (DAGOpNode): node in the template.
+            node_c (DAGOpNode): node in the circuit.
+            node_t (DAGOpNode): node in the template.
             qarg_circuit (list): qubit configuration for the Instruction in the circuit.
         Returns:
             bool: True if possible, False otherwise.
         """
         # If the gate is controlled, then the control qubits have to be compared as sets.
-        node_temp_qind = get_qindices(self.template_dag_dep, node_template)
-        if isinstance(node_circuit.op, ControlledGate):
-            c_template = node_template.op.num_ctrl_qubits
+        node_temp_qind = get_qindices(self.template_dag_dep, node_t)
+        if isinstance(node_c.op, ControlledGate):
+            c_template = node_t.op.num_ctrl_qubits
 
             if c_template == 1:
                 return qarg_circuit == node_temp_qind
@@ -215,7 +213,7 @@ class BackwardMatch:
                     target_qubits_template = node_temp_qind[c_template::]
                     target_qubits_circuit = qarg_circuit[c_template::]
 
-                    if node_template.op.base_gate.name in [
+                    if node_t.op.base_gate.name in [
                         "rxx",
                         "ryy",
                         "rzz",
@@ -231,31 +229,26 @@ class BackwardMatch:
         # For non controlled gates, the qubit indices for symmetric gates can be compared as sets
         # But for non-symmetric gates the qubits indices have to be compared as lists.
         else:
-            if node_template.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
+            if node_t.op.name in ["rxx", "ryy", "rzz", "swap", "iswap", "ms"]:
                 return set(qarg_circuit) == set(node_temp_qind)
             else:
                 return qarg_circuit == node_temp_qind
 
-    def _is_same_c_conf(self, node_circuit, node_template, carg_circuit):
+    def _is_same_c_conf(self, node_c, node_t, carg_circuit):
         """
         Check if the clbit configurations are compatible.
         Args:
-            node_circuit (DAGOpNode): node in the circuit.
-            node_template (DAGOpNode): node in the template.
+            node_c (DAGOpNode): node in the circuit.
+            node_t (DAGOpNode): node in the template.
             carg_circuit (list): clbit configuration for the Instruction in the circuit.
         Returns:
             bool: True if possible, False otherwise.
         """
-        if getattr(node_circuit.op, "condition", None) and getattr(
-            node_template.op, "condition", None
+        if (getattr(node_c.op, "condition", None) and getattr(node_t.op, "condition", None)) and (
+            getattr(node_c.op, "condition", None)[1] != getattr(node_t.op, "condition", None)[1]
+            or set(carg_circuit) != set(get_cindices(self.template_dag_dep, node_t))
         ):
-            if set(carg_circuit) != set(get_cindices(self.template_dag_dep, node_template)):
-                return False
-            if (
-                getattr(node_circuit.op, "condition", None)[1]
-                != getattr(node_template.op, "condition", None)[1]
-            ):
-                return False
+            return False
         return True
 
     def _backward_heuristics(self, gate_indices, length, survivor):
@@ -366,7 +359,7 @@ class BackwardMatch:
 
             # First circuit candidate.
             circuit_id = gate_indices[counter_scenario - 1]
-            node_circuit = get_node(self.circuit_dag_dep, circuit_id)
+            node_c = get_node(self.circuit_dag_dep, circuit_id)
 
             # If the circuit candidate is blocked, only the counter is changed.
             if circuit_blocked[circuit_id]:
@@ -386,8 +379,8 @@ class BackwardMatch:
 
             # Update of the qubits/clbits indices in the circuit in order to be
             # comparable with the one in the template.
-            qarg_indices = get_qindices(self.circuit_dag_dep, node_circuit)
-            carg_indices = get_cindices(self.circuit_dag_dep, node_circuit)
+            qarg_indices = get_qindices(self.circuit_dag_dep, node_c)
+            carg_indices = get_cindices(self.circuit_dag_dep, node_c)
 
             qarg1 = [self.qubits.index(q) for q in qarg_indices if q in self.qubits]
             if len(qarg1) != len(qarg_indices):
@@ -403,7 +396,7 @@ class BackwardMatch:
             # Loop over the template candidates.
             for template_id in candidates_indices:
 
-                node_template = get_node(self.template_dag_dep, template_id)
+                node_t = get_node(self.template_dag_dep, template_id)
                 qarg2 = get_qindices(
                     self.template_dag_dep, get_node(self.template_dag_dep, template_id)
                 )
@@ -412,16 +405,16 @@ class BackwardMatch:
                 if (
                     len(qarg1) != len(qarg2)
                     or set(qarg1) != set(qarg2)
-                    or node_circuit.name != node_template.name
+                    or node_c.name != node_t.name
                 ):
                     continue
 
                 # Check if the qubit, clbit configurations are compatible for a match,
                 # also check if the operations are the same.
                 if (
-                    self._is_same_q_conf(node_circuit, node_template, qarg1)
-                    and self._is_same_c_conf(node_circuit, node_template, carg1)
-                    and node_circuit.op == node_template.op
+                    self._is_same_q_conf(node_c, node_t, qarg1)
+                    and self._is_same_c_conf(node_c, node_t, carg1)
+                    and node_c.op == node_t.op
                 ):
                     block_list = []
                     broken_matches_match = []

@@ -147,7 +147,9 @@ class TemplateSubstitution:
         for node_id in circuit_sublist:
             node_c = get_node(self.circuit_dag_dep, node_id)
             if node_c not in self.temp_match_class.ancestors:
-                self.temp_match_class.ancestors[node_c] = get_ancestors(self.circuit_dag_dep, node_c)
+                self.temp_match_class.ancestors[node_c] = get_ancestors(
+                    self.circuit_dag_dep, node_c
+                )
             ancestors = ancestors | set(self.temp_match_class.ancestors[node_c])
 
         exclude = set()

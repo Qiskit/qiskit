@@ -28,35 +28,35 @@ import rustworkx as rx
 
 
 def get_node(dag, node_id):
-    """ Wrapper for rustworkx get node object from index. """
+    """Wrapper for rustworkx get node object from index."""
     return dag._multi_graph[node_id]
 
 
 def get_qindices(dag, node):
-    """ Convert qargs to indices. """
+    """Convert qargs to indices."""
     return [dag.find_bit(qarg).index for qarg in node.qargs]
 
 
 def get_cindices(dag, node):
-    """ Convert cargs to indices. """
+    """Convert cargs to indices."""
     return [dag.find_bit(carg).index for carg in node.cargs]
 
 
 def get_descendants(dag, node_id):
-    """ Wrapper for rustworkx get all descendants of a node. """
+    """Wrapper for rustworkx get all descendants of a node."""
     return list(rx.descendants(dag._multi_graph, node_id))
 
 
 def get_ancestors(dag, node_id):
-    """ Wrapper for rustworkx get all ancestors of a node. """
+    """Wrapper for rustworkx get all ancestors of a node."""
     return list(rx.ancestors(dag._multi_graph, node_id))
 
 
 def get_successors(dag, node_id):
-    """ Wrapper for rustworkx get all direct successors of a node. """
+    """Wrapper for rustworkx get all direct successors of a node."""
     return [succ._node_id for succ in dag._multi_graph.successors(node_id)]
 
 
 def get_predecessors(dag, node_id):
-    """ Wrapper for rustworkx get all direct predecessors of a node. """
+    """Wrapper for rustworkx get all direct predecessors of a node."""
     return [pred._node_id for pred in dag._multi_graph.predecessors(node_id)]

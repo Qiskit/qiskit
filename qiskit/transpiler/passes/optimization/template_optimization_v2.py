@@ -47,13 +47,19 @@ class TemplateOptimizationV2(TransformationPass):
     def __init__(
         self,
         template_list=None,
-        heuristics_qubits_param=None,
-        heuristics_backward_param=None,
+        heuristics_qubits_param=[],
+        heuristics_backward_param=[],
         user_cost_dict=None,
     ):
         """
         Args:
             template_list (list[QuantumCircuit()]): list of the different template circuits to apply.
+            heuristics_qubits_param (list[int]): [length] The heuristics for the qubit choice make
+                guesses from the dag dependency of the circuit in order to limit the number of
+                qubit configurations to explore. The length is the number of descendants or not
+                ancestors that will be explored in the dag dependency of the circuit. Each of the
+                qubits of the nodes are added to the set of authorized qubits. We advise to use
+                length=1. Check reference for more details.
             heuristics_backward_param (list[int]): [length, survivor] Those are the parameters for
                 applying heuristics on the backward part of the algorithm. This part of the
                 algorithm creates a tree of matching scenario. This tree grows exponentially. The
@@ -62,12 +68,6 @@ class TemplateOptimizationV2(TransformationPass):
                 of scenarios that are kept. We advise to use l=3 and s=1 to have serious time
                 advantage. We remind that the heuristics implies losing a part of the maximal
                 matches. Check reference for more details.
-            heuristics_qubits_param (list[int]): [length] The heuristics for the qubit choice make
-                guesses from the dag dependency of the circuit in order to limit the number of
-                qubit configurations to explore. The length is the number of descendants or not
-                ancestors that will be explored in the dag dependency of the circuit. Each of the
-                qubits of the nodes are added to the set of authorized qubits. We advise to use
-                length=1. Check reference for more details.
             user_cost_dict (Dict[str, int]): quantum cost dictionary passed to TemplateSubstitution
                 to configure its behavior. This will override any default values if None
                 is not given. The key is the name of the gate and the value its quantum cost.
@@ -77,12 +77,8 @@ class TemplateOptimizationV2(TransformationPass):
         if template_list is None:
             template_list = [template_nct_2a_1(), template_nct_2a_2(), template_nct_2a_3()]
         self.template_list = template_list
-        self.heuristics_qubits_param = (
-            heuristics_qubits_param if heuristics_qubits_param is not None else []
-        )
-        self.heuristics_backward_param = (
-            heuristics_backward_param if heuristics_backward_param is not None else []
-        )
+        self.heuristics_qubits_param = heuristics_qubits_param
+        self.heuristics_backward_param = heuristics_backward_param
         self.user_cost_dict = user_cost_dict
 
     def run(self, dag):
