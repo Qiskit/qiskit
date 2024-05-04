@@ -142,7 +142,6 @@ class TemplateOptimizationV2(TransformationPass):
                     max_matches,
                     template_m.circuit_dag_dep,
                     template_m.template_dag_dep,
-                    template_m,
                     self.user_cost_dict,
                 )
                 circuit_dag_dep = substitution.run_dag_opt()

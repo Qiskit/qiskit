@@ -24,6 +24,8 @@ Exact and practical pattern matching for quantum circuit optimization.
 
 """
 
+from functools import lru_cache
+
 import rustworkx as rx
 
 
@@ -42,14 +44,16 @@ def get_cindices(dag, node):
     return [dag.find_bit(carg).index for carg in node.cargs]
 
 
+@lru_cache(maxsize=1024)
 def get_descendants(dag, node_id):
     """Wrapper for rustworkx get all descendants of a node."""
-    return list(rx.descendants(dag._multi_graph, node_id))
+    return rx.descendants(dag._multi_graph, node_id)
 
 
+@lru_cache(maxsize=1024)
 def get_ancestors(dag, node_id):
     """Wrapper for rustworkx get all ancestors of a node."""
-    return list(rx.ancestors(dag._multi_graph, node_id))
+    return rx.ancestors(dag._multi_graph, node_id)
 
 
 def get_successors(dag, node_id):

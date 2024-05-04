@@ -46,7 +46,6 @@ class ForwardMatch:
         template_dag_dep,
         node_c,
         node_t,
-        temp_match_class,
         qubits,
         clbits=[],
     ):
@@ -57,7 +56,6 @@ class ForwardMatch:
             template_dag_dep (DAGDependencyV2): template in the dag dependency form.
             node_c (DAGOpNode): node of first gate matched in the circuit.
             node_t (DAGOpNode): node of first gate matched in the template.
-            temp_match_class (TemplateMatching): class instance of caller
             qubits (list): list of considered qubits in the circuit.
             clbits (list): list of considered clbits in the circuit.
         """
@@ -73,9 +71,6 @@ class ForwardMatch:
 
         # Id of the node in the template
         self.node_t = node_t
-
-        # Class instance of TemplateMatching caller
-        self.temp_match_class = temp_match_class
 
         # List of qubits on which the node of the circuit is acting
         self.qubits = qubits
@@ -130,12 +125,8 @@ class ForwardMatch:
         for node_id in matches_mod:
             for succ in get_successors(self.template_dag_dep, node_id):
                 if succ not in matches:
-                    node = get_node(self.template_dag_dep, succ)
-                    if node not in self.temp_match_class.descendants:
-                        self.temp_match_class.descendants[node] = get_descendants(
-                            self.template_dag_dep, succ
-                        )
-                    block = block + self.temp_match_class.descendants[node]
+                    node_t_descs = get_descendants(self.template_dag_dep, succ)
+                    block = block + list(node_t_descs)
         self.candidates = list(set(temp_succs) - set(matches) - set(block))
 
     def _is_same_q_conf(self, node_c, node_t):
@@ -310,12 +301,8 @@ class ForwardMatch:
             # If no match is found, block the node and all the descendants.
             if not match:
                 self.isblocked[trial_successor] = True
-                if trial_successor not in self.temp_match_class.descendants:
-                    self.temp_match_class.descendants[trial_successor] = get_descendants(
-                        self.circuit_dag_dep, trial_successor_id
-                    )
-
-                for desc_id in self.temp_match_class.descendants[trial_successor]:
+                trial_descs = get_descendants(self.circuit_dag_dep, trial_successor_id)
+                for desc_id in trial_descs:
                     desc = get_node(self.circuit_dag_dep, desc_id)
                     self.isblocked[desc] = True
                     if self.matchedwith.get(desc):

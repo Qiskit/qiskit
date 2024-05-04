@@ -44,14 +44,14 @@ class SubstitutionConfig:
         anc_block,
         qubit_config,
         template_dag_dep,
-        clbit_config=None,
+        clbit_config=[],
     ):
-        self.template_dag_dep = template_dag_dep
         self.circuit_config = circuit_config
         self.template_config = template_config
-        self.qubit_config = qubit_config
-        self.clbit_config = clbit_config if clbit_config is not None else []
         self.anc_block = anc_block
+        self.qubit_config = qubit_config
+        self.template_dag_dep = template_dag_dep
+        self.clbit_config = clbit_config
 
     def has_parameters(self):
         """Ensure that the template does not have parameters."""
@@ -69,7 +69,7 @@ class TemplateSubstitution:
     """
 
     def __init__(
-        self, max_matches, circuit_dag_dep, template_dag_dep, temp_match_class, user_cost_dict=None
+        self, max_matches, circuit_dag_dep, template_dag_dep, user_cost_dict=None
     ):
         """
         Initialize TemplateSubstitution with necessary arguments.
@@ -78,7 +78,6 @@ class TemplateSubstitution:
                 the template matching algorithm.
             circuit_dag_dep (_DAGDependencyV2): circuit in the dag dependency form.
             template_dag_dep (_DAGDependencyV2): template in the dag dependency form.
-            temp_match_class: (TemplateMatching): class instance of previous TemplateMatching
             user_cost_dict (Optional[dict]): user provided cost dictionary that will override
                 the default cost dictionary.
         """
@@ -86,8 +85,6 @@ class TemplateSubstitution:
         self.match_stack = max_matches
         self.circuit_dag_dep = circuit_dag_dep
         self.template_dag_dep = template_dag_dep
-        self.temp_match_class = temp_match_class
-
         self.substitution_list = []
         self.unmatched_list = []
 
@@ -145,12 +142,7 @@ class TemplateSubstitution:
         """
         ancestors = set()
         for node_id in circuit_sublist:
-            node_c = get_node(self.circuit_dag_dep, node_id)
-            if node_c not in self.temp_match_class.ancestors:
-                self.temp_match_class.ancestors[node_c] = get_ancestors(
-                    self.circuit_dag_dep, node_c
-                )
-            ancestors = ancestors | set(self.temp_match_class.ancestors[node_c])
+            ancestors = ancestors | set(get_ancestors(self.circuit_dag_dep, node_id))
 
         exclude = set()
         for elem in self.substitution_list[:index]:
@@ -216,22 +208,12 @@ class TemplateSubstitution:
 
         ancestors = set()
         for index in template_sublist:
-            node_t = get_node(self.template_dag_dep, index)
-            if node_t not in self.temp_match_class.ancestors:
-                self.temp_match_class.ancestors[node_t] = get_ancestors(
-                    self.template_dag_dep, index
-                )
-            ancestors = ancestors | set(self.temp_match_class.ancestors[node_t])
+            ancestors = ancestors | set(get_ancestors(self.template_dag_dep, index))
         ancestors = list(ancestors - set(template_sublist))
 
         descendants = set()
         for index in template_sublist:
-            node_t = get_node(self.template_dag_dep, index)
-            if node_t not in self.temp_match_class.descendants:
-                self.temp_match_class.descendants[node_t] = get_descendants(
-                    self.template_dag_dep, index
-                )
-            descendants = descendants | set(self.temp_match_class.descendants[node_t])
+            descendants = descendants | set(get_descendants(self.template_dag_dep, index))
         descendants = list(descendants - set(template_sublist))
 
         common = list(set(template_list) - set(ancestors) - set(descendants))
@@ -251,14 +233,6 @@ class TemplateSubstitution:
 
         return left + right
 
-    def _substitution_sort(self):
-        """
-        Sort the substitution list.
-        """
-        ordered = False
-        while not ordered:
-            ordered = self._permutation()
-
     def _permutation(self):
         """
         Permute two groups of matches if first one has ancestors in the second one.
@@ -268,13 +242,9 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             ancestors = set()
             for match in scenario.circuit_config:
-                node_c = get_node(self.circuit_dag_dep, match)
-                if node_c not in self.temp_match_class.ancestors:
-                    self.temp_match_class.ancestors[node_c] = get_ancestors(
-                        self.circuit_dag_dep, match
-                    )
-                ancestors = ancestors | set(self.temp_match_class.ancestors[node_c])
+                ancestors = ancestors | set(get_ancestors(self.circuit_dag_dep, match))
             ancestors = ancestors - set(scenario.circuit_config)
+
             index = self.substitution_list.index(scenario)
             for scenario_b in self.substitution_list[index::]:
                 if set(scenario_b.circuit_config) & ancestors:
@@ -299,12 +269,7 @@ class TemplateSubstitution:
         for scenario in self.substitution_list:
             ancestors = set()
             for index in scenario.circuit_config:
-                node_c = get_node(self.circuit_dag_dep, index)
-                if node_c not in self.temp_match_class.ancestors:
-                    self.temp_match_class.ancestors[node_c] = get_ancestors(
-                        self.circuit_dag_dep, index
-                    )
-                ancestors = ancestors | set(self.temp_match_class.ancestors[node_c])
+                ancestors = ancestors | set(get_ancestors(self.circuit_dag_dep, index))
             list_ancestors.append(ancestors)
 
         # Check if two groups of matches are incompatible.
@@ -331,10 +296,9 @@ class TemplateSubstitution:
 
     def _substitution(self):
         """
-        From the list of maximal matches, it chooses which one will be used and gives the necessary
+        From the list of maximal matches, this chooses which one will be used and gives the necessary
         details for each substitution(template inverse, ancestors of the match).
         """
-
         while self.match_stack:
 
             # Get the first match scenario of the list
@@ -352,7 +316,7 @@ class TemplateSubstitution:
             template_list = range(0, self.template_dag_dep.size())
             template_complement = list(set(template_list) - set(template_sublist))
 
-            # If the match obey the rule then it is added to the list.
+            # If the match obeys the rule then it is added to the list.
             if self._rules(circuit_sublist, template_sublist, template_complement):
                 template_sublist_inverse = self._template_inverse(
                     template_list, template_sublist, template_complement
@@ -374,17 +338,21 @@ class TemplateSubstitution:
         self.substitution_list.sort(key=lambda x: x.circuit_config[0])
 
         # Change position of the groups due to ancestors of other groups.
-        self._substitution_sort()
+        ordered = False
+        while not ordered:
+            ordered = self._permutation()
 
         for scenario in self.substitution_list:
             index = self.substitution_list.index(scenario)
             scenario.anc_block = self._anc_block(scenario.circuit_config, index)
 
-        circuit_list = []
-        for elem in self.substitution_list:
-            circuit_list = circuit_list + elem.circuit_config + elem.anc_block
-
         # Unmatched gates that are not ancestors of any group of matches.
+        circuit_list = [
+            y
+            for elem in self.substitution_list
+            for x in [elem.circuit_config, elem.anc_block]
+            for y in x
+        ]
         self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
@@ -417,11 +385,7 @@ class TemplateSubstitution:
             template_inverse = group.template_config
 
             qubit = group.qubit_config[0]
-
-            if group.clbit_config:
-                clbit = group.clbit_config[0]
-            else:
-                clbit = []
+            clbit = group.clbit_config[0] if group.clbit_config else []
 
             # First add all the ancestors of the given match.
             for elem in group.anc_block:
