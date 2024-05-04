@@ -16,6 +16,7 @@ use pyo3::types::{PyList, PyString, PyTuple, PyType};
 use crate::error::QASM3ImporterError;
 
 pub trait PyRegister {
+    #[allow(dead_code)]
     fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>>;
     // This really should be
     //      fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
