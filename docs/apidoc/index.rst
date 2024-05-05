@@ -25,6 +25,7 @@ API Reference
    pulse
    scheduler
    synthesis
+   qiskit.synthesis.unitary.aqc
    primitives
    qasm2
    qasm3
