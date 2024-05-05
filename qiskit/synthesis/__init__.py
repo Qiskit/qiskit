@@ -98,12 +98,7 @@ Decomposition of general :math:`2^n \times 2^n` unitary matrices for any number 
 
 .. autofunction:: qs_decomposition
 
-The Approximate Quantum Compiler is available here:
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    qiskit.synthesis.unitary.aqc
+The Approximate Quantum Compiler is available as the module :mod:`qiskit.synthesis.unitary.aqc`.
 
 One-Qubit Synthesis
 ===================
