@@ -37,30 +37,59 @@ struct Qargs {
 
 impl IntoPy<PyObject> for Qargs {
     fn into_py(self, py: Python<'_>) -> PyObject {
-        if self.vec.len() == 1 {
-            let qargs: (PhysicalQubit,) = self.vec.into_iter().collect_tuple().unwrap();
-            qargs.to_object(py)
-        } else if self.vec.len() == 2 {
-            let qargs: (PhysicalQubit, PhysicalQubit) =
-                self.vec.into_iter().collect_tuple().unwrap();
-            qargs.to_object(py)
-        } else if self.vec.len() == 3 {
-            let qargs: (PhysicalQubit, PhysicalQubit, PhysicalQubit) =
-                self.vec.into_iter().collect_tuple().unwrap();
-            qargs.to_object(py)
-        } else if self.vec.len() == 4 {
-            let qargs: (PhysicalQubit, PhysicalQubit, PhysicalQubit, PhysicalQubit) =
-                self.vec.into_iter().collect_tuple().unwrap();
-            qargs.to_object(py)
-        } else {
-            py.None()
+        match self.vec.len() {
+            1 => {
+                let qargs: (PhysicalQubit,) = self.vec.into_iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            2 => {
+                let qargs: (PhysicalQubit, PhysicalQubit) =
+                    self.vec.into_iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            3 => {
+                let qargs: (PhysicalQubit, PhysicalQubit, PhysicalQubit) =
+                    self.vec.into_iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            4 => {
+                let qargs: (PhysicalQubit, PhysicalQubit, PhysicalQubit, PhysicalQubit) =
+                    self.vec.into_iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            _ => py.None(),
         }
     }
 }
 
 impl ToPyObject for Qargs {
     fn to_object(&self, py: Python<'_>) -> PyObject {
-        self.clone().into_py(py)
+        match self.vec.len() {
+            1 => {
+                let qargs: (&PhysicalQubit,) = self.vec.iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            2 => {
+                let qargs: (&PhysicalQubit, &PhysicalQubit) =
+                    self.vec.iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            3 => {
+                let qargs: (&PhysicalQubit, &PhysicalQubit, &PhysicalQubit) =
+                    self.vec.iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            4 => {
+                let qargs: (
+                    &PhysicalQubit,
+                    &PhysicalQubit,
+                    &PhysicalQubit,
+                    &PhysicalQubit,
+                ) = self.vec.iter().collect_tuple().unwrap();
+                qargs.to_object(py)
+            }
+            _ => py.None(),
+        }
     }
 }
 
@@ -392,14 +421,10 @@ pub struct Target {
     #[pyo3(get, set)]
     pub concurrent_measurements: Vec<Vec<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
-    #[pyo3(get)]
     gate_map: GateMapType,
-    #[pyo3(get)]
     gate_name_map: IndexMap<String, PyObject>,
     global_operations: IndexMap<usize, HashSet<String>>,
-    #[pyo3(get)]
     qarg_gate_map: IndexMap<Option<Qargs>, Option<HashSet<String>>>,
-    #[pyo3(get, set)]
     instruction_durations: Option<PyObject>,
     instruction_schedule_map: Option<PyObject>,
     #[pyo3(get, set)]
@@ -1048,9 +1073,9 @@ impl Target {
         operations.
     */
     #[pyo3(text_signature = "(instruction, /)")]
-    fn operation_from_name(&self, instruction: String) -> PyResult<PyObject> {
-        if self.gate_name_map.contains_key(&instruction) {
-            Ok(self.gate_name_map[&instruction].to_owned())
+    fn operation_from_name(&self, py: Python<'_>, instruction: String) -> PyResult<PyObject> {
+        if let Some(gate_obj) = self.gate_name_map.get(&instruction) {
+            Ok(gate_obj.to_object(py))
         } else {
             Err(PyKeyError::new_err(format!(
                 "Instruction {:?} not in target",
@@ -2088,9 +2113,8 @@ impl Target {
     }
 
     fn __getitem__(&self, py: Python<'_>, key: String) -> PyResult<PyObject> {
-        if self.gate_map.contains_key(&key) {
-            let value = &self.gate_map[&key];
-            Ok(value.to_object(py))
+        if let Some(qarg_instprop) = self.gate_map.get(&key) {
+            Ok(qarg_instprop.to_object(py))
         } else {
             Err(PyKeyError::new_err(format!("{key} not in gate_map")))
         }

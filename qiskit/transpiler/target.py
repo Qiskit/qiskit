@@ -228,7 +228,7 @@ class Target(Target2):
             multigraph=False
         )
         self.coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
-        for gate, qarg_map in self.gate_map.items():
+        for gate, qarg_map in self.items():
             if qarg_map is None:
                 if self.gate_name_map[gate].num_qubits == 2:
                     self.coupling_graph = None  # pylint: disable=attribute-defined-outside-init
@@ -236,7 +236,7 @@ class Target(Target2):
                 continue
             for qarg, properties in qarg_map.items():
                 if qarg is None:
-                    if self.gate_name_map[gate].num_qubits == 2:
+                    if self.operation_from_name(gate).num_qubits == 2:
                         self.coupling_graph = None  # pylint: disable=attribute-defined-outside-init
                         return
                     continue
@@ -250,7 +250,10 @@ class Target(Target2):
                         edge_data[gate] = properties
                     except rx.NoEdgeBetweenNodes:
                         self.coupling_graph.add_edge(*qarg, {gate: properties})
-        if self.coupling_graph.num_edges() == 0 and any(x is None for x in self.qarg_gate_map):
+        qargs = self.qargs
+        if self.coupling_graph.num_edges() == 0 and (
+            qargs == None or any(x is None for x in qargs)
+        ):
             self.coupling_graph = None  # pylint: disable=attribute-defined-outside-init
 
     def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
@@ -298,7 +301,7 @@ class Target(Target2):
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
             coupling_graph.add_nodes_from([None] * self.num_qubits)
-            for qargs, properties in self.gate_map[two_q_gate].items():
+            for qargs, properties in self[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
                         "Specified two_q_gate: %s is not a 2 qubit instruction" % two_q_gate
@@ -338,10 +341,6 @@ class Target(Target2):
     def keys(self):
         """Return all gate names present in the Target"""
         return {x: None for x in super().keys()}.keys()
-
-    def items(self):
-        """Returns a map of all qargs and properties for each gate."""
-        return super().gate_map.items()
 
     def __str__(self):
         output = io.StringIO()
