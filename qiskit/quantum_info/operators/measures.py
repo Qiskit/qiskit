@@ -404,7 +404,7 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
     op2 = op2.data
     pre_diag = np.matmul(np.conj(op1).T, op2)
     eigenvals = np.linalg.eigvals(pre_diag)
-    d = _find_poly_distance(eigenvals)  # for some reason the no sort version is slower
+    d = _find_poly_distance(eigenvals) 
     return 2 * np.sqrt(1 - d**2)
 
 
