@@ -35,8 +35,8 @@ from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit._accelerate.nlayout import NLayout
-from qiskit._accelerate.sabre_layout import sabre_layout_and_routing
-from qiskit._accelerate.sabre_swap import (
+from qiskit._accelerate.sabre import (
+    sabre_layout_and_routing,
     Heuristic,
     NeighborTable,
 )
@@ -308,6 +308,12 @@ class SabreLayout(TransformationPass):
         mapped_dag.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             mapped_dag.add_creg(creg)
+        for var in dag.iter_input_vars():
+            mapped_dag.add_input_var(var)
+        for var in dag.iter_captured_vars():
+            mapped_dag.add_captured_var(var)
+        for var in dag.iter_declared_vars():
+            mapped_dag.add_declared_var(var)
         mapped_dag._global_phase = dag._global_phase
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)

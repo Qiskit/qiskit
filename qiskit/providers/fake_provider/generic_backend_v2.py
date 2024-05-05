@@ -62,8 +62,8 @@ _NOISE_DEFAULTS = {
 
 # Fallback values for gates with unknown noise default ranges.
 _NOISE_DEFAULTS_FALLBACK = {
-    "1-q": (3e-8, 6e-8, 9e-5, 1e-4),
-    "multi-q": (8e-8, 9e-7, 1e-5, 5e-3),
+    "1-q": (2.997e-08, 5.994e-08, 9e-5, 1e-4),
+    "multi-q": (7.992e-08, 8.99988e-07, 5e-3),
 }
 
 # Ranges to sample qubit properties from.
@@ -526,12 +526,18 @@ class GenericBackendV2(BackendV2):
 
     @classmethod
     def _default_options(cls) -> Options:
-        if _optionals.HAS_AER:
-            from qiskit_aer import AerSimulator
+        with warnings.catch_warnings():  # TODO remove catch once aer release without Provider ABC
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".+abstract Provider and ProviderV1.+",
+            )
+            if _optionals.HAS_AER:
+                from qiskit_aer import AerSimulator
 
-            return AerSimulator._default_options()
-        else:
-            return BasicSimulator._default_options()
+                return AerSimulator._default_options()
+            else:
+                return BasicSimulator._default_options()
 
     def drive_channel(self, qubit: int):
         drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})

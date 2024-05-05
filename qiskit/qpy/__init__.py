@@ -79,6 +79,12 @@ during serialization or deserialization.
 
 .. autoexception:: QpyError
 
+When a lower-than-maximum target QPY version is set for serialization, but the object to be
+serialized contains features that cannot be represented in that format, a subclass of
+:exc:`QpyError` is raised:
+
+.. autoexception:: UnsupportedFeatureForVersion
+
 Attributes:
     QPY_VERSION (int): The current QPY format version as of this release. This
         is the default value of the ``version`` keyword argument on
@@ -110,6 +116,135 @@ raise a :exc:`~.QPYLoadingDeprecatedFeatureWarning` informing of the deprecation
 and how the feature will be internally handled.
 
 .. autoexception:: QPYLoadingDeprecatedFeatureWarning
+
+QPY format version history
+--------------------------
+
+If you're planning to load a QPY file between different Qiskit versions knowing
+which versions were available in a given release are useful. As the QPY is
+backwards compatible but not forwards compatible you need to ensure a given
+QPY format version was released in the release you're calling :func:`.load`
+with. The following table lists the QPY versions that were supported in every
+Qiskit (and qiskit-terra prior to Qiskit 1.0.0) release going back to the introduction
+of QPY in qiskit-terra 0.18.0.
+
+.. list-table: QPY Format Version History
+   :header-rows: 1
+
+   * - Qiskit (qiskit-terra for < 1.0.0) version
+     - :func:`.dump` format(s) output versions
+     - :func:`.load` maximum supported version (older format versions can always be read)
+   * - 1.1.0
+     - 10, 11, 12
+     - 12
+   * - 1.0.2
+     - 10, 11
+     - 12
+   * - 1.0.1
+     - 10, 11
+     - 11
+   * - 1.0.0
+     - 10, 11
+     - 11
+   * - 0.46.1
+     - 10
+     - 10
+   * - 0.45.3
+     - 10
+     - 10
+   * - 0.45.2
+     - 10
+     - 10
+   * - 0.45.1
+     - 10
+     - 10
+   * - 0.45.0
+     - 10
+     - 10
+   * - 0.25.3
+     - 9
+     - 9
+   * - 0.25.2
+     - 9
+     - 9
+   * - 0.25.1
+     - 9
+     - 9
+   * - 0.24.2
+     - 8
+     - 8
+   * - 0.24.1
+     - 7
+     - 7
+   * - 0.24.0
+     - 7
+     - 7
+   * - 0.23.3
+     - 6
+     - 6
+   * - 0.23.2
+     - 6
+     - 6
+   * - 0.23.1
+     - 6
+     - 6
+   * - 0.23.0
+     - 6
+     - 6
+   * - 0.22.4
+     - 5
+     - 5
+   * - 0.22.3
+     - 5
+     - 5
+   * - 0.22.2
+     - 5
+     - 5
+   * - 0.22.1
+     - 5
+     - 5
+   * - 0.22.0
+     - 5
+     - 5
+   * - 0.21.2
+     - 5
+     - 5
+   * - 0.21.1
+     - 5
+     - 5
+   * - 0.21.0
+     - 5
+     - 5
+   * - 0.20.2
+     - 4
+     - 4
+   * - 0.20.1
+     - 4
+     - 4
+   * - 0.20.0
+     - 4
+     - 4
+   * - 0.19.2
+     - 4
+     - 4
+   * - 0.19.1
+     - 3
+     - 3
+   * - 0.19.0
+     - 2
+     - 2
+   * - 0.18.3
+     - 1
+     - 1
+   * - 0.18.2
+     - 1
+     - 1
+   * - 0.18.1
+     - 1
+     - 1
+   * - 0.18.0
+     - 1
+     - 1
 
 .. _qpy_format:
 
@@ -156,11 +291,111 @@ compatibility.
 The file header is immediately followed by the circuit payloads.
 Each individual circuit is composed of the following parts:
 
-``HEADER | METADATA | REGISTERS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+``HEADER | METADATA | REGISTERS | STANDALONE_VARS | CUSTOM_DEFINITIONS | INSTRUCTIONS``
+
+The ``STANDALONE_VARS`` are new in QPY version 12; before that, there was no data between
+``REGISTERS`` and ``CUSTOM_DEFINITIONS``.
 
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_12:
+
+Version 12
+==========
+
+Version 12 adds support for:
+
+* circuits containing memory-owning :class:`.expr.Var` variables.
+
+Changes to HEADER
+-----------------
+
+The HEADER struct for an individual circuit has added three ``uint32_t`` counts of the input,
+captured and locally declared variables in the circuit.  The new form looks like:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        char global_phase_type;
+        uint16_t global_phase_size;
+        uint32_t num_qubits;
+        uint32_t num_clbits;
+        uint64_t metadata_size;
+        uint32_t num_registers;
+        uint64_t num_instructions;
+        uint32_t num_vars;
+    } HEADER_V12;
+
+The ``HEADER_V12`` struct is followed immediately by the same name, global-phase, metadata
+and register information as the V2 version of the header.  Immediately following the registers is
+``num_vars`` instances of ``EXPR_VAR_STANDALONE`` that define the variables in this circuit.  After
+that, the data continues with custom definitions and instructions as in prior versions of QPY.
+
+
+EXPR_VAR_DECLARATION
+--------------------
+
+An ``EXPR_VAR_DECLARATION`` defines an :class:`.expr.Var` instance that is standalone; that is, it
+represents a self-owned memory location rather than wrapping a :class:`.Clbit` or
+:class:`.ClassicalRegister`.  The payload is a C struct:
+
+.. code-block:: c
+
+    struct {
+        char uuid_bytes[16];
+        char usage;
+        uint16_t name_size;
+    }
+
+which is immediately followed by an ``EXPR_TYPE`` payload and then ``name_size`` bytes of UTF-8
+encoding string data containing the name of the variable.
+
+The ``char`` usage type code takes the following values:
+
+=========  =========================================================================================
+Type code  Meaning
+=========  =========================================================================================
+``I``      An ``input`` variable to the circuit.
+
+``C``      A ``capture`` variable to the circuit.
+
+``L``      A locally declared variable to the circuit.
+=========  =========================================================================================
+
+
+Changes to EXPR_VAR
+-------------------
+
+The EXPR_VAR variable has gained a new type code and payload, in addition to the pre-existing ones:
+
+===========================  =========  ============================================================
+Python class                 Type code  Payload
+===========================  =========  ============================================================
+:class:`.UUID`               ``U``      One ``uint32_t`` index of the variable into the series of
+                                        ``EXPR_VAR_STANDALONE`` variables that were written
+                                        immediately after the circuit header.
+===========================  =========  ============================================================
+
+Notably, this new type-code indexes into pre-defined variables from the circuit header, rather than
+redefining the variable again in each location it is used.
+
+
+Changes to EXPRESSION
+---------------------
+
+The EXPRESSION type code has a new possible entry, ``i``, corresponding to :class:`.expr.Index`
+nodes.
+
+======================  =========  =======================================================  ========
+Qiskit class            Type code  Payload                                                  Children
+======================  =========  =======================================================  ========
+:class:`~.expr.Index`   ``i``      No additional payload. The children are the target       2
+                                   and the index, in that order.
+======================  =========  =======================================================  ========
+
 
 .. _qpy_version_11:
 
@@ -208,17 +443,18 @@ operation, and in the third case the field ``power`` represents the power of the
 Version 10
 ==========
 
-Version 10 adds support for symengine-native serialization for objects of type
-:class:`~.ParameterExpression` as well as symbolic expressions in Pulse schedule blocks. Version
-10 also adds support for new fields in the :class:`~.TranspileLayout` class added in the Qiskit
-0.45.0 release.
+Version 10 adds support for:
+
+* symengine-native serialization for objects of type :class:`~.ParameterExpression` as well as
+  symbolic expressions in Pulse schedule blocks.
+* new fields in the :class:`~.TranspileLayout` class added in the Qiskit 0.45.0 release.
 
 The symbolic_encoding field is added to the file header, and a new encoding type char
 is introduced, mapped to each symbolic library as follows: ``p`` refers to sympy
 encoding and ``e`` refers to symengine encoding.
 
-FILE_HEADER
------------
+Changes to FILE_HEADER
+----------------------
 
 The contents of FILE_HEADER after V10 are defined as a C struct as:
 
@@ -231,10 +467,10 @@ The contents of FILE_HEADER after V10 are defined as a C struct as:
         uint8_t qiskit_patch_version;
         uint64_t num_circuits;
         char symbolic_encoding;
-    }
+    } FILE_HEADER_V10;
 
-LAYOUT
-------
+Changes to LAYOUT
+-----------------
 
 The ``LAYOUT`` struct is updated to have an additional ``input_qubit_count`` field.
 With version 10 the ``LAYOUT`` struct is now:
@@ -1101,7 +1337,6 @@ The contents of HEADER are defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name
@@ -1134,7 +1369,6 @@ The contents of HEADER as defined as a C struct are:
         uint64_t metadata_size;
         uint32_t num_registers;
         uint64_t num_instructions;
-        uint64_t num_custom_gates;
     }
 
 This is immediately followed by ``name_size`` bytes of utf8 data for the name
@@ -1395,7 +1629,7 @@ this matches the internal C representation of Python's complex type. [#f3]_
 .. [#f3] https://docs.python.org/3/c-api/complex.html#c.Py_complex
 """
 
-from .exceptions import QpyError, QPYLoadingDeprecatedFeatureWarning
+from .exceptions import QpyError, UnsupportedFeatureForVersion, QPYLoadingDeprecatedFeatureWarning
 from .interface import dump, load
 
 # For backward compatibility. Provide, Runtime, Experiment call these private functions.

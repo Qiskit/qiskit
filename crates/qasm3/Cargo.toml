@@ -7,15 +7,10 @@ license.workspace = true
 
 [lib]
 name = "qiskit_qasm3"
-crate-type = ["cdylib"]
-
-[features]
-# This is a test-only shim removable feature.  See the root `Cargo.toml`.
-default = ["extension-module"]
-extension-module = ["pyo3/extension-module"]
+doctest = false
 
 [dependencies]
 pyo3.workspace = true
 indexmap.workspace = true
 hashbrown.workspace = true
-oq3_semantics = "0.0.7"
+oq3_semantics = "0.6.0"

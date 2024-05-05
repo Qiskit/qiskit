@@ -61,7 +61,7 @@ class UnrollCustomDefinitions(TransformationPass):
             return dag
 
         if self._target is None:
-            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
+            basic_insts = {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             device_insts = basic_insts | set(self._basis_gates)
 
         for node in dag.op_nodes():

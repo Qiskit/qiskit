@@ -57,8 +57,8 @@ macro_rules! qubit_newtype {
         unsafe impl numpy::Element for $id {
             const IS_COPY: bool = true;
 
-            fn get_dtype(py: Python<'_>) -> &numpy::PyArrayDescr {
-                u32::get_dtype(py)
+            fn get_dtype_bound(py: Python<'_>) -> Bound<'_, numpy::PyArrayDescr> {
+                u32::get_dtype_bound(py)
             }
         }
     };
@@ -91,7 +91,7 @@ impl VirtualQubit {
 ///         physical qubit index on the coupling graph.
 ///     logical_qubits (int): The number of logical qubits in the layout
 ///     physical_qubits (int): The number of physical qubits in the layout
-#[pyclass(module = "qiskit._accelerate.stochastic_swap")]
+#[pyclass(module = "qiskit._accelerate.nlayout")]
 #[derive(Clone, Debug)]
 pub struct NLayout {
     virt_to_phys: Vec<PhysicalQubit>,
@@ -117,13 +117,13 @@ impl NLayout {
         res
     }
 
-    fn __getstate__(&self) -> (Vec<PhysicalQubit>, Vec<VirtualQubit>) {
-        (self.virt_to_phys.clone(), self.phys_to_virt.clone())
-    }
-
-    fn __setstate__(&mut self, state: (Vec<PhysicalQubit>, Vec<VirtualQubit>)) {
-        self.virt_to_phys = state.0;
-        self.phys_to_virt = state.1;
+    fn __reduce__(&self, py: Python) -> PyResult<Py<PyAny>> {
+        Ok((
+            py.get_type_bound::<Self>()
+                .getattr("from_virtual_to_physical")?,
+            (self.virt_to_phys.to_object(py),),
+        )
+            .into_py(py))
     }
 
     /// Return the layout mapping.
@@ -139,7 +139,7 @@ impl NLayout {
     ///
     #[pyo3(text_signature = "(self, /)")]
     fn layout_mapping(&self, py: Python<'_>) -> Py<PyList> {
-        PyList::new(py, self.iter_virtual()).into()
+        PyList::new_bound(py, self.iter_virtual()).into()
     }
 
     /// Get physical bit from virtual bit
@@ -217,7 +217,7 @@ impl NLayout {
 }
 
 #[pymodule]
-pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn nlayout(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<NLayout>()?;
     Ok(())
 }

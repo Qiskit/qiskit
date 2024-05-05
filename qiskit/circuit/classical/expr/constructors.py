@@ -37,7 +37,7 @@ __all__ = [
 
 import typing
 
-from .expr import Expr, Var, Value, Unary, Binary, Cast
+from .expr import Expr, Var, Value, Unary, Binary, Cast, Index
 from ..types import CastKind, cast_kind
 from .. import types
 
@@ -471,3 +471,86 @@ Var(ClassicalRegister(3, "b"), Uint(3)), \
 Uint(3))
     """
     return _binary_relation(Binary.Op.GREATER_EQUAL, left, right)
+
+
+def _shift_like(
+    op: Binary.Op, left: typing.Any, right: typing.Any, type: types.Type | None
+) -> Expr:
+    if type is not None and type.kind is not types.Uint:
+        raise TypeError(f"type '{type}' is not a valid bitshift operand type")
+    if isinstance(left, Expr):
+        left = _coerce_lossless(left, type) if type is not None else left
+    else:
+        left = lift(left, type)
+    right = lift(right)
+    if left.type.kind != types.Uint or right.type.kind != types.Uint:
+        raise TypeError(f"invalid types for '{op}': '{left.type}' and '{right.type}'")
+    return Binary(op, left, right, left.type)
+
+
+def shift_left(left: typing.Any, right: typing.Any, /, type: types.Type | None = None) -> Expr:
+    """Create a 'bitshift left' expression node from the given two values, resolving any implicit
+    casts and lifting the values into :class:`Value` nodes if required.
+
+    If ``type`` is given, the ``left`` operand will be coerced to it (if possible).
+
+    Examples:
+        Shift the value of a standalone variable left by some amount::
+
+            >>> from qiskit.circuit.classical import expr, types
+            >>> a = expr.Var.new("a", types.Uint(8))
+            >>> expr.shift_left(a, 4)
+            Binary(Binary.Op.SHIFT_LEFT, \
+Var(<UUID>, Uint(8), name='a'), \
+Value(4, Uint(3)), \
+Uint(8))
+
+        Shift an integer literal by a variable amount, coercing the type of the literal::
+
+            >>> expr.shift_left(3, a, types.Uint(16))
+            Binary(Binary.Op.SHIFT_LEFT, \
+Value(3, Uint(16)), \
+Var(<UUID>, Uint(8), name='a'), \
+Uint(16))
+    """
+    return _shift_like(Binary.Op.SHIFT_LEFT, left, right, type)
+
+
+def shift_right(left: typing.Any, right: typing.Any, /, type: types.Type | None = None) -> Expr:
+    """Create a 'bitshift right' expression node from the given values, resolving any implicit casts
+    and lifting the values into :class:`Value` nodes if required.
+
+    If ``type`` is given, the ``left`` operand will be coerced to it (if possible).
+
+    Examples:
+        Shift the value of a classical register right by some amount::
+
+            >>> from qiskit.circuit import ClassicalRegister
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.shift_right(ClassicalRegister(8, "a"), 4)
+            Binary(Binary.Op.SHIFT_RIGHT, \
+Var(ClassicalRegister(8, "a"), Uint(8)), \
+Value(4, Uint(3)), \
+Uint(8))
+    """
+    return _shift_like(Binary.Op.SHIFT_RIGHT, left, right, type)
+
+
+def index(target: typing.Any, index: typing.Any, /) -> Expr:
+    """Index into the ``target`` with the given integer ``index``, lifting the values into
+    :class:`Value` nodes if required.
+
+    This can be used as the target of a :class:`.Store`, if the ``target`` is itself an lvalue.
+
+    Examples:
+        Index into a classical register with a literal::
+
+            >>> from qiskit.circuit import ClassicalRegister
+            >>> from qiskit.circuit.classical import expr
+            >>> expr.index(ClassicalRegister(8, "a"), 3)
+            Index(Var(ClassicalRegister(8, "a"), Uint(8)), Value(3, Uint(2)), Bool())
+    """
+    target, index = lift(target), lift(index)
+    if target.type.kind is not types.Uint or index.type.kind is not types.Uint:
+        raise TypeError(f"invalid types for indexing: '{target.type}' and '{index.type}'")
+    return Index(target, index, types.Bool())
