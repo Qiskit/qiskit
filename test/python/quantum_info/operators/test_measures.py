@@ -193,9 +193,10 @@ class TestOperatorMeasures(QiskitTestCase):
         for angle in angles:
             op1 = Operator(RZGate(angle))
             op2 = Operator.from_label("I")
-            d2 = np.cos(angle / 2)**2 # analytical formula for hull distance
-            target = np.sqrt(1 - d2)
+            d2 = np.cos(angle / 2) ** 2  # analytical formula for hull distance
+            target = np.sqrt(1 - d2) * 2
             self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=7)
+
 
 if __name__ == "__main__":
     unittest.main()

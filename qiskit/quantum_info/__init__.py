@@ -129,7 +129,13 @@ from .operators import (
 )
 from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .operators.dihedral import CNOTDihedral
-from .operators.measures import average_gate_fidelity, diamond_norm, unitary_diamond_distance, gate_error, process_fidelity
+from .operators.measures import (
+    average_gate_fidelity,
+    diamond_norm,
+    unitary_diamond_distance,
+    gate_error,
+    process_fidelity,
+)
 from .random import (
     random_clifford,
     random_cnotdihedral,
