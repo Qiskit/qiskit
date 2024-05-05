@@ -350,6 +350,87 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
     return sol
 
 
+def unitary_diamond_distance(U: Operator, V: Operator) -> float:
+    r"""Return the diamond distance between two unitary operators.
+
+    This function computes the completely-bounded trace-norm (often
+    referred to as the diamond-norm) of the difference of two unitary channels
+    (or unitary operators). It is a more specialised implementaion of 
+    :meth:`~qiskit.quantum_info.diamond_norm`.
+
+    Args:
+        U (Operator): a unitary operator.
+        V (Operator): a unitary operator.
+
+    Returns:
+        float: The completely-bounded trace norm :math:`\|U - V\|_{\diamond}`.
+
+    Raises:
+        QiskitError: if the input operators do not have the same dimensions or aren't unitary.
+
+    Additional Information:
+        The implementation uses an unproved result in Aharonov et al. (1998). Geometrically
+        we compute the distance :math:`d` between the origin and the convex hull 
+        of the eigenvalues which is then plugged into :math:`\sqrt{1 - d^2}`
+
+    Reference:
+        D. Aharonov, A. Kitaev, and N. Nisan. “Quantum circuits with 
+        mixed states” in Proceedings of the thirtieth annual ACM symposium 
+        on Theory of computing, pp. 20-30, 1998.
+    """
+    U = _input_formatter(U, Operator, "unitary_diamond_distance", "U")
+    V = _input_formatter(V, Operator, "unitary_diamond_distance", "V")
+
+    # Check operators are unitary and have same dimension
+    if not (U.is_unitary()):
+        raise QiskitError(
+                "Invalid operator supplied to U of unitary_diamond_distance"
+                "operators must be unitary."
+            )
+    if not (V.is_unitary()):
+        raise QiskitError(
+                "Invalid operator supplied to V of unitary_diamond_distance"
+                "operators must be unitary."
+            )
+    if U.dim != V.dim:
+            raise QiskitError(
+                "Input quantum channel and target unitary must have the same "
+                "dimensions ({U.dim} != {V.dim})."
+            )
+
+    # Compute the diamond norm
+    U = U.data, V = V.data
+    pre_diag = np.matmul(np.conj(U).T, V)
+    eigenvals = np.linalg.eigvals(pre_diag)
+    d = _find_poly_distance(eigenvals) # for some reason the no sort version is slower
+    return 2 * np.sqrt(1 - d**2)
+
+
+def _find_poly_distance(eigenvals: np.ndarray) -> float:
+    """Function to find the distance between origin and the convex hull of eigenvalues."""
+    phases = np.angle(eigenvals)
+    pos_max = phases.max()
+    neg_min = phases.min()
+    pos_min = np.where(phases > 0, phases, np.inf).min()
+    neg_max = np.where(phases <= 0, phases, -np.inf).max()
+            
+    if neg_min > 0: # all eigenvalues have positive phase, so hull is above x axis
+        return np.cos((pos_max - pos_min) / 2)
+
+    if pos_max <= 0: # all eigenvalues have negative phase, so hull is below x axis
+        return np.cos((np.abs(neg_min) - np.abs(neg_max)) / 2)
+
+    big_angle = pos_max - neg_min
+    small_angle = pos_min - neg_max
+    if big_angle >= np.pi:
+        if small_angle <= np.pi: # hull contains the origin
+            return 0
+        else:
+            return np.cos((2*np.pi-small_angle)/2) # hull is left of y axis
+    else:
+        return np.cos(big_angle/2) # hull is right of y axis
+
+
 def _cvxpy_check(name):
     """Check that a supported CVXPY version is installed"""
     # Check if CVXPY package is installed

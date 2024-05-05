@@ -64,6 +64,7 @@ Measures
 .. autofunction:: process_fidelity
 .. autofunction:: gate_error
 .. autofunction:: diamond_norm
+.. autofunction:: unitary_diamond_distance
 .. autofunction:: state_fidelity
 .. autofunction:: purity
 .. autofunction:: concurrence

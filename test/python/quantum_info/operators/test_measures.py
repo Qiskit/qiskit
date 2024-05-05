@@ -21,6 +21,8 @@ from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
+from qiskit.quantum_info import unitary_diamond_distance
+from qiskit.circuit.library import RZGate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -184,6 +186,16 @@ class TestOperatorMeasures(QiskitTestCase):
         except cvxpy.SolverError:
             self.skipTest("CVXPY solver failed.")
 
+    def test_unitary_diamond_distance(self):
+        """Test the unitary_diamond_distance function"""
+        # Test unitary diamond distance for random unitaries
+        angles = np.linspace(0, 2 * np.pi, 10, endpoint=False)
+        for angle in angles:
+            op1 = Operator(RZGate(angle))
+            op2 = Operator.from_label("I")
+            d2 = np.cos(angle / 2)**2 # analytical formula for hull distance
+            target = np.sqrt(1 - d2)
+            self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=7)
 
 if __name__ == "__main__":
     unittest.main()
