@@ -28,17 +28,19 @@ from functools import lru_cache
 
 import rustworkx as rx
 
-
+@lru_cache(maxsize=1024)
 def get_node(dag, node_id):
     """Wrapper for rustworkx get node object from index."""
     return dag._multi_graph[node_id]
 
 
+@lru_cache(maxsize=64)
 def get_qindices(dag, node):
     """Convert qargs to indices."""
     return [dag.find_bit(qarg).index for qarg in node.qargs]
 
 
+@lru_cache(maxsize=64)
 def get_cindices(dag, node):
     """Convert cargs to indices."""
     return [dag.find_bit(carg).index for carg in node.cargs]
@@ -56,11 +58,13 @@ def get_ancestors(dag, node_id):
     return rx.ancestors(dag._multi_graph, node_id)
 
 
+@lru_cache(maxsize=128)
 def get_successors(dag, node_id):
     """Wrapper for rustworkx get all direct successors of a node."""
     return [succ._node_id for succ in dag._multi_graph.successors(node_id)]
 
 
+@lru_cache(maxsize=128)
 def get_predecessors(dag, node_id):
     """Wrapper for rustworkx get all direct predecessors of a node."""
     return [pred._node_id for pred in dag._multi_graph.predecessors(node_id)]
