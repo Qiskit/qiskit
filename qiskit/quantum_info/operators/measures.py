@@ -399,7 +399,8 @@ def unitary_diamond_distance(U: Operator, V: Operator) -> float:
             )
 
     # Compute the diamond norm
-    U = U.data, V = V.data
+    U = U.data
+    V = V.data
     pre_diag = np.matmul(np.conj(U).T, V)
     eigenvals = np.linalg.eigvals(pre_diag)
     d = _find_poly_distance(eigenvals) # for some reason the no sort version is slower
