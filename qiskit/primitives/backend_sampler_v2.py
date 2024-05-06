@@ -27,10 +27,10 @@ from qiskit.primitives.backend_estimator import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
+    DataBin,
     PrimitiveResult,
-    PubResult,
     SamplerPubLike,
-    make_data_bin,
+    SamplerPubResult,
 )
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
@@ -124,7 +124,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
             shots = self._options.default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
@@ -142,7 +142,7 @@ class BackendSamplerV2(BaseSamplerV2):
                     UserWarning,
                 )
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
+    def _run(self, pubs: list[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
         pub_dict = defaultdict(list)
         # consolidate pubs with the same number of shots
         for i, pub in enumerate(pubs):
@@ -157,7 +157,7 @@ class BackendSamplerV2(BaseSamplerV2):
                 results[i] = pub_result
         return PrimitiveResult(results)
 
-    def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[PubResult]:
+    def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[SamplerPubResult]:
         """Compute results for pubs that all require the same value of ``shots``."""
         # prepare circuits
         bound_circuits = [pub.parameter_values.bind_all(pub.circuit) for pub in pubs]
@@ -197,7 +197,7 @@ class BackendSamplerV2(BaseSamplerV2):
         shape: tuple[int, ...],
         meas_info: list[_MeasureInfo],
         max_num_bytes: int,
-    ) -> PubResult:
+    ) -> SamplerPubResult:
         """Converts the memory data into an array of bit arrays with the shape of the pub."""
         arrays = {
             item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
@@ -210,15 +210,10 @@ class BackendSamplerV2(BaseSamplerV2):
                 ary = _samples_to_packed_array(samples, item.num_bits, item.start)
                 arrays[item.creg_name][index] = ary
 
-        data_bin_cls = make_data_bin(
-            [(item.creg_name, BitArray) for item in meas_info],
-            shape=shape,
-        )
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={})
+        return SamplerPubResult(DataBin(**meas, shape=shape), metadata={})
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
@@ -268,7 +263,7 @@ def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]
             # no measure in a circuit
             data = np.zeros((len(memory), num_bytes), dtype=np.uint8)
         lst.append(data)
-    ary = np.array(lst, copy=False)
+    ary = np.asarray(lst)
     return np.unpackbits(ary, axis=-1, bitorder="big")
 
 

@@ -17,6 +17,12 @@ else
     source build_pgo/bin/activate
 fi
 
+arch=`uname -m`
+# Handle macOS calling the architecture arm64 and rust calling it aarch64
+if [[ $arch == "arm64" ]]; then
+    arch="aarch64"
+fi
+
 # Build with instrumentation
 pip install -U -c constraints.txt setuptools-rust wheel setuptools
 RUSTFLAGS="-Cprofile-generate=/tmp/pgo-data" pip install --prefer-binary -c constraints.txt -r requirements-dev.txt -e .
@@ -29,4 +35,4 @@ python tools/pgo_scripts/test_utility_scale.py
 
 deactivate
 
-${HOME}/.rustup/toolchains/*x86_64*/lib/rustlib/x86_64*/bin/llvm-profdata merge -o $merged_path /tmp/pgo-data
+${HOME}/.rustup/toolchains/*$arch*/lib/rustlib/$arch*/bin/llvm-profdata merge -o $merged_path /tmp/pgo-data

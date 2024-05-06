@@ -1,0 +1,18 @@
+---
+features_synthesis:
+  - |
+    Added a new argument, ``use_dag``, to the :meth:`.TwoQubitBasisDecomposer.__call__`
+    and :meth:`.XXDecomposer.__call__` methods. This argument is used to control whether
+    a :class:`.DAGCircuit` is returned when calling a :class:`.TwoQubitBasisDecomposer`
+    or :class:`.XXDecomposer` instance instead of the default :class:`.QuantumCircuit`.
+    For example::
+
+        from qiskit.circuit.library import CXGate
+        from qiskit.quantum_info import random_unitary
+        from qiskit.synthesis import TwoQubitBasisDecomposer
+
+        decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="PSX")
+        decomposer(random_unitary(4), use_dag=True)
+
+    will return a :class:`.DAGCircuit` when calling the :class:`.TwoQubitBasisDecomposer`
+    instance ``decomposer``.
