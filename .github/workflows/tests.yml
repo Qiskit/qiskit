@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@1.70
+        uses: dtolnay/rust-toolchain@1.80
         if: matrix.python-version == '3.10'
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
