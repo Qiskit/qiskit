@@ -17,26 +17,26 @@ Circuit Converters (:mod:`qiskit.converters`)
 
 .. currentmodule:: qiskit.converters
 
-QuantumCircuit 
-==============
+QuantumCircuit -> circuit components
+====================================
 
 .. autofunction:: circuit_to_instruction
 .. autofunction:: circuit_to_gate
 
-QuantumCircuit <> DagCircuit 
-============================
+QuantumCircuit <-> DagCircuit 
+=============================
 
 .. autofunction:: circuit_to_dag
 .. autofunction:: dag_to_circuit
 
-QuantumCircuit <> DagDependency 
-===============================
+QuantumCircuit <-> DagDependency 
+================================
 
 .. autofunction:: dagdependency_to_circuit
 .. autofunction:: circuit_to_dagdependency
 
-DagCircuit <> DagDependency 
-===========================
+DagCircuit <-> DagDependency 
+============================
 
 .. autofunction:: dag_to_dagdependency
 .. autofunction:: dagdependency_to_dag
