@@ -231,7 +231,6 @@ disable = [
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
     "unsupported-assignment-operation",
-    "use-implicit-booleaness-not-comparison",
 ]
 
 enable = [
