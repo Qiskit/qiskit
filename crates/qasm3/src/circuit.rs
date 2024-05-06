@@ -16,8 +16,6 @@ use pyo3::types::{PyList, PyString, PyTuple, PyType};
 use crate::error::QASM3ImporterError;
 
 pub trait PyRegister {
-    #[allow(dead_code)]
-    fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>>;
     // This really should be
     //      fn iter<'a>(&'a self, py: Python<'a>) -> impl Iterator<Item = &'a PyAny>;
     // or at a minimum
@@ -40,15 +38,6 @@ macro_rules! register_type {
         }
 
         impl PyRegister for $name {
-            /// Get an individual bit from the register.
-            fn bit(&self, py: Python, index: usize) -> PyResult<Py<PyAny>> {
-                // Unfortunately, `PyList::get_item_unchecked` isn't usable with the stable ABI.
-                self.items
-                    .bind(py)
-                    .get_item(index)
-                    .map(|item| item.into_py(py))
-            }
-
             fn bit_list<'a>(&'a self, py: Python<'a>) -> &Bound<'a, PyList> {
                 self.items.bind(py)
             }
