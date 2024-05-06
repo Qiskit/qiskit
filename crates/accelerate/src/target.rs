@@ -17,16 +17,16 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use hashbrown::HashSet;
-use indexmap::IndexMap;
+use hashbrown::{hash_set::IntoIter, HashSet};
+use indexmap::{map::IntoKeys, IndexMap};
 use itertools::Itertools;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyTypeError},
     prelude::*,
     pyclass,
-    types::{IntoPyDict, PyList, PyType},
+    types::{IntoPyDict, PyList, PySet, PyType},
 };
-use smallvec::{smallvec, IntoIter, SmallVec};
+use smallvec::{smallvec, IntoIter as SmallVecIntoIter, SmallVec};
 
 use crate::nlayout::PhysicalQubit;
 
@@ -66,6 +66,19 @@ fn qubit_props_list_from_props(
     let kwargs = [("properties", properties)].into_py_dict_bound(py);
     let props_list = qubit_props_list_funct.call((), Some(&kwargs))?;
     props_list.extract::<Vec<PyObject>>()
+}
+
+fn parse_qargs(qargs: &Bound<PyAny>) -> PyResult<Qargs> {
+    if let Ok(vec) = qargs.extract::<QargsTuple>() {
+        Ok(Qargs::new(vec))
+    } else if let Ok(qargs) = qargs.extract::<Qargs>() {
+        Ok(qargs)
+    } else {
+        Err(PyTypeError::new_err(format!(
+            "{:?} is not a valid qarg type.",
+            qargs.to_string()
+        )))
+    }
 }
 
 // Subclassable or Python Wrapping.
@@ -234,13 +247,18 @@ impl InstructionProperties {
     }
 }
 
+// Custom classes for the target
+
+/**
+An iterator for the ``Qarg`` class.
+*/
 #[pyclass]
-struct CustomIter {
-    iter: IntoIter<[PhysicalQubit; 4]>,
+struct QargsIter {
+    iter: SmallVecIntoIter<[PhysicalQubit; 4]>,
 }
 
 #[pymethods]
-impl CustomIter {
+impl QargsIter {
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
@@ -249,7 +267,77 @@ impl CustomIter {
     }
 }
 
-// This struct allows quick transformation of qargs to tuple from and to python.
+#[pyclass]
+struct QargsSetIter {
+    iter: IntoIter<Option<Qargs>>,
+}
+
+#[pymethods]
+impl QargsSetIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
+        slf.iter.next()
+    }
+}
+#[pyclass(sequence)]
+#[derive(Debug, Clone)]
+struct QargsSet {
+    set: HashSet<Option<Qargs>>,
+}
+
+#[pymethods]
+impl QargsSet {
+    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
+        for item in other.iter() {
+            let qargs = if let Ok(qargs) = parse_qargs(&item) {
+                Some(qargs)
+            } else {
+                None
+            };
+            if !slf.set.contains(&qargs) {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<QargsSetIter>> {
+        let iter = QargsSetIter {
+            iter: slf.set.clone().into_iter(),
+        };
+        Py::new(slf.py(), iter)
+    }
+
+    fn __getitem__(&self, obj: Bound<PyAny>) -> PyResult<Option<Qargs>> {
+        let qargs = if let Ok(qargs) = parse_qargs(&obj) {
+            Ok(Some(qargs))
+        } else if obj.is_none() {
+            Ok(None)
+        } else {
+            Err(PyTypeError::new_err(format!(
+                "The object {:?} has incompatible type from Qargs",
+                obj
+            )))
+        }?;
+        if let Some(qargs) = self.set.get(&qargs) {
+            Ok(qargs.to_owned())
+        } else {
+            Err(PyKeyError::new_err("{:} was not in QargSet."))
+        }
+    }
+
+    fn __len__(slf: PyRef<Self>) -> usize {
+        slf.set.len()
+    }
+}
+
+/**
+   Hashable representation of a Qarg tuple in rust.
+
+   Made to directly avoid conversions from a ``Vec`` structure in rust to a Python tuple.
+*/
 #[pyclass(sequence, module = "qiskit._accelerate.target")]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Qargs {
@@ -267,8 +355,8 @@ impl Qargs {
         self.vec.len()
     }
 
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<CustomIter>> {
-        let iter = CustomIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<QargsIter>> {
+        let iter = QargsIter {
             iter: slf.vec.clone().into_iter(),
         };
         Py::new(slf.py(), iter)
@@ -313,12 +401,40 @@ impl Qargs {
 
     fn __eq__(&self, other: Bound<PyAny>) -> bool {
         if let Ok(other) = other.extract::<Qargs>() {
-            self == &other
+            self.vec == other.vec
         } else if let Ok(other) = other.extract::<QargsTuple>() {
             self.vec == other
         } else {
             false
         }
+    }
+
+    fn __repr__(slf: PyRef<'_, Self>) -> String {
+        let mut output = "(".to_owned();
+        output.push_str(slf.vec.iter().map(|x| x.index()).join(", ").as_str());
+        if slf.vec.len() < 2 {
+            output.push(',');
+        }
+        output.push(')');
+        output
+    }
+}
+
+/**
+   Iterator for ``PropsMap`` class.
+*/
+#[pyclass]
+struct PropsMapIter {
+    iter: IntoKeys<Option<Qargs>, Option<Py<InstructionProperties>>>,
+}
+
+#[pymethods]
+impl PropsMapIter {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
+        slf.iter.next()
     }
 }
 
@@ -328,17 +444,24 @@ impl Default for Qargs {
     }
 }
 
+type GateMapValues = IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>>;
+/**
+   Mapping containing the properties of an instruction. Represents the relation
+   ``Qarg : InstructionProperties``.
+
+   Made to directly avoid conversions from an ``IndexMap`` structure in rust to a Python dict.
+*/
 #[pyclass(mapping)]
 #[derive(Debug, Clone)]
-struct QargPropMap {
+struct PropsMap {
     map: GateMapValues,
 }
 
 #[pymethods]
-impl QargPropMap {
+impl PropsMap {
     #[new]
     fn new(map: GateMapValues) -> Self {
-        QargPropMap { map }
+        PropsMap { map }
     }
 
     fn __contains__(&self, key: Bound<PyAny>) -> bool {
@@ -355,9 +478,11 @@ impl QargPropMap {
             Ok(Some(Qargs::new(qargs)))
         } else if let Ok(qargs) = key.extract::<Qargs>() {
             Ok(Some(qargs))
+        } else if key.is_none() {
+            Ok(None)
         } else {
-            Err(PyKeyError::new_err(format!(
-                "Key {:#?} not in target.",
+            Err(PyTypeError::new_err(format!(
+                "Index {:#?} is not supported.",
                 key
             )))
         }?;
@@ -382,8 +507,17 @@ impl QargPropMap {
         }
     }
 
-    fn keys(&self) -> HashSet<Option<Qargs>> {
-        self.map.keys().cloned().collect()
+    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
+        let iter = PropsMapIter {
+            iter: slf.map.clone().into_keys(),
+        };
+        Py::new(slf.py(), iter)
+    }
+
+    fn keys(&self) -> QargsSet {
+        QargsSet {
+            set: self.map.keys().cloned().collect(),
+        }
     }
 
     fn values(&self) -> Vec<Option<Py<InstructionProperties>>> {
@@ -397,8 +531,7 @@ impl QargPropMap {
 
 // Custom types
 type QargsTuple = SmallVec<[PhysicalQubit; 4]>;
-type GateMapType = IndexMap<String, QargPropMap>;
-type GateMapValues = IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>>;
+type GateMapType = IndexMap<String, PropsMap>;
 type ErrorDictType<'a> = IndexMap<String, IndexMap<QargsTuple, Bound<'a, PyAny>>>;
 
 /**
@@ -765,7 +898,7 @@ impl Target {
             }
         }
         self.gate_map
-            .insert(instruction_name, QargPropMap::new(qargs_val));
+            .insert(instruction_name, PropsMap::new(qargs_val));
         self.coupling_graph = None;
         self.instruction_durations = None;
         self.instruction_schedule_map = None;
@@ -789,16 +922,20 @@ impl Target {
         &mut self,
         _py: Python<'_>,
         instruction: String,
-        qargs: Option<QargsTuple>,
+        qargs: Bound<PyAny>,
         properties: Option<Py<InstructionProperties>>,
     ) -> PyResult<()> {
+        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
+            Some(qargs)
+        } else {
+            None
+        };
         if !self.gate_map.contains_key(&instruction) {
             return Err(PyKeyError::new_err(format!(
                 "Provided instruction: '{:?}' not in this Target.",
                 &instruction
             )));
         };
-        let qargs = qargs.map(Qargs::new);
         if !(self.gate_map[&instruction].map.contains_key(&qargs)) {
             return Err(PyKeyError::new_err(format!(
                 "Provided qarg {:?} not in this Target for {:?}.",
@@ -1016,7 +1153,12 @@ impl Target {
                             continue;
                         }
                     }
-                    self.update_instruction_properties(py, inst_name.to_owned(), qargs, prop)?;
+                    self.update_instruction_properties(
+                        py,
+                        inst_name.to_owned(),
+                        qargs.into_py(py).bind(py).to_owned(),
+                        prop,
+                    )?;
                 }
             }
         }
@@ -1046,8 +1188,8 @@ impl Target {
                 if let Some(properties) = properties {
                     let cal_entry = &properties.getattr(py, "_calibration")?;
                     if !cal_entry.is_none(py) {
-                        let _ = out_inst_schedule_map
-                            .call_method1("_add", (instruction, qarg.to_owned(), cal_entry));
+                        out_inst_schedule_map
+                            .call_method1("_add", (instruction, qarg.to_owned(), cal_entry))?;
                     }
                 }
             }
@@ -1179,7 +1321,12 @@ impl Target {
         KeyError: If qargs is not in target
     */
     #[pyo3(text_signature = "(/, qargs=None)")]
-    fn operations_for_qargs(&self, py: Python<'_>, qargs: Option<Qargs>) -> PyResult<Py<PyList>> {
+    fn operations_for_qargs(&self, py: Python<'_>, qargs: Bound<PyAny>) -> PyResult<Py<PyList>> {
+        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
+            Some(qargs)
+        } else {
+            None
+        };
         let res = PyList::empty_bound(py);
         if let Some(qargs) = qargs.as_ref() {
             if qargs
@@ -1240,11 +1387,15 @@ impl Target {
     fn operation_names_for_qargs(
         &self,
         py: Python<'_>,
-        qargs: Option<Qargs>,
+        qargs: Bound<PyAny>,
     ) -> PyResult<HashSet<&String>> {
         // When num_qubits == 0 we return globally defined operators
         let mut res = HashSet::new();
-        let mut qargs = qargs;
+        let mut qargs = if let Ok(qargs) = parse_qargs(&qargs) {
+            Some(qargs)
+        } else {
+            None
+        };
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
         }
@@ -1343,12 +1494,20 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: Option<String>,
-        qargs: Option<Qargs>,
+        qargs: Option<Bound<PyAny>>,
         operation_class: Option<&Bound<PyAny>>,
         parameters: Option<&Bound<PyList>>,
     ) -> PyResult<bool> {
         // Do this in case we need to modify qargs
-        let mut qargs = qargs;
+        let mut qargs = if let Some(qargs) = qargs {
+            if let Ok(qargs) = parse_qargs(&qargs) {
+                Some(qargs)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         let parameter_module = py.import_bound("qiskit.circuit.parameter")?;
         let parameter_class = parameter_module.getattr("Parameter")?;
         let parameter_class = parameter_class.downcast::<PyType>()?;
@@ -1567,14 +1726,19 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: String,
-        qargs: Qargs,
+        qargs: Bound<PyAny>,
     ) -> PyResult<bool> {
+        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
+            Some(qargs)
+        } else {
+            None
+        };
         if !self.gate_map.contains_key(&operation_name) {
             return Ok(false);
         }
         if self.gate_map.contains_key(&operation_name) {
             let gate_map_qarg = &self.gate_map[&operation_name];
-            if let Some(oper_qarg) = &gate_map_qarg.map[&Some(qargs)] {
+            if let Some(oper_qarg) = &gate_map_qarg.map[&qargs] {
                 return Ok(!oper_qarg.getattr(py, "_calibration")?.is_none(py));
             } else {
                 return Ok(false);
@@ -1605,16 +1769,16 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: String,
-        qargs: Qargs,
+        qargs: Bound<PyAny>,
     ) -> PyResult<PyObject> {
-        if !self.has_calibration(py, operation_name.clone(), qargs.clone())? {
+        let qargs_: Option<Qargs> = Some(parse_qargs(&qargs)?);
+        if !self.has_calibration(py, operation_name.clone(), qargs)? {
             return Err(PyKeyError::new_err(format!(
                 "Calibration of instruction {:?} for qubit {:?} is not defined.",
-                operation_name, qargs.vec
+                operation_name, qargs_
             )));
         }
-
-        self.gate_map[&operation_name].map[&Some(qargs)]
+        self.gate_map[&operation_name].map[&qargs_]
             .as_ref()
             .unwrap()
             .getattr(py, "_calibration")
@@ -1748,7 +1912,7 @@ impl Target {
             if let Some(qarg_sample) = qarg_sample {
                 if !strict_direction {
                     let mut qarg_set = HashSet::new();
-                    for qarg in qargs_props.keys() {
+                    for qarg in qargs_props.keys().set {
                         let mut qarg_set_vec: Qargs = Qargs { vec: smallvec![] };
                         if let Some(qarg) = qarg {
                             let mut to_vec = qarg.vec.to_owned();
@@ -1779,14 +1943,14 @@ impl Target {
 
     /// The set of qargs in the target.
     #[getter]
-    fn qargs(&self) -> PyResult<Option<HashSet<Option<Qargs>>>> {
+    fn qargs(&self) -> PyResult<Option<QargsSet>> {
         let qargs: HashSet<Option<Qargs>> = self.qarg_gate_map.keys().cloned().collect();
         // Modify logic to account for the case of {None}
         let next_entry = qargs.iter().flatten().next();
         if qargs.len() == 1 && (qargs.iter().next().is_none() || next_entry.is_none()) {
             return Ok(None);
         }
-        Ok(Some(qargs))
+        Ok(Some(QargsSet { set: qargs }))
     }
 
     /**
@@ -1805,7 +1969,7 @@ impl Target {
         for op in self.gate_map.keys() {
             if self.gate_map.contains_key(op) {
                 let gate_map_op = &self.gate_map[op];
-                for qarg in gate_map_op.keys() {
+                for qarg in gate_map_op.keys().set {
                     let instruction_pair = (self.gate_name_map[op].clone(), qarg.clone());
                     instruction_list.push(instruction_pair);
                 }
@@ -2180,7 +2344,7 @@ impl Target {
         Ok(self.gate_map.keys().cloned().collect())
     }
 
-    fn __getitem__(&self, key: String) -> PyResult<QargPropMap> {
+    fn __getitem__(&self, key: String) -> PyResult<PropsMap> {
         if let Some(qarg_instprop) = self.gate_map.get(&key) {
             Ok(qarg_instprop.to_owned())
         } else {
@@ -2267,11 +2431,11 @@ impl Target {
         self.gate_map.keys().cloned().collect()
     }
 
-    fn values(&self) -> Vec<QargPropMap> {
+    fn values(&self) -> Vec<PropsMap> {
         self.gate_map.values().cloned().collect_vec()
     }
 
-    fn items(&self) -> Vec<(String, QargPropMap)> {
+    fn items(&self) -> Vec<(String, PropsMap)> {
         self.gate_map.clone().into_iter().collect_vec()
     }
 }
