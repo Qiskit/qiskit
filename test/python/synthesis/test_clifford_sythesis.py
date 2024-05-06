@@ -15,26 +15,7 @@
 
 import numpy as np
 from ddt import ddt
-from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import (
-    CXGate,
-    CYGate,
-    CZGate,
-    DCXGate,
-    ECRGate,
-    HGate,
-    IGate,
-    SdgGate,
-    SGate,
-    SXGate,
-    SXdgGate,
-    SwapGate,
-    XGate,
-    YGate,
-    ZGate,
-    iSwapGate,
-)
-from qiskit.converters.dag_to_circuit import dag_to_circuit
+from qiskit.circuit.random import random_clifford_circuit
 from qiskit.quantum_info.operators import Clifford
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -45,87 +26,6 @@ from qiskit.synthesis.clifford import (
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test import combine  # pylint: disable=wrong-import-order
-
-
-class VGate(Gate):
-    """V Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new V Gate."""
-        super().__init__("v", 1, [])
-
-    def _define(self):
-        """V Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.sdg(0)
-        qc.h(0)
-        self.definition = qc
-
-
-class WGate(Gate):
-    """W Gate used in Clifford synthesis."""
-
-    def __init__(self):
-        """Create new W Gate."""
-        super().__init__("w", 1, [])
-
-    def _define(self):
-        """W Gate definition."""
-        q = QuantumRegister(1, "q")
-        qc = QuantumCircuit(q)
-        qc.append(VGate(), [q[0]], [])
-        qc.append(VGate(), [q[0]], [])
-        self.definition = qc
-
-
-def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
-    """Generate a pseudo random Clifford circuit."""
-
-    qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
-    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
-    if gates == "all":
-        if num_qubits == 1:
-            gates = qubits_1_gates
-        else:
-            gates = qubits_1_gates + qubits_2_gates
-
-    instructions = {
-        "i": (IGate(), 1),
-        "x": (XGate(), 1),
-        "y": (YGate(), 1),
-        "z": (ZGate(), 1),
-        "h": (HGate(), 1),
-        "s": (SGate(), 1),
-        "sdg": (SdgGate(), 1),
-        "sx": (SXGate(), 1),
-        "sxdg": (SXdgGate(), 1),
-        "v": (VGate(), 1),
-        "w": (WGate(), 1),
-        "cx": (CXGate(), 2),
-        "cy": (CYGate(), 2),
-        "cz": (CZGate(), 2),
-        "swap": (SwapGate(), 2),
-        "iswap": (iSwapGate(), 2),
-        "ecr": (ECRGate(), 2),
-        "dcx": (DCXGate(), 2),
-    }
-
-    if isinstance(seed, np.random.Generator):
-        rng = seed
-    else:
-        rng = np.random.default_rng(seed)
-
-    samples = rng.choice(gates, num_gates)
-
-    circ = QuantumCircuit(num_qubits)
-
-    for name in samples:
-        gate, nqargs = instructions[name]
-        qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
-        circ.append(gate, qargs)
-
-    return circ
 
 
 @ddt
