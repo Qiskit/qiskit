@@ -385,18 +385,18 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
     # Check operators are unitary and have same dimension
     if not op1.is_unitary():
         raise QiskitError(
-            "Invalid operator supplied to U of unitary_diamond_distance"
+            "Invalid operator supplied to channel1 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if not op2.is_unitary():
         raise QiskitError(
-            "Invalid operator supplied to V of unitary_diamond_distance"
+            "Invalid operator supplied to channel2 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if op1.dim != op2.dim:
         raise QiskitError(
             "Input quantum channel and target unitary must have the same "
-            "dimensions ({U.dim} != {V.dim})."
+            "dimensions ({op1.dim} != {op2.dim})."
         )
 
     # Compute the diamond norm
