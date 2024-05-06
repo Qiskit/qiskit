@@ -1,4 +1,7 @@
 .. module:: qiskit
+..
+   Within each section, the modules should be arranged alphabetically to
+   align with qiskit/documentation.
 
 =============
 API Reference
@@ -10,10 +13,10 @@ Circuit construction:
    :maxdepth: 1
 
    circuit
-   circuit_library
    circuit_classical
-   circuit_singleton
    classicalfunction
+   circuit_library
+   circuit_singleton
 
 Quantum information:
 
@@ -34,9 +37,9 @@ Transpilation:
    qiskit.synthesis.unitary.aqc
    transpiler
    transpiler_passes
+   transpiler_synthesis_plugins
    transpiler_preset
    transpiler_plugins
-   transpiler_synthesis_plugins
 
 Primitives and providers:
 
