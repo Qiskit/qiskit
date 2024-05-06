@@ -16,6 +16,7 @@
 QPY Type keys for several namespace.
 """
 
+import uuid
 from abc import abstractmethod
 from enum import Enum, IntEnum
 
@@ -456,6 +457,7 @@ class Expression(TypeKeyBase):
     CAST = b"c"
     UNARY = b"u"
     BINARY = b"b"
+    INDEX = b"i"
 
     @classmethod
     def assign(cls, obj):
@@ -465,6 +467,22 @@ class Expression(TypeKeyBase):
         ):
             return key
         raise exceptions.QpyError(f"Object '{obj}' is not supported in {cls.__name__} namespace.")
+
+    @classmethod
+    def retrieve(cls, type_key):
+        raise NotImplementedError
+
+
+class ExprVarDeclaration(TypeKeyBase):
+    """Type keys for the ``EXPR_VAR_DECLARATION`` QPY item."""
+
+    INPUT = b"I"
+    CAPTURE = b"C"
+    LOCAL = b"L"
+
+    @classmethod
+    def assign(cls, obj):
+        raise NotImplementedError
 
     @classmethod
     def retrieve(cls, type_key):
@@ -496,9 +514,12 @@ class ExprVar(TypeKeyBase):
 
     CLBIT = b"C"
     REGISTER = b"R"
+    UUID = b"U"
 
     @classmethod
     def assign(cls, obj):
+        if isinstance(obj, uuid.UUID):
+            return cls.UUID
         if isinstance(obj, Clbit):
             return cls.CLBIT
         if isinstance(obj, ClassicalRegister):

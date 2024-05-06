@@ -31,7 +31,7 @@ from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 
 from .backend_estimator import _pauli_expval_with_variance, _prepare_counts, _run_circuits
 from .base import BaseEstimatorV2
-from .containers import EstimatorPubLike, PrimitiveResult, PubResult
+from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.bindings_array import BindingsArray
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
@@ -256,8 +256,7 @@ class BackendEstimatorV2(BaseEstimatorV2):
                 evs[index] += expval * coeff
                 variances[index] += variance * coeff**2
         stds = np.sqrt(variances / shots)
-        data_bin_cls = self._make_data_bin(pub)
-        data_bin = data_bin_cls(evs=evs, stds=stds)
+        data_bin = DataBin(evs=evs, stds=stds, shape=evs.shape)
         return PubResult(data_bin, metadata={"target_precision": pub.precision})
 
     def _bind_and_add_measurements(

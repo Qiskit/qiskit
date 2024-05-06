@@ -47,7 +47,7 @@ class CommutationAnalysis(AnalysisPass):
         # self.property_set['commutation_set'][wire][(node, wire)] will give the
         # commutation set that contains node.
 
-        for wire in dag.wires:
+        for wire in dag.qubits:
             self.property_set["commutation_set"][wire] = []
 
         # Add edges to the dictionary for each qubit
@@ -56,7 +56,7 @@ class CommutationAnalysis(AnalysisPass):
                 self.property_set["commutation_set"][(node, edge_wire)] = -1
 
         # Construct the commutation set
-        for wire in dag.wires:
+        for wire in dag.qubits:
 
             for current_gate in dag.nodes_on_wire(wire):
 
