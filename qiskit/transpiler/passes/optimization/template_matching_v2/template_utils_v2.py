@@ -58,13 +58,11 @@ def get_ancestors(dag, node_id):
     return rx.ancestors(dag._multi_graph, node_id)
 
 
-@lru_cache(maxsize=128)
 def get_successors(dag, node_id):
     """Wrapper for rustworkx get all direct successors of a node."""
     return [succ._node_id for succ in dag._multi_graph.successors(node_id)]
 
 
-@lru_cache(maxsize=128)
 def get_predecessors(dag, node_id):
     """Wrapper for rustworkx get all direct predecessors of a node."""
     return [pred._node_id for pred in dag._multi_graph.predecessors(node_id)]
