@@ -226,42 +226,32 @@ impl BuilderState {
         self.qc.append(py, instruction).map(|_| ())
     }
 
-    fn define_gate(
-        &mut self,
-        _py: Python,
-        ast_symbols: &SymbolTable,
-        decl: &asg::GateDeclaration,
-    ) -> PyResult<()> {
-        let name_id = decl
-            .name()
-            .as_ref()
-            .map_err(|err| QASM3ImporterError::new_err(format!("internal error: {:?}", err)))?;
-        let name_symbol = &ast_symbols[name_id];
-        let pygate = self.pygates.get(name_symbol.name()).ok_or_else(|| {
-            QASM3ImporterError::new_err(format!(
-                "can't handle non-built-in gate: '{}'",
-                name_symbol.name()
-            ))
-        })?;
-        let defined_num_params = decl.params().as_ref().map_or(0, Vec::len);
-        let defined_num_qubits = decl.qubits().len();
-        if pygate.num_params() != defined_num_params {
-            return Err(QASM3ImporterError::new_err(format!(
-                "given constructor for '{}' expects {} parameters, but is defined as taking {}",
-                pygate.name(),
-                pygate.num_params(),
-                defined_num_params,
-            )));
+    // Map gates in the symbol table to Qiskit gates in the standard library.
+    // Encountering any gates not in the standard library results in raising an exception.
+    // Gates mapped via CustomGates will not raise an exception.
+    fn map_gate_ids(&mut self, _py: Python, ast_symbols: &SymbolTable) -> PyResult<()> {
+        for (name, name_id, defined_num_params, defined_num_qubits) in ast_symbols.gates() {
+            let pygate = self.pygates.get(name).ok_or_else(|| {
+                QASM3ImporterError::new_err(format!("can't handle non-built-in gate: '{}'", name))
+            })?;
+            if pygate.num_params() != defined_num_params {
+                return Err(QASM3ImporterError::new_err(format!(
+                    "given constructor for '{}' expects {} parameters, but is defined as taking {}",
+                    pygate.name(),
+                    pygate.num_params(),
+                    defined_num_params,
+                )));
+            }
+            if pygate.num_qubits() != defined_num_qubits {
+                return Err(QASM3ImporterError::new_err(format!(
+                    "given constructor for '{}' expects {} qubits, but is defined as taking {}",
+                    pygate.name(),
+                    pygate.num_qubits(),
+                    defined_num_qubits,
+                )));
+            }
+            self.symbols.gates.insert(name_id.clone(), pygate.clone());
         }
-        if pygate.num_qubits() != defined_num_qubits {
-            return Err(QASM3ImporterError::new_err(format!(
-                "given constructor for '{}' expects {} qubits, but is defined as taking {}",
-                pygate.name(),
-                pygate.num_qubits(),
-                defined_num_qubits,
-            )));
-        }
-        self.symbols.gates.insert(name_id.clone(), pygate.clone());
         Ok(())
     }
 
@@ -377,37 +367,45 @@ pub fn convert_asg(
         pygates: gate_constructors,
         module,
     };
+
+    state.map_gate_ids(py, ast_symbols)?;
+
     for statement in program.stmts().iter() {
         match statement {
             asg::Stmt::GateCall(call) => state.call_gate(py, ast_symbols, call)?,
             asg::Stmt::DeclareClassical(decl) => state.declare_classical(py, ast_symbols, decl)?,
             asg::Stmt::DeclareQuantum(decl) => state.declare_quantum(py, ast_symbols, decl)?,
-            asg::Stmt::GateDeclaration(decl) => state.define_gate(py, ast_symbols, decl)?,
+            // We ignore gate definitions because the only information we can currently use
+            // from them is extracted with `SymbolTable::gates` via `map_gate_ids`.
+            asg::Stmt::GateDefinition(_) => (),
             asg::Stmt::Barrier(barrier) => state.apply_barrier(py, ast_symbols, barrier)?,
             asg::Stmt::Assignment(assignment) => state.assign(py, ast_symbols, assignment)?,
-            asg::Stmt::Alias
+            asg::Stmt::Alias(_)
             | asg::Stmt::AnnotatedStmt(_)
             | asg::Stmt::Block(_)
             | asg::Stmt::Box
             | asg::Stmt::Break
             | asg::Stmt::Cal
             | asg::Stmt::Continue
-            | asg::Stmt::Def
+            | asg::Stmt::DeclareHardwareQubit(_)
             | asg::Stmt::DefCal
-            | asg::Stmt::Delay
+            | asg::Stmt::DefStmt(_)
+            | asg::Stmt::Delay(_)
             | asg::Stmt::End
             | asg::Stmt::ExprStmt(_)
             | asg::Stmt::Extern
-            | asg::Stmt::For
+            | asg::Stmt::ForStmt(_)
             | asg::Stmt::GPhaseCall(_)
-            | asg::Stmt::IODeclaration
             | asg::Stmt::If(_)
             | asg::Stmt::Include(_)
+            | asg::Stmt::InputDeclaration(_)
+            | asg::Stmt::ModifiedGPhaseCall(_)
             | asg::Stmt::NullStmt
             | asg::Stmt::OldStyleDeclaration
+            | asg::Stmt::OutputDeclaration(_)
             | asg::Stmt::Pragma(_)
-            | asg::Stmt::Reset
-            | asg::Stmt::Return
+            | asg::Stmt::Reset(_)
+            | asg::Stmt::SwitchCaseStmt(_)
             | asg::Stmt::While(_) => {
                 return Err(QASM3ImporterError::new_err(format!(
                     "this statement is not yet handled during OpenQASM 3 import: {:?}",

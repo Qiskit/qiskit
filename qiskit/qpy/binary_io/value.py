@@ -53,7 +53,7 @@ def _write_parameter_vec(file_obj, obj):
     file_obj.write(name_bytes)
 
 
-def _write_parameter_expression(file_obj, obj, use_symengine):
+def _write_parameter_expression(file_obj, obj, use_symengine, *, version):
     if use_symengine:
         expr_bytes = obj._symbol_expr.__reduce__()[1][0]
     else:
@@ -81,7 +81,7 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
             value_key = symbol_key
             value_data = bytes()
         else:
-            value_key, value_data = dumps_value(value, use_symengine=use_symengine)
+            value_key, value_data = dumps_value(value, version=version, use_symengine=use_symengine)
 
         elem_header = struct.pack(
             formats.PARAM_EXPR_MAP_ELEM_V3_PACK,
@@ -95,12 +95,13 @@ def _write_parameter_expression(file_obj, obj, use_symengine):
 
 
 class _ExprWriter(expr.ExprVisitor[None]):
-    __slots__ = ("file_obj", "clbit_indices", "standalone_var_indices")
+    __slots__ = ("file_obj", "clbit_indices", "standalone_var_indices", "version")
 
-    def __init__(self, file_obj, clbit_indices, standalone_var_indices):
+    def __init__(self, file_obj, clbit_indices, standalone_var_indices, version):
         self.file_obj = file_obj
         self.clbit_indices = clbit_indices
         self.standalone_var_indices = standalone_var_indices
+        self.version = version
 
     def visit_generic(self, node, /):
         raise exceptions.QpyError(f"unhandled Expr object '{node}'")
@@ -181,10 +182,20 @@ class _ExprWriter(expr.ExprVisitor[None]):
         self.file_obj.write(type_keys.Expression.BINARY)
         _write_expr_type(self.file_obj, node.type)
         self.file_obj.write(
-            struct.pack(formats.EXPRESSION_BINARY_PACK, *formats.EXPRESSION_UNARY(node.op.value))
+            struct.pack(formats.EXPRESSION_BINARY_PACK, *formats.EXPRESSION_BINARY(node.op.value))
         )
         node.left.accept(self)
         node.right.accept(self)
+
+    def visit_index(self, node, /):
+        if self.version < 12:
+            raise exceptions.UnsupportedFeatureForVersion(
+                "the 'Index' expression", required=12, target=self.version
+            )
+        self.file_obj.write(type_keys.Expression.INDEX)
+        _write_expr_type(self.file_obj, node.type)
+        node.target.accept(self)
+        node.index.accept(self)
 
 
 def _write_expr(
@@ -192,8 +203,9 @@ def _write_expr(
     node: expr.Expr,
     clbit_indices: collections.abc.Mapping[Clbit, int],
     standalone_var_indices: collections.abc.Mapping[expr.Var, int],
+    version: int,
 ):
-    node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices))
+    node.accept(_ExprWriter(file_obj, clbit_indices, standalone_var_indices, version))
 
 
 def _write_expr_type(file_obj, type_: types.Type):
@@ -406,7 +418,13 @@ def _read_expr(
             _read_expr(file_obj, clbits, cregs, standalone_vars),
             type_,
         )
-    raise exceptions.QpyError("Invalid classical-expression Expr key '{type_key}'")
+    if type_key == type_keys.Expression.INDEX:
+        return expr.Index(
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            _read_expr(file_obj, clbits, cregs, standalone_vars),
+            type_,
+        )
+    raise exceptions.QpyError(f"Invalid classical-expression Expr key '{type_key}'")
 
 
 def _read_expr_type(file_obj) -> types.Type:
@@ -494,11 +512,19 @@ def write_standalone_vars(file_obj, circuit):
     return out
 
 
-def dumps_value(obj, *, index_map=None, use_symengine=False, standalone_var_indices=None):
+def dumps_value(
+    obj,
+    *,
+    version,
+    index_map=None,
+    use_symengine=False,
+    standalone_var_indices=None,
+):
     """Serialize input value object.
 
     Args:
         obj (any): Arbitrary value object to serialize.
+        version (int): the target QPY version for the dump.
         index_map (dict): Dictionary with two keys, "q" and "c".  Each key has a value that is a
             dictionary mapping :class:`.Qubit` or :class:`.Clbit` instances (respectively) to their
             integer indices.
@@ -535,7 +561,7 @@ def dumps_value(obj, *, index_map=None, use_symengine=False, standalone_var_indi
         binary_data = common.data_to_binary(obj, _write_parameter)
     elif type_key == type_keys.Value.PARAMETER_EXPRESSION:
         binary_data = common.data_to_binary(
-            obj, _write_parameter_expression, use_symengine=use_symengine
+            obj, _write_parameter_expression, use_symengine=use_symengine, version=version
         )
     elif type_key == type_keys.Value.EXPRESSION:
         clbit_indices = {} if index_map is None else index_map["c"]
@@ -545,6 +571,7 @@ def dumps_value(obj, *, index_map=None, use_symengine=False, standalone_var_indi
             _write_expr,
             clbit_indices=clbit_indices,
             standalone_var_indices=standalone_var_indices,
+            version=version,
         )
     else:
         raise exceptions.QpyError(f"Serialization for {type_key} is not implemented in value I/O.")
@@ -552,12 +579,15 @@ def dumps_value(obj, *, index_map=None, use_symengine=False, standalone_var_indi
     return type_key, binary_data
 
 
-def write_value(file_obj, obj, *, index_map=None, use_symengine=False, standalone_var_indices=None):
+def write_value(
+    file_obj, obj, *, version, index_map=None, use_symengine=False, standalone_var_indices=None
+):
     """Write a value to the file like object.
 
     Args:
         file_obj (File): A file like object to write data.
         obj (any): Value to write.
+        version (int): the target QPY version for the dump.
         index_map (dict): Dictionary with two keys, "q" and "c".  Each key has a value that is a
             dictionary mapping :class:`.Qubit` or :class:`.Clbit` instances (respectively) to their
             integer indices.
@@ -570,6 +600,7 @@ def write_value(file_obj, obj, *, index_map=None, use_symengine=False, standalon
     """
     type_key, data = dumps_value(
         obj,
+        version=version,
         index_map=index_map,
         use_symengine=use_symengine,
         standalone_var_indices=standalone_var_indices,
