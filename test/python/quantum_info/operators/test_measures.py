@@ -207,16 +207,15 @@ class TestOperatorMeasures(QiskitTestCase):
         except ImportError:
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
-        op1 = random_unitary(2**num_qubits)
-        op2 = random_unitary(2**num_qubits)
-        choi1 = Choi(op1)
-        choi2 = Choi(op2)
-        delta_choi = choi1 - choi2
+        op1 = random_unitary(2**num_qubits, seed=660477)
+        op2 = random_unitary(2**num_qubits, seed=765720)
         try:
-            target = diamond_norm(delta_choi)
+            target = diamond_norm(Choi(op1) - Choi(op2))
             self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
         except cvxpy.SolverError:
             self.skipTest("CVXPY solver failed.")
+        
+
 
 
 if __name__ == "__main__":
