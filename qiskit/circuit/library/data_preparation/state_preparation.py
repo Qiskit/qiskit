@@ -72,13 +72,12 @@ class StatePreparation(Gate):
         Raises:
             QiskitError: ``num_qubits`` parameter used when ``params`` is not an integer
 
-        When a Statevector argument is passed the state is prepared using a recursive
-        initialization algorithm, including optimizations, from [1], as well
-        as some additional optimizations including removing zero rotations and double cnots.
+        When a Statevector argument is passed the state is prepared based on the
+        :class:`~.library.Isometry` synthesis described in [1].
 
         **References:**
-        [1] Shende, Bullock, Markov. Synthesis of Quantum Logic Circuits (2004)
-        [`https://arxiv.org/abs/quant-ph/0406176v5`]
+        [1] Iten et al. Quantum circuits for isometries.
+        [`https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318`]
 
         """
         self._params_arg = params
@@ -184,6 +183,11 @@ class StatePreparation(Gate):
 
         return initialize_circuit
 
+    ##################################################################
+    # This code is not used for the StatePreparation synthesis anymore,
+    # since we ust the code based on the Isometry synthesis,
+    # which has fewer CX gates
+    #################################################################
     def _define_synthesis(self):
         """Calculate a subcircuit that implements this initialization
 
