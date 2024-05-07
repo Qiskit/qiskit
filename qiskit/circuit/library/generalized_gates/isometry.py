@@ -47,7 +47,8 @@ class Isometry(Instruction):
 
     References:
         1. Iten et al., Quantum circuits for isometries (2016).
-           `Phys. Rev. A 93, 032318 <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
+           `Phys. Rev. A 93, 032318
+           <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
     """
 
