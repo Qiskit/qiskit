@@ -214,8 +214,6 @@ class TestOperatorMeasures(QiskitTestCase):
             self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
         except cvxpy.SolverError:
             self.skipTest("CVXPY solver failed.")
-        
-
 
 
 if __name__ == "__main__":
