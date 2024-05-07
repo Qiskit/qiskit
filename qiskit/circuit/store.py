@@ -59,6 +59,9 @@ class Store(Instruction):
     :class:`~.circuit.Measure` is a primitive for quantum measurement), and is not safe for
     subclassing."""
 
+    # This is a compiler/backend intrinsic operation, separate to any quantum processing.
+    _directive = True
+
     def __init__(self, lvalue: expr.Expr, rvalue: expr.Expr):
         """
         Args:

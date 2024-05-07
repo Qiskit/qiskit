@@ -32,7 +32,7 @@ class GatesInBasis(AnalysisPass):
         self._basis_gates = None
         if basis_gates is not None:
             self._basis_gates = set(basis_gates).union(
-                {"measure", "reset", "barrier", "snapshot", "delay"}
+                {"measure", "reset", "barrier", "snapshot", "delay", "store"}
             )
         self._target = target
 
@@ -46,8 +46,8 @@ class GatesInBasis(AnalysisPass):
 
             def _visit_target(dag, wire_map):
                 for gate in dag.op_nodes():
-                    # Barrier is universal and supported by all backends
-                    if gate.name == "barrier":
+                    # Barrier and store are assumed universal and supported by all backends
+                    if gate.name in ("barrier", "store"):
                         continue
                     if not self._target.instruction_supported(
                         gate.name, tuple(wire_map[bit] for bit in gate.qargs)
