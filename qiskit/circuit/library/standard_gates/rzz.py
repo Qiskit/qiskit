@@ -130,10 +130,12 @@ class RZZGate(Gate):
         """
         return RZZGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RZZ gate."""
         import numpy
 
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [
@@ -145,8 +147,7 @@ class RZZGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RZZGate(exponent * theta)
 

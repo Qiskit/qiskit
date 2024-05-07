@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -26,10 +27,10 @@ from qiskit.primitives.backend_estimator import _run_circuits
 from qiskit.primitives.base import BaseSamplerV2
 from qiskit.primitives.containers import (
     BitArray,
+    DataBin,
     PrimitiveResult,
-    PubResult,
     SamplerPubLike,
-    make_data_bin,
+    SamplerPubResult,
 )
 from qiskit.primitives.containers.bit_array import _min_num_bytes
 from qiskit.primitives.containers.sampler_pub import SamplerPub
@@ -123,7 +124,7 @@ class BackendSamplerV2(BaseSamplerV2):
 
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> PrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> PrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         if shots is None:
             shots = self._options.default_shots
         coerced_pubs = [SamplerPub.coerce(pub, shots) for pub in pubs]
@@ -141,46 +142,82 @@ class BackendSamplerV2(BaseSamplerV2):
                     UserWarning,
                 )
 
-    def _run(self, pubs: Iterable[SamplerPub]) -> PrimitiveResult[PubResult]:
-        results = [self._run_pub(pub) for pub in pubs]
+    def _run(self, pubs: list[SamplerPub]) -> PrimitiveResult[SamplerPubResult]:
+        pub_dict = defaultdict(list)
+        # consolidate pubs with the same number of shots
+        for i, pub in enumerate(pubs):
+            pub_dict[pub.shots].append(i)
+
+        results = [None] * len(pubs)
+        for shots, lst in pub_dict.items():
+            # run pubs with the same number of shots at once
+            pub_results = self._run_pubs([pubs[i] for i in lst], shots)
+            # reconstruct the result of pubs
+            for i, pub_result in zip(lst, pub_results):
+                results[i] = pub_result
         return PrimitiveResult(results)
 
-    def _run_pub(self, pub: SamplerPub) -> PubResult:
-        meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
-        bound_circuits = pub.parameter_values.bind_all(pub.circuit)
-        arrays = {
-            item.creg_name: np.zeros(
-                bound_circuits.shape + (pub.shots, item.num_bytes), dtype=np.uint8
-            )
-            for item in meas_info
-        }
-        flatten_circuits = np.ravel(bound_circuits).tolist()
-        result_memory, _ = _run_circuits(
+    def _run_pubs(self, pubs: list[SamplerPub], shots: int) -> list[SamplerPubResult]:
+        """Compute results for pubs that all require the same value of ``shots``."""
+        # prepare circuits
+        bound_circuits = [pub.parameter_values.bind_all(pub.circuit) for pub in pubs]
+        flatten_circuits = []
+        for circuits in bound_circuits:
+            flatten_circuits.extend(np.ravel(circuits).tolist())
+
+        # run circuits
+        results, _ = _run_circuits(
             flatten_circuits,
             self._backend,
             memory=True,
-            shots=pub.shots,
+            shots=shots,
             seed_simulator=self._options.seed_simulator,
         )
-        memory_list = _prepare_memory(result_memory, max_num_bytes)
+        result_memory = _prepare_memory(results)
 
-        for samples, index in zip(memory_list, np.ndindex(*bound_circuits.shape)):
+        # pack memory to an ndarray of uint8
+        results = []
+        start = 0
+        for pub, bound in zip(pubs, bound_circuits):
+            meas_info, max_num_bytes = _analyze_circuit(pub.circuit)
+            end = start + bound.size
+            results.append(
+                self._postprocess_pub(
+                    result_memory[start:end], shots, bound.shape, meas_info, max_num_bytes
+                )
+            )
+            start = end
+
+        return results
+
+    def _postprocess_pub(
+        self,
+        result_memory: list[list[str]],
+        shots: int,
+        shape: tuple[int, ...],
+        meas_info: list[_MeasureInfo],
+        max_num_bytes: int,
+    ) -> SamplerPubResult:
+        """Converts the memory data into an array of bit arrays with the shape of the pub."""
+        arrays = {
+            item.creg_name: np.zeros(shape + (shots, item.num_bytes), dtype=np.uint8)
+            for item in meas_info
+        }
+        memory_array = _memory_array(result_memory, max_num_bytes)
+
+        for samples, index in zip(memory_array, np.ndindex(*shape)):
             for item in meas_info:
                 ary = _samples_to_packed_array(samples, item.num_bits, item.start)
                 arrays[item.creg_name][index] = ary
 
-        data_bin_cls = make_data_bin(
-            [(item.creg_name, BitArray) for item in meas_info],
-            shape=bound_circuits.shape,
-        )
         meas = {
             item.creg_name: BitArray(arrays[item.creg_name], item.num_bits) for item in meas_info
         }
-        data_bin = data_bin_cls(**meas)
-        return PubResult(data_bin, metadata={})
+        return SamplerPubResult(DataBin(**meas, shape=shape), metadata={})
 
 
 def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
+    """Analyzes the information for each creg in a circuit."""
     meas_info = []
     max_num_bits = 0
     for creg in circuit.cregs:
@@ -202,24 +239,38 @@ def _analyze_circuit(circuit: QuantumCircuit) -> tuple[list[_MeasureInfo], int]:
     return meas_info, _min_num_bytes(max_num_bits)
 
 
-def _prepare_memory(results: list[Result], num_bytes: int) -> NDArray[np.uint8]:
+def _prepare_memory(results: list[Result]) -> list[list[str]]:
+    """Joins splitted results if exceeding max_experiments"""
     lst = []
     for res in results:
         for exp in res.results:
             if hasattr(exp.data, "memory") and exp.data.memory:
-                data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in exp.data.memory)
-                data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+                lst.append(exp.data.memory)
             else:
                 # no measure in a circuit
-                data = np.zeros((exp.shots, num_bytes), dtype=np.uint8)
-            lst.append(data)
-    ary = np.array(lst, copy=False)
+                lst.append(["0x0"] * exp.shots)
+    return lst
+
+
+def _memory_array(results: list[list[str]], num_bytes: int) -> NDArray[np.uint8]:
+    """Converts the memory data into an array in an unpacked way."""
+    lst = []
+    for memory in results:
+        if num_bytes > 0:
+            data = b"".join(int(i, 16).to_bytes(num_bytes, "big") for i in memory)
+            data = np.frombuffer(data, dtype=np.uint8).reshape(-1, num_bytes)
+        else:
+            # no measure in a circuit
+            data = np.zeros((len(memory), num_bytes), dtype=np.uint8)
+        lst.append(data)
+    ary = np.asarray(lst)
     return np.unpackbits(ary, axis=-1, bitorder="big")
 
 
 def _samples_to_packed_array(
     samples: NDArray[np.uint8], num_bits: int, start: int
 ) -> NDArray[np.uint8]:
+    """Converts an unpacked array of the memory data into a packed array."""
     # samples of `Backend.run(memory=True)` will be the order of
     # clbit_last, ..., clbit_1, clbit_0
     # place samples in the order of clbit_start+num_bits-1, ..., clbit_start+1, clbit_start
