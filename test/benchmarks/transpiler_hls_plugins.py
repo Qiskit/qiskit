@@ -45,9 +45,9 @@ class HLSPluginsSuite:
 
     def random_linear_circuit(self, num_qubits, seed=None):
         """Build a wide circuit out of a random linear function."""
-        mat = random_invertible_binary_matrix(self.num_qubits, seed=seed)
-        qc = QuantumCircuit(self.num_qubits)
-        qc.append(LinearFunction(mat), list(range(self.num_qubits)))
+        mat = random_invertible_binary_matrix(num_qubits, seed=seed)
+        qc = QuantumCircuit(num_qubits)
+        qc.append(LinearFunction(mat), list(range(num_qubits)))
         return qc
 
     def setUp(self):
