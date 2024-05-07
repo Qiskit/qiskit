@@ -15,22 +15,21 @@ use pyo3::wrap_pyfunction;
 use pyo3::Python;
 
 use num_complex::Complex64;
-use numpy::ndarray::{aview2, Array2, ArrayView2};
+use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray2};
 use smallvec::SmallVec;
 
-use faer::modules::core::mul::matmul;
-use faer::perm::swap_rows;
 use faer::prelude::*;
-use faer::{Mat, Parallelism};
+use faer::Mat;
 use faer_ext::{IntoFaerComplex, IntoNdarrayComplex};
 
 use std::mem::swap;
 
-static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-];
+use crate::common::{
+    change_basis_faer, change_basis_ndarray, faer_kron_identity_x_matrix,
+    faer_kron_matrix_x_identity, matmul_to_dst, ndarray_kron_identity_x_matrix,
+    ndarray_kron_matrix_x_identity,
+};
 
 /// Return the matrix Operator resulting from a block of Instructions.
 #[pyfunction]
@@ -39,12 +38,11 @@ pub fn blocks_to_matrix(
     py: Python,
     op_list: Vec<(PyReadonlyArray2<Complex64>, SmallVec<[u8; 2]>)>,
 ) -> PyResult<Py<PyArray2<Complex64>>> {
-    let identity = aview2(&ONE_QUBIT_IDENTITY).into_faer_complex();
     let input_matrix = op_list[0].0.as_array().into_faer_complex();
 
     let mut matrix = match op_list[0].1.as_slice() {
-        [0] => identity.kron(input_matrix),
-        [1] => input_matrix.kron(identity),
+        [0] => faer_kron_identity_x_matrix(input_matrix),
+        [1] => faer_kron_matrix_x_identity(input_matrix),
         [0, 1] => input_matrix.to_owned(),
         [1, 0] => change_basis_faer(input_matrix),
         [] => Mat::<c64>::identity(4, 4),
@@ -57,23 +55,24 @@ pub fn blocks_to_matrix(
     unsafe { aux.set_dims(4, 4) };
 
     for (op_matrix, q_list) in op_list.into_iter().skip(1) {
-        let op_matrix = op_matrix.as_array().into_faer_complex();
+        let op_matrix = op_matrix.as_array();
 
         let result = match q_list.as_slice() {
-            [0] => Some(identity.kron(op_matrix)),
-            [1] => Some(op_matrix.kron(identity)),
-            [1, 0] => Some(change_basis_faer(op_matrix)),
-            [] => Some(Mat::<c64>::identity(4, 4)),
+            [0] => Some(ndarray_kron_identity_x_matrix(op_matrix)),
+            [1] => Some(ndarray_kron_matrix_x_identity(op_matrix)),
+            [1, 0] => Some(change_basis_ndarray(op_matrix)),
+            [] => Some(Array2::<Complex64>::eye(4)),
             _ => None,
         };
 
-        matmul(
+        matmul_to_dst(
             aux.as_mut(),
-            result.as_ref().map(|x| x.as_ref()).unwrap_or(op_matrix),
+            result
+                .as_ref()
+                .map(|x| x.view())
+                .unwrap_or(op_matrix)
+                .into_faer_complex(),
             matrix.as_ref(),
-            None,
-            c64::new(1., 0.),
-            Parallelism::None,
         );
 
         // Swap values between `aux` and `matrix` to store the result of the `matmul` call
@@ -87,36 +86,6 @@ pub fn blocks_to_matrix(
         .to_owned()
         .into_pyarray_bound(py)
         .unbind())
-}
-
-/// Switches the order of qubits in a two qubit operation.
-/// This function will substitue `change_basis` once the
-/// `two_qubit_decompose.rs` uses Mat<c64> instead of ArrayView2
-#[inline]
-pub fn change_basis_faer(matrix: MatRef<c64>) -> Mat<c64> {
-    let mut trans_matrix: Mat<c64> = matrix.transpose().to_owned();
-    let (row1, row2) = trans_matrix.as_mut().two_rows_mut(1, 2);
-    swap_rows(row1, row2);
-
-    trans_matrix = trans_matrix.transpose().to_owned();
-    let (row1, row2) = trans_matrix.as_mut().two_rows_mut(1, 2);
-    swap_rows(row1, row2);
-
-    trans_matrix
-}
-
-/// Switches the order of qubits in a two qubit operation.
-#[inline]
-pub fn change_basis(matrix: ArrayView2<Complex64>) -> Array2<Complex64> {
-    let mut trans_matrix: Array2<Complex64> = matrix.reversed_axes().to_owned();
-    for index in 0..trans_matrix.ncols() {
-        trans_matrix.swap([1, index], [2, index]);
-    }
-    trans_matrix = trans_matrix.reversed_axes();
-    for index in 0..trans_matrix.ncols() {
-        trans_matrix.swap([1, index], [2, index]);
-    }
-    trans_matrix
 }
 
 #[pymodule]
