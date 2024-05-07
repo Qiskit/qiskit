@@ -82,7 +82,9 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern_duplicate[-1] = pattern[0]
             with self.assertRaises(ValueError) as exc:
                 _ = synth_permutation_basic(pattern_duplicate)
-                self.assertIn("input contains duplicate value", str(exc.exception))
+                self.assertIn(
+                    "input contains {} more than once".format(pattern[0]), str(exc.exception)
+                )
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_basic(self, width):

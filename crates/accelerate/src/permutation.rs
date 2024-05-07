@@ -10,17 +10,19 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use numpy::{AllowTypeChange, PyArrayLike1, PyReadonlyArray1};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use pyo3::PyErr;
 use std::vec::Vec;
 
-fn validate_permutation(pattern: &[i64]) -> Result<(), PyErr> {
-    let n = pattern.len();
+fn validate_permutation(pattern: &PyReadonlyArray1<i64>) -> Result<(), PyErr> {
+    let view = pattern.as_array();
+    let n = view.len();
     let mut seen: Vec<bool> = vec![false; n];
 
-    for &x in pattern {
+    for &x in view {
         if x < 0 {
             return Err(PyValueError::new_err(
                 "Invalid permutation: input contains a negative number.",
@@ -46,9 +48,10 @@ fn validate_permutation(pattern: &[i64]) -> Result<(), PyErr> {
     Ok(())
 }
 
-fn invert(pattern: &[i64]) -> Vec<usize> {
-    let mut inverse: Vec<usize> = vec![0; pattern.len()];
-    pattern.iter().enumerate().for_each(|(ii, &jj)| {
+fn invert(pattern: &PyReadonlyArray1<i64>) -> Vec<usize> {
+    let view = pattern.as_array();
+    let mut inverse: Vec<usize> = vec![0; view.len()];
+    view.iter().enumerate().for_each(|(ii, &jj)| {
         inverse[jj as usize] = ii;
     });
     inverse
@@ -56,20 +59,30 @@ fn invert(pattern: &[i64]) -> Vec<usize> {
 
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-pub fn _inverse_pattern(py: Python, pattern: Vec<i64>) -> PyResult<PyObject> {
+pub fn _inverse_pattern(
+    py: Python,
+    pattern: PyArrayLike1<i64, AllowTypeChange>,
+) -> PyResult<PyObject> {
     validate_permutation(&pattern)?;
     Ok(invert(&pattern).to_object(py))
 }
 
 #[pyfunction]
 #[pyo3(signature = (permutation_in))]
-pub fn _get_ordered_swap(py: Python, permutation_in: Vec<i64>) -> PyResult<PyObject> {
+pub fn _get_ordered_swap(
+    py: Python,
+    permutation_in: PyArrayLike1<i64, AllowTypeChange>,
+) -> PyResult<PyObject> {
     validate_permutation(&permutation_in)?;
 
-    let mut permutation: Vec<usize> = permutation_in.iter().map(|&x| x as usize).collect();
+    let mut permutation: Vec<usize> = permutation_in
+        .as_array()
+        .iter()
+        .map(|&x| x as usize)
+        .collect();
     let mut index_map = invert(&permutation_in);
 
-    let s: usize = permutation_in.len();
+    let s = permutation.len();
     let mut swaps: Vec<(i64, i64)> = Vec::with_capacity(s);
     for ii in 0..s {
         let val = permutation[ii];
