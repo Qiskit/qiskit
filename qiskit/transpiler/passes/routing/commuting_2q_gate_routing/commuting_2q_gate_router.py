@@ -160,8 +160,13 @@ class Commuting2qGateRouter(TransformationPass):
         if len(dag.qubits) != next(iter(dag.qregs.values())).size:
             raise TranspilerError("Circuit has qubits not contained in the qubit register.")
 
-        new_dag = dag.copy_empty_like()
+        # Fix output permutation -- copied from ElidePermutations
+        input_qubit_mapping = {qubit: index for index, qubit in enumerate(dag.qubits)}
+        self.property_set["original_layout"] = Layout(input_qubit_mapping)
+        if self.property_set["original_qubit_indices"] is None:
+            self.property_set["original_qubit_indices"] = input_qubit_mapping
 
+        new_dag = dag.copy_empty_like()
         current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
@@ -183,7 +188,7 @@ class Commuting2qGateRouter(TransformationPass):
 
         self._compose_non_swap_nodes(accumulator, current_layout, new_dag)
 
-        self.property_set["final_layout"] = current_layout
+        self.property_set["virtual_permutation_layout"] = current_layout
 
         return new_dag
 
