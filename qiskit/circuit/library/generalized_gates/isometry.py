@@ -123,8 +123,8 @@ class Isometry(Instruction):
         #  later here instead.
         gate = self.inv_gate()
         gate = gate.inverse()
-        q = QuantumRegister(self.num_qubits)
-        iso_circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, "q")
+        iso_circuit = QuantumCircuit(q, name="isom")
         iso_circuit.append(gate, q[:])
         self.definition = iso_circuit
 
@@ -139,8 +139,8 @@ class Isometry(Instruction):
         Call to create a circuit with gates that take the desired isometry to the first 2^m columns
          of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
         """
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, "q")
+        circuit = QuantumCircuit(q, name="isom")
         (
             q_input,
             q_ancillas_for_output,
