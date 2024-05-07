@@ -1015,27 +1015,15 @@ Instructions:
         class ExtraProperties(InstructionProperties):
             """An example properties subclass."""
 
-            def __new__(
-                cls,
-                *args,  # pylint: disable=unused-argument
+            def __init__(
+                self,
                 duration=None,
                 error=None,
                 calibration=None,
-                **kwargs,  # pylint: disable=unused-argument
-            ):
-                return super(ExtraProperties, cls).__new__(
-                    cls, duration=duration, error=error, calibration=calibration
-                )
-
-            def __init__(
-                self,
-                duration=None,  # pylint: disable=unused-argument
-                error=None,  # pylint: disable=unused-argument
-                calibration=None,  # pylint: disable=unused-argument
                 tuned=None,
                 diamond_norm_error=None,
             ):
-                # pylint: disable=unused-argument
+                super().__init__(duration=duration, error=error, calibration=calibration)
                 self.tuned = tuned
                 self.diamond_norm_error = diamond_norm_error
 

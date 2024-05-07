@@ -38,14 +38,61 @@ from qiskit.transpiler.timing_constraints import TimingConstraints  # pylint: di
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
 # import target class from the rust side
 from qiskit._accelerate.target import (  # pylint: disable=unused-import
     Target as Target2,
-    InstructionProperties,
+    InstructionProperties as InstructionProperties2,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class InstructionProperties(InstructionProperties2):
+    """A representation of the properties of a gate implementation.
+
+    This class provides the optional properties that a backend can provide
+    about an instruction. These represent the set that the transpiler can
+    currently work with if present. However, if your backend provides additional
+    properties for instructions you should subclass this to add additional
+    custom attributes for those custom/additional properties by the backend.
+    """
+
+    def __new__(
+        cls,
+        *args,  # pylint: disable=unused-argument
+        duration=None,
+        error=None,
+        calibration=None,
+        **kwargs,  # pylint: disable=unused-argument
+    ):
+        return super(InstructionProperties, cls).__new__(
+            cls, duration=duration, error=error, calibration=calibration
+        )
+
+    def __init__(
+        self,
+        duration=None,  # pylint: disable=unused-argument
+        error=None,  # pylint: disable=unused-argument
+        calibration=None,  # pylint: disable=unused-argument
+    ):
+        """Create a new ``InstructionProperties`` object
+
+        Args:
+            duration: The duration, in seconds, of the instruction on the
+                specified set of qubits
+            error: The average error rate for the instruction on the specified
+                set of qubits.
+            calibration: The pulse representation of the instruction.
+        """
+
+    def __repr__(self):
+        return (
+            f"InstructionProperties(duration={self.duration}, error={self.error}"
+            f", calibration={self._calibration})"
+        )
 
 
 class Target(Target2):
