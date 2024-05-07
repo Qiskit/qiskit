@@ -73,8 +73,9 @@ class StatePreparation(Gate):
         :class:`~.library.Isometry` synthesis described in [1].
 
         References:
-            1. Iten et al. Quantum circuits for isometries.
-               `PhysRevA.93.032318 <`https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318`>`_
+            1. Iten et al., Quantum circuits for isometries (2016).
+               `Phys. Rev. A 93, 032318
+               <https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.032318>`__.
 
         """
         self._params_arg = params
