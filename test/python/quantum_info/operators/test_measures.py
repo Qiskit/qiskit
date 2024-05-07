@@ -22,6 +22,7 @@ from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
 from qiskit.quantum_info import unitary_diamond_distance
+from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import RZGate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -187,8 +188,8 @@ class TestOperatorMeasures(QiskitTestCase):
             self.skipTest("CVXPY solver failed.")
 
     def test_unitary_diamond_distance(self):
-        """Test the unitary_diamond_distance function"""
-        # Test unitary diamond distance for random unitaries
+        """Test the unitary_diamond_distance function for RZGates
+        with a specific set of angles."""
         angles = np.linspace(0, 2 * np.pi, 10, endpoint=False)
         for angle in angles:
             op1 = Operator(RZGate(angle))
@@ -196,6 +197,26 @@ class TestOperatorMeasures(QiskitTestCase):
             d2 = np.cos(angle / 2) ** 2  # analytical formula for hull distance
             target = np.sqrt(1 - d2) * 2
             self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=7)
+
+    @combine(num_qubits=[1, 2, 3])
+    def test_unitary_diamond_distance_random(self, num_qubits):
+        """Tests the unitary_diamond_distance for random unitaries.
+        Compares results with semi-definite program."""
+        try:
+            import cvxpy
+        except ImportError:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+        op1 = random_unitary(2**num_qubits)
+        op2 = random_unitary(2**num_qubits)
+        choi1 = Choi(op1)
+        choi2 = Choi(op2)
+        delta_choi = choi1 - choi2
+        try:
+            target = diamond_norm(delta_choi)
+            self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
+        except cvxpy.SolverError:
+            self.skipTest("CVXPY solver failed.")
 
 
 if __name__ == "__main__":
