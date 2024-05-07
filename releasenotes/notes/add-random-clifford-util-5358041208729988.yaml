@@ -5,7 +5,7 @@ features_circuits:
     Clifford circuit with gates from the standard library: :func:`.random_clifford_circuit`.
     Example usage:
     
-        .. plot::
+    .. plot::
        :include-source:
 
        from qiskit.circuit.random import random_clifford_circuit
