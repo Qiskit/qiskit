@@ -71,7 +71,7 @@ def random_circuit(
         Exception: when invalid options given
     """
     if max_operands < 1 or max_operands > 3:
-        raise Exception("max_operands must be between 1 and 3")
+        raise RuntimeError("max_operands must be between 1 and 3")
 
     one_q_ops = [
         IGate,

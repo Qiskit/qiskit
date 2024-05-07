@@ -192,7 +192,7 @@ def _cx_cost(clifford):
         return _cx_cost2(clifford)
     if clifford.num_qubits == 3:
         return _cx_cost3(clifford)
-    raise Exception("No Clifford CX cost function for num_qubits > 3.")
+    raise RuntimeError("No Clifford CX cost function for num_qubits > 3.")
 
 
 def _rank2(a, b, c, d):
