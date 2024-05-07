@@ -324,7 +324,7 @@ impl CircuitData {
             0,
         )?;
         res.intern_context = self.intern_context.clone();
-        res.data = self.data.clone();
+        res.data.clone_from(&self.data);
         Ok(res)
     }
 
