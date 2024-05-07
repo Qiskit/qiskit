@@ -12,31 +12,36 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use std::{
-    collections::hash_map::DefaultHasher,
-    hash::{Hash, Hasher},
-};
+mod instruction_properties;
+mod property_map;
+mod qargs;
 
-use hashbrown::{hash_set::IntoIter, HashSet};
-use indexmap::{map::IntoKeys, IndexMap};
+use hashbrown::HashSet;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use pyo3::{
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyTypeError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
     prelude::*,
     pyclass,
-    types::{IntoPyDict, PyList, PySet, PyType},
+    types::{IntoPyDict, PyList, PyType},
 };
-use smallvec::{smallvec, IntoIter as SmallVecIntoIter, SmallVec};
+use smallvec::smallvec;
 
 use crate::nlayout::PhysicalQubit;
 
-use self::exceptions::{QiskitError, TranspilerError};
+use instruction_properties::InstructionProperties;
+use property_map::PropsMap;
+use qargs::{Qargs, QargsSet, QargsTuple};
+
+use self::{
+    exceptions::{QiskitError, TranspilerError},
+    qargs::QargsOrTuple,
+};
 
 mod exceptions {
     use pyo3::import_exception_bound;
     import_exception_bound! {qiskit.exceptions, QiskitError}
     import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
-    import_exception_bound! {qiskit.providers.exceptions, BackendPropertyError}
 }
 
 // Helper function to import inspect.isclass from python.
@@ -68,469 +73,15 @@ fn qubit_props_list_from_props(
     props_list.extract::<Vec<PyObject>>()
 }
 
-fn parse_qargs(qargs: &Bound<PyAny>) -> PyResult<Qargs> {
-    if let Ok(vec) = qargs.extract::<QargsTuple>() {
-        Ok(Qargs::new(vec))
-    } else if let Ok(qargs) = qargs.extract::<Qargs>() {
-        Ok(qargs)
-    } else {
-        Err(PyTypeError::new_err(format!(
-            "{:?} is not a valid qarg type.",
-            qargs.to_string()
-        )))
-    }
-}
-
 // Subclassable or Python Wrapping.
-/**
- A representation of the properties of a gate implementation.
-
-This class provides the optional properties that a backend can provide
-about an instruction. These represent the set that the transpiler can
-currently work with if present. However, if your backend provides additional
-properties for instructions you should subclass this to add additional
-custom attributes for those custom/additional properties by the backend.
-*/
-#[pyclass(subclass, module = "qiskit._accelerate.target")]
-#[derive(Clone, Debug)]
-pub struct InstructionProperties {
-    #[pyo3(get)]
-    pub duration: Option<f64>,
-    #[pyo3(get, set)]
-    pub error: Option<f64>,
-    #[pyo3(get)]
-    _calibration: PyObject,
-}
-
-#[pymethods]
-impl InstructionProperties {
-    /**
-    Create a new ``InstructionProperties`` object
-
-    Args:
-        duration (Option<f64>): The duration, in seconds, of the instruction on the
-            specified set of qubits
-        error (Option<f64>): The average error rate for the instruction on the specified
-            set of qubits.
-        calibration (Option<PyObject>): The pulse representation of the instruction.
-    */
-    #[new]
-    #[pyo3(text_signature = "(/, duration: float | None = None,
-        error: float | None = None,
-        calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,)")]
-    pub fn new(
-        py: Python<'_>,
-        duration: Option<f64>,
-        error: Option<f64>,
-        calibration: Option<Bound<PyAny>>,
-    ) -> Self {
-        let mut instruction_prop = InstructionProperties {
-            error,
-            duration,
-            _calibration: py.None(),
-        };
-        if let Some(calibration) = calibration {
-            let _ = instruction_prop.set_calibration(py, calibration);
-        }
-        instruction_prop
-    }
-
-    /**
-    The pulse representation of the instruction.
-
-    .. note::
-
-        This attribute always returns a Qiskit pulse program, but it is internally
-        wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
-        and to uniformly handle different data representation,
-        for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
-
-        This value can be overridden through the property setter in following manner.
-        When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
-        always treated as a user-defined (custom) calibration and
-        the transpiler may automatically attach the calibration data to the output circuit.
-        This calibration data may appear in the wire format as an inline calibration,
-        which may further update the backend standard instruction set architecture.
-
-        If you are a backend provider who provides a default calibration data
-        that is not needed to be attached to the transpiled quantum circuit,
-        you can directly set :class:`.CalibrationEntry` instance to this attribute,
-        in which you should set :code:`user_provided=False` when you define
-        calibration data for the entry. End users can still intentionally utilize
-        the calibration data, for example, to run pulse-level simulation of the circuit.
-        However, such entry doesn't appear in the wire format, and backend must
-        use own definition to compile the circuit down to the execution format.
-    */
-    #[getter]
-    pub fn get_calibration(&self, py: Python<'_>) -> PyResult<PyObject> {
-        if !&self._calibration.is_none(py) {
-            return self._calibration.call_method0(py, "get_schedule");
-        }
-        Ok(py.None())
-    }
-
-    #[setter]
-    pub fn set_calibration(&mut self, py: Python<'_>, calibration: Bound<PyAny>) -> PyResult<()> {
-        let module = py.import_bound("qiskit.pulse.schedule")?;
-        // Import Schedule and ScheduleBlock types.
-        let schedule_type = module.getattr("Schedule")?;
-        let schedule_type = schedule_type.downcast::<PyType>()?;
-        let schedule_block_type = module.getattr("ScheduleBlock")?;
-        let schedule_block_type = schedule_block_type.downcast::<PyType>()?;
-        if calibration.is_instance(schedule_block_type)?
-            || calibration.is_instance(schedule_type)?
-        {
-            // Import the calibration_entries module
-            let calibration_entries = py.import_bound("qiskit.pulse.calibration_entries")?;
-            // Import the schedule def class.
-            let schedule_def = calibration_entries.getattr("ScheduleDef")?;
-            // Create a ScheduleDef instance.
-            let new_entry: Bound<PyAny> = schedule_def.call0()?;
-            // Definethe schedule, make sure it is user provided.
-            let args = (calibration,);
-            let kwargs = [("user_provided", true)].into_py_dict_bound(py);
-            new_entry.call_method("define", args, Some(&kwargs))?;
-            self._calibration = new_entry.unbind();
-        } else {
-            self._calibration = calibration.unbind();
-        }
-        Ok(())
-    }
-
-    fn __getstate__(&self) -> PyResult<(Option<f64>, Option<f64>, Option<&PyObject>)> {
-        Ok((self.duration, self.error, Some(&self._calibration)))
-    }
-
-    fn __setstate__(
-        &mut self,
-        py: Python<'_>,
-        state: (Option<f64>, Option<f64>, Bound<PyAny>),
-    ) -> PyResult<()> {
-        self.duration = state.0;
-        self.error = state.1;
-        self.set_calibration(py, state.2)?;
-        Ok(())
-    }
-
-    fn __repr__(&self, py: Python<'_>) -> PyResult<String> {
-        let mut output = "InstructionProperties(".to_owned();
-        if let Some(duration) = self.duration {
-            output.push_str("duration=");
-            output.push_str(duration.to_string().as_str());
-            output.push_str(", ");
-        } else {
-            output.push_str("duration=None, ");
-        }
-
-        if let Some(error) = self.error {
-            output.push_str("error=");
-            output.push_str(error.to_string().as_str());
-            output.push_str(", ");
-        } else {
-            output.push_str("error=None, ");
-        }
-
-        if !self.get_calibration(py)?.is_none(py) {
-            output.push_str(
-                format!(
-                    "calibration={:?})",
-                    self.get_calibration(py)?
-                        .call_method0(py, "__str__")?
-                        .extract::<String>(py)?
-                )
-                .as_str(),
-            );
-        } else {
-            output.push_str("calibration=None)");
-        }
-        Ok(output)
-    }
-}
 
 // Custom classes for the target
 
 /**
-An iterator for the ``Qarg`` class.
-*/
-#[pyclass]
-struct QargsIter {
-    iter: SmallVecIntoIter<[PhysicalQubit; 4]>,
-}
-
-#[pymethods]
-impl QargsIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
-        slf.iter.next().map(|next| next.to_object(slf.py()))
-    }
-}
-
-#[pyclass]
-struct QargsSetIter {
-    iter: IntoIter<Option<Qargs>>,
-}
-
-#[pymethods]
-impl QargsSetIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
-        slf.iter.next()
-    }
-}
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
-struct QargsSet {
-    set: HashSet<Option<Qargs>>,
-}
-
-#[pymethods]
-impl QargsSet {
-    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
-        for item in other.iter() {
-            let qargs = if let Ok(qargs) = parse_qargs(&item) {
-                Some(qargs)
-            } else {
-                None
-            };
-            if !slf.set.contains(&qargs) {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<QargsSetIter>> {
-        let iter = QargsSetIter {
-            iter: slf.set.clone().into_iter(),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn __getitem__(&self, obj: Bound<PyAny>) -> PyResult<Option<Qargs>> {
-        let qargs = if let Ok(qargs) = parse_qargs(&obj) {
-            Ok(Some(qargs))
-        } else if obj.is_none() {
-            Ok(None)
-        } else {
-            Err(PyTypeError::new_err(format!(
-                "The object {:?} has incompatible type from Qargs",
-                obj
-            )))
-        }?;
-        if let Some(qargs) = self.set.get(&qargs) {
-            Ok(qargs.to_owned())
-        } else {
-            Err(PyKeyError::new_err("{:} was not in QargSet."))
-        }
-    }
-
-    fn __len__(slf: PyRef<Self>) -> usize {
-        slf.set.len()
-    }
-}
-
-/**
-   Hashable representation of a Qarg tuple in rust.
-
-   Made to directly avoid conversions from a ``Vec`` structure in rust to a Python tuple.
-*/
-#[pyclass(sequence, module = "qiskit._accelerate.target")]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct Qargs {
-    pub vec: SmallVec<[PhysicalQubit; 4]>,
-}
-
-#[pymethods]
-impl Qargs {
-    #[new]
-    fn new(qargs: SmallVec<[PhysicalQubit; 4]>) -> Self {
-        Qargs { vec: qargs }
-    }
-
-    fn __len__(&self) -> usize {
-        self.vec.len()
-    }
-
-    fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<QargsIter>> {
-        let iter = QargsIter {
-            iter: slf.vec.clone().into_iter(),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn __hash__(slf: PyRef<'_, Self>) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        slf.vec.hash(&mut hasher);
-        hasher.finish()
-    }
-
-    fn __contains__(&self, obj: Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(obj) = obj.extract::<PhysicalQubit>() {
-            Ok(self.vec.contains(&obj))
-        } else {
-            Ok(false)
-        }
-    }
-
-    fn __getitem__(&self, obj: Bound<PyAny>) -> PyResult<PhysicalQubit> {
-        if let Ok(index) = obj.extract::<usize>() {
-            if let Some(item) = self.vec.get(index) {
-                Ok(*item)
-            } else {
-                Err(PyKeyError::new_err(format!("Index {obj} is out of range.")))
-            }
-        } else {
-            Err(PyTypeError::new_err(
-                "Index type not supported.".to_string(),
-            ))
-        }
-    }
-
-    fn __getstate__(&self) -> PyResult<(QargsTuple,)> {
-        Ok((self.vec.clone(),))
-    }
-
-    fn __setstate__(&mut self, py: Python<'_>, state: (PyObject,)) -> PyResult<()> {
-        self.vec = state.0.extract::<QargsTuple>(py)?;
-        Ok(())
-    }
-
-    fn __eq__(&self, other: Bound<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Qargs>() {
-            self.vec == other.vec
-        } else if let Ok(other) = other.extract::<QargsTuple>() {
-            self.vec == other
-        } else {
-            false
-        }
-    }
-
-    fn __repr__(slf: PyRef<'_, Self>) -> String {
-        let mut output = "(".to_owned();
-        output.push_str(slf.vec.iter().map(|x| x.index()).join(", ").as_str());
-        if slf.vec.len() < 2 {
-            output.push(',');
-        }
-        output.push(')');
-        output
-    }
-}
-
-/**
    Iterator for ``PropsMap`` class.
 */
-#[pyclass]
-struct PropsMapIter {
-    iter: IntoKeys<Option<Qargs>, Option<Py<InstructionProperties>>>,
-}
-
-#[pymethods]
-impl PropsMapIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
-        slf.iter.next()
-    }
-}
-
-impl Default for Qargs {
-    fn default() -> Self {
-        Self { vec: smallvec![] }
-    }
-}
-
-type GateMapValues = IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>>;
-/**
-   Mapping containing the properties of an instruction. Represents the relation
-   ``Qarg : InstructionProperties``.
-
-   Made to directly avoid conversions from an ``IndexMap`` structure in rust to a Python dict.
-*/
-#[pyclass(mapping)]
-#[derive(Debug, Clone)]
-struct PropsMap {
-    map: GateMapValues,
-}
-
-#[pymethods]
-impl PropsMap {
-    #[new]
-    fn new(map: GateMapValues) -> Self {
-        PropsMap { map }
-    }
-
-    fn __contains__(&self, key: Bound<PyAny>) -> bool {
-        if let Ok(key) = key.extract::<QargsTuple>() {
-            let qarg = Some(Qargs::new(key));
-            self.map.contains_key(&qarg)
-        } else {
-            false
-        }
-    }
-
-    fn __getitem__(&self, py: Python<'_>, key: Bound<PyAny>) -> PyResult<PyObject> {
-        let key = if let Ok(qargs) = key.extract::<QargsTuple>() {
-            Ok(Some(Qargs::new(qargs)))
-        } else if let Ok(qargs) = key.extract::<Qargs>() {
-            Ok(Some(qargs))
-        } else if key.is_none() {
-            Ok(None)
-        } else {
-            Err(PyTypeError::new_err(format!(
-                "Index {:#?} is not supported.",
-                key
-            )))
-        }?;
-        if let Some(item) = self.map.get(&key) {
-            Ok(item.to_object(py))
-        } else {
-            Err(PyKeyError::new_err(format!(
-                "Key {:#?} not in target.",
-                key.unwrap_or_default().vec
-            )))
-        }
-    }
-
-    #[pyo3(signature = (key, default=None))]
-    fn get(&self, py: Python<'_>, key: Bound<PyAny>, default: Option<Bound<PyAny>>) -> PyObject {
-        match self.__getitem__(py, key) {
-            Ok(value) => value,
-            Err(_) => match default {
-                Some(value) => value.into(),
-                None => py.None(),
-            },
-        }
-    }
-
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
-        let iter = PropsMapIter {
-            iter: slf.map.clone().into_keys(),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn keys(&self) -> QargsSet {
-        QargsSet {
-            set: self.map.keys().cloned().collect(),
-        }
-    }
-
-    fn values(&self) -> Vec<Option<Py<InstructionProperties>>> {
-        self.map.clone().into_values().collect_vec()
-    }
-
-    fn items(&self) -> Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)> {
-        self.map.clone().into_iter().collect_vec()
-    }
-}
 
 // Custom types
-type QargsTuple = SmallVec<[PhysicalQubit; 4]>;
 type GateMapType = IndexMap<String, PropsMap>;
 type ErrorDictType<'a> = IndexMap<String, IndexMap<QargsTuple, Bound<'a, PyAny>>>;
 
@@ -922,14 +473,10 @@ impl Target {
         &mut self,
         _py: Python<'_>,
         instruction: String,
-        qargs: Bound<PyAny>,
+        qargs: Option<QargsOrTuple>,
         properties: Option<Py<InstructionProperties>>,
     ) -> PyResult<()> {
-        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
-            Some(qargs)
-        } else {
-            None
-        };
+        let qargs = qargs.map(|qargs| qargs.parse_qargs());
         if !self.gate_map.contains_key(&instruction) {
             return Err(PyKeyError::new_err(format!(
                 "Provided instruction: '{:?}' not in this Target.",
@@ -1156,7 +703,7 @@ impl Target {
                     self.update_instruction_properties(
                         py,
                         inst_name.to_owned(),
-                        qargs.into_py(py).bind(py).to_owned(),
+                        qargs.map(QargsOrTuple::Tuple),
                         prop,
                     )?;
                 }
@@ -1321,12 +868,12 @@ impl Target {
         KeyError: If qargs is not in target
     */
     #[pyo3(text_signature = "(/, qargs=None)")]
-    fn operations_for_qargs(&self, py: Python<'_>, qargs: Bound<PyAny>) -> PyResult<Py<PyList>> {
-        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
-            Some(qargs)
-        } else {
-            None
-        };
+    fn operations_for_qargs(
+        &self,
+        py: Python<'_>,
+        qargs: Option<QargsOrTuple>,
+    ) -> PyResult<Py<PyList>> {
+        let qargs = qargs.map(|qargs| qargs.parse_qargs());
         let res = PyList::empty_bound(py);
         if let Some(qargs) = qargs.as_ref() {
             if qargs
@@ -1387,15 +934,11 @@ impl Target {
     fn operation_names_for_qargs(
         &self,
         py: Python<'_>,
-        qargs: Bound<PyAny>,
+        qargs: Option<QargsOrTuple>,
     ) -> PyResult<HashSet<&String>> {
         // When num_qubits == 0 we return globally defined operators
         let mut res = HashSet::new();
-        let mut qargs = if let Ok(qargs) = parse_qargs(&qargs) {
-            Some(qargs)
-        } else {
-            None
-        };
+        let mut qargs = qargs.map(|qargs| qargs.parse_qargs());
         if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
             qargs = None;
         }
@@ -1494,20 +1037,12 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: Option<String>,
-        qargs: Option<Bound<PyAny>>,
+        qargs: Option<QargsOrTuple>,
         operation_class: Option<&Bound<PyAny>>,
         parameters: Option<&Bound<PyList>>,
     ) -> PyResult<bool> {
         // Do this in case we need to modify qargs
-        let mut qargs = if let Some(qargs) = qargs {
-            if let Ok(qargs) = parse_qargs(&qargs) {
-                Some(qargs)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let mut qargs = qargs.map(|qargs| qargs.parse_qargs());
         let parameter_module = py.import_bound("qiskit.circuit.parameter")?;
         let parameter_class = parameter_module.getattr("Parameter")?;
         let parameter_class = parameter_class.downcast::<PyType>()?;
@@ -1726,13 +1261,9 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: String,
-        qargs: Bound<PyAny>,
+        qargs: Option<QargsOrTuple>,
     ) -> PyResult<bool> {
-        let qargs = if let Ok(qargs) = parse_qargs(&qargs) {
-            Some(qargs)
-        } else {
-            None
-        };
+        let qargs = qargs.map(|qargs| qargs.parse_qargs());
         if !self.gate_map.contains_key(&operation_name) {
             return Ok(false);
         }
@@ -1769,9 +1300,9 @@ impl Target {
         &self,
         py: Python<'_>,
         operation_name: String,
-        qargs: Bound<PyAny>,
+        qargs: Option<QargsOrTuple>,
     ) -> PyResult<PyObject> {
-        let qargs_: Option<Qargs> = Some(parse_qargs(&qargs)?);
+        let qargs_: Option<Qargs> = qargs.clone().map(|qargs| qargs.parse_qargs());
         if !self.has_calibration(py, operation_name.clone(), qargs)? {
             return Err(PyKeyError::new_err(format!(
                 "Calibration of instruction {:?} for qubit {:?} is not defined.",
@@ -1912,7 +1443,7 @@ impl Target {
             if let Some(qarg_sample) = qarg_sample {
                 if !strict_direction {
                     let mut qarg_set = HashSet::new();
-                    for qarg in qargs_props.keys().set {
+                    for qarg in qargs_props.map.keys() {
                         let mut qarg_set_vec: Qargs = Qargs { vec: smallvec![] };
                         if let Some(qarg) = qarg {
                             let mut to_vec = qarg.vec.to_owned();
@@ -1969,7 +1500,7 @@ impl Target {
         for op in self.gate_map.keys() {
             if self.gate_map.contains_key(op) {
                 let gate_map_op = &self.gate_map[op];
-                for qarg in gate_map_op.keys().set {
+                for qarg in gate_map_op.map.keys() {
                     let instruction_pair = (self.gate_name_map[op].clone(), qarg.clone());
                     instruction_list.push(instruction_pair);
                 }

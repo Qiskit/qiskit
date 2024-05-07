@@ -28,7 +28,7 @@ pub mod sabre;
 pub mod sampled_exp_val;
 pub mod sparse_pauli_op;
 pub mod stochastic_swap;
-pub mod target;
+pub mod target_transpiler;
 pub mod two_qubit_decompose;
 pub mod uc_gate;
 pub mod utils;
