@@ -12,6 +12,7 @@
 """Tests for operator measures."""
 
 import unittest
+import importlib.util
 from ddt import ddt
 
 import numpy as np
@@ -166,9 +167,7 @@ class TestOperatorMeasures(QiskitTestCase):
     @combine(num_qubits=[1, 2, 3])
     def test_diamond_norm(self, num_qubits):
         """Test the diamond_norm for {num_qubits}-qubit pauli channel."""
-        try:
-            import cvxpy
-        except ImportError:
+        if importlib.util.find_spec("cvxpy") is None:
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
 
@@ -181,11 +180,8 @@ class TestOperatorMeasures(QiskitTestCase):
             op = op + coeff * Choi(Operator.from_label(label))
         target = np.sum(np.abs(coeffs))
 
-        try:
-            value = diamond_norm(op)
-            self.assertAlmostEqual(value, target, places=4)
-        except cvxpy.SolverError:
-            self.skipTest("CVXPY solver failed.")
+        value = diamond_norm(op)
+        self.assertAlmostEqual(value, target, places=4)
 
     def test_unitary_diamond_distance(self):
         """Test the unitary_diamond_distance function for RZGates
@@ -202,18 +198,14 @@ class TestOperatorMeasures(QiskitTestCase):
     def test_unitary_diamond_distance_random(self, num_qubits):
         """Tests the unitary_diamond_distance for random unitaries.
         Compares results with semi-definite program."""
-        try:
-            import cvxpy
-        except ImportError:
+        if importlib.util.find_spec("cvxpy") is None:
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
+
         op1 = random_unitary(2**num_qubits, seed=660477)
         op2 = random_unitary(2**num_qubits, seed=765720)
-        try:
-            target = diamond_norm(Choi(op1) - Choi(op2))
-            self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
-        except cvxpy.SolverError:
-            self.skipTest("CVXPY solver failed.")
+        target = diamond_norm(Choi(op1) - Choi(op2))
+        self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
 
 
 if __name__ == "__main__":
