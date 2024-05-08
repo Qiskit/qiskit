@@ -140,7 +140,7 @@ class Isometry(Instruction):
          of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
         """
         q = QuantumRegister(self.num_qubits, "q")
-        circuit = QuantumCircuit(q, name="isometry")
+        circuit = QuantumCircuit(q, name="isometry_to_uncompute")
         (
             q_input,
             q_ancillas_for_output,
