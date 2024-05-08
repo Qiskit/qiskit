@@ -28,7 +28,7 @@ custom attributes for those custom/additional properties by the backend.
 #[pyclass(subclass, module = "qiskit._accelerate.target")]
 #[derive(Clone, Debug)]
 pub struct InstructionProperties {
-    #[pyo3(get)]
+    #[pyo3(get, set)]
     pub duration: Option<f64>,
     #[pyo3(get, set)]
     pub error: Option<f64>,

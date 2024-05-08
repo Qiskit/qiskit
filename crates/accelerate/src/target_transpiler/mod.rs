@@ -35,6 +35,7 @@ use qargs::{Qargs, QargsSet, QargsTuple};
 
 use self::{
     exceptions::{QiskitError, TranspilerError},
+    property_map::PropsMapKeys,
     qargs::QargsOrTuple,
 };
 
@@ -44,14 +45,14 @@ mod exceptions {
     import_exception_bound! {qiskit.transpiler.exceptions, TranspilerError}
 }
 
-// Helper function to import inspect.isclass from python.
+/// Helper function to import inspect.isclass from python.
 fn isclass(py: Python<'_>, object: &Bound<PyAny>) -> PyResult<bool> {
     let inspect_module: Bound<PyModule> = py.import_bound("inspect")?;
     let is_class_method: Bound<PyAny> = inspect_module.getattr("isclass")?;
     is_class_method.call1((object,))?.extract::<bool>()
 }
 
-// Helper function to import standard gate name mapping from python.
+/// Helper function to import standard gate name mapping from python.
 fn get_standard_gate_name_mapping(py: Python<'_>) -> PyResult<IndexMap<String, Bound<PyAny>>> {
     let inspect_module: Bound<PyModule> =
         py.import_bound("qiskit.circuit.library.standard_gates")?;
@@ -61,6 +62,7 @@ fn get_standard_gate_name_mapping(py: Python<'_>) -> PyResult<IndexMap<String, B
         .extract::<IndexMap<String, Bound<PyAny>>>()
 }
 
+/// Helper function to obtain the qubit props list from some Target Properties.
 fn qubit_props_list_from_props(
     py: Python<'_>,
     properties: &Bound<PyAny>,
@@ -491,9 +493,7 @@ impl Target {
             )));
         }
         if let Some(q_vals) = self.gate_map.get_mut(&instruction) {
-            if let Some(q_vals) = q_vals.map.get_mut(&qargs) {
-                *q_vals = properties;
-            }
+            q_vals.map.insert(qargs, properties);
         }
         self.instruction_durations = None;
         self.instruction_schedule_map = None;
@@ -600,7 +600,7 @@ impl Target {
                         if let (Some(error_prop), Some(props_)) =
                             (error_dict_name.get(&qargs_), props.as_mut())
                         {
-                            props_.setattr(py, "error", Some(error_prop.extract::<f64>()?))?;
+                            props_.setattr(py, "error", error_prop.extract::<Option<f64>>()?)?;
                         }
                     }
                 }
@@ -728,8 +728,8 @@ impl Target {
         let inst_sched_map_module = py.import_bound("qiskit.pulse.instruction_schedule_map")?;
         let inst_sched_map_class = inst_sched_map_module.getattr("InstructionScheduleMap")?;
         let out_inst_schedule_map = inst_sched_map_class.call0()?;
-        for (instruction, qargs) in self.gate_map.iter() {
-            for (qarg, properties) in qargs.map.iter() {
+        for (instruction, props_map) in self.gate_map.iter() {
+            for (qarg, properties) in props_map.map.iter() {
                 // Directly getting calibration entry to invoke .get_schedule().
                 // This keeps PulseQobjDef unparsed.
                 if let Some(properties) = properties {
@@ -741,8 +741,9 @@ impl Target {
                 }
             }
         }
-        self.instruction_schedule_map = Some(out_inst_schedule_map.clone().unbind());
-        Ok(out_inst_schedule_map.unbind())
+        let out_inst_schedule_map = out_inst_schedule_map.unbind();
+        self.instruction_schedule_map = Some(out_inst_schedule_map.clone());
+        Ok(out_inst_schedule_map)
     }
 
     /**
@@ -754,12 +755,12 @@ impl Target {
         set: The set of qargs the gate instance applies to.
     */
     #[pyo3(text_signature = "(operation, /,)")]
-    fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Option<Qargs>>>> {
+    fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<PropsMapKeys>> {
         if let Some(gate_map_oper) = self.gate_map.get(&operation) {
             if gate_map_oper.map.contains_key(&None) {
                 return Ok(None);
             }
-            let qargs: Vec<Option<Qargs>> = gate_map_oper.map.keys().cloned().collect();
+            let qargs = gate_map_oper.keys();
             Ok(Some(qargs))
         } else {
             Err(PyKeyError::new_err(format!(

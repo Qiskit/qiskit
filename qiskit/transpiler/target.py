@@ -62,13 +62,13 @@ class InstructionProperties(InstructionProperties2):
 
     def __new__(
         cls,
-        *args,  # pylint: disable=unused-argument
         duration=None,
         error=None,
         calibration=None,
+        *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return super(InstructionProperties, cls).__new__(
+        return InstructionProperties2.__new__(
             cls, duration=duration, error=error, calibration=calibration
         )
 
@@ -258,17 +258,6 @@ class Target(Target2):
     def operation_names(self):
         """Get the operation names in the target."""
         return {x: None for x in super().operation_names}.keys()
-
-    def qargs_for_operation_name(self, operation):
-        """Get the qargs for a given operation name
-
-        Args:
-           operation (str): The operation name to get qargs for
-        Returns:
-            set: The set of qargs the gate instance applies to.
-        """
-        qargs = super().qargs_for_operation_name(operation)
-        return {x: None for x in qargs}.keys() if qargs else qargs
 
     def _build_coupling_graph(self):
         self.coupling_graph = rx.PyDiGraph(  # pylint: disable=attribute-defined-outside-init

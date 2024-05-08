@@ -13,7 +13,8 @@
 use hashbrown::{hash_set::IntoIter as HashSetIntoIter, HashSet};
 use indexmap::{map::IntoKeys, IndexMap};
 use itertools::Itertools;
-use pyo3::{exceptions::PyKeyError, prelude::*, pyclass, types::PySequence};
+use pyo3::types::{PyDict, PySet};
+use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
 
 use super::instruction_properties::InstructionProperties;
 use super::qargs::{Qargs, QargsOrTuple};
@@ -61,9 +62,9 @@ impl PropsMapKeys {
         Py::new(slf.py(), iter)
     }
 
-    fn __eq__(slf: PyRef<Self>, other: Bound<PySequence>) -> PyResult<bool> {
-        for item in other.iter()? {
-            let qargs = item?
+    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
+        for item in other.iter() {
+            let qargs = item
                 .extract::<Option<QargsOrTuple>>()?
                 .map(|qargs| qargs.parse_qargs());
             if !(slf.keys.contains(&qargs)) {
@@ -122,12 +123,30 @@ impl PropsMap {
         PropsMap { map }
     }
 
-    fn __contains__(&self, key: Bound<PyAny>) -> bool {
+    fn __contains__(&self, key: &Bound<PyAny>) -> bool {
         if let Ok(key) = key.extract::<Option<QargsOrTuple>>() {
             let qarg = key.map(|qarg| qarg.parse_qargs());
             self.map.contains_key(&qarg)
         } else {
             false
+        }
+    }
+
+    fn __eq__(slf: PyRef<Self>, other: &Bound<PyAny>) -> PyResult<bool> {
+        if let Ok(dict) = other.downcast::<PyDict>() {
+            for key in dict.keys() {
+                if let Ok(qargs) = key.extract::<Option<QargsOrTuple>>() {
+                    let qargs = qargs.map(|qargs| qargs.parse_qargs());
+                    if !slf.map.contains_key(&qargs) {
+                        return Ok(false);
+                    }
+                } else {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
+        } else {
+            Ok(false)
         }
     }
 
