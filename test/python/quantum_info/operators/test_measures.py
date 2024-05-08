@@ -202,7 +202,8 @@ class TestOperatorMeasures(QiskitTestCase):
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
 
-        op1 = random_unitary(2**num_qubits, seed=660477)
+        rng = np.random.default_rng(1234)
+        op1 = random_unitary(2**num_qubits, seed=rng)
         op2 = random_unitary(2**num_qubits, seed=765720)
         target = diamond_norm(Choi(op1) - Choi(op2))
         self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)

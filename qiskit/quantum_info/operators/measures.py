@@ -356,7 +356,7 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
     This function computes the completely-bounded trace-norm (often
     referred to as the diamond-norm) of the difference of two unitary channels
     (or unitary operators). This is often used as a distance metric in quantum
-    information This method is a more specialised implementaion of
+    information This method is a more specialised implementation of
     :meth:`~qiskit.quantum_info.diamond_norm`.
 
     Args:
@@ -367,7 +367,7 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
         float: The completely-bounded trace norm :math:`\|U - V\|_{\diamond}`.
 
     Raises:
-        QiskitError: if the input operators do not have the same dimensions or aren't unitary.
+        ValueError: if the input operators do not have the same dimensions or aren't unitary.
 
     Additional Information:
         The implementation uses an unproved result in Aharonov et al. (1998). Geometrically,
@@ -384,25 +384,25 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
 
     # Check operators are unitary and have same dimension
     if not op1.is_unitary():
-        raise QiskitError(
+        raise ValueError(
             "Invalid operator supplied to channel1 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if not op2.is_unitary():
-        raise QiskitError(
+        raise ValueError(
             "Invalid operator supplied to channel2 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if op1.dim != op2.dim:
-        raise QiskitError(
+        raise ValueError(
             "Input quantum channel and target unitary must have the same "
-            "dimensions ({op1.dim} != {op2.dim})."
+            f"dimensions ({op1.dim} != {op2.dim})."
         )
 
     # Compute the diamond norm
     op1 = op1.data
     op2 = op2.data
-    pre_diag = np.matmul(np.conj(op1).T, op2)
+    pre_diag = np.conj(op1).T @ op2
     eigenvals = np.linalg.eigvals(pre_diag)
     d = _find_poly_distance(eigenvals)
     return 2 * np.sqrt(1 - d**2)
@@ -416,21 +416,26 @@ def _find_poly_distance(eigenvals: np.ndarray) -> float:
     pos_min = np.where(phases > 0, phases, np.inf).min()
     neg_max = np.where(phases <= 0, phases, -np.inf).max()
 
-    if neg_min > 0:  # all eigenvalues have positive phase, so hull is above x axis
+    if neg_min > 0:
+        # all eigenvalues have positive phase, so hull is above x axis
         return np.cos((pos_max - pos_min) / 2)
 
-    if pos_max <= 0:  # all eigenvalues have negative phase, so hull is below x axis
+    if pos_max <= 0:
+        # all eigenvalues have negative phase, so hull is below x axis
         return np.cos((np.abs(neg_min) - np.abs(neg_max)) / 2)
 
     big_angle = pos_max - neg_min
     small_angle = pos_min - neg_max
     if big_angle >= np.pi:
-        if small_angle <= np.pi:  # hull contains the origin
+        if small_angle <= np.pi:
+            # hull contains the origin
             return 0
         else:
-            return np.cos((2 * np.pi - small_angle) / 2)  # hull is left of y axis
+            # hull is left of y axis
+            return np.cos((2 * np.pi - small_angle) / 2)
     else:
-        return np.cos(big_angle / 2)  # hull is right of y axis
+        # hull is right of y axis
+        return np.cos(big_angle / 2)
 
 
 def _cvxpy_check(name):
