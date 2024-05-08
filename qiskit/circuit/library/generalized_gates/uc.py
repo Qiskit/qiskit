@@ -148,10 +148,10 @@ class UCGate(Gate):
         the diagonal gate is also returned.
         """
         diag = np.ones(2**self.num_qubits).tolist()
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, "q")
         q_controls = q[1:]
         q_target = q[0]
-        circuit = QuantumCircuit(q)
+        circuit = QuantumCircuit(q, name="uc")
         # If there is no control, we use the ZYZ decomposition
         if not q_controls:
             circuit.unitary(self.params[0], [q])
