@@ -118,7 +118,7 @@ class PauliTwoDesign(TwoLocal):
         qubits = range(self.num_qubits)
 
         # if no gates for this layer were generated, generate them
-        if i not in self._gates.keys():
+        if i not in self._gates:
             self._gates[i] = list(self._rng.choice(["rx", "ry", "rz"], self.num_qubits))
         # if not enough gates exist, add more
         elif len(self._gates[i]) < self.num_qubits:
