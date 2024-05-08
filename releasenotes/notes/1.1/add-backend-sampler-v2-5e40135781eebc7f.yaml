@@ -1,5 +1,5 @@
 ---
-features:
+features_primitives:
   - |
     The implementation :class:`~.BackendSamplerV2` of :class:`~.BaseSamplerV2` was added.
     This sampler supports :class:`~.BackendV1` and :class:`~.BackendV2` that allow

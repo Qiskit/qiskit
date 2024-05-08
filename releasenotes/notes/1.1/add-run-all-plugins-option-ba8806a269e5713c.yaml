@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The :class:`~.HLSConfig` now has two additional optional arguments. The argument
     ``plugin_selection`` can be set either to ``"sequential"`` or to ``"all"``.
@@ -15,7 +15,7 @@ features:
     that it contains).
 
     The following example illustrates the new functionality::
-
+    .. code-block:: python
         from qiskit import QuantumCircuit
         from qiskit.circuit.library import LinearFunction
         from qiskit.synthesis.linear import random_invertible_binary_matrix

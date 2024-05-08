@@ -1,5 +1,5 @@
 ---
-features:
+features_circuit:
   - |
     Added ``ctrl_state`` parameter to :func:`QuantumCircuit.mcp()` and
     :class:`MCPhaseGate()`.
@@ -15,6 +15,6 @@ features:
     .. code-block:: python
 
       from qiskit import QuantumCircuit
-      
+
       qc = QuantumCircuit(4)
       qc.mcp(0.2,[0,1,2],3,ctrl_state=2)

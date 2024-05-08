@@ -1,5 +1,5 @@
 ---
-features:
+upgrade_circuit:
   - |
     The methods :meth:`~qiskit.circuit.QuantumCircuit.power`,
     :meth:`~qiskit.circuit.Gate.power`, as well as the similar methods
@@ -8,10 +8,11 @@ features:
     argument ``annotated``.
     The default value of ``False`` corresponds to the existing behavior.
     Furthermore, for standard gates with an explicitly defined ``power`` method,
-    the argument ``annotated`` has no effect, for example both
+    the argument ``annotated`` has no effect.
+    For example, both
     ``SGate().power(1.5, annotated=False)`` and ``SGate().power(1.5, annotated=True)``
     return a ``PhaseGate``.
-    The difference manifests for gates without an explicitly defined
+    A difference in the value of ``annotated`` manifests for gates without an explicitly defined
     power method. The value of ``False`` returns a
     :class:`~.library.UnitaryGate`, just as before, while the value of ``True``
     returns an :class:`~.AnnotatedOperation` that represents the instruction

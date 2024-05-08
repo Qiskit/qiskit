@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The transpiler pass :class:`~.ElidePermutations`
     runs by default with optimization level 2 and 3. Intuitively, removing

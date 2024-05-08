@@ -1,0 +1,14 @@
+---
+prelude: >
+    The Qiskit 1.1.0 release is a minor feature release that includes a myriad of new feature and bugfixes.
+    The highlights for this release are:
+
+    * V2 primitives
+
+    * Synthesis-Decomposition in rust
+
+    * New transpiler passes: ElidePermutations, StarPreRouting, OptimizeAnnotated, RemoveFinalReset
+
+    * Improvements to (the organization of) default passmanagers, i.e. new passes, fine-tuning of params
+
+    * Improvements to QuantumVolume

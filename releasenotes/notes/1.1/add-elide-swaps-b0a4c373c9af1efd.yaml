@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new optimization transpiler pass, :class:`~.ElidePermutations`,
     which is designed to run prior to the :ref:`layout_stage` and will
