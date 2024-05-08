@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::circuit_instruction::CircuitInstruction;
-use crate::Interner;
 use crate::slotted_cache::CacheSlot;
+use crate::Interner;
 use crate::{Clbit, PyNativeMapper, Qubit};
 use pyo3::exceptions::PyKeyError;
 use pyo3::prelude::*;

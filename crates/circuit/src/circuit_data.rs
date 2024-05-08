@@ -12,9 +12,9 @@
 
 use crate::bit_data::BitData;
 use crate::circuit_instruction::CircuitInstruction;
-use crate::Interner;
 use crate::packed_instruction::{InstructionPacker, PackedInstruction};
 use crate::slotted_cache::{CacheSlot, SlottedCache};
+use crate::Interner;
 use crate::{BitType, Clbit, PyNativeMapper, Qubit, SliceOrInt};
 
 use pyo3::exceptions::{PyIndexError, PyRuntimeError, PyValueError};
