@@ -683,7 +683,7 @@ class StabilizerState(QuantumState):
             outcome_prob (float): probabilitiy of the outcome
             probs (dict[str, float]): holds the outcomes and probabilitiy results
             outcome_bitstring (str): target outcome to measure which reduces measurements, None
-                if not targetting a specific target
+                if not targeting a specific target
         """
         qubit_for_branching: int = -1
 
