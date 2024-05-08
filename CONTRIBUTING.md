@@ -183,8 +183,8 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
-3. If it makes sense for your change that you have added new tests that
-   cover the changes.
+3. If you are of the opinion that the modifications you made warrant additional tests,
+   feel free to include them
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.
@@ -555,6 +555,58 @@ you just need to update the reference images as follows:
     new tests should now pass.
 
 Note: If you have run `test/ipynb/mpl_tester.ipynb` locally it is possible some file metadata has changed, **please do not commit and push changes to this file unless they were intentional**.
+
+
+### Testing Rust components
+
+Rust-accelerated functions are generally tested from Python space, but in cases
+where there is Rust-specific internal details to be tested, `#[test]` functions
+can be included inline.  Typically it's most convenient to place these in a
+separate inline module that is only conditionally compiled in, such as
+
+```rust
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn my_first_test() {
+        assert_eq!(2, 1 + 1);
+    }
+}
+```
+
+To run the Rust-space tests, do
+
+```bash
+cargo test --no-default-features
+```
+
+Our Rust-space components are configured such that setting the
+``-no-default-features`` flag will compile the test runner, but not attempt to
+build a linked CPython extension module, which would cause linker failures.
+
+### Unsafe code and Miri
+
+Any `unsafe` code added to the Rust logic should be exercised by Rust-space
+tests, in addition to the more complete Python test suite.  In CI, we run the
+Rust test suite under [Miri](https://github.com/rust-lang/miri) as an
+undefined-behavior sanitizer.
+
+Miri is currently only available on `nightly` Rust channels, so to run it
+locally you will need to ensure you have that channel available, such as by
+```bash
+rustup install nightly --components miri
+```
+
+After this, you can run the Miri test suite with
+```bash
+MIRIFLAGS="<flags go here>" cargo +nightly miri test
+```
+
+For the current set of `MIRIFLAGS` used by Qiskit's CI, see the
+[`miri.yml`](https://github.com/Qiskit/qiskit/blob/main/.github/workflows/miri.yml)
+GitHub Action file.  This same file may also include patches to dependencies to
+make them compatible with Miri, which you would need to temporarily apply as
+well.
 
 ## Style and lint
 

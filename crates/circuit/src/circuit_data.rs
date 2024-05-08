@@ -204,7 +204,7 @@ impl CircuitData {
             0,
         )?;
         res.args_cache = self.args_cache.clone();
-        res.data = self.data.clone();
+        res.data.clone_from(&self.data);
         Ok(res)
     }
 
@@ -339,24 +339,24 @@ impl CircuitData {
         clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
         let mut temp = CircuitData::new(py, qubits, clbits, None, 0)?;
-        if temp.qubits.len() < self.qubits.len() {
-            return Err(PyValueError::new_err(format!(
-                "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
-                temp.qubits.len(),
-                self.qubits.len(),
-            )));
-        }
-        if temp.clbits.len() < self.clbits.len() {
-            return Err(PyValueError::new_err(format!(
-                "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
-                temp.clbits.len(),
-                self.clbits.len(),
-            )));
-        }
         if qubits.is_some() {
+            if temp.qubits.len() < self.qubits.len() {
+                return Err(PyValueError::new_err(format!(
+                    "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
+                    temp.qubits.len(),
+                    self.qubits.len(),
+                )));
+            }
             mem::swap(&mut temp.qubits, &mut self.qubits);
         }
         if clbits.is_some() {
+            if temp.clbits.len() < self.clbits.len() {
+                return Err(PyValueError::new_err(format!(
+                    "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
+                    temp.clbits.len(),
+                    self.clbits.len(),
+                )));
+            }
             mem::swap(&mut temp.clbits, &mut self.clbits);
         }
         Ok(())

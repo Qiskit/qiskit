@@ -144,13 +144,13 @@ class Pauli(BasePauli):
 
     .. code-block:: python
 
-        p = Pauli('-iXYZ')
+        P = Pauli('-iXYZ')
 
         print('P[0] =', repr(P[0]))
         print('P[1] =', repr(P[1]))
         print('P[2] =', repr(P[2]))
         print('P[:] =', repr(P[:]))
-        print('P[::-1] =, repr(P[::-1]))
+        print('P[::-1] =', repr(P[::-1]))
     """
 
     # Set the max Pauli string size before truncation

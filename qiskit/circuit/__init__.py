@@ -203,8 +203,8 @@ virtual qubit
 
 .. _circuit-module-api:
 
-API overview of :mod:`qiskit.circuit`
-=====================================
+API overview of qiskit.circuit
+==============================
 
 All objects here are described in more detail, and in their greater context in the following
 sections.  This section provides an overview of the API elements documented here.
