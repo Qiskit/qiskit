@@ -1122,7 +1122,13 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     Args:
         circuit (QuantumCircuit): Input quantum circuit.
         backend (Backend): Target backend.
-        view (str): Layout view: either 'virtual' or 'physical'.
+        view (str): How to label qubits in the layout. Options:
+
+          - ``"virtual"``: Label each qubit with the name of the virtual qubit that
+            mapped to it.
+          - ``"physical"``: Label each qubit with the name of the physical qubit that it
+            corresponds to on the device.
+
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
             sequence must match the number of qubits on the backend. The sequence
