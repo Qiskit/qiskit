@@ -26,6 +26,7 @@ from numbers import Complex
 import numpy as np
 from numpy.typing import ArrayLike
 
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from qiskit.transpiler import TranspileLayout
 
@@ -118,9 +119,9 @@ class ObservablesArray(ShapedMixin):
             A new observables array with the provided layout applied.
 
         Raises:
-            ValueError: If a :class:`~.TranspileLayout` is given that maps to qubit numbers that
+            QiskitError: If a :class:`~.TranspileLayout` is given that maps to qubit numbers that
                 are larger than the number of qubits in this array.
-            ValueError: If ``num_qubits`` is less than the number of
+            QiskitError: If ``num_qubits`` is less than the number of
         """
         if layout is None and num_qubits is None or self.size == 0:
             return ObservablesArray(self._array, copy=True, validate=False)
@@ -134,18 +135,18 @@ class ObservablesArray(ShapedMixin):
         elif isinstance(layout, TranspileLayout):
             n_qubits = len(layout._output_qubit_list)
             layout = layout.final_index_layout()
-            if layout is not None and any(x >= n_qubits for x in layout):
-                raise ValueError("Provided layout contains indices outside the number of qubits.")
         else:
             n_qubits = len(layout)
 
         if num_qubits is not None:
             if num_qubits < n_qubits:
-                raise ValueError(
+                raise QiskitError(
                     f"The input num_qubits is too small, a {num_qubits} qubit layout cannot be "
                     f"applied to a {n_qubits} qubit operator"
                 )
             n_qubits = num_qubits
+        if layout is not None and any(x >= n_qubits for x in layout):
+            raise QiskitError("Provided layout contains indices outside the number of qubits.")
 
         # Check if layout is trivial mapping
         trivial_layout = layout == list(range(obs_num_qubits))
