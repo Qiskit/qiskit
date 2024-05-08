@@ -18,6 +18,7 @@ import itertools as it
 import ddt
 import numpy as np
 
+from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 import qiskit.quantum_info as qi
 from qiskit.primitives import StatevectorEstimator
@@ -367,7 +368,7 @@ class ObservablesArrayTestCase(QiskitTestCase):
         """Test the apply_layout() method errors as expected."""
         obs = ObservablesArray({"XYZ": 1})
         layout = [1, 0, 2]
-        with self.assertRaisesRegex(ValueError, "num_qubits is too small"):
+        with self.assertRaisesRegex(QiskitError, "num_qubits is too small"):
             obs.apply_layout(layout, 2)
 
     def test_apply_layout_trivial(self):
