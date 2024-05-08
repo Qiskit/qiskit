@@ -79,8 +79,10 @@ class XXPlusYYGate(Gate):
             RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
                 \begin{pmatrix}
                     1 & 0 & 0 & 0  \\
-                    0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right)e^{i\beta} & 0 \\
-                    0 & -i\sin\left(\rotationangle\right)e^{-i\beta} & \cos\left(\rotationangle\right) & 0 \\
+                    0 & \cos\left(\rotationangle\right) &
+                    -i\sin\left(\rotationangle\right)e^{i\beta} & 0 \\
+                    0 & -i\sin\left(\rotationangle\right)e^{-i\beta} &
+                    \cos\left(\rotationangle\right) & 0 \\
                     0 & 0 & 0 & 1
                 \end{pmatrix}
     """
