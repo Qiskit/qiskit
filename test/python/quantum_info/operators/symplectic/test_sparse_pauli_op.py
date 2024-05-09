@@ -1191,6 +1191,25 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=[0, 0], num_qubits=3)
 
+    def test_apply_layout_zero_qubit(self):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("coeff"):
+            op = SparsePauliOp("", 2)
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII", 2), res)
+        with self.subTest("layout"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=[], num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("multiple ops"):
+            op = SparsePauliOp.from_list([("", 1), ("", 2)])
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
+
 
 if __name__ == "__main__":
     unittest.main()
