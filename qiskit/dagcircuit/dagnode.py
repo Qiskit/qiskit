@@ -42,6 +42,7 @@ DAGOpNode = qiskit._accelerate.circuit.DAGOpNode
 DAGInNode = qiskit._accelerate.circuit.DAGInNode
 DAGOutNode = qiskit._accelerate.circuit.DAGOutNode
 
+
 def _legacy_condition_eq(cond1, cond2, bit_indices1, bit_indices2) -> bool:
     if cond1 is cond2 is None:
         return True
@@ -167,6 +168,7 @@ def _for_loop_eq(node1, node2, bit_indices1, bit_indices2):
         body2, node2.qargs, node2.cargs, bit_indices2
     )
 
+
 _SEMANTIC_EQ_CONTROL_FLOW = {
     IfElseOp: _condition_op_eq,
     WhileLoopOp: _condition_op_eq,
@@ -175,6 +177,7 @@ _SEMANTIC_EQ_CONTROL_FLOW = {
 }
 
 _SEMANTIC_EQ_SYMMETRIC = frozenset({"barrier", "swap", "break_loop", "continue_loop"})
+
 
 # Note: called from dag_node.rs.
 def _semantic_eq(node1, node2, bit_indices1, bit_indices2):
@@ -224,13 +227,13 @@ def _semantic_eq(node1, node2, bit_indices1, bit_indices2):
         node2_cargs = set(node2_cargs)
 
     return (
-            node1_qargs == node2_qargs
-            and node1_cargs == node2_cargs
-            and _legacy_condition_eq(
-        getattr(node1.op, "condition", None),
-        getattr(node2.op, "condition", None),
-        bit_indices1,
-        bit_indices2,
-    )
-            and node1.op == node2.op
+        node1_qargs == node2_qargs
+        and node1_cargs == node2_cargs
+        and _legacy_condition_eq(
+            getattr(node1.op, "condition", None),
+            getattr(node2.op, "condition", None),
+            bit_indices1,
+            bit_indices2,
+        )
+        and node1.op == node2.op
     )

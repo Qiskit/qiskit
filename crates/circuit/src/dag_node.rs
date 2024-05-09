@@ -13,10 +13,8 @@
 use crate::circuit_instruction::CircuitInstruction;
 use pyo3::prelude::*;
 use pyo3::sync::GILOnceCell;
-use pyo3::types::{PyDict, PyInt, PyList, PySequence, PyString, PyTuple, PyType};
+use pyo3::types::{PyDict, PyList, PySequence, PyString, PyTuple};
 use pyo3::{intern, PyObject, PyResult};
-use std::hash::Hash;
-use std::mem;
 
 static SEMANTIC_EQ_PYTHON: GILOnceCell<PyResult<PyObject>> = GILOnceCell::new();
 
@@ -95,6 +93,8 @@ pub struct DAGOpNode {
     pub sort_key: PyObject,
 }
 
+type DAGOpNodeState = (((PyObject, Py<PyTuple>, Py<PyTuple>), PyObject), isize);
+
 #[pymethods]
 impl DAGOpNode {
     #[new]
@@ -123,9 +123,8 @@ impl DAGOpNode {
                             .iter()
                             .chain(cargs.iter())
                             .map(|bit| {
-                                Ok(dag
-                                    .call_method1(intern!(py, "find_bit"), (bit,))?
-                                    .getattr(intern!(py, "index"))?)
+                                dag.call_method1(intern!(py, "find_bit"), (bit,))?
+                                    .getattr(intern!(py, "index"))
                             })
                             .collect();
                         let index_strs: Vec<_> =
@@ -161,10 +160,7 @@ impl DAGOpNode {
     }
 
     fn __setstate__(mut slf: PyRefMut<Self>, state: &Bound<PyAny>) -> PyResult<()> {
-        let (((operation, qubits, clbits), sort_key), nid): (
-            ((PyObject, Py<PyTuple>, Py<PyTuple>), PyObject),
-            isize,
-        ) = state.extract()?;
+        let (((operation, qubits, clbits), sort_key), nid): DAGOpNodeState = state.extract()?;
         slf.instruction = CircuitInstruction {
             operation,
             qubits,
