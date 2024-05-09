@@ -137,32 +137,32 @@ def synth_clifford_layers(
         cz_func_reverse_qubits=cz_func_reverse_qubits,
     )
 
-    layeredCircuit.append(S2_circ, qubit_list)
+    layeredCircuit.append(S2_circ, qubit_list, copy=False)
 
     if cx_cz_synth_func is None:
-        layeredCircuit.append(CZ2_circ, qubit_list)
+        layeredCircuit.append(CZ2_circ, qubit_list, copy=False)
 
         CXinv = CX_circ.copy().inverse()
-        layeredCircuit.append(CXinv, qubit_list)
+        layeredCircuit.append(CXinv, qubit_list, copy=False)
 
     else:
         # note that CZ2_circ is None and built into the CX_circ when
         # cx_cz_synth_func is not None
-        layeredCircuit.append(CX_circ, qubit_list)
+        layeredCircuit.append(CX_circ, qubit_list, copy=False)
 
-    layeredCircuit.append(H2_circ, qubit_list)
-    layeredCircuit.append(S1_circ, qubit_list)
-    layeredCircuit.append(CZ1_circ, qubit_list)
+    layeredCircuit.append(H2_circ, qubit_list, copy=False)
+    layeredCircuit.append(S1_circ, qubit_list, copy=False)
+    layeredCircuit.append(CZ1_circ, qubit_list, copy=False)
 
     if cz_func_reverse_qubits:
         H1_circ = H1_circ.reverse_bits()
-    layeredCircuit.append(H1_circ, qubit_list)
+    layeredCircuit.append(H1_circ, qubit_list, copy=False)
 
     # Add Pauli layer to fix the Clifford phase signs
 
     clifford_target = Clifford(layeredCircuit)
     pauli_circ = _calc_pauli_diff(cliff, clifford_target)
-    layeredCircuit.append(pauli_circ, qubit_list)
+    layeredCircuit.append(pauli_circ, qubit_list, copy=False)
 
     return layeredCircuit
 

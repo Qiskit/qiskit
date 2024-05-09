@@ -124,14 +124,15 @@ class RXGate(Gate):
         """
         return RXGate(-self.params[0])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the RX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         cos = math.cos(self.params[0] / 2)
         sin = math.sin(self.params[0] / 2)
         return np.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         (theta,) = self.params
         return RXGate(exponent * theta)
 
@@ -269,8 +270,10 @@ class CRXGate(ControlledGate):
         """
         return CRXGate(-self.params[0], ctrl_state=self.ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the CRX gate."""
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         cos = math.cos(half_theta)
         isin = 1j * math.sin(half_theta)

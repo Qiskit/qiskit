@@ -144,13 +144,13 @@ class Pauli(BasePauli):
 
     .. code-block:: python
 
-        p = Pauli('-iXYZ')
+        P = Pauli('-iXYZ')
 
         print('P[0] =', repr(P[0]))
         print('P[1] =', repr(P[1]))
         print('P[2] =', repr(P[2]))
         print('P[:] =', repr(P[:]))
-        print('P[::-1] =, repr(P[::-1]))
+        print('P[::-1] =', repr(P[::-1]))
     """
 
     # Set the max Pauli string size before truncation
@@ -222,10 +222,11 @@ class Pauli(BasePauli):
             return front + "..."
         return self.to_label()
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.to_matrix(), dtype=dtype)
-        return self.to_matrix()
+    def __array__(self, dtype=None, copy=None):
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
+        arr = self.to_matrix()
+        return arr if dtype is None else arr.astype(dtype, copy=False)
 
     @classmethod
     def set_truncation(cls, val: int):

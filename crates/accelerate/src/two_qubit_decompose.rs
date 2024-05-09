@@ -60,7 +60,7 @@ const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
 
-static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
+pub static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
     [Complex64::new(1., 0.), Complex64::new(0., 0.)],
     [Complex64::new(0., 0.), Complex64::new(1., 0.)],
 ];

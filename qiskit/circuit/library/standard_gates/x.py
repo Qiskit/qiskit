@@ -119,7 +119,7 @@ class XGate(SingletonGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -262,7 +262,7 @@ class CXGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -457,7 +457,7 @@ class CCXGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -599,7 +599,7 @@ class C3SXGate(SingletonControlledGate):
         Args:
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
         """
         from .sx import SXGate
 
@@ -800,7 +800,7 @@ class C3XGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1046,7 +1046,7 @@ class C4XGate(SingletonControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
@@ -1221,7 +1221,7 @@ class MCXGate(ControlledGate):
             num_ctrl_qubits: number of control qubits.
             label: An optional label for the gate [Default: ``None``]
             ctrl_state: control state expressed as integer,
-                string (e.g.``'110'``), or ``None``. If ``None``, use all 1s.
+                string (e.g. ``'110'``), or ``None``. If ``None``, use all 1s.
             annotated: indicates whether the controlled gate can be implemented
                 as an annotated gate.
 
