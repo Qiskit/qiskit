@@ -78,7 +78,7 @@ trait Interner<T> {
     /// Interns the provided value, returning the interned value.
     fn intern(&mut self, item: T) -> Result<Self::InternedType, Self::Error>;
     /// Looks up the original value given the interned value.
-    fn lookup(&self, interned: &Self::InternedType) -> T;
+    fn get_interned(&self, interned: &Self::InternedType) -> T;
 }
 
 #[pymodule]

@@ -29,6 +29,11 @@ pub(crate) struct PackedInstruction {
     pub clbits_id: CacheSlot,
 }
 
+/// This trait exists to provide a shared implementation of
+/// instruction packing to Rust `pyclass` types that deal in
+/// terms of Python CircuitInstruction instances in their
+/// public API but need to store [PackedInstruction]
+/// instances, internally.
 pub(crate) trait InstructionPacker {
     /// Packs the provided instruction.
     fn pack(
@@ -71,14 +76,14 @@ where
         self.intern(
             bits.into_iter()
                 .map(|b| {
-                    <Self as PyNativeMapper<Qubit>>::map_to_native(self, &b).ok_or_else(|| {
+                    self.map_to_native(&b).ok_or_else(|| {
                         PyKeyError::new_err(format!(
                             "Bit {:?} has not been added to this circuit.",
                             b
                         ))
                     })
                 })
-                .collect::<PyResult<Vec<_>>>()?,
+                .collect::<PyResult<Vec<Qubit>>>()?,
         )
     }
 
@@ -86,14 +91,14 @@ where
         self.intern(
             bits.into_iter()
                 .map(|b| {
-                    <Self as PyNativeMapper<Clbit>>::map_to_native(self, &b).ok_or_else(|| {
+                    self.map_to_native(&b).ok_or_else(|| {
                         PyKeyError::new_err(format!(
                             "Bit {:?} has not been added to this circuit.",
                             b
                         ))
                     })
                 })
-                .collect::<PyResult<Vec<_>>>()?,
+                .collect::<PyResult<Vec<Clbit>>>()?,
         )
     }
 
@@ -106,29 +111,21 @@ where
     }
 
     fn unpack_qubits<'py>(&self, py: Python<'py>, bits_id: &CacheSlot) -> Bound<'py, PyTuple> {
+        let bits: Vec<Qubit> = self.get_interned(bits_id);
         PyTuple::new_bound(
             py,
-            <Self as Interner<Vec<Qubit>>>::lookup(self, bits_id)
-                .into_iter()
-                .map(|i| {
-                    <Self as PyNativeMapper<Qubit>>::map_to_py(self, i)
-                        .unwrap()
-                        .clone_ref(py)
-                })
+            bits.into_iter()
+                .map(|i| self.map_to_py(i).unwrap().clone_ref(py))
                 .collect::<Vec<_>>(),
         )
     }
 
     fn unpack_clbits<'py>(&self, py: Python<'py>, bits_id: &CacheSlot) -> Bound<'py, PyTuple> {
+        let bits: Vec<Clbit> = self.get_interned(bits_id);
         PyTuple::new_bound(
             py,
-            <Self as Interner<Vec<Clbit>>>::lookup(self, bits_id)
-                .into_iter()
-                .map(|i| {
-                    <Self as PyNativeMapper<Clbit>>::map_to_py(self, i)
-                        .unwrap()
-                        .clone_ref(py)
-                })
+            bits.into_iter()
+                .map(|i| self.map_to_py(i).unwrap().clone_ref(py))
                 .collect::<Vec<_>>(),
         )
     }

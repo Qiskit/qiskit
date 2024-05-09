@@ -700,7 +700,7 @@ impl<T: Into<BitType> + From<BitType>> Interner<Vec<T>> for CircuitData {
             .map_err(|_| PyRuntimeError::new_err("Interner capacity exceeded!"))
     }
 
-    fn lookup(&self, interned: &Self::InternedType) -> Vec<T> {
+    fn get_interned(&self, interned: &Self::InternedType) -> Vec<T> {
         self.args_cache
             .get(*interned)
             .iter()
