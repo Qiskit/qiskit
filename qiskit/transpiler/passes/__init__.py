@@ -244,6 +244,7 @@ from .optimization import OptimizeCliffords
 from .optimization import ElidePermutations
 from .optimization import NormalizeRXAngle
 from .optimization import OptimizeAnnotated
+from .optimization import DropNegligible
 
 # circuit analysis
 from .analysis import ResourceEstimation
