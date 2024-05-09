@@ -1039,7 +1039,9 @@ def plot_coupling_map(
         graph = CouplingMap(coupling_map).graph
 
     if not plot_directed:
+        line_color_map = dict(zip(graph.edge_list(), line_color))
         graph = graph.to_undirected(multigraph=False)
+        line_color = [line_color_map[edge] for edge in graph.edge_list()]
 
     for node in graph.node_indices():
         graph[node] = node
