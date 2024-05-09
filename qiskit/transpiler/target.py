@@ -62,15 +62,13 @@ class InstructionProperties(InstructionProperties2):
 
     def __new__(
         cls,
-        duration=None,
-        error=None,
-        calibration=None,
+        duration=None,  # pylint: disable=keyword-arg-before-vararg
+        error=None,  # pylint: disable=keyword-arg-before-vararg
+        calibration=None,  # pylint: disable=keyword-arg-before-vararg
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return InstructionProperties2.__new__(
-            cls, duration=duration, error=error, calibration=calibration
-        )
+        return super().__new__(cls, duration, error, calibration)
 
     def __init__(
         self,
@@ -367,16 +365,6 @@ class Target(Target2):
         if to_remove:
             graph.remove_nodes_from(list(to_remove))
         return graph
-
-    # Magic methods
-
-    def __iter__(self):
-        """Returns an iterator over the names of each supported gate"""
-        return iter(super().__iter__())
-
-    def keys(self):
-        """Return all gate names present in the Target"""
-        return {x: None for x in super().keys()}.keys()
 
     def __str__(self):
         output = io.StringIO()

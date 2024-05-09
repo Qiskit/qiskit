@@ -34,10 +34,10 @@ impl PropsMapIter {
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> PyObject {
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
         match &mut slf.iter {
-            PropsMapIterTypes::Iter(iter) => iter.next().into_py(slf.py()),
-            PropsMapIterTypes::Keys(iter) => iter.next().into_py(slf.py()),
+            PropsMapIterTypes::Iter(iter) => iter.next(),
+            PropsMapIterTypes::Keys(iter) => iter.next(),
         }
     }
 }
@@ -199,5 +199,14 @@ impl PropsMap {
 
     fn items(&self) -> Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)> {
         self.map.clone().into_iter().collect_vec()
+    }
+
+    fn __setstate__(&mut self, state: (PropsMapKV,)) -> PyResult<()> {
+        self.map = state.0;
+        Ok(())
+    }
+
+    fn __getstate__(&self) -> (PropsMapKV,) {
+        (self.map.clone(),)
     }
 }
