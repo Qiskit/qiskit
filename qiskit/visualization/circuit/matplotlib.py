@@ -893,7 +893,7 @@ class MatplotlibDrawer:
             this_clbit_dict = {}
             for clbit in clbits_dict.values():
                 y = clbit["y"] - fold_num * (glob_data["n_lines"] + 1)
-                if y not in this_clbit_dict.keys():
+                if y not in this_clbit_dict:
                     this_clbit_dict[y] = {
                         "val": 1,
                         "wire_label": clbit["wire_label"],
