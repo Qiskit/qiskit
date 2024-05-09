@@ -37,17 +37,20 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
     ``ValueError`` will be raised instead.  The given ``add_register`` callable may choose to raise
     its own exception."""
 
-    __slots__ = ("target_cregs", "register_map", "bit_map", "add_register")
+    __slots__ = ("target_cregs", "register_map", "bit_map", "var_map", "add_register")
 
     def __init__(
         self,
         target_cregs: typing.Iterable[ClassicalRegister],
         bit_map: typing.Mapping[Bit, Bit],
+        var_map: typing.Mapping[expr.Var, expr.Var] | None = None,
+        *,
         add_register: typing.Callable[[ClassicalRegister], None] | None = None,
     ):
         self.target_cregs = tuple(target_cregs)
         self.register_map = {}
         self.bit_map = bit_map
+        self.var_map = var_map or {}
         self.add_register = add_register
 
     def _map_register(self, theirs: ClassicalRegister) -> ClassicalRegister:
@@ -127,9 +130,7 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
             return expr.Var(self.bit_map[node.var], node.type)
         if isinstance(node.var, ClassicalRegister):
             return expr.Var(self._map_register(node.var), node.type)
-        # Defensive against the expansion of the variable system; we don't want to silently do the
-        # wrong thing (which would be `return node` without mapping, right now).
-        raise RuntimeError(f"unhandled variable in 'compose': {node}")  # pragma: no cover
+        return self.var_map.get(node, node)
 
     def visit_value(self, node, /):
         return expr.Value(node.value, node.type)

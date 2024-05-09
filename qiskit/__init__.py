@@ -65,6 +65,8 @@ sys.modules["qiskit._accelerate.convert_2q_block_matrix"] = (
 )
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.error_map"] = qiskit._accelerate.error_map
+sys.modules["qiskit._accelerate.isometry"] = qiskit._accelerate.isometry
+sys.modules["qiskit._accelerate.uc_gate"] = qiskit._accelerate.uc_gate
 sys.modules["qiskit._accelerate.euler_one_qubit_decomposer"] = (
     qiskit._accelerate.euler_one_qubit_decomposer
 )

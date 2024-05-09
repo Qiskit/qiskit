@@ -350,20 +350,20 @@ def _parse_common_args(
     ]
 
     # create run configuration and populate
-    run_config_dict = dict(
-        shots=shots,
-        memory=memory,
-        seed_simulator=seed_simulator,
-        init_qubits=init_qubits,
-        rep_delay=rep_delay,
-        qubit_lo_freq=qubit_lo_freq,
-        meas_lo_freq=meas_lo_freq,
-        qubit_lo_range=qubit_lo_range,
-        meas_lo_range=meas_lo_range,
-        schedule_los=schedule_los,
-        n_qubits=n_qubits,
+    run_config_dict = {
+        "shots": shots,
+        "memory": memory,
+        "seed_simulator": seed_simulator,
+        "init_qubits": init_qubits,
+        "rep_delay": rep_delay,
+        "qubit_lo_freq": qubit_lo_freq,
+        "meas_lo_freq": meas_lo_freq,
+        "qubit_lo_range": qubit_lo_range,
+        "meas_lo_range": meas_lo_range,
+        "schedule_los": schedule_los,
+        "n_qubits": n_qubits,
         **run_config,
-    )
+    }
 
     return qobj_id, qobj_header, run_config_dict
 
@@ -452,15 +452,15 @@ def _parse_pulse_args(
         parametric_pulses = getattr(backend_config, "parametric_pulses", [])
 
     # create run configuration and populate
-    run_config_dict = dict(
-        meas_level=meas_level,
-        meas_return=meas_return,
-        meas_map=meas_map,
-        memory_slot_size=memory_slot_size,
-        rep_time=rep_time,
-        parametric_pulses=parametric_pulses,
+    run_config_dict = {
+        "meas_level": meas_level,
+        "meas_return": meas_return,
+        "meas_map": meas_map,
+        "memory_slot_size": memory_slot_size,
+        "rep_time": rep_time,
+        "parametric_pulses": parametric_pulses,
         **run_config,
-    )
+    }
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return run_config
@@ -478,7 +478,7 @@ def _parse_circuit_args(
     """
     parameter_binds = parameter_binds or []
     # create run configuration and populate
-    run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
+    run_config_dict = {"parameter_binds": parameter_binds, **run_config}
     if parametric_pulses is None:
         if backend:
             run_config_dict["parametric_pulses"] = getattr(
