@@ -10,10 +10,8 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-mod bit_packing;
 pub mod circuit_data;
 pub mod circuit_instruction;
-pub mod dag_circuit;
 pub mod dag_node;
 pub mod intern_context;
 
@@ -33,7 +31,6 @@ pub enum SliceOrInt<'a> {
 #[pymodule]
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
-    m.add_class::<dag_circuit::DAGCircuit>()?;
     m.add_class::<dag_node::DAGNode>()?;
     m.add_class::<dag_node::DAGInNode>()?;
     m.add_class::<dag_node::DAGOutNode>()?;
