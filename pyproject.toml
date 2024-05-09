@@ -226,7 +226,6 @@ disable = [
     "no-value-for-parameter",
     "not-context-manager",
     "unexpected-keyword-arg",
-    "unnecessary-dict-index-lookup",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
