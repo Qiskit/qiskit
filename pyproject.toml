@@ -218,7 +218,6 @@ disable = [
 #  with the rationale
     "arguments-renamed",
     "broad-exception-raised",
-    "consider-iterating-dictionary",
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
