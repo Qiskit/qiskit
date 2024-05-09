@@ -1124,9 +1124,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         backend (Backend): Target backend.
         view (str): How to label qubits in the layout. Options:
 
-          - ``"virtual"``: Label each qubit with the name of the virtual qubit that
+          - ``"virtual"``: Label each qubit with the index of the virtual qubit that
             mapped to it.
-          - ``"physical"``: Label each qubit with the name of the physical qubit that it
+          - ``"physical"``: Label each qubit with the index of the physical qubit that it
             corresponds to on the device.
 
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
