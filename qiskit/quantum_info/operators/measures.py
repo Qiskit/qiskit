@@ -350,7 +350,7 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
     return sol
 
 
-def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
+def unitary_diamond_distance(op1: Operator, op2: Operator) -> float:
     r"""Return the diamond distance between two unitary operators.
 
     This function computes the completely-bounded trace-norm (often
@@ -360,8 +360,8 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
     :meth:`~qiskit.quantum_info.diamond_norm`.
 
     Args:
-        channel1 (Operator): a unitary operator.
-        channel2 (Operator): a unitary operator.
+        op1 (Operator): a unitary operator.
+        op2 (Operator): a unitary operator.
 
     Returns:
         float: The completely-bounded trace norm :math:`\|U - V\|_{\diamond}`.
@@ -379,18 +379,18 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
         mixed states” in Proceedings of the thirtieth annual ACM symposium
         on Theory of computing, pp. 20-30, 1998.
     """
-    op1 = _input_formatter(channel1, Operator, "unitary_diamond_distance", "channel1")
-    op2 = _input_formatter(channel2, Operator, "unitary_diamond_distance", "channel2")
+    op1 = _input_formatter(op1, Operator, "unitary_diamond_distance", "op1")
+    op2 = _input_formatter(op2, Operator, "unitary_diamond_distance", "op2")
 
     # Check operators are unitary and have same dimension
     if not op1.is_unitary():
         raise ValueError(
-            "Invalid operator supplied to channel1 of unitary_diamond_distance"
+            "Invalid operator supplied to op1 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if not op2.is_unitary():
         raise ValueError(
-            "Invalid operator supplied to channel2 of unitary_diamond_distance"
+            "Invalid operator supplied to op2 of unitary_diamond_distance"
             "operators must be unitary."
         )
     if op1.dim != op2.dim:
@@ -400,9 +400,9 @@ def unitary_diamond_distance(channel1: Operator, channel2: Operator) -> float:
         )
 
     # Compute the diamond norm
-    op1 = op1.data
-    op2 = op2.data
-    pre_diag = np.conj(op1).T @ op2
+    mat1 = op1.data
+    mat2 = op2.data
+    pre_diag = np.conj(mat1).T @ mat2
     eigenvals = np.linalg.eigvals(pre_diag)
     d = _find_poly_distance(eigenvals)
     return 2 * np.sqrt(1 - d**2)
