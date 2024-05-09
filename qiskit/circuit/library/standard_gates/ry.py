@@ -291,10 +291,10 @@ class CRYGate(ControlledGate):
 
 
 class MCRYGate(ControlledGate):
-    r"""The general, multi-controlled X rotation gate.
+    r"""The general, multi-controlled Y rotation gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.mcrx` method.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcry` method.
     """
 
     def __init__(
@@ -304,13 +304,15 @@ class MCRYGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
+        mode: str = "noancilla",
+        use_basis_gates: bool = False,
         duration=None,
         unit="dt",
         _name="mcry",
         _base_label=None,
     ):
         """Create new MCRY gate."""
-        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits)
+        num_ancilla_qubits = self.__class__.get_num_ancilla_qubits(num_ctrl_qubits, mode=mode)
         super().__init__(
             _name,
             num_ctrl_qubits + 1 + num_ancilla_qubits,
@@ -322,6 +324,8 @@ class MCRYGate(ControlledGate):
             duration=duration,
             unit=unit,
         )
+        self._mode = mode
+        self._use_basis_gates = use_basis_gates
 
     def inverse(self, annotated: bool = False):
         r"""Return inverse MCRY gate (i.e. with the negative rotation angle).
@@ -335,13 +339,15 @@ class MCRYGate(ControlledGate):
         Returns:
             MCRYGate: inverse gate.
         """
-        # use __class__ so this works for derived classes
-        return self.__class__(
-            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        return MCRYGate(
+            -self.params[0],
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+            use_basis_gates=self._use_basis_gates,
         )
 
     @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "noancilla") -> int:
+    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str) -> int:
         """Get the number of required ancilla qubits without instantiating the class.
 
         This staticmethod might be necessary to check the number of ancillas before
@@ -353,6 +359,11 @@ class MCRYGate(ControlledGate):
             return MCXGate.get_num_ancilla_qubits(num_ctrl_qubits, "v-chain")
         raise QiskitError(f"Unrecognized mode for building MCRY gate: {mode}.")
 
+    @property
+    def num_ancilla_qubits(self):
+        """The number of ancilla qubits."""
+        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits, mode=self._mode)
+
     def _define(self):
         """Define the MCRY gate without ancillae."""
         # pylint: disable=cyclic-import
@@ -360,10 +371,24 @@ class MCRYGate(ControlledGate):
 
         q = QuantumRegister(self.num_qubits, name="q")
         qc = QuantumCircuit(q)
-        q_controls = list(range(self.num_ctrl_qubits))
-        q_target = self.num_ctrl_qubits
-        if self.num_ctrl_qubits == 1:
-            qc.cry(self.params[0], q_controls[0], q_target)
+        q_controls = q[: self.num_ctrl_qubits]
+        q_target = q[self.num_ctrl_qubits]
+        q_ancillas = q[self.num_ctrl_qubits + 1 :]
+        if self._mode == "basic":
+            qc.ry(self.params[0] / 2, q_target)
+            qc.mcx(q_controls, q_target, q_ancillas, mode="v-chain")
+            qc.ry(-self.params[0] / 2, q_target)
+            qc.mcx(q_controls, q_target, q_ancillas, mode="v-chain")
+        elif self.num_ctrl_qubits == 1:
+            _apply_cu(
+                qc,
+                self.params[0],
+                0,
+                0,
+                q_controls[0],
+                q_target,
+                use_basis_gates=self._use_basis_gates,
+            )
         elif self.num_ctrl_qubits < 4:
             theta_step = self.params[0] * (1 / (2 ** (self.num_ctrl_qubits - 1)))
             _apply_mcu_graycode(
@@ -373,21 +398,16 @@ class MCRYGate(ControlledGate):
                 0,
                 q_controls,
                 q_target,
-                use_basis_gates=False,
+                use_basis_gates=self._use_basis_gates,
             )
         else:
             cgate = _mcsu2_real_diagonal(
                 RYGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
-                use_basis_gates=False,
+                use_basis_gates=self._use_basis_gates,
             )
             qc.compose(cgate, q_controls + [q_target], inplace=True)
         self.definition = qc
-
-    @property
-    def num_ancilla_qubits(self):
-        """The number of ancilla qubits."""
-        return self.__class__.get_num_ancilla_qubits(self.num_ctrl_qubits)
 
     def control(
         self,
@@ -422,145 +442,3 @@ class MCRYGate(ControlledGate):
                 num_ctrl_qubits, label=label, ctrl_state=ctrl_state, annotated=annotated
             )
         return gate
-
-
-class MCRYPUCXBasis(MCRYGate):
-    r"""The general, multi-controlled X rotation gate using p, u, and cx as basis gates.
-
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.mcry` method.
-    """
-
-    def __init__(
-        self,
-        theta: ParameterValueType,  # type: ignore
-        num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        *,
-        duration=None,
-        unit="dt",
-        _base_label=None,
-    ):
-        """Create new MCRYPUCXBasis gate."""
-        super().__init__(
-            theta=theta,
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            duration=duration,
-            unit=unit,
-            _base_label=_base_label,
-        )
-
-    def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q)
-        q_controls = list(range(self.num_ctrl_qubits))
-        q_target = self.num_ctrl_qubits
-        if self.num_ctrl_qubits == 1:
-            _apply_cu(
-                qc,
-                self.params[0],
-                0,
-                0,
-                q_controls[0],
-                q_target,
-                use_basis_gates=True,
-            )
-        elif self.num_ctrl_qubits < 4:
-            theta_step = self.params[0] * (1 / (2 ** (self.num_ctrl_qubits - 1)))
-            _apply_mcu_graycode(
-                qc,
-                theta_step,
-                0,
-                0,
-                q_controls,
-                q_target,
-                use_basis_gates=True,
-            )
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RYGate(self.params[0]).to_matrix(),
-                num_controls=self.num_ctrl_qubits,
-                use_basis_gates=True,
-            )
-            qc.compose(cgate, q_controls + [q_target], inplace=True)
-        self.definition = qc
-
-
-class MCRYVChain(MCRYGate):
-    """Implement the multi-controlled RX gate using a V-chain of CX gates."""
-
-    def __init__(
-        self,
-        theta: ParameterValueType,  # type: ignore
-        num_ctrl_qubits: int,
-        ancilla_qubits: bool = False,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        *,
-        duration=None,
-        unit="dt",
-        _base_label=None,
-    ):
-        super().__init__(
-            theta,
-            num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            _name="mcry_vchain",
-            _base_label=_base_label,
-            duration=duration,
-            unit=unit,
-        )
-        self._ancilla_qubits = ancilla_qubits
-
-    def inverse(self, annotated: bool = False):
-        """Return inverse MCRY gate (i.e. with the negative rotation angle).
-
-        Args:
-            annotated: when set to ``True``, this is typically used to return an
-                :class:`.AnnotatedOperation` with an inverse modifier set instead of a concrete
-                :class:`.Gate`. However, for this class this argument is ignored as the inverse
-                of this gate is always a :class:`.MCRYVChain` with an inverted parameter value.
-
-        Returns:
-            MCRYVChain: inverse gate.
-        """
-        return MCRYVChain(
-            -self.params[0],
-            num_ctrl_qubits=self.num_ctrl_qubits,
-            ancilla_qubits=self._ancilla_qubits,
-            ctrl_state=self.ctrl_state,
-        )
-
-    @staticmethod
-    def get_num_ancilla_qubits(num_ctrl_qubits: int, mode: str = "basic") -> int:
-        """Get the number of required ancilla qubits without instantiating the class.
-
-        This staticmethod might be necessary to check the number of ancillas before
-        creating the gate, or to use the number of ancillas in the initialization.
-        """
-        return MCRYGate.get_num_ancilla_qubits(num_ctrl_qubits, mode)
-
-    def _define(self):
-        """Define the MCRY gate using a V-chain of CX gates."""
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q, name=self.name)
-        q_controls = q[: self.num_ctrl_qubits]
-        q_target = q[self.num_ctrl_qubits]
-        q_ancillas = q[self.num_ctrl_qubits + 1 :]
-
-        qc.ry(self.params[0] / 2, q_target)
-        qc.mcx(q_controls, q_target, q_ancillas, mode="v-chain")
-        qc.ry(-self.params[0] / 2, q_target)
-        qc.mcx(q_controls, q_target, q_ancillas, mode="v-chain")
-
-        self.definition = qc

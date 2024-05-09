@@ -4553,16 +4553,14 @@ class QuantumCircuit:
         Raises:
             QiskitError: parameter errors
         """
-        from .library.standard_gates.rx import MCRXGate, MCRXPUCXBasis
+        from .library.standard_gates.rx import MCRXGate
 
-        if use_basis_gates:
-            return self.append(
-                MCRXPUCXBasis(theta, len(q_controls), ctrl_state=ctrl_state),
-                q_controls[:] + [q_target],
-                [],
-            )
         return self.append(
-            MCRXGate(theta, len(q_controls), ctrl_state=ctrl_state), q_controls[:] + [q_target], []
+            MCRXGate(
+                theta, len(q_controls), ctrl_state=ctrl_state, use_basis_gates=use_basis_gates
+            ),
+            q_controls[:] + [q_target],
+            [],
         )
 
     def mcry(
@@ -4597,67 +4595,38 @@ class QuantumCircuit:
             ValueError: if the given mode is not known, or if too few ancilla qubits are passed.
             AttributeError: if no ancilla qubits are passed, but some are needed.
         """
-        from .library.standard_gates.ry import MCRYGate, MCRYPUCXBasis, MCRYVChain
-
-        num_ctrl_qubits = len(q_controls)
-
-        available_implementations = {
-            "noancilla": MCRYGate(theta, num_ctrl_qubits, ctrl_state=ctrl_state),
-            "basic": MCRYVChain(theta, num_ctrl_qubits, ancilla_qubits=True, ctrl_state=ctrl_state),
-        }
-
-        if use_basis_gates:
-            available_implementations["noancilla"] = MCRYPUCXBasis(
-                theta, num_ctrl_qubits, ctrl_state=ctrl_state
-            )
+        from .library.standard_gates.ry import MCRYGate
 
         # check ancilla input
-        if q_ancillae:
+        if q_ancillae is not None:
             _ = self.qbit_argument_conversion(q_ancillae)
+        else:
+            q_ancillae = []
 
         # auto-select the best mode
         if mode is None:
-            if isinstance(q_ancillae, int):
-                # if enough ancillary qubits are provided, use the 'v-chain' method
-                additional_vchain = MCRYVChain.get_num_ancilla_qubits(1)
-                if len(q_ancillae) >= additional_vchain:
-                    mode = "basic"
-                else:
-                    mode = "noancilla"
-            elif q_ancillae is not None:
-                # if enough ancillary qubits are provided, use the 'v-chain' method
-                additional_vchain = MCRYVChain.get_num_ancilla_qubits(len(q_ancillae))
-                if len(q_ancillae) >= additional_vchain:
-                    mode = "basic"
-                else:
-                    mode = "noancilla"
+            # if enough ancillary qubits are provided, use the 'basic' method
+            additional_qubits = MCRYGate.get_num_ancilla_qubits(len(q_controls), "basic")
+            if len(q_ancillae) >= additional_qubits:
+                mode = "basic"
             else:
                 mode = "noancilla"
 
-        try:
-            gate = available_implementations[mode]
-        except KeyError as ex:
-            all_modes = list(available_implementations.keys())
-            raise ValueError(
-                f"Unsupported mode ({mode}) selected, choose one of {all_modes}"
-            ) from ex
+        gate = MCRYGate(
+            theta,
+            len(q_controls),
+            ctrl_state=ctrl_state,
+            mode=mode,
+            use_basis_gates=use_basis_gates,
+        )
 
-        if hasattr(gate, "num_ancilla_qubits") and gate.num_ancilla_qubits > 0:
+        if gate.num_ancilla_qubits > 0:
             required = gate.num_ancilla_qubits
-            if q_ancillae is None:
-                raise AttributeError(f"No ancillas provided, but {required} are needed!")
-
-            # convert ancilla qubits to a list if they were passed as int or qubit
-            if not hasattr(q_ancillae, "__len__"):
-                q_ancillae = [q_ancillae]
-
-            if len(q_ancillae) < required:
-                actually = len(q_ancillae)
-                raise ValueError(f"At least {required} ancillas required, but {actually} given.")
+            actual = len(q_ancillae)
+            if actual < required:
+                raise ValueError(f"At least {required} ancillas required, but {actual} given.")
             # size down if too many ancillas were provided
             q_ancillae = q_ancillae[:required]
-        else:
-            q_ancillae = []
 
         return self.append(gate, q_controls[:] + [q_target] + q_ancillae[:], [])
 
@@ -4685,16 +4654,12 @@ class QuantumCircuit:
         Raises:
             QiskitError: parameter errors
         """
-        from .library.standard_gates.rz import MCRZGate, MCRZPUCXBasis
+        from .library.standard_gates.rz import MCRZGate
 
-        if use_basis_gates:
-            return self.append(
-                MCRZPUCXBasis(lam, len(q_controls), ctrl_state=ctrl_state),
-                q_controls[:] + [q_target],
-                [],
-            )
         return self.append(
-            MCRZGate(lam, len(q_controls), ctrl_state=ctrl_state), q_controls[:] + [q_target], []
+            MCRZGate(lam, len(q_controls), ctrl_state=ctrl_state, use_basis_gates=use_basis_gates),
+            q_controls[:] + [q_target],
+            [],
         )
 
     def y(self, qubit: QubitSpecifier) -> InstructionSet:

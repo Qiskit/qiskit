@@ -308,7 +308,7 @@ class CRZGate(ControlledGate):
 
 
 class MCRZGate(ControlledGate):
-    r"""The general, multi-controlled X rotation gate.
+    r"""The general, multi-controlled Z rotation gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcrz` method.
@@ -321,6 +321,7 @@ class MCRZGate(ControlledGate):
         label: Optional[str] = None,
         ctrl_state: Optional[Union[str, int]] = None,
         *,
+        use_basis_gates: bool = False,
         duration=None,
         unit="dt",
         _base_label=None,
@@ -337,6 +338,7 @@ class MCRZGate(ControlledGate):
             duration=duration,
             unit=unit,
         )
+        self._use_basis_gates = use_basis_gates
 
     def inverse(self, annotated: bool = False):
         r"""Return inverse MCRZ gate (i.e. with the negative rotation angle).
@@ -350,9 +352,11 @@ class MCRZGate(ControlledGate):
         Returns:
             MCRZGate: inverse gate.
         """
-        # use __class__ so this works for derived classes
-        return self.__class__(
-            -self.params[0], num_ctrl_qubits=self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        return MCRZGate(
+            -self.params[0],
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+            use_basis_gates=self._use_basis_gates,
         )
 
     def _define(self):
@@ -363,13 +367,18 @@ class MCRZGate(ControlledGate):
         qc = QuantumCircuit(q)
         q_controls = list(range(self.num_ctrl_qubits))
         q_target = self.num_ctrl_qubits
-        if self.num_ctrl_qubits == 1:
+        if self.num_ctrl_qubits == 1 and not self._use_basis_gates:
             qc.crz(self.params[0], q_controls[0], q_target)
+        elif self.num_ctrl_qubits == 1 and self._use_basis_gates:
+            qc.u(0, 0, self.params[0] / 2, q_target)
+            qc.cx(q_controls[0], q_target)
+            qc.u(0, 0, -self.params[0] / 2, q_target)
+            qc.cx(q_controls[0], q_target)
         else:
             cgate = _mcsu2_real_diagonal(
                 RZGate(self.params[0]).to_matrix(),
                 num_controls=self.num_ctrl_qubits,
-                use_basis_gates=False,
+                use_basis_gates=self._use_basis_gates,
             )
             qc.compose(cgate, q_controls + [q_target], inplace=True)
         self.definition = qc
@@ -410,55 +419,3 @@ class MCRZGate(ControlledGate):
                 annotated=annotated,
             )
         return gate
-
-
-class MCRZPUCXBasis(MCRZGate):
-    r"""The general, multi-controlled X rotation gate using p, u, and cx as basis gates.
-
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.mcrz` method.
-    """
-
-    def __init__(
-        self,
-        lam: ParameterValueType,  # type: ignore
-        num_ctrl_qubits: int,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-        *,
-        duration=None,
-        unit="dt",
-        _base_label=None,
-    ):
-        """Create new MCRZPUCXBasis gate."""
-        super().__init__(
-            lam=lam,
-            num_ctrl_qubits=num_ctrl_qubits,
-            label=label,
-            ctrl_state=ctrl_state,
-            duration=duration,
-            unit=unit,
-            _base_label=_base_label,
-        )
-
-    def _define(self):
-        # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
-
-        q = QuantumRegister(self.num_qubits, name="q")
-        qc = QuantumCircuit(q)
-        q_controls = list(range(self.num_ctrl_qubits))
-        q_target = self.num_ctrl_qubits
-        if self.num_ctrl_qubits == 1:
-            qc.u(0, 0, self.params[0] / 2, q_target)
-            qc.cx(q_controls[0], q_target)
-            qc.u(0, 0, -self.params[0] / 2, q_target)
-            qc.cx(q_controls[0], q_target)
-        else:
-            cgate = _mcsu2_real_diagonal(
-                RZGate(self.params[0]).to_matrix(),
-                num_controls=self.num_ctrl_qubits,
-                use_basis_gates=True,
-            )
-            qc.compose(cgate, q_controls + [q_target], inplace=True)
-        self.definition = qc

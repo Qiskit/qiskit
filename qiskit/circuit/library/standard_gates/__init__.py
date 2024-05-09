@@ -14,43 +14,55 @@
 Standard gates
 """
 
-from .h import HGate, CHGate
+from .dcx import DCXGate
+from .ecr import ECRGate
+from .global_phase import GlobalPhaseGate
+from .h import CHGate, HGate
 from .i import IGate
-from .p import PhaseGate, CPhaseGate, MCPhaseGate
+from .iswap import iSwapGate
+from .p import CPhaseGate, MCPhaseGate, PhaseGate
 from .r import RGate
-from .rx import RXGate, CRXGate, MCRXPUCXBasis, MCRXGate
+from .rx import CRXGate, MCRXGate, RXGate
 from .rxx import RXXGate
-from .ry import RYGate, CRYGate, MCRYGate, MCRYPUCXBasis, MCRYVChain
+from .ry import CRYGate, MCRYGate, RYGate
 from .ryy import RYYGate
-from .rz import RZGate, CRZGate, MCRZGate, MCRZPUCXBasis
-from .rzz import RZZGate
+from .rz import CRZGate, MCRZGate, RZGate
 from .rzx import RZXGate
+from .rzz import RZZGate
+from .s import CSdgGate, CSGate, SdgGate, SGate
+from .swap import CSwapGate, SwapGate
+from .sx import CSXGate, SXdgGate, SXGate
+from .t import TdgGate, TGate
+from .u import CUGate, UGate
+from .u1 import CU1Gate, MCU1Gate, U1Gate
+from .u2 import U2Gate
+from .u3 import CU3Gate, U3Gate
+from .x import (
+    C3SXGate,
+    C3XGate,
+    C4XGate,
+    CCXGate,
+    CXGate,
+    MCXGate,
+    MCXGrayCode,
+    MCXRecursive,
+    MCXVChain,
+    RC3XGate,
+    RCCXGate,
+    XGate,
+)
 from .xx_minus_yy import XXMinusYYGate
 from .xx_plus_yy import XXPlusYYGate
-from .ecr import ECRGate
-from .s import SGate, SdgGate, CSGate, CSdgGate
-from .swap import SwapGate, CSwapGate
-from .iswap import iSwapGate
-from .sx import SXGate, SXdgGate, CSXGate
-from .dcx import DCXGate
-from .t import TGate, TdgGate
-from .u import UGate, CUGate
-from .u1 import U1Gate, CU1Gate, MCU1Gate
-from .u2 import U2Gate
-from .u3 import U3Gate, CU3Gate
-from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3XGate
-from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
-from .y import YGate, CYGate
-from .z import ZGate, CZGate, CCZGate
-from .global_phase import GlobalPhaseGate
+from .y import CYGate, YGate
+from .z import CCZGate, CZGate, ZGate
 
 
 def get_standard_gate_name_mapping():
     """Return a dictionary mapping the name of standard gates and instructions to an object for
     that name."""
-    from qiskit.circuit.parameter import Parameter
-    from qiskit.circuit.measure import Measure
     from qiskit.circuit.delay import Delay
+    from qiskit.circuit.measure import Measure
+    from qiskit.circuit.parameter import Parameter
     from qiskit.circuit.reset import Reset
 
     # Standard gates library mapping, multicontrolled gates not included since they're
