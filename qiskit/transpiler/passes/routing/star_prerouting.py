@@ -329,13 +329,13 @@ class StarPreRouting(TransformationPass):
             last_2q_gate = None
 
         int_digits = floor(log10(len(processing_order))) + 1
-        processing_order_s = set(processing_order)
+        processing_order_index_map = {
+            node: f"a{str(index).zfill(int(int_digits))}"
+            for index, node in enumerate(processing_order)
+        }
 
         def tie_breaker_key(node):
-            if node in processing_order_s:
-                return "a" + str(processing_order.index(node)).zfill(int(int_digits))
-            else:
-                return node.sort_key
+            return processing_order_index_map.get(node, node.sort_key)
 
         for node in dag.topological_op_nodes(key=tie_breaker_key):
             block_id = node_to_block_id.get(node, None)
