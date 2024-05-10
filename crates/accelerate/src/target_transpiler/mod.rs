@@ -1128,7 +1128,7 @@ impl Target {
                                         .all(|x| x.index() < self.num_qubits.unwrap_or_default()));
                             }
                         } else {
-                            let qubit_comparison = self.gate_name_map[op_name]
+                            let qubit_comparison = obj
                                 .getattr(py, "num_qubits")?
                                 .extract::<usize>(py)?;
                             return Ok(qubit_comparison == _qargs.vec.len()
@@ -1206,7 +1206,7 @@ impl Target {
                                     return Ok(false);
                                 }
                             } else {
-                                let qubit_comparison = self.gate_name_map[operation_names]
+                                let qubit_comparison = obj
                                     .getattr(py, "num_qubits")?
                                     .extract::<usize>(py)?;
                                 return Ok(qubit_comparison == _qargs.vec.len()
