@@ -606,6 +606,18 @@ class TestPauli(QiskitTestCase):
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
 
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = Pauli("IZ")
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
 
 if __name__ == "__main__":
     unittest.main()
