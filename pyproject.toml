@@ -218,7 +218,6 @@ disable = [
 #  with the rationale
     "arguments-renamed",
     "broad-exception-raised",
-    "consider-using-dict-items",
     "consider-using-f-string",
     "no-member",
     "no-value-for-parameter",
@@ -227,7 +226,6 @@ disable = [
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
-    "unsupported-assignment-operation",
 ]
 
 enable = [

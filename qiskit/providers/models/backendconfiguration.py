@@ -892,9 +892,9 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         channels = set()
         try:
             if isinstance(qubit, int):
-                for key in self._qubit_channel_map.keys():
+                for key, value in self._qubit_channel_map.items():
                     if qubit in key:
-                        channels.update(self._qubit_channel_map[key])
+                        channels.update(value)
                 if len(channels) == 0:
                     raise KeyError
             elif isinstance(qubit, list):

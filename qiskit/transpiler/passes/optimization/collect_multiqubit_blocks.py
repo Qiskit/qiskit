@@ -218,8 +218,8 @@ class CollectMultiQBlocks(AnalysisPass):
                     prev = bit
                 self.gate_groups[self.find_set(prev)].append(nd)
         # need to turn all groups that still exist into their own blocks
-        for index in self.parent:
-            if self.parent[index] == index and len(self.gate_groups[index]) != 0:
+        for index, item in self.parent.items():
+            if item == index and len(self.gate_groups[index]) != 0:
                 block_list.append(self.gate_groups[index][:])
 
         self.property_set["block_list"] = block_list

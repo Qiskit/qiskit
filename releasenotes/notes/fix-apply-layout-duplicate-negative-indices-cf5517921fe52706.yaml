@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.SparsePauliOp.apply_layout` and :meth:`.Pauli.apply_layout`
+    to raise :exc:`.QiskitError` if duplicate indices or negative indices are provided
+    as part of a layout.
