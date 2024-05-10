@@ -23,8 +23,8 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
 
 from ..containers.primitive_result import PrimitiveResult
-from ..containers.pub_result import PubResult
 from ..containers.sampler_pub import SamplerPubLike
+from ..containers.sampler_pub_result import SamplerPubResult
 from . import validation
 from .base_primitive import BasePrimitive
 from .base_primitive_job import BasePrimitiveJob
@@ -165,7 +165,7 @@ class BaseSamplerV2(ABC):
     @abstractmethod
     def run(
         self, pubs: Iterable[SamplerPubLike], *, shots: int | None = None
-    ) -> BasePrimitiveJob[PrimitiveResult[PubResult]]:
+    ) -> BasePrimitiveJob[PrimitiveResult[SamplerPubResult]]:
         """Run and collect samples from each pub.
 
         Args:

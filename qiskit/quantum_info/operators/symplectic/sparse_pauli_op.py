@@ -1139,7 +1139,6 @@ class SparsePauliOp(LinearOp):
                 specified will be applied without any expansion. If layout is
                 None, the operator will be expanded to the given number of qubits.
 
-
         Returns:
             A new :class:`.SparsePauliOp` with the provided layout applied
         """
@@ -1159,10 +1158,13 @@ class SparsePauliOp(LinearOp):
                     f"applied to a {n_qubits} qubit operator"
                 )
             n_qubits = num_qubits
-        if layout is not None and any(x >= n_qubits for x in layout):
-            raise QiskitError("Provided layout contains indices outside the number of qubits.")
         if layout is None:
             layout = list(range(self.num_qubits))
+        else:
+            if any(x < 0 or x >= n_qubits for x in layout):
+                raise QiskitError("Provided layout contains indices outside the number of qubits.")
+            if len(set(layout)) != len(layout):
+                raise QiskitError("Provided layout contains duplicate indices.")
         new_op = type(self)("I" * n_qubits)
         return new_op.compose(self, qargs=layout)
 

@@ -82,6 +82,9 @@ class Operator(LinearOp):
             a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
             the input operator is not an N-qubit operator, it will assign a
             single subsystem with dimension specified by the shape of the input.
+            Note that two operators initialized via this method are only considered equivalent if they
+            match up to their canonical qubit order (or: permutation). See :meth:`.Operator.from_circuit`
+            to specify a different qubit permutation.
         """
         op_shape = None
         if isinstance(data, (list, np.ndarray)):
@@ -391,8 +394,7 @@ class Operator(LinearOp):
         Returns:
             Operator: An operator representing the input circuit
         """
-        dimension = 2**circuit.num_qubits
-        op = cls(np.eye(dimension))
+
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
@@ -403,27 +405,38 @@ class Operator(LinearOp):
                 initial_layout=layout,
                 input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
             )
+
+        initial_layout = layout.initial_layout if layout is not None else None
+
         if final_layout is None:
             if not ignore_set_layout and layout is not None:
                 final_layout = getattr(layout, "final_layout", None)
 
-        qargs = None
-        # If there was a layout specified (either from the circuit
-        # or via user input) use that to set qargs to permute qubits
-        # based on that layout
-        if layout is not None:
-            physical_to_virtual = layout.initial_layout.get_physical_bits()
-            qargs = [
-                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
-                for physical_bit in range(len(physical_to_virtual))
-            ]
-        # Convert circuit to an instruction
-        instruction = circuit.to_instruction()
-        op._append_instruction(instruction, qargs=qargs)
-        # If final layout is set permute output indices based on layout
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        if initial_layout is not None:
+            input_qubits = [None] * len(layout.input_qubit_mapping)
+            for q, p in layout.input_qubit_mapping.items():
+                input_qubits[p] = q
+
+            initial_permutation = initial_layout.to_permutation(input_qubits)
+            initial_permutation_inverse = _inverse_pattern(initial_permutation)
+
         if final_layout is not None:
-            perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
-            op = op.apply_permutation(perm_pattern, front=False)
+            final_permutation = final_layout.to_permutation(circuit.qubits)
+            final_permutation_inverse = _inverse_pattern(final_permutation)
+
+        op = Operator(circuit)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation, True)
+
+        if final_layout:
+            op = op.apply_permutation(final_permutation_inverse, False)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation_inverse, False)
+
         return op
 
     def is_unitary(self, atol=None, rtol=None):
