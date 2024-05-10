@@ -218,7 +218,6 @@ disable = [
 #  with the rationale
     "arguments-renamed",
     "broad-exception-raised",
-    "consider-iterating-dictionary",
     "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
@@ -226,7 +225,6 @@ disable = [
     "no-value-for-parameter",
     "not-context-manager",
     "unexpected-keyword-arg",
-    "unnecessary-dict-index-lookup",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
