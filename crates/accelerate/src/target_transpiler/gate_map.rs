@@ -34,7 +34,7 @@ impl GateMapIter {
     }
 }
 
-#[pyclass(mapping)]
+#[pyclass(mapping, module = "qiskit._accelerate.target")]
 #[derive(Debug, Clone)]
 pub struct GateMap {
     pub map: GateMapType,
@@ -115,7 +115,7 @@ impl GateMap {
     }
 
     pub fn values(&self) -> Vec<PropsMap> {
-        self.map.clone().into_values().collect_vec()
+        self.map.values().cloned().collect_vec()
     }
 
     pub fn items(&self) -> Vec<(String, PropsMap)> {

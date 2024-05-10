@@ -11,22 +11,20 @@
 // that they have been altered from the originals.
 
 use hashbrown::{hash_set::IntoIter as HashSetIntoIter, HashSet};
-use indexmap::{map::IntoKeys, IndexMap};
+use indexmap::IndexMap;
 use itertools::Itertools;
-use pyo3::types::{PyDict, PySet};
+use pyo3::types::{PyMapping, PySet};
 use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
 
 use super::instruction_properties::InstructionProperties;
 use super::qargs::{Qargs, QargsOrTuple};
 
-enum PropsMapIterTypes {
-    Iter(IntoKeys<Option<Qargs>, Option<Py<InstructionProperties>>>),
-    Keys(HashSetIntoIter<Option<Qargs>>),
-}
+type KeyIterType = HashSetIntoIter<Option<Qargs>>;
+pub type PropsMapItemsType = Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)>;
 
 #[pyclass]
 struct PropsMapIter {
-    iter: PropsMapIterTypes,
+    iter: KeyIterType,
 }
 
 #[pymethods]
@@ -35,10 +33,7 @@ impl PropsMapIter {
         slf
     }
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
-        match &mut slf.iter {
-            PropsMapIterTypes::Iter(iter) => iter.next(),
-            PropsMapIterTypes::Keys(iter) => iter.next(),
-        }
+        slf.iter.next()
     }
 }
 
@@ -57,7 +52,7 @@ impl PropsMapKeys {
 
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
         let iter = PropsMapIter {
-            iter: PropsMapIterTypes::Keys(slf.keys.clone().into_iter()),
+            iter: slf.keys.clone().into_iter(),
         };
         Py::new(slf.py(), iter)
     }
@@ -110,7 +105,7 @@ type PropsMapKV = IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>>;
 
    Made to directly avoid conversions from an ``IndexMap`` structure in rust to a Python dict.
 */
-#[pyclass(mapping)]
+#[pyclass(mapping, module = "qiskit._accelerate.target")]
 #[derive(Debug, Clone)]
 pub struct PropsMap {
     pub map: PropsMapKV,
@@ -119,8 +114,11 @@ pub struct PropsMap {
 #[pymethods]
 impl PropsMap {
     #[new]
-    pub fn new(map: PropsMapKV) -> Self {
-        PropsMap { map }
+    pub fn new(map: Option<PropsMapKV>) -> Self {
+        match map {
+            Some(map) => PropsMap { map },
+            None => PropsMap::default(),
+        }
     }
 
     fn __contains__(&self, key: &Bound<PyAny>) -> bool {
@@ -133,9 +131,9 @@ impl PropsMap {
     }
 
     fn __eq__(slf: PyRef<Self>, other: &Bound<PyAny>) -> PyResult<bool> {
-        if let Ok(dict) = other.downcast::<PyDict>() {
-            for key in dict.keys() {
-                if let Ok(qargs) = key.extract::<Option<QargsOrTuple>>() {
+        if let Ok(dict) = other.downcast::<PyMapping>() {
+            for key in dict.keys()?.iter()? {
+                if let Ok(qargs) = key?.extract::<Option<QargsOrTuple>>() {
                     let qargs = qargs.map(|qargs| qargs.parse_qargs());
                     if !slf.map.contains_key(&qargs) {
                         return Ok(false);
@@ -145,8 +143,15 @@ impl PropsMap {
                 }
             }
             Ok(true)
+        } else if let Ok(prop_keys) = other.extract::<PropsMap>() {
+            for key in prop_keys.map.keys() {
+                if !slf.map.contains_key(key) {
+                    return Ok(false);
+                }
+            }
+            return Ok(true);
         } else {
-            Ok(false)
+            return Ok(false);
         }
     }
 
@@ -184,7 +189,12 @@ impl PropsMap {
 
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
         let iter = PropsMapIter {
-            iter: PropsMapIterTypes::Iter(slf.map.clone().into_keys()),
+            iter: slf
+                .map
+                .keys()
+                .cloned()
+                .collect::<HashSet<Option<Qargs>>>()
+                .into_iter(),
         };
         Py::new(slf.py(), iter)
     }
@@ -194,10 +204,10 @@ impl PropsMap {
     }
 
     fn values(&self) -> Vec<Option<Py<InstructionProperties>>> {
-        self.map.clone().into_values().collect_vec()
+        self.map.values().cloned().collect_vec()
     }
 
-    fn items(&self) -> Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)> {
+    fn items(&self) -> PropsMapItemsType {
         self.map.clone().into_iter().collect_vec()
     }
 
@@ -208,5 +218,13 @@ impl PropsMap {
 
     fn __getstate__(&self) -> (PropsMapKV,) {
         (self.map.clone(),)
+    }
+}
+
+impl Default for PropsMap {
+    fn default() -> Self {
+        Self {
+            map: IndexMap::new(),
+        }
     }
 }

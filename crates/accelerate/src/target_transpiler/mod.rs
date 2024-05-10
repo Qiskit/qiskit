@@ -31,7 +31,7 @@ use crate::nlayout::PhysicalQubit;
 
 use instruction_properties::InstructionProperties;
 use property_map::PropsMap;
-use qargs::{Qargs, QargsSet, QargsTuple};
+use qargs::{Qargs, QargsSet};
 
 use self::{
     exceptions::{QiskitError, TranspilerError},
@@ -85,7 +85,7 @@ fn qubit_props_list_from_props(
 */
 
 // Custom types
-type ErrorDictType<'a> = IndexMap<String, IndexMap<QargsTuple, Bound<'a, PyAny>>>;
+type ErrorDictType<'a> = IndexMap<String, IndexMap<QargsOrTuple, Bound<'a, PyAny>>>;
 
 /**
 The intent of the ``Target`` object is to inform Qiskit's compiler about
@@ -358,12 +358,12 @@ impl Target {
         TranspilerError: If an operation class is passed in for ``instruction`` and no name
             is specified or ``properties`` is set.
      */
-    #[pyo3(signature = (instruction, /, properties=None, name=None))]
+    #[pyo3(signature = (instruction, properties=None, name=None))]
     fn add_instruction(
         &mut self,
         py: Python<'_>,
         instruction: &Bound<PyAny>,
-        properties: Option<IndexMap<Option<QargsTuple>, Option<Py<InstructionProperties>>>>,
+        properties: Option<IndexMap<Option<QargsOrTuple>, Option<Py<InstructionProperties>>>>,
         name: Option<String>,
     ) -> PyResult<()> {
         // Unwrap instruction name
@@ -417,27 +417,27 @@ impl Target {
             for qarg in properties.keys() {
                 let mut qarg_obj = None;
                 if let Some(qarg) = qarg {
-                    if qarg.len() != inst_num_qubits {
+                    let qarg = qarg.clone().parse_qargs();
+                    if qarg.vec.len() != inst_num_qubits {
                         return Err(TranspilerError::new_err(format!(
                             "The number of qubits for {instruction} does not match\
                              the number of qubits in the properties dictionary: {:?}",
                             qarg
                         )));
                     }
-                    self.num_qubits =
-                        Some(self.num_qubits.unwrap_or_default().max(
-                            qarg.iter().fold(
-                                0,
-                                |acc, x| {
-                                    if acc > x.index() {
-                                        acc
-                                    } else {
-                                        x.index()
-                                    }
-                                },
-                            ) + 1,
-                        ));
-                    qarg_obj = Some(Qargs::new(qarg.clone()))
+                    self.num_qubits = Some(self.num_qubits.unwrap_or_default().max(
+                        qarg.vec.iter().fold(
+                            0,
+                            |acc, x| {
+                                if acc > x.index() {
+                                    acc
+                                } else {
+                                    x.index()
+                                }
+                            },
+                        ) + 1,
+                    ));
+                    qarg_obj = Some(qarg.clone())
                 }
                 qargs_val.insert(qarg_obj.to_owned(), properties[qarg].clone());
                 self.qarg_gate_map
@@ -452,7 +452,7 @@ impl Target {
         }
         self.gate_map
             .map
-            .insert(instruction_name, PropsMap::new(qargs_val));
+            .insert(instruction_name, PropsMap::new(Some(qargs_val)));
         self.coupling_graph = None;
         self.instruction_durations = None;
         self.instruction_schedule_map = None;
@@ -548,19 +548,20 @@ impl Target {
         let inst_map_instructions = inst_map.getattr("instructions")?.extract::<Vec<String>>()?;
         for inst_name in inst_map_instructions {
             // Prepare dictionary of instruction properties
-            let mut out_prop: IndexMap<Option<QargsTuple>, Option<Py<InstructionProperties>>> =
+            let mut out_prop: IndexMap<Option<QargsOrTuple>, Option<Py<InstructionProperties>>> =
                 IndexMap::new();
             let inst_map_qubit_instruction_for_name =
                 inst_map.call_method1("qubits_with_instruction", (&inst_name,))?;
             let inst_map_qubit_instruction_for_name =
                 inst_map_qubit_instruction_for_name.downcast::<PyList>()?;
             for qargs in inst_map_qubit_instruction_for_name {
-                let qargs_: QargsTuple = if let Ok(qargs_to_tuple) = qargs.extract::<QargsTuple>() {
-                    qargs_to_tuple
-                } else {
-                    smallvec![qargs.extract::<PhysicalQubit>()?]
-                };
-                let opt_qargs = Some(Qargs::new(qargs_.clone()));
+                let qargs_: QargsOrTuple =
+                    if let Ok(qargs_to_tuple) = qargs.extract::<QargsOrTuple>() {
+                        qargs_to_tuple
+                    } else {
+                        QargsOrTuple::Tuple(smallvec![qargs.extract::<PhysicalQubit>()?])
+                    };
+                let opt_qargs = Some(qargs_.clone().parse_qargs());
                 let mut props: Option<Py<InstructionProperties>> =
                     if let Some(prop_value) = self.gate_map.map.get(&inst_name) {
                         if let Some(prop) = prop_value.map.get(&opt_qargs) {
@@ -572,8 +573,7 @@ impl Target {
                         None
                     };
 
-                let entry = get_calibration
-                    .call1((&inst_name, qargs_.iter().cloned().collect::<QargsTuple>()))?;
+                let entry = get_calibration.call1((&inst_name, opt_qargs))?;
                 let entry_comparison: bool = if let Some(props) = &props {
                     !entry.eq(&props.getattr(py, "_calibration")?)?
                 } else {
@@ -617,11 +617,11 @@ impl Target {
                     // Remove qargs with length that doesn't match with instruction qubit number
                     let inst_obj = &qiskit_inst_name_map[&inst_name];
                     let mut normalized_props: IndexMap<
-                        Option<QargsTuple>,
+                        Option<QargsOrTuple>,
                         Option<Py<InstructionProperties>>,
                     > = IndexMap::new();
                     for (qargs, prop) in out_prop.iter() {
-                        if qargs.as_ref().unwrap_or(&smallvec![]).len()
+                        if qargs.as_ref().map(|x| x.len()).unwrap_or_default()
                             != inst_obj.getattr("num_qubits")?.extract::<usize>()?
                         {
                             continue;
@@ -638,17 +638,20 @@ impl Target {
                     let inst_map_qubit_instruction_for_name =
                         inst_map_qubit_instruction_for_name.downcast::<PyList>()?;
                     for qargs in inst_map_qubit_instruction_for_name {
-                        let qargs_ = if let Ok(qargs_ext) = qargs.extract::<QargsTuple>() {
+                        let qargs_ = if let Ok(qargs_ext) = qargs.extract::<Option<QargsOrTuple>>()
+                        {
                             qargs_ext
                         } else {
-                            smallvec![qargs.extract::<PhysicalQubit>()?]
+                            Some(QargsOrTuple::Tuple(smallvec![
+                                qargs.extract::<PhysicalQubit>()?
+                            ]))
                         };
-                        qlen.insert(qargs_.len());
-                        let cal = if let Some(Some(prop)) = out_prop.get(&Some(qargs_)) {
+                        let cal = if let Some(Some(prop)) = out_prop.get(&qargs_) {
                             Some(prop.getattr(py, "_calibration")?)
                         } else {
                             None
                         };
+                        qlen.insert(qargs_.map(|x| x.len()).unwrap_or_default());
                         if let Some(cal) = cal {
                             let params = cal
                                 .call_method0(py, "get_signature")?
@@ -696,17 +699,12 @@ impl Target {
                     if let Some(gate_inst) = self.gate_map.map.get(&inst_name) {
                         if !gate_inst
                             .map
-                            .contains_key(&Some(Qargs::new(qargs.to_owned().unwrap_or_default())))
+                            .contains_key(&qargs.clone().map(|x| x.parse_qargs()))
                         {
                             continue;
                         }
                     }
-                    self.update_instruction_properties(
-                        py,
-                        inst_name.to_owned(),
-                        qargs.map(QargsOrTuple::Tuple),
-                        prop,
-                    )?;
+                    self.update_instruction_properties(py, inst_name.to_owned(), qargs, prop)?;
                 }
             }
         }
@@ -1698,7 +1696,7 @@ impl Target {
             }
             for gate in one_qubit_gates {
                 let mut gate_properties: IndexMap<
-                    Option<QargsTuple>,
+                    Option<QargsOrTuple>,
                     Option<Py<InstructionProperties>>,
                 > = IndexMap::new();
                 for qubit in 0..num_qubits.unwrap_or_default() {
@@ -1754,11 +1752,17 @@ impl Target {
                         }
                     }
                     if error.is_none() && duration.is_none() && calibration.is_none() {
-                        gate_properties
-                            .insert(Some(smallvec![PhysicalQubit::new(qubit as u32)]), None);
+                        gate_properties.insert(
+                            Some(QargsOrTuple::Tuple(smallvec![PhysicalQubit::new(
+                                qubit as u32
+                            )])),
+                            None,
+                        );
                     } else {
                         gate_properties.insert(
-                            Some(smallvec![PhysicalQubit::new(qubit as u32)]),
+                            Some(QargsOrTuple::Tuple(smallvec![PhysicalQubit::new(
+                                qubit as u32
+                            )])),
                             Some(Py::new(
                                 py,
                                 InstructionProperties::new(py, duration, error, calibration),
@@ -1778,7 +1782,7 @@ impl Target {
                 .extract::<Vec<[u32; 2]>>(py)?;
             for gate in two_qubit_gates {
                 let mut gate_properties: IndexMap<
-                    Option<QargsTuple>,
+                    Option<QargsOrTuple>,
                     Option<Py<InstructionProperties>>,
                 > = IndexMap::new();
                 for edge in edges.as_slice().iter().cloned() {
@@ -1834,12 +1838,16 @@ impl Target {
                     }
                     if error.is_none() && duration.is_none() && calibration.is_none() {
                         gate_properties.insert(
-                            Some(edge.into_iter().map(PhysicalQubit::new).collect()),
+                            Some(QargsOrTuple::Tuple(
+                                edge.into_iter().map(PhysicalQubit::new).collect(),
+                            )),
                             None,
                         );
                     } else {
                         gate_properties.insert(
-                            Some(edge.into_iter().map(PhysicalQubit::new).collect()),
+                            Some(QargsOrTuple::Tuple(
+                                edge.into_iter().map(PhysicalQubit::new).collect(),
+                            )),
                             Some(Py::new(
                                 py,
                                 InstructionProperties::new(py, duration, error, calibration),
@@ -1973,5 +1981,8 @@ impl Target {
 pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<InstructionProperties>()?;
     m.add_class::<Target>()?;
+    m.add_class::<Qargs>()?;
+    m.add_class::<PropsMap>()?;
+    m.add_class::<GateMap>()?;
     Ok(())
 }

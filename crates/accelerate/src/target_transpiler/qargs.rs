@@ -33,17 +33,26 @@ use crate::nlayout::PhysicalQubit;
 
 pub type QargsTuple = SmallVec<[PhysicalQubit; 4]>;
 
-#[derive(Debug, Clone, FromPyObject)]
+#[derive(Debug, Clone, FromPyObject, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub enum QargsOrTuple {
     Qargs(Qargs),
     Tuple(QargsTuple),
 }
 
 impl QargsOrTuple {
+    pub fn len(&self) -> usize {
+        match self {
+            Self::Tuple(tuple) => tuple.len(),
+            Self::Qargs(qargs) => qargs.vec.len(),
+        }
+    }
+}
+
+impl QargsOrTuple {
     pub fn parse_qargs(self) -> Qargs {
         match self {
             QargsOrTuple::Qargs(qargs) => qargs,
-            QargsOrTuple::Tuple(qargs) => Qargs::new(qargs),
+            QargsOrTuple::Tuple(qargs) => Qargs::new(Some(qargs)),
         }
     }
 }
@@ -158,8 +167,11 @@ pub struct Qargs {
 #[pymethods]
 impl Qargs {
     #[new]
-    pub fn new(qargs: SmallVec<[PhysicalQubit; 4]>) -> Self {
-        Qargs { vec: qargs }
+    pub fn new(qargs: Option<SmallVec<[PhysicalQubit; 4]>>) -> Self {
+        match qargs {
+            Some(qargs) => Qargs { vec: qargs },
+            None => Qargs::default(),
+        }
     }
 
     fn __len__(&self) -> usize {
