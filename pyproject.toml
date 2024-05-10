@@ -227,7 +227,6 @@ disable = [
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
-    "unsupported-assignment-operation",
 ]
 
 enable = [
