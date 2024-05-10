@@ -18,8 +18,6 @@ from abc import abstractmethod, ABC
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import Generic, TypeVar
-import numpy as np
-from numpy.typing import NDArray
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.providers import JobV1 as Job
@@ -27,7 +25,6 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..containers import (
-    make_data_bin,
     DataBin,
     EstimatorPubLike,
     PrimitiveResult,
@@ -205,12 +202,10 @@ class BaseEstimatorV2(ABC):
     """
 
     @staticmethod
-    def _make_data_bin(pub: EstimatorPub) -> DataBin:
-        # provide a standard way to construct estimator databins to ensure that names match
-        # across implementations
-        return make_data_bin(
-            (("evs", NDArray[np.float64]), ("stds", NDArray[np.float64])), pub.shape
-        )
+    def _make_data_bin(_: EstimatorPub) -> type[DataBin]:
+        # this method is present for backwards compat. new primitive implementatinos
+        # should avoid it.
+        return DataBin
 
     @abstractmethod
     def run(
