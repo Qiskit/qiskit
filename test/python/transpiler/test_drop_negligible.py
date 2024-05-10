@@ -28,7 +28,6 @@ from qiskit.circuit.library import (
     XXPlusYYGate,
 )
 from qiskit.quantum_info import Operator
-from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import DropNegligible
 
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -60,8 +59,7 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(XXPlusYYGate(1e-8, 1e-8), [a, b])
         circuit.append(XXMinusYYGate(1e-5, 1e-8), [a, b])
         circuit.append(XXMinusYYGate(1e-8, 1e-8), [a, b])
-        pass_manager = PassManager([DropNegligible()])
-        transpiled = pass_manager.run(circuit)
+        transpiled = DropNegligible()(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 2)
         self.assertEqual(transpiled.count_ops()["cp"], 1)
         self.assertEqual(circuit.count_ops()["rx"], 2)
@@ -93,8 +91,7 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(CPhaseGate(theta), [a, b])
         circuit.append(CPhaseGate(1e-5), [a, b])
         circuit.append(CPhaseGate(1e-8), [a, b])
-        pass_manager = PassManager([DropNegligible()])
-        transpiled = pass_manager.run(circuit)
+        transpiled = DropNegligible()(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 3)
         self.assertEqual(transpiled.count_ops()["cp"], 2)
 
@@ -106,7 +103,6 @@ class TestDropNegligible(QiskitTestCase):
         circuit.append(CPhaseGate(np.float32(1e-6)), [a, b])
         circuit.append(CPhaseGate(1e-3), [a, b])
         circuit.append(CPhaseGate(1e-8), [a, b])
-        pass_manager = PassManager([DropNegligible(atol=1e-5)])
-        transpiled = pass_manager.run(circuit)
+        transpiled = DropNegligible(atol=1e-5)(circuit)
         self.assertEqual(circuit.count_ops()["cp"], 3)
         self.assertEqual(transpiled.count_ops()["cp"], 1)
