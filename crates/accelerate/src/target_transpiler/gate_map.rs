@@ -58,6 +58,19 @@ impl GateMapKeys {
         slf.keys.len()
     }
 
+    fn __sub__(&self, other: HashSet<String>) -> GateMapKeys {
+        GateMapKeys {
+            keys: self
+                .keys
+                .iter()
+                .cloned()
+                .collect::<HashSet<String>>()
+                .difference(&other)
+                .cloned()
+                .collect::<IndexSet<String>>(),
+        }
+    }
+
     fn __contains__(slf: PyRef<Self>, obj: String) -> PyResult<bool> {
         Ok(slf.keys.contains(&obj))
     }
