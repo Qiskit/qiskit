@@ -110,9 +110,11 @@ class TestDropNegligible(QiskitTestCase):
         """Test passing additional gate types."""
 
         class TestGateA(Gate):
+            """A gate class."""
             pass
 
         class TestGateB(Gate):
+            """Another gate class."""
             pass
 
         qubits = QuantumRegister(2)
