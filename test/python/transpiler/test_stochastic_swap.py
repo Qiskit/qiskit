@@ -27,7 +27,7 @@ from qiskit.circuit.random import random_circuit
 from qiskit.providers.fake_provider import Fake27QPulseV1, GenericBackendV2
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import ControlFlowOp, Clbit, CASE_DEFAULT
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from test.utils._canonical import canonicalize_control_flow  # pylint: disable=wrong-import-order
 
@@ -896,6 +896,48 @@ class TestStochasticSwapControlFlow(QiskitTestCase):
         check_map_pass = CheckMap(coupling)
         check_map_pass.run(cdag)
         self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
+    def test_standalone_vars(self):
+        """Test that the routing works in the presence of stand-alone variables."""
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+        c = expr.Var.new("c", types.Uint(8))
+        qc = QuantumCircuit(5, inputs=[a])
+        qc.add_var(b, 12)
+        qc.cx(0, 2)
+        qc.cx(1, 3)
+        qc.cx(3, 2)
+        qc.cx(3, 0)
+        qc.cx(4, 2)
+        qc.cx(4, 0)
+        qc.cx(1, 4)
+        qc.cx(3, 4)
+        with qc.if_test(a):
+            qc.store(a, False)
+            qc.add_var(c, 12)
+            qc.cx(0, 1)
+        with qc.if_test(a) as else_:
+            qc.store(a, False)
+            qc.add_var(c, 12)
+            qc.cx(0, 1)
+        with else_:
+            qc.cx(1, 2)
+        with qc.while_loop(a):
+            with qc.while_loop(a):
+                qc.add_var(c, 12)
+                qc.cx(1, 3)
+                qc.store(a, False)
+        with qc.switch(b) as case:
+            with case(0):
+                qc.add_var(c, 12)
+                qc.cx(3, 1)
+            with case(case.DEFAULT):
+                qc.cx(3, 1)
+
+        cm = CouplingMap.from_line(5)
+        pm = PassManager([StochasticSwap(cm, seed=0), CheckMap(cm)])
+        _ = pm.run(qc)
+        self.assertTrue(pm.property_set["is_swap_mapped"])
 
     def test_no_layout_change(self):
         """test controlflow with no layout change needed"""

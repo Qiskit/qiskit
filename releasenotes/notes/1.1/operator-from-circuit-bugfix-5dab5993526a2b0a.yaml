@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.Operator.from_circuit` constructor method where it would incorrectly
+    interpret the final layout permutation resulting in an invalid `Operator` being constructed.
+    Previously, the final layout was processed without regards for the initial layout, i.e. the
+    initialization was incorrect for all quantum circuits that have a non-trivial initial layout.

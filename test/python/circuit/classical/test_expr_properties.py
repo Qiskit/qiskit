@@ -51,6 +51,21 @@ class TestExprProperties(QiskitTestCase):
             expr.Value(True, types.Bool()),
             types.Bool(),
         ),
+        expr.Index(
+            expr.Var.new("a", types.Uint(3)),
+            expr.Binary(
+                expr.Binary.Op.SHIFT_LEFT,
+                expr.Binary(
+                    expr.Binary.Op.SHIFT_RIGHT,
+                    expr.Var.new("b", types.Uint(3)),
+                    expr.Value(1, types.Uint(1)),
+                    types.Uint(3),
+                ),
+                expr.Value(1, types.Uint(1)),
+                types.Uint(3),
+            ),
+            types.Bool(),
+        ),
     )
     def test_expr_can_be_cloned(self, obj):
         """Test that various ways of cloning an `Expr` object are valid and produce equal output."""
