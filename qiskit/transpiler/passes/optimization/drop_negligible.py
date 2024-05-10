@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 
 from qiskit.circuit.library import (
     CPhaseGate,
@@ -48,21 +49,47 @@ DROP_NEGLIGIBLE_GATE_CLASSES = (
 
 
 class DropNegligible(TransformationPass):
-    """Drop gates with negligible effects."""
+    """Drop gates with negligible effects.
 
-    def __init__(self, atol: float = 1e-8) -> None:
+    Removes certain gates whose parameters are all close to zero up to the specified
+    tolerance. By default, the gates subject to removal are those present in a
+    hard-coded list, specified below. Additional gate types to consider can be passed
+    as an argument to the constructor of this class.
+
+    By default, the following gate classes are considered for removal:
+
+    - :class:`CPhaseGate`
+    - :class:`PhaseGate`
+    - :class:`RXGate`
+    - :class:`RYGate`
+    - :class:`RZGate`
+    - :class:`RXXGate`
+    - :class:`RYYGate`
+    - :class:`RZZGate`
+    - :class:`XXPlusYYGate`
+    - :class:`XXMinusYYGate`
+    """
+
+    def __init__(
+        self, *, atol: float = 1e-8, additional_gate_types: Iterable[type] | None = None
+    ) -> None:
         """Initialize the transpiler pass.
 
         Args:
             atol: Absolute numerical tolerance for determining whether a gate's effect
                 is negligible.
+            additional_gate_types: List of :class:`Gate` subclasses that should be
+                considered for dropping in addition to the built-in gates.
         """
         self.atol = atol
+        self.gate_types = DROP_NEGLIGIBLE_GATE_CLASSES
+        if additional_gate_types is not None:
+            self.gate_types += tuple(additional_gate_types)
         super().__init__()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         for node in dag.op_nodes():
-            if not isinstance(node.op, DROP_NEGLIGIBLE_GATE_CLASSES):
+            if not isinstance(node.op, self.gate_types):
                 continue
             if not all(isinstance(param, (int, float, complex)) for param in node.op.params):
                 continue
