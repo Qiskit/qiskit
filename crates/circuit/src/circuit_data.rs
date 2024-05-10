@@ -324,7 +324,7 @@ impl CircuitData {
             0,
         )?;
         res.intern_context = self.intern_context.clone();
-        res.data = self.data.clone();
+        res.data.clone_from(&self.data);
         Ok(res)
     }
 
@@ -459,21 +459,14 @@ impl CircuitData {
         clbits: Option<&Bound<PyAny>>,
     ) -> PyResult<()> {
         let mut temp = CircuitData::new(py, qubits, clbits, None, 0)?;
-        if temp.qubits_native.len() < self.qubits_native.len() {
-            return Err(PyValueError::new_err(format!(
-                "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
-                temp.qubits_native.len(),
-                self.qubits_native.len(),
-            )));
-        }
-        if temp.clbits_native.len() < self.clbits_native.len() {
-            return Err(PyValueError::new_err(format!(
-                "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
-                temp.clbits_native.len(),
-                self.clbits_native.len(),
-            )));
-        }
         if qubits.is_some() {
+            if temp.qubits_native.len() < self.qubits_native.len() {
+                return Err(PyValueError::new_err(format!(
+                    "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
+                    temp.qubits_native.len(),
+                    self.qubits_native.len(),
+                )));
+            }
             std::mem::swap(&mut temp.qubits, &mut self.qubits);
             std::mem::swap(&mut temp.qubits_native, &mut self.qubits_native);
             std::mem::swap(
@@ -482,6 +475,13 @@ impl CircuitData {
             );
         }
         if clbits.is_some() {
+            if temp.clbits_native.len() < self.clbits_native.len() {
+                return Err(PyValueError::new_err(format!(
+                    "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
+                    temp.clbits_native.len(),
+                    self.clbits_native.len(),
+                )));
+            }
             std::mem::swap(&mut temp.clbits, &mut self.clbits);
             std::mem::swap(&mut temp.clbits_native, &mut self.clbits_native);
             std::mem::swap(

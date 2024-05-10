@@ -814,7 +814,7 @@ class Target(Mapping):
                     if qargs in self._gate_map[op_name]:
                         return True
                     if self._gate_map[op_name] is None or None in self._gate_map[op_name]:
-                        return self._gate_name_map[op_name].num_qubits == len(qargs) and all(
+                        return obj.num_qubits == len(qargs) and all(
                             x < self.num_qubits for x in qargs
                         )
             return False

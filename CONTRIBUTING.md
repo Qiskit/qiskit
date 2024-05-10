@@ -183,8 +183,8 @@ please ensure that:
    If your pull request is adding a new class, function, or module that is
    intended to be user facing ensure that you've also added those to a
    documentation `autosummary` index to include it in the api documentation.
-3. If it makes sense for your change that you have added new tests that
-   cover the changes.
+3. If you are of the opinion that the modifications you made warrant additional tests,
+   feel free to include them
 4. Ensure that if your change has an end user facing impact (new feature,
    deprecation, removal etc) that you have added a reno release note for that
    change and that the PR is tagged for the changelog.

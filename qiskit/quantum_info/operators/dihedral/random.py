@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -49,7 +49,9 @@ def random_cnotdihedral(num_qubits, seed=None):
 
     # Random affine function
     # Random invertible binary matrix
-    from qiskit.synthesis.linear import random_invertible_binary_matrix
+    from qiskit.synthesis.linear import (  # pylint: disable=cyclic-import
+        random_invertible_binary_matrix,
+    )
 
     linear = random_invertible_binary_matrix(num_qubits, seed=rng)
     elem.linear = linear

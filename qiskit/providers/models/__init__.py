@@ -19,8 +19,8 @@ Backend Objects (:mod:`qiskit.providers.models`)
 
 Qiskit schema-conformant objects used by the backends and providers.
 
-Backend Objects
-===============
+Classes
+=======
 
 .. autosummary::
    :toctree: ../stubs/
