@@ -14,7 +14,10 @@
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
+
 from qiskit.circuit.library import (
     CPhaseGate,
     PhaseGate,
@@ -65,6 +68,8 @@ class DropNegligible(TransformationPass):
                 continue
             if not all(isinstance(param, (int, float, complex)) for param in node.op.params):
                 continue
-            if np.allclose(node.op.params, 0, atol=self.atol):
+            if all(
+                math.isclose(param, 0, rel_tol=0, abs_tol=self.atol) for param in node.op.params
+            ):
                 dag.remove_op_node(node)
         return dag
