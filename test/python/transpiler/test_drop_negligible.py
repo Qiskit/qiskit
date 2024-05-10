@@ -14,7 +14,6 @@
 
 import numpy as np
 
-from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Parameter, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
     CPhaseGate,
