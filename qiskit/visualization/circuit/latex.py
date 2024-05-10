@@ -239,7 +239,7 @@ class QCircuitImage:
                 self._latex[pos][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                 wire_label = f"\\mathrm{{{wire_label}}}"
             else:
-                pos = self._wire_map[wire]
+                pos = index
             self._latex[pos][0] = "\\nghost{" + wire_label + " & " + "\\lstick{" + wire_label
 
     def _get_image_depth(self):
