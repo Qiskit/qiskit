@@ -92,12 +92,12 @@ class TestQuaternions(QiskitTestCase):
     def test_mul_by_array(self):
         """Quaternions cannot be multiplied with an array."""
         other_array = np.array([0.1, 0.2, 0.3, 0.4])
-        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_array)
+        self.assertEqual(NotImplemented, self.quat_unnormalized.__mul__(other_array))
 
     def test_mul_by_scalar(self):
         """Quaternions cannot be multiplied with a scalar."""
         other_scalar = 0.123456789
-        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_scalar)
+        self.assertEqual(NotImplemented, self.quat_unnormalized.__mul__(other_scalar))
 
     def test_rotation(self):
         """Multiplication by -1 should give the same rotation."""
