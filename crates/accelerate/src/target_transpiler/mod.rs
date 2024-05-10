@@ -35,7 +35,7 @@ use qargs::{Qargs, QargsSet};
 
 use self::{
     exceptions::{QiskitError, TranspilerError},
-    gate_map::{GateMap, GateMapIter},
+    gate_map::{GateMap, GateMapIter, GateMapKeys},
     property_map::PropsMapKeys,
     qargs::QargsOrTuple,
 };
@@ -1962,7 +1962,7 @@ impl Target {
         Ok(())
     }
 
-    fn keys(&self) -> HashSet<String> {
+    fn keys(&self) -> GateMapKeys {
         self.gate_map.keys()
     }
 

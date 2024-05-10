@@ -12,16 +12,67 @@
 
 use super::property_map::PropsMap;
 use hashbrown::{hash_set::IntoIter, HashSet};
-use indexmap::IndexMap;
+use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
-use pyo3::{exceptions::PyKeyError, prelude::*, pyclass, types::PyDict};
+use pyo3::{
+    exceptions::PyKeyError,
+    prelude::*,
+    pyclass,
+    types::{PyDict, PySet},
+};
 
 type GateMapType = IndexMap<String, PropsMap>;
 type GateMapIterType = IntoIter<String>;
+type GateMapKeysIter = IndexSetIntoIter<String>;
+
+enum GateMapIterTypes {
+    Iter(GateMapIterType),
+    Keys(GateMapKeysIter),
+}
+
+#[pyclass(sequence)]
+pub struct GateMapKeys {
+    keys: IndexSet<String>,
+}
+
+#[pymethods]
+impl GateMapKeys {
+    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<GateMapIter>> {
+        let iter = GateMapIter {
+            iter: GateMapIterTypes::Keys(slf.keys.clone().into_iter()),
+        };
+        Py::new(slf.py(), iter)
+    }
+
+    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
+        for item in other.iter() {
+            let key = item.extract::<String>()?;
+            if !(slf.keys.contains(&key)) {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    fn __len__(slf: PyRef<Self>) -> usize {
+        slf.keys.len()
+    }
+
+    fn __contains__(slf: PyRef<Self>, obj: String) -> PyResult<bool> {
+        Ok(slf.keys.contains(&obj))
+    }
+
+    fn __repr__(slf: PyRef<Self>) -> String {
+        let mut output = "gate_map_keys[".to_owned();
+        output.push_str(slf.keys.iter().join(", ").as_str());
+        output.push(']');
+        output
+    }
+}
 
 #[pyclass]
 pub struct GateMapIter {
-    iter: GateMapIterType,
+    iter: GateMapIterTypes,
 }
 
 #[pymethods]
@@ -30,7 +81,10 @@ impl GateMapIter {
         slf
     }
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
-        slf.iter.next()
+        match &mut slf.iter {
+            GateMapIterTypes::Iter(iter) => iter.next(),
+            GateMapIterTypes::Keys(iter) => iter.next(),
+        }
     }
 }
 
@@ -100,18 +154,21 @@ impl GateMap {
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<Py<GateMapIter>> {
         let iter = GateMapIter {
-            iter: self
-                .map
-                .keys()
-                .cloned()
-                .collect::<HashSet<String>>()
-                .into_iter(),
+            iter: GateMapIterTypes::Iter(
+                self.map
+                    .keys()
+                    .cloned()
+                    .collect::<HashSet<String>>()
+                    .into_iter(),
+            ),
         };
         Py::new(py, iter)
     }
 
-    pub fn keys(&self) -> HashSet<String> {
-        self.map.keys().cloned().collect()
+    pub fn keys(&self) -> GateMapKeys {
+        GateMapKeys {
+            keys: self.map.keys().cloned().collect::<IndexSet<String>>(),
+        }
     }
 
     pub fn values(&self) -> Vec<PropsMap> {
