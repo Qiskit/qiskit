@@ -1128,9 +1128,8 @@ impl Target {
                                         .all(|x| x.index() < self.num_qubits.unwrap_or_default()));
                             }
                         } else {
-                            let qubit_comparison = obj
-                                .getattr(py, "num_qubits")?
-                                .extract::<usize>(py)?;
+                            let qubit_comparison =
+                                obj.getattr(py, "num_qubits")?.extract::<usize>(py)?;
                             return Ok(qubit_comparison == _qargs.vec.len()
                                 && _qargs
                                     .vec
@@ -1206,9 +1205,8 @@ impl Target {
                                     return Ok(false);
                                 }
                             } else {
-                                let qubit_comparison = obj
-                                    .getattr(py, "num_qubits")?
-                                    .extract::<usize>(py)?;
+                                let qubit_comparison =
+                                    obj.getattr(py, "num_qubits")?.extract::<usize>(py)?;
                                 return Ok(qubit_comparison == _qargs.vec.len()
                                     && _qargs.vec.iter().all(|qarg| {
                                         qarg.index() < self.num_qubits.unwrap_or_default()
