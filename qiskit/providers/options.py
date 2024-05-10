@@ -229,7 +229,7 @@ class Options(Mapping):
                 f"{type(validator_value)} is not a valid validator type, it "
                 "must be a tuple, list, or class/type"
             )
-        self.validator[field] = validator_value
+        self.validator[field] = validator_value  # pylint: disable=unsupported-assignment-operation
 
     def update_options(self, **fields):
         """Update options with kwargs"""
