@@ -11,8 +11,8 @@
 // that they have been altered from the originals.
 
 use super::property_map::PropsMap;
-use hashbrown::{hash_set::IntoIter, HashSet};
-use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
+use hashbrown::HashSet;
+use indexmap::{set::IntoIter as IndexSetIntoIter, set::IntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::{
     exceptions::PyKeyError,
@@ -21,7 +21,7 @@ use pyo3::{
     types::{PyDict, PySet},
 };
 
-type GateMapType = IndexMap<String, PropsMap>;
+type GateMapType = IndexMap<String, Py<PropsMap>>;
 type GateMapIterType = IntoIter<String>;
 type GateMapKeysIter = IndexSetIntoIter<String>;
 
@@ -139,9 +139,9 @@ impl GateMap {
         }
     }
 
-    pub fn __getitem__(&self, key: String) -> PyResult<PropsMap> {
+    pub fn __getitem__(&self, py: Python<'_>, key: String) -> PyResult<Py<PropsMap>> {
         if let Some(item) = self.map.get(&key) {
-            Ok(item.to_owned())
+            Ok(item.clone_ref(py))
         } else {
             Err(PyKeyError::new_err(format!(
                 "Key {:#?} not in target.",
@@ -152,7 +152,7 @@ impl GateMap {
 
     #[pyo3(signature = (key, default=None))]
     fn get(slf: PyRef<Self>, key: String, default: Option<Bound<PyAny>>) -> PyObject {
-        match slf.__getitem__(key) {
+        match slf.__getitem__(slf.py(), key) {
             Ok(value) => value.into_py(slf.py()),
             Err(_) => match default {
                 Some(value) => value.into(),
@@ -171,7 +171,7 @@ impl GateMap {
                 self.map
                     .keys()
                     .cloned()
-                    .collect::<HashSet<String>>()
+                    .collect::<IndexSet<String>>()
                     .into_iter(),
             ),
         };
@@ -184,11 +184,11 @@ impl GateMap {
         }
     }
 
-    pub fn values(&self) -> Vec<PropsMap> {
+    pub fn values(&self) -> Vec<Py<PropsMap>> {
         self.map.values().cloned().collect_vec()
     }
 
-    pub fn items(&self) -> Vec<(String, PropsMap)> {
+    pub fn items(&self) -> Vec<(String, Py<PropsMap>)> {
         self.map.clone().into_iter().collect_vec()
     }
 

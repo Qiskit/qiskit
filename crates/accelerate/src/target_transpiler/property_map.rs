@@ -10,8 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use hashbrown::{hash_set::IntoIter as HashSetIntoIter, HashSet};
-use indexmap::IndexMap;
+use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::types::{PyMapping, PySet};
 use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
@@ -19,7 +18,7 @@ use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
 use super::instruction_properties::InstructionProperties;
 use super::qargs::{Qargs, QargsOrTuple};
 
-type KeyIterType = HashSetIntoIter<Option<Qargs>>;
+type KeyIterType = IndexSetIntoIter<Option<Qargs>>;
 pub type PropsMapItemsType = Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)>;
 
 #[pyclass]
@@ -40,16 +39,11 @@ impl PropsMapIter {
 #[pyclass(sequence)]
 #[derive(Debug, Clone)]
 pub struct PropsMapKeys {
-    pub keys: HashSet<Option<Qargs>>,
+    pub keys: IndexSet<Option<Qargs>>,
 }
 
 #[pymethods]
 impl PropsMapKeys {
-    #[new]
-    fn new(keys: HashSet<Option<Qargs>>) -> Self {
-        Self { keys }
-    }
-
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
         let iter = PropsMapIter {
             iter: slf.keys.clone().into_iter(),
@@ -193,14 +187,16 @@ impl PropsMap {
                 .map
                 .keys()
                 .cloned()
-                .collect::<HashSet<Option<Qargs>>>()
+                .collect::<IndexSet<Option<Qargs>>>()
                 .into_iter(),
         };
         Py::new(slf.py(), iter)
     }
 
     pub fn keys(&self) -> PropsMapKeys {
-        PropsMapKeys::new(self.map.keys().cloned().collect())
+        PropsMapKeys {
+            keys: self.map.keys().cloned().collect(),
+        }
     }
 
     fn values(&self) -> Vec<Option<Py<InstructionProperties>>> {
