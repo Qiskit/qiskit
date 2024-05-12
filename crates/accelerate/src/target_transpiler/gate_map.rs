@@ -12,7 +12,7 @@
 
 use super::property_map::PropsMap;
 use hashbrown::HashSet;
-use indexmap::{set::IntoIter as IndexSetIntoIter, set::IntoIter, IndexMap, IndexSet};
+use indexmap::{set::IntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::{
     exceptions::PyKeyError,
@@ -23,12 +23,6 @@ use pyo3::{
 
 type GateMapType = IndexMap<String, Py<PropsMap>>;
 type GateMapIterType = IntoIter<String>;
-type GateMapKeysIter = IndexSetIntoIter<String>;
-
-enum GateMapIterTypes {
-    Iter(GateMapIterType),
-    Keys(GateMapKeysIter),
-}
 
 #[pyclass(sequence)]
 pub struct GateMapKeys {
@@ -39,7 +33,7 @@ pub struct GateMapKeys {
 impl GateMapKeys {
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<GateMapIter>> {
         let iter = GateMapIter {
-            iter: GateMapIterTypes::Keys(slf.keys.clone().into_iter()),
+            iter: slf.keys.clone().into_iter(),
         };
         Py::new(slf.py(), iter)
     }
@@ -85,7 +79,7 @@ impl GateMapKeys {
 
 #[pyclass]
 pub struct GateMapIter {
-    iter: GateMapIterTypes,
+    iter: GateMapIterType,
 }
 
 #[pymethods]
@@ -94,10 +88,7 @@ impl GateMapIter {
         slf
     }
     fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<String> {
-        match &mut slf.iter {
-            GateMapIterTypes::Iter(iter) => iter.next(),
-            GateMapIterTypes::Keys(iter) => iter.next(),
-        }
+        slf.iter.next()
     }
 }
 
@@ -167,13 +158,7 @@ impl GateMap {
 
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<Py<GateMapIter>> {
         let iter = GateMapIter {
-            iter: GateMapIterTypes::Iter(
-                self.map
-                    .keys()
-                    .cloned()
-                    .collect::<IndexSet<String>>()
-                    .into_iter(),
-            ),
+            iter: self.keys().keys.into_iter(),
         };
         Py::new(py, iter)
     }
