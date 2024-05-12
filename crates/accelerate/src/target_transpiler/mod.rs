@@ -1367,23 +1367,20 @@ impl Target {
     */
     #[pyo3(text_signature = "(/, index: int)")]
     fn instruction_properties(&self, py: Python<'_>, index: usize) -> PyResult<PyObject> {
-        let mut instruction_properties: Vec<Option<Py<InstructionProperties>>> = vec![];
-        for operation in self.gate_map.map.keys() {
-            if self.gate_map.map.contains_key(operation) {
-                let gate_map_oper = &self.gate_map.map[operation];
-                let gate_map_oper = gate_map_oper.extract::<PropsMap>(py)?;
-                for (_, inst_props) in gate_map_oper.map.iter() {
-                    instruction_properties.push(inst_props.clone())
+        let mut index_counter = 0;
+        for (_operation, props_map) in self.gate_map.map.iter() {
+            let gate_map_oper = props_map.extract::<PropsMap>(py)?;
+            for (_, inst_props) in gate_map_oper.map.iter() {
+                if index_counter == index {
+                    return Ok(inst_props.to_object(py));
                 }
+                index_counter += 1;
             }
         }
-        if !((0..instruction_properties.len()).contains(&index)) {
-            return Err(PyIndexError::new_err(format!(
-                "Index: {:?} is out of range.",
-                index
-            )));
-        }
-        Ok(instruction_properties[index].to_object(py))
+        Err(PyIndexError::new_err(format!(
+            "Index: {:?} is out of range.",
+            index
+        )))
     }
 
     /**
@@ -1518,13 +1515,10 @@ impl Target {
         // Get list of instructions.
         let mut instruction_list: Vec<(PyObject, Option<Qargs>)> = vec![];
         // Add all operations and dehash qargs.
-        for op in self.gate_map.map.keys() {
-            if self.gate_map.map.contains_key(op) {
-                let gate_map_op = &self.gate_map.map[op];
-                for qarg in gate_map_op.extract::<PropsMap>(py)?.map.keys() {
-                    let instruction_pair = (self.gate_name_map[op].clone(), qarg.clone());
-                    instruction_list.push(instruction_pair);
-                }
+        for (op, props_map) in self.gate_map.map.iter() {
+            for qarg in props_map.extract::<PropsMap>(py)?.map.keys() {
+                let instruction_pair = (self.gate_name_map[op].clone_ref(py), qarg.clone());
+                instruction_list.push(instruction_pair);
             }
         }
         // Return results.

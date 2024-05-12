@@ -38,8 +38,6 @@ from qiskit.transpiler.timing_constraints import TimingConstraints  # pylint: di
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
-from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
 # import target class from the rust side
 from qiskit._accelerate.target import (  # pylint: disable=unused-import
@@ -60,7 +58,7 @@ class InstructionProperties(InstructionProperties2):
     custom attributes for those custom/additional properties by the backend.
     """
 
-    def __new__(
+    def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         duration=None,  # pylint: disable=keyword-arg-before-vararg
         error=None,  # pylint: disable=keyword-arg-before-vararg
@@ -68,7 +66,7 @@ class InstructionProperties(InstructionProperties2):
         *args,  # pylint: disable=unused-argument
         **kwargs,  # pylint: disable=unused-argument
     ):
-        return super().__new__(cls, duration, error, calibration)
+        return super().__new__(cls, duration=duration, error=error, calibration=calibration)
 
     def __init__(
         self,
@@ -286,7 +284,7 @@ class Target(Target2):
                         self.coupling_graph.add_edge(*qarg, {gate: properties})
         qargs = self.qargs
         if self.coupling_graph.num_edges() == 0 and (
-            qargs == None or any(x is None for x in qargs)
+            qargs is None or any(x is None for x in qargs)
         ):
             self.coupling_graph = None  # pylint: disable=attribute-defined-outside-init
 
