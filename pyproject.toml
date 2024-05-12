@@ -217,8 +217,6 @@ disable = [
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
     "arguments-renamed",
-    "broad-exception-raised",
-    "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
     "no-member",
@@ -228,7 +226,6 @@ disable = [
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
-    "unsupported-assignment-operation",
 ]
 
 enable = [
