@@ -224,14 +224,9 @@ disable = [
 # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
-    "broad-exception-raised",
-    "consider-iterating-dictionary",
-    "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
-    "unnecessary-dict-index-lookup",
-    "unsupported-assignment-operation",
-    "use-implicit-booleaness-not-comparison",
+    "not-context-manager",
 ]
 
 enable = [

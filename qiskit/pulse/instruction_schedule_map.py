@@ -250,7 +250,7 @@ class InstructionScheduleMap:
 
         # validation of target qubit
         qubits = _to_tuple(qubits)
-        if qubits == ():
+        if not qubits:
             raise PulseError(f"Cannot add definition {instruction} with no target qubits.")
 
         # generate signature

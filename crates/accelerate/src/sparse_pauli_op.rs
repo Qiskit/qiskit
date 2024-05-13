@@ -141,7 +141,9 @@ impl ZXPaulis {
         phases: &Bound<PyArray1<u8>>,
         coeffs: &Bound<PyArray1<Complex64>>,
     ) -> PyResult<Self> {
-        let &[num_ops, num_qubits] = x.shape() else { unreachable!("PyArray2 must be 2D") };
+        let &[num_ops, num_qubits] = x.shape() else {
+            unreachable!("PyArray2 must be 2D")
+        };
         if z.shape() != [num_ops, num_qubits] {
             return Err(PyValueError::new_err(format!(
                 "'x' and 'z' have different shapes: {:?} and {:?}",

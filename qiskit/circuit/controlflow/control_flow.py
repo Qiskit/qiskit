@@ -22,6 +22,7 @@ from qiskit.circuit.exceptions import CircuitError
 
 if typing.TYPE_CHECKING:
     from qiskit.circuit import QuantumCircuit
+    from qiskit.circuit.classical import expr
 
 
 class ControlFlowOp(Instruction, ABC):
@@ -72,3 +73,12 @@ class ControlFlowOp(Instruction, ABC):
         Returns:
             New :class:`ControlFlowOp` with replaced blocks.
         """
+
+    def iter_captured_vars(self) -> typing.Iterable[expr.Var]:
+        """Get an iterator over the unique captured variables in all blocks of this construct."""
+        seen = set()
+        for block in self.blocks:
+            for var in block.iter_captured_vars():
+                if var not in seen:
+                    seen.add(var)
+                    yield var
