@@ -618,6 +618,29 @@ class TestPauli(QiskitTestCase):
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=[0, 0], num_qubits=3)
 
+    def test_apply_layout_zero_qubit(self):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = Pauli("")
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(Pauli("IIIII"), res)
+        with self.subTest("phase -1j"):
+            op = Pauli("-i")
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(Pauli("-iIIIII"), res)
+        with self.subTest("phase -1"):
+            op = Pauli("-")
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(Pauli("-IIIII"), res)
+        with self.subTest("phase 1j"):
+            op = Pauli("i")
+            res = op.apply_layout(layout=None, num_qubits=5)
+            self.assertEqual(Pauli("iIIIII"), res)
+        with self.subTest("layout"):
+            op = Pauli("")
+            res = op.apply_layout(layout=[], num_qubits=5)
+            self.assertEqual(Pauli("IIIII"), res)
+
 
 if __name__ == "__main__":
     unittest.main()
