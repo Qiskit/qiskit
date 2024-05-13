@@ -835,8 +835,9 @@ method <https://numpy.org/devdocs/user/basics.interoperability.html#the-array-me
 .. currentmodule:: object
 .. py:method:: __array__(dtype=None, copy=None)
 
-    Return a Numpy array representing the gate.  This can use the gate's :attr:`~qiskit.circuit.Instruction.params`
-    field, and may assume that these are numeric values (assuming the subclass expects that) and not
+    Return a Numpy array representing the gate. This can use the gate's
+    :attr:`~qiskit.circuit.Instruction.params` field, and may assume that these are numeric
+    values (assuming the subclass expects that) and not
     :ref:`compile-time parameters <circuit-compile-time-parameters>`.
 
     For greatest efficiency, the returned array should default to a dtype of :class:`complex`.
