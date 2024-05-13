@@ -689,45 +689,45 @@ impl Target {
                             let params = params.bind(py);
                             param_names.add(tupleize(params)?)?;
                         }
-                        if qlen.len() > 1 || param_names.len() > 1 {
-                            return Err(QiskitError::new_err(format!(
-                                "Schedules for {:?} are defined non-uniformly for 
-                            multiple qubit lengths {:?}, 
-                            or different parameter names {:?}. 
-                            Provide these schedules with inst_name_map or define them with 
-                            different names for different gate parameters.",
-                                &inst_name,
-                                qlen.iter().collect::<Vec<&usize>>(),
-                                param_names,
-                            )));
-                        }
-                        let gate_class = py.import_bound("qiskit.circuit.gate")?.getattr("Gate")?;
-                        let kwargs = [
-                            ("name", inst_name.as_str().into_py(py)),
-                            ("num_qubits", qlen.iter().next().to_object(py)),
-                            ("params", Vec::<PyObject>::new().to_object(py)),
-                        ]
-                        .into_py_dict_bound(py);
-                        let mut inst_obj = gate_class.call((), Some(&kwargs))?;
-                        if let Some(param) = param_names.iter().next() {
-                            if param.is_truthy()? {
-                                let parameter_class = py
-                                    .import_bound("qiskit.circuit.parameter")?
-                                    .getattr("Parameter")?;
-                                let params = param
-                                    .iter()?
-                                    .flat_map(|x| -> PyResult<Bound<PyAny>> {
-                                        parameter_class.call1((x?,))
-                                    })
-                                    .collect_vec();
-                                let kwargs = [
-                                    ("name", inst_name.as_str().into_py(py)),
-                                    ("num_qubits", qlen.iter().next().to_object(py)),
-                                    ("params", params.to_object(py)),
-                                ]
-                                .into_py_dict_bound(py);
-                                inst_obj = gate_class.call((), Some(&kwargs))?;
-                            }
+                    }
+                    if qlen.len() > 1 || param_names.len() > 1 {
+                        return Err(QiskitError::new_err(format!(
+                            "Schedules for {:?} are defined non-uniformly for 
+                        multiple qubit lengths {:?}, 
+                        or different parameter names {:?}. 
+                        Provide these schedules with inst_name_map or define them with 
+                        different names for different gate parameters.",
+                            &inst_name,
+                            qlen.iter().collect::<Vec<&usize>>(),
+                            param_names,
+                        )));
+                    }
+                    let gate_class = py.import_bound("qiskit.circuit.gate")?.getattr("Gate")?;
+                    let kwargs = [
+                        ("name", inst_name.as_str().into_py(py)),
+                        ("num_qubits", qlen.iter().next().to_object(py)),
+                        ("params", Vec::<PyObject>::new().to_object(py)),
+                    ]
+                    .into_py_dict_bound(py);
+                    let mut inst_obj = gate_class.call((), Some(&kwargs))?;
+                    if let Some(param) = param_names.iter().next() {
+                        if param.is_truthy()? {
+                            let parameter_class = py
+                                .import_bound("qiskit.circuit.parameter")?
+                                .getattr("Parameter")?;
+                            let params = param
+                                .iter()?
+                                .flat_map(|x| -> PyResult<Bound<PyAny>> {
+                                    parameter_class.call1((x?,))
+                                })
+                                .collect_vec();
+                            let kwargs = [
+                                ("name", inst_name.as_str().into_py(py)),
+                                ("num_qubits", qlen.iter().next().to_object(py)),
+                                ("params", params.to_object(py)),
+                            ]
+                            .into_py_dict_bound(py);
+                            inst_obj = gate_class.call((), Some(&kwargs))?;
                         }
                         self.add_instruction(
                             py,
@@ -1109,7 +1109,7 @@ impl Target {
                 {
                     return Ok(false);
                 }
-                if param.eq(&param_at_index)? && !param_at_index.is_instance(parameter_class)? {
+                if !param.eq(&param_at_index)? && !param_at_index.is_instance(parameter_class)? {
                     return Ok(false);
                 }
             }
@@ -1238,9 +1238,8 @@ impl Target {
                 }
                 if let Some(_qargs) = qargs.as_ref() {
                     let qarg_set: HashSet<PhysicalQubit> = _qargs.vec.iter().cloned().collect();
-                    if self.gate_map.map.contains_key(operation_names) {
-                        let gate_map_name =
-                            &self.gate_map.map[operation_names].extract::<PropsMap>(py)?;
+                    if let Some(gate_prop_name) = self.gate_map.map.get(operation_names) {
+                        let gate_map_name = gate_prop_name.extract::<PropsMap>(py)?;
                         if gate_map_name.map.contains_key(&qargs) {
                             return Ok(true);
                         }
@@ -1290,6 +1289,8 @@ impl Target {
                                 }));
                         }
                     }
+                } else {
+                    return Ok(true);
                 }
             }
         }
@@ -1533,7 +1534,7 @@ impl Target {
     /// The set of qargs in the target.
     #[getter]
     fn qargs(&self) -> PyResult<Option<QargsSet>> {
-        let qargs: HashSet<Option<Qargs>> = self.qarg_gate_map.keys().cloned().collect();
+        let qargs: IndexSet<Option<Qargs>> = self.qarg_gate_map.keys().cloned().collect();
         // Modify logic to account for the case of {None}
         let next_entry = qargs.iter().flatten().next();
         if qargs.len() == 1 && (qargs.iter().next().is_none() || next_entry.is_none()) {

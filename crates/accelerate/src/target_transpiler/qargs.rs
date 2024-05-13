@@ -18,8 +18,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use hashbrown::{hash_set::IntoIter, HashSet};
-
+use indexmap::{set::IntoIter, IndexSet};
 use itertools::Itertools;
 use pyo3::{
     exceptions::{PyKeyError, PyTypeError},
@@ -85,16 +84,11 @@ impl QargsIter {
 #[pyclass(sequence)]
 #[derive(Debug, Clone)]
 pub struct QargsSet {
-    pub set: HashSet<Option<Qargs>>,
+    pub set: IndexSet<Option<Qargs>>,
 }
 
 #[pymethods]
 impl QargsSet {
-    #[new]
-    pub fn new(set: HashSet<Option<Qargs>>) -> Self {
-        Self { set }
-    }
-
     fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
         for item in other.iter() {
             let qargs = if item.is_none() {
