@@ -237,3 +237,6 @@ def _semantic_eq(node1, node2, bit_indices1, bit_indices2):
         )
         and node1.op == node2.op
     )
+
+# Bind semantic_eq from Python to Rust implementation
+DAGNode.semantic_eq = staticmethod(_semantic_eq)
