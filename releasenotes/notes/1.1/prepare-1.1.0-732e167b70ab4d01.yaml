@@ -1,0 +1,22 @@
+---
+prelude: >
+    The Qiskit 1.1.0 release is a minor feature release that includes a myriad of new feature and bugfixes.
+    The highlights for this release are:
+
+      * Support for typed classical variables has been added to Qiskit's :class:`.QuantumCircuit`. These
+        classical variables can be specified as inputs or as scoped variables in a :class:`.QuantumCircuit`
+        where they e.g. store the output of qubit measurements or target control-flow operations. Support
+        for e.g. setting gate parameters or output variables will be added in the future.
+
+      * Two synthesis steps essential for generating hardware-conforming quantum circuits have been
+        implemented in rust. This yields significant runtime speedups when decomposing unitary matrices
+        into two-qubit quantum gates using :class:`.TwoQubitBasisDecomposer` and :class:`.TwoQubitWeylDecomposition`.
+
+      * A number of new transpiler passes have been introduced to Qiskit that yield significant runtime
+        speedups while also decreasing the size of the transpiled quantum circuits in many cases. Specifically,
+        :class:`.ElidePermutations` and :class:`.StarPreRouting` have been demonstrated to have a significant
+        impact on the routing output and runtime, :class:`.RemoveFinalReset` can improve quantum circuits
+        that include resets and :class:`.OptimizeAnnotated` improves the processing of annotated operations.
+
+      * The default pass managers have been improved by extending them with the newly introduced transpiler
+        passes, a reorganization of existing passes and a fine-tuning of transpilation parameters.

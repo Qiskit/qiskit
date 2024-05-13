@@ -1,5 +1,5 @@
 ---
-upgrade_circuit:
+upgrade_circuits:
   - |
     The methods :meth:`~qiskit.circuit.QuantumCircuit.power`,
     :meth:`~qiskit.circuit.Gate.power`, as well as the similar methods

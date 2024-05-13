@@ -1,5 +1,5 @@
 ---
-features_circuit:
+features_circuits:
   - |
     Added ``ctrl_state`` parameter to :func:`QuantumCircuit.mcp()` and
     :class:`MCPhaseGate()`.
@@ -8,7 +8,7 @@ features_circuit:
     The :func:`QuantumCircuit.mcp()` function and :class:`MCPhaseGate()` have
     been updated to include a ``ctrl_state`` parameter. This enhancement allows
     users to specify the control state of the multi-controlled phase gate. The
-    parameter can accept either a decimal value or a bitstring and defaults to
+    parameter can accept either an integer value or a bitstring and defaults to
     controlling the '1' state if not provided.
 
 

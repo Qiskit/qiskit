@@ -1,4 +1,4 @@
-features:
+features_transpiler:
   - |
     Added a new reduction to the :class:`.OptimizeAnnotated` transpiler pass.
     This reduction looks for annotated operations (objects of type :class:`.AnnotatedOperation`

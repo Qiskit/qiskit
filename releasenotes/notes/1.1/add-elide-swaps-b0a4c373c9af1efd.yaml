@@ -38,4 +38,4 @@ features_transpiler:
        ElidePermutations()(qc).draw("mpl")
 
     The pass also sets the ``virtual_permutation_layout`` property set, storing
-    the permutation of the virtual qubits that was optimized away.
+    the permutation of the virtual qubits at the end of the circuit that was optimized away.

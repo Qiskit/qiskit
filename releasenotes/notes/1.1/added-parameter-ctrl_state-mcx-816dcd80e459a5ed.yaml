@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added `ctrl_state` parameter to :func:`QuantumCircuit.mcx()`.
 
@@ -13,6 +13,6 @@ features:
     .. code-block:: python
 
       from qiskit import QuantumCircuit
-      
+
       qc = QuantumCircuit(3, 3)
       qc.mcx([0, 1], 2, ctrl_state="00")
