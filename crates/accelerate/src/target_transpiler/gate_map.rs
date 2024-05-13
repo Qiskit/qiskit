@@ -25,6 +25,7 @@ type GateMapType = IndexMap<String, Py<PropsMap>>;
 type GateMapIterType = IntoIter<String>;
 
 #[pyclass(sequence)]
+#[derive(Debug, Clone)]
 pub struct GateMapKeys {
     keys: IndexSet<String>,
 }
@@ -63,6 +64,90 @@ impl GateMapKeys {
                 .cloned()
                 .collect::<IndexSet<String>>(),
         }
+    }
+
+    fn union(&self, other: &Bound<PyAny>) -> PyResult<Self> {
+        if let Ok(set) = other.extract::<Self>() {
+            Ok(Self {
+                keys: self.keys.union(&set.keys).cloned().collect(),
+            })
+        } else if let Ok(set) = other.extract::<HashSet<String>>() {
+            Ok(Self {
+                keys: self
+                    .keys
+                    .iter()
+                    .cloned()
+                    .collect::<HashSet<String>>()
+                    .union(&set)
+                    .cloned()
+                    .collect(),
+            })
+        } else {
+            Err(PyKeyError::new_err(
+                "Could not perform union, Wrong Key Types",
+            ))
+        }
+    }
+
+    fn intersection(&self, other: &Bound<PyAny>) -> PyResult<Self> {
+        if let Ok(set) = other.extract::<Self>() {
+            Ok(Self {
+                keys: self.keys.intersection(&set.keys).cloned().collect(),
+            })
+        } else if let Ok(set) = other.extract::<HashSet<String>>() {
+            Ok(Self {
+                keys: self
+                    .keys
+                    .iter()
+                    .cloned()
+                    .collect::<HashSet<String>>()
+                    .intersection(&set)
+                    .cloned()
+                    .collect(),
+            })
+        } else {
+            Err(PyKeyError::new_err(
+                "Could not perform intersection, Wrong Key Types",
+            ))
+        }
+    }
+
+    fn difference(&self, other: &Bound<PyAny>) -> PyResult<Self> {
+        if let Ok(set) = other.extract::<Self>() {
+            Ok(Self {
+                keys: self.keys.difference(&set.keys).cloned().collect(),
+            })
+        } else if let Ok(set) = other.extract::<HashSet<String>>() {
+            Ok(Self {
+                keys: self
+                    .keys
+                    .iter()
+                    .cloned()
+                    .collect::<HashSet<String>>()
+                    .difference(&set)
+                    .cloned()
+                    .collect(),
+            })
+        } else {
+            Err(PyKeyError::new_err(
+                "Could not perform difference, Wrong Key Types",
+            ))
+        }
+    }
+
+    fn __ior__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
+        self.keys = self.union(other)?.keys;
+        Ok(())
+    }
+
+    fn __iand__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
+        self.keys = self.intersection(other)?.keys;
+        Ok(())
+    }
+
+    fn __isub__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
+        self.keys = self.difference(other)?.keys;
+        Ok(())
     }
 
     fn __contains__(slf: PyRef<Self>, obj: String) -> PyResult<bool> {

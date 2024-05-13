@@ -18,12 +18,13 @@ mod property_map;
 mod qargs;
 
 use hashbrown::HashSet;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
 use pyo3::{
-    exceptions::{PyAttributeError, PyIndexError, PyKeyError},
+    exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
     prelude::*,
     pyclass,
-    types::{IntoPyDict, PyList, PyType},
+    types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType},
 };
 use smallvec::smallvec;
 
@@ -47,8 +48,8 @@ mod exceptions {
 }
 
 /// Helper function to import inspect.isclass from python.
-fn isclass(py: Python<'_>, object: &Bound<PyAny>) -> PyResult<bool> {
-    let inspect_module: Bound<PyModule> = py.import_bound("inspect")?;
+fn isclass(object: &Bound<PyAny>) -> PyResult<bool> {
+    let inspect_module: Bound<PyModule> = object.py().import_bound("inspect")?;
     let is_class_method: Bound<PyAny> = inspect_module.getattr("isclass")?;
     is_class_method.call1((object,))?.extract::<bool>()
 }
@@ -64,16 +65,23 @@ fn get_standard_gate_name_mapping(py: Python<'_>) -> PyResult<IndexMap<String, B
 }
 
 /// Helper function to obtain the qubit props list from some Target Properties.
-fn qubit_props_list_from_props(
-    py: Python<'_>,
-    properties: &Bound<PyAny>,
-) -> PyResult<Vec<PyObject>> {
-    let qiskit_backend_comp_module = py.import_bound("qiskit.providers.backend_compat")?;
+fn qubit_props_list_from_props(properties: &Bound<PyAny>) -> PyResult<Vec<PyObject>> {
+    let qiskit_backend_comp_module = properties
+        .py()
+        .import_bound("qiskit.providers.backend_compat")?;
     let qubit_props_list_funct =
         qiskit_backend_comp_module.getattr("qubit_props_list_from_props")?;
-    let kwargs = [("properties", properties)].into_py_dict_bound(py);
+    let kwargs = [("properties", properties)].into_py_dict_bound(properties.py());
     let props_list = qubit_props_list_funct.call((), Some(&kwargs))?;
     props_list.extract::<Vec<PyObject>>()
+}
+
+/// Helper function to create tuples for objects that cannot be downcast
+fn tupleize<'py>(object: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyTuple>> {
+    let builtins = object.py().import_bound("builtins")?;
+    let tuple = builtins.getattr("tuple")?;
+    let result = tuple.call1((object,))?;
+    Ok(result.downcast_into::<PyTuple>()?)
 }
 
 // Subclassable or Python Wrapping.
@@ -187,7 +195,7 @@ pub struct Target {
     #[pyo3(get, set)]
     pub acquire_alignment: i32,
     #[pyo3(get, set)]
-    pub qubit_properties: Vec<PyObject>,
+    pub qubit_properties: Option<Vec<PyObject>>,
     #[pyo3(get, set)]
     pub concurrent_measurements: Vec<Vec<usize>>,
     // Maybe convert PyObjects into rust representations of Instruction and Data
@@ -248,16 +256,17 @@ impl Target {
             ``qubit_properties``.
      */
     #[new]
-    #[pyo3(text_signature = "(/,\
-        description=None,\
-        num_qubits=0,\
-        dt=None,\
-        granularity=1,\
-        min_length=1,\
-        pulse_alignment=1,\
-        acquire_alignment=1,\
-        qubit_properties=None,\
-        concurrent_measurements=None,)")]
+    #[pyo3(signature = (
+        description = None,
+        num_qubits = None,
+        dt = None,
+        granularity = None,
+        min_length = None,
+        pulse_alignment = None,
+        acquire_alignment = None,
+        qubit_properties = None,
+        concurrent_measurements = None,
+    ))]
     fn new(
         description: Option<String>,
         num_qubits: Option<usize>,
@@ -268,8 +277,21 @@ impl Target {
         acquire_alignment: Option<i32>,
         qubit_properties: Option<Vec<PyObject>>,
         concurrent_measurements: Option<Vec<Vec<usize>>>,
-    ) -> Self {
-        Target {
+    ) -> PyResult<Self> {
+        let mut num_qubits = num_qubits;
+        if let Some(qubit_properties) = qubit_properties.as_ref() {
+            if let Some(num_qubits) = num_qubits {
+                if num_qubits != qubit_properties.len() {
+                    return Err(PyValueError::new_err(
+                        "The value of num_qubits specified does not match the \
+                            length of the input qubit_properties list",
+                    ));
+                }
+            } else {
+                num_qubits = Some(qubit_properties.len())
+            }
+        }
+        Ok(Target {
             description,
             num_qubits,
             dt,
@@ -277,7 +299,7 @@ impl Target {
             min_length: min_length.unwrap_or(1),
             pulse_alignment: pulse_alignment.unwrap_or(1),
             acquire_alignment: acquire_alignment.unwrap_or(0),
-            qubit_properties: qubit_properties.unwrap_or(Vec::new()),
+            qubit_properties,
             concurrent_measurements: concurrent_measurements.unwrap_or(Vec::new()),
             gate_map: GateMap::new(),
             gate_name_map: IndexMap::new(),
@@ -288,7 +310,7 @@ impl Target {
             instruction_schedule_map: None,
             non_global_basis: None,
             non_global_strict_basis: None,
-        }
+        })
     }
 
     /**
@@ -369,7 +391,7 @@ impl Target {
         // Unwrap instruction name
         let instruction_name: String;
         let mut properties = properties;
-        if !isclass(py, instruction)? {
+        if !isclass(instruction)? {
             if let Some(name) = name {
                 instruction_name = name;
             } else {
@@ -402,7 +424,7 @@ impl Target {
             .insert(instruction_name.clone(), instruction.clone().unbind());
         let mut qargs_val: IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>> =
             IndexMap::new();
-        if isclass(py, instruction)? {
+        if isclass(instruction)? {
             qargs_val = IndexMap::from_iter([(None, None)].into_iter());
         } else if let Some(properties) = properties {
             let inst_num_qubits = instruction.getattr("num_qubits")?.extract::<usize>()?;
@@ -533,7 +555,7 @@ impl Target {
         this dictionary. If one is not found in ``error_dict`` then
         ``None`` will be used.
      */
-    #[pyo3(text_signature = "(inst_map, /, inst_name_map=None, error_dict=None)")]
+    #[pyo3(signature = (inst_map, /, inst_name_map=None, error_dict=None))]
     fn update_from_instruction_schedule_map(
         &mut self,
         py: Python<'_>,
@@ -638,8 +660,8 @@ impl Target {
                     self.add_instruction(py, inst_obj, Some(normalized_props), Some(inst_name))?;
                 } else {
                     // Check qubit length parameter name uniformity.
-                    let mut qlen: HashSet<usize> = HashSet::new();
-                    let mut param_names: HashSet<Vec<String>> = HashSet::new();
+                    let mut qlen: IndexSet<usize> = IndexSet::new();
+                    let param_names: Bound<PySet> = PySet::empty_bound(py)?;
                     let inst_map_qubit_instruction_for_name =
                         inst_map.call_method1("qubits_with_instruction", (&inst_name,))?;
                     let inst_map_qubit_instruction_for_name =
@@ -663,9 +685,9 @@ impl Target {
                             let params = cal
                                 .call_method0(py, "get_signature")?
                                 .getattr(py, "parameters")?
-                                .call_method0(py, "keys")?
-                                .extract::<Vec<String>>(py)?;
-                            param_names.insert(params);
+                                .call_method0(py, "keys")?;
+                            let params = params.bind(py);
+                            param_names.add(tupleize(params)?)?;
                         }
                         if qlen.len() > 1 || param_names.len() > 1 {
                             return Err(QiskitError::new_err(format!(
@@ -676,22 +698,37 @@ impl Target {
                             different names for different gate parameters.",
                                 &inst_name,
                                 qlen.iter().collect::<Vec<&usize>>(),
-                                param_names.iter().collect::<Vec<&Vec<String>>>()
+                                param_names,
                             )));
                         }
                         let gate_class = py.import_bound("qiskit.circuit.gate")?.getattr("Gate")?;
-                        let parameter_class = py
-                            .import_bound("qiskit.circuit.parameter")?
-                            .getattr("Parameter")?;
-                        let params =
-                            parameter_class.call1((param_names.iter().next().to_object(py),))?;
                         let kwargs = [
                             ("name", inst_name.as_str().into_py(py)),
                             ("num_qubits", qlen.iter().next().to_object(py)),
-                            ("params", params.into_py(py)),
+                            ("params", Vec::<PyObject>::new().to_object(py)),
                         ]
                         .into_py_dict_bound(py);
-                        let inst_obj = gate_class.call((), Some(&kwargs))?;
+                        let mut inst_obj = gate_class.call((), Some(&kwargs))?;
+                        if let Some(param) = param_names.iter().next() {
+                            if param.is_truthy()? {
+                                let parameter_class = py
+                                    .import_bound("qiskit.circuit.parameter")?
+                                    .getattr("Parameter")?;
+                                let params = param
+                                    .iter()?
+                                    .flat_map(|x| -> PyResult<Bound<PyAny>> {
+                                        parameter_class.call1((x?,))
+                                    })
+                                    .collect_vec();
+                                let kwargs = [
+                                    ("name", inst_name.as_str().into_py(py)),
+                                    ("num_qubits", qlen.iter().next().to_object(py)),
+                                    ("params", params.to_object(py)),
+                                ]
+                                .into_py_dict_bound(py);
+                                inst_obj = gate_class.call((), Some(&kwargs))?;
+                            }
+                        }
                         self.add_instruction(
                             py,
                             &inst_obj,
@@ -914,7 +951,7 @@ impl Target {
             }
         }
         for op in self.gate_name_map.values() {
-            if isclass(py, op.bind(py))? {
+            if isclass(op.bind(py))? {
                 res.append(op)?;
             }
         }
@@ -968,7 +1005,7 @@ impl Target {
             res.extend(qarg_gate_map_arg);
         }
         for (name, op) in self.gate_name_map.iter() {
-            if isclass(py, op.bind(py))? {
+            if isclass(op.bind(py))? {
                 res.insert(name);
             }
         }
@@ -1084,7 +1121,7 @@ impl Target {
         }
         if let Some(operation_class) = operation_class {
             for (op_name, obj) in self.gate_name_map.iter() {
-                if isclass(py, obj.bind(py))? {
+                if isclass(obj.bind(py))? {
                     if !operation_class.eq(obj)? {
                         continue;
                     }
@@ -1162,7 +1199,7 @@ impl Target {
             if self.gate_map.map.contains_key(operation_names) {
                 if let Some(parameters) = parameters {
                     let obj = self.gate_name_map[operation_names].to_owned();
-                    if isclass(py, obj.bind(py))? {
+                    if isclass(obj.bind(py))? {
                         if let Some(_qargs) = qargs {
                             let qarg_set: HashSet<PhysicalQubit> =
                                 _qargs.vec.iter().cloned().collect();
@@ -1209,7 +1246,7 @@ impl Target {
                         }
                         if gate_map_name.map.contains_key(&None) {
                             let obj = &self.gate_name_map[operation_names];
-                            if isclass(py, obj.bind(py))? {
+                            if isclass(obj.bind(py))? {
                                 if qargs.is_none()
                                     || _qargs.vec.iter().all(|qarg| {
                                         qarg.index() <= self.num_qubits.unwrap_or_default()
@@ -1231,7 +1268,7 @@ impl Target {
                     } else {
                         // Duplicate case is if it contains none
                         let obj = &self.gate_name_map[operation_names];
-                        if isclass(py, obj.bind(py))? {
+                        if isclass(obj.bind(py))? {
                             if qargs.is_none()
                                 || _qargs
                                     .vec
@@ -1282,8 +1319,11 @@ impl Target {
         }
         if self.gate_map.map.contains_key(&operation_name) {
             let gate_map_qarg = &self.gate_map.map[&operation_name];
-            if let Some(oper_qarg) = &gate_map_qarg.extract::<PropsMap>(py)?.map[&qargs] {
-                return Ok(!oper_qarg.getattr(py, "_calibration")?.is_none(py));
+            if let Some(oper_qarg) = &gate_map_qarg.extract::<PropsMap>(py)?.map.get(&qargs) {
+                if let Some(inst_prop) = oper_qarg {
+                    return Ok(!inst_prop.getattr(py, "_calibration")?.is_none(py));
+                }
+                return Ok(false);
             } else {
                 return Ok(false);
             }
@@ -1307,6 +1347,7 @@ impl Target {
         Calibrated pulse schedule of corresponding instruction.
     */
     #[pyo3(
+        signature = (operation_name, qargs=None, *args, **kwargs),
         text_signature = "( /, operation_name: str, qargs: tuple[int, ...], *args: ParameterValueType, **kwargs: ParameterValueType,)"
     )]
     fn get_calibration(
@@ -1314,6 +1355,8 @@ impl Target {
         py: Python<'_>,
         operation_name: String,
         qargs: Option<QargsOrTuple>,
+        args: &Bound<'_, PyTuple>,
+        kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyResult<PyObject> {
         let qargs_: Option<Qargs> = qargs.clone().map(|qargs| qargs.parse_qargs());
         if !self.has_calibration(py, operation_name.clone(), qargs)? {
@@ -1327,7 +1370,8 @@ impl Target {
             .map[&qargs_]
             .as_ref()
             .unwrap()
-            .getattr(py, "_calibration")
+            .getattr(py, "_calibration")?
+            .call_method_bound(py, "get_schedule", args, kwargs)
     }
 
     /**
@@ -1402,7 +1446,7 @@ impl Target {
     Returns:
         List[str]: A list of operation names for operations that aren't global in this target
     */
-    #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=false)")]
+    #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=False)")]
     fn get_non_global_operation_names(
         &mut self,
         py: Python<'_>,
@@ -1421,15 +1465,11 @@ impl Target {
             if let Some(global_basis) = &self.non_global_basis {
                 return Ok(global_basis.to_owned());
             }
-            for qarg_key in self.qarg_gate_map.keys().cloned() {
-                if let Some(qarg_key_) = &qarg_key {
-                    if qarg_key_.vec.len() != 1 {
-                        let mut vec = qarg_key_.clone().vec;
-                        vec.sort();
-                        let qarg_key = Some(Qargs { vec });
-                        search_set.insert(qarg_key);
-                    }
-                } else {
+            for qarg_key in self.qarg_gate_map.keys().flatten() {
+                if qarg_key.vec.len() != 1 {
+                    let mut vec = qarg_key.clone().vec;
+                    vec.sort();
+                    let qarg_key = Some(Qargs { vec });
                     search_set.insert(qarg_key);
                 }
             }
@@ -1643,7 +1683,7 @@ impl Target {
         }
         let mut qubit_properties = None;
         if let Some(backend_properties) = backend_properties {
-            qubit_properties = Some(qubit_props_list_from_props(py, backend_properties)?);
+            qubit_properties = Some(qubit_props_list_from_props(backend_properties)?);
         }
         let mut target = Self::new(
             None,
@@ -1655,7 +1695,7 @@ impl Target {
             Some(acquire_alignment),
             qubit_properties,
             concurrent_measurements,
-        );
+        )?;
         let mut name_mapping = get_standard_gate_name_mapping(py)?;
         if let Some(custom_name_mapping) = custom_name_mapping {
             for (key, value) in custom_name_mapping.into_iter() {
@@ -1691,7 +1731,7 @@ impl Target {
                         one_qubit_gates.push(gate);
                     } else if gate_obj_num_qubits == 2 {
                         two_qubit_gates.push(gate);
-                    } else if isclass(py, gate_obj)? {
+                    } else if isclass(gate_obj)? {
                         global_ideal_variable_width_gates.push(gate)
                     } else {
                         return Err(TranspilerError::new_err(
@@ -1959,7 +1999,7 @@ impl Target {
         self.min_length = state.get_item(4)?.extract::<usize>()?;
         self.pulse_alignment = state.get_item(5)?.extract::<i32>()?;
         self.acquire_alignment = state.get_item(6)?.extract::<i32>()?;
-        self.qubit_properties = state.get_item(7)?.extract::<Vec<PyObject>>()?;
+        self.qubit_properties = state.get_item(7)?.extract::<Option<Vec<PyObject>>>()?;
         self.concurrent_measurements = state.get_item(8)?.extract::<Vec<Vec<usize>>>()?;
         self.gate_map = state.get_item(9)?.extract::<GateMap>()?;
         self.gate_name_map = state

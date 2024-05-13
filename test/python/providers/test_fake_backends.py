@@ -261,7 +261,7 @@ class TestFakeBackends(QiskitTestCase):
 
         # This should not raise error
         backend_v2 = BackendV2Converter(backend, add_delay=True)
-        self.assertDictEqual(backend_v2.target["u2"], {None: None})
+        self.assertDictEqual(dict(backend_v2.target["u2"]), {None: None})
 
     def test_non_cx_tests(self):
         backend = GenericBackendV2(num_qubits=5, basis_gates=["cz", "x", "sx", "id", "rz"])
