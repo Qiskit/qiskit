@@ -12,6 +12,7 @@
 
 pub mod circuit_data;
 pub mod circuit_instruction;
+pub mod dag_node;
 pub mod intern_context;
 
 use pyo3::prelude::*;
@@ -30,6 +31,10 @@ pub enum SliceOrInt<'a> {
 #[pymodule]
 pub fn circuit(m: Bound<PyModule>) -> PyResult<()> {
     m.add_class::<circuit_data::CircuitData>()?;
+    m.add_class::<dag_node::DAGNode>()?;
+    m.add_class::<dag_node::DAGInNode>()?;
+    m.add_class::<dag_node::DAGOutNode>()?;
+    m.add_class::<dag_node::DAGOpNode>()?;
     m.add_class::<circuit_instruction::CircuitInstruction>()?;
     Ok(())
 }
