@@ -1,5 +1,5 @@
 ---
-upgrade_transpiler:
+features_transpiler:
   - |
     Extended the commutation analysis performed by :class:`~.CommutationChecker` to also work with
     abstract circuits, i.e. each operation in the input quantum circuit is now checked for its matrix

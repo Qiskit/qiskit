@@ -1,5 +1,5 @@
 ---
-upgrade_synthesis:
+features_synthesis:
   - |
     The :class:`.KMSSynthesisLinearFunction` plugin for synthesizing
     :class:`~qiskit.circuit.library.LinearFunction` objects now accepts
