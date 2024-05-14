@@ -2862,7 +2862,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             def _default_options(cls):
                 return Options(shots=1024)
 
-            def run(self, circuit, **kwargs):
+            def run(self, circuit, **kwargs):  # pylint:disable=arguments-renamed
                 raise NotImplementedError
 
         self.backend = FakeMultiChip()

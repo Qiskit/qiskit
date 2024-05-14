@@ -201,7 +201,6 @@ max-line-length = 105  # default 100
 [tool.pylint."messages control"]
 disable = [
 # intentionally disabled:
-    "arguments-renamed", # mostly used in the transpiler, renaming seems natural
     "docstring-first-line-empty", # relax docstring style
     "duplicate-code", # disabled as it is too verbose
     "fixme", # disabled as TODOs would show up as warnings
@@ -210,13 +209,11 @@ disable = [
     "no-else-return",  # relax "elif" after a clause with a return
     "no-member", # for dynamically created members
     "no-value-for-parameter", # cannot implement for eldritch horrors: qiskit/providers/options.py
-    "not-context-manager", # no need for QuantumCircuit to implement __enter__ and __exit__
     "protected-access", # disabled as we don't follow the public vs private convention strictly
     "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
     "spelling",  # too noisy
     "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
     "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
-    "unexpected-keyword-arg", # for validator in eldritch horrors: qiskit/providers/options.py
     "unnecessary-pass", # allow for methods with just "pass", for clarity
     "unnecessary-dunder-call", # do not want to implement
     "unnecessary-lambda-assignment", # do not want to implement
