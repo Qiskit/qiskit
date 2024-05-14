@@ -5029,29 +5029,15 @@ class QuantumCircuit:
             else:
                 self._parameter_table[atomic_parameter] = new_entries
 
-    @typing.overload
     def while_loop(
         self,
         condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
-        body: None,
-        qubits: None,
-        clbits: None,
+        body: Union["QuantumCircuit", None] = None,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        clbits: Sequence[ClbitSpecifier] | None = None,
         *,
-        label: str | None,
-    ) -> WhileLoopContext: ...
-
-    @typing.overload
-    def while_loop(
-        self,
-        condition: tuple[ClassicalRegister | Clbit, int] | expr.Expr,
-        body: "QuantumCircuit",
-        qubits: Sequence[QubitSpecifier],
-        clbits: Sequence[ClbitSpecifier],
-        *,
-        label: str | None,
-    ) -> InstructionSet: ...
-
-    def while_loop(self, condition, body=None, qubits=None, clbits=None, *, label=None):
+        label: str | None = None,
+    ) -> Union[InstructionSet, WhileLoopContext]:
         """Create a ``while`` loop on this circuit.
 
         There are two forms for calling this function.  If called with all its arguments (with the
@@ -5114,33 +5100,16 @@ class QuantumCircuit:
 
         return self.append(WhileLoopOp(condition, body, label), qubits, clbits, copy=False)
 
-    @typing.overload
     def for_loop(
         self,
         indexset: Iterable[int],
-        loop_parameter: Parameter | None,
-        body: None,
-        qubits: None,
-        clbits: None,
+        loop_parameter: Union[Parameter, None] = None,
+        body: Union["QuantumCircuit", None] = None,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        clbits: Sequence[ClbitSpecifier] | None = None,
         *,
-        label: str | None,
-    ) -> ForLoopContext: ...
-
-    @typing.overload
-    def for_loop(
-        self,
-        indexset: Iterable[int],
-        loop_parameter: Union[Parameter, None],
-        body: "QuantumCircuit",
-        qubits: Sequence[QubitSpecifier],
-        clbits: Sequence[ClbitSpecifier],
-        *,
-        label: str | None,
-    ) -> InstructionSet: ...
-
-    def for_loop(
-        self, indexset, loop_parameter=None, body=None, qubits=None, clbits=None, *, label=None
-    ):
+        label: str | None = None,
+    ) -> Union[InstructionSet, ForLoopContext]:
         """Create a ``for`` loop on this circuit.
 
         There are two forms for calling this function.  If called with all its arguments (with the
@@ -5205,37 +5174,15 @@ class QuantumCircuit:
             ForLoopOp(indexset, loop_parameter, body, label), qubits, clbits, copy=False
         )
 
-    @typing.overload
     def if_test(
         self,
         condition: tuple[ClassicalRegister | Clbit, int],
-        true_body: None,
-        qubits: None,
-        clbits: None,
-        *,
-        label: str | None,
-    ) -> IfContext: ...
-
-    @typing.overload
-    def if_test(
-        self,
-        condition: tuple[ClassicalRegister | Clbit, int],
-        true_body: "QuantumCircuit",
-        qubits: Sequence[QubitSpecifier],
-        clbits: Sequence[ClbitSpecifier],
+        true_body: Union["QuantumCircuit", None] = None,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        clbits: Sequence[ClbitSpecifier] | None = None,
         *,
         label: str | None = None,
-    ) -> InstructionSet: ...
-
-    def if_test(
-        self,
-        condition,
-        true_body=None,
-        qubits=None,
-        clbits=None,
-        *,
-        label=None,
-    ):
+    ) -> Union[InstructionSet, IfContext]:
         """Create an ``if`` statement on this circuit.
 
         There are two forms for calling this function.  If called with all its arguments (with the
@@ -5372,29 +5319,15 @@ class QuantumCircuit:
             IfElseOp(condition, true_body, false_body, label), qubits, clbits, copy=False
         )
 
-    @typing.overload
     def switch(
         self,
         target: Union[ClbitSpecifier, ClassicalRegister],
-        cases: None,
-        qubits: None,
-        clbits: None,
+        cases: Iterable[Tuple[typing.Any, QuantumCircuit]] | None = None,
+        qubits: Sequence[QubitSpecifier] | None = None,
+        clbits: Sequence[ClbitSpecifier] | None = None,
         *,
-        label: Optional[str],
-    ) -> SwitchContext: ...
-
-    @typing.overload
-    def switch(
-        self,
-        target: Union[ClbitSpecifier, ClassicalRegister],
-        cases: Iterable[Tuple[typing.Any, QuantumCircuit]],
-        qubits: Sequence[QubitSpecifier],
-        clbits: Sequence[ClbitSpecifier],
-        *,
-        label: Optional[str],
-    ) -> InstructionSet: ...
-
-    def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
+        label: Optional[str] | None = None,
+    ) -> InstructionSet | SwitchContext:
         """Create a ``switch``/``case`` structure on this circuit.
 
         There are two forms for calling this function.  If called with all its arguments (with the

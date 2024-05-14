@@ -221,7 +221,6 @@ disable = [
     "consider-using-f-string",
     "no-member",
     "no-value-for-parameter",
-    "not-context-manager",
     "unexpected-keyword-arg",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
