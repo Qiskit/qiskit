@@ -501,8 +501,13 @@ impl<'a> ExprParser<'a> {
             | TokenType::Sin
             | TokenType::Sqrt
             | TokenType::Tan => Ok(Some(Atom::Function(token.ttype.into()))),
-            TokenType::Real => Ok(Some(Atom::Const(token.real(self.context)))),
-            TokenType::Integer => Ok(Some(Atom::Const(token.int(self.context) as f64))),
+            // This deliberately parses an _integer_ token as a float, since all OpenQASM 2.0
+            // integers can be interpreted as floats, and doing that allows us to gracefully handle
+            // cases where a huge float would overflow a `usize`.  Never mind that in such a case,
+            // there's almost certainly precision loss from the floating-point representating
+            // having insufficient mantissa digits to faithfully represent the angle mod 2pi;
+            // that's not our fault in the parser.
+            TokenType::Real | TokenType::Integer => Ok(Some(Atom::Const(token.real(self.context)))),
             TokenType::Pi => Ok(Some(Atom::Const(f64::consts::PI))),
             TokenType::Id => {
                 let id = token.text(self.context);
@@ -698,6 +703,11 @@ impl<'a> ExprParser<'a> {
 
     /// Parse a single expression completely. This is the only public entry point to the
     /// operator-precedence parser.
+    ///
+    /// .. note::
+    ///
+    ///     This evaluates in a floating-point context, including evaluating integer tokens, since
+    ///     the only places that expressions are valid in OpenQASM 2 is during gate applications.
     pub fn parse_expression(&mut self, cause: &Token) -> PyResult<Expr> {
         self.eval_expression(0, cause)
     }
