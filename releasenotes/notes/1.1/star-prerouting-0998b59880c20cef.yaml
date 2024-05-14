@@ -5,7 +5,7 @@ features_transpiler:
     and then replace them with an optimal linear routing. This is useful for certain circuits that are composed of
     this circuit connectivity such as Bernstein-Vazirani and QFT. For example:
 
-    .. plot:
+    .. plot::
 
        from qiskit.circuit import QuantumCircuit
 
