@@ -28,7 +28,9 @@ use pyo3::{
 };
 use smallvec::{smallvec, IntoIter as SmallVecIntoIter, SmallVec};
 
+use super::macro_rules::qargs_key_like_set_iterator;
 use crate::nlayout::PhysicalQubit;
+use hashbrown::HashSet;
 
 pub type QargsTuple = SmallVec<[PhysicalQubit; 4]>;
 
@@ -56,16 +58,12 @@ impl QargsOrTuple {
     }
 }
 
-enum QargIterType {
-    Qarg(SmallVecIntoIter<[PhysicalQubit; 4]>),
-    QargSet(IntoIter<Option<Qargs>>),
-}
 /**
 An iterator for the ``Qarg`` class.
 */
 #[pyclass]
 struct QargsIter {
-    iter: QargIterType,
+    iter: SmallVecIntoIter<[PhysicalQubit; 4]>,
 }
 
 #[pymethods]
@@ -73,79 +71,19 @@ impl QargsIter {
     fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
         slf
     }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PyObject> {
-        match &mut slf.iter {
-            QargIterType::Qarg(iter) => iter.next().map(|next| next.to_object(slf.py())),
-            QargIterType::QargSet(iter) => iter.next().map(|next| next.into_py(slf.py())),
-        }
+    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<PhysicalQubit> {
+        slf.iter.next()
     }
 }
 
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
-pub struct QargsSet {
-    pub set: IndexSet<Option<Qargs>>,
-}
-
-#[pymethods]
-impl QargsSet {
-    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
-        for item in other.iter() {
-            let qargs = if item.is_none() {
-                None
-            } else {
-                Some(item.extract::<QargsOrTuple>()?.parse_qargs())
-            };
-            if !slf.set.contains(&qargs) {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<QargsIter>> {
-        let iter = QargsIter {
-            iter: QargIterType::QargSet(slf.set.clone().into_iter()),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn __getitem__(&self, obj: Bound<PyAny>) -> PyResult<Option<Qargs>> {
-        let qargs = if obj.is_none() {
-            None
-        } else {
-            Some(obj.extract::<QargsOrTuple>()?.parse_qargs())
-        };
-        if let Some(qargs) = self.set.get(&qargs) {
-            Ok(qargs.to_owned())
-        } else {
-            Err(PyKeyError::new_err("{:} was not in QargSet."))
-        }
-    }
-
-    fn __len__(slf: PyRef<Self>) -> usize {
-        slf.set.len()
-    }
-
-    fn __repr__(slf: PyRef<Self>) -> String {
-        let mut output = "qargs_set{".to_owned();
-        output.push_str(
-            slf.set
-                .iter()
-                .map(|x| {
-                    if let Some(x) = x {
-                        x.to_string()
-                    } else {
-                        "None".to_owned()
-                    }
-                })
-                .join(", ")
-                .as_str(),
-        );
-        output.push('}');
-        output
-    }
-}
+qargs_key_like_set_iterator!(
+    QargsSet,
+    QargsSetIter,
+    set,
+    IntoIter<Option<Qargs>>,
+    "",
+    "qargs_set"
+);
 
 /**
    Hashable representation of a Qarg tuple in rust.
@@ -174,7 +112,7 @@ impl Qargs {
 
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<QargsIter>> {
         let iter = QargsIter {
-            iter: QargIterType::Qarg(slf.vec.clone().into_iter()),
+            iter: slf.vec.clone().into_iter(),
         };
         Py::new(slf.py(), iter)
     }

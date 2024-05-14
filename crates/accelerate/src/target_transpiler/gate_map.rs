@@ -10,7 +10,7 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use super::property_map::PropsMap;
+use super::{macro_rules::key_like_set_iterator, property_map::PropsMap};
 use hashbrown::HashSet;
 use indexmap::{set::IntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
@@ -24,144 +24,15 @@ use pyo3::{
 type GateMapType = IndexMap<String, Py<PropsMap>>;
 type GateMapIterType = IntoIter<String>;
 
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
-pub struct GateMapKeys {
-    keys: IndexSet<String>,
-}
-
-#[pymethods]
-impl GateMapKeys {
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<GateMapIter>> {
-        let iter = GateMapIter {
-            iter: slf.keys.clone().into_iter(),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
-        for item in other.iter() {
-            let key = item.extract::<String>()?;
-            if !(slf.keys.contains(&key)) {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
-    fn __len__(slf: PyRef<Self>) -> usize {
-        slf.keys.len()
-    }
-
-    fn __sub__(&self, other: HashSet<String>) -> GateMapKeys {
-        GateMapKeys {
-            keys: self
-                .keys
-                .iter()
-                .cloned()
-                .collect::<HashSet<String>>()
-                .difference(&other)
-                .cloned()
-                .collect::<IndexSet<String>>(),
-        }
-    }
-
-    fn union(&self, other: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(set) = other.extract::<Self>() {
-            Ok(Self {
-                keys: self.keys.union(&set.keys).cloned().collect(),
-            })
-        } else if let Ok(set) = other.extract::<HashSet<String>>() {
-            Ok(Self {
-                keys: self
-                    .keys
-                    .iter()
-                    .cloned()
-                    .collect::<HashSet<String>>()
-                    .union(&set)
-                    .cloned()
-                    .collect(),
-            })
-        } else {
-            Err(PyKeyError::new_err(
-                "Could not perform union, Wrong Key Types",
-            ))
-        }
-    }
-
-    fn intersection(&self, other: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(set) = other.extract::<Self>() {
-            Ok(Self {
-                keys: self.keys.intersection(&set.keys).cloned().collect(),
-            })
-        } else if let Ok(set) = other.extract::<HashSet<String>>() {
-            Ok(Self {
-                keys: self
-                    .keys
-                    .iter()
-                    .cloned()
-                    .collect::<HashSet<String>>()
-                    .intersection(&set)
-                    .cloned()
-                    .collect(),
-            })
-        } else {
-            Err(PyKeyError::new_err(
-                "Could not perform intersection, Wrong Key Types",
-            ))
-        }
-    }
-
-    fn difference(&self, other: &Bound<PyAny>) -> PyResult<Self> {
-        if let Ok(set) = other.extract::<Self>() {
-            Ok(Self {
-                keys: self.keys.difference(&set.keys).cloned().collect(),
-            })
-        } else if let Ok(set) = other.extract::<HashSet<String>>() {
-            Ok(Self {
-                keys: self
-                    .keys
-                    .iter()
-                    .cloned()
-                    .collect::<HashSet<String>>()
-                    .difference(&set)
-                    .cloned()
-                    .collect(),
-            })
-        } else {
-            Err(PyKeyError::new_err(
-                "Could not perform difference, Wrong Key Types",
-            ))
-        }
-    }
-
-    fn __ior__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
-        self.keys = self.union(other)?.keys;
-        Ok(())
-    }
-
-    fn __iand__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
-        self.keys = self.intersection(other)?.keys;
-        Ok(())
-    }
-
-    fn __isub__(&mut self, other: &Bound<PyAny>) -> PyResult<()> {
-        self.keys = self.difference(other)?.keys;
-        Ok(())
-    }
-
-    fn __contains__(slf: PyRef<Self>, obj: String) -> PyResult<bool> {
-        Ok(slf.keys.contains(&obj))
-    }
-
-    fn __repr__(slf: PyRef<Self>) -> String {
-        let mut output = "gate_map_keys[".to_owned();
-        output.push_str(slf.keys.iter().join(", ").as_str());
-        output.push(']');
-        output
-    }
-}
-
+key_like_set_iterator!(
+    GateMapKeys,
+    GateMapKeysIter,
+    keys,
+    String,
+    IntoIter<String>,
+    "",
+    "gate_map_keys"
+);
 #[pyclass]
 pub struct GateMapIter {
     iter: GateMapIterType,

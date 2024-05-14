@@ -10,87 +10,27 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use hashbrown::HashSet;
 use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::types::{PyMapping, PySet};
 use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
 
 use super::instruction_properties::InstructionProperties;
+use super::macro_rules::qargs_key_like_set_iterator;
 use super::qargs::{Qargs, QargsOrTuple};
 
 type KeyIterType = IndexSetIntoIter<Option<Qargs>>;
 pub type PropsMapItemsType = Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)>;
 
-#[pyclass]
-struct PropsMapIter {
-    iter: KeyIterType,
-}
-
-#[pymethods]
-impl PropsMapIter {
-    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
-        slf
-    }
-    fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<Option<Qargs>> {
-        slf.iter.next()
-    }
-}
-
-#[pyclass(sequence)]
-#[derive(Debug, Clone)]
-pub struct PropsMapKeys {
-    pub keys: IndexSet<Option<Qargs>>,
-}
-
-#[pymethods]
-impl PropsMapKeys {
-    fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
-        let iter = PropsMapIter {
-            iter: slf.keys.clone().into_iter(),
-        };
-        Py::new(slf.py(), iter)
-    }
-
-    fn __eq__(slf: PyRef<Self>, other: Bound<PySet>) -> PyResult<bool> {
-        for item in other.iter() {
-            let qargs = item
-                .extract::<Option<QargsOrTuple>>()?
-                .map(|qargs| qargs.parse_qargs());
-            if !(slf.keys.contains(&qargs)) {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
-    fn __len__(slf: PyRef<Self>) -> usize {
-        slf.keys.len()
-    }
-
-    fn __contains__(slf: PyRef<Self>, obj: Option<QargsOrTuple>) -> PyResult<bool> {
-        let obj = obj.map(|obj| obj.parse_qargs());
-        Ok(slf.keys.contains(&obj))
-    }
-
-    fn __repr__(slf: PyRef<Self>) -> String {
-        let mut output = "prop_map_keys[".to_owned();
-        output.push_str(
-            slf.keys
-                .iter()
-                .map(|x| {
-                    if let Some(x) = x {
-                        x.to_string()
-                    } else {
-                        "None".to_owned()
-                    }
-                })
-                .join(", ")
-                .as_str(),
-        );
-        output.push(']');
-        output
-    }
-}
+qargs_key_like_set_iterator!(
+    PropsMapKeys,
+    PropsMapIter,
+    keys,
+    KeyIterType,
+    "",
+    "props_map_keys"
+);
 
 type PropsMapKV = IndexMap<Option<Qargs>, Option<Py<InstructionProperties>>>;
 /**

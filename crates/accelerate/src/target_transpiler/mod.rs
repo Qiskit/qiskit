@@ -14,11 +14,12 @@
 
 mod gate_map;
 mod instruction_properties;
+mod macro_rules;
 mod property_map;
 mod qargs;
 
 use hashbrown::HashSet;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -37,6 +38,7 @@ use qargs::{Qargs, QargsSet};
 use self::{
     exceptions::{QiskitError, TranspilerError},
     gate_map::{GateMap, GateMapIter, GateMapKeys},
+    macro_rules::key_like_set_iterator,
     property_map::PropsMapKeys,
     qargs::QargsOrTuple,
 };
@@ -94,7 +96,15 @@ fn tupleize<'py>(object: &Bound<'py, PyAny>) -> PyResult<Bound<'py, PyTuple>> {
 
 // Custom types
 type ErrorDictType<'a> = IndexMap<String, IndexMap<QargsOrTuple, Bound<'a, PyAny>>>;
-
+key_like_set_iterator!(
+    TargetOpNames,
+    TargetOpNamesIter,
+    operations,
+    String,
+    IndexSetIntoIter<String>,
+    "An iterator for the group of operation names in the target",
+    "target_op_names"
+);
 /**
 The intent of the ``Target`` object is to inform Qiskit's compiler about
 the constraints of a particular backend so the compiler can compile an
@@ -1567,10 +1577,13 @@ impl Target {
     }
     /// Get the operation names in the target.
     #[getter]
-    fn operation_names(&self) -> HashSet<String> {
-        return HashSet::from_iter(self.gate_map.map.keys().cloned());
+    fn operation_names(&self) -> TargetOpNames {
+        return TargetOpNames {
+            operations: self.gate_map.map.keys().cloned().collect(),
+        };
     }
-    /// Get the operation names in the target.
+
+    /// Get the operation objects in the target.
     #[getter]
     fn operations(&self) -> Vec<PyObject> {
         return Vec::from_iter(self.gate_name_map.values().cloned());
@@ -2040,5 +2053,6 @@ pub fn target(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Qargs>()?;
     m.add_class::<PropsMap>()?;
     m.add_class::<GateMap>()?;
+    m.add_class::<TargetOpNames>()?;
     Ok(())
 }

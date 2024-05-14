@@ -93,7 +93,7 @@ class InstructionProperties(InstructionProperties2):
 
 class Target(Target2):
     """
-        The intent of the ``Target`` object is to inform Qiskit's compiler about
+    The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
     input circuit to something that works and is optimized for a device. It
     currently contains a description of instructions on a backend and their
@@ -172,7 +172,8 @@ class Target(Target2):
         If you need to remove one of these the best option is to iterate over
         an existing object and create a new subset (or use one of the methods
         to do this). The object internally caches different views and these
-        would potentially be invalidated by removals."""
+        would potentially be invalidated by removals.
+    """
 
     def __new__(
         cls,
@@ -249,11 +250,6 @@ class Target(Target2):
             qubit_properties=qubit_properties,
             concurrent_measurements=concurrent_measurements,
         )
-
-    @property
-    def operation_names(self):
-        """Get the operation names in the target."""
-        return {x: None for x in super().operation_names}.keys()
 
     def _build_coupling_graph(self):
         self.coupling_graph = rx.PyDiGraph(  # pylint: disable=attribute-defined-outside-init
