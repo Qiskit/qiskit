@@ -208,7 +208,6 @@ disable = [
     "nested-min-max", # this gives false equivalencies if implemented for the current lint version
     "no-else-return",  # relax "elif" after a clause with a return
     "no-member", # for dynamically created members
-    "no-value-for-parameter", # cannot implement for eldritch horrors: qiskit/providers/options.py
     "protected-access", # disabled as we don't follow the public vs private convention strictly
     "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
     "spelling",  # too noisy
