@@ -11,6 +11,10 @@ prelude: >
       * Two synthesis steps essential for generating hardware-conforming quantum circuits have been
         implemented in rust. This yields significant runtime speedups when decomposing unitary matrices
         into two-qubit quantum gates using :class:`.TwoQubitBasisDecomposer` and :class:`.TwoQubitWeylDecomposition`.
+        These improvements have a significant impact on the :class:`.UnitarySynthesis` employed in optimization
+        level 2 and 3 that incurred a large runtime overhead for these pass managers historically.
+        Furthermore, the numeric methods used in :class:`.Isometry` have been moved to rust, enabling large
+        runtime speed-ups in particular for controlled unitary gate synthesis.
 
       * A number of new transpiler passes have been introduced to Qiskit that yield significant runtime
         speedups while also decreasing the size of the transpiled quantum circuits in many cases. Specifically,
@@ -19,11 +23,13 @@ prelude: >
         that include resets and :class:`.OptimizeAnnotated` improves the processing of annotated operations.
 
       * The default pass managers have been improved by extending them with the newly introduced transpiler
-        passes, a reorganization of existing passes and a fine-tuning of transpilation parameters.
+        passes, a reorganization of existing passes and a fine-tuning of transpilation parameters. In particular,
+        the optimization-level-2 preset pass manager has been refactored to have a better tradeoff between
+        the runtime and optimization effort in order to serve as a default pass manager in future releases.
 
-      * New generic primitive V2 implementations were added, :class:`~.BackendEstimatorV2` and 
+      * New generic primitive V2 implementations were added, :class:`~.BackendEstimatorV2` and
         :class:`~.BackendSamplerV2`, to compliment the existing full statevector based implementations.
-        
+
       * Improvements to the primitives interface. In particular, :class:`~.SamplerPubResult` was introduced
         to give access to the :meth:`.SamplerPubResult.join_data` method, :class:`.DataBin` was made into a mapping class,
         and :class:`.BitArray` was given many new utility methods.

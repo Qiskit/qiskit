@@ -9,11 +9,9 @@ features_transpiler:
 
        from qiskit.circuit import QuantumCircuit
 
-       qc = QuantumCircuit(10)
+       qc = QuantumCircuit(5)
        qc.h(0)
        qc.cx(0, range(1, 5))
-       qc.h(9)
-       qc.cx(9, range(8, 4, -1))
        qc.measure_all()
        qc.draw("mpl")
 
@@ -23,10 +21,26 @@ features_transpiler:
        from qiskit.circuit import QuantumCircuit
        from qiskit.transpiler.passes import StarPreRouting
 
-       qc = QuantumCircuit(10)
+       qc = QuantumCircuit(5)
        qc.h(0)
        qc.cx(0, range(1, 5))
-       qc.h(9)
-       qc.cx(9, range(8, 4, -1))
-       qc.measure_all()
        StarPreRouting()(qc).draw("mpl")
+
+    Alternatively, an existing preset pass manager can be extended by:
+
+    .. plot:
+       :include-source:
+
+       from qiskit import QuantumCircuit
+       from qiskit.transpiler import CouplingMap
+       from qiskit.transpiler.passes import StarPreRouting
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+       cm = CouplingMap.from_line(5)
+       qc = QuantumCircuit(5)
+       qc.h(0)
+       qc.cx(0, range(1, 5))
+       pm = generate_preset_pass_manager(2, coupling_map=cm)
+       pm.init += StarPreRouting()
+       result = pm.run(qc)
+       result.draw("mpl")
