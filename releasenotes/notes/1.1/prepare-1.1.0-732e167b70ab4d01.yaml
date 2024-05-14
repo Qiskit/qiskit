@@ -15,7 +15,7 @@ prelude: >
       * A number of new transpiler passes have been introduced to Qiskit that yield significant runtime
         speedups while also decreasing the size of the transpiled quantum circuits in many cases. Specifically,
         :class:`.ElidePermutations` and :class:`.StarPreRouting` have been demonstrated to have a significant
-        impact on the routing output and runtime, :class:`.RemoveFinalReset` can improve quantum circuits
+        impact on the routing output quality and runtime, :class:`.RemoveFinalReset` can improve quantum circuits
         that include resets and :class:`.OptimizeAnnotated` improves the processing of annotated operations.
 
       * The default pass managers have been improved by extending them with the newly introduced transpiler
