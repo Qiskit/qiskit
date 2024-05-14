@@ -15,7 +15,7 @@ features_transpiler:
        qc.measure_all()
        qc.draw("mpl")
 
-    .. plot:
+    .. plot::
        :include-source:
 
        from qiskit.circuit import QuantumCircuit
