@@ -28,7 +28,7 @@ features_transpiler:
 
     Alternatively, an existing preset pass manager can be extended by:
 
-    .. plot:
+    .. plot::
        :include-source:
 
        from qiskit import QuantumCircuit
