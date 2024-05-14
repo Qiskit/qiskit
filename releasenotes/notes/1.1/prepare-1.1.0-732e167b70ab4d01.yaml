@@ -21,6 +21,9 @@ prelude: >
       * The default pass managers have been improved by extending them with the newly introduced transpiler
         passes, a reorganization of existing passes and a fine-tuning of transpilation parameters.
 
+      * New generic primitive V2 implementations were added, :class:`~.BackendEstimatorV2` and 
+        :class:`~.BackendSamplerV2`, to compliment the existing full statevector based implementations.
+        
       * Improvements to the primitives interface. In particular, :class:`~.SamplerPubResult` was introduced
         to give access to the :meth:`.SamplerPubResult.join_data` method, :class:`.DataBin` was made into a mapping class,
         and :class:`.BitArray` was given many new utility methods.
