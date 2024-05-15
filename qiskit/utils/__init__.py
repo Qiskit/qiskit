@@ -43,7 +43,6 @@ Multiprocessing
 
 .. autofunction:: local_hardware_info
 .. autofunction:: is_main_process
-.. autofunction:: should_run_in_parallel
 
 A helper function for calling a custom function with Python
 :class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.

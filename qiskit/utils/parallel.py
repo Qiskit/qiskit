@@ -127,8 +127,8 @@ def parallel_map(  # pylint: disable=dangerous-default-value
 
         result = [task(value, *task_args, **task_kwargs) for value in values]
 
-    This will parallelise the results if the number of ``values`` is greater than one and
-    :func:`should_run_in_parallel` returns ``True``.  If not, it will run in serial.
+    This will parallelise the results if the number of ``values`` is greater than one, and the
+    current system configuration permits parallelization.
 
     Args:
         task (func): Function that is to be called for each value in ``values``.
