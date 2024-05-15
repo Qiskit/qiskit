@@ -421,12 +421,23 @@ class QuantumCircuit:
             The methods for adding new :class:`~.expr.Var` variables to a circuit after
             initialization.
 
+    You can retrive a :class:`~.expr.Var` instance attached to a circuit by using its variable name
+    using :meth:`get_var`, or check if a circuit contains a given variable with :meth:`has_var`.
+
     .. automethod:: get_var
     .. automethod:: has_var
+
+    There are also several iterator methods that you can use to get the full set of variables
+    tracked by a circuit.  At least one of :meth:`iter_input_vars` and :meth:`iter_captured_vars`
+    will be empty, as inputs and captures are mutually exclusive.  All of the iterators have
+    corresponding dynamic properties on :class:`QuantumCircuit` that contain their length:
+    :attr:`num_vars`, :attr:`num_input_vars`, :attr:`num_captured_vars` and
+    :attr:`num_declared_vars`.
+
+    .. automethod:: iter_vars
+    .. automethod:: iter_input_vars
     .. automethod:: iter_captured_vars
     .. automethod:: iter_declared_vars
-    .. automethod:: iter_input_vars
-    .. automethod:: iter_vars
 
 
     .. _circuit-adding-operations:
