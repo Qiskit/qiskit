@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added `ctrl_state` parameter to :meth:`.QuantumCircuit.mcx`.
+    Added a new ``ctrl_state`` argument to :meth:`.QuantumCircuit.mcx`.
 
 
     The :meth:`.QuantumCircuit.mcx` function in the quantum circuit library has
