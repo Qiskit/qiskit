@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    Added ``ctrl_state`` parameter to :meth:`.QuantumCircuit.mcp` and
+    Added a new ``ctrl_state`` argument to :meth:`.QuantumCircuit.mcp` and
     :class:`.MCPhaseGate`.
 
 
