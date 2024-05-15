@@ -3653,6 +3653,11 @@ class QuantumCircuit:
         """Clear all instructions in self.
 
         Clearing the circuits will keep the metadata and calibrations.
+
+        .. seealso::
+            :meth:`copy_empty_like`
+                A method to produce a new circuit with no instructions and all the same tracking of
+                quantum and classical typed data, but without mutating the original circuit.
         """
         self._data.clear()
         self._parameter_table.clear()
@@ -3886,6 +3891,28 @@ class QuantumCircuit:
 
         Measurements and barriers are considered final if they are
         followed by no other operations (aside from other measurements or barriers.)
+
+        .. note::
+            This method has rather complex behavior, particularly around the removal of newly idle
+            classical bits and registers.  It is much more efficient to avoid adding unnecessary
+            classical data in the first place, rather than trying to remove it later.
+
+        .. seealso::
+            :class:`.RemoveFinalMeasurements`
+                A transpiler pass that removes final measurements and barriers.  This does not
+                remove the classical data.  If this is your goal, you can call that with::
+
+                    from qiskit.circuit import QuantumCircuit
+                    from qiskit.transpiler.passes import RemoveFinalMeasurements
+
+                    qc = QuantumCircuit(2, 2)
+                    qc.h(0)
+                    qc.cx(0, 1)
+                    qc.barrier()
+                    qc.measure([0, 1], [0, 1])
+
+                    pass_ = RemoveFinalMeasurements()
+                    just_bell = pass_(qc)
 
         Args:
             inplace (bool): All measurements removed inplace or return new circuit.
