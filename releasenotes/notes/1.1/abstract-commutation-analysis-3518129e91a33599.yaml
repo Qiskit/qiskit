@@ -7,6 +7,6 @@ features_transpiler:
     performed on physical circuits. In addition, each operation is now checked for its ability to be
     cached in the session commutation library. For example, this now enables computing
     whether :class:`.AnnotatedOperation` commute. This enables transpiler passes that rely on :class:`~.CommutationChecker` internally,
-    such as :class:`.CommutativeCancellation`, during earlier stages of a default transpilation pipeline
+    such as :class:`.CommutativeCancellation`, to run during earlier stages of a default transpilation pipeline
     (prior to basis translation).
 
