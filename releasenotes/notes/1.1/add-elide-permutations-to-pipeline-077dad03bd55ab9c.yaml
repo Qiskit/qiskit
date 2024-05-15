@@ -6,4 +6,5 @@ features_transpiler:
     :class:`~.SwapGate`\s and :class:`~qiskit.circuit.library.PermutationGate`\s
     in a virtual circuit is almost always beneficial, as it makes the circuit shorter
     and easier to route. As :class:`~.OptimizeSwapBeforeMeasure` is a special case
-    of :class:`~.ElidePermutations`, it has been removed from optimization level 3.
+    of :class:`~.ElidePermutations`, it has been replaced by the :class:`.ElidePermuations` pass as
+    part of the init stage in optimization level 3 pass managers.
