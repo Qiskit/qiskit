@@ -417,6 +417,7 @@ Results V2
    DataBin
    PrimitiveResult
    PubResult
+   SamplerPubResult
    BasePrimitiveJob
    PrimitiveJob
 
@@ -466,6 +467,7 @@ from .containers import (
     PubResult,
     EstimatorPubLike,
     SamplerPubLike,
+    SamplerPubResult,
     BindingsArrayLike,
     ObservableLike,
     ObservablesArrayLike,
