@@ -97,8 +97,8 @@ class BasisTranslator(TransformationPass):
 
     When this error occurs it typically means that either the target basis
     is not universal or there are additional equivalence rules needed in the
-    :clas:~.EquivalenceLibrary` instance being used by the
-    :class:~.BasisTranslator` pass. You can refer to
+    :class:`~.EquivalenceLibrary` instance being used by the
+    :class:`~.BasisTranslator` pass. You can refer to
     :ref:`custom_basis_gates` for details on adding custom equivalence rules.
     """
 
