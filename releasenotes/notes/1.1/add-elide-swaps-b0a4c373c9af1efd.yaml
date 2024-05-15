@@ -1,0 +1,41 @@
+---
+features:
+  - |
+    Added a new optimization transpiler pass, :class:`~.ElidePermutations`,
+    which is designed to run prior to the :ref:`layout_stage` and will
+    optimize away any :class:`~.SwapGate`\s and
+    :class:`~qiskit.circuit.library.PermutationGate`\s
+    in a circuit by permuting virtual
+    qubits. For example, taking a circuit with :class:`~.SwapGate`\s:
+
+    .. plot::
+
+       from qiskit.circuit import QuantumCircuit
+
+       qc = QuantumCircuit(3)
+       qc.h(0)
+       qc.swap(0, 1)
+       qc.swap(2, 0)
+       qc.cx(1, 0)
+       qc.measure_all()
+       qc.draw("mpl")
+
+    will remove the swaps when the pass is run:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.transpiler.passes import ElidePermutations
+       from qiskit.circuit import QuantumCircuit
+
+       qc = QuantumCircuit(3)
+       qc.h(0)
+       qc.swap(0, 1)
+       qc.swap(2, 0)
+       qc.cx(1, 0)
+       qc.measure_all()
+
+       ElidePermutations()(qc).draw("mpl")
+
+    The pass also sets the ``virtual_permutation_layout`` property set, storing
+    the permutation of the virtual qubits that was optimized away.

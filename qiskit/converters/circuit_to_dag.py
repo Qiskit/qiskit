@@ -79,6 +79,13 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
     dagcircuit.add_qubits(qubits)
     dagcircuit.add_clbits(clbits)
 
+    for var in circuit.iter_input_vars():
+        dagcircuit.add_input_var(var)
+    for var in circuit.iter_captured_vars():
+        dagcircuit.add_captured_var(var)
+    for var in circuit.iter_declared_vars():
+        dagcircuit.add_declared_var(var)
+
     for register in circuit.qregs:
         dagcircuit.add_qreg(register)
 

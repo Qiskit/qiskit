@@ -137,7 +137,7 @@ def generate_basic_approximations(
     basis = []
     for gate in basis_gates:
         if isinstance(gate, str):
-            if gate not in _1q_gates.keys():
+            if gate not in _1q_gates:
                 raise ValueError(f"Invalid gate identifier: {gate}")
             basis.append(gate)
         else:  # gate is a qiskit.circuit.Gate

@@ -16,9 +16,11 @@ Choi-matrix representation of a Quantum Channel.
 """
 
 from __future__ import annotations
-import copy
+import copy as _copy
+import math
 import numpy as np
 
+from qiskit import _numpy_compat
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -103,7 +105,7 @@ class Choi(QuantumChannel):
             if output_dims:
                 output_dim = np.prod(output_dims)
             if output_dims is None and input_dims is None:
-                output_dim = int(np.sqrt(dim_l))
+                output_dim = int(math.sqrt(dim_l))
                 input_dim = dim_l // output_dim
             elif input_dims is None:
                 input_dim = dim_l // output_dim
@@ -133,10 +135,9 @@ class Choi(QuantumChannel):
             choi_mat = _to_choi(rep, data._data, input_dim, output_dim)
         super().__init__(choi_mat, op_shape=op_shape)
 
-    def __array__(self, dtype=None):
-        if dtype:
-            return np.asarray(self.data, dtype=dtype)
-        return self.data
+    def __array__(self, dtype=None, copy=_numpy_compat.COPY_ONLY_IF_NEEDED):
+        dtype = self.data.dtype if dtype is None else dtype
+        return np.array(self.data, dtype=dtype, copy=copy)
 
     @property
     def _bipartite_shape(self):
@@ -151,12 +152,12 @@ class Choi(QuantumChannel):
     # ---------------------------------------------------------------------
 
     def conjugate(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._data = np.conj(self._data)
         return ret
 
     def transpose(self):
-        ret = copy.copy(self)
+        ret = _copy.copy(self)
         ret._op_shape = self._op_shape.transpose()
         # Make bipartite matrix
         d_in, d_out = self.dim
@@ -205,7 +206,7 @@ class Choi(QuantumChannel):
 
     @classmethod
     def _tensor(cls, a, b):
-        ret = copy.copy(a)
+        ret = _copy.copy(a)
         ret._op_shape = a._op_shape.tensor(b._op_shape)
         ret._data = _bipartite_tensor(
             a._data, b.data, shape1=a._bipartite_shape, shape2=b._bipartite_shape

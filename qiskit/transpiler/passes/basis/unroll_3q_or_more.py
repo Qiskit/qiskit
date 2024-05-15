@@ -63,7 +63,7 @@ class Unroll3qOrMore(TransformationPass):
 
             if self.target is not None:
                 # Treat target instructions as global since this pass can be run
-                # prior to layout and routing we don't have phsyical qubits from
+                # prior to layout and routing we don't have physical qubits from
                 # the circuit yet
                 if node.name in self.target:
                     continue

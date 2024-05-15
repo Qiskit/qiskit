@@ -58,6 +58,8 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
 
     if circuit.clbits:
         raise QiskitError("Circuit with classical bits cannot be converted to gate.")
+    if circuit.num_vars:
+        raise QiskitError("circuits with realtime classical variables cannot be converted to gates")
 
     for instruction in circuit.data:
         if not _check_is_gate(instruction.operation):

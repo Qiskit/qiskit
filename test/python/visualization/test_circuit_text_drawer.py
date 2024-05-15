@@ -12,6 +12,9 @@
 
 """circuit_drawer with output="text" draws a circuit in ascii art"""
 
+# Sometimes we want to test long-lined output.
+# pylint: disable=line-too-long
+
 import pathlib
 import os
 import tempfile
@@ -37,7 +40,7 @@ from qiskit.visualization.circuit.circuit_visualization import _text_circuit_dra
 from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.circuit.classical import expr
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
     HGate,
     U2Gate,
@@ -6315,6 +6318,80 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
             str(circuit_drawer(circuit, output="text", fold=80, initial_state=False)),
             expected,
         )
+
+    def test_nested_if_else_op_var(self):
+        """Test if/else with standalone Var."""
+        expected = "\n".join(
+            [
+                "     ┌───────── ┌────────────────       ───────┐ ┌──────────────────── ┌───┐ ───────┐  ───────┐ ",
+                "q_0: ┤          ┤                 ──■──        ├─┤ If-1 c && a == 128  ┤ H ├  End-1 ├─        ├─",
+                "     │ If-0 !b  │ If-1 b == c[0]  ┌─┴─┐  End-1 │ └──────────────────── └───┘ ───────┘   End-0 │ ",
+                "q_1: ┤          ┤                 ┤ X ├        ├──────────────────────────────────────        ├─",
+                "     └───────── └───────╥──────── └───┘ ───────┘                                       ───────┘ ",
+                "                    ┌───╨────┐                                                                  ",
+                "c: 2/═══════════════╡ [expr] ╞══════════════════════════════════════════════════════════════════",
+                "                    └────────┘                                                                  ",
+            ]
+        )
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", False)
+        qc.store(a, 128)
+        with qc.if_test(expr.logic_not(b)):
+            # Mix old-style and new-style.
+            with qc.if_test(expr.equal(b, qc.clbits[0])):
+                qc.cx(0, 1)
+            c = qc.add_var("c", b)
+            with qc.if_test(expr.logic_and(c, expr.equal(a, 128))):
+                qc.h(0)
+
+        actual = str(qc.draw("text", fold=-1, initial_state=False))
+        self.assertEqual(actual, expected)
+
+    def test_nested_switch_op_var(self):
+        """Test switch with standalone Var."""
+        expected = "\n".join(
+            [
+                "     ┌───────────── ┌──────────── ┌──────────── ┌────────────      »",
+                "q_0: ┤              ┤             ┤             ┤             ──■──»",
+                "     │ Switch-0 ~a  │ Case-0 (0)  │ Switch-1 b  │ Case-1 (2)  ┌─┴─┐»",
+                "q_1: ┤              ┤             ┤             ┤             ┤ X ├»",
+                "     └───────────── └──────────── └──────────── └──────────── └───┘»",
+                "c: 2/══════════════════════════════════════════════════════════════»",
+                "                                                                   »",
+                "«     ┌──────────────── ┌───┐ ───────┐ ┌──────────────── ┌──────── ┌───┐»",
+                "«q_0: ┤                 ┤ X ├        ├─┤                 ┤ If-1 c  ┤ H ├»",
+                "«     │ Case-1 default  └─┬─┘  End-1 │ │ Case-0 default  └──────── └───┘»",
+                "«q_1: ┤                 ──■──        ├─┤                 ───────────────»",
+                "«     └────────────────       ───────┘ └────────────────                »",
+                "«c: 2/══════════════════════════════════════════════════════════════════»",
+                "«                                                                       »",
+                "«      ───────┐  ───────┐ ",
+                "«q_0:   End-1 ├─        ├─",
+                "«      ───────┘   End-0 │ ",
+                "«q_1: ──────────        ├─",
+                "«                ───────┘ ",
+                "«c: 2/════════════════════",
+                "«                         ",
+            ]
+        )
+
+        a = expr.Var.new("a", types.Uint(8))
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        b = qc.add_var("b", expr.lift(5, a.type))
+        with qc.switch(expr.bit_not(a)) as case:
+            with case(0):
+                with qc.switch(b) as case2:
+                    with case2(2):
+                        qc.cx(0, 1)
+                    with case2(case2.DEFAULT):
+                        qc.cx(1, 0)
+            with case(case.DEFAULT):
+                c = qc.add_var("c", expr.equal(a, b))
+                with qc.if_test(c):
+                    qc.h(0)
+        actual = str(qc.draw("text", fold=80, initial_state=False))
+        self.assertEqual(actual, expected)
 
 
 class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
