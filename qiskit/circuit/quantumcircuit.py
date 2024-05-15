@@ -197,7 +197,10 @@ class QuantumCircuit:
 
     You can attach arbitrary :attr:`metadata` to a circuit.  No part of core Qiskit will inspect
     this or change its behavior based on metadata, but it will be faithfully passed through the
-    transpiler, so you can tag your circuits yourself.
+    transpiler, so you can tag your circuits yourself.  When serializing a circuit with QPY (see
+    :mod:`qiskit.qpy`), the metadata will be JSON-serialized and you may need to pass a custom
+    serializer to handle non-JSON-compatible objects within it (see :func:`.qpy.dump` for more
+    detail).  This field is ignored during export to OpenQASM 2 or 3.
 
     .. autoattribute:: metadata
 
