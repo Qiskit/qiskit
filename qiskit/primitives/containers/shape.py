@@ -59,18 +59,18 @@ class ShapedMixin(Shaped):
         return f"{type(self).__name__}(<{self.shape}>)"
 
     @property
-    def shape(self):
-        """shape (tuple[int]): The leading shape of every entry in the instance."""
+    def shape(self) -> tuple[int, ...]:
+        """The array shape of this object."""
         return self._shape
 
     @property
-    def ndim(self):
-        """ndim (int): The length of the shape attribute."""
+    def ndim(self) -> int:
+        """The length of the shape attribute."""
         return len(self._shape)
 
     @property
-    def size(self):
-        """size (int): The product of the entries in the shape attribute."""
+    def size(self) -> int:
+        """The product of the entries in the shape attribute."""
         return int(np.prod(self._shape, dtype=int))
 
 
