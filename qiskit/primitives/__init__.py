@@ -396,6 +396,7 @@ Estimator V2
    BaseEstimatorV2
    StatevectorEstimator
    BackendEstimatorV2
+   EstimatorPub
 
 Sampler V2
 ----------
@@ -406,6 +407,7 @@ Sampler V2
    BaseSamplerV2
    StatevectorSampler
    BackendSamplerV2
+   SamplerPub
 
 Results V2
 ----------
@@ -465,7 +467,9 @@ from .containers import (
     DataBin,
     PrimitiveResult,
     PubResult,
+    EstimatorPub,
     EstimatorPubLike,
+    SamplerPub,
     SamplerPubLike,
     SamplerPubResult,
     BindingsArrayLike,
