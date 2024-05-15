@@ -10,6 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+/**
+Creates an ordered set key-like collection that will be preserve insertion order in Python
+while keeping the convenience of the ``set`` data structure.
+ */
 macro_rules! key_like_set_iterator {
     ($name:ident, $iter:ident, $keys:ident, $T:ty, $IterType:ty, $doc:literal, $pyrep:literal) => {
         #[doc = $doc]
@@ -194,6 +198,12 @@ macro_rules! key_like_set_iterator {
     };
 }
 
+/**
+Qargs oriented variant of the ``key_like_set_iterator`` macro.
+
+Creates an ordered set key-like collection that will be preserve insertion order in Python
+while keeping the convenience of the ``set`` data structure.
+ */
 macro_rules! qargs_key_like_set_iterator {
     ($name:ident, $iter:ident, $keys:ident, $IterType:ty, $doc:literal, $pyrep:literal) => {
         #[doc = $doc]

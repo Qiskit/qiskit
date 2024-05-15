@@ -34,6 +34,10 @@ use hashbrown::HashSet;
 
 pub type QargsTuple = SmallVec<[PhysicalQubit; 4]>;
 
+/**
+This enum enables the passing of either ``Qargs`` or ``tuple`` as arguments to functions.
+Allowing automatic casting of either in the rust space.
+ */
 #[derive(Debug, Clone, FromPyObject, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub enum QargsOrTuple {
     Qargs(Qargs),
@@ -41,6 +45,7 @@ pub enum QargsOrTuple {
 }
 
 impl QargsOrTuple {
+    /// Return the number of qubits in the Qargs instance.
     pub fn len(&self) -> usize {
         match self {
             Self::Tuple(tuple) => tuple.len(),
@@ -50,6 +55,7 @@ impl QargsOrTuple {
 }
 
 impl QargsOrTuple {
+    /// Perform conversion from ambiguous object to ``Qargs``.
     pub fn parse_qargs(self) -> Qargs {
         match self {
             QargsOrTuple::Qargs(qargs) => qargs,
@@ -81,12 +87,12 @@ qargs_key_like_set_iterator!(
     QargsSetIter,
     set,
     IntoIter<Option<Qargs>>,
-    "",
+    "Ordered set representation of a collection of Qargs.",
     "qargs_set"
 );
 
 /**
-   Hashable representation of a Qarg tuple in rust.
+   Hashable representation of a Qargs tuple in rust.
 
    Made to directly avoid conversions from a ``Vec`` structure in rust to a Python tuple.
 */
@@ -98,6 +104,7 @@ pub struct Qargs {
 
 #[pymethods]
 impl Qargs {
+    /// Create new instance of Qargs from a python tuple or list.
     #[new]
     pub fn new(qargs: Option<SmallVec<[PhysicalQubit; 4]>>) -> Self {
         match qargs {
@@ -106,10 +113,12 @@ impl Qargs {
         }
     }
 
+    /// Return the amount of qubits in the ``Qargs``.
     fn __len__(&self) -> usize {
         self.vec.len()
     }
 
+    /// Returns an iterator over the qubits in the ``Qargs``.
     fn __iter__(slf: PyRef<'_, Self>) -> PyResult<Py<QargsIter>> {
         let iter = QargsIter {
             iter: slf.vec.clone().into_iter(),
@@ -117,12 +126,14 @@ impl Qargs {
         Py::new(slf.py(), iter)
     }
 
+    /// Allows object to be hashable in Python.
     fn __hash__(slf: PyRef<'_, Self>) -> u64 {
         let mut hasher = DefaultHasher::new();
         slf.vec.hash(&mut hasher);
         hasher.finish()
     }
 
+    /// Check if a qubit is present in the ``Qargs`` by index.
     fn __contains__(&self, obj: Bound<PyAny>) -> PyResult<bool> {
         if let Ok(obj) = obj.extract::<PhysicalQubit>() {
             Ok(self.vec.contains(&obj))
@@ -131,6 +142,7 @@ impl Qargs {
         }
     }
 
+    /// Retrieve a qubit from the ``Qargs`` by index.
     fn __getitem__(&self, obj: Bound<PyAny>) -> PyResult<PhysicalQubit> {
         if let Ok(index) = obj.extract::<usize>() {
             if let Some(item) = self.vec.get(index) {
@@ -154,16 +166,16 @@ impl Qargs {
         Ok(())
     }
 
+    /// Compare two instances of Qargs or ``tuple``
     fn __eq__(&self, other: Bound<PyAny>) -> bool {
-        if let Ok(other) = other.extract::<Qargs>() {
-            self.vec == other.vec
-        } else if let Ok(other) = other.extract::<QargsTuple>() {
-            self.vec == other
+        if let Ok(other) = other.extract::<QargsOrTuple>() {
+            self.vec == other.parse_qargs().vec
         } else {
             false
         }
     }
 
+    /// Displays ``Qargs`` similar to tuples in Python.
     fn __repr__(slf: PyRef<'_, Self>) -> String {
         let mut output = "(".to_owned();
         output.push_str(slf.vec.iter().map(|x| x.index()).join(", ").as_str());

@@ -47,6 +47,11 @@ pub struct PropsMap {
 
 #[pymethods]
 impl PropsMap {
+    /// Create new instance of PropsMap.
+    ///
+    /// Args:
+    ///     map (``dict[Qargs: InstructionProperties ]``):
+    ///         mapping of optional ``Qargs`` and optional``InstructionProperties``.
     #[new]
     pub fn new(map: Option<PropsMapKV>) -> Self {
         match map {
@@ -55,6 +60,7 @@ impl PropsMap {
         }
     }
 
+    /// Check whether some qargs are part of this PropsMap
     fn __contains__(&self, key: &Bound<PyAny>) -> bool {
         if let Ok(key) = key.extract::<Option<QargsOrTuple>>() {
             let qarg = key.map(|qarg| qarg.parse_qargs());
@@ -64,6 +70,9 @@ impl PropsMap {
         }
     }
 
+    /// Check whether the partial equality of two PropMaps.
+    ///
+    /// Partial equality is considered because ``InstructionProperties`` is non comparable.
     fn __eq__(slf: PyRef<Self>, other: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(dict) = other.downcast::<PyMapping>() {
             for key in dict.keys()?.iter()? {
@@ -89,6 +98,15 @@ impl PropsMap {
         }
     }
 
+    /// Access a value in the GateMap using a Key.
+    ///
+    /// Args:
+    ///     key (``Qargs``): The instruction name key.
+    ///
+    /// Return:
+    ///     ``InstructionProperties`` object at that slot.
+    /// Raises:
+    ///     KeyError if the ``key`` is not in the ``PropsMap``.
     fn __getitem__(&self, py: Python<'_>, key: Option<QargsOrTuple>) -> PyResult<PyObject> {
         let key = key.map(|qargs| qargs.parse_qargs());
         if let Some(item) = self.map.get(&key) {
@@ -101,6 +119,14 @@ impl PropsMap {
         }
     }
 
+    /// Access a value in the GateMap using a Key.
+    ///
+    /// Args:
+    ///     key (str): The instruction name key.
+    ///     default (PyAny): The default value to be returned.
+    ///
+    /// Returns:
+    ///    ``PropsMap`` value if found, otherwise returns ``default``.
     #[pyo3(signature = (key, default=None))]
     fn get(
         &self,
@@ -116,11 +142,12 @@ impl PropsMap {
             },
         }
     }
-
+    /// Returns the number of keys present
     fn __len__(slf: PyRef<Self>) -> usize {
         slf.map.len()
     }
 
+    /// Returns an iterator over the keys of the PropsMap.
     fn __iter__(slf: PyRef<Self>) -> PyResult<Py<PropsMapIter>> {
         let iter = PropsMapIter {
             iter: slf
@@ -133,16 +160,19 @@ impl PropsMap {
         Py::new(slf.py(), iter)
     }
 
+    /// Returns an ordered set with all the Keys in the PropsMap.
     pub fn keys(&self) -> PropsMapKeys {
         PropsMapKeys {
             keys: self.map.keys().cloned().collect(),
         }
     }
 
+    /// Returns a list with all the values in the PropsMap.
     fn values(&self) -> Vec<Option<Py<InstructionProperties>>> {
         self.map.values().cloned().collect_vec()
     }
 
+    /// Returns a list with all they (key, value) pairs (``Qargs``, ``InstructionProperties``)
     fn items(&self) -> PropsMapItemsType {
         self.map.clone().into_iter().collect_vec()
     }
