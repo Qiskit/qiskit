@@ -203,8 +203,8 @@ class QuantumCircuit:
 
     :class:`QuantumCircuit` exposes data attributes tracking its internal quantum and classical bits
     and registers.  These appear as Python :class:`list`\\ s, but you should treat them as
-    immutable; changing them will *at best* have no effect, and more likely will simply cause
-    :class:`QuantumCircuit`'s internal data to become incoherent.
+    immutable; changing them will *at best* have no effect, and more likely will simply corrupt
+    the internal data of the :class:`QuantumCircuit`.
 
     .. autoattribute:: qregs
     .. autoattribute:: cregs
@@ -336,9 +336,9 @@ class QuantumCircuit:
 
     Registers are added to the circuit with :meth:`add_register`.  In this method, it is not an
     error if some of the bits are already present in the circuit.  In this case, the register will
-    be an "alias" over the bits.  This is not generally well-supported by any hardware backends;
-    while it is valid in the OpenQASM 3 abstract data model, it is probably best to stay away from
-    relying on it.  The registers a given bit is in are part of the return of :meth:`find_bit`.
+    be an "alias" over the bits.  This is not generally well-supported by hardware backends; it is
+    probably best to stay away from relying on it.  The registers a given bit is in are part of the
+    return of :meth:`find_bit`.
 
     .. automethod:: add_register
 
@@ -445,8 +445,8 @@ class QuantumCircuit:
 
     .. _circuit-append-compose:
 
-    Driver methods to add operations
-    --------------------------------
+    Methods to add general operations
+    ---------------------------------
 
     These are the base methods that handle adding any object, including user-defined ones, onto
     circuits.
@@ -473,8 +473,9 @@ class QuantumCircuit:
     :class:`.Target`).  An :class:`~.circuit.Instruction` can come with a
     :attr:`~.circuit.Instruction.definition`, which is one rule the transpiler (see
     :mod:`qiskit.transpiler`) will be able to fall back on to decompose it for hardware, if needed.
-    An :class:`.Operation` can only be decomposed if it has some associated high-level synthesis
-    method registered for it (see :mod:`qiskit.transpiler.passes.synthesis.plugin`).
+    An :class:`.Operation` that is not also an :class:`~.circuit.Instruction` can
+    only be decomposed if it has some associated high-level synthesis method registered for it (see
+    :mod:`qiskit.transpiler.passes.synthesis.plugin`).
 
     A :class:`QuantumCircuit` alone is not a single :class:`~.circuit.Instruction`; it is rather
     more complicated, since it can, in general, represent a complete program with typed classical
@@ -521,7 +522,7 @@ class QuantumCircuit:
     As some rules of thumb:
 
     * If you have a single :class:`.Operation`, :class:`~.circuit.Instruction` or :class:`.Gate`,
-      you should definitely use :meth:`append`.
+      you should definitely use :meth:`append` or :meth:`_append`.
     * If you have a :class:`QuantumCircuit` that represents a single atomic instruction for a larger
       circuit that you want to re-use, you probably want to call :meth:`to_instruction` or
       :meth:`to_gate`, and then apply the result of that to the circuit using :meth:`append`.
@@ -536,8 +537,8 @@ class QuantumCircuit:
     * Even if you re-use a custom :class:`~.circuit.Instruction` during circuit construction, the
       transpiler will generally have to "unroll" each invocation of it to its inner decomposition
       before beginning work on it.  This should not prevent you from using the
-      :meth:`to_instruction`-plus-:meth:`append` pattern, as the transpiler will also become
-      cleverer about this over time.
+      :meth:`to_instruction`-plus-:meth:`append` pattern, as the transpiler will improve in this
+      regard over time.
     * :meth:`compose` will, by default, produce a new circuit for backwards compatibility.  This is
       more expensive, and not usually what you want, so you should set ``inplace=True``.
     * Both :meth:`append` and :meth:`compose` (but not :meth:`_append`) have a ``copy`` keyword
