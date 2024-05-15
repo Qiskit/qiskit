@@ -8,14 +8,20 @@ prelude: >
         where they e.g. store the output of qubit measurements or target control-flow operations. Support
         for e.g. setting gate parameters or output variables will be added in the future.
 
-      * Two synthesis steps essential for generating hardware-conforming quantum circuits have been
-        implemented in rust. This yields significant runtime speedups when decomposing unitary matrices
-        into two-qubit quantum gates using :class:`.TwoQubitBasisDecomposer` and :class:`.TwoQubitWeylDecomposition`.
-        These improvements have a significant impact on the :class:`.UnitarySynthesis` employed in optimization
-        level 2 and 3 that incurred a large runtime overhead for these pass managers historically.
-        Furthermore, the numeric methods used in :class:`.Isometry` have been moved to rust, enabling large
-        runtime speed-ups in particular for controlled unitary gate synthesis. The decomposition for multi-controlled
-        not and phase gates has been improved by more than two orders of magnitude.
+      * The default two qubit synthesis methods that are used internally by the transpiler in the
+        :class:`.UnitarySynthesis` pass have been re-implemented in Rust. This yields significant
+        runtime speedups when decomposing two qubit unitary matrices. This corresponds
+        to a large improvement in the runtime for transpilation in level 3 where running
+        :class:`.UnitarySynthesis` for two qubit synthesis incurred a large runtime overhead
+        historically. This release also starts running :class:`.UnitarySynthesis` as part of the
+        optimization stage in optimization level 2 because of these runtime performance
+        improvements.
+       
+        Additionally, the numeric methods used in :class:`.Isometry` have been moved to rust,
+        enabling large runtime speed-ups in particular for controlled unitary gate synthesis.
+        The decomposition for multi-controlled :class:.XGate` and :class:`.PhaseGate`  has been
+        improved resulting in a reduction in the number of gates used in the synthesis by more
+        than two orders of magnitude.
 
       * A number of new transpiler passes have been introduced to Qiskit that yield significant runtime
         speedups while also decreasing the size of the transpiled quantum circuits in many cases. Specifically,
