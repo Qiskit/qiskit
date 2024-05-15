@@ -2,7 +2,7 @@
 features_circuits:
   - |
     The methods :meth:`.QuantumCircuit.power`,
-    :meth:`~qiskit.circuit.Gate.power`, as well as the similar methods
+    :meth:`.Gate.power`, as well as the similar methods on subclasses
     of subclasses of :class:`~qiskit.circuit.Gate`
     (such as of :class:`~qiskit.circuit.library.SGate`) all have an additional
     argument ``annotated``.
