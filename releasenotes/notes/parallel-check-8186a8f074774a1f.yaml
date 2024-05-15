@@ -1,0 +1,11 @@
+---
+features_misc:
+  - |
+    A new function, :func:`qiskit.utils.should_run_in_parallel`, is available to determine whether
+    :func:`.parallel_map` will choose to run in parallel or degrade to running in serial.  This
+    decision is dependent on how many CPUs are available to Qiskit, what the :mod:`multiprocessing`
+    start method is, how many processes were requested.
+fixes:
+  - |
+    :meth:`.PassManager.run` will no longer waste time serializing itself when given multiple inputs
+    if it is only going to work in serial.
