@@ -29,6 +29,7 @@ Utilities (:mod:`qiskit.utils`)
 .. autofunction:: detach_prefix
 .. autofunction:: wrap_method
 
+<<<<<<< HEAD
 Algorithm Utilities
 ===================
 
@@ -58,6 +59,10 @@ A helper function for calling a custom function with python
 ``ProcessPoolExecutor``. Tasks can be executed in parallel using this function.
 It has a built-in event publisher to show the progress of the parallel
 tasks.
+=======
+A helper function for calling a custom function with Python
+:class:`~concurrent.futures.ProcessPoolExecutor`. Tasks can be executed in parallel using this function.
+>>>>>>> b12e9ec3c (Fix unnecessary serialisation of `PassManager` in serial contexts (#12410))
 
 .. autofunction:: parallel_map
 
@@ -84,6 +89,7 @@ from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocess
 
 from . import optionals
 
+<<<<<<< HEAD
 from .circuit_utils import summarize_circuits
 from .entangler_map import get_entangler_map, validate_entangler_map
 from .backend_utils import has_ibmq, has_aer
@@ -91,6 +97,9 @@ from .name_unnamed_args import name_args
 from .algorithm_globals import algorithm_globals
 
 from .parallel import parallel_map
+=======
+from .parallel import parallel_map, should_run_in_parallel
+>>>>>>> b12e9ec3c (Fix unnecessary serialisation of `PassManager` in serial contexts (#12410))
 
 
 __all__ = [
@@ -114,4 +123,5 @@ __all__ = [
     "is_main_process",
     "apply_prefix",
     "parallel_map",
+    "should_run_in_parallel",
 ]
