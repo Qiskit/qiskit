@@ -30,9 +30,11 @@ prelude: >
         that include resets and :class:`.OptimizeAnnotated` improves the processing of annotated operations.
 
       * The default pass managers have been improved by extending them with the newly introduced transpiler
-        passes, a reorganization of existing passes and a fine-tuning of transpilation parameters. In particular,
-        the optimization-level-2 preset pass manager has been refactored to have a better tradeoff between
-        the runtime and optimization effort in order to serve as a default pass manager in future releases.
+        passes. In particular, the optimization level 2 preset pass manager from
+        :class:`.generate_preset_pass_manager` and used internally by :func:.transpile` has been refactored to
+        have a better tradeoff between runtime and optimization effort in order to serve as a default pass
+        manager in future releases. While this release doesn't change the default to use level 2 it is a better
+        choice than using level 1 or 3.
 
       * New generic primitive V2 implementations were added, :class:`~.BackendEstimatorV2` and
         :class:`~.BackendSamplerV2`, to compliment the existing full statevector based implementations.
