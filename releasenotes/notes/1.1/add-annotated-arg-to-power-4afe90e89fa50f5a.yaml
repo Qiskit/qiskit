@@ -1,7 +1,7 @@
 ---
 features_circuits:
   - |
-    The methods :meth:`~qiskit.circuit.QuantumCircuit.power`,
+    The methods :meth:`.QuantumCircuit.power`,
     :meth:`~qiskit.circuit.Gate.power`, as well as the similar methods
     of subclasses of :class:`~qiskit.circuit.Gate`
     (such as of :class:`~qiskit.circuit.library.SGate`) all have an additional
