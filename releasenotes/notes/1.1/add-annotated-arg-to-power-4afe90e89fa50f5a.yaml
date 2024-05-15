@@ -5,7 +5,8 @@ features_circuits:
     :meth:`.Gate.power`, as well as the similar methods on subclasses
     of subclasses of :class:`~qiskit.circuit.Gate`
     (such as of :class:`~qiskit.circuit.library.SGate`) all have an additional
-    argument ``annotated``.
+    have a new argument ``annotated`` which is used to return an :class:`.AnnotatedOperation`
+    object when applying a power to a gate or circuit.
     The default value of ``False`` corresponds to the existing behavior.
     Furthermore, for standard gates with an explicitly defined ``power`` method,
     the argument ``annotated`` has no effect.
