@@ -45,7 +45,7 @@ features_circuits:
     A variable is a :class:`.Var` node, which can now contain an arbitrary type, and represents a
     unique memory location within its live range when added to a circuit.  These can be constructed
     in a circuit using :meth:`.QuantumCircuit.add_var` and :meth:`.QuantumCircuit.add_input`, or
-    at a lower level using :func:`~.qiskit.circuit.classical.expr.Var.new`.
+    at a lower level using :func:`.Var.new`.
 
     Variables can be manually stored to, using the :class:`.Store` instruction and its corresponding
     circuit method :meth:`.QuantumCircuit.store`.  This includes writing to :class:`.Clbit` and

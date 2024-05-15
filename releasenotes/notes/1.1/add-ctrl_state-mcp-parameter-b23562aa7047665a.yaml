@@ -5,7 +5,7 @@ features_circuits:
     :class:`.MCPhaseGate`.
 
 
-    The :meth:`.QuantumCircuit.mcp` function and :class:`.MCPhaseGate` have
+    The :meth:`.QuantumCircuit.mcp` method and :class:`.MCPhaseGate` class have
     been updated to include a ``ctrl_state`` parameter. This enhancement allows
     users to specify the control state of the multi-controlled phase gate. The
     parameter can accept either an integer value or a bitstring and defaults to
