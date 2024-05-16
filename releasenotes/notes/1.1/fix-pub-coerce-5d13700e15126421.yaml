@@ -1,8 +1,0 @@
----
-
-fixes:
-  - |
-    Fixed a bug where :meth:`~.qiskit.primitives.containers.estimator_pub.EstimatorPub.coerce` and
-    :meth:`~.qiskit.primitives.containers.sampler_pub.SamplerPub.coerce`
-    improperly handle the case where the parameter values are a :class:`.BindingsArray` instance, giving
-    rise to a :class:`.ValueError` whenever it is attempted.
