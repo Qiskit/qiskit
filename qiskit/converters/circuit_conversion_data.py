@@ -17,8 +17,8 @@ class CircuitConversionData:
     """Conversion data when switching between different circuit formats."""
 
     def __init__(self):
-        self._fwd_map = dict()
-        self._bwd_map = dict()
+        self._fwd_map = {}
+        self._bwd_map = {}
 
     def store_mapping(self, from_node, to_node):
         """Stores that ``from_node`` is mapped to ``to_node``."""

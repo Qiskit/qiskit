@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Helper function for converting a dag circuit to a dag dependency"""
-from .circuit_conversion_data import CircuitConversionData
 from qiskit.dagcircuit.dagdependency import DAGDependency
+from .circuit_conversion_data import CircuitConversionData
 
 
 def dag_to_dagdependency_with_data(
@@ -78,7 +78,7 @@ def dag_to_dagdependency(dag, create_preds_and_succs=True):
     Return:
         DAGDependency: the DAG representing the input circuit as a dag dependency.
     """
-    dagdependency, conversion_data = dag_to_dagdependency_with_data(
+    dagdependency, _ = dag_to_dagdependency_with_data(
         dag, create_preds_and_succs=create_preds_and_succs
     )
     return dagdependency
