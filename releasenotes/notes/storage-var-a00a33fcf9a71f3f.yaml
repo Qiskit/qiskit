@@ -119,7 +119,7 @@ features_qasm:
 features_qpy:
   - |
     QPY (:mod:`qiskit.qpy`) format version 12 has been added, which includes support for memory-owning
-    :class:`.Var` variables.  See :ref`qpy_version_12` for more detail on the format changes.
+    :class:`.Var` variables.  See :ref:`qpy_version_12` for more detail on the format changes.
 
     The value of :attr:`qiskit.qpy.QPY_VERSION` is now 12.  :attr:`.QPY_COMPATIBILITY_VERSION` is
     unchanged at 10.
