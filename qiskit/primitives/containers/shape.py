@@ -60,17 +60,14 @@ class ShapedMixin(Shaped):
 
     @property
     def shape(self) -> tuple[int, ...]:
-        """The array shape of this object."""
         return self._shape
 
     @property
     def ndim(self) -> int:
-        """The length of the shape attribute."""
         return len(self._shape)
 
     @property
     def size(self) -> int:
-        """The product of the entries in the shape attribute."""
         return int(np.prod(self._shape, dtype=int))
 
 
