@@ -10,19 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use numpy::{AllowTypeChange, PyArrayLike1, PyReadonlyArray1};
+use ndarray::{Array1, ArrayView1};
+use numpy::{AllowTypeChange, PyArrayLike1};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
-use pyo3::PyErr;
 use std::vec::Vec;
 
-fn validate_permutation(pattern: &PyReadonlyArray1<i64>) -> Result<(), PyErr> {
-    let view = pattern.as_array();
-    let n = view.len();
+fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
+    let n = pattern.len();
     let mut seen: Vec<bool> = vec![false; n];
 
-    for &x in view {
+    for &x in pattern {
         if x < 0 {
             return Err(PyValueError::new_err(
                 "Invalid permutation: input contains a negative number.",
@@ -42,49 +41,28 @@ fn validate_permutation(pattern: &PyReadonlyArray1<i64>) -> Result<(), PyErr> {
                 x
             )));
         }
+
         seen[x as usize] = true;
     }
 
     Ok(())
 }
 
-fn invert(pattern: &PyReadonlyArray1<i64>) -> Vec<usize> {
-    let view = pattern.as_array();
-    let mut inverse: Vec<usize> = vec![0; view.len()];
-    view.iter().enumerate().for_each(|(ii, &jj)| {
+fn invert(pattern: &ArrayView1<i64>) -> Array1<usize> {
+    let mut inverse: Array1<usize> = Array1::zeros(pattern.len());
+    pattern.iter().enumerate().for_each(|(ii, &jj)| {
         inverse[jj as usize] = ii;
     });
     inverse
 }
 
-#[pyfunction]
-#[pyo3(signature = (pattern))]
-pub fn _inverse_pattern(
-    py: Python,
-    pattern: PyArrayLike1<i64, AllowTypeChange>,
-) -> PyResult<PyObject> {
-    validate_permutation(&pattern)?;
-    Ok(invert(&pattern).to_object(py))
-}
+fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
+    let mut permutation: Vec<usize> = pattern.iter().map(|&x| x as usize).collect();
+    let mut index_map = invert(pattern);
 
-#[pyfunction]
-#[pyo3(signature = (permutation_in))]
-pub fn _get_ordered_swap(
-    py: Python,
-    permutation_in: PyArrayLike1<i64, AllowTypeChange>,
-) -> PyResult<PyObject> {
-    validate_permutation(&permutation_in)?;
-
-    let mut permutation: Vec<usize> = permutation_in
-        .as_array()
-        .iter()
-        .map(|&x| x as usize)
-        .collect();
-    let mut index_map = invert(&permutation_in);
-
-    let s = permutation.len();
-    let mut swaps: Vec<(i64, i64)> = Vec::with_capacity(s);
-    for ii in 0..s {
+    let n = permutation.len();
+    let mut swaps: Vec<(i64, i64)> = Vec::with_capacity(n);
+    for ii in 0..n {
         let val = permutation[ii];
         if val == ii {
             continue;
@@ -97,7 +75,37 @@ pub fn _get_ordered_swap(
     }
 
     swaps[..].reverse();
-    Ok(swaps.to_object(py))
+    swaps
+}
+
+///Finds inverse of a permutation pattern.
+#[pyfunction]
+#[pyo3(signature = (pattern))]
+fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> PyResult<PyObject> {
+    let view = pattern.as_array();
+    validate_permutation(&view)?;
+    let inverse_i64: Vec<i64> = invert(&view).iter().map(|&x| x as i64).collect();
+    Ok(inverse_i64.to_object(py))
+}
+
+///Sorts the input permutation by iterating through the permutation list
+///and putting each element to its correct position via a SWAP (if it's not
+///at the correct position already). If ``n`` is the length of the input
+///permutation, this requires at most ``n`` SWAPs.
+///
+///More precisely, if the input permutation is a cycle of length ``m``,
+///then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
+///if the input  permutation consists of several disjoint cycles, then each cycle
+///is essentially treated independently.
+#[pyfunction]
+#[pyo3(signature = (permutation_in))]
+fn _get_ordered_swap(
+    py: Python,
+    permutation_in: PyArrayLike1<i64, AllowTypeChange>,
+) -> PyResult<PyObject> {
+    let view = permutation_in.as_array();
+    validate_permutation(&view)?;
+    Ok(get_ordered_swap(&view).to_object(py))
 }
 
 #[pymodule]

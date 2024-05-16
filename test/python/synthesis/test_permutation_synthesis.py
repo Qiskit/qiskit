@@ -65,7 +65,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern = np.random.permutation(width)
 
             pattern_out_of_range = np.copy(pattern)
-            pattern_out_of_range[0] = width
+            pattern_out_of_range[0] = -1
             with self.assertRaises(ValueError) as exc:
                 _ = synth_permutation_basic(pattern_out_of_range)
                 self.assertIn("input contains a negative number", str(exc.exception))
