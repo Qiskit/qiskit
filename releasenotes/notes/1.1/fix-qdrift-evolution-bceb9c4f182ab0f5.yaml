@@ -1,3 +1,6 @@
 fixes:
   - |
-    Fix incorrect implemention of `qDRIFT`, negative coeffients of the Hamiltonian are now added back whereas they were always forced to be positive.
+    Fix an issue in the :class:`.QDrift` class where the coefficients of the
+    Hamiltonian were previously force to be positive by taking the absolute
+    value of each coefficient. This has been corrected so that the negative
+    coeffients' signs are added back.

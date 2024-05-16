@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_visualization:
   - |
     The parameters ``show_idle`` and ``show_barrier`` in the timeline drawers had been replaced by ``idle_wires`` and ``plot_barriers``
     respectively to match the circuit drawer parameters. Their previous names are now deprecated and will be removed in the next major
