@@ -466,7 +466,7 @@ If your backend is *unable* to handle classical variables and storage, we recomm
 on this in your documentation, and insert a check into your :meth:`~.BackendV2.run` method (see
 :ref:`providers-guide-backend-run`) to eagerly reject circuits containing them.  You can examine
 :attr:`.QuantumCircuit.num_vars` for the presence of variables at the top level.  If you accept
-:ref:`control-flow operations `circuit-control-flow-repr`, you might need to recursively search the
+:ref:`control-flow operations <circuit-control-flow-repr>`, you might need to recursively search the
 internal :attr:`~.ControlFlowOp.blocks` of each for scope-local variables with
 :attr:`.QuantumCircuit.num_declared_vars`.
 
