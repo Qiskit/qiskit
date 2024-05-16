@@ -45,7 +45,7 @@ upgrade_misc:
   - |
     The minimum supported version of Windows is now Windows 10. In previous releases we did not explicitly list
     a minimum supported version of Windows and implicitly Windows 7, 8, and 8.1 may have worked (but were
-    never tested). But do to Rust 1.78 dropping support for older versions of Windows Qiskit's published binaries
+    never tested). But due to Rust 1.78 dropping support for older versions of Windows Qiskit's published binaries
     on PyPI will not support older versions of Windows in this release. If you're using an older version of Windows
     you can likely still build Qiskit from source using an older Rust compiler (Qiskit's minimum supported Rust
     version for building from source is currently 1.70) but older versions of Windows are not a supported platform
