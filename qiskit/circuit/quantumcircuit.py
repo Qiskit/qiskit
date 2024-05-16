@@ -3301,25 +3301,36 @@ class QuantumCircuit:
 
     def depth(
         self,
-        filter_function: Callable[..., int] = lambda x: not getattr(
+        filter_function: Callable[[CircuitInstruction], bool] = lambda x: not getattr(
             x.operation, "_directive", False
         ),
     ) -> int:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
-            filter_function (callable): A function to filter instructions.
-                Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
-                Instructions for which the function returns False are ignored in the
-                computation of the circuit depth.
-                By default filters out "directives", such as barrier or snapshot.
+            filter_function: A function to decide which instructions count to increase depth.
+                Should take as a single positional input a :class:`CircuitInstruction`.
+                Instructions for which the function returns ``False`` are ignored in the
+                computation of the circuit depth.  By default filters out "directives", such as
+                :class:`.Barrier`.
 
         Returns:
             int: Depth of circuit.
 
-        Notes:
-            The circuit depth and the DAG depth need not be the
-            same.
+        Examples:
+            Simple calculation of total circuit depth::
+
+                from qiskit.circuit import QuantumCircuit
+                qc = QuantumCircuit(4)
+                qc.h(0)
+                qc.cx(0, 1)
+                qc.h(2)
+                qc.cx(2, 3)
+                assert qc.depth() == 2
+
+            Modifying the previous example to only calculate the depth of multi-qubit gates::
+
+                assert qc.depth(lambda instr: len(instr.qubits) > 1) == 1
         """
         # Assign each bit in the circuit a unique integer
         # to index into op_stack.
