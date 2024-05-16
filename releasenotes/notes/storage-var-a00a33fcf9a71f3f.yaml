@@ -120,9 +120,6 @@ features_qpy:
   - |
     QPY (:mod:`qiskit.qpy`) format version 12 has been added, which includes support for memory-owning
     :class:`.Var` variables.  See :ref:`qpy_version_12` for more detail on the format changes.
-
-    The value of :attr:`qiskit.qpy.QPY_VERSION` is now 12.  :attr:`.QPY_COMPATIBILITY_VERSION` is
-    unchanged at 10.
 features_visualization:
   - |
     The text and `Matplotlib <https://matplotlib.org>`__ circuit drawers (:meth:`.QuantumCircuit.draw`)
@@ -130,7 +127,10 @@ features_visualization:
     :class:`.Store` operation and the variable initializations are not yet supported; for large-scale
     dynamic circuits, we recommend using the OpenQASM 3 export capabilities (:func:`.qasm3.dumps`) to
     get a textual representation of a circuit.
-
+upgrade_qpy:
+  - |
+    The value of :attr:`qiskit.qpy.QPY_VERSION` is now 12.  :attr:`.QPY_COMPATIBILITY_VERSION` is
+    unchanged at 10.
 upgrade_providers:
   - |
     Backends may wish to update their ``run`` methods to eagerly reject inputs containing typed
