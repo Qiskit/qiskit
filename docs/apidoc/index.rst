@@ -13,6 +13,7 @@ Circuit construction:
    :maxdepth: 1
 
    circuit
+   qiskit.circuit.QuantumCircuit
    circuit_classical
    classicalfunction
    circuit_library
