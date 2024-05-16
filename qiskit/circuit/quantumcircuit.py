@@ -966,14 +966,18 @@ class QuantumCircuit:
     .. automethod:: decompose
     .. automethod:: reverse_bits
 
-    ..
-        Deliberately not documented; these methods shouldn't be public.
+    Internal utilities
+    ==================
 
-        .. automethod:: cast
-        .. automethod:: cbit_argument_conversion
-        .. automethod:: cls_instances
-        .. automethod:: cls_prefix
-        .. automethod:: qbit_argument_conversion
+    These functions are not intended for public use, but were accidentally left documented in the
+    public API during the 1.0 release.  They will be removed in Qiskit 2.0, but will be supported
+    until then.
+
+    .. automethod:: cast
+    .. automethod:: cbit_argument_conversion
+    .. automethod:: cls_instances
+    .. automethod:: cls_prefix
+    .. automethod:: qbit_argument_conversion
     """
 
     instances = 0
