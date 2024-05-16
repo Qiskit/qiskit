@@ -1,5 +1,5 @@
 ---
-features:
+features_primitives:
   - |
     The implementation :class:`~.BackendEstimatorV2` of :class:`~.BaseEstimatorV2` was added.
     This estimator supports :class:`~.BackendV1` and :class:`~.BackendV2`.

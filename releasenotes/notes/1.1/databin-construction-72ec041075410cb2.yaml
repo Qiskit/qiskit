@@ -1,16 +1,18 @@
 ---
 features_primitives:
   - |
-    `qiskit.primitives.containers.DataBin` now satisfies the `qiskit.primitives.containers.Shaped` 
-    protocol. This means that every `DataBin` instance now has the additional attributes
-    * `shape: tuple[int, ...]` the leading shape of every entry in the instance
-    * `ndim: int` the length of `shape`
-    * `size: int` the product of the entries of `shape`
+    :class:`.DataBin` now satisfies the :class:`.Shaped`
+    protocol. This means that every :class:`.DataBin` instance now has the additional attributes
+
+    * :attr:`~.DataBin.shape` (`tuple[int, ...]`):  the leading shape of every entry in the instance
+    * :attr:`~.DataBin.ndim` (`int`): the length of :attr:`~.DataBin.shape`
+    * :attr:`~.DataBin.size` (`int`): the product of the entries of :attr:`~.DataBin.shape`
+
     The shape can be passed to the constructor.
 upgrade_primitives:
   - |
-    The function `qiskit.primitives.containers.make_data_bin()` no longer creates and returns a 
-    `qiskit.primitives.containers.DataBin` subclass. It instead always returns the `DataBin` class.
-    However, it continues to exist for backwards compatibility, though will eventually be deprecated. 
-    All users should migrate to construct `DataBin` instances directly, instead of instantiating 
-    subclasses as output by `make_data_bin()`.
+    The function :func:`.make_data_bin` no longer creates and returns a
+    :class:`.DataBin` subclass. It instead always returns the :class:`.DataBin` class.
+    However, it continues to exist for backwards compatibility, though will eventually be deprecated.
+    All users should migrate to construct :class:`.DataBin` instances directly, instead of instantiating
+    subclasses as output by :func:`.make_data_bin`.

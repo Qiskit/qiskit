@@ -44,8 +44,8 @@ features_circuits:
 
     A variable is a :class:`.Var` node, which can now contain an arbitrary type, and represents a
     unique memory location within its live range when added to a circuit.  These can be constructed
-    in a circuit using :meth:`.QuantumCircuit.add_var` and :meth:`~.QuantumCircuit.add_input`, or
-    at a lower level using :meth:`.Var.new`.
+    in a circuit using :meth:`.QuantumCircuit.add_var` and :meth:`.QuantumCircuit.add_input`, or
+    at a lower level using :func:`.Var.new`.
 
     Variables can be manually stored to, using the :class:`.Store` instruction and its corresponding
     circuit method :meth:`.QuantumCircuit.store`.  This includes writing to :class:`.Clbit` and
@@ -54,3 +54,16 @@ features_circuits:
     Variables can be used wherever classical expressions (see :mod:`qiskit.circuit.classical.expr`)
     are valid.  Currently this is the target expressions of control-flow operations, though we plan
     to expand this to gate parameters in the future, as the type and expression system are expanded.
+
+    See :ref:`circuit-repr-real-time-classical` for more discussion of these variables, and the
+    associated data model.
+
+    These are supported throughout the transpiler, through QPY serialization (:mod:`qiskit.qpy`),
+    OpenQASM 3 export (:mod:`qiskit.qasm3`), and have initial support through the circuit visualizers
+    (see :meth:`.QuantumCircuit.draw`).
+
+    .. note::
+
+      The new classical variables and storage will take some time to become supported on hardware
+      and simulator backends.  They are not supported in the primitives interfaces
+      (:mod:`qiskit.primitives`), but will likely inform those interfaces as they evolve.

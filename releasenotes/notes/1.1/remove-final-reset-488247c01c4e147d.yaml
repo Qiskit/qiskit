@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new transpiler pass, :class:`.RemoveFinalReset`, which
     will remove any :class:`.Reset` operation which is the final

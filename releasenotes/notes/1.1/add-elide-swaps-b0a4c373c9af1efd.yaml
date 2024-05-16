@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new optimization transpiler pass, :class:`~.ElidePermutations`,
     which is designed to run prior to the :ref:`layout_stage` and will
@@ -38,4 +38,4 @@ features:
        ElidePermutations()(qc).draw("mpl")
 
     The pass also sets the ``virtual_permutation_layout`` property set, storing
-    the permutation of the virtual qubits that was optimized away.
+    the permutation of the virtual qubits at the end of the circuit that was optimized away.

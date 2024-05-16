@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a performance issue in :meth:`.PassManager.run` when it is running
+    over multiple circuits in parallel. It will no longer spend time
+    serializing the :class:`~.passmanager.PassManager` (which is a requirement for parallel
+    execution) when given multiple inputs if it is only going to process the
+    inputs serially.

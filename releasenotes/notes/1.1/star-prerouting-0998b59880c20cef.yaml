@@ -1,32 +1,46 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new transpiler pass :class:`.StarPreRouting` which is designed to identify star connectivity subcircuits
     and then replace them with an optimal linear routing. This is useful for certain circuits that are composed of
-    this circuit connectivity such as Berstein Vazirani and QFT. For example:
+    this circuit connectivity such as Bernstein-Vazirani and QFT. For example:
 
-      .. plot:
+    .. plot::
 
-         from qiskit.circuit import QuantumCircuit
+       from qiskit.circuit import QuantumCircuit
 
-         qc = QuantumCircuit(10)
-         qc.h(0)
-         qc.cx(0, range(1, 5))
-         qc.h(9)
-         qc.cx(9, range(8, 4, -1))
-         qc.measure_all()
-         qc.draw("mpl")
+       qc = QuantumCircuit(5)
+       qc.h(0)
+       qc.cx(0, range(1, 5))
+       qc.measure_all()
+       qc.draw("mpl")
 
-      .. plot:
-         :include-source:
+    .. plot::
+       :include-source:
 
-         from qiskit.circuit import QuantumCircuit
-         from qiskit.transpiler.passes import StarPreRouting
+       from qiskit.circuit import QuantumCircuit
+       from qiskit.transpiler.passes import StarPreRouting
 
-         qc = QuantumCircuit(10)
-         qc.h(0)
-         qc.cx(0, range(1, 5))
-         qc.h(9)
-         qc.cx(9, range(8, 4, -1))
-         qc.measure_all()
-         StarPreRouting()(qc).draw("mpl")
+       qc = QuantumCircuit(5)
+       qc.h(0)
+       qc.cx(0, range(1, 5))
+       StarPreRouting()(qc).draw("mpl")
+
+    Alternatively, an existing preset pass manager can be extended by:
+
+    .. plot::
+       :include-source:
+
+       from qiskit import QuantumCircuit
+       from qiskit.transpiler import CouplingMap
+       from qiskit.transpiler.passes import StarPreRouting
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+       cm = CouplingMap.from_line(5)
+       qc = QuantumCircuit(5)
+       qc.h(0)
+       qc.cx(0, range(1, 5))
+       pm = generate_preset_pass_manager(2, coupling_map=cm)
+       pm.init += StarPreRouting()
+       result = pm.run(qc)
+       result.draw("mpl")

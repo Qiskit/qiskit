@@ -2,7 +2,7 @@
 deprecations_providers:
   - |
     The abstract base classes ``Provider`` and ``ProviderV1`` are now deprecated and will be removed in Qiskit 2.0.0.
-    The abstraction provided by these interface definitions were not providing a huge value. solely just the attributes
+    The abstraction offered by these interface definitions were not providing a substantial value; it solely encapsulated the attributes
     ``name``, ``backends``, and a ``get_backend()``. A _provider_, as a concept, will continue existing as a collection
     of backends. If you're implementing a provider currently you can adjust your
     code by simply removing ``ProviderV1`` as the parent class of your

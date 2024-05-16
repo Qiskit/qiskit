@@ -24,3 +24,4 @@ from .primitive_result import PrimitiveResult
 from .pub_result import PubResult
 from .sampler_pub import SamplerPubLike
 from .sampler_pub_result import SamplerPubResult
+from .shape import Shaped

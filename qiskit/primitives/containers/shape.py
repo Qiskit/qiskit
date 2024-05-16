@@ -59,15 +59,15 @@ class ShapedMixin(Shaped):
         return f"{type(self).__name__}(<{self.shape}>)"
 
     @property
-    def shape(self):
+    def shape(self) -> tuple[int, ...]:
         return self._shape
 
     @property
-    def ndim(self):
+    def ndim(self) -> int:
         return len(self._shape)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return int(np.prod(self._shape, dtype=int))
 
 

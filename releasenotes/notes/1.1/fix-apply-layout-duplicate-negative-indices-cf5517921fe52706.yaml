@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.SparsePauliOp.apply_layout` and
+    :meth:`.Pauli.apply_layout` methods when an invalid array with duplicate
+    or negative indices were passed in for the ``layout`` argument. Previously
+    this wouldn't result in an error and the transformation performed would
+    not be valid. These methods will now raise a :exc:`.QiskitError` if
+    duplicate indices or negative indices are provided as part of a layout.

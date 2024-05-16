@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new method :meth:`.Layout.inverse` which is used for taking
     the inverse of a :class:`.Layout` object.
