@@ -832,8 +832,8 @@ Subclasses of :class:`Gate` will also likely wish to override `the Numpy array-p
 method <https://numpy.org/devdocs/user/basics.interoperability.html#the-array-method>`__,
 ``__array__``.  This is used by :meth:`Gate.to_matrix`, and has the signature:
 
-.. currentmodule:: object
-.. py:method:: __array__(dtype=None, copy=None)
+.. currentmodule:: None
+.. py:method:: object.__array__(dtype=None, copy=None)
 
     Return a Numpy array representing the gate. This can use the gate's
     :attr:`~qiskit.circuit.Instruction.params` field, and may assume that these are numeric
