@@ -112,9 +112,11 @@ upgrade_qpy:
     unchanged at 10.
 upgrade_providers:
   - |
-    Backends may wish to update their ``run`` methods to eagerly reject inputs containing typed
+    Implementations of :class:`.BackendV2` (and :class:`.BackendV1`) may desire to update their 
+    :meth:`~.BackendV2.run` methods to eagerly reject inputs containing typed
     classical variables (see :mod:`qiskit.circuit.classical`) and the :class:`.Store` instruction,
-    if they do not have support for them.  The :class:`.Store` instruction is treated by the
-    transpiler as an always-available "directive" (like :class:`.Barrier`).
+    if they do not have support for them.  The new :class:`.Store` instruction is treated by the
+    transpiler as an always-available "directive" (like :class:`.Barrier`); if your backends do not
+    support this won't be caught by the :mod:`~qiskit.transpiler`.
 
     See :ref:`providers-guide-real-time-variables` for more information.
