@@ -1,27 +1,6 @@
 ---
 features_circuits:
   - |
-    :class:`.QuantumCircuit` can now represent manual strongly-typed classical storage locations,
-    and manual stores to classical memory.
-
-    Manual non-\ :class:`.Measure` storage to classical data is done with the new circuit
-    instruction :class:`.Store`, or with the :meth:`.QuantumCircuit.store` method.  Both manual
-    classical variables and existing :class:`.Clbit`\ s and :class:`.ClassicalRegister`\ s are
-    supported storage targets.
-
-    See :ref:`circuit-repr-real-time-classical` for more discussion of these variables, and the
-    associated data model.
-
-    These are supported throughout the transpiler, through QPY serialization (:mod:`qiskit.qpy`),
-    OpenQASM 3 export (:mod:`qiskit.qasm3`), and have initial support through the circuit visualizers
-    (see :meth:`.QuantumCircuit.draw`).
-
-    .. note::
-
-      The new classical variables and storage will take some time to become supported on hardware
-      and simulator backends.  They are not supported in the primitives interfaces
-      (:mod:`qiskit.primitives`), but will likely inform those interfaces as they evolve.
-  - |
     :class:`.QuantumCircuit` has several new methods to work with and inspect manual :class:`.Var`
     variables.
 
