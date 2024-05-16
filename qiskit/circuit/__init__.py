@@ -321,16 +321,6 @@ an abstract circuit or a physical circuit.  There is much more information about
 :class:`QuantumCircuit` class itself and the multitude of available methods on it in its class
 documentation.
 
-..
-    TODO: the intention is to replace this `autosummary` directive with a proper entry in the API
-    toctree once the `QuantumCircuit` class-level documentation has been completely rewritten into
-    more of this style.  For now, this just ensures it gets *any* page generated.
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    QuantumCircuit
-
 Internally, a :class:`QuantumCircuit` contains the qubits, classical bits, compile-time parameters,
 real-time variables, and other tracking information about the data it acts on and how it is
 parametrized.  It then contains a sequence of :class:`CircuitInstruction`\ s, which contain
@@ -390,7 +380,7 @@ hardware.
 Circuits track registers, but registers themselves impart almost no behavioral differences on
 circuits.  The only exception is that :class:`ClassicalRegister`\ s can be implicitly cast to
 unsigned integers for use in conditional comparisons of :ref:`control flow operations
-<circuit-control-flow>`.
+<circuit-control-flow-repr>`.
 
 Classical registers and bits were the original way of representing classical data in Qiskit, and
 remain the most supported currently.  Longer term, the data model is moving towards a more complete
@@ -432,6 +422,8 @@ This :class:`InstructionSet` is now little used in Qiskit.  It provides a very m
 methods to perform post-append mutations on instructions (which *will* be propagated to the
 circuit), but these are now discouraged and you should use the alternatives noted in those methods.
 
+
+.. _circuit-operations-instructions:
 
 Operations, instructions and gates
 ----------------------------------
@@ -598,17 +590,14 @@ The :class:`Store` instruction is particularly special, in that it allows writin
 Real-time classical computation
 -------------------------------
 
-.. note::
+.. seealso::
+    :mod:`qiskit.circuit.classical`
+        Module-level documentation for how the variable-, expression- and type-systems work, the
+        objects used to represent them, and the classical operations available.
 
-    The primary documentation for real-time classical computation is in the module-level
-    documentation of :mod:`qiskit.circuit.classical`.
-
-    You might also want to read about the circuit methods for working with real-time variables on
-    the :class:`QuantumCircuit` class page.
-
-    ..
-        TODO: write a section in the QuantumCircuit-level guide about real-time-variable methods and
-        cross-ref to it.
+    :ref:`circuit-real-time-methods`
+        The :class:`QuantumCircuit` methods for working with these variables in the context of a
+        single circuit.
 
 Qiskit has rudimentary low-level support for representing real-time classical computations, which
 happen during the QPU execution and affect the results.  We are still relatively early into hardware
@@ -674,7 +663,7 @@ avoid you needing to come up with many names), you can use the convenience const
 
     ParameterVector
 
-.. _circuit-control-flow:
+.. _circuit-control-flow-repr:
 
 Control flow in circuits
 ------------------------
@@ -718,11 +707,8 @@ that affect the flow of control when within loops.  These correspond to typical 
     The classes representations are documented here, but please note that manually constructing
     these classes is a low-level operation that we do not expect users to need to do frequently.
 
-    ..
-        TODO: make this below statement valid, and reinsert.
-
-        Users should read :ref:`circuit-creating-control-flow` for the recommended workflows for
-        building control-flow-enabled circuits.
+    Users should read :ref:`circuit-control-flow-methods` for the recommended workflows for building
+    control-flow-enabled circuits.
 
 Since :class:`ControlFlowOp` subclasses are also :class:`Instruction` subclasses, this means that
 the way they are stored in :class:`CircuitInstruction` instances has them "applied" to a sequence of
@@ -772,11 +758,8 @@ them to the block using :meth:`~QuantumCircuit.add_capture` (or the ``captures``
 argument), but user code will typically use the control-flow builder interface, which handles this
 automatically.
 
-..
-    TODO: make the below sentence valid, then re-insert.
-
-    Consult :ref:`the control-flow construction documentation <circuit-creating-control-flow>` for
-    more information on how to build circuits with control flow.
+Consult :ref:`the control-flow construction documentation <circuit-control-flow-methods>` for more
+information on how to build circuits with control flow.
 
 .. _circuit-custom-gates:
 
@@ -919,122 +902,6 @@ After this, for the duration of the Python interpreter session, translators like
 
 Working with circuit-level objects
 ==================================
-
-Circuit properties
-------------------
-
-..
-    TODO: rewrite this section and move it into the `QuantumCircuit` class-level overview of its
-    functions.
-
-When constructing quantum circuits, there are several properties that help quantify
-the "size" of the circuits, and their ability to be run on a noisy quantum device.
-Some of these, like number of qubits, are straightforward to understand, while others
-like depth and number of tensor components require a bit more explanation.  Here we will
-explain all of these properties, and, in preparation for understanding how circuits change
-when run on actual devices, highlight the conditions under which they change.
-
-Consider the following circuit:
-
-.. plot::
-   :include-source:
-
-   from qiskit import QuantumCircuit
-   qc = QuantumCircuit(12)
-   for idx in range(5):
-      qc.h(idx)
-      qc.cx(idx, idx+5)
-
-   qc.cx(1, 7)
-   qc.x(8)
-   qc.cx(1, 9)
-   qc.x(7)
-   qc.cx(1, 11)
-   qc.swap(6, 11)
-   qc.swap(6, 9)
-   qc.swap(6, 10)
-   qc.x(6)
-   qc.draw('mpl')
-
-From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
-Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
-can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
-circuit is equal to the **width** of the circuit:
-
-.. code-block::
-
-   qc.width()
-
-.. parsed-literal::
-
-   12
-
-We can also just get the number of qubits directly:
-
-.. code-block::
-
-   qc.num_qubits
-
-.. parsed-literal::
-
-   12
-
-.. important::
-
-   For a quantum circuit composed from just qubits, the circuit width is equal
-   to the number of qubits. This is the definition used in quantum computing. However,
-   for more complicated circuits with classical registers, and classically controlled gates,
-   this equivalence breaks down. As such, from now on we will not refer to the number of
-   qubits in a quantum circuit as the width.
-
-
-It is also straightforward to get the number and type of the gates in a circuit using
-:meth:`QuantumCircuit.count_ops`:
-
-.. code-block::
-
-   qc.count_ops()
-
-.. parsed-literal::
-
-   OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
-
-We can also get just the raw count of operations by computing the circuits
-:meth:`QuantumCircuit.size`:
-
-.. code-block::
-
-   qc.size()
-
-.. parsed-literal::
-
-   19
-
-A particularly important circuit property is known as the circuit **depth**.  The depth
-of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-parallel, it takes to complete the computation defined by the circuit.  Because quantum
-gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-is one important quantity used to measure if a quantum circuit can be run on a device.
-
-The depth of a quantum circuit has a mathematical definition as the longest path in a
-directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-graphically:
-
-.. image:: /source_images/depth.gif
-
-
-We can verify our graphical result using :meth:`QuantumCircuit.depth`:
-
-.. code-block::
-
-   qc.depth()
-
-.. parsed-literal::
-
-   9
 
 .. _circuit-abstract-to-physical:
 
