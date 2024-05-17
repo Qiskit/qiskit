@@ -447,7 +447,7 @@ def _check_circuits_coupling_map(circuits, cmap, backend):
 
 
 def _log_transpile_time(start_time, end_time):
-    log_msg = "Total Transpile Time - %.5f (ms)" % ((end_time - start_time) * 1000)
+    log_msg = f"Total Transpile Time - {((end_time - start_time) * 1000):.5f} (ms)"
     logger.info(log_msg)
 
 
@@ -545,7 +545,7 @@ def _parse_output_name(output_name, circuits):
         else:
             raise TranspilerError(
                 "The parameter output_name should be a string or a"
-                "list of strings: %s was used." % type(output_name)
+                f"list of strings: {type(output_name)} was used."
             )
     else:
         return [circuit.name for circuit in circuits]

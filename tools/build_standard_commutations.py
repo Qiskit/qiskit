@@ -143,12 +143,14 @@ def _dump_commuting_dict_as_python(
         dir_str = "standard_gates_commutations = {\n"
         for k, v in commutations.items():
             if not isinstance(v, dict):
+                # pylint: disable-next=consider-using-f-string
                 dir_str += '    ("{}", "{}"): {},\n'.format(*k, v)
             else:
+                # pylint: disable-next=consider-using-f-string
                 dir_str += '    ("{}", "{}"): {{\n'.format(*k)
 
                 for entry_key, entry_val in v.items():
-                    dir_str += "        {}: {},\n".format(entry_key, entry_val)
+                    dir_str += f"        {entry_key}: {entry_val},\n"
 
                 dir_str += "    },\n"
         dir_str += "}\n"

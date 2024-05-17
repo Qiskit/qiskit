@@ -411,7 +411,7 @@ class Target(Mapping):
         if properties is None:
             properties = {None: None}
         if instruction_name in self._gate_map:
-            raise AttributeError("Instruction %s is already in the target" % instruction_name)
+            raise AttributeError(f"Instruction {instruction_name} is already in the target")
         self._gate_name_map[instruction_name] = instruction
         if is_class:
             qargs_val = {None: None}
@@ -1059,7 +1059,7 @@ class Target(Mapping):
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
-                        "Specified two_q_gate: %s is not a 2 qubit instruction" % two_q_gate
+                        f"Specified two_q_gate: {two_q_gate} is not a 2 qubit instruction"
                     )
                 coupling_graph.add_edge(*qargs, {two_q_gate: properties})
             cmap = CouplingMap()

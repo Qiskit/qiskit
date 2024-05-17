@@ -415,6 +415,7 @@ class QCircuitImage:
                         cwire_list = []
 
                     if len(wire_list) == 1 and not node.cargs:
+                        # pylint: disable-next=consider-using-f-string
                         self._latex[wire_list[0]][column] = "\\gate{%s}" % gate_text
 
                     elif isinstance(op, ControlledGate):
@@ -443,20 +444,28 @@ class QCircuitImage:
             self._latex[wire_min][col] = (
                 f"\\multigate{{{wire_max - wire_min}}}{{{gate_text}}}_"
                 + "<" * (len(str(wire_ind)) + 2)
+                # pylint: disable-next=consider-using-f-string
                 + "{%s}" % wire_ind
             )
             for wire in range(wire_min + 1, wire_max + 1):
                 if wire < cwire_start:
+                    # pylint: disable-next=consider-using-f-string
                     ghost_box = "\\ghost{%s}" % gate_text
                     if wire in wire_list:
                         wire_ind = wire_list.index(wire)
                 else:
+                    # pylint: disable-next=consider-using-f-string
                     ghost_box = "\\cghost{%s}" % gate_text
                     if wire in cwire_list:
                         wire_ind = cwire_list.index(wire)
                 if wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
-                        ghost_box + "_" + "<" * (len(str(wire_ind)) + 2) + "{%s}" % wire_ind
+                        # pylint: disable-next=consider-using-f-string
+                        ghost_box
+                        + "_"
+                        + "<" * (len(str(wire_ind)) + 2)
+                        # pylint: disable-next=consider-using-f-string
+                        + "{%s}" % wire_ind
                     )
                 else:
                     self._latex[wire][col] = ghost_box
@@ -484,6 +493,7 @@ class QCircuitImage:
             elif isinstance(op.base_gate, (U1Gate, PhaseGate)):
                 num_cols_op = self._build_symmetric_gate(op, gate_text, wire_list, col)
             else:
+                # pylint: disable-next=consider-using-f-string
                 self._latex[wireqargs[0]][col] = "\\gate{%s}" % gate_text
         else:
             # Treat special cases of swap and rzz gates
@@ -527,6 +537,7 @@ class QCircuitImage:
         )
         self._latex[wire_last][col] = "\\control \\qw"
         # Put side text to the right between bottom wire in wire_list and the one above it
+        # pylint: disable-next=consider-using-f-string
         self._latex[wire_max - 1][col + 1] = "\\dstick{\\hspace{2.0em}%s} \\qw" % gate_text
         return 4  # num_cols for side text gates
 
@@ -544,7 +555,7 @@ class QCircuitImage:
                 idx_str = str(self._circuit.find_bit(node.cargs[0]).registers[0][1])
             else:
                 wire2 = self._wire_map[node.cargs[0]]
-
+            # pylint: disable-next=consider-using-f-string
             self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
                 cond_offset,
                 idx_str,
@@ -573,6 +584,7 @@ class QCircuitImage:
             if node.op.label is not None:
                 pos = indexes[0]
                 label = node.op.label.replace(" ", "\\,")
+                # pylint: disable-next=consider-using-f-string
                 self._latex[pos][col] = "\\cds{0}{^{\\mathrm{%s}}}" % label
 
     def _add_controls(self, wire_list, ctrlqargs, ctrl_state, col):
@@ -615,10 +627,11 @@ class QCircuitImage:
             )
             gap = cwire - max(wire_list)
             control = "\\control" if op.condition[1] else "\\controlo"
-            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
-                meas_offset,
-                label,
-                str(gap),
+            self._latex[cwire][col] = (
+                f"{control} \\cw^({meas_offset})"
+                # pylint: disable-next=consider-using-f-string
+                + "{^{\\mathtt{%s}}}" % label
+                + f"\\cwx[-{str(gap)}]"
             )
         # If condition is a register and cregbundle is false
         else:

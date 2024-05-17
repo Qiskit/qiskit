@@ -53,8 +53,8 @@ class InverseCancellation(TransformationPass):
                     )
             else:
                 raise TranspilerError(
-                    "InverseCancellation pass does not take input type {}. Input must be"
-                    " a Gate.".format(type(gates))
+                    f"InverseCancellation pass does not take input type {type(gates)}. Input must be"
+                    " a Gate."
                 )
 
         self.self_inverse_gates = []

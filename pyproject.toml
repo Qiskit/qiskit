@@ -218,7 +218,6 @@ disable = [
 #  with the rationale
     "arguments-renamed",
     "consider-using-enumerate",
-    "consider-using-f-string",
     "no-member",
     "no-value-for-parameter",
     "not-context-manager",

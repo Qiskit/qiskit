@@ -60,8 +60,8 @@ def raise_if_parameter_table_invalid(circuit):
     if circuit_parameters != table_parameters:
         raise CircuitError(
             "Circuit/ParameterTable Parameter mismatch. "
-            "Circuit parameters: {}. "
-            "Table parameters: {}.".format(circuit_parameters, table_parameters)
+            f"Circuit parameters: {circuit_parameters}. "
+            f"Table parameters: {table_parameters}."
         )
 
     # Assert parameter locations in table are present in circuit.
@@ -75,16 +75,15 @@ def raise_if_parameter_table_invalid(circuit):
             if not isinstance(instr.params[param_index], ParameterExpression):
                 raise CircuitError(
                     "ParameterTable instruction does not have a "
-                    "ParameterExpression at param_index {}: {}."
-                    "".format(param_index, instr)
+                    f"ParameterExpression at param_index {param_index}: {instr}."
                 )
 
             if parameter not in instr.params[param_index].parameters:
                 raise CircuitError(
                     "ParameterTable instruction parameters does "
                     "not match ParameterTable key. Instruction "
-                    "parameters: {} ParameterTable key: {}."
-                    "".format(instr.params[param_index].parameters, parameter)
+                    f"parameters: {instr.params[param_index].parameters}"
+                    f" ParameterTable key: {parameter}."
                 )
 
     # Assert circuit has no other parameter locations other than those in table.
@@ -97,8 +96,8 @@ def raise_if_parameter_table_invalid(circuit):
                     if (instruction.operation, param_index) not in table[parameter]:
                         raise CircuitError(
                             "Found parameterized instruction not "
-                            "present in table. Instruction: {} "
-                            "param_index: {}".format(instruction.operation, param_index)
+                            f"present in table. Instruction: {instruction.operation} "
+                            f"param_index: {param_index}"
                         )
 
 

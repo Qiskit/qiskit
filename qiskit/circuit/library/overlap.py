@@ -104,8 +104,6 @@ def _check_unitary(circuit):
     for instruction in circuit.data:
         if not isinstance(instruction.operation, (Gate, Barrier)):
             raise CircuitError(
-                (
-                    "One or more instructions cannot be converted to"
-                    ' a gate. "{}" is not a gate instruction'
-                ).format(instruction.operation.name)
+                "One or more instructions cannot be converted to"
+                f' a gate. "{instruction.operation.name}" is not a gate instruction'
             )

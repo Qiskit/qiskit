@@ -302,9 +302,7 @@ class BasisTranslator(TransformationPass):
         if len(node.op.params) != len(target_params):
             raise TranspilerError(
                 "Translation num_params not equal to op num_params."
-                "Op: {} {} Translation: {}\n{}".format(
-                    node.op.params, node.op.name, target_params, target_dag
-                )
+                f"Op: {node.op.params} {node.op.name} Translation: {target_params}\n{target_dag}"
             )
         if node.op.params:
             parameter_map = dict(zip(target_params, node.op.params))

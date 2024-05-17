@@ -339,8 +339,8 @@ def circuit_drawer(
         )
     else:
         raise VisualizationError(
-            "Invalid output type %s selected. The only valid choices "
-            "are text, latex, latex_source, and mpl" % output
+            f"Invalid output type {output} selected. The only valid choices "
+            "are text, latex, latex_source, and mpl"
         )
     if image and interactive:
         image.show()
