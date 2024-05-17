@@ -875,7 +875,7 @@ class Target(Mapping):
         self,
         operation_name: str,
         qargs: tuple[int, ...],
-        operation_params: list[int] | None = None,
+        operation_params: list[float] | None = None,
     ) -> bool:
         """Return whether the instruction (operation + qubits) defines a calibration.
 
@@ -883,27 +883,35 @@ class Target(Mapping):
             operation_name: The name of the operation for the instruction.
             qargs: The tuple of qubit indices for the instruction.
             operation_params: The parameters for the Instruction.
+                              Even for a single parameter, provide as a list of float
+                              like: [my_float_param]
 
         Returns:
             Returns ``True`` if the calibration is supported and ``False`` if it isn't.
         """
         qargs = tuple(qargs)
+        if operation_params is not None and not isinstance(operation_params, list):
+            operation_params = [operation_params]
+
         if operation_name not in self._gate_map:
             return False
 
         if qargs not in self._gate_map[operation_name]:
             return False
-        
-        if operation_params is not None and operation_params not in self._gate_name_map[operation_name].params:
+
+        if operation_params is not None and not (
+            operation_params == self._gate_name_map[operation_name].params
+        ):
             return False
 
         return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
 
+    # pylint: disable=keyword-arg-before-vararg
     def get_calibration(
         self,
         operation_name: str,
         qargs: tuple[int, ...],
-        operation_params: list[int] | None = None,
+        operation_params: list[float] | None = None,
         *args: ParameterValueType,
         **kwargs: ParameterValueType,
     ) -> Schedule | ScheduleBlock:
@@ -916,15 +924,24 @@ class Target(Mapping):
             operation_name: The name of the operation for the instruction.
             qargs: The tuple of qubit indices for the instruction.
             operation_name: The parameters for the instruction.
+            operation_params: The parameters for the Instruction.
+                            Even for a single parameter, provide as a list of float
+                            like: [my_float_param]
+
             args: Parameter values to build schedule if any.
             kwargs: Parameter values with name to build schedule if any.
 
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        if not self.has_calibration(operation_name, qargs, operation_params,):
+        if not self.has_calibration(
+            operation_name,
+            qargs,
+            operation_params,
+        ):
             raise KeyError(
-                f"Calibration of instruction {operation_name} with parameters {operation_params} for qubit {qargs} is not defined."
+                f"Calibration of instruction {operation_name} with parameters {operation_params} "
+                f"for qubit {qargs} is not defined."
             )
         cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
         return cal_entry.get_schedule(*args, **kwargs)
