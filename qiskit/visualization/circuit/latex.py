@@ -460,7 +460,6 @@ class QCircuitImage:
                         wire_ind = cwire_list.index(wire)
                 if wire in wire_list + cwire_list:
                     self._latex[wire][col] = (
-                        # pylint: disable-next=consider-using-f-string
                         ghost_box
                         + "_"
                         + "<" * (len(str(wire_ind)) + 2)
@@ -627,11 +626,11 @@ class QCircuitImage:
             )
             gap = cwire - max(wire_list)
             control = "\\control" if op.condition[1] else "\\controlo"
-            self._latex[cwire][col] = (
-                f"{control} \\cw^({meas_offset})"
-                # pylint: disable-next=consider-using-f-string
-                + "{^{\\mathtt{%s}}}" % label
-                + f"\\cwx[-{str(gap)}]"
+            # pylint: disable-next=consider-using-f-string
+            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
+                meas_offset,
+                label,
+                str(gap),
             )
         # If condition is a register and cregbundle is false
         else:
