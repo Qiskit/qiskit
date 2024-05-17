@@ -180,7 +180,7 @@ def _remove_inverse_follows_gate(sequence):
     while index < len(sequence.gates) - 1:
         curr_gate = sequence.gates[index]
         next_gate = sequence.gates[index + 1]
-        if curr_gate.name in _1q_inverses.keys():
+        if curr_gate.name in _1q_inverses:
             remove = _1q_inverses[curr_gate.name] == next_gate.name
         else:
             remove = curr_gate.inverse() == next_gate

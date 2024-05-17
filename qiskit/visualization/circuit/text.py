@@ -20,7 +20,7 @@ from shutil import get_terminal_size
 import collections
 import sys
 
-from qiskit.circuit import Qubit, Clbit, ClassicalRegister
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister, CircuitError
 from qiskit.circuit import ControlledGate, Reset, Measure
 from qiskit.circuit import ControlFlowOp, WhileLoopOp, IfElseOp, ForLoopOp, SwitchCaseOp
 from qiskit.circuit.classical import expr
@@ -28,8 +28,9 @@ from qiskit.circuit.controlflow import node_resources
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.annotated_operation import _canonicalize_modifiers, ControlModifier
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.qasm3.exporter import QASM3Builder
+from qiskit.qasm3 import ast
 from qiskit.qasm3.printer import BasicPrinter
+from qiskit.qasm3.exporter import _ExprBuilder
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -748,7 +749,6 @@ class TextDrawing:
 
         self._nest_depth = 0  # nesting depth for control flow ops
         self._expr_text = ""  # expression text to display
-        self._builder = None  # QASM3Builder class instance for expressions
 
         # Because jupyter calls both __repr__ and __repr_html__ for some backends,
         # the entire drawer can be run twice which can result in different output
@@ -894,10 +894,9 @@ class TextDrawing:
 
         self._wire_map = get_wire_map(self._circuit, (self.qubits + self.clbits), self.cregbundle)
         wire_labels = []
-        for wire in self._wire_map:
+        for wire, index in self._wire_map.items():
             if isinstance(wire, ClassicalRegister):
                 register = wire
-                index = self._wire_map[wire]
             else:
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
                 index = bit_index if register is None else reg_index
@@ -1306,25 +1305,44 @@ class TextDrawing:
         if (isinstance(node.op, SwitchCaseOp) and isinstance(node.op.target, expr.Expr)) or (
             getattr(node.op, "condition", None) and isinstance(node.op.condition, expr.Expr)
         ):
+
+            def lookup_var(var):
+                """Look up a classical-expression variable or register/bit in our internal symbol
+                table, and return an OQ3-like identifier."""
+                # We don't attempt to disambiguate anything like register/var naming collisions; we
+                # already don't really show classical variables.
+                if isinstance(var, expr.Var):
+                    return ast.Identifier(var.name)
+                if isinstance(var, ClassicalRegister):
+                    return ast.Identifier(var.name)
+                # Single clbit.  This is not actually the correct way to lookup a bit on the
+                # circuit (it doesn't handle bit bindings fully), but the text drawer doesn't
+                # completely track inner-outer _bit_ bindings, only inner-indices, so we can't fully
+                # recover the information losslessly.  Since most control-flow uses the control-flow
+                # builders, we should decay to something usable most of the time.
+                try:
+                    register, bit_index, reg_index = get_bit_reg_index(self._circuit, var)
+                except CircuitError:
+                    # We failed to find the bit due to binding problems - fall back to something
+                    # that's probably wrong, but at least disambiguating.
+                    return ast.Identifier(f"_bit{wire_map[var]}")
+                if register is None:
+                    return ast.Identifier(f"_bit{bit_index}")
+                return ast.SubscriptedIdentifier(register.name, ast.IntegerLiteral(reg_index))
+
             condition = node.op.target if isinstance(node.op, SwitchCaseOp) else node.op.condition
-            if self._builder is None:
-                self._builder = QASM3Builder(
-                    self._circuit,
-                    includeslist=("stdgates.inc",),
-                    basis_gates=("U",),
-                    disable_constants=False,
-                    allow_aliasing=False,
-                )
-                self._builder.build_classical_declarations()
+            draw_conditional = bool(node_resources(condition).clbits)
             stream = StringIO()
-            BasicPrinter(stream, indent="  ").visit(self._builder.build_expression(condition))
+            BasicPrinter(stream, indent="  ").visit(condition.accept(_ExprBuilder(lookup_var)))
             self._expr_text = stream.getvalue()
             # Truncate expr_text at 30 chars or user-set expr_len
             if len(self._expr_text) > self.expr_len:
                 self._expr_text = self._expr_text[: self.expr_len] + "..."
+        else:
+            draw_conditional = not isinstance(node.op, ForLoopOp)
 
         # # Draw a left box such as If, While, For, and Switch
-        flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT)
+        flow_layer = self.draw_flow_box(node, wire_map, CF_LEFT, conditional=draw_conditional)
         layers.append(flow_layer.full_layer)
 
         # Get the list of circuits in the ControlFlowOp from the node blocks
@@ -1351,7 +1369,9 @@ class TextDrawing:
 
             if circ_num > 0:
                 # Draw a middle box such as Else and Case
-                flow_layer = self.draw_flow_box(node, flow_wire_map, CF_MID, circ_num - 1)
+                flow_layer = self.draw_flow_box(
+                    node, flow_wire_map, CF_MID, circ_num - 1, conditional=False
+                )
                 layers.append(flow_layer.full_layer)
 
             _, _, nodes = _get_layered_instructions(circuit, wire_map=flow_wire_map)
@@ -1380,14 +1400,13 @@ class TextDrawing:
                 layers.append(flow_layer2.full_layer)
 
         # Draw the right box for End
-        flow_layer = self.draw_flow_box(node, flow_wire_map, CF_RIGHT)
+        flow_layer = self.draw_flow_box(node, flow_wire_map, CF_RIGHT, conditional=False)
         layers.append(flow_layer.full_layer)
 
-    def draw_flow_box(self, node, flow_wire_map, section, circ_num=0):
+    def draw_flow_box(self, node, flow_wire_map, section, circ_num=0, conditional=False):
         """Draw the left, middle, or right of a control flow box"""
 
         op = node.op
-        conditional = section == CF_LEFT and not isinstance(op, ForLoopOp)
         depth = str(self._nest_depth)
         if section == CF_LEFT:
             etext = ""

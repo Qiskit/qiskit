@@ -30,9 +30,9 @@ project_copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "1.1"
+version = "1.2"
 # The full version, including alpha/beta/rc tags
-release = "1.1.0"
+release = "1.2.0"
 
 language = "en"
 
@@ -178,7 +178,7 @@ def linkcode_resolve(domain, info):
     if "qiskit" not in module_name:
         return None
 
-    try: 
+    try:
         module = importlib.import_module(module_name)
     except ModuleNotFoundError:
         return None

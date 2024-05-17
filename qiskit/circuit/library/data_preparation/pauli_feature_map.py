@@ -97,7 +97,7 @@ class PauliFeatureMap(NLocal):
         >>> from qiskit.circuit.library import EfficientSU2
         >>> prep = PauliFeatureMap(3, reps=3, paulis=['Z', 'YY', 'ZXZ'])
         >>> wavefunction = EfficientSU2(3)
-        >>> classifier = prep.compose(wavefunction
+        >>> classifier = prep.compose(wavefunction)
         >>> classifier.num_parameters
         27
         >>> classifier.count_ops()

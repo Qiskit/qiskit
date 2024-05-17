@@ -86,17 +86,17 @@ Here is an example of how an estimator is used.
     estimator = Estimator()
 
     # calculate [ <psi1(theta1)|H1|psi1(theta1)> ]
-    job = estimator.run([(psi1, hamiltonian1, [theta1])])
+    job = estimator.run([(psi1, H1, [theta1])])
     job_result = job.result() # It will block until the job finishes.
-    print(f"The primitive-job finished with result {job_result}"))
+    print(f"The primitive-job finished with result {job_result}")
 
     # calculate [ [<psi1(theta1)|H1|psi1(theta1)>,
     #              <psi1(theta3)|H3|psi1(theta3)>],
     #             [<psi2(theta2)|H2|psi2(theta2)>] ]
     job2 = estimator.run(
         [
-            (psi1, [hamiltonian1, hamiltonian3], [theta1, theta3]), 
-            (psi2, hamiltonian2, theta2)
+            (psi1, [H1, H3], [theta1, theta3]), 
+            (psi2, H2, theta2)
         ],
         precision=0.01
     )
@@ -417,6 +417,7 @@ Results V2
    DataBin
    PrimitiveResult
    PubResult
+   SamplerPubResult
    BasePrimitiveJob
    PrimitiveJob
 
@@ -466,6 +467,7 @@ from .containers import (
     PubResult,
     EstimatorPubLike,
     SamplerPubLike,
+    SamplerPubResult,
     BindingsArrayLike,
     ObservableLike,
     ObservablesArrayLike,

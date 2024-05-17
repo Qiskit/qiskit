@@ -15,6 +15,9 @@ import math
 from cmath import exp
 from math import pi
 from typing import Optional
+
+import numpy
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -68,18 +71,20 @@ class XXPlusYYGate(Gate):
             q_1: ┤0              ├
                  └───────────────┘
 
-    .. math::
+        .. math::
 
-        \newcommand{\rotationangle}{\frac{\theta}{2}}
+            \newcommand{\rotationangle}{\frac{\theta}{2}}
 
-        R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
-          RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
-            \begin{pmatrix}
-                1 & 0 & 0 & 0  \\
-                0 & \cos\left(\rotationangle\right) & -i\sin\left(\rotationangle\right)e^{i\beta} & 0 \\
-                0 & -i\sin\left(\rotationangle\right)e^{-i\beta} & \cos\left(\rotationangle\right) & 0 \\
-                0 & 0 & 0 & 1
-            \end{pmatrix}
+            R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
+            RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
+                \begin{pmatrix}
+                    1 & 0 & 0 & 0  \\
+                    0 & \cos\left(\rotationangle\right) &
+                    -i\sin\left(\rotationangle\right)e^{i\beta} & 0 \\
+                    0 & -i\sin\left(\rotationangle\right)e^{-i\beta} &
+                    \cos\left(\rotationangle\right) & 0 \\
+                    0 & 0 & 0 & 1
+                \end{pmatrix}
     """
 
     def __init__(
@@ -167,10 +172,10 @@ class XXPlusYYGate(Gate):
         """
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=complex):
+    def __array__(self, dtype=None, copy=None):
         """Return a numpy.array for the XX+YY gate."""
-        import numpy
-
+        if copy is False:
+            raise ValueError("unable to avoid copy while creating an array as requested")
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
         cos = math.cos(half_theta)
@@ -185,8 +190,7 @@ class XXPlusYYGate(Gate):
             dtype=dtype,
         )
 
-    def power(self, exponent: float):
-        """Raise gate to a power."""
+    def power(self, exponent: float, annotated: bool = False):
         theta, beta = self.params
         return XXPlusYYGate(exponent * theta, beta)
 

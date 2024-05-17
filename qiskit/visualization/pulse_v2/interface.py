@@ -27,8 +27,10 @@ from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import deprecate_arg
 
 
+@deprecate_arg("show_barriers", new_alias="plot_barriers", since="1.1.0", pending=True)
 def draw(
     program: Union[Waveform, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
@@ -39,9 +41,10 @@ def draw(
     show_snapshot: bool = True,
     show_framechange: bool = True,
     show_waveform_info: bool = True,
-    show_barrier: bool = True,
+    plot_barrier: bool = True,
     plotter: str = types.Plotter.Mpl2D.value,
     axis: Optional[Any] = None,
+    show_barrier: bool = True,
 ):
     """Generate visualization data for pulse programs.
 
@@ -66,7 +69,7 @@ def draw(
             instructions that modulate phase or frequency of pulse channels.
         show_waveform_info: Show waveform annotations, i.e. name, of waveforms.
             Set ``True`` to show additional information about waveforms.
-        show_barrier: Show barrier lines.
+        plot_barrier: Show barrier lines.
         plotter: Name of plotter API to generate an output image.
             One of following APIs should be specified::
 
@@ -79,6 +82,7 @@ def draw(
             the plotters use a given ``axis`` instead of internally initializing
             a figure object. This object format depends on the plotter.
             See plotter argument for details.
+        show_barrier: DEPRECATED. Show barrier lines.
 
     Returns:
         Visualization output data.
@@ -379,6 +383,7 @@ def draw(
         MissingOptionalLibraryError: When required visualization package is not installed.
         VisualizationError: When invalid plotter API or invalid time range is specified.
     """
+    del show_barrier
     temp_style = stylesheet.QiskitPulseStyle()
     temp_style.update(style or stylesheet.IQXStandard())
 
@@ -425,7 +430,7 @@ def draw(
         canvas.set_disable_type(types.LabelType.PULSE_NAME, remove=True)
 
     # show barrier
-    if not show_barrier:
+    if not plot_barrier:
         canvas.set_disable_type(types.LineType.BARRIER, remove=True)
 
     canvas.update()
