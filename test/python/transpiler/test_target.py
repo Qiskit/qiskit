@@ -1485,8 +1485,9 @@ Instructions:
 
 class TestHasCalibrationAndGetCalibration(QiskitTestCase):
     """
-    This test is to make sure meth:`.has_calibration` and meth:`.get_schedule`
-    works for parameterized gates.
+    This test is to make sure :func:`Target.has_calibration` and 
+    :func:`Target.get_schedule` works for parameterized gates.
+
     Follow below mentiond issues for more information.
     Refer to `#11657 <https://github.com/Qiskit/qiskit/issues/11657>`
     and, `#11658 <https://github.com/Qiskit/qiskit/issues/11658>`
