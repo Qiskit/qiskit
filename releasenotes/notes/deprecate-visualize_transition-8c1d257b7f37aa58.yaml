@@ -3,4 +3,4 @@ deprecations_visualization:
   - |
     The ``qiskit.visualization.transition_visualization`` module has been deprecated
     and will be removed in a future release. Refer to
-    `#9355 <https://github.com/Qiskit/qiskit/issues/9355>` for more details.
+    `#9355 <https://github.com/Qiskit/qiskit/issues/9355>`__ for more details.
