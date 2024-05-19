@@ -14,21 +14,22 @@
 
 import itertools as it
 import unittest
+from test import QiskitTestCase, combine
+
 import numpy as np
 import rustworkx as rx
+import scipy.sparse
 from ddt import ddt
 
 from qiskit import QiskitError
-from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
-from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.compiler.transpiler import transpile
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):
@@ -258,6 +259,36 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
         np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_zero(self):
+        """Test `to_matrix` with a zero operator."""
+        num_qubits = 4
+        zero_numpy = np.zeros((2**num_qubits, 2**num_qubits), dtype=np.complex128)
+        zero = SparsePauliOp.from_list([], num_qubits=num_qubits)
+
+        zero_dense = zero.to_matrix(sparse=False)
+        np.testing.assert_array_equal(zero_dense, zero_numpy)
+
+        zero_sparse = zero.to_matrix(sparse=True)
+        self.assertIsInstance(zero_sparse, scipy.sparse.csr_matrix)
+        np.testing.assert_array_equal(zero_sparse.A, zero_numpy)
+
+    def test_to_matrix_parallel_vs_serial(self):
+        """Parallel execution should produce the same results as serial execution up to
+        floating-point associativity effects."""
+        # Using powers-of-two coefficients to make floating-point arithmetic associative so we can
+        # do bit-for-bit assertions.  Choose labels that have at least few overlapping locations.
+        labels = ["XZIXYX", "YIIYXY", "ZZZIIZ", "IIIIII"]
+        coeffs = [0.25, 0.125j, 0.5 - 0.25j, -0.125 + 0.5j]
+        op = SparsePauliOp(labels, coeffs)
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=True, force_serial=False).toarray(),
+            op.to_matrix(sparse=True, force_serial=True).toarray(),
+        )
+        np.testing.assert_array_equal(
+            op.to_matrix(sparse=False, force_serial=False),
+            op.to_matrix(sparse=False, force_serial=True),
+        )
 
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
@@ -1146,6 +1177,34 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(layout=[None, []])
+    def test_apply_layout_zero_qubit(self, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("coeff"):
+            op = SparsePauliOp("", 2)
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII", 2), res)
+        with self.subTest("multiple ops"):
+            op = SparsePauliOp.from_list([("", 1), ("", 2)])
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
 
 if __name__ == "__main__":

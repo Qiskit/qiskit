@@ -17,23 +17,18 @@ Circuit and Schedule Assembler (:mod:`qiskit.assembler`)
 
 .. currentmodule:: qiskit.assembler
 
-Circuit Assembler
-=================
+Functions
+=========
+
 
 .. autofunction:: assemble_circuits
 
-Schedule Assembler
-==================
-
 .. autofunction:: assemble_schedules
-
-Disassembler
-============
 
 .. autofunction:: disassemble
 
-RunConfig
-=========
+Classes
+=======
 
 .. autosummary::
    :toctree: ../stubs/
