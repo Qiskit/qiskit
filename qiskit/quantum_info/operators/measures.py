@@ -354,9 +354,9 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
     r"""Return the diamond distance between two unitary operators.
 
     This function computes the completely-bounded trace-norm (often
-    referred to as the diamond norm) of a difference of two quantum maps. 
-    It is often used as a distance metric in quantum information where 
-    
+    referred to as the diamond norm) of a difference of two quantum maps.
+    It is often used as a distance metric in quantum information where
+
     :math:`d(E, F) = ||E-F||_diamond`.
 
 
@@ -371,7 +371,7 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         ValueError: if the input operators do not have the same dimensions.
 
     Additional Information:
-        If both operators are unitary, the implementation uses a result in Aharonov 
+        If both operators are unitary, the implementation uses a result in Aharonov
         et al. (1998) resulting in a significant optimisation. Geometrically, we
         compute the distance :math:`d` between the origin and the convex hull of
         the eigenvalues of :math:`U^\dag V` which is plugged into :math:`\sqrt{1 - d^2}`.
@@ -380,7 +380,7 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         D. Aharonov, A. Kitaev, and N. Nisan. “Quantum circuits with
         mixed states” in Proceedings of the thirtieth annual ACM symposium
         on Theory of computing, pp. 20-30, 1998.
-    
+
     .. note::
 
         This function requires the optional CVXPY package to be installed.
@@ -399,7 +399,12 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         )
 
     # Attempt to run unitary optimisation
-    if isinstance(op1, Operator) and isinstance(op2, Operator) and op1.is_unitary() and op2.is_unitary():
+    if (
+        isinstance(op1, Operator)
+        and isinstance(op2, Operator)
+        and op1.is_unitary()
+        and op2.is_unitary()
+    ):
         # Compute the diamond norm
         mat1 = op1.data
         mat2 = op2.data
@@ -408,12 +413,11 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         d = _find_poly_distance(eigenvals)
         return 2 * np.sqrt(1 - d**2)
     else:
-        # TODO: Implement special case for pauli channels (Benenti and Strini 2010) 
+        # TODO: Implement special case for pauli channels (Benenti and Strini 2010)
         # as well as a potential optimisation for clifford circuits
 
         # Compute the diamond norm
         return diamond_norm(Choi(op1) - Choi(op2))
-
 
 
 def _find_poly_distance(eigenvals: np.ndarray) -> float:
