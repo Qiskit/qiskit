@@ -15,18 +15,22 @@ use indexmap::{set::IntoIter as IndexSetIntoIter, IndexMap, IndexSet};
 use itertools::Itertools;
 use pyo3::types::{PyMapping, PySet};
 use pyo3::{exceptions::PyKeyError, prelude::*, pyclass};
+use smallvec::SmallVec;
+
+use crate::nlayout::PhysicalQubit;
 
 use super::instruction_properties::InstructionProperties;
-use super::macro_rules::qargs_key_like_set_iterator;
-use super::qargs::{Qargs, QargsOrTuple};
+use super::macro_rules::key_like_set_iterator;
 
+pub type Qargs = SmallVec<[PhysicalQubit; 4]>;
 type KeyIterType = IndexSetIntoIter<Option<Qargs>>;
 pub type PropsMapItemsType = Vec<(Option<Qargs>, Option<Py<InstructionProperties>>)>;
 
-qargs_key_like_set_iterator!(
+key_like_set_iterator!(
     PropsMapKeys,
     PropsMapIter,
     keys,
+    Option<Qargs>,
     KeyIterType,
     "",
     "props_map_keys"
@@ -62,9 +66,8 @@ impl PropsMap {
 
     /// Check whether some qargs are part of this PropsMap
     fn __contains__(&self, key: &Bound<PyAny>) -> bool {
-        if let Ok(key) = key.extract::<Option<QargsOrTuple>>() {
-            let qarg = key.map(|qarg| qarg.parse_qargs());
-            self.map.contains_key(&qarg)
+        if let Ok(key) = key.extract::<Option<Qargs>>() {
+            self.map.contains_key(&key)
         } else {
             false
         }
@@ -76,8 +79,7 @@ impl PropsMap {
     fn __eq__(slf: PyRef<Self>, other: &Bound<PyAny>) -> PyResult<bool> {
         if let Ok(dict) = other.downcast::<PyMapping>() {
             for key in dict.keys()?.iter()? {
-                if let Ok(qargs) = key?.extract::<Option<QargsOrTuple>>() {
-                    let qargs = qargs.map(|qargs| qargs.parse_qargs());
+                if let Ok(qargs) = key?.extract::<Option<Qargs>>() {
                     if !slf.map.contains_key(&qargs) {
                         return Ok(false);
                     }
@@ -85,16 +87,16 @@ impl PropsMap {
                     return Ok(false);
                 }
             }
-            Ok(true)
+            Ok(dict.len()? == slf.map.len())
         } else if let Ok(prop_keys) = other.extract::<PropsMap>() {
             for key in prop_keys.map.keys() {
                 if !slf.map.contains_key(key) {
                     return Ok(false);
                 }
             }
-            return Ok(true);
+            Ok(prop_keys.map.len() == slf.map.len())
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 
@@ -107,14 +109,13 @@ impl PropsMap {
     ///     ``InstructionProperties`` object at that slot.
     /// Raises:
     ///     KeyError if the ``key`` is not in the ``PropsMap``.
-    fn __getitem__(&self, py: Python<'_>, key: Option<QargsOrTuple>) -> PyResult<PyObject> {
-        let key = key.map(|qargs| qargs.parse_qargs());
+    fn __getitem__(&self, py: Python<'_>, key: Option<Qargs>) -> PyResult<PyObject> {
         if let Some(item) = self.map.get(&key) {
             Ok(item.to_object(py))
         } else {
             Err(PyKeyError::new_err(format!(
                 "Key {:#?} not in target.",
-                key.unwrap_or_default().vec
+                key.unwrap_or_default()
             )))
         }
     }
@@ -128,12 +129,7 @@ impl PropsMap {
     /// Returns:
     ///    ``PropsMap`` value if found, otherwise returns ``default``.
     #[pyo3(signature = (key, default=None))]
-    fn get(
-        &self,
-        py: Python<'_>,
-        key: Option<QargsOrTuple>,
-        default: Option<Bound<PyAny>>,
-    ) -> PyObject {
+    fn get(&self, py: Python<'_>, key: Option<Qargs>, default: Option<Bound<PyAny>>) -> PyObject {
         match self.__getitem__(py, key) {
             Ok(value) => value,
             Err(_) => match default {
@@ -177,13 +173,13 @@ impl PropsMap {
         self.map.clone().into_iter().collect_vec()
     }
 
-    fn __setstate__(&mut self, state: (PropsMapKV,)) -> PyResult<()> {
-        self.map = state.0;
+    fn __setstate__(&mut self, state: PropsMapItemsType) -> PyResult<()> {
+        self.map = IndexMap::from_iter(state);
         Ok(())
     }
 
-    fn __getstate__(&self) -> (PropsMapKV,) {
-        (self.map.clone(),)
+    fn __getstate__(&self) -> PropsMapItemsType {
+        self.items()
     }
 }
 

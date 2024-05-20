@@ -374,9 +374,9 @@ class Target(Target2):
                 if qarg is None:
                     continue
                 if props is None:
-                    output.write(f"\t\t{qarg}\n")
+                    output.write(f"\t\t{tuple(qarg)}\n")
                     continue
-                prop_str_pieces = [f"\t\t{qarg}:\n"]
+                prop_str_pieces = [f"\t\t{tuple(qarg)}:\n"]
                 duration = getattr(props, "duration", None)
                 if duration is not None:
                     prop_str_pieces.append(

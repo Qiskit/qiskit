@@ -84,7 +84,7 @@ impl GateMap {
                     return Ok(false);
                 }
             }
-            Ok(true)
+            Ok(slf.map.len() == dict.len())
         } else {
             Ok(false)
         }
@@ -159,13 +159,13 @@ impl GateMap {
         self.map.clone().into_iter().collect_vec()
     }
 
-    fn __setstate__(&mut self, state: (GateMapType,)) -> PyResult<()> {
-        self.map = state.0;
+    pub fn __setstate__(&mut self, state: Vec<(String, Py<PropsMap>)>) -> PyResult<()> {
+        self.map = IndexMap::from_iter(state);
         Ok(())
     }
 
-    fn __getstate__(&self) -> (GateMapType,) {
-        (self.map.clone(),)
+    pub fn __getstate__(&self) -> Vec<(String, Py<PropsMap>)> {
+        self.items()
     }
 }
 

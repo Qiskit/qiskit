@@ -33,7 +33,7 @@ pub struct InstructionProperties {
     #[pyo3(get, set)]
     pub error: Option<f64>,
     #[pyo3(get)]
-    _calibration: PyObject,
+    pub _calibration: PyObject,
 }
 
 #[pymethods]
