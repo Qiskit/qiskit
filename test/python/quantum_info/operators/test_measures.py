@@ -22,7 +22,7 @@ from qiskit.quantum_info import process_fidelity
 from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
-from qiskit.quantum_info import unitary_diamond_distance
+from qiskit.quantum_info import diamond_distance
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import RZGate
 from test import combine  # pylint: disable=wrong-import-order
@@ -183,30 +183,34 @@ class TestOperatorMeasures(QiskitTestCase):
         value = diamond_norm(op)
         self.assertAlmostEqual(value, target, places=4)
 
-    def test_unitary_diamond_distance(self):
-        """Test the unitary_diamond_distance function for RZGates
+    def test_diamond_distance(self):
+        """Test the diamond_distance function for RZGates
         with a specific set of angles."""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
         angles = np.linspace(0, 2 * np.pi, 10, endpoint=False)
         for angle in angles:
             op1 = Operator(RZGate(angle))
             op2 = Operator.from_label("I")
             d2 = np.cos(angle / 2) ** 2  # analytical formula for hull distance
             target = np.sqrt(1 - d2) * 2
-            self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=7)
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=7)
 
     @combine(num_qubits=[1, 2, 3])
-    def test_unitary_diamond_distance_random(self, num_qubits):
-        """Tests the unitary_diamond_distance for random unitaries.
+    def test_diamond_distance_random(self, num_qubits):
+        """Tests the diamond_distance for random unitaries.
         Compares results with semi-definite program."""
         if importlib.util.find_spec("cvxpy") is None:
             # Skip test if CVXPY not installed
             self.skipTest("CVXPY not installed.")
 
         rng = np.random.default_rng(1234)
-        op1 = random_unitary(2**num_qubits, seed=rng)
-        op2 = random_unitary(2**num_qubits, seed=rng)
-        target = diamond_norm(Choi(op1) - Choi(op2))
-        self.assertAlmostEqual(unitary_diamond_distance(op1, op2), target, places=4)
+        for _ in range(5):
+            op1 = random_unitary(2**num_qubits, seed=rng)
+            op2 = random_unitary(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
 
 
 if __name__ == "__main__":

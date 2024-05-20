@@ -64,7 +64,7 @@ Measures
 .. autofunction:: process_fidelity
 .. autofunction:: gate_error
 .. autofunction:: diamond_norm
-.. autofunction:: unitary_diamond_distance
+.. autofunction:: diamond_distance
 .. autofunction:: state_fidelity
 .. autofunction:: purity
 .. autofunction:: concurrence
@@ -132,7 +132,7 @@ from .operators.dihedral import CNOTDihedral
 from .operators.measures import (
     average_gate_fidelity,
     diamond_norm,
-    unitary_diamond_distance,
+    diamond_distance,
     gate_error,
     process_fidelity,
 )

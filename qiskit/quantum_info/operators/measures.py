@@ -350,91 +350,95 @@ def diamond_norm(choi: Choi | QuantumChannel, solver: str = "SCS", **kwargs) -> 
     return sol
 
 
-def unitary_diamond_distance(op1: Operator, op2: Operator) -> float:
+def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
     r"""Return the diamond distance between two unitary operators.
 
     This function computes the completely-bounded trace-norm (often
-    referred to as the diamond-norm) of the difference of two unitary channels
-    (or unitary operators). This is often used as a distance metric in quantum
-    information This method is a more specialised implementation of
-    :meth:`~qiskit.quantum_info.diamond_norm`.
+    referred to as the diamond norm) of a difference of two quantum maps. 
+    It is often used as a distance metric in quantum information where 
+    
+    :math:`d(E, F) = ||E-F||_diamond`.
+
 
     Args:
         op1 (Operator): a unitary operator.
         op2 (Operator): a unitary operator.
 
     Returns:
-        float: The completely-bounded trace norm :math:`\|U - V\|_{\diamond}`.
+        float: The completely-bounded trace norm of `op1 - op2`.
 
     Raises:
-        ValueError: if the input operators do not have the same dimensions or aren't unitary.
+        ValueError: if the input operators do not have the same dimensions.
 
     Additional Information:
-        The implementation uses an unproved result in Aharonov et al. (1998). Geometrically,
-        we compute the distance :math:`d` between the origin and the convex hull
-        of the eigenvalues which is then plugged into :math:`\sqrt{1 - d^2}`.
+        If both operators are unitary, the implementation uses a result in Aharonov 
+        et al. (1998) resulting in a significant optimisation. Geometrically, we
+        compute the distance :math:`d` between the origin and the convex hull of
+        the eigenvalues of :math:`U^\dag V` which is plugged into :math:`\sqrt{1 - d^2}`.
 
     Reference:
         D. Aharonov, A. Kitaev, and N. Nisan. “Quantum circuits with
         mixed states” in Proceedings of the thirtieth annual ACM symposium
         on Theory of computing, pp. 20-30, 1998.
-    """
-    op1 = _input_formatter(op1, Operator, "unitary_diamond_distance", "op1")
-    op2 = _input_formatter(op2, Operator, "unitary_diamond_distance", "op2")
+    
+    .. note::
 
-    # Check operators are unitary and have same dimension
-    if not op1.is_unitary():
-        raise ValueError(
-            "Invalid operator supplied to op1 of unitary_diamond_distance"
-            "operators must be unitary."
-        )
-    if not op2.is_unitary():
-        raise ValueError(
-            "Invalid operator supplied to op2 of unitary_diamond_distance"
-            "operators must be unitary."
-        )
+        This function requires the optional CVXPY package to be installed.
+        Any additional kwargs will be passed to the ``cvxpy.solve``
+        function. See the CVXPY documentation for information on available
+        SDP solvers.
+    """
+    op1 = _input_formatter(op1, BaseOperator, "diamond_distance", "op1")
+    op2 = _input_formatter(op2, BaseOperator, "diamond_distance", "op2")
+
+    # Check base operators have same dimension
     if op1.dim != op2.dim:
         raise ValueError(
             "Input quantum channel and target unitary must have the same "
             f"dimensions ({op1.dim} != {op2.dim})."
         )
 
-    # Compute the diamond norm
-    mat1 = op1.data
-    mat2 = op2.data
-    pre_diag = np.conj(mat1).T @ mat2
-    eigenvals = np.linalg.eigvals(pre_diag)
-    d = _find_poly_distance(eigenvals)
-    return 2 * np.sqrt(1 - d**2)
+    # Attempt to run unitary optimisation
+    if isinstance(op1, Operator) and isinstance(op2, Operator) and op1.is_unitary() and op2.is_unitary():
+        # Compute the diamond norm
+        mat1 = op1.data
+        mat2 = op2.data
+        pre_diag = np.conj(mat1).T @ mat2
+        eigenvals = np.linalg.eigvals(pre_diag)
+        d = _find_poly_distance(eigenvals)
+        return 2 * np.sqrt(1 - d**2)
+    else:
+        # TODO: Implement special case for pauli channels (Benenti and Strini 2010) 
+        # as well as a potential optimisation for clifford circuits
+
+        # Compute the diamond norm
+        return diamond_norm(Choi(op1) - Choi(op2))
+
 
 
 def _find_poly_distance(eigenvals: np.ndarray) -> float:
     """Function to find the distance between origin and the convex hull of eigenvalues."""
     phases = np.angle(eigenvals)
-    pos_max = phases.max()
-    neg_min = phases.min()
-    pos_min = np.where(phases > 0, phases, np.inf).min()
-    neg_max = np.where(phases <= 0, phases, -np.inf).max()
+    phase_max = phases.max()
+    phase_min = phases.min()
 
-    if neg_min > 0:
-        # all eigenvalues have positive phase, so hull is above x axis
-        return np.cos((pos_max - pos_min) / 2)
+    if phase_min > 0:  # all eigenvals have pos phase: hull is above x axis
+        return np.cos((phase_max - phase_min) / 2)
 
-    if pos_max <= 0:
-        # all eigenvalues have negative phase, so hull is below x axis
-        return np.cos((np.abs(neg_min) - np.abs(neg_max)) / 2)
+    if phase_max <= 0:  # all eigenvals have neg phase: hull is below x axis
+        return np.cos((np.abs(phase_min) - np.abs(phase_max)) / 2)
 
-    big_angle = pos_max - neg_min
-    small_angle = pos_min - neg_max
+    pos_phase_min = np.where(phases > 0, phases, np.inf).min()
+    neg_phase_max = np.where(phases <= 0, phases, -np.inf).max()
+
+    big_angle = phase_max - phase_min
+    small_angle = pos_phase_min - neg_phase_max
     if big_angle >= np.pi:
-        if small_angle <= np.pi:
-            # hull contains the origin
+        if small_angle <= np.pi:  # hull contains the origin
             return 0
-        else:
-            # hull is left of y axis
+        else:  # hull is left of y axis
             return np.cos((2 * np.pi - small_angle) / 2)
-    else:
-        # hull is right of y axis
+    else:  # hull is right of y axis
         return np.cos(big_angle / 2)
 
 

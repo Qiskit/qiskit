@@ -18,7 +18,7 @@ from .dihedral import CNOTDihedral
 from .measures import (
     average_gate_fidelity,
     diamond_norm,
-    unitary_diamond_distance,
+    diamond_distance,
     gate_error,
     process_fidelity,
 )
