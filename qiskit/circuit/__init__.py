@@ -816,10 +816,11 @@ method <https://numpy.org/devdocs/user/basics.interoperability.html#the-array-me
 ``__array__``.  This is used by :meth:`Gate.to_matrix`, and has the signature:
 
 .. currentmodule:: None
-.. py:method:: __array__(dtype=None, copy=None)
+.. py:method:: object.__array__(dtype=None, copy=None)
 
-    Return a Numpy array representing the gate.  This can use the gate's :attr:`~Instruction.params`
-    field, and may assume that these are numeric values (assuming the subclass expects that) and not
+    Return a Numpy array representing the gate. This can use the gate's
+    :attr:`~qiskit.circuit.Instruction.params` field, and may assume that these are numeric
+    values (assuming the subclass expects that) and not
     :ref:`compile-time parameters <circuit-compile-time-parameters>`.
 
     For greatest efficiency, the returned array should default to a dtype of :class:`complex`.
