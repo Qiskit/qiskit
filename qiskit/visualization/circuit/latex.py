@@ -213,17 +213,22 @@ class QCircuitImage:
         self._latex.append([" "] * (self._img_depth + 1))
 
         # display the bit/register labels
-        for wire in self._wire_map:
+        for wire, index in self._wire_map.items():
             if isinstance(wire, ClassicalRegister):
                 register = wire
-                index = self._wire_map[wire]
+                wire_label = get_wire_label(
+                    "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
+                )
             else:
                 register, bit_index, reg_index = get_bit_reg_index(self._circuit, wire)
-                index = bit_index if register is None else reg_index
+                wire_label = get_wire_label(
+                    "latex",
+                    register,
+                    bit_index if register is None else reg_index,
+                    layout=self._layout,
+                    cregbundle=self._cregbundle,
+                )
 
-            wire_label = get_wire_label(
-                "latex", register, index, layout=self._layout, cregbundle=self._cregbundle
-            )
             wire_label += " : "
             if self._initial_state:
                 wire_label += "\\ket{{0}}" if isinstance(wire, Qubit) else "0"
@@ -234,7 +239,7 @@ class QCircuitImage:
                 self._latex[pos][1] = "\\lstick{/_{_{" + str(register.size) + "}}} \\cw"
                 wire_label = f"\\mathrm{{{wire_label}}}"
             else:
-                pos = self._wire_map[wire]
+                pos = index
             self._latex[pos][0] = "\\nghost{" + wire_label + " & " + "\\lstick{" + wire_label
 
     def _get_image_depth(self):
@@ -620,11 +625,11 @@ class QCircuitImage:
             # First sort the val_bits in the order of the register bits in the circuit
             cond_wires = []
             cond_bits = []
-            for wire in self._wire_map:
+            for wire, index in self._wire_map.items():
                 reg, _, reg_index = get_bit_reg_index(self._circuit, wire)
                 if reg == cond_reg:
                     cond_bits.append(reg_index)
-                    cond_wires.append(self._wire_map[wire])
+                    cond_wires.append(index)
 
             gap = cond_wires[0] - max(wire_list)
             prev_wire = cond_wires[0]
