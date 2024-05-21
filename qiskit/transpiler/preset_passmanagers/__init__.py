@@ -84,7 +84,7 @@ def generate_preset_pass_manager(
     routing_method=None,
     translation_method=None,
     scheduling_method=None,
-    approximation_degree=None,
+    approximation_degree=1.0,
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
@@ -115,7 +115,7 @@ def generate_preset_pass_manager(
 
         backend (Backend): An optional backend object which can be used as the
             source of the default values for the ``basis_gates``, ``inst_map``,
-            ``couplig_map``, ``backend_properties``, ``instruction_durations``,
+            ``coupling_map``, ``backend_properties``, ``instruction_durations``,
             ``timing_constraints``, and ``target``. If any of those other arguments
             are specified in addition to ``backend`` they will take precedence
             over the value contained in the backend.
@@ -136,11 +136,11 @@ def generate_preset_pass_manager(
         instruction_durations (InstructionDurations): Dictionary of duration
             (in dt) for each instruction.
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
-        initial_layout (Layout): Initial position of virtual qubits on
+        initial_layout (Layout | List[int]): Initial position of virtual qubits on
             physical qubits.
         layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
             placement. Valid choices are ``'trivial'``, ``'dense'``,
-            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~DenseLayout` and
+            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~.DenseLayout` and
             :class:`~.SabreLayout` respectively. This can also
             be the external plugin name to use for the ``layout`` stage of the output
             :class:`~.StagedPassManager`. You can see a list of installed plugins by using
@@ -154,12 +154,11 @@ def generate_preset_pass_manager(
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
         translation_method (str): The method to use for translating gates to
-            basis gates. Valid choices ``'unroller'``, ``'translator'``, ``'synthesis'``
-            representing :class:`~.Unroller`, :class:`~.BasisTranslator`, and
-            :class:`~.UnitarySynthesis` respectively. This can also be the external plugin
-            name to use for the ``translation`` stage of the output :class:`~.StagedPassManager`.
-            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
-            ``"translation"`` for the ``stage_name`` argument.
+            basis gates. Valid choices ``'translator'``, ``'synthesis'`` representing
+            :class:`~.BasisTranslator`, and :class:`~.UnitarySynthesis` respectively. This can
+            also be the external plugin name to use for the ``translation`` stage of the output
+            :class:`~.StagedPassManager`. You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
         scheduling_method (str): The pass to use for scheduling instructions. Valid choices
             are ``'alap'`` and ``'asap'``. This can also be the external plugin name to use
             for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
@@ -180,7 +179,7 @@ def generate_preset_pass_manager(
             default this setting will have no effect as the default unitary
             synthesis method does not take custom configuration. This should
             only be necessary when a unitary synthesis plugin is specified with
-            the ``unitary_synthesis`` argument. As this is custom for each
+            the ``unitary_synthesis_method`` argument. As this is custom for each
             unitary synthesis plugin refer to the plugin documentation for how
             to use this option.
         hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
@@ -205,14 +204,6 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
-    if translation_method == "unroller":
-        warnings.warn(
-            "The 'unroller' translation_method plugin is deprecated as of Qiskit 0.45.0 and "
-            "will be removed in a future release. Instead you should use the default "
-            "'translator' method or another plugin.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
     if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
         coupling_map = CouplingMap(coupling_map)

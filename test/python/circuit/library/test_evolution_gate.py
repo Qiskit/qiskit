@@ -21,8 +21,8 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.synthesis import LieTrotter, SuzukiTrotter, MatrixExponential, QDrift
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 X = SparsePauliOp("X")
 Y = SparsePauliOp("Y")
@@ -155,17 +155,25 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_qdrift_evolution(self):
         """Test QDrift on an example."""
-        op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
+        op = 0.1 * (Z ^ Z) - 3.2 * (X ^ I) - 1.0 * (I ^ X) + 0.2 * (X ^ X)
         reps = 20
-        qdrift = PauliEvolutionGate(
-            op, time=0.5 / reps, synthesis=QDrift(reps=reps, seed=self.seed)
-        ).definition
-        exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
+        time = 0.12
+        num_samples = 300
+        qdrift_energy = []
 
         def energy(evo):
             return Statevector(evo).expectation_value(op.to_matrix())
 
-        self.assertAlmostEqual(energy(exact), energy(qdrift), places=2)
+        for i in range(num_samples):
+            qdrift = PauliEvolutionGate(
+                op, time=time, synthesis=QDrift(reps=reps, seed=self.seed + i)
+            ).definition
+
+            qdrift_energy.append(energy(qdrift))
+
+        exact = scipy.linalg.expm(-1j * time * op.to_matrix()).dot(np.eye(4)[0, :])
+
+        self.assertAlmostEqual(energy(exact), np.average(qdrift_energy), places=2)
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""

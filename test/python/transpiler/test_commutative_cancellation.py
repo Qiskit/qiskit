@@ -14,15 +14,16 @@
 
 import unittest
 import numpy as np
-from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
 from qiskit.circuit.parameter import Parameter
+from qiskit.passmanager.flow_controllers import DoWhileController
 from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCommutativeCancellation(QiskitTestCase):
@@ -136,8 +137,15 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -410,8 +418,15 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -453,8 +468,15 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
@@ -509,8 +531,15 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
         passmanager.append(
-            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
-            do_while=lambda property_set: not property_set["size_fixed_point"],
+            DoWhileController(
+                [
+                    CommutationAnalysis(),
+                    CommutativeCancellation(),
+                    Size(),
+                    FixedPoint("size"),
+                ],
+                do_while=lambda property_set: not property_set["size_fixed_point"],
+            )
         )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)

@@ -526,12 +526,8 @@ import os
 from pathlib import Path
 from typing import Iterable, Union, Optional, Literal
 
-# Pylint can't handle the C-extension introspection of `_qasm2` because there's a re-import through
-# to `qiskit.qasm2.exceptions`, and pylint ends up trying to import `_qasm2` twice, which PyO3
-# hates.  If that gets fixed, this disable can be removed and `qiskit._qasm2` added to the allowed C
-# extensions for loadings in the `pyproject.toml`.
 # pylint: disable=c-extension-no-member
-from qiskit import _qasm2
+from qiskit._accelerate import qasm2 as _qasm2
 from qiskit.circuit import QuantumCircuit
 from . import parse as _parse
 from .exceptions import QASM2Error, QASM2ParseError, QASM2ExportError

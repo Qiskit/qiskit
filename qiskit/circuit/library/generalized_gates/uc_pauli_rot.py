@@ -69,7 +69,7 @@ class UCPauliRotGate(Gate):
     def _define(self):
         ucr_circuit = self._dec_ucrot()
         gate = ucr_circuit.to_instruction()
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, "q")
         ucr_circuit = QuantumCircuit(q)
         ucr_circuit.append(gate, q[:])
         self.definition = ucr_circuit
@@ -79,7 +79,7 @@ class UCPauliRotGate(Gate):
         Finds a decomposition of a UC rotation gate into elementary gates
         (C-NOTs and single-qubit rotations).
         """
-        q = QuantumRegister(self.num_qubits)
+        q = QuantumRegister(self.num_qubits, "q")
         circuit = QuantumCircuit(q)
         q_target = q[0]
         q_controls = q[1:]
@@ -99,7 +99,7 @@ class UCPauliRotGate(Gate):
             angles = self.params.copy()
             UCPauliRotGate._dec_uc_rotations(angles, 0, len(angles), False)
             # Now, it is easy to place the C-NOT gates to get back the full decomposition.
-            for (i, angle) in enumerate(angles):
+            for i, angle in enumerate(angles):
                 if self.rot_axes == "X":
                     if np.abs(angle) > _EPS:
                         circuit.rx(angle, q_target)

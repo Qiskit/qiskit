@@ -75,7 +75,7 @@ for different input and output types.
 A single flow controller always takes a single IR object, and returns a single
 IR object. Parallelism for multiple input objects is supported by the
 :class:`BasePassManager` by broadcasting the flow controller via
-the :func:`qiskit.tools.parallel_map` function.
+the :func:`.parallel_map` function.
 
 
 Examples
@@ -209,7 +209,6 @@ Flow controllers
 .. autosummary::
    :toctree: ../stubs/
 
-   FlowController
    FlowControllerLinear
    ConditionalController
    DoWhileController
@@ -232,7 +231,6 @@ Exceptions
 
 from .passmanager import BasePassManager
 from .flow_controllers import (
-    FlowController,
     FlowControllerLinear,
     ConditionalController,
     DoWhileController,

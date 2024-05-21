@@ -12,7 +12,7 @@
 
 """A collection of discrete probability metrics."""
 from __future__ import annotations
-import numpy as np
+import math
 
 
 def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
@@ -43,13 +43,13 @@ def hellinger_distance(dist_p: dict, dist_q: dict) -> float:
     total = 0
     for key, val in p_normed.items():
         if key in q_normed:
-            total += (np.sqrt(val) - np.sqrt(q_normed[key])) ** 2
+            total += (math.sqrt(val) - math.sqrt(q_normed[key])) ** 2
             del q_normed[key]
         else:
             total += val
     total += sum(q_normed.values())
 
-    dist = np.sqrt(total) / np.sqrt(2)
+    dist = math.sqrt(total) / math.sqrt(2)
 
     return dist
 
@@ -76,8 +76,9 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
 
         .. code-block::
 
-            from qiskit import QuantumCircuit, execute, BasicAer
+            from qiskit import QuantumCircuit
             from qiskit.quantum_info.analysis import hellinger_fidelity
+            from qiskit.providers.basic_provider import BasicSimulator
 
             qc = QuantumCircuit(5, 5)
             qc.h(2)
@@ -87,9 +88,9 @@ def hellinger_fidelity(dist_p: dict, dist_q: dict) -> float:
             qc.cx(1, 0)
             qc.measure(range(5), range(5))
 
-            sim = BasicAer.get_backend('qasm_simulator')
-            res1 = execute(qc, sim).result()
-            res2 = execute(qc, sim).result()
+            sim = BasicSimulator()
+            res1 = sim.run(qc).result()
+            res2 = sim.run(qc).result()
 
             hellinger_fidelity(res1.get_counts(), res2.get_counts())
 

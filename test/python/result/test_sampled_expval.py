@@ -13,10 +13,10 @@
 """Tests for qiskit.quantum_info.analysis"""
 
 import unittest
+
 from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.test import QiskitTestCase
-
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 PROBS = {
     "1000": 0.0022,

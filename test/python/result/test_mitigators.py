@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,8 +33,8 @@ from qiskit.result.mitigation.utils import (
     str2diag,
 )
 from qiskit.result.utils import marginal_counts
-from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeYorktown
+from qiskit.providers.fake_provider import Fake5QV1
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestReadoutMitigation(QiskitTestCase):
@@ -97,7 +97,7 @@ class TestReadoutMitigation(QiskitTestCase):
     @staticmethod
     def assignment_matrices():
         """A 3-qubit readout noise assignment matrices"""
-        return LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        return LocalReadoutMitigator(backend=Fake5QV1())._assignment_mats[0:3]
 
     @staticmethod
     def counts_data(circuit, assignment_matrices, shots=1024):
@@ -378,7 +378,7 @@ class TestReadoutMitigation(QiskitTestCase):
 
     def test_from_backend(self):
         """Test whether a local mitigator can be created directly from backend properties"""
-        backend = FakeYorktown()
+        backend = Fake5QV1()
         num_qubits = len(backend.properties().qubits)
         probs = TestReadoutMitigation.rng.random((num_qubits, 2))
         for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
@@ -463,7 +463,7 @@ class TestLocalReadoutMitigation(QiskitTestCase):
     def test_assignment_matrix(self):
         """Tests that the local mitigator generates the full assignment matrix correctly"""
         qubits = [7, 2, 3]
-        assignment_matrices = LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        assignment_matrices = LocalReadoutMitigator(backend=Fake5QV1())._assignment_mats[0:3]
         expected_assignment_matrix = np.kron(
             np.kron(assignment_matrices[2], assignment_matrices[1]), assignment_matrices[0]
         )

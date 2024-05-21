@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,14 +13,12 @@
 """Test library of phase estimation circuits."""
 
 import unittest
-
 import numpy as np
 
-from qiskit.test.base import QiskitTestCase
-from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import PhaseEstimation, QFT
 from qiskit.quantum_info import Statevector
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestPhaseEstimation(QiskitTestCase):
@@ -64,11 +62,7 @@ class TestPhaseEstimation(QiskitTestCase):
             inplace=True,
         )
         circuit.compose(pec, inplace=True)
-        # TODO use Statevector for simulation once Qiskit/qiskit-terra#4681 is resolved
-        # actual = Statevector.from_instruction(circuit).data
-        backend = BasicAer.get_backend("statevector_simulator")
-        actual = execute(circuit, backend).result().get_statevector()
-
+        actual = Statevector(circuit)
         np.testing.assert_almost_equal(reference, actual)
 
     def test_phase_estimation(self):

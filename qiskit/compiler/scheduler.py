@@ -25,7 +25,7 @@ from qiskit.pulse import InstructionScheduleMap, Schedule
 from qiskit.providers.backend import Backend
 from qiskit.scheduler import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 
 logger = logging.getLogger(__name__)
 

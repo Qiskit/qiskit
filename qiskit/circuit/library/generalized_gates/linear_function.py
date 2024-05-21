@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,6 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.synthesis.linear import check_invertible_binary_matrix
 from qiskit.circuit.library.generalized_gates.permutation import PermutationGate
 
 # pylint: disable=cyclic-import
@@ -30,7 +29,7 @@ class LinearFunction(Gate):
     as a n x n matrix of 0s and 1s in numpy array format.
 
     A linear function can be synthesized into CX and SWAP gates using the Patel–Markov–Hayes
-    algorithm, as implemented in :func:`~qiskit.transpiler.synthesis.cnot_synth`
+    algorithm, as implemented in :func:`~qiskit.synthesis.synth_cnot_count_full_pmh`
     based on reference [1].
 
     For efficiency, the internal n x n matrix is stored in the format expected
@@ -67,12 +66,14 @@ class LinearFunction(Gate):
 
     def __init__(
         self,
-        linear: list[list]
-        | np.ndarray[bool]
-        | QuantumCircuit
-        | LinearFunction
-        | PermutationGate
-        | Clifford,
+        linear: (
+            list[list]
+            | np.ndarray[bool]
+            | QuantumCircuit
+            | LinearFunction
+            | PermutationGate
+            | Clifford
+        ),
         validate_input: bool = False,
     ) -> None:
         """Create a new linear function.
@@ -113,6 +114,8 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
+                from qiskit.synthesis.linear import check_invertible_binary_matrix
+
                 if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."

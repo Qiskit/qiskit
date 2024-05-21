@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added a new function, :func:`.high_level_synthesis_plugin_names` that is
-    used to get the list of installed high level synthesis plugins for a given
-    operation name.

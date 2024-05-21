@@ -15,7 +15,6 @@
 """Test Qiskit's Instruction class."""
 
 import unittest.mock
-
 import numpy as np
 
 from qiskit.circuit import (
@@ -30,11 +29,12 @@ from qiskit.circuit import (
     Clbit,
     IfElseOp,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, TGate
+from qiskit.circuit.library import HGate, RZGate, CXGate, SGate, SdgGate, TGate
+from qiskit.circuit.annotated_operation import AnnotatedOperation
 from qiskit.circuit.classical import expr
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.random import random_circuit
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestInstructions(QiskitTestCase):
@@ -117,6 +117,12 @@ class TestInstructions(QiskitTestCase):
         self.assertFalse(
             Instruction("u", 1, 0, [0.4, phi]).soft_compare(Instruction("v", 1, 0, [theta, phi]))
         )
+
+        # Test that when names are the same but number of qubits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 2, 0, [])))
+
+        # Test that when names are the same but number of clbits differ we get False
+        self.assertFalse(Instruction("u", 1, 0, []).soft_compare(Instruction("u", 1, 1, [])))
 
         # Test cutoff precision.
         self.assertFalse(
@@ -655,14 +661,35 @@ class TestInstructions(QiskitTestCase):
                 instruction = RZGate(0)
                 instruction.label = 0
 
-    def test_deprecation_warnings_qasm_methods(self):
-        """Test deprecation warnings for qasm methods."""
-        with self.subTest("built in gates"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                HGate().qasm()
-        with self.subTest("User constructed Instruction"):
-            with self.assertWarnsRegex(DeprecationWarning, r"Correct exporting to OpenQASM 2"):
-                Instruction("v", 1, 0, [0.4, 0.5, 0.5]).qasm()
+
+class TestInverseAnnotatedGate(QiskitTestCase):
+    """Tests for inverse gates and the AnnotatedOperation class."""
+
+    def test_inverse_cx(self):
+        """Test creation of inverse CX gate"""
+        gate = CXGate().inverse(annotated=False)
+        self.assertIsInstance(gate, CXGate)
+        gate = CXGate().inverse(annotated=True)
+        self.assertIsInstance(gate, CXGate)
+
+    def test_inverse_s(self):
+        """Test creation of inverse S gate"""
+        gate = SGate().inverse(annotated=False)
+        self.assertIsInstance(gate, SdgGate)
+        gate = SGate().inverse(annotated=True)
+        self.assertIsInstance(gate, SdgGate)
+
+    def test_inverse_custom(self):
+        """Test creation of inverse custom gate"""
+        circ = QuantumCircuit(2)
+        circ.cx(0, 1)
+        circ.h(0)
+        gate = circ.to_instruction()
+        self.assertIsInstance(gate, Instruction)
+        inverse_gate = gate.inverse(annotated=False)
+        self.assertIsInstance(inverse_gate, Instruction)
+        inverse_gate = gate.inverse(annotated=True)
+        self.assertIsInstance(inverse_gate, AnnotatedOperation)
 
 
 if __name__ == "__main__":

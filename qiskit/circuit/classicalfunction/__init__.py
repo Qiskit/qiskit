@@ -81,6 +81,7 @@ classical_function
 
 Decorator for a classical function that returns a `ClassicalFunction` object.
 
+.. autofunction:: classical_function
 
 ClassicalFunction
 -----------------

@@ -20,7 +20,8 @@ import struct
 
 from qiskit.qpy import formats
 
-QPY_VERSION = 10
+QPY_VERSION = 12
+QPY_COMPATIBILITY_VERSION = 10
 ENCODE = "utf8"
 
 

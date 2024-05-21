@@ -12,8 +12,8 @@
 
 """Test operations on circuit.data."""
 import ddt
-from qiskit._accelerate.quantum_circuit import CircuitData
 
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import (
     ClassicalRegister,
     QuantumCircuit,
@@ -25,9 +25,8 @@ from qiskit.circuit import (
     Clbit,
 )
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate, Measure
-
-from qiskit.test import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt

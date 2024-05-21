@@ -15,9 +15,9 @@
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import InstructionScheduleMap, Schedule
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeOpenPulse3Q
 from qiskit.compiler.scheduler import schedule
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestCircuitScheduler(QiskitTestCase):

@@ -16,7 +16,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.transpiler import TranspilerError, CouplingMap, PassManager
 from qiskit.transpiler.passes.layout.sabre_pre_layout import SabrePreLayout
 from qiskit.converters import circuit_to_dag
-from qiskit.test import QiskitTestCase
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class TestSabrePreLayout(QiskitTestCase):

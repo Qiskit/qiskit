@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Sampler implementation for an artibtrary Backend object."""
+"""Sampler implementation for an arbitrary Backend object."""
 
 from __future__ import annotations
 
@@ -139,9 +139,13 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         # This line does the actual transpilation
         transpiled_circuits = self.transpiled_circuits
         bound_circuits = [
-            transpiled_circuits[i]
-            if len(value) == 0
-            else transpiled_circuits[i].assign_parameters((dict(zip(self._parameters[i], value))))
+            (
+                transpiled_circuits[i]
+                if len(value) == 0
+                else transpiled_circuits[i].assign_parameters(
+                    (dict(zip(self._parameters[i], value)))
+                )
+            )
             for i, value in zip(circuits, parameter_values)
         ]
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
@@ -205,5 +209,5 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
                 self._circuits.append(circuit)
                 self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
-        job.submit()
+        job._submit()
         return job

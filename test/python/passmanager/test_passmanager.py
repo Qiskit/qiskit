@@ -124,3 +124,24 @@ class TestPassManager(PassManagerTestCase):
         with self.assertLogContains(expected):
             out = pm.run(data)
         self.assertEqual(out, data)
+
+    def test_reruns_have_clean_property_set(self):
+        """Test that re-using a pass manager produces a clean property set for the state."""
+
+        sentinel = object()
+
+        class CheckPropertySetClean(GenericPass):
+            def __init__(self, test_case):
+                super().__init__()
+                self.test_case = test_case
+
+            def run(self, _):
+                self.test_case.assertIs(self.property_set["check_property"], None)
+                self.property_set["check_property"] = sentinel
+                self.test_case.assertIs(self.property_set["check_property"], sentinel)
+
+        pm = ToyPassManager([CheckPropertySetClean(self)])
+        pm.run(0)
+        self.assertIs(pm.property_set["check_property"], sentinel)
+        pm.run(1)
+        self.assertIs(pm.property_set["check_property"], sentinel)

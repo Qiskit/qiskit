@@ -34,7 +34,7 @@ from qiskit.qobj import (
     converters,
     QobjHeader,
 )
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map
 
 
 PulseLibrary = Dict[str, List[complex]]

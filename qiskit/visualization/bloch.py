@@ -48,6 +48,7 @@
 
 __all__ = ["Bloch"]
 
+import math
 import os
 import numpy as np
 import matplotlib
@@ -289,7 +290,7 @@ class Bloch:
             self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
             self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
         else:
-            raise Exception("No such convention.")
+            raise ValueError("No such convention.")
 
     def __str__(self):
         string = ""
@@ -395,7 +396,7 @@ class Bloch:
         if isinstance(state_or_vector, (list, np.ndarray, tuple)) and len(state_or_vector) == 3:
             vec = state_or_vector
         else:
-            raise Exception("Position needs to be specified by a qubit " + "state or a 3D vector.")
+            raise TypeError("Position needs to be specified by a qubit state or a 3D vector.")
         self.annotations.append({"position": vec, "text": text, "opts": kwargs})
 
     def make_sphere(self):
@@ -648,9 +649,7 @@ class Bloch:
                 )
 
             elif self.point_style[k] == "m":
-                pnt_colors = np.array(
-                    self.point_color * int(np.ceil(num / float(len(self.point_color))))
-                )
+                pnt_colors = np.array(self.point_color * math.ceil(num / len(self.point_color)))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])

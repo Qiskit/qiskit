@@ -21,7 +21,7 @@ from typing import Any
 
 import dill
 
-from qiskit.tools.parallel import parallel_map
+from qiskit.utils.parallel import parallel_map, should_run_in_parallel
 from .base_tasks import Task, PassManagerIR
 from .exceptions import PassManagerError
 from .flow_controllers import FlowControllerLinear
@@ -47,6 +47,8 @@ class BasePassManager(ABC):
         """
         self._tasks = []
         self.max_iteration = max_iteration
+        # This empty property set never gets used; it gets overridden at the completion of a
+        # workflow run.
         self.property_set = PropertySet()
 
         if tasks:
@@ -171,6 +173,7 @@ class BasePassManager(ABC):
         self,
         in_programs: Any | list[Any],
         callback: Callable = None,
+        num_processes: int = None,
         **kwargs,
     ) -> Any:
         """Run all the passes on the specified ``in_programs``.
@@ -204,6 +207,10 @@ class BasePassManager(ABC):
                         running_time = kwargs['running_time']
                         count = kwargs['count']
                         ...
+            num_processes: The maximum number of parallel processes to launch if parallel
+                execution is enabled. This argument overrides ``num_processes`` in the user
+                configuration file, and the ``QISKIT_NUM_PROCS`` environment variable. If set
+                to ``None`` the system default or local user configuration will be used.
 
             kwargs: Arbitrary arguments passed to the compiler frontend and backend.
 
@@ -218,16 +225,16 @@ class BasePassManager(ABC):
             in_programs = [in_programs]
             is_list = False
 
-        if len(in_programs) == 1:
-            out_program = _run_workflow(
-                program=in_programs[0],
-                pass_manager=self,
-                callback=callback,
-                **kwargs,
-            )
-            if is_list:
-                return [out_program]
-            return out_program
+        # If we're not going to run in parallel, we want to avoid spending time `dill` serialising
+        # ourselves, since that can be quite expensive.
+        if len(in_programs) == 1 or not should_run_in_parallel(num_processes):
+            out = [
+                _run_workflow(program=program, pass_manager=self, callback=callback, **kwargs)
+                for program in in_programs
+            ]
+            if len(in_programs) == 1 and not is_list:
+                return out[0]
+            return out
 
         del callback
         del kwargs
@@ -240,6 +247,7 @@ class BasePassManager(ABC):
             _run_workflow_in_new_process,
             values=in_programs,
             task_kwargs={"pass_manager_bin": dill.dumps(self)},
+            num_processes=num_processes,
         )
 
     def to_flow_controller(self) -> FlowControllerLinear:
@@ -281,14 +289,22 @@ def _run_workflow(
         input_program=program,
         **kwargs,
     )
-    passmanager_ir, _ = flow_controller.execute(
+    passmanager_ir, final_state = flow_controller.execute(
         passmanager_ir=passmanager_ir,
         state=PassManagerState(
             workflow_status=initial_status,
-            property_set=pass_manager.property_set,
+            property_set=PropertySet(),
         ),
         callback=kwargs.get("callback", None),
     )
+    # The `property_set` has historically been returned as a mutable attribute on `PassManager`
+    # This makes us non-reentrant (though `PassManager` would be dependent on its internal tasks to
+    # be re-entrant if that was required), but is consistent with previous interfaces.  We're still
+    # safe to be called in a serial loop, again assuming internal tasks are re-runnable.  The
+    # conversion to the backend language is also allowed to use the property set, so it must be set
+    # before calling it.
+    pass_manager.property_set = final_state.property_set
+
     out_program = pass_manager._passmanager_backend(
         passmanager_ir=passmanager_ir,
         in_program=program,

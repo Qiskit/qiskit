@@ -1,0 +1,6 @@
+---
+features_circuits:
+  - |
+    :class:`~.expr.Var` nodes now have a :attr:`.Var.standalone` property to quickly query whether
+    they are new-style memory-owning variables, or whether they wrap old-style classical memory in
+    the form of a :class:`.Clbit` or :class:`.ClassicalRegister`.

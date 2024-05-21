@@ -42,7 +42,7 @@ class GraphState(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import GraphState
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       from qiskit.visualization.library import _generate_circuit_library_visualization
        import rustworkx as rx
        G = rx.generators.cycle_graph(5)
        circuit = GraphState(rx.adjacency_matrix(G))

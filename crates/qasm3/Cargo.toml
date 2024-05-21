@@ -1,0 +1,16 @@
+[package]
+name = "qiskit-qasm3"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+name = "qiskit_qasm3"
+doctest = false
+
+[dependencies]
+pyo3.workspace = true
+indexmap.workspace = true
+hashbrown.workspace = true
+oq3_semantics = "0.6.0"

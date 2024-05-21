@@ -1,8 +1,0 @@
----
-other:
-  - |
-    The :class:`.VF2Layout` and :class:`.VF2PostLayout` transpiler passes previously would
-    potentially run their internal scoring using multithreading if the input
-    circuit's were sufficiently large. However, the multithreading usage has
-    been removed from the passes as it was shown to cause a performance
-    regression instead of an improvement like originally intended.

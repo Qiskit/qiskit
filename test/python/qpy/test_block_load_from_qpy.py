@@ -15,8 +15,8 @@
 import io
 import unittest
 from ddt import ddt, data, unpack
-
 import numpy as np
+import symengine as sym
 
 from qiskit.pulse import builder, Schedule
 from qiskit.pulse.library import (
@@ -37,16 +37,10 @@ from qiskit.pulse.channels import (
 )
 from qiskit.pulse.instructions import Play, TimeBlockade
 from qiskit.circuit import Parameter, QuantumCircuit, Gate
-from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
 from qiskit.utils import optionals as _optional
 from qiskit.pulse.configuration import Kernel, Discriminator
-
-
-if _optional.HAS_SYMENGINE:
-    import symengine as sym
-else:
-    import sympy as sym
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class QpyScheduleTestCase(QiskitTestCase):

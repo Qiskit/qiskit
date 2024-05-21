@@ -15,7 +15,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
-from qiskit._accelerate.quantum_circuit import CircuitData
+from qiskit._accelerate.circuit import CircuitData
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
@@ -127,15 +127,37 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super()._append(instruction, _qargs, _cargs)
 
-    def compose(self, other, qubits=None, clbits=None, front=False, inplace=False, wrap=False):
+    def compose(
+        self,
+        other,
+        qubits=None,
+        clbits=None,
+        front=False,
+        inplace=False,
+        wrap=False,
+        *,
+        copy=True,
+        var_remap=None,
+        inline_captures=False,
+    ):
         if not self._is_built:
             self._build()
-        return super().compose(other, qubits, clbits, front, inplace, wrap)
+        return super().compose(
+            other,
+            qubits,
+            clbits,
+            front,
+            inplace,
+            wrap,
+            copy=copy,
+            var_remap=var_remap,
+            inline_captures=False,
+        )
 
-    def inverse(self):
+    def inverse(self, annotated: bool = False):
         if not self._is_built:
             self._build()
-        return super().inverse()
+        return super().inverse(annotated=annotated)
 
     def __len__(self):
         return len(self.data)
@@ -178,10 +200,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().num_connected_components(unitary_only=unitary_only)
 
-    def copy_empty_like(self, name=None):
+    def copy_empty_like(self, name=None, *, vars_mode="alike"):
         if not self._is_built:
             self._build()
-        cpy = super().copy_empty_like(name=name)
+        cpy = super().copy_empty_like(name=name, vars_mode=vars_mode)
         # The base `copy_empty_like` will typically trigger code that `BlueprintCircuit` treats as
         # an "invalidation", so we have to manually restore properties deleted by that that
         # `copy_empty_like` is supposed to propagate.

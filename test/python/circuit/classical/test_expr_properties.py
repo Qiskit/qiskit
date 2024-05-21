@@ -18,9 +18,9 @@ import uuid
 
 import ddt
 
-from qiskit.test import QiskitTestCase
 from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit.classical import expr, types
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 @ddt.ddt
@@ -49,6 +49,21 @@ class TestExprProperties(QiskitTestCase):
             expr.Binary.Op.LOGIC_OR,
             expr.Value(False, types.Bool()),
             expr.Value(True, types.Bool()),
+            types.Bool(),
+        ),
+        expr.Index(
+            expr.Var.new("a", types.Uint(3)),
+            expr.Binary(
+                expr.Binary.Op.SHIFT_LEFT,
+                expr.Binary(
+                    expr.Binary.Op.SHIFT_RIGHT,
+                    expr.Var.new("b", types.Uint(3)),
+                    expr.Value(1, types.Uint(1)),
+                    types.Uint(3),
+                ),
+                expr.Value(1, types.Uint(1)),
+                types.Uint(3),
+            ),
             types.Bool(),
         ),
     )

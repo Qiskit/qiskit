@@ -19,9 +19,10 @@ from numpy import pi
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
+from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit, Measure
+from qiskit.circuit.classical import expr, types
 from qiskit.circuit.library import (
+    HGate,
     U1Gate,
     U2Gate,
     U3Gate,
@@ -39,11 +40,10 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.basis import BasisTranslator, UnrollCustomDefinitions
-
-
 from qiskit.circuit.library.standard_gates.equivalence_library import (
     StandardEquivalenceLibrary as std_eqlib,
 )
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
 class OneQubitZeroParamGate(Gate):
@@ -891,6 +891,50 @@ class TestUnrollerCompatability(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
 
+    def test_treats_store_as_builtin(self):
+        """Test that the `store` instruction is allowed as a builtin in all cases with no target."""
+
+        class MyHGate(Gate):
+            """Hadamard, but it's _mine_."""
+
+            def __init__(self):
+                super().__init__("my_h", 1, [])
+
+        class MyCXGate(Gate):
+            """CX, but it's _mine_."""
+
+            def __init__(self):
+                super().__init__("my_cx", 2, [])
+
+        h_to_my = QuantumCircuit(1)
+        h_to_my.append(MyHGate(), [0], [])
+        cx_to_my = QuantumCircuit(2)
+        cx_to_my.append(MyCXGate(), [0, 1], [])
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(HGate(), h_to_my)
+        eq_lib.add_equivalence(CXGate(), cx_to_my)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.store(a, expr.bit_xor(qc.clbits[0], qc.clbits[1]))
+
+        expected = qc.copy_empty_like()
+        expected.store(b, 12)
+        expected.append(MyHGate(), [0], [])
+        expected.append(MyCXGate(), [0, 1], [])
+        expected.measure([0, 1], [0, 1])
+        expected.store(a, expr.bit_xor(expected.clbits[0], expected.clbits[1]))
+
+        # Note: store is present in the circuit but not in the basis set.
+        out = BasisTranslator(eq_lib, ["my_h", "my_cx"])(qc)
+        self.assertEqual(out, expected)
+
 
 class TestBasisExamples(QiskitTestCase):
     """Test example circuits targeting example bases over the StandardEquivalenceLibrary."""
@@ -1114,7 +1158,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         output = bt_pass(qc)
         # We need a second run of BasisTranslator to correct gates outside of
         # the target basis. This is a known isssue, see:
-        #  https://qiskit.org/documentation/release_notes.html#release-notes-0-19-0-known-issues
+        #  https://docs.quantum.ibm.com/api/qiskit/release-notes/0.33#known-issues
         output = bt_pass(output)
         expected = QuantumCircuit(2)
         expected.rz(pi, 1)
@@ -1129,3 +1173,52 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         expected.sx(1)
         expected.rz(3 * pi, 1)
         self.assertEqual(output, expected)
+
+    def test_treats_store_as_builtin(self):
+        """Test that the `store` instruction is allowed as a builtin in all cases with a target."""
+
+        class MyHGate(Gate):
+            """Hadamard, but it's _mine_."""
+
+            def __init__(self):
+                super().__init__("my_h", 1, [])
+
+        class MyCXGate(Gate):
+            """CX, but it's _mine_."""
+
+            def __init__(self):
+                super().__init__("my_cx", 2, [])
+
+        h_to_my = QuantumCircuit(1)
+        h_to_my.append(MyHGate(), [0], [])
+        cx_to_my = QuantumCircuit(2)
+        cx_to_my.append(MyCXGate(), [0, 1], [])
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(HGate(), h_to_my)
+        eq_lib.add_equivalence(CXGate(), cx_to_my)
+
+        a = expr.Var.new("a", types.Bool())
+        b = expr.Var.new("b", types.Uint(8))
+
+        qc = QuantumCircuit(2, 2, inputs=[a])
+        qc.add_var(b, 12)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure([0, 1], [0, 1])
+        qc.store(a, expr.bit_xor(qc.clbits[0], qc.clbits[1]))
+
+        expected = qc.copy_empty_like()
+        expected.store(b, 12)
+        expected.append(MyHGate(), [0], [])
+        expected.append(MyCXGate(), [0, 1], [])
+        expected.measure([0, 1], [0, 1])
+        expected.store(a, expr.bit_xor(expected.clbits[0], expected.clbits[1]))
+
+        # Note: store is present in the circuit but not in the target.
+        target = Target()
+        target.add_instruction(MyHGate(), {(i,): None for i in range(qc.num_qubits)})
+        target.add_instruction(Measure(), {(i,): None for i in range(qc.num_qubits)})
+        target.add_instruction(MyCXGate(), {(0, 1): None, (1, 0): None})
+
+        out = BasisTranslator(eq_lib, {"my_h", "my_cx"}, target)(qc)
+        self.assertEqual(out, expected)

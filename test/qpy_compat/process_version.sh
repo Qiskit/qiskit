@@ -29,6 +29,11 @@ if [[ ${parts[0]} -eq 0 && ${parts[1]} -lt 18 ]] ; then
     exit 0
 fi
 
+# Exclude any non-rc pre-releases as they don't have stable API guarantees
+if [[ $version == *"b"* || $version == *"a"* ]] ; then
+    exit 0
+fi
+
 # If the source version is newer than the version under test exit fast because
 # there is no QPY compatibility for loading a qpy file generated from a newer
 # release with an older release of Qiskit.

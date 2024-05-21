@@ -154,5 +154,5 @@ class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         job = PrimitiveJob(
             self._call, circuit_indices, observable_indices, parameter_values, **run_options
         )
-        job.submit()
+        job._submit()
         return job

@@ -20,7 +20,7 @@ Args:
     mat_x: n*n invertable binary matrix representing a -CX- transformation
 
 Output:
-    QuantumCircuit: QuantumCircuit object containing a depth-5n circuit to implement -CZ-CX-
+    QuantumCircuit: :class:`.QuantumCircuit` object containing a depth-5n circuit to implement -CZ-CX-
 
 References:
     [1] S. A. Kutin, D. P. Moulton, and L. M. Smithline, "Computation at a distance," 2007.
@@ -215,7 +215,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
     return cir
 
 
-def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
+def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCircuit:
     """
     Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang.
@@ -223,15 +223,15 @@ def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
 
     Args:
         mat_z : a boolean symmetric matrix representing a CZ circuit.
-            Mz[i][j]=1 represents a CZ(i,j) gate
+            ``mat_z[i][j]=1`` represents a ``cz(i,j)`` gate
 
         mat_x : a boolean invertible matrix representing a CX circuit.
 
-    Return:
-        QuantumCircuit : a circuit implementation of a CX circuit following a CZ circuit,
-        denoted as a -CZ-CX- circuit,in two-qubit depth at most 5n, for LNN connectivity.
+    Returns:
+        A circuit implementation of a CX circuit following a CZ circuit,
+        denoted as a -CZ-CX- circuit,in two-qubit depth at most ``5n``, for LNN connectivity.
 
-    Reference:
+    References:
         1. Kutin, S., Moulton, D. P., Smithline, L.,
            *Computation at a distance*, Chicago J. Theor. Comput. Sci., vol. 2007, (2007),
            `arXiv:quant-ph/0701194 <https://arxiv.org/abs/quant-ph/0701194>`_

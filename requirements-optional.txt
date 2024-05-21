@@ -8,12 +8,9 @@
 # Test-runner enhancements.
 fixtures
 testtools
-jupyter
 
 # Interactivity.
-ipykernel
 ipython
-ipywidgets>=7.3.0
 matplotlib>=3.3
 pillow>=4.2.1
 pydot

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,7 +26,7 @@ def random_circuit(
     """Generate random circuit of arbitrary size and form.
 
     This function will generate a random circuit by randomly selecting gates
-    from the set of standard gates in :mod:`qiskit.extensions`. For example:
+    from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`. For example:
 
     .. plot::
        :include-source:
@@ -207,3 +207,72 @@ def random_circuit(
         qc.measure(qc.qubits, cr)
 
     return qc
+
+
+def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
+    """Generate a pseudo-random Clifford circuit.
+
+    This function will generate a Clifford circuit by randomly selecting the chosen amount of Clifford
+    gates from the set of standard gates in :mod:`qiskit.circuit.library.standard_gates`. For example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.circuit.random import random_clifford_circuit
+
+       circ = random_clifford_circuit(num_qubits=2, num_gates=6)
+       circ.draw(output='mpl')
+
+    Args:
+        num_qubits (int): number of quantum wires.
+        num_gates (int): number of gates in the circuit.
+        gates (list[str]): optional list of Clifford gate names to randomly sample from.
+            If ``"all"`` (default), use all Clifford gates in the standard library.
+        seed (int | np.random.Generator): sets random seed/generator (optional).
+
+    Returns:
+        QuantumCircuit: constructed circuit
+    """
+
+    gates_1q = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg"]
+    gates_2q = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
+    if gates == "all":
+        if num_qubits == 1:
+            gates = gates_1q
+        else:
+            gates = gates_1q + gates_2q
+
+    instructions = {
+        "i": (standard_gates.IGate(), 1),
+        "x": (standard_gates.XGate(), 1),
+        "y": (standard_gates.YGate(), 1),
+        "z": (standard_gates.ZGate(), 1),
+        "h": (standard_gates.HGate(), 1),
+        "s": (standard_gates.SGate(), 1),
+        "sdg": (standard_gates.SdgGate(), 1),
+        "sx": (standard_gates.SXGate(), 1),
+        "sxdg": (standard_gates.SXdgGate(), 1),
+        "cx": (standard_gates.CXGate(), 2),
+        "cy": (standard_gates.CYGate(), 2),
+        "cz": (standard_gates.CZGate(), 2),
+        "swap": (standard_gates.SwapGate(), 2),
+        "iswap": (standard_gates.iSwapGate(), 2),
+        "ecr": (standard_gates.ECRGate(), 2),
+        "dcx": (standard_gates.DCXGate(), 2),
+    }
+
+    if isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = np.random.default_rng(seed)
+
+    samples = rng.choice(gates, num_gates)
+
+    circ = QuantumCircuit(num_qubits)
+
+    for name in samples:
+        gate, nqargs = instructions[name]
+        qargs = rng.choice(range(num_qubits), nqargs, replace=False).tolist()
+        circ.append(gate, qargs, copy=False)
+
+    return circ

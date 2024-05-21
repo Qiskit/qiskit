@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2024.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,26 +19,38 @@ from test import combine
 
 from ddt import ddt, data
 
+from numpy.testing import assert_array_max_ulp
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.compiler import transpile
-from qiskit.test.base import QiskitTestCase
-from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
-from qiskit.providers.fake_provider.fake_backend_v2 import (
-    FakeBackendV2,
-    FakeBackend5QV2,
-    FakeBackendSimple,
-    FakeBackendV2LegacyQubitProps,
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    ECRGate,
 )
-from qiskit.providers.fake_provider.backends import FakeBogotaV2
-from qiskit.quantum_info import Operator
+from qiskit.compiler import transpile
+from qiskit.providers.basic_provider import BasicSimulator
+from qiskit.providers.fake_provider import GenericBackendV2
 from qiskit.pulse import channels
+from qiskit.quantum_info import Operator
+from qiskit.transpiler import InstructionProperties
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
+
+from ..legacy_cmaps import BOGOTA_CMAP, TENERIFE_CMAP
+from .fake_mumbai_v2 import FakeMumbaiFractionalCX
 
 
 @ddt
 class TestBackendV2(QiskitTestCase):
     def setUp(self):
         super().setUp()
-        self.backend = FakeBackendV2()
+        self.backend = GenericBackendV2(num_qubits=2, seed=42, basis_gates=["rx", "u"])
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+        }
+        self.backend.target.add_instruction(CXGate(), cx_props)
+        ecr_props = {
+            (1, 0): InstructionProperties(duration=4.52e-9, error=0.0000132115),
+        }
+        self.backend.target.add_instruction(ECRGate(), ecr_props)
+        self.backend.options.set_validator("shots", (1, 4096))
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
@@ -55,21 +67,34 @@ class TestBackendV2(QiskitTestCase):
     def test_qubit_properties(self):
         """Test that qubit properties are returned as expected."""
         props = self.backend.qubit_properties([1, 0])
-        self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
-        self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
-        self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
+        assert_array_max_ulp([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
+        assert_array_max_ulp(
+            [0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props]
+        )
+        assert_array_max_ulp([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
 
     def test_legacy_qubit_properties(self):
         """Test that qubit props work for backends not using properties in target."""
-        props = FakeBackendV2LegacyQubitProps().qubit_properties([1, 0])
-        self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
-        self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
-        self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
+
+        class FakeBackendV2LegacyQubitProps(GenericBackendV2):
+            """Fake backend that doesn't use qubit properties via the target."""
+
+            def qubit_properties(self, qubit):
+                if isinstance(qubit, int):
+                    return self.target.qubit_properties[qubit]
+                return [self.target.qubit_properties[i] for i in qubit]
+
+        props = FakeBackendV2LegacyQubitProps(num_qubits=2, seed=42).qubit_properties([1, 0])
+        assert_array_max_ulp([0.0001697368029059364, 0.00017739560485559633], [x.t1 for x in props])
+        assert_array_max_ulp(
+            [0.00010941773478876496, 0.00014388784397520525], [x.t2 for x in props]
+        )
+        assert_array_max_ulp([5487811175.818378, 5429298959.955691], [x.frequency for x in props])
 
     def test_no_qubit_properties_raises(self):
         """Ensure that if no qubit properties are defined we raise correctly."""
         with self.assertRaises(NotImplementedError):
-            FakeBackendSimple().qubit_properties(0)
+            BasicSimulator().qubit_properties(0)
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
@@ -101,7 +126,10 @@ class TestBackendV2(QiskitTestCase):
         name="{gate}_level_{opt_level}_bidirectional_{bidirectional}",
     )
     def test_5q_ghz(self, opt_level, gate, bidirectional):
-        backend = FakeBackend5QV2(bidirectional)
+        if bidirectional:
+            backend = GenericBackendV2(num_qubits=5)
+        else:
+            backend = GenericBackendV2(num_qubits=5, coupling_map=TENERIFE_CMAP)
         qc = QuantumCircuit(5)
         qc.h(0)
         getattr(qc, gate)(0, 1)
@@ -179,7 +207,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_drive_channel(self, qubit):
         """Test getting drive channel with qubit index."""
-        backend = FakeBogotaV2()
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.drive_channel(qubit)
         ref = channels.DriveChannel(qubit)
         self.assertEqual(chan, ref)
@@ -187,7 +215,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_measure_channel(self, qubit):
         """Test getting measure channel with qubit index."""
-        backend = FakeBogotaV2()
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.measure_channel(qubit)
         ref = channels.MeasureChannel(qubit)
         self.assertEqual(chan, ref)
@@ -195,7 +223,7 @@ class TestBackendV2(QiskitTestCase):
     @data(0, 1, 2, 3, 4)
     def test_acquire_channel(self, qubit):
         """Test getting acquire channel with qubit index."""
-        backend = FakeBogotaV2()
+        backend = GenericBackendV2(num_qubits=5)
         chan = backend.acquire_channel(qubit)
         ref = channels.AcquireChannel(qubit)
         self.assertEqual(chan, ref)
@@ -213,7 +241,7 @@ class TestBackendV2(QiskitTestCase):
             (1, 0): 1,
             (0, 1): 0,
         }
-        backend = FakeBogotaV2()
+        backend = GenericBackendV2(num_qubits=5, coupling_map=BOGOTA_CMAP)
         chan = backend.control_channel(qubits)[0]
         ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
         self.assertEqual(chan, ref)
