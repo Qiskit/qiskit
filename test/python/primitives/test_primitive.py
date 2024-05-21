@@ -142,7 +142,7 @@ class TestCircuitKey(QiskitTestCase):
                 qc = QuantumCircuit(1)
                 qc.x(0)
                 qc.add_calibration("x", qubits=(0,), schedule=custom_gate)
-                return transpile(qc, Fake20QV1(), scheduling_method="alap")
+                return transpile(qc, Fake20QV1(), scheduling_method="alap", optimization_level=1)
 
             keys = [_circuit_key(test_with_scheduling(i)) for i in range(1, 5)]
             self.assertEqual(len(keys), len(set(keys)))

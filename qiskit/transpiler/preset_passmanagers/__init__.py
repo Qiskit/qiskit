@@ -60,7 +60,8 @@ Stage Generator Functions
 import warnings
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
-from qiskit.transpiler.target import target_to_backend_properties
+from qiskit.transpiler.target import target_to_backend_properties, Target
+from qiskit.providers.backend import Backend
 from qiskit.transpiler import CouplingMap
 
 from .level0 import level_0_pass_manager
@@ -70,7 +71,7 @@ from .level3 import level_3_pass_manager
 
 
 def generate_preset_pass_manager(
-    optimization_level,
+    optimization_level=2,
     backend=None,
     target=None,
     basis_gates=None,
@@ -104,9 +105,10 @@ def generate_preset_pass_manager(
 
     Args:
         optimization_level (int): The optimization level to generate a
-            :class:`~.PassManager` for. This can be 0, 1, 2, or 3. Higher
-            levels generate more optimized circuits, at the expense of
-            longer transpilation time:
+            :class:`~.StagedPassManager` for. By default optimization level 2
+            is used if this is not specified. This can be 0, 1, 2, or 3. Higher
+            levels generate potentially more optimized circuits, at the expense
+            of longer transpilation time:
 
                 * 0: no optimization
                 * 1: light optimization
@@ -204,6 +206,16 @@ def generate_preset_pass_manager(
     Raises:
         ValueError: if an invalid value for ``optimization_level`` is passed in.
     """
+
+    # Handle positional arguments for target and backend. This enables the usage
+    # pattern `generate_preset_pass_manager(backend.target)` to generate a default
+    # pass manager for a given target.
+    if isinstance(optimization_level, Target):
+        target = optimization_level
+        optimization_level = 2
+    elif isinstance(optimization_level, Backend):
+        backend = optimization_level
+        optimization_level = 2
 
     if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
         coupling_map = CouplingMap(coupling_map)
