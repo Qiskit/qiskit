@@ -820,13 +820,16 @@ class TestCircuitCompose(QiskitTestCase):
         b_src = ClassicalRegister(2, "b_src")
         c_src = ClassicalRegister(name="c_src", bits=list(a_src) + list(b_src))
         source = QuantumCircuit(QuantumRegister(1), a_src, b_src, c_src)
+        target_var = source.add_input("target_var", types.Uint(2))
 
         test_1 = lambda: expr.lift(a_src[0])
         test_2 = lambda: expr.logic_not(b_src[1])
         test_3 = lambda: expr.logic_and(expr.bit_and(b_src, 2), expr.less(c_src, 7))
+        test_4 = lambda: expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1))
         source.if_test(test_1(), inner.copy(), [0], [])
         source.if_else(test_2(), inner.copy(), inner.copy(), [0], [])
         source.while_loop(test_3(), inner.copy(), [0], [])
+        source.if_test(test_4(), inner.copy(), [0], [])
 
         a_dest = ClassicalRegister(2, "a_dest")
         b_dest = ClassicalRegister(2, "b_dest")
@@ -840,11 +843,18 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(dest.cregs), 3)
         mapped_reg = dest.cregs[-1]
 
-        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg)
+        expected = QuantumCircuit(dest.qregs[0], a_dest, b_dest, mapped_reg, inputs=[target_var])
         expected.if_test(expr.lift(a_dest[0]), inner.copy(), [0], [])
         expected.if_else(expr.logic_not(b_dest[1]), inner.copy(), inner.copy(), [0], [])
         expected.while_loop(
             expr.logic_and(expr.bit_and(b_dest, 2), expr.less(mapped_reg, 7)), inner.copy(), [0], []
+        )
+        # `Var` nodes aren't remapped, but this should be passed through fine.
+        expected.if_test(
+            expr.bit_xor(expr.index(target_var, 0), expr.index(target_var, 1)),
+            inner.copy(),
+            [0],
+            [],
         )
         self.assertEqual(dest, expected)
 

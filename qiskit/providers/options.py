@@ -229,28 +229,28 @@ class Options(Mapping):
                 f"{type(validator_value)} is not a valid validator type, it "
                 "must be a tuple, list, or class/type"
             )
-        self.validator[field] = validator_value
+        self.validator[field] = validator_value  # pylint: disable=unsupported-assignment-operation
 
     def update_options(self, **fields):
         """Update options with kwargs"""
-        for field in fields:
-            field_validator = self.validator.get(field, None)
+        for field_name, field in fields.items():
+            field_validator = self.validator.get(field_name, None)
             if isinstance(field_validator, tuple):
-                if fields[field] > field_validator[1] or fields[field] < field_validator[0]:
+                if field > field_validator[1] or field < field_validator[0]:
                     raise ValueError(
-                        f"Specified value for '{field}' is not a valid value, "
+                        f"Specified value for '{field_name}' is not a valid value, "
                         f"must be >={field_validator[0]} or <={field_validator[1]}"
                     )
             elif isinstance(field_validator, list):
-                if fields[field] not in field_validator:
+                if field not in field_validator:
                     raise ValueError(
-                        f"Specified value for {field} is not a valid choice, "
+                        f"Specified value for {field_name} is not a valid choice, "
                         f"must be one of {field_validator}"
                     )
             elif isinstance(field_validator, type):
-                if not isinstance(fields[field], field_validator):
+                if not isinstance(field, field_validator):
                     raise TypeError(
-                        f"Specified value for {field} is not of required type {field_validator}"
+                        f"Specified value for {field_name} is not of required type {field_validator}"
                     )
 
         self._fields.update(fields)

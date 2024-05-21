@@ -143,3 +143,6 @@ class VariableMapper(expr.ExprVisitor[expr.Expr]):
 
     def visit_cast(self, node, /):
         return expr.Cast(node.operand.accept(self), node.type, implicit=node.implicit)
+
+    def visit_index(self, node, /):
+        return expr.Index(node.target.accept(self), node.index.accept(self), node.type)

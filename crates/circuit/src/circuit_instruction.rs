@@ -154,24 +154,7 @@ impl CircuitInstruction {
         )
     }
 
-    pub fn __getstate__(&self, py: Python<'_>) -> PyObject {
-        (
-            self.operation.bind(py),
-            self.qubits.bind(py),
-            self.clbits.bind(py),
-        )
-            .into_py(py)
-    }
-
-    pub fn __setstate__(&mut self, _py: Python<'_>, state: &Bound<PyAny>) -> PyResult<()> {
-        let (operation, qubits, clbits): (PyObject, Py<PyTuple>, Py<PyTuple>) = state.extract()?;
-        self.operation = operation;
-        self.qubits = qubits;
-        self.clbits = clbits;
-        Ok(())
-    }
-
-    pub fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
+    fn __getnewargs__(&self, py: Python<'_>) -> PyResult<PyObject> {
         Ok((
             self.operation.bind(py),
             self.qubits.bind(py),

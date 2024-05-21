@@ -81,11 +81,11 @@ class Result:
             )
         )
         out += f", date={self.date}, status={self.status}, header={self.header}"
-        for key in self._metadata:
-            if isinstance(self._metadata[key], str):
-                value_str = "'%s'" % self._metadata[key]
+        for key, value in self._metadata.items():
+            if isinstance(value, str):
+                value_str = "'%s'" % value
             else:
-                value_str = repr(self._metadata[key])
+                value_str = repr(value)
             out += f", {key}={value_str}"
         out += ")"
         return out
