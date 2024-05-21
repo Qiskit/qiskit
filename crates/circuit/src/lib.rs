@@ -12,9 +12,9 @@
 
 pub mod circuit_data;
 pub mod circuit_instruction;
-pub mod slotted_cache;
 
 mod bit_data;
+mod interner;
 mod packed_instruction;
 
 use pyo3::prelude::*;
@@ -30,18 +30,10 @@ pub enum SliceOrInt<'a> {
     Slice(Bound<'a, PySlice>),
 }
 
-/// A private trait template implemented by container
-/// structs that maintain a mapping between a Python
-/// object and its native Rust representation, `T`.
-trait PyNativeMapper<T: Copy> {
-    fn map_to_native(&self, any: &Bound<PyAny>) -> Option<T>;
-    fn map_to_py(&self, native: T) -> Option<&PyObject>;
-}
-
-pub(crate) type BitType = u32;
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+type BitType = u32;
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 struct Qubit(BitType);
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 struct Clbit(BitType);
 
 impl From<BitType> for Qubit {
@@ -66,19 +58,6 @@ impl From<Clbit> for BitType {
     fn from(value: Clbit) -> Self {
         value.0
     }
-}
-
-/// A trait implemented by containers that support interning
-/// semantics for `T`.
-trait Interner<T> {
-    /// The error type returned when interning.
-    type Error;
-    /// The type of the interned value.
-    type InternedType;
-    /// Interns the provided value, returning the interned value.
-    fn intern(&mut self, item: T) -> Result<Self::InternedType, Self::Error>;
-    /// Looks up the original value given the interned value.
-    fn get_interned(&self, interned: &Self::InternedType) -> T;
 }
 
 #[pymodule]

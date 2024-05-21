@@ -15,6 +15,7 @@ use hashbrown::HashMap;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyList;
+use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 
 /// Private wrapper for Python-side Bit instances that implements
@@ -80,9 +81,11 @@ pub(crate) struct BitData<T> {
     cached: Py<PyList>,
 }
 
+pub(crate) struct BitNotFoundError<'py>(pub(crate) Bound<'py, PyAny>);
+
 impl<T> BitData<T>
 where
-    T: From<BitType>,
+    T: From<BitType> + Copy,
     BitType: From<T>,
 {
     pub fn new(py: Python<'_>, description: String) -> Self {
@@ -114,8 +117,34 @@ where
 
     /// Finds the native bit index of the given Python bit.
     #[inline]
-    pub fn find(&self, bit: &Bound<PyAny>) -> Option<&T> {
-        self.indices.get(&BitAsKey::new(bit))
+    pub fn find(&self, bit: &Bound<PyAny>) -> Option<T> {
+        self.indices.get(&BitAsKey::new(bit)).copied()
+    }
+
+    /// Map the provided Python bits to their native indices.
+    /// An error is returned if any bit is not registered.
+    pub fn map_bits<'py>(
+        &self,
+        bits: impl IntoIterator<Item = Bound<'py, PyAny>>,
+    ) -> Result<impl Iterator<Item = T>, BitNotFoundError<'py>> {
+        let v: Result<Vec<_>, _> = bits
+            .into_iter()
+            .map(|b| {
+                self.indices
+                    .get(&BitAsKey::new(&b))
+                    .copied()
+                    .ok_or_else(|| BitNotFoundError(b))
+            })
+            .collect();
+        v.map(|x| x.into_iter())
+    }
+
+    /// Map the provided native indices to the corresponding Python
+    /// bit instances.
+    /// Panics if any of the indices are out of range.
+    pub fn map_indices(&self, bits: &[T]) -> impl Iterator<Item = &Py<PyAny>> + ExactSizeIterator {
+        let v: Vec<_> = bits.iter().map(|i| self.get(*i).unwrap()).collect();
+        v.into_iter()
     }
 
     /// Gets the Python bit corresponding to the given native
