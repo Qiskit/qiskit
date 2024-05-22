@@ -25,7 +25,7 @@ use pyo3::{
     prelude::*,
     pyclass,
     sync::GILOnceCell,
-    types::{IntoPyDict, PyDict, PyList, PySet, PyTuple, PyType},
+    types::{IntoPyDict, PyDict, PyList, PySet, PyString, PyTuple, PyType},
 };
 use smallvec::smallvec;
 
@@ -55,9 +55,6 @@ static STANDARD_GATE_NAME_MAPPING: GILOnceCell<IndexMap<String, PyObject>> = GIL
 
 /// Import qubits_props_from_qubits function from python.
 static QUBIT_PROPS_FROM_QUBITS: GILOnceCell<PyObject> = GILOnceCell::new();
-
-/// Import tuple class from python for downcastable items.
-static TUPLE_CLASS: GILOnceCell<PyObject> = GILOnceCell::new();
 
 /// Import parameter class from python.
 static PARAMETER_CLASS: GILOnceCell<Py<PyType>> = GILOnceCell::new();
@@ -118,26 +115,6 @@ fn qubit_props_list_from_props(properties: &Bound<PyAny>) -> PyResult<Vec<PyObje
     props_list.extract::<Vec<PyObject>>(properties.py())
 }
 
-/// Helper function to create tuples for objects that cannot be downcast
-fn tupleize(object: &Bound<'_, PyAny>) -> PyResult<Py<PyTuple>> {
-    let result = TUPLE_CLASS
-        .get_or_init(object.py(), || -> PyObject {
-            {
-                Python::with_gil(|py| -> PyResult<PyObject> {
-                    let builtins = py.import_bound("builtins")?;
-                    let tuple = builtins.getattr("tuple")?;
-                    Ok(tuple.into())
-                })
-                .unwrap()
-            }
-        })
-        .call1(object.py(), (object,))?;
-    Ok(result
-        .downcast_bound::<PyTuple>(object.py())?
-        .clone()
-        .unbind())
-}
-
 fn get_instruction_schedule_map_class(py: Python<'_>) -> PyResult<PyObject> {
     Ok(INSTRUCTION_SCHEDULE_MAP
         .get_or_init(py, || {
@@ -176,6 +153,28 @@ fn make_parameter(py: Python<'_>, args: impl IntoPy<Py<PyTuple>>) -> PyResult<Py
         .unwrap()
     });
     parameter_class.call1(py, args)
+}
+
+pub fn tupleize(py: Python<'_>, qargs: Qargs) -> PyObject {
+    match qargs.len() {
+        1 => qargs
+            .into_iter()
+            .collect_tuple::<(PhysicalQubit,)>()
+            .to_object(py),
+        2 => qargs
+            .into_iter()
+            .collect_tuple::<(PhysicalQubit, PhysicalQubit)>()
+            .to_object(py),
+        3 => qargs
+            .into_iter()
+            .collect_tuple::<(PhysicalQubit, PhysicalQubit, PhysicalQubit)>()
+            .to_object(py),
+        4 => qargs
+            .into_iter()
+            .collect_tuple::<(PhysicalQubit, PhysicalQubit, PhysicalQubit, PhysicalQubit)>()
+            .to_object(py),
+        _ => py.None(),
+    }
 }
 
 fn make_gate(
@@ -499,7 +498,10 @@ impl Target {
             if let Some(name) = name {
                 instruction_name = name;
             } else {
-                instruction_name = instruction.getattr("name")?.extract::<String>()?;
+                instruction_name = instruction
+                    .getattr("name")?
+                    .downcast::<PyString>()?
+                    .to_string();
             }
         } else {
             if let Some(name) = name {
@@ -783,8 +785,15 @@ impl Target {
                                 .call_method0(py, "get_signature")?
                                 .getattr(py, "parameters")?
                                 .call_method0(py, "keys")?;
-                            let params = params.bind(py);
-                            param_names.add(tupleize(params)?)?;
+                            let params = params
+                                .bind(py)
+                                .iter()?
+                                .map(|x| match x {
+                                    Ok(x) => x.to_object(py),
+                                    Err(_) => py.None(),
+                                })
+                                .collect::<Vec<PyObject>>();
+                            param_names.add(PyTuple::new_bound(py, params))?;
                         }
                     }
                     if qlen.len() > 1 || param_names.len() > 1 {
@@ -822,7 +831,7 @@ impl Target {
                             let kwargs = [
                                 ("name", inst_name.as_str().into_py(py)),
                                 ("num_qubits", qlen.iter().next().to_object(py)),
-                                ("params", Vec::<PyObject>::new().to_object(py)),
+                                ("params", PyList::empty_bound(py).to_object(py)),
                             ]
                             .into_py_dict_bound(py);
                             let inst_obj = make_gate(py, (), Some(&kwargs))?;
@@ -926,14 +935,14 @@ impl Target {
         if self.instruction_durations.is_some() {
             return Ok(self.instruction_durations.to_owned());
         }
-        let mut out_durations: Vec<(&String, Qargs, f64, &str)> = vec![];
+        let mut out_durations: Vec<(&String, Option<PyObject>, f64, &str)> = vec![];
         for (instruction, props_map) in self.gate_map.map.iter() {
             for (qarg, properties) in props_map.extract::<PropsMap>(py)?.map.iter() {
                 if let Some(properties) = properties {
                     if let Some(duration) = properties.getattr(py, "duration")?.extract(py)? {
                         out_durations.push((
                             instruction,
-                            qarg.to_owned().unwrap_or_default(),
+                            qarg.to_owned().map(|x| tupleize(py, x)),
                             duration,
                             "s",
                         ))
@@ -1614,9 +1623,9 @@ impl Target {
     /// ``(class, None)`` where class is the actual operation class that
     /// is globally defined.
     #[getter]
-    fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, Option<Qargs>)>> {
+    fn instructions(&self, py: Python<'_>) -> PyResult<Vec<(PyObject, Option<PyObject>)>> {
         // Get list of instructions.
-        let mut instruction_list: Vec<(PyObject, Option<Qargs>)> = vec![];
+        let mut instruction_list: Vec<(PyObject, Option<PyObject>)> = vec![];
         // Add all operations and dehash qargs.
         for (op, props_map) in self.gate_map.map.iter() {
             for qarg in props_map
@@ -1624,7 +1633,10 @@ impl Target {
                 .extract::<PropsMapKeys>(py)?
                 .keys
             {
-                let instruction_pair = (self.gate_name_map[op].clone_ref(py), qarg.clone());
+                let instruction_pair = (
+                    self.gate_name_map[op].clone_ref(py),
+                    qarg.clone().map(|x| tupleize(py, x)),
+                );
                 instruction_list.push(instruction_pair);
             }
         }
