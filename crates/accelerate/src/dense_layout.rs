@@ -15,8 +15,8 @@ use ahash::RandomState;
 use hashbrown::{HashMap, HashSet};
 use indexmap::IndexSet;
 use ndarray::prelude::*;
-use numpy::PyReadonlyArray2;
 use numpy::IntoPyArray;
+use numpy::PyReadonlyArray2;
 use rayon::prelude::*;
 
 use pyo3::prelude::*;
@@ -108,10 +108,10 @@ pub fn best_subset(
     use_error: bool,
     symmetric_coupling_map: bool,
     error_matrix: PyReadonlyArray2<f64>,
-) -> PyResult<(PyObject, PyObject, PyObject)> {
+) -> (PyObject, PyObject, PyObject) {
     let coupling_adj_mat = coupling_adjacency.as_array();
     let err = error_matrix.as_array();
-    let (rows, cols, best_map) = best_subset_inner(
+    let [rows, cols, best_map] = best_subset_inner(
         num_qubits,
         coupling_adj_mat,
         num_meas,
@@ -119,12 +119,12 @@ pub fn best_subset(
         use_error,
         symmetric_coupling_map,
         err,
-    )?;
-    Ok((
-        rows.to_pyarray_bound(py).into(),
-        cols.to_pyarray_bound(py).into(),
-        best_map.to_pyarray_bound(py).into(),
-    ))      
+    );
+    (
+        rows.into_pyarray_bound(py).into(),
+        cols.into_pyarray_bound(py).into(),
+        best_map.into_pyarray_bound(py).into(),
+    )
 }
 
 pub fn best_subset_inner(
@@ -135,7 +135,7 @@ pub fn best_subset_inner(
     use_error: bool,
     symmetric_coupling_map: bool,
     err: ArrayView2<f64>,
-) -> PyResult<(Vec<usize>, Vec<usize>, Vec<usize>)> {
+) -> [Vec<usize>; 3] {
     let coupling_shape = coupling_adj_mat.shape();
     let avg_meas_err = err.diag().mean().unwrap();
 
@@ -241,7 +241,7 @@ pub fn best_subset_inner(
     let rows: Vec<usize> = new_cmap.iter().map(|edge| edge[0]).collect();
     let cols: Vec<usize> = new_cmap.iter().map(|edge| edge[1]).collect();
 
-    Ok((rows, cols, best_map))
+    [rows, cols, best_map]
 }
 
 #[pymodule]
