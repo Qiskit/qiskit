@@ -14,6 +14,7 @@ pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
 
+mod bit_data;
 mod interner;
 mod packed_instruction;
 
