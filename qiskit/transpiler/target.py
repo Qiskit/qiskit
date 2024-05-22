@@ -814,7 +814,7 @@ class Target(Mapping):
                     if qargs in self._gate_map[op_name]:
                         return True
                     if self._gate_map[op_name] is None or None in self._gate_map[op_name]:
-                        return self._gate_name_map[op_name].num_qubits == len(qargs) and all(
+                        return obj.num_qubits == len(qargs) and all(
                             x < self.num_qubits for x in qargs
                         )
             return False
@@ -940,7 +940,9 @@ class Target(Mapping):
         is globally defined.
         """
         return [
-            (self._gate_name_map[op], qarg) for op in self._gate_map for qarg in self._gate_map[op]
+            (self._gate_name_map[op], qarg)
+            for op, qargs in self._gate_map.items()
+            for qarg in qargs
         ]
 
     def instruction_properties(self, index):
@@ -979,7 +981,7 @@ class Target(Mapping):
             InstructionProperties: The instruction properties for the specified instruction tuple
         """
         instruction_properties = [
-            inst_props for op in self._gate_map for _, inst_props in self._gate_map[op].items()
+            inst_props for qargs in self._gate_map.values() for inst_props in qargs.values()
         ]
         return instruction_properties[index]
 

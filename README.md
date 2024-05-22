@@ -1,6 +1,8 @@
 # Qiskit
+
 [![License](https://img.shields.io/github/license/Qiskit/qiskit.svg?)](https://opensource.org/licenses/Apache-2.0) <!--- long-description-skip-begin -->
-[![Release](https://img.shields.io/github/release/Qiskit/qiskit.svg)](https://github.com/Qiskit/qiskit/releases)
+[![Current Release](https://img.shields.io/github/release/Qiskit/qiskit.svg?logo=Qiskit)](https://github.com/Qiskit/qiskit/releases)
+[![Extended Support Release](https://img.shields.io/github/v/release/Qiskit/qiskit?sort=semver&filter=0.*&logo=Qiskit&label=extended%20support)](https://github.com/Qiskit/qiskit/releases?q=tag%3A0)
 [![Downloads](https://img.shields.io/pypi/dm/qiskit.svg)](https://pypi.org/project/qiskit/)
 [![Coverage Status](https://coveralls.io/repos/github/Qiskit/qiskit/badge.svg?branch=main)](https://coveralls.io/github/Qiskit/qiskit?branch=main)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/qiskit)
@@ -19,6 +21,9 @@ For more details on how to use Qiskit, refer to the documentation located here:
 
 
 ## Installation
+
+> [!WARNING]
+> Do not try to upgrade an existing Qiskit 0.* environment to Qiskit 1.0 in-place. [Read more](https://docs.quantum.ibm.com/api/migration-guides/qiskit-1.0-installation).
 
 We encourage installing Qiskit via ``pip``:
 
@@ -71,7 +76,7 @@ Running this will give an outcome similar to `{0: 0.497, 7: 0.503}` which is `00
 To illustrate the power of Estimator, we now use the quantum information toolbox to create the operator $XXY+XYX+YXX-YYY$ and pass it to the `run()` function, along with our quantum circuit. Note the Estimator requires a circuit _**without**_ measurement, so we use the `qc_example` circuit we created earlier.
 
 ```python
-# 2. define the observable to be measured 
+# 2. Define the observable to be measured 
 from qiskit.quantum_info import SparsePauliOp
 operator = SparsePauliOp.from_list([("XXY", 1), ("XYX", 1), ("YXX", 1), ("YYY", -1)])
 

@@ -22,7 +22,7 @@ import numpy as np
 from qiskit.quantum_info import SparsePauliOp, Statevector
 
 from .base import BaseEstimatorV2
-from .containers import EstimatorPubLike, PrimitiveResult, PubResult
+from .containers import DataBin, EstimatorPubLike, PrimitiveResult, PubResult
 from .containers.estimator_pub import EstimatorPub
 from .primitive_job import PrimitiveJob
 from .utils import bound_circuit_to_instruction
@@ -160,6 +160,6 @@ class StatevectorEstimator(BaseEstimatorV2):
                     raise ValueError("Given operator is not Hermitian and noise cannot be added.")
                 expectation_value = rng.normal(expectation_value, precision)
             evs[index] = expectation_value
-        data_bin_cls = self._make_data_bin(pub)
-        data_bin = data_bin_cls(evs=evs, stds=stds)
-        return PubResult(data_bin, metadata={"precision": precision})
+
+        data = DataBin(evs=evs, stds=stds, shape=evs.shape)
+        return PubResult(data, metadata={"precision": precision})

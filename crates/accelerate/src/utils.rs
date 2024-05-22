@@ -11,22 +11,10 @@
 // that they have been altered from the originals.
 
 use pyo3::prelude::*;
-use pyo3::types::PySlice;
 
-use faer::prelude::*;
-use faer::IntoFaerComplex;
+use faer_ext::IntoFaerComplex;
 use num_complex::Complex;
 use numpy::{IntoPyArray, PyReadonlyArray2};
-
-/// A private enumeration type used to extract arguments to pymethod
-/// that may be either an index or a slice
-#[derive(FromPyObject)]
-pub enum SliceOrInt<'a> {
-    // The order here defines the order the variants are tried in the FromPyObject` derivation.
-    // `Int` is _much_ more common, so that should be first.
-    Int(isize),
-    Slice(&'a PySlice),
-}
 
 /// Return indices that sort partially ordered data.
 /// If `data` contains two elements that are incomparable,
@@ -49,12 +37,12 @@ pub fn eigenvalues(py: Python, unitary: PyReadonlyArray2<Complex<f64>>) -> PyObj
         .into_iter()
         .map(|x| Complex::<f64>::new(x.re, x.im))
         .collect::<Vec<_>>()
-        .into_pyarray(py)
+        .into_pyarray_bound(py)
         .into()
 }
 
 #[pymodule]
-pub fn utils(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn utils(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(eigenvalues))?;
     Ok(())
 }

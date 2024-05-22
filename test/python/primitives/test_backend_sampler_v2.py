@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import unittest
-from dataclasses import astuple
 from test import QiskitTestCase, combine
 
 import numpy as np
@@ -33,7 +32,7 @@ from qiskit.primitives.containers.sampler_pub import SamplerPub
 from qiskit.providers import JobStatus
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.basic_provider import BasicSimulator
-from qiskit.providers.fake_provider import Fake7QPulseV1
+from qiskit.providers.fake_provider import Fake7QPulseV1, GenericBackendV2
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
 BACKENDS = [BasicSimulator(), Fake7QPulseV1(), BackendV2Converter(Fake7QPulseV1())]
@@ -604,7 +603,7 @@ class TestBackendSamplerV2(QiskitTestCase):
                 result = sampler.run([qc], shots=self._shots).result()
                 self.assertEqual(len(result), 1)
                 data = result[0].data
-                self.assertEqual(len(astuple(data)), 3)
+                self.assertEqual(len(data), 3)
                 for creg in qc.cregs:
                     self.assertTrue(hasattr(data, creg.name))
                     self._assert_allclose(getattr(data, creg.name), np.array(target[creg.name]))
@@ -640,10 +639,10 @@ class TestBackendSamplerV2(QiskitTestCase):
         result = sampler.run([qc2], shots=self._shots).result()
         self.assertEqual(len(result), 1)
         data = result[0].data
-        self.assertEqual(len(astuple(data)), 3)
-        for creg_name in target:
+        self.assertEqual(len(data), 3)
+        for creg_name, creg in target.items():
             self.assertTrue(hasattr(data, creg_name))
-            self._assert_allclose(getattr(data, creg_name), np.array(target[creg_name]))
+            self._assert_allclose(getattr(data, creg_name), np.array(creg))
 
     @combine(backend=BACKENDS)
     def test_no_cregs(self, backend):
@@ -670,6 +669,85 @@ class TestBackendSamplerV2(QiskitTestCase):
         sampler = BackendSamplerV2(backend=backend, options=self._options)
         result = sampler.run([qc], shots=self._shots).result()
         self.assertEqual(result[0].data.c1.array.shape, (self._shots, 0))
+
+    @combine(backend=BACKENDS)
+    def test_diff_shots(self, backend):
+        """Test of pubs with different shots"""
+        pm = generate_preset_pass_manager(optimization_level=0, backend=backend)
+
+        bell, _, target = self._cases[1]
+        bell = pm.run(bell)
+        sampler = BackendSamplerV2(backend=backend, options=self._options)
+        shots2 = self._shots + 2
+        target2 = {k: v + 1 for k, v in target.items()}
+        job = sampler.run([(bell, None, self._shots), (bell, None, shots2)])
+        result = job.result()
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].data.meas.num_shots, self._shots)
+        self._assert_allclose(result[0].data.meas, np.array(target))
+        self.assertEqual(result[1].data.meas.num_shots, shots2)
+        self._assert_allclose(result[1].data.meas, np.array(target2))
+
+    def test_job_size_limit_backend_v2(self):
+        """Test BackendSamplerV2 respects backend's job size limit."""
+
+        class FakeBackendLimitedCircuits(GenericBackendV2):
+            """Generic backend V2 with job size limit."""
+
+            @property
+            def max_circuits(self):
+                return 1
+
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSamplerV2(backend=FakeBackendLimitedCircuits(num_qubits=5))
+        result = sampler.run([qc, qc2], shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_job_size_limit_backend_v1(self):
+        """Test BackendSamplerV2 respects backend's job size limit."""
+        backend = Fake7QPulseV1()
+        config = backend.configuration()
+        config.max_experiments = 1
+        backend._configuration = config
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSamplerV2(backend=backend)
+        result = sampler.run([qc, qc2], shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
+
+    def test_iter_pub(self):
+        """Test of an iterable of pubs"""
+        backend = BasicSimulator()
+        qc = QuantumCircuit(1)
+        qc.measure_all()
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        qc2.measure_all()
+        sampler = BackendSamplerV2(backend=backend)
+        result = sampler.run(iter([qc, qc2]), shots=self._shots).result()
+        self.assertIsInstance(result, PrimitiveResult)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], PubResult)
+        self.assertIsInstance(result[1], PubResult)
+        self._assert_allclose(result[0].data.meas, np.array({0: self._shots}))
+        self._assert_allclose(result[1].data.meas, np.array({1: self._shots}))
 
 
 if __name__ == "__main__":
