@@ -20,6 +20,7 @@ pub mod edge_collections;
 pub mod error_map;
 pub mod euler_one_qubit_decomposer;
 pub mod isometry;
+pub mod linear_matrix;
 pub mod nlayout;
 pub mod optimize_1q_gates;
 pub mod pauli_exp_val;
