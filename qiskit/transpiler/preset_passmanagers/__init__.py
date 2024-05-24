@@ -34,6 +34,7 @@ part) the stages which the preset pass managers are composed of
 Preset Pass Manager Generation
 ------------------------------
 
+.. autofunction:: default_passmanager
 .. autofunction:: generate_preset_pass_manager
 .. autofunction:: level_0_pass_manager
 .. autofunction:: level_1_pass_manager
@@ -61,12 +62,15 @@ import warnings
 
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.target import target_to_backend_properties
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
+from qiskit.utils import deprecate_func
 
 from .level0 import level_0_pass_manager
 from .level1 import level_1_pass_manager
 from .level2 import level_2_pass_manager
 from .level3 import level_3_pass_manager
+
+deprecate_func(since="1.1.0", additional_msg="Replaced by default_passmanager.", pending=True)
 
 
 def generate_preset_pass_manager(
@@ -249,6 +253,163 @@ def generate_preset_pass_manager(
         pm_config = PassManagerConfig.from_backend(backend, **pm_options)
     else:
         pm_config = PassManagerConfig(**pm_options)
+
+    target = Target.from_configuration(
+        pm_config.basis_gates,
+        coupling_map=pm_config.coupling_map,
+        inst_map=pm_config.inst_map,
+        backend_properties=pm_config.backend_properties,
+        instruction_durations=pm_config.instruction_durations,
+        timing_constraints=pm_config.timing_constraints,
+    )
+
+    return default_passmanager(
+        target=target,
+        optimization_level=optimization_level,
+        initial_layout=pm_config.initial_layout,
+        init_method=pm_config.init_method,
+        layout_method=pm_config.layout_method,
+        routing_method=pm_config.routing_method,
+        translation_method=pm_config.translation_method,
+        optimization_method=pm_config.optimization_method,
+        scheduling_method=pm_config.scheduling_method,
+        approximation_degree=pm_config.approximation_degree,
+        seed_transpiler=pm_config.seed_transpiler,
+        unitary_synthesis_method=pm_config.unitary_synthesis_method,
+        unitary_synthesis_plugin_config=pm_config.unitary_synthesis_plugin_config,
+        hls_config=pm_config.hls_config,
+    )
+
+
+def default_passmanager(
+    target=None,
+    optimization_level=None,
+    initial_layout=None,
+    init_method=None,
+    layout_method=None,
+    routing_method=None,
+    translation_method=None,
+    optimization_method=None,
+    scheduling_method=None,
+    approximation_degree=1.0,
+    seed_transpiler=None,
+    unitary_synthesis_method="default",
+    unitary_synthesis_plugin_config=None,
+    hls_config=None,
+):
+    """Generate a default :class:`~.PassManager`
+
+    This function is used to generate a preset pass manager. A preset pass
+    manager are the default pass managers used by the :func:`~.transpile`
+    function. This function provides a convenient and simple method to construct
+    a standalone :class:`~.PassManager` object that mirrors what the transpile
+
+
+    Args:
+        target (Target): The :class:`~.Target` representing a backend compilation
+            target. The following attributes will be inferred from this
+            argument if they are not set: ``coupling_map``, ``basis_gates``,
+            ``instruction_durations``, ``inst_map``, ``timing_constraints``
+            and ``backend_properties``.
+        optimization_level (int): The optimization level to generate a
+            :class:`~.PassManager` for. This can be 0, 1, 2, or 3. Higher
+            levels generate more optimized circuits, at the expense of
+            longer transpilation time:
+
+                * 0: no optimization
+                * 1: light optimization
+                * 2: heavy optimization
+                * 3: even heavier optimization
+
+        initial_layout (Layout): Initial position of virtual qubits on
+            physical qubits.
+        init_method (str): The plugin name to use for the ``init`` stage of
+            the output :class:`~.StagedPassManager`. By default, an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"init"`` for the stage
+            name argument.
+        layout_method (str): The :class:`~.Pass` to use for choosing initial qubit
+            placement. Valid choices are ``'trivial'``, ``'dense'``,
+            and ``'sabre'``, representing :class:`~.TrivialLayout`, :class:`~.DenseLayout` and
+            :class:`~.SabreLayout` respectively. This can also
+            be the external plugin name to use for the ``layout`` stage of the output
+            :class:`~.StagedPassManager`. You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"layout"`` for the ``stage_name`` argument.
+        routing_method (str): The pass to use for routing qubits on the
+            architecture. Valid choices are ``'basic'``, ``'lookahead'``, ``'stochastic'``,
+            ``'sabre'``, and ``'none'`` representing :class:`~.BasicSwap`,
+            :class:`~.LookaheadSwap`, :class:`~.StochasticSwap`, :class:`~.SabreSwap`, and
+            erroring if routing is required respectively. This can also be the external plugin
+            name to use for the ``routing`` stage of the output :class:`~.StagedPassManager`.
+            You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"routing"`` for the ``stage_name`` argument.
+        translation_method (str): The method to use for translating gates to
+            basis gates. Valid choices ``'translator'``, ``'synthesis'`` representing
+            :class:`~.BasisTranslator`, and :class:`~.UnitarySynthesis` respectively. This can
+            also be the external plugin name to use for the ``translation`` stage of the output
+            :class:`~.StagedPassManager`. You can see a list of installed plugins by using
+            :func:`~.list_stage_plugins` with ``"translation"`` for the ``stage_name`` argument.
+        optimization_method (str): The plugin name to use for the
+            ``optimization`` stage of the output
+            :class:`~.StagedPassManager`. By default, an external
+            plugin is not used. You can see a list of installed plugins by
+            using :func:`~.list_stage_plugins` with ``"optimization"`` for the
+            ``stage_name`` argument.
+        scheduling_method (str): The pass to use for scheduling instructions. Valid choices
+            are ``'alap'`` and ``'asap'``. This can also be the external plugin name to use
+            for the ``scheduling`` stage of the output :class:`~.StagedPassManager`. You can
+            see a list of installed plugins by using :func:`~.list_stage_plugins` with
+            ``"scheduling"`` for the ``stage_name`` argument.
+        approximation_degree (float): Heuristic dial used for circuit approximation
+            (1.0=no approximation, 0.0=maximal approximation).
+        seed_transpiler (int): Sets random seed for the stochastic parts of
+            the transpiler.
+        unitary_synthesis_method (str): The name of the unitary synthesis
+            method to use. By default, ``'default'`` is used. You can see a list of
+            installed plugins with :func:`.unitary_synthesis_plugin_names`.
+        unitary_synthesis_plugin_config (dict): An optional configuration dictionary
+            that will be passed directly to the unitary synthesis plugin. By
+            default, this setting will have no effect as the default unitary
+            synthesis method does not take custom configuration. This should
+            only be necessary when a unitary synthesis plugin is specified with
+            the ``unitary_synthesis_method`` argument. As this is custom for each
+            unitary synthesis plugin refer to the plugin documentation for how
+            to use this option.
+        hls_config (HLSConfig): An optional configuration class :class:`~.HLSConfig`
+            that will be passed directly to :class:`~.HighLevelSynthesis` transformation pass.
+            This configuration class allows to specify for various high-level objects
+            the lists of synthesis algorithms and their parameters.
+
+    Returns:
+        StagedPassManager: The preset pass manager for the given options
+
+    Raises:
+        ValueError: if an invalid value for ``optimization_level`` is passed in.
+    """
+
+    pm_options = {
+        "target": target,
+        "basis_gates": target.operation_names,
+        "inst_map": target.instruction_schedule_map(),
+        "coupling_map": target.build_coupling_map(),
+        "instruction_durations": target.durations(),
+        "backend_properties": target_to_backend_properties(target),
+        "timing_constraints": target.timing_constraints(),
+        "layout_method": layout_method,
+        "routing_method": routing_method,
+        "translation_method": translation_method,
+        "scheduling_method": scheduling_method,
+        "approximation_degree": approximation_degree,
+        "seed_transpiler": seed_transpiler,
+        "unitary_synthesis_method": unitary_synthesis_method,
+        "unitary_synthesis_plugin_config": unitary_synthesis_plugin_config,
+        "initial_layout": initial_layout,
+        "hls_config": hls_config,
+        "init_method": init_method,
+        "optimization_method": optimization_method,
+    }
+
+    pm_config = PassManagerConfig(**pm_options)
     if optimization_level == 0:
         pm = level_0_pass_manager(pm_config)
     elif optimization_level == 1:
@@ -268,4 +429,5 @@ __all__ = [
     "level_2_pass_manager",
     "level_3_pass_manager",
     "generate_preset_pass_manager",
+    "default_passmanager",
 ]
