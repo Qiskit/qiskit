@@ -989,9 +989,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.18.12"
+version = "0.18.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "140dfe6dada20716bd5f7284406747c73061a56a0a5d4ad5aee7957c5f71606c"
+checksum = "0ec8d02258294f59e4e223b41ad7e81c874aa6b15bc4ced9ba3965826da0eed5"
 dependencies = [
  "bytemuck",
  "libm",
