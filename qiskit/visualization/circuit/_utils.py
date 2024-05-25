@@ -404,7 +404,7 @@ def _get_layered_instructions(
     # If wrong input, default ('left') will be used.
     if justify not in ("left", "right", "none"):
         warn(
-            f"justify must be 'left', 'right' or 'none', not: '{justify}'. Default ('left') will be used.",
+            f"justify must be 'left', 'right' or 'none', not: '{justify}'. Default (left) will be used.",
             UserWarning,
             2,
         )
