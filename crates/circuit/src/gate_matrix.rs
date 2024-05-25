@@ -10,14 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-// In numpy matrices real and imaginary components are adjacent:
-//   np.array([1,2,3], dtype='complex').view('float64')
-//   array([1., 0., 2., 0., 3., 0.])
-// The matrix faer::Mat<c64> has this layout.
-// faer::Mat<num_complex::Complex<f64>> instead stores a matrix
-// of real components and one of imaginary components.
-// In order to avoid copying we want to use `MatRef<c64>` or `MatMut<c64>`.
-
 use num_complex::Complex64;
 use std::f64::consts::FRAC_1_SQRT_2;
 
