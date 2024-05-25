@@ -14,13 +14,12 @@
 
 from math import pi
 
+from test import QiskitTestCase
+
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
-
-from test import QiskitTestCase
-
 
 SKIP_LIST = {"cy", "ccx", "rx", "ry", "ecr", "sx"}
 CUSTOM_MAPPING = {"x", "rz"}

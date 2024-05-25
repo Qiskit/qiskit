@@ -12,9 +12,8 @@
 """
 Look-up table for variable parameters in QuantumCircuit.
 """
-import operator
-import typing
-from collections.abc import MappingView, MutableMapping, MutableSet
+
+from collections.abc import MappingView
 
 
 class ParameterView(MappingView):

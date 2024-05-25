@@ -2484,13 +2484,10 @@ class QuantumCircuit:
             # clear cache if new parameter is added
             self._parameters = None
 
-        self._track_operation(instruction.operation)
-        return instruction.operation if old_style else instruction
-
-    def _track_operation(self, operation: Operation):
-        """Sync all non-data-list internal data structures for a newly tracked operation."""
+        # Invalidate whole circuit duration if an instruction is added
         self.duration = None
         self.unit = "dt"
+        return instruction.operation if old_style else instruction
 
     @typing.overload
     def get_parameter(self, name: str, default: T) -> Union[Parameter, T]: ...
@@ -4026,7 +4023,7 @@ class QuantumCircuit:
         """
         # If we're currently parametric, we need to throw away the references.  This setter is
         # called by some subclasses before the inner `_global_phase` is initialised.
-        if isinstance(previous := getattr(self._data, "global_phase", None), ParameterExpression):
+        if isinstance(getattr(self._data, "global_phase", None), ParameterExpression):
             self._parameters = None
         if isinstance(angle, ParameterExpression):
             if angle.parameters:
@@ -6566,7 +6563,8 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def extend(self, data: CircuitData):
         self.circuit._data.extend(data)
         self.circuit._parameters = None
-        data.foreach_op(self.circuit._track_operation)
+        self.circuit.duration = None
+        self.circuit.unit = "dt"
 
     def resolve_classical_resource(self, specifier):
         # This is slightly different to cbit_argument_conversion, because it should not
