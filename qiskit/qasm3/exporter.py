@@ -252,6 +252,7 @@ class GlobalNamespace:
     def __setitem__(self, name_str, instruction):
         self._data[name_str] = instruction.base_class
         self._data[id(instruction)] = name_str
+        self._data[f"{instruction.name}_{instruction.params}"] = name_str
 
     def __getitem__(self, key):
         if isinstance(key, Instruction):
@@ -262,6 +263,11 @@ class GlobalNamespace:
                 pass
             # Built-in gates.
             if key.name not in self._data:
+                try:
+                    # Registerd qiskit standard gate without stgates.inc
+                    return self._data[f"{key.name}_{key.params}"]
+                except KeyError:
+                    pass
                 raise KeyError(key)
             return key.name
         return self._data[key]
