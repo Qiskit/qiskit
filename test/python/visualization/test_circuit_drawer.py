@@ -243,7 +243,7 @@ class TestCircuitDrawer(QiskitTestCase):
         circuit = QuantumCircuit()
         with self.assertWarnsRegex(
             UserWarning,
-            "justify must be 'left', 'right' or 'none', not: 'bad'. Default (left) will be used.",
+            "justify must be 'left, right or none', not: 'bad'. Default \\(left\\) will be used.",
         ):
             visualization.circuit_drawer(circuit, justify="bad")
 
