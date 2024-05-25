@@ -14,21 +14,25 @@
 
 import re
 from collections import OrderedDict
+from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import (
+    ClassicalRegister,
     Clbit,
+    ControlFlowOp,
     ControlledGate,
     Delay,
     Gate,
     Instruction,
     Measure,
+    QuantumCircuit,
+    Qubit,
 )
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.controlflow import condition_resources
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, Qubit, ControlFlowOp
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, PowerModifier
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
@@ -281,9 +285,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
             if drawer == "text":
                 wire_label = f"{virt_reg.name}_{virt_reg[:].index(virt_bit)} -> {index}"
             else:
-                wire_label = (
-                    f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
-                )
+                wire_label = f"{{{virt_reg.name}}}_{{{virt_reg[:].index(virt_bit)}}} \\mapsto {{{index}}}"
         except StopIteration:
             if drawer == "text":
                 wire_label = f"{virt_bit} -> {index}"
@@ -397,8 +399,14 @@ def _get_layered_instructions(
     if justify:
         justify = justify.lower()
 
-    # default to left
-    justify = justify if justify in ("right", "none") else "left"
+    # If wrong input, default ('left') will be used.
+    if justify not in ("left", "right", "none"):
+        justify = "left"
+        warn(
+            f"justify must be 'left', 'right' or 'none', cannot set it to {justify}. Default ('left') will be used.",
+            UserWarning,
+            2,
+        )
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]

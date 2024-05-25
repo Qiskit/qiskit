@@ -18,14 +18,13 @@ import shutil
 import tempfile
 import unittest
 import warnings
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 from unittest.mock import patch
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, visualization
 from qiskit.utils import optionals
-from qiskit import visualization
-from qiskit.visualization.circuit import text, styles
+from qiskit.visualization.circuit import styles, text
 from qiskit.visualization.exceptions import VisualizationError
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib import figure
@@ -200,9 +199,7 @@ class TestCircuitDrawer(QiskitTestCase):
                 "                  ",
             ]
         )
-        result = visualization.circuit_drawer(
-            circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True
-        )
+        result = visualization.circuit_drawer(circuit, output="text", wire_order=[2, 3, 0, 1], cregbundle=True)
         self.assertEqual(result.__str__(), expected)
 
     def test_wire_order_raises(self):
@@ -238,6 +235,15 @@ class TestCircuitDrawer(QiskitTestCase):
         )
         result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
+
+    def test_justify_warning(self):
+        """Test that a warning is raised when the justify parameter is badly input."""
+        circuit = QuantumCircuit()
+        with self.assertWarnsRegex(
+            UserWarning,
+            "justify must be 'left', 'right' or 'none', cannot set it to 'bad'. Default ('left') will be used.",
+        ):
+            visualization.circuit_drawer(circuit, justify="bad")
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):
