@@ -116,10 +116,33 @@ pub trait Operation {
     fn standard_gate(&self) -> Option<StandardGate>;
 }
 
-#[derive(FromPyObject, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum Param {
-    Float(f64),
     ParameterExpression(PyObject),
+    Float(f64),
+    Obj(PyObject),
+}
+
+impl<'py> FromPyObject<'py> for Param {
+    fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
+        let param_mod = PyModule::import_bound(
+            b.py(),
+            intern!(b.py(), "qiskit.circuit.parameterexpression"),
+        )?;
+        let param_class = param_mod.getattr(intern!(b.py(), "ParameterExpression"))?;
+        let circuit_mod =
+            PyModule::import_bound(b.py(), intern!(b.py(), "qiskit.circuit.quantumcircuit"))?;
+        let circuit_class = circuit_mod.getattr(intern!(b.py(), "QuantumCircuit"))?;
+        Ok(
+            if b.is_instance(&param_class)? || b.is_instance(&circuit_class)? {
+                Param::ParameterExpression(b.clone().unbind())
+            } else if let Ok(val) = b.extract::<f64>() {
+                Param::Float(val)
+            } else {
+                Param::Obj(b.clone().unbind())
+            },
+        )
+    }
 }
 
 impl IntoPy<PyObject> for Param {
@@ -127,6 +150,7 @@ impl IntoPy<PyObject> for Param {
         match &self {
             Self::Float(val) => val.to_object(py),
             Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
         }
     }
 }
@@ -136,6 +160,7 @@ impl ToPyObject for Param {
         match self {
             Self::Float(val) => val.to_object(py),
             Self::ParameterExpression(val) => val.clone_ref(py),
+            Self::Obj(val) => val.clone_ref(py),
         }
     }
 }
@@ -328,14 +353,17 @@ impl Operation for StandardGate {
                 let theta: Option<f64> = match params[0] {
                     Param::Float(val) => Some(val),
                     Param::ParameterExpression(_) => None,
+                    Param::Obj(_) => None,
                 };
                 let phi: Option<f64> = match params[1] {
                     Param::Float(val) => Some(val),
                     Param::ParameterExpression(_) => None,
+                    Param::Obj(_) => None,
                 };
                 let lam: Option<f64> = match params[2] {
                     Param::Float(val) => Some(val),
                     Param::ParameterExpression(_) => None,
+                    Param::Obj(_) => None,
                 };
                 // If let chains as needed here are unstable ignore clippy to
                 // workaround. Upstream rust tracking issue:
@@ -471,6 +499,7 @@ impl Operation for StandardGate {
                         )
                         .expect("Unexpected Qiskit python bug"),
                     ),
+                    Param::Obj(_) => unreachable!(),
                 }
             }),
             Self::ECRGate => todo!("Add when we have RZX"),

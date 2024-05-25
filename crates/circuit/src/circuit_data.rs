@@ -280,33 +280,11 @@ impl CircuitData {
         let mut new_param = false;
         let inst_params = &self.data[inst_index].params;
         if let Some(raw_params) = inst_params {
-            let param_mod =
-                PyModule::import_bound(py, intern!(py, "qiskit.circuit.parameterexpression"))?;
-            let param_class = param_mod.getattr(intern!(py, "ParameterExpression"))?;
-            let circuit_mod =
-                PyModule::import_bound(py, intern!(py, "qiskit.circuit.quantumcircuit"))?;
-            let circuit_class = circuit_mod.getattr(intern!(py, "QuantumCircuit"))?;
             let params: Vec<(usize, PyObject)> = raw_params
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, x)| match x {
-                    Param::ParameterExpression(param_obj) => {
-                        if param_obj
-                            .clone_ref(py)
-                            .into_bound(py)
-                            .is_instance(&param_class)
-                            .unwrap()
-                            || param_obj
-                                .clone_ref(py)
-                                .into_bound(py)
-                                .is_instance(&circuit_class)
-                                .unwrap()
-                        {
-                            Some((idx, param_obj.clone_ref(py)))
-                        } else {
-                            None
-                        }
-                    }
+                    Param::ParameterExpression(param_obj) => Some((idx, param_obj.clone_ref(py))),
                     _ => None,
                 })
                 .collect();
@@ -370,23 +348,7 @@ impl CircuitData {
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, x)| match x {
-                    Param::ParameterExpression(param_obj) => {
-                        let param_mod =
-                            PyModule::import_bound(py, "qiskit.circuit.parameterexpression")
-                                .ok()?;
-                        let param_class =
-                            param_mod.getattr(intern!(py, "ParameterExpression")).ok()?;
-                        if param_obj
-                            .clone_ref(py)
-                            .into_bound(py)
-                            .is_instance(&param_class)
-                            .unwrap()
-                        {
-                            Some((idx, param_obj.clone_ref(py)))
-                        } else {
-                            None
-                        }
-                    }
+                    Param::ParameterExpression(param_obj) => Some((idx, param_obj.clone_ref(py))),
                     _ => None,
                 })
                 .collect();
@@ -1131,6 +1093,7 @@ impl CircuitData {
                 }
                 self.global_phase = Param::ParameterExpression(angle);
             }
+            Param::Obj(_) => return Err(PyValueError::new_err("Invalid type for global phase")),
         };
         Ok(())
     }

@@ -452,6 +452,17 @@ impl CircuitInstruction {
                                                     break;
                                                 }
                                             }
+                                            Param::Obj(val_a) => {
+                                                if let Param::Obj(val_b) = param_b {
+                                                    if !val_a.bind(py).eq(val_b.bind(py))? {
+                                                        out = false;
+                                                        break;
+                                                    }
+                                                } else {
+                                                    out = false;
+                                                    break;
+                                                }
+                                            }
                                         }
                                     }
                                     out

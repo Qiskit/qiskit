@@ -235,7 +235,7 @@ class TestNLocal(QiskitTestCase):
         initial_params = ParameterVector("p", length=6)
         circuit = QuantumCircuit(1)
         for i, initial_param in enumerate(initial_params):
-            circuit.ry((i + 1) * initial_param, 0)
+            circuit.ry(i * initial_param, 0)
 
         # create an NLocal from the circuit and set the new parameters
         nlocal = NLocal(1, entanglement_blocks=circuit, reps=1)

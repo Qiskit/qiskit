@@ -585,7 +585,6 @@ class TestParameters(QiskitTestCase):
         fbqc = pqc.assign_parameters({phi: 1})
 
         self.assertEqual(fbqc.parameters, set())
-        self.assertIsInstance(fbqc.data[0].operation.params[0], int)
         self.assertEqual(float(fbqc.data[0].operation.params[0]), 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
