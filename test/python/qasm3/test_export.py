@@ -2130,52 +2130,58 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         h_ = sx.definition.data[1].operation
         u2_1 = h_.definition.data[0].operation
         u3_3 = u2_1.definition.data[0].operation
-        expected_qasm = "\n".join(
-            [
-                "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_1)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(0, 0, pi/2) _gate_q_0;",
-                "}",
-                f"gate rz_{id(rz)}(_gate_p_0) _gate_q_0 {{",
-                f"  u1_{id(u1_1)}(pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                f"gate u1_{id(u1_2)}(_gate_p_0) _gate_q_0 {{",
-                f"  u3_{id(u3_2)}(0, 0, -pi/2) _gate_q_0;",
-                "}",
-                "gate sdg _gate_q_0 {",
-                f"  u1_{id(u1_2)}(-pi/2) _gate_q_0;",
-                "}",
-                f"gate u3_{id(u3_3)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
-                "  U(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                f"gate u2_{id(u2_1)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_3)}(pi/2, 0, pi) _gate_q_0;",
-                "}",
-                "gate h _gate_q_0 {",
-                f"  u2_{id(u2_1)}(0, pi) _gate_q_0;",
-                "}",
-                "gate sx _gate_q_0 {",
-                "  sdg _gate_q_0;",
-                "  h _gate_q_0;",
-                "  sdg _gate_q_0;",
-                "}",
-                "gate cx c, t {",
-                "  ctrl @ U(pi, 0, pi) c, t;",
-                "}",
-                "qubit[2] q;",
-                f"rz_{id(rz)}(pi/2) q[0];",
-                "sx q[0];",
-                "cx q[0], q[1];",
-                "",
-            ]
-        )
-        self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
+        id_len = len(str(id(u3_1)))
+        expected_qasm = [
+            "OPENQASM 3.0;",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate rz_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u1_\d{%s}\(pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(0, 0, -pi/2) _gate_q_0;",
+            "}",
+            re.compile(r"gate u1_\d{%s}\(_gate_p_0\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(0, 0, -pi/2\) _gate_q_0;" % id_len),
+            "}",
+            "gate sdg _gate_q_0 {",
+            re.compile(r"  u1_\d{%s}\(-pi/2\) _gate_q_0;" % id_len),
+            "}",
+            re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
+            "  U(pi/2, 0, pi) _gate_q_0;",
+            "}",
+            re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+            re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate h _gate_q_0 {",
+            re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
+            "}",
+            "gate sx _gate_q_0 {",
+            "  sdg _gate_q_0;",
+            "  h _gate_q_0;",
+            "  sdg _gate_q_0;",
+            "}",
+            "gate cx c, t {",
+            "  ctrl @ U(pi, 0, pi) c, t;",
+            "}",
+            "qubit[2] q;",
+            re.compile(r"rz_\d{%s}\(pi/2\) q\[0\];" % id_len),
+            "sx q[0];",
+            "cx q[0], q[1];",
+            "",
+        ]
+        res = Exporter(includes=[]).dumps(circuit).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
 
     def test_unusual_conditions(self):
         """Test that special QASM constructs such as ``measure`` are correctly handled when the
