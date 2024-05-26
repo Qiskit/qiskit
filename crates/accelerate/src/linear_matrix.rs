@@ -41,15 +41,17 @@ fn _gauss_elimination(
     }
 
     let mut r = 0; // current rank
-    let mut k = 0; // current pivot column
+    let k = 0; // current pivot column
+    let mut new_k = 0;
     while (r < m) && (k < n) {
         let mut is_non_zero = false;
         let mut new_r = r;
         for j in k..n {
+            new_k = k;
             for i in r..m {
                 if mat[(i, j)] {
                     is_non_zero = true;
-                    k = j;
+                    new_k = j;
                     new_r = i;
                     break;
                 }
@@ -71,18 +73,18 @@ fn _gauss_elimination(
 
         if full_elim.is_some() {
             for i in 0..r {
-                if mat[(i, k)] {
+                if mat[(i, new_k)] {
                     _row_op(&mut mat, r, i);
                 }
             }
         }
 
         for i in r + 1..m {
-            if mat[(i, k)] {
+            if mat[(i, new_k)] {
                 _row_op(&mut mat, r, i);
             }
         }
-        r = r + 1;
+        r += 1;
     }
     mat
 }
