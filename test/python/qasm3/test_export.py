@@ -2120,17 +2120,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         circuit.sx(0)
         circuit.cx(0, 1)
 
-        rz = circuit.data[0].operation
-        u1_1 = rz.definition.data[0].operation
-        u3_1 = u1_1.definition.data[0].operation
-        sx = circuit.data[1].operation
-        sdg = sx.definition.data[0].operation
-        u1_2 = sdg.definition.data[0].operation
-        u3_2 = u1_2.definition.data[0].operation
-        h_ = sx.definition.data[1].operation
-        u2_1 = h_.definition.data[0].operation
-        u3_3 = u2_1.definition.data[0].operation
-        id_len = len(str(id(u3_1)))
+        id_len = len(str(id(circuit.data[0].operation)))
         expected_qasm = [
             "OPENQASM 3.0;",
             re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
