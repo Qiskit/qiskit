@@ -21,6 +21,7 @@ use pyo3::{intern, IntoPy, PyObject, PyResult};
 use smallvec::SmallVec;
 use std::sync::Mutex;
 
+use crate::imports::{GATE, INSTRUCTION, OPERATION, SINGLETON_CONTROLLED_GATE, SINGLETON_GATE};
 use crate::operations::{
     OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate, STANDARD_GATE_SIZE,
 };
@@ -638,12 +639,24 @@ pub(crate) fn convert_py_to_operation_type(
     if standard.is_some() {
         let mutable: bool = py_op.getattr(py, intern!(py, "mutable"))?.extract(py)?;
         if mutable {
-            let singleton_mod = py.import_bound("qiskit.circuit.singleton")?;
-            let singleton_class = singleton_mod.getattr(intern!(py, "SingletonGate"))?;
-            let singleton_control =
-                singleton_mod.getattr(intern!(py, "SingletonControlledGate"))?;
-            if py_op_bound.is_instance(&singleton_class)?
-                || py_op_bound.is_instance(&singleton_control)?
+            let singleton_class = SINGLETON_GATE
+                .get_or_init(py, || {
+                    let singleton_mod = py.import_bound("qiskit.circuit.singleton").unwrap();
+                    singleton_mod.getattr("SingletonGate").unwrap().unbind()
+                })
+                .bind(py);
+            let singleton_control = SINGLETON_CONTROLLED_GATE
+                .get_or_init(py, || {
+                    let singleton_mod = py.import_bound("qiskit.circuit.singleton").unwrap();
+                    singleton_mod
+                        .getattr("SingletonControlledGate")
+                        .unwrap()
+                        .unbind()
+                })
+                .bind(py);
+
+            if py_op_bound.is_instance(singleton_class)?
+                || py_op_bound.is_instance(singleton_control)?
             {
                 standard = None;
             }
@@ -685,12 +698,17 @@ pub(crate) fn convert_py_to_operation_type(
                 .extract(py)?,
         });
     }
-    let gate_class = py
-        .import_bound("qiskit.circuit.gate")?
-        .getattr(intern!(py, "Gate"))
-        .ok()
-        .unwrap();
-    if op_type.is_subclass(&gate_class)? {
+    let gate_class = GATE
+        .get_or_init(py, || {
+            py.import_bound("qiskit.circuit.gate")
+                .unwrap()
+                .getattr("Gate")
+                .unwrap()
+                .unbind()
+        })
+        .bind(py);
+
+    if op_type.is_subclass(gate_class)? {
         let params = py_op
             .getattr(py, intern!(py, "params"))
             .ok()
@@ -750,12 +768,16 @@ pub(crate) fn convert_py_to_operation_type(
             condition,
         });
     }
-    let instruction_class = py
-        .import_bound("qiskit.circuit.instruction")?
-        .getattr(intern!(py, "Instruction"))
-        .ok()
-        .unwrap();
-    if op_type.is_subclass(&instruction_class)? {
+    let instruction_class = INSTRUCTION
+        .get_or_init(py, || {
+            py.import_bound("qiskit.circuit.instruction")
+                .unwrap()
+                .getattr("Instruction")
+                .unwrap()
+                .unbind()
+        })
+        .bind(py);
+    if op_type.is_subclass(instruction_class)? {
         let params = py_op
             .getattr(py, intern!(py, "params"))
             .ok()
@@ -816,12 +838,16 @@ pub(crate) fn convert_py_to_operation_type(
         });
     }
 
-    let operation_class = py
-        .import_bound("qiskit.circuit.operation")?
-        .getattr(intern!(py, "Operation"))
-        .ok()
-        .unwrap();
-    if op_type.is_subclass(&operation_class)? {
+    let operation_class = OPERATION
+        .get_or_init(py, || {
+            py.import_bound("qiskit.circuit.operation")
+                .unwrap()
+                .getattr("Operation")
+                .unwrap()
+                .unbind()
+        })
+        .bind(py);
+    if op_type.is_subclass(operation_class)? {
         let params = match py_op.getattr(py, intern!(py, "params")).ok() {
             Some(value) => value.extract(py)?,
             None => None,

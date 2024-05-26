@@ -14,6 +14,7 @@ use std::f64::consts::PI;
 
 use crate::circuit_data::CircuitData;
 use crate::gate_matrix;
+use crate::imports::{PARAMETER_EXPRESSION, QUANTUM_CIRCUIT};
 use ndarray::{aview2, Array2};
 use num_complex::Complex64;
 use numpy::IntoPyArray;
@@ -125,16 +126,26 @@ pub enum Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        let param_mod = PyModule::import_bound(
-            b.py(),
-            intern!(b.py(), "qiskit.circuit.parameterexpression"),
-        )?;
-        let param_class = param_mod.getattr(intern!(b.py(), "ParameterExpression"))?;
-        let circuit_mod =
-            PyModule::import_bound(b.py(), intern!(b.py(), "qiskit.circuit.quantumcircuit"))?;
-        let circuit_class = circuit_mod.getattr(intern!(b.py(), "QuantumCircuit"))?;
+        let param_class = PARAMETER_EXPRESSION
+            .get_or_init(b.py(), || {
+                PyModule::import_bound(b.py(), "qiskit.circuit.parameterexpression")
+                    .unwrap()
+                    .getattr("ParameterExpression")
+                    .unwrap()
+                    .unbind()
+            })
+            .bind(b.py());
+        let circuit_class = QUANTUM_CIRCUIT
+            .get_or_init(b.py(), || {
+                PyModule::import_bound(b.py(), "qiskit.circuit.quantumcircuit")
+                    .unwrap()
+                    .getattr("QuantumCircuit")
+                    .unwrap()
+                    .unbind()
+            })
+            .bind(b.py());
         Ok(
-            if b.is_instance(&param_class)? || b.is_instance(&circuit_class)? {
+            if b.is_instance(param_class)? || b.is_instance(circuit_class)? {
                 Param::ParameterExpression(b.clone().unbind())
             } else if let Ok(val) = b.extract::<f64>() {
                 Param::Float(val)

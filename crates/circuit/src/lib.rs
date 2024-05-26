@@ -14,6 +14,7 @@ pub mod circuit_data;
 pub mod circuit_instruction;
 pub mod dag_node;
 pub mod gate_matrix;
+pub mod imports;
 pub mod intern_context;
 pub mod operations;
 pub mod parameter_table;
