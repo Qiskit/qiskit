@@ -165,7 +165,7 @@ class BindingsArray(ShapedMixin):
 
     @property
     def parameters(self) -> list[ParameterLike]:
-        params = list(list(ba._data.keys())[0])
+        params = list(list(self._data.keys())[0])
         return params
     
     def as_array(self, parameters: Iterable[ParameterLike] | None = None) -> np.ndarray:
