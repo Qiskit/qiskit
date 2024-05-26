@@ -51,6 +51,7 @@ use rand::prelude::*;
 use rand_distr::StandardNormal;
 use rand_pcg::Pcg64Mcg;
 
+use qiskit_circuit::gate_matrix::{CXGATE, HGATE, ONE_QUBIT_IDENTITY, SXGATE, XGATE};
 use qiskit_circuit::SliceOrInt;
 
 const PI2: f64 = PI / 2.0;
@@ -59,11 +60,6 @@ const PI32: f64 = 3.0 * PI2;
 const TWO_PI: f64 = 2.0 * PI;
 
 const C1: c64 = c64 { re: 1.0, im: 0.0 };
-
-pub static ONE_QUBIT_IDENTITY: [[Complex64; 2]; 2] = [
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-];
 
 static B_NON_NORMALIZED: [[Complex64; 4]; 4] = [
     [
@@ -341,54 +337,6 @@ fn rz_matrix(theta: f64) -> Array2<Complex64> {
         [Complex64::new(0., 0.), ilam2.exp()]
     ]
 }
-
-static HGATE: [[Complex64; 2]; 2] = [
-    [
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-    ],
-    [
-        Complex64::new(FRAC_1_SQRT_2, 0.),
-        Complex64::new(-FRAC_1_SQRT_2, 0.),
-    ],
-];
-
-static CXGATE: [[Complex64; 4]; 4] = [
-    [
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-    ],
-    [
-        Complex64::new(0., 0.),
-        Complex64::new(1., 0.),
-        Complex64::new(0., 0.),
-        Complex64::new(0., 0.),
-    ],
-];
-
-static SXGATE: [[Complex64; 2]; 2] = [
-    [Complex64::new(0.5, 0.5), Complex64::new(0.5, -0.5)],
-    [Complex64::new(0.5, -0.5), Complex64::new(0.5, 0.5)],
-];
-
-static XGATE: [[Complex64; 2]; 2] = [
-    [Complex64::new(0., 0.), Complex64::new(1., 0.)],
-    [Complex64::new(1., 0.), Complex64::new(0., 0.)],
-];
 
 fn compute_unitary(sequence: &TwoQubitSequenceVec, global_phase: f64) -> Array2<Complex64> {
     let identity = aview2(&ONE_QUBIT_IDENTITY);
