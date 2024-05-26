@@ -27,11 +27,11 @@ def dag_to_dagdependency_with_data(
         create_conversion_data (bool): whether to construct mappings
             between nodes in the input and the output circuits.
 
-    Return:
-        DAGDependency: the DAG representing the input circuit as a dag dependency.
-        CircuitConversionData: data storing mappings between nodes
-            in the input and the output circuits when ``create_conversion_data``
-            is ``True``, and ``None`` otherwise.
+    Returns:
+        A tuple consisting of the DAGDependency representation of the input
+        circuit and the additional data. This data stores mappings between
+        nodes in the input and the output circuits when ``create_conversion_data``
+        is ``True`` and ``None`` otherwise.
 
     """
     conversion_data = CircuitConversionData() if create_conversion_data else None
