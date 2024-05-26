@@ -166,8 +166,8 @@ class BindingsArray(ShapedMixin):
     @property
     def parameters(self) -> list[ParameterLike]:
         """Returns ordered list of parameters"""
-        param_list = list(list(self._data.keys())[0])
-        return param_list
+        paramlist = list(list(self._data.keys())[0])
+        return paramlist
 
     def as_array(self, parameters: Iterable[ParameterLike] | None = None) -> np.ndarray:
         """Return the contents of this bindings array as a single NumPy array.
