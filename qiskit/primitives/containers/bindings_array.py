@@ -162,10 +162,10 @@ class BindingsArray(ShapedMixin):
         if self._num_parameters is None:
             self._num_parameters = sum(val.shape[-1] for val in self._data.values())
         return self._num_parameters
-    
+
     @property
     def parameters(self) -> list[ParameterLike]:
-        param_list =  []
+        param_list = []
         for key in self.data.keys():
             for i in key:
                 param_list.append(i)
