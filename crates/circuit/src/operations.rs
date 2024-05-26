@@ -179,26 +179,24 @@ impl ToPyObject for Param {
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
 #[pyclass]
 pub enum StandardGate {
-    // Pauli Gates
-    ZGate,
-    YGate,
-    XGate,
-    // Controlled Pauli Gates
-    CZGate,
-    CYGate,
-    CXGate,
-    CCXGate,
-    RXGate,
-    RYGate,
-    RZGate,
-    ECRGate,
-    SwapGate,
-    SXGate,
-    GlobalPhaseGate,
-    IGate,
-    HGate,
-    PhaseGate,
-    UGate,
+    ZGate = 0,
+    YGate = 1,
+    XGate = 2,
+    CZGate = 3,
+    CYGate = 4,
+    CXGate = 5,
+    CCXGate = 6,
+    RXGate = 7,
+    RYGate = 8,
+    RZGate = 9,
+    ECRGate = 10,
+    SwapGate = 11,
+    SXGate = 12,
+    GlobalPhaseGate = 13,
+    IGate = 14,
+    HGate = 15,
+    PhaseGate = 16,
+    UGate = 17,
 }
 
 #[pymethods]
@@ -219,6 +217,16 @@ impl StandardGate {
     pub fn _get_definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
         self.definition(params)
     }
+
+    #[getter]
+    pub fn get_num_qubits(&self) -> u32 {
+        self.num_qubits()
+    }
+
+    #[getter]
+    pub fn get_num_clbits(&self) -> u32 {
+        self.num_clbits()
+    }
 }
 
 // This must be kept up-to-date with `StandardGate` when adding or removing
@@ -226,7 +234,7 @@ impl StandardGate {
 //
 // Remove this when std::mem::variant_count() is stabilized (see
 // https://github.com/rust-lang/rust/issues/73662 )
-pub const STANDARD_GATE_SIZE: usize = 17;
+pub const STANDARD_GATE_SIZE: usize = 18;
 
 impl Operation for StandardGate {
     fn name(&self) -> &str {

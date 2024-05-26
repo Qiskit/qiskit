@@ -10,27 +10,18 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use lazy_static::lazy_static;
-
-use hashbrown::HashMap;
 use pyo3::basic::CompareOp;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyList, PyTuple, PyType};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
 use smallvec::SmallVec;
-use std::sync::Mutex;
 
-use crate::imports::{GATE, INSTRUCTION, OPERATION, SINGLETON_CONTROLLED_GATE, SINGLETON_GATE};
-use crate::operations::{
-    OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate, STANDARD_GATE_SIZE,
+use crate::imports::{
+    get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
+    SINGLETON_CONTROLLED_GATE, SINGLETON_GATE,
 };
-
-// TODO Come up with a better cacheing mechanism for this
-lazy_static! {
-    static ref STANDARD_GATE_MAP: Mutex<HashMap<StandardGate, PyObject>> =
-        Mutex::new(HashMap::with_capacity(STANDARD_GATE_SIZE));
-}
+use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
 
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
@@ -560,7 +551,7 @@ pub(crate) fn operation_type_and_data_to_py(
 ) -> PyResult<PyObject> {
     match &operation {
         OperationType::Standard(op) => {
-            let gate_class: &PyObject = &STANDARD_GATE_MAP.lock().unwrap()[op];
+            let gate_class: &PyObject = &get_std_gate_class(py, *op)?;
 
             let args = if let Some(params) = &params {
                 if params.is_empty() {
@@ -664,11 +655,7 @@ pub(crate) fn convert_py_to_operation_type(
     }
     if let Some(op) = standard {
         let base_class = op_type.to_object(py);
-        STANDARD_GATE_MAP
-            .lock()
-            .unwrap()
-            .entry(op)
-            .or_insert(base_class);
+        populate_std_gate_map(py, op, base_class);
         return Ok(OperationTypeConstruct {
             operation: OperationType::Standard(op),
             params: py_op

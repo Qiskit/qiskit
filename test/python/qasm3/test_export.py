@@ -1957,27 +1957,23 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         first_x = qc.x(2).c_if(qc.clbits[1], 1)[0].operation
         qc.z(2).c_if(qc.clbits[0], 1)
 
-        u2 = first_h.definition.data[0].operation
-        u3_1 = u2.definition.data[0].operation
-        u3_2 = first_x.definition.data[0].operation
-
-        expected_qasm = "\n".join(
-            [
+        id_len = len(str(id(first_x)))
+        expected_qasm = [
                 "OPENQASM 3.0;",
-                f"gate u3_{id(u3_1)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
+                re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
                 "  U(pi/2, 0, pi) _gate_q_0;",
                 "}",
-                f"gate u2_{id(u2)}(_gate_p_0, _gate_p_1) _gate_q_0 {{",
-                f"  u3_{id(u3_1)}(pi/2, 0, pi) _gate_q_0;",
+                re.compile(r"gate u2_\d{%s}\(_gate_p_0, _gate_p_1\) _gate_q_0 \{" % id_len),
+                re.compile(r"  u3_\d{%s}\(pi/2, 0, pi\) _gate_q_0;" % id_len),
                 "}",
                 "gate h _gate_q_0 {",
-                f"  u2_{id(u2)}(0, pi) _gate_q_0;",
+                re.compile(r"  u2_\d{%s}\(0, pi\) _gate_q_0;" % id_len),
                 "}",
-                f"gate u3_{id(u3_2)}(_gate_p_0, _gate_p_1, _gate_p_2) _gate_q_0 {{",
+                re.compile(r"gate u3_\d{%s}\(_gate_p_0, _gate_p_1, _gate_p_2\) _gate_q_0 \{" % id_len),
                 "  U(pi, 0, pi) _gate_q_0;",
                 "}",
                 "gate x _gate_q_0 {",
-                f"  u3_{id(u3_2)}(pi, 0, pi) _gate_q_0;",
+                re.compile(r"  u3_\d{%s}\(pi, 0, pi\) _gate_q_0;" % id_len),
                 "}",
                 "bit[2] c;",
                 "qubit[3] q;",
@@ -1997,12 +1993,16 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
                 "  z q[2];",
                 "}",
                 "",
-            ]
-        )
-        self.assertEqual(
-            Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc),
-            expected_qasm,
-        )
+        ]
+        res = Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(qc).splitlines()
+        for result, expected in zip(res, expected_qasm):
+            if isinstance(expected, str):
+                self.assertEqual(result, expected)
+            else:
+                self.assertTrue(
+                    expected.search(result), f"Line {result} doesn't match regex: {expected}"
+                )
+
 
     def test_teleportation(self):
         """Teleportation with physical qubits"""

@@ -14,7 +14,6 @@ hashbrown.workspace = true
 num-complex.workspace = true
 ndarray.workspace = true
 numpy.workspace = true
-lazy_static = "1.4"
 
 [dependencies.pyo3]
 workspace = true
