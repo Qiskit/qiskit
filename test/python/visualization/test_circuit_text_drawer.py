@@ -184,6 +184,7 @@ class TestTextDrawerElement(QiskitTestCase):
         self.assertEqual(amount_of_lines, 2)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """Gate by gate checks in different settings."""
 
@@ -1437,6 +1438,7 @@ class TestTextDrawerLabels(QiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """Gates implying multiple qubits."""
 
@@ -2188,6 +2190,7 @@ class TestTextDrawerParams(QiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
     """Test vertical_compression='low'"""
 
@@ -2407,6 +2410,7 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         )
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
     """Test vertical_compression='medium'"""
 
@@ -2674,6 +2678,7 @@ class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
         )
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
 
@@ -4109,6 +4114,7 @@ class TestTextNonRational(QiskitTestCase):
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextInstructionWithBothWires(QiskitTestCase):
     """Composite instructions with both kind of wires
     See https://github.com/Qiskit/qiskit-terra/issues/2973"""
@@ -4223,7 +4229,6 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
         cr6 = ClassicalRegister(6, "c")
         circuit = QuantumCircuit(qr6, cr6)
         circuit.append(inst, qr6[1:5], cr6[1:3])
-
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
     def test_text_2q_1c(self):
@@ -4723,6 +4728,7 @@ class TestTextControlledGate(QiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextOpenControlledGate(QiskitTestCase):
     """Test open controlled gates"""
 
@@ -5267,6 +5273,7 @@ class TestTextOpenControlledGate(QiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
 
@@ -5593,6 +5600,7 @@ class TestTextHamiltonianGate(QiskitTestCase):
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestTextPhase(QiskitTestCase):
     """Testing the draweing a circuit with phase"""
 
@@ -5668,7 +5676,6 @@ class TestTextPhase(QiskitTestCase):
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
-
         self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
@@ -5761,6 +5768,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         os.remove(filename)
 
 
+@unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"})
 class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
     """Test ControlFlowOps."""
 
