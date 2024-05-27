@@ -15,7 +15,7 @@
 import itertools
 from ddt import data, unpack
 
-from .utils.base import QiskitTestCase
+from .utils.base import QiskitTestCase, DummySettingQiskitTestCase
 from .utils.decorators import slow_test
 
 

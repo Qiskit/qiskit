@@ -245,9 +245,9 @@ class QiskitTestCase(BaseQiskitTestCase):
 
 
 class FullQiskitTestCase(QiskitTestCase):
-    """Terra-specific further additions for test cases, if ``testtools`` is available.
+    """Qiskit-specific further additions for test cases, if ``testtools`` is available.
 
-    It is not normally safe to derive from this class by name; on import, Terra checks if the
+    It is not normally safe to derive from this class by name; on import, Qiskit checks if the
     necessary packages are available, and binds this class to the name :obj:`~QiskitTestCase` if so.
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
@@ -263,6 +263,21 @@ class FullQiskitTestCase(QiskitTestCase):
             stderr = self.useFixture(fixtures.StringStream("stderr")).stream
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
+
+
+class DummySettingQiskitTestCase(FullQiskitTestCase):
+    """Avoids coalition with the environment setting."""
+
+    def setUp(self):
+        super().setUp()
+        self._mock_setting = unittest.mock.patch.dict(
+            os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"}
+        )
+        self._mock_setting.start()
+
+    def tearDown(self):
+        super().tearDown()
+        self._mock_setting.stop()
 
 
 def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
