@@ -64,7 +64,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-from test import DummySettingQiskitTestCase  # pylint: disable=wrong-import-order
+from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 from ..legacy_cmaps import YORKTOWN_CMAP
@@ -74,7 +74,7 @@ if HAS_TWEEDLEDUM:
     from qiskit.circuit.classicalfunction.types import Int1
 
 
-class TestTextDrawerElement(DummySettingQiskitTestCase):
+class TestTextDrawerElement(QiskitTestCase):
     """Draw each element"""
 
     def assertEqualElement(self, expected, element):
@@ -184,7 +184,7 @@ class TestTextDrawerElement(DummySettingQiskitTestCase):
         self.assertEqual(amount_of_lines, 2)
 
 
-class TestTextDrawerGatesInCircuit(DummySettingQiskitTestCase):
+class TestTextDrawerGatesInCircuit(QiskitTestCase):
     """Gate by gate checks in different settings."""
 
     def test_text_measure_cregbundle(self):
@@ -1348,7 +1348,7 @@ class TestTextDrawerGatesInCircuit(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextDrawerLabels(DummySettingQiskitTestCase):
+class TestTextDrawerLabels(QiskitTestCase):
     """Gates with labels."""
 
     def test_label(self):
@@ -1437,7 +1437,7 @@ class TestTextDrawerLabels(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextDrawerMultiQGates(DummySettingQiskitTestCase):
+class TestTextDrawerMultiQGates(QiskitTestCase):
     """Gates implying multiple qubits."""
 
     def test_2Qgate(self):
@@ -2071,7 +2071,7 @@ class TestTextDrawerMultiQGates(DummySettingQiskitTestCase):
         )
 
 
-class TestTextDrawerParams(DummySettingQiskitTestCase):
+class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
 
     def test_text_no_parameters(self):
@@ -2188,7 +2188,7 @@ class TestTextDrawerParams(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextDrawerVerticalCompressionLow(DummySettingQiskitTestCase):
+class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
     """Test vertical_compression='low'"""
 
     def test_text_conditional_1(self):
@@ -2407,7 +2407,7 @@ class TestTextDrawerVerticalCompressionLow(DummySettingQiskitTestCase):
         )
 
 
-class TestTextDrawerVerticalCompressionMedium(DummySettingQiskitTestCase):
+class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
     """Test vertical_compression='medium'"""
 
     def test_text_conditional_1(self):
@@ -2674,7 +2674,7 @@ class TestTextDrawerVerticalCompressionMedium(DummySettingQiskitTestCase):
         )
 
 
-class TestTextConditional(DummySettingQiskitTestCase):
+class TestTextConditional(QiskitTestCase):
     """Gates with conditionals"""
 
     def test_text_conditional_1_cregbundle(self):
@@ -3946,7 +3946,7 @@ class TestTextConditional(DummySettingQiskitTestCase):
         )
 
 
-class TestTextIdleWires(DummySettingQiskitTestCase):
+class TestTextIdleWires(QiskitTestCase):
     """The idle_wires option"""
 
     def test_text_h(self):
@@ -4039,7 +4039,7 @@ class TestTextIdleWires(DummySettingQiskitTestCase):
         self.assertEqual(circuit.num_qubits, before_qubits)
 
 
-class TestTextNonRational(DummySettingQiskitTestCase):
+class TestTextNonRational(QiskitTestCase):
     """non-rational numbers are correctly represented"""
 
     def test_text_pifrac(self):
@@ -4109,7 +4109,7 @@ class TestTextNonRational(DummySettingQiskitTestCase):
         self.assertEqual(circuit.draw(output="text", initial_state=True).single_string(), expected)
 
 
-class TestTextInstructionWithBothWires(DummySettingQiskitTestCase):
+class TestTextInstructionWithBothWires(QiskitTestCase):
     """Composite instructions with both kind of wires
     See https://github.com/Qiskit/qiskit-terra/issues/2973"""
 
@@ -4358,7 +4358,7 @@ class TestTextInstructionWithBothWires(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextDrawerAppendedLargeInstructions(DummySettingQiskitTestCase):
+class TestTextDrawerAppendedLargeInstructions(QiskitTestCase):
     """Composite instructions with more than 10 qubits
     See https://github.com/Qiskit/qiskit-terra/pull/4095"""
 
@@ -4440,7 +4440,7 @@ class TestTextDrawerAppendedLargeInstructions(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextControlledGate(DummySettingQiskitTestCase):
+class TestTextControlledGate(QiskitTestCase):
     """Test controlled gates"""
 
     def test_cch_bot(self):
@@ -4723,7 +4723,7 @@ class TestTextControlledGate(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextOpenControlledGate(DummySettingQiskitTestCase):
+class TestTextOpenControlledGate(QiskitTestCase):
     """Test open controlled gates"""
 
     def test_ch_bot(self):
@@ -5267,7 +5267,7 @@ class TestTextOpenControlledGate(DummySettingQiskitTestCase):
         self.assertEqual(str(circuit_drawer(circuit, output="text", initial_state=True)), expected)
 
 
-class TestTextWithLayout(DummySettingQiskitTestCase):
+class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
 
     def test_with_no_layout(self):
@@ -5485,7 +5485,7 @@ class TestTextWithLayout(DummySettingQiskitTestCase):
         self.assertEqual(qc_result.draw(output="text", cregbundle=False).single_string(), expected)
 
 
-class TestTextInitialValue(DummySettingQiskitTestCase):
+class TestTextInitialValue(QiskitTestCase):
     """Testing the initial_state parameter"""
 
     def setUp(self) -> None:
@@ -5554,7 +5554,7 @@ class TestTextInitialValue(DummySettingQiskitTestCase):
         )
 
 
-class TestTextHamiltonianGate(DummySettingQiskitTestCase):
+class TestTextHamiltonianGate(QiskitTestCase):
     """Testing the Hamiltonian gate drawer"""
 
     def test_draw_hamiltonian_single(self):
@@ -5593,7 +5593,7 @@ class TestTextHamiltonianGate(DummySettingQiskitTestCase):
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
-class TestTextPhase(DummySettingQiskitTestCase):
+class TestTextPhase(QiskitTestCase):
     """Testing the draweing a circuit with phase"""
 
     def test_bell(self):
@@ -5672,9 +5672,7 @@ class TestTextPhase(DummySettingQiskitTestCase):
         self.assertEqual(circuit.draw(output="text", cregbundle=True).single_string(), expected)
 
 
-class TestCircuitVisualizationImplementation(
-    QiskitVisualizationTestCase, DummySettingQiskitTestCase
-):
+class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     """Tests utf8 and cp437 encoding."""
 
     text_reference_utf8 = path_to_diagram_reference("circuit_text_ref_utf8.txt")
@@ -5763,7 +5761,7 @@ class TestCircuitVisualizationImplementation(
         os.remove(filename)
 
 
-class TestCircuitControlFlowOps(QiskitVisualizationTestCase, DummySettingQiskitTestCase):
+class TestCircuitControlFlowOps(QiskitVisualizationTestCase):
     """Test ControlFlowOps."""
 
     def test_if_op_bundle_false(self):
@@ -6396,7 +6394,7 @@ class TestCircuitControlFlowOps(QiskitVisualizationTestCase, DummySettingQiskitT
         self.assertEqual(actual, expected)
 
 
-class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase, DummySettingQiskitTestCase):
+class TestCircuitAnnotatedOperations(QiskitVisualizationTestCase):
     """Test AnnotatedOperations and other non-Instructions."""
 
     def test_annotated_operation(self):

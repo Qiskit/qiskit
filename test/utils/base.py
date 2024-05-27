@@ -264,12 +264,8 @@ class FullQiskitTestCase(QiskitTestCase):
             self.useFixture(fixtures.MonkeyPatch("sys.stderr", stderr))
             self.useFixture(fixtures.LoggerFixture(nuke_handlers=False, level=None))
 
-
-class DummySettingQiskitTestCase(FullQiskitTestCase):
-    """Avoids coalition with the environment setting."""
-
-    def setUp(self):
-        super().setUp()
+        # a dummy setting config to make sure it does not intervene
+        # with the test runner environment. See https://github.com/Qiskit/qiskit/pull/12463
         self._mock_setting = unittest.mock.patch.dict(
             os.environ, {"QISKIT_SETTINGS": "dummy_setting.conf"}
         )
