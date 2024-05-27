@@ -1759,12 +1759,12 @@ class QuantumCircuit:
             clbits (list[Clbit|int]): clbits of self to compose onto.
             front (bool): If True, front composition will be performed.  This is not possible within
                 control-flow builder context managers.
-            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            inplace (bool): If True, modify the object. Otherwise, return composed circuit.
             copy (bool): If ``True`` (the default), then the input is treated as shared, and any
                 contained instructions will be copied, if they might need to be mutated in the
                 future.  You can set this to ``False`` if the input should be considered owned by
                 the base circuit, in order to avoid unnecessary copies; in this case, it is not
-                valid to use ``other`` afterwards, and some instructions may have been mutated in
+                valid to use ``other`` afterward, and some instructions may have been mutated in
                 place.
             var_remap (Mapping): mapping to use to rewrite :class:`.expr.Var` nodes in ``other`` as
                 they are inlined into ``self``.  This can be used to avoid naming conflicts.
@@ -2068,7 +2068,7 @@ class QuantumCircuit:
 
         Args:
             other (QuantumCircuit): The other circuit to tensor this circuit with.
-            inplace (bool): If True, modify the object. Otherwise return composed circuit.
+            inplace (bool): If ``True``, modify the object. Otherwise return composed circuit.
 
         Examples:
 
@@ -3126,7 +3126,7 @@ class QuantumCircuit:
         reverse_bits: bool | None = None,
         justify: str | None = None,
         vertical_compression: str | None = "medium",
-        idle_wires: bool = True,
+        idle_wires: bool | None = None,
         with_layout: bool = True,
         fold: int | None = None,
         # The type of ax is matplotlib.axes.Axes, but this is not a fixed dependency, so cannot be
@@ -3157,7 +3157,7 @@ class QuantumCircuit:
         Args:
             output: Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-                By default the `text` drawer is used unless the user config file
+                By default, the `text` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output
                 kwarg is set, that backend will always be used over the default in
@@ -3203,7 +3203,9 @@ class QuantumCircuit:
                 will take less vertical room.  Default is ``medium``. Only used by
                 the ``text`` output, will be silently ignored otherwise.
             idle_wires: Include idle wires (wires with no circuit elements)
-                in output visualization. Default is ``True``.
+                in output visualization. Default is ``True`` unless the
+                user config file (usually ``~/.qiskit/settings.conf``) has an
+                alternative value set. For example, ``circuit_idle_wires = False``.
             with_layout: Include layout information, with labels on the
                 physical layout. Default is ``True``.
             fold: Sets pagination. It can be disabled using -1. In ``text``,
