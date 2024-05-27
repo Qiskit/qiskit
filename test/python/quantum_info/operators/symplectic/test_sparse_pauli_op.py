@@ -14,23 +14,22 @@
 
 import itertools as it
 import unittest
+from test import QiskitTestCase, combine
+
 import numpy as np
-import scipy.sparse
 import rustworkx as rx
+import scipy.sparse
 from ddt import ddt
 
-
 from qiskit import QiskitError
-from qiskit.circuit import ParameterExpression, Parameter, ParameterVector
-from qiskit.circuit.parametertable import ParameterView
-from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.circuit.library import EfficientSU2
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.compiler.transpiler import transpile
 from qiskit.primitives import BackendEstimator
 from qiskit.providers.fake_provider import GenericBackendV2
-from qiskit.compiler.transpiler import transpile
+from qiskit.quantum_info.operators import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.utils import optionals
-from test import QiskitTestCase  # pylint: disable=wrong-import-order
-from test import combine  # pylint: disable=wrong-import-order
 
 
 def pauli_mat(label):
@@ -1178,6 +1177,34 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
         with self.assertRaises(QiskitError):
             op.apply_layout(layout=None, num_qubits=1)
+
+    def test_apply_layout_negative_indices(self):
+        """Test apply_layout with negative indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[-1, 0], num_qubits=3)
+
+    def test_apply_layout_duplicate_indices(self):
+        """Test apply_layout with duplicate indices"""
+        op = SparsePauliOp.from_list([("II", 1), ("IZ", 2), ("XI", 3)])
+        with self.assertRaises(QiskitError):
+            op.apply_layout(layout=[0, 0], num_qubits=3)
+
+    @combine(layout=[None, []])
+    def test_apply_layout_zero_qubit(self, layout):
+        """Test apply_layout with a zero-qubit operator"""
+        with self.subTest("default"):
+            op = SparsePauliOp("")
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII"), res)
+        with self.subTest("coeff"):
+            op = SparsePauliOp("", 2)
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp("IIIII", 2), res)
+        with self.subTest("multiple ops"):
+            op = SparsePauliOp.from_list([("", 1), ("", 2)])
+            res = op.apply_layout(layout=layout, num_qubits=5)
+            self.assertEqual(SparsePauliOp.from_list([("IIIII", 1), ("IIIII", 2)]), res)
 
 
 if __name__ == "__main__":

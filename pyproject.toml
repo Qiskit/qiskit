@@ -217,21 +217,15 @@ disable = [
 #  remove from here and fix the issues. Else, move it above this section and add a comment
 #  with the rationale
     "arguments-renamed",
-    "broad-exception-raised",
-    "consider-iterating-dictionary",
-    "consider-using-dict-items",
     "consider-using-enumerate",
     "consider-using-f-string",
     "no-member",
     "no-value-for-parameter",
     "not-context-manager",
     "unexpected-keyword-arg",
-    "unnecessary-dict-index-lookup",
     "unnecessary-dunder-call",
     "unnecessary-lambda-assignment",
     "unspecified-encoding",
-    "unsupported-assignment-operation",
-    "use-implicit-booleaness-not-comparison",
 ]
 
 enable = [

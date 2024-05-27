@@ -605,9 +605,9 @@ dependencies = [
 
 [[package]]
 name = "itertools"
-version = "0.12.1"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -724,20 +724,19 @@ dependencies = [
 
 [[package]]
 name = "num-bigint"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "608e7659b5c3d7cba262d894801b9ec9d00de989e8a82bd4bef91d08da45cdc0"
+checksum = "c165a9ab64cf766f73521c0dd2cfdff64f488b8f0b3e621face3462d3db536d7"
 dependencies = [
- "autocfg",
  "num-integer",
  "num-traits",
 ]
 
 [[package]]
 name = "num-complex"
-version = "0.4.5"
+version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23c6602fda94a57c990fe0df199a035d83576b496aa29f4e634a8ac6004e68a6"
+checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
  "bytemuck",
  "num-traits",
@@ -754,9 +753,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
  "libm",
@@ -990,9 +989,9 @@ dependencies = [
 
 [[package]]
 name = "pulp"
-version = "0.18.10"
+version = "0.18.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e14989307e408d9f4245d4fda09a7b144a08114ba124e26cab60ab83dc98db10"
+checksum = "0ec8d02258294f59e4e223b41ad7e81c874aa6b15bc4ced9ba3965826da0eed5"
 dependencies = [
  "bytemuck",
  "libm",
@@ -1095,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-accelerate"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "ahash 0.8.11",
  "approx",
@@ -1103,7 +1102,7 @@ dependencies = [
  "faer-ext",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "ndarray",
  "num-bigint",
  "num-complex",
@@ -1122,7 +1121,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-circuit"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
  "pyo3",
@@ -1130,7 +1129,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-pyext"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "pyo3",
  "qiskit-accelerate",
@@ -1141,7 +1140,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm2"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
  "pyo3",
@@ -1150,7 +1149,7 @@ dependencies = [
 
 [[package]]
 name = "qiskit-qasm3"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
