@@ -1757,9 +1757,9 @@ class QuantumCircuit:
                 this can be anything that :obj:`.append` will accept.
             qubits (list[Qubit|int]): qubits of self to compose onto.
             clbits (list[Clbit|int]): clbits of self to compose onto.
-            front (bool): If True, front composition will be performed.  This is not possible within
+            front (bool): If ``True``, front composition will be performed.  This is not possible within
                 control-flow builder context managers.
-            inplace (bool): If True, modify the object. Otherwise, return composed circuit.
+            inplace (bool): If ``True``, modify the object. Otherwise, return composed circuit.
             copy (bool): If ``True`` (the default), then the input is treated as shared, and any
                 contained instructions will be copied, if they might need to be mutated in the
                 future.  You can set this to ``False`` if the input should be considered owned by
@@ -2084,7 +2084,7 @@ class QuantumCircuit:
                tensored.draw('mpl')
 
         Returns:
-            QuantumCircuit: The tensored circuit (returns None if inplace==True).
+            QuantumCircuit: The tensored circuit (returns ``None`` if ``inplace=True``).
         """
         num_qubits = self.num_qubits + other.num_qubits
         num_clbits = self.num_clbits + other.num_clbits
@@ -3157,7 +3157,7 @@ class QuantumCircuit:
         Args:
             output: Select the output method to use for drawing the circuit.
                 Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-                By default, the `text` drawer is used unless the user config file
+                By default, the ``text`` drawer is used unless the user config file
                 (usually ``~/.qiskit/settings.conf``) has an alternative backend set
                 as the default. For example, ``circuit_drawer = latex``. If the output
                 kwarg is set, that backend will always be used over the default in
@@ -3294,7 +3294,7 @@ class QuantumCircuit:
         Args:
             filter_function (callable): a function to filter out some instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
-                By default filters out "directives", such as barrier or snapshot.
+                By default, filters out "directives", such as barrier or snapshot.
 
         Returns:
             int: Total number of gate operations.
@@ -3313,7 +3313,7 @@ class QuantumCircuit:
             filter_function: A function to decide which instructions count to increase depth.
                 Should take as a single positional input a :class:`CircuitInstruction`.
                 Instructions for which the function returns ``False`` are ignored in the
-                computation of the circuit depth.  By default filters out "directives", such as
+                computation of the circuit depth.  By default, filters out "directives", such as
                 :class:`.Barrier`.
 
         Returns:
@@ -3351,7 +3351,7 @@ class QuantumCircuit:
         # Here we are playing a modified version of
         # Tetris where we stack gates, but multi-qubit
         # gates, or measurements have a block for each
-        # qubit or cbit that are connected by a virtual
+        # qubit or clbit that are connected by a virtual
         # line so that they all stacked at the same depth.
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
@@ -3463,7 +3463,7 @@ class QuantumCircuit:
         bits = self.qubits if unitary_only else (self.qubits + self.clbits)
         bit_indices: dict[Qubit | Clbit, int] = {bit: idx for idx, bit in enumerate(bits)}
 
-        # Start with each qubit or cbit being its own subgraph.
+        # Start with each qubit or clbit being its own subgraph.
         sub_graphs = [[bit] for bit in range(len(bit_indices))]
 
         num_sub_graphs = len(sub_graphs)
@@ -3834,7 +3834,7 @@ class QuantumCircuit:
             inplace (bool): All measurements inplace or return new circuit.
 
         Returns:
-            QuantumCircuit: Returns circuit with measurements when `inplace = False`.
+            QuantumCircuit: Returns circuit with measurements when ``inplace = False``.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
 
