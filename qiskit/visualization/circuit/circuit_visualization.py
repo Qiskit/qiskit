@@ -115,7 +115,7 @@ def circuit_drawer(
 
         output: Select the output method to use for drawing the circuit.
             Valid choices are ``text``, ``mpl``, ``latex``, ``latex_source``.
-            By default, the `text` drawer is used unless the user config file
+            By default, the ``text`` drawer is used unless the user config file
             (usually ``~/.qiskit/settings.conf``) has an alternative backend set
             as the default. For example, ``circuit_drawer = latex``. If the output
             kwarg is set, that backend will always be used over the default in
