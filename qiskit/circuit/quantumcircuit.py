@@ -5722,7 +5722,7 @@ class QuantumCircuit:
                 * Statevector or vector of complex amplitudes to initialize to.
                 * Labels of basis states of the Pauli eigenstates Z, X, Y. See
                   :meth:`.Statevector.from_label`. Notice the order of the labels is reversed with
-                  respect to the qubit index to be applied to. Example label '01' initializes the
+                  respect to the qubit index to be applied to. Example label ``'01'`` initializes the
                   qubit zero to :math:`|1\rangle` and the qubit one to :math:`|0\rangle`.
                 * An integer that is used as a bitmap indicating which qubits to initialize to
                   :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit
