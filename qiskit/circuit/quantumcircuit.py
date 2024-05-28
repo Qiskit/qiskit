@@ -3387,7 +3387,8 @@ class QuantumCircuit:
         return max(op_stack)
 
     def depth_2q(self, include_directives: bool = False) -> int:
-        """Returns the depth in terms of two-qubit quantum gates, excluding directives by default.
+        """Returns the depth in terms of quantum gates with at least 2-qubits,
+        excluding directives by default.
 
         Args:
             include_directives (bool): Whether to include directives such as barriers
@@ -3397,10 +3398,10 @@ class QuantumCircuit:
         """
         if not include_directives:
             return self.depth(
-                lambda x: not getattr(x.operation, "_directive", False) and x.qubits == 2
+                lambda x: not getattr(x.operation, "_directive", False) and x.qubits >= 2
             )
         else:
-            return self.depth(lambda x: x.qubits == 2)
+            return self.depth(lambda x: x.qubits >= 2)
 
     def depth_nq(self, n: int, include_directives: bool = False) -> int:
         """Returns the depth in terms of quantum gates with at least n-qubits,
