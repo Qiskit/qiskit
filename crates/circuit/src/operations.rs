@@ -234,12 +234,18 @@ pub enum StandardGate {
     RZXGate = 52,
 }
 
+impl ToPyObject for StandardGate {
+    fn to_object(&self, py: Python) -> PyObject {
+        self.into_py(py)
+    }
+}
+
 // TODO: replace all 34s (placeholders) with actual number
 static STANDARD_GATE_NUM_QUBITS: [u32; STANDARD_GATE_SIZE] = [
     1, 1, 1, 2, 2, 2, 3, 1, 1, 1, // 0-9
     2, 2, 1, 0, 1, 1, 1, 1, 1, 1, // 10-19
     1, 1, 1, 2, 2, 2, 1, 1, 1, 34, // 20-29
-    34, 34, 34, 2, 2, 2, 2, 2, 3, 2, // 30-39
+    34, 34, 1, 2, 2, 2, 2, 2, 3, 2, // 30-39
     2, 2, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
@@ -249,7 +255,7 @@ static STANDARD_GATE_NUM_PARAMS: [u32; STANDARD_GATE_SIZE] = [
     0, 0, 0, 0, 0, 0, 0, 1, 1, 1, // 0-9
     0, 0, 0, 1, 0, 0, 1, 3, 0, 0, // 10-19
     0, 0, 0, 0, 2, 2, 1, 2, 3, 34, // 20-29
-    34, 34, 34, 0, 1, 0, 0, 0, 0, 3, // 30-39
+    34, 34, 2, 0, 1, 0, 0, 0, 0, 3, // 30-39
     1, 3, 34, 34, 34, 34, 34, 34, 34, 34, // 40-49
     34, 34, 34, // 50-52
 ];
@@ -514,7 +520,12 @@ impl Operation for StandardGate {
                 _ => None,
             },
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
-            Self::RGate => todo!(),
+            Self::RGate => match params {
+                [Param::Float(theta), Param::Float(phi)] => {
+                    Some(aview2(&gate_matrix::r_gate(*theta, *phi)).to_owned())
+                }
+                _ => None,
+            },
             Self::CHGate => todo!(),
             Self::CPhaseGate => todo!(),
             Self::CSGate => todo!(),
@@ -954,7 +965,23 @@ impl Operation for StandardGate {
                 )
             }),
             Self::CRXGate | Self::CRYGate | Self::CRZGate => todo!(),
-            Self::RGate => todo!(),
+            Self::RGate => Python::with_gil(|py| -> Option<CircuitData> {
+                let out_phi = subtract_param(&params[1], PI2, py);
+                let out_lam = add_param(&multiply_param(&params[1], -1., py), PI2, py);
+                Some(
+                    CircuitData::from_standard_gates(
+                        py,
+                        1,
+                        [(
+                            Self::UGate,
+                            smallvec![params[0].clone(), out_phi, out_lam],
+                            smallvec![Qubit(0)],
+                        )],
+                        FLOAT_ZERO,
+                    )
+                    .expect("Unexpected Qiskit python bug"),
+                )
+            }),
             Self::CHGate => todo!(),
             Self::CPhaseGate => todo!(),
             Self::CSGate => todo!(),
@@ -987,7 +1014,33 @@ fn multiply_param(param: &Param, mult: f64, py: Python) -> Param {
             theta
                 .clone_ref(py)
                 .call_method1(py, intern!(py, "__rmul__"), (mult,))
-                .expect("Parameter expression for global phase failed"),
+                .expect("Parameter expression for multiplication failed"),
+        ),
+        Param::Obj(_) => unreachable!(),
+    }
+}
+
+fn subtract_param(param: &Param, other: f64, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta - other),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(
+            theta
+                .clone_ref(py)
+                .call_method1(py, intern!(py, "__sub__"), (other,))
+                .expect("Parameter expression for subtraction failed"),
+        ),
+        Param::Obj(_) => unreachable!(),
+    }
+}
+
+fn add_param(param: &Param, other: f64, py: Python) -> Param {
+    match param {
+        Param::Float(theta) => Param::Float(*theta + other),
+        Param::ParameterExpression(theta) => Param::ParameterExpression(
+            theta
+                .clone_ref(py)
+                .call_method1(py, intern!(py, "__add__"), (other,))
+                .expect("Parameter expression for addition failed"),
         ),
         Param::Obj(_) => unreachable!(),
     }

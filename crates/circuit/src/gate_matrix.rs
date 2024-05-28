@@ -324,3 +324,14 @@ pub fn xx_plus_yy_gate(theta: f64, beta: f64) -> [[Complex64; 4]; 4] {
         [c64(0., 0.), c64(0., 0.), c64(0., 0.), c64(1., 0.)],
     ]
 }
+
+pub fn r_gate(theta: f64, phi: f64) -> [[Complex64; 2]; 2] {
+    let cos = (theta / 2.).cos();
+    let sin = (theta / 2.).sin();
+    let exp_m = c64(0., -phi).exp();
+    let exp_p = c64(0., phi).exp();
+    [
+        [c64(cos, 0.), c64(0., -1.) * exp_m * sin],
+        [c64(0., -1.) * exp_p * sin, c64(cos, 0.)],
+    ]
+}
