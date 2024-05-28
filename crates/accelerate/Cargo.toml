@@ -20,7 +20,7 @@ num-traits = "0.2"
 num-complex = "0.4"
 num-bigint = "0.4"
 rustworkx-core = "0.14"
-faer = "0.18.2"
+faer = "0.19.0"
 itertools = "0.13.0"
 qiskit-circuit.workspace = true
 
