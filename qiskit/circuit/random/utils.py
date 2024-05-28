@@ -13,6 +13,7 @@
 """Utility functions for generating random circuits."""
 
 import numpy as np
+from math import isclose
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
 from qiskit.circuit import Reset
@@ -60,7 +61,7 @@ def random_circuit(
         CircuitError: when invalid options given
     """
     if num_operand_distribution is not None:
-        if sum(num_operand_distribution.values()) != 1.0:
+        if not isclose(sum(num_operand_distribution.values()), 1.0, rel_tol=1e-7):
             raise CircuitError("The sum of num_operand_distribution values must be 1.0.")
         if max_operands is not None:
             raise CircuitError(
