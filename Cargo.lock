@@ -281,31 +281,11 @@ dependencies = [
 
 [[package]]
 name = "equator"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3b0a88aa91d0ad2b9684e4479aed31a17d3f9051bdbbc634bd2c01bc5a5eee8"
-dependencies = [
- "equator-macro 0.1.9",
-]
-
-[[package]]
-name = "equator"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c35da53b5a021d2484a7cc49b2ac7f2d840f8236a286f84202369bd338d761ea"
 dependencies = [
- "equator-macro 0.2.1",
-]
-
-[[package]]
-name = "equator-macro"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60d08acb9849f7fb4401564f251be5a526829183a3645a90197dea8e786cf3ae"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.60",
+ "equator-macro",
 ]
 
 [[package]]
@@ -327,26 +307,6 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "faer"
-version = "0.18.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e547492d9b55c4ea882584e691ed092228981e337d0c800bc721301d7e61e40a"
-dependencies = [
- "bytemuck",
- "coe-rs",
- "dbgf",
- "dyn-stack",
- "equator 0.1.10",
- "faer-entity 0.18.0",
- "gemm 0.17.1",
- "libm",
- "num-complex",
- "num-traits",
- "paste",
- "reborrow",
-]
-
-[[package]]
-name = "faer"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91ef9e1a4098a9e3a03c47bc5061406c04820552d869fd0fcd92587d07b271f0"
@@ -355,9 +315,9 @@ dependencies = [
  "coe-rs",
  "dbgf",
  "dyn-stack",
- "equator 0.2.2",
- "faer-entity 0.19.0",
- "gemm 0.18.0",
+ "equator",
+ "faer-entity",
+ "gemm",
  "libm",
  "matrixcompare",
  "matrixcompare-core",
@@ -371,21 +331,6 @@ dependencies = [
  "rayon",
  "reborrow",
  "serde",
-]
-
-[[package]]
-name = "faer-entity"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22ea5c06233193392c614a46aa3bbe3de29c1404692c8053abd9c2765a1cd159"
-dependencies = [
- "bytemuck",
- "coe-rs",
- "libm",
- "num-complex",
- "num-traits",
- "pulp",
- "reborrow",
 ]
 
 [[package]]
@@ -405,11 +350,11 @@ dependencies = [
 
 [[package]]
 name = "faer-ext"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f67e0c5be50b08c57b59f1cf78a1c8399f6816f4e1a2e0801470ff58dad23a3"
+checksum = "4cf30f6ae73f372c0e0cf7556c44e50f1eee0a714d71396091613d68c43625c9"
 dependencies = [
- "faer 0.18.2",
+ "faer",
  "ndarray",
  "num-complex",
 ]
@@ -422,51 +367,17 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "gemm"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ab24cc62135b40090e31a76a9b2766a501979f3070fa27f689c27ec04377d32"
-dependencies = [
- "dyn-stack",
- "gemm-c32 0.17.1",
- "gemm-c64 0.17.1",
- "gemm-common 0.17.1",
- "gemm-f32 0.17.1",
- "gemm-f64 0.17.1",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e400f2ffd14e7548356236c35dc39cad6666d833a852cb8a8f3f28029359bb03"
 dependencies = [
  "dyn-stack",
- "gemm-c32 0.18.0",
- "gemm-c64 0.18.0",
- "gemm-common 0.18.0",
+ "gemm-c32",
+ "gemm-c64",
+ "gemm-common",
  "gemm-f16",
- "gemm-f32 0.18.0",
- "gemm-f64 0.18.0",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-c32"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9c030d0b983d1e34a546b86e08f600c11696fde16199f971cd46c12e67512c0"
-dependencies = [
- "dyn-stack",
- "gemm-common 0.17.1",
+ "gemm-f32",
+ "gemm-f64",
  "num-complex",
  "num-traits",
  "paste",
@@ -481,22 +392,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10dc4a6176c8452d60eac1a155b454c91c668f794151a303bf3c75ea2874812d"
 dependencies = [
  "dyn-stack",
- "gemm-common 0.18.0",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-c64"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbb5f2e79fefb9693d18e1066a557b4546cd334b226beadc68b11a8f9431852a"
-dependencies = [
- "dyn-stack",
- "gemm-common 0.17.1",
+ "gemm-common",
  "num-complex",
  "num-traits",
  "paste",
@@ -511,27 +407,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc2032ce2c0bb150da0256338759a6fb01ca056f6dfe28c4d14af32d7f878f6f"
 dependencies = [
  "dyn-stack",
- "gemm-common 0.18.0",
+ "gemm-common",
  "num-complex",
  "num-traits",
  "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-common"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2e7ea062c987abcd8db95db917b4ffb4ecdfd0668471d8dc54734fdff2354e8"
-dependencies = [
- "bytemuck",
- "dyn-stack",
- "num-complex",
- "num-traits",
- "once_cell",
- "paste",
- "pulp",
  "raw-cpuid",
  "seq-macro",
 ]
@@ -563,8 +442,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3fc3652651f96a711d46b8833e1fac27a864be4bdfa81a374055f33ddd25c0c6"
 dependencies = [
  "dyn-stack",
- "gemm-common 0.18.0",
- "gemm-f32 0.18.0",
+ "gemm-common",
+ "gemm-f32",
  "half",
  "num-complex",
  "num-traits",
@@ -576,42 +455,12 @@ dependencies = [
 
 [[package]]
 name = "gemm-f32"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9a69f51aaefbd9cf12d18faf273d3e982d9d711f60775645ed5c8047b4ae113"
-dependencies = [
- "dyn-stack",
- "gemm-common 0.17.1",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-f32"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acbc51c44ae3defd207e6d9416afccb3c4af1e7cef5e4960e4c720ac4d6f998e"
 dependencies = [
  "dyn-stack",
- "gemm-common 0.18.0",
- "num-complex",
- "num-traits",
- "paste",
- "raw-cpuid",
- "seq-macro",
-]
-
-[[package]]
-name = "gemm-f64"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa397a48544fadf0b81ec8741e5c0fba0043008113f71f2034def1935645d2b0"
-dependencies = [
- "dyn-stack",
- "gemm-common 0.17.1",
+ "gemm-common",
  "num-complex",
  "num-traits",
  "paste",
@@ -626,7 +475,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f37fc86e325c2415a4d0cab8324a0c5371ec06fc7d2f9cb1636fcfc9536a8d8"
 dependencies = [
  "dyn-stack",
- "gemm-common 0.18.0",
+ "gemm-common",
  "num-complex",
  "num-traits",
  "paste",
@@ -854,7 +703,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f563548d38f390ef9893e4883ec38c1fb312f569e98d76bededdd91a3b41a043"
 dependencies = [
- "equator 0.2.2",
+ "equator",
  "nano-gemm-c32",
  "nano-gemm-c64",
  "nano-gemm-codegen",
@@ -1321,7 +1170,7 @@ version = "1.2.0"
 dependencies = [
  "ahash 0.8.11",
  "approx",
- "faer 0.19.0",
+ "faer",
  "faer-ext",
  "hashbrown 0.14.5",
  "indexmap 2.2.6",
