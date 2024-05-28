@@ -6,6 +6,15 @@ features_circuits:
     efficient manner directly in Rust seamlessly. Accessing that gate object from a circuit or dag will
     return a new Python object representing the standard gate. This leads to faster and more efficient
     transpilation and manipulation of circuits for functionality written in Rust.
+features_misc:
+  - |
+    Added a new build-time environment variable ``QISKIT_NO_CACHE_GATES`` which
+    when set to a value of ``1`` (i.e. ``QISKIT_NO_CACHE_GATES=1``) which
+    decreases the memory overhead of a :class:`.CircuitInstruction` and
+    :class:`.DAGOpNode` object at the cost of decreased runtime on multiple
+    accesses to :attr:`.CircuitInstruction.operation` and :attr:`.DAGOpNode.op`.
+    If this environment variable is set when building the Qiskit python package
+    from source the caching of the return of these attributes will be disabled.
 upgrade_circuits:
   - |
     The :class:`.Operation` instances of :attr:`.DAGOpNode.op`

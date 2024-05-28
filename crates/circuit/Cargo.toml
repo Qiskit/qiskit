@@ -22,3 +22,6 @@ features = ["hashbrown", "indexmap", "num-complex", "num-bigint", "smallvec"]
 [dependencies.smallvec]
 workspace = true
 features = ["union"]
+
+[features]
+cache_pygates = []

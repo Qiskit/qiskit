@@ -30,6 +30,17 @@ from setuptools_rust import Binding, RustExtension
 # it's an editable installation.
 rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
+# If QISKIT_NO_CACHE_GATES is set then don't enable any features while building
+#
+# TODO: before final release we should reverse this by default once the default transpiler pass
+# is all in rust (default to no caching and make caching an opt-in feature). This is opt-out
+# right now to avoid the runtime overhead until we are leveraging the rust gates infrastructure.
+if os.getenv("QISKIT_NO_CACHE_GATES") == "1":
+    features = []
+else:
+    features = ["cache_pygates"]
+
+
 setup(
     rust_extensions=[
         RustExtension(
@@ -37,6 +48,7 @@ setup(
             "crates/pyext/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
+            features=features
         )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp38"}},

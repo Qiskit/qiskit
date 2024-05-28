@@ -70,6 +70,8 @@ pub struct CircuitInstruction {
     pub duration: Option<PyObject>,
     pub unit: Option<String>,
     pub condition: Option<PyObject>,
+    #[cfg(feature = "cache_pygates")]
+    pub py_op: Option<PyObject>,
 }
 
 /// This enum is for backwards compatibility if a user was doing something from
@@ -137,6 +139,8 @@ impl CircuitInstruction {
                     duration,
                     unit,
                     condition,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: None,
                 })
             }
             OperationInput::Gate(operation) => {
@@ -150,6 +154,8 @@ impl CircuitInstruction {
                     duration,
                     unit,
                     condition,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: None,
                 })
             }
             OperationInput::Instruction(operation) => {
@@ -163,6 +169,8 @@ impl CircuitInstruction {
                     duration,
                     unit,
                     condition,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: None,
                 })
             }
             OperationInput::Operation(operation) => {
@@ -176,10 +184,12 @@ impl CircuitInstruction {
                     duration,
                     unit,
                     condition,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: None,
                 })
             }
-            OperationInput::Object(op) => {
-                let op = convert_py_to_operation_type(py, op)?;
+            OperationInput::Object(old_op) => {
+                let op = convert_py_to_operation_type(py, old_op.clone_ref(py))?;
                 match op.operation {
                     OperationType::Standard(operation) => {
                         let operation = OperationType::Standard(operation);
@@ -192,6 +202,8 @@ impl CircuitInstruction {
                             duration: op.duration,
                             unit: op.unit,
                             condition: op.condition,
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: Some(old_op.clone_ref(py)),
                         })
                     }
                     OperationType::Gate(operation) => {
@@ -205,6 +217,8 @@ impl CircuitInstruction {
                             duration: op.duration,
                             unit: op.unit,
                             condition: op.condition,
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: Some(old_op.clone_ref(py)),
                         })
                     }
                     OperationType::Instruction(operation) => {
@@ -218,6 +232,8 @@ impl CircuitInstruction {
                             duration: op.duration,
                             unit: op.unit,
                             condition: op.condition,
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: Some(old_op.clone_ref(py)),
                         })
                     }
                     OperationType::Operation(operation) => {
@@ -231,6 +247,8 @@ impl CircuitInstruction {
                             duration: op.duration,
                             unit: op.unit,
                             condition: op.condition,
+                            #[cfg(feature = "cache_pygates")]
+                            py_op: Some(old_op.clone_ref(py)),
                         })
                     }
                 }
@@ -247,9 +265,23 @@ impl CircuitInstruction {
     }
 
     /// The logical operation that this instruction represents an execution of.
+    #[cfg(not(feature = "cache_pygates"))]
     #[getter]
     pub fn operation(&self, py: Python) -> PyResult<PyObject> {
         operation_type_to_py(py, self)
+    }
+
+    #[cfg(feature = "cache_pygates")]
+    #[getter]
+    pub fn operation(&mut self, py: Python) -> PyResult<PyObject> {
+        Ok(match &self.py_op {
+            Some(op) => op.clone_ref(py),
+            None => {
+                let op = operation_type_to_py(py, self)?;
+                self.py_op = Some(op.clone_ref(py));
+                op
+            }
+        })
     }
 
     /// Creates a shallow copy with the given fields replaced.
@@ -369,19 +401,49 @@ impl CircuitInstruction {
     // the interface to behave exactly like the old 3-tuple `(inst, qargs, cargs)` if it's treated
     // like that via unpacking or similar.  That means that the `parameters` field is completely
     // absent, and the qubits and clbits must be converted to lists.
+    #[cfg(not(feature = "cache_pygates"))]
     pub fn _legacy_format<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let op = operation_type_to_py(py, self)?;
+
         Ok(PyTuple::new_bound(
             py,
             [op, self.qubits.to_object(py), self.clbits.to_object(py)],
         ))
     }
 
+    #[cfg(feature = "cache_pygates")]
+    pub fn _legacy_format<'py>(&mut self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let op = match &self.py_op {
+            Some(op) => op.clone_ref(py),
+            None => {
+                let op = operation_type_to_py(py, self)?;
+                self.py_op = Some(op.clone_ref(py));
+                op
+            }
+        };
+        Ok(PyTuple::new_bound(
+            py,
+            [op, self.qubits.to_object(py), self.clbits.to_object(py)],
+        ))
+    }
+
+    #[cfg(not(feature = "cache_pygates"))]
     pub fn __getitem__(&self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
         Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
     }
 
+    #[cfg(feature = "cache_pygates")]
+    pub fn __getitem__(&mut self, py: Python<'_>, key: &Bound<PyAny>) -> PyResult<PyObject> {
+        Ok(self._legacy_format(py)?.as_any().get_item(key)?.into_py(py))
+    }
+
+    #[cfg(not(feature = "cache_pygates"))]
     pub fn __iter__(&self, py: Python<'_>) -> PyResult<PyObject> {
+        Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
+    }
+
+    #[cfg(feature = "cache_pygates")]
+    pub fn __iter__(&mut self, py: Python<'_>) -> PyResult<PyObject> {
         Ok(self._legacy_format(py)?.as_any().iter()?.into_py(py))
     }
 
@@ -497,6 +559,8 @@ impl CircuitInstruction {
             }
 
             if other.is_instance_of::<PyTuple>() {
+                #[cfg(feature = "cache_pygates")]
+                let mut self_ = self_.clone();
                 let legacy_format = self_._legacy_format(py)?;
                 return Ok(Some(legacy_format.eq(other)?));
             }

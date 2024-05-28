@@ -42,6 +42,8 @@ struct PackedInstruction {
     duration: Option<PyObject>,
     unit: Option<String>,
     condition: Option<PyObject>,
+    #[cfg(feature = "cache_pygates")]
+    py_op: Option<PyObject>,
 }
 
 /// Private wrapper for Python-side Bit instances that implements
@@ -247,6 +249,8 @@ impl CircuitData {
                     duration: None,
                     unit: None,
                     condition: None,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: None,
                 },
             )?;
             res.data.push(inst);
@@ -634,6 +638,7 @@ impl CircuitData {
     /// Args:
     ///     func (Callable[[:class:`~.Operation`], None]):
     ///         The callable to invoke.
+    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
@@ -651,12 +656,43 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Invokes callable ``func`` with each instruction's operation.
+    ///
+    /// Args:
+    ///     func (Callable[[:class:`~.Operation`], None]):
+    ///         The callable to invoke.
+    #[cfg(feature = "cache_pygates")]
+    #[pyo3(signature = (func))]
+    pub fn foreach_op(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
+        for inst in self.data.iter_mut() {
+            let op = match &inst.py_op {
+                Some(op) => op.clone_ref(py),
+                None => {
+                    let new_op = operation_type_and_data_to_py(
+                        py,
+                        &inst.op,
+                        &inst.params,
+                        &inst.label,
+                        &inst.duration,
+                        &inst.unit,
+                        &inst.condition,
+                    )?;
+                    inst.py_op = Some(new_op.clone_ref(py));
+                    new_op
+                }
+            };
+            func.call1((op,))?;
+        }
+        Ok(())
+    }
+
     /// Invokes callable ``func`` with the positional index and operation
     /// of each instruction.
     ///
     /// Args:
     ///     func (Callable[[int, :class:`~.Operation`], None]):
     ///         The callable to invoke.
+    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
@@ -674,6 +710,37 @@ impl CircuitData {
         Ok(())
     }
 
+    /// Invokes callable ``func`` with the positional index and operation
+    /// of each instruction.
+    ///
+    /// Args:
+    ///     func (Callable[[int, :class:`~.Operation`], None]):
+    ///         The callable to invoke.
+    #[cfg(feature = "cache_pygates")]
+    #[pyo3(signature = (func))]
+    pub fn foreach_op_indexed(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
+        for (index, inst) in self.data.iter_mut().enumerate() {
+            let op = match &inst.py_op {
+                Some(op) => op.clone_ref(py),
+                None => {
+                    let new_op = operation_type_and_data_to_py(
+                        py,
+                        &inst.op,
+                        &inst.params,
+                        &inst.label,
+                        &inst.duration,
+                        &inst.unit,
+                        &inst.condition,
+                    )?;
+                    inst.py_op = Some(new_op.clone_ref(py));
+                    new_op
+                }
+            };
+            func.call1((index, op))?;
+        }
+        Ok(())
+    }
+
     /// Invokes callable ``func`` with each instruction's operation,
     /// replacing the operation with the result.
     ///
@@ -681,6 +748,7 @@ impl CircuitData {
     ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
     ///         A callable used to map original operation to their
     ///         replacements.
+    #[cfg(not(feature = "cache_pygates"))]
     #[pyo3(signature = (func))]
     pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
@@ -701,6 +769,46 @@ impl CircuitData {
             inst.duration = new_inst_details.duration;
             inst.unit = new_inst_details.unit;
             inst.condition = new_inst_details.condition;
+        }
+        Ok(())
+    }
+
+    /// Invokes callable ``func`` with each instruction's operation,
+    /// replacing the operation with the result.
+    ///
+    /// Args:
+    ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
+    ///         A callable used to map original operation to their
+    ///         replacements.
+    #[cfg(feature = "cache_pygates")]
+    #[pyo3(signature = (func))]
+    pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
+        for inst in self.data.iter_mut() {
+            let old_op = match &inst.py_op {
+                Some(op) => op.clone_ref(py),
+                None => {
+                    let new_op = operation_type_and_data_to_py(
+                        py,
+                        &inst.op,
+                        &inst.params,
+                        &inst.label,
+                        &inst.duration,
+                        &inst.unit,
+                        &inst.condition,
+                    )?;
+                    inst.py_op = Some(new_op.clone_ref(py));
+                    new_op
+                }
+            };
+            let new_op = func.call1((old_op,))?;
+            let new_inst_details = convert_py_to_operation_type(py, new_op.clone().into())?;
+            inst.op = new_inst_details.operation;
+            inst.params = new_inst_details.params;
+            inst.label = new_inst_details.label;
+            inst.duration = new_inst_details.duration;
+            inst.unit = new_inst_details.unit;
+            inst.condition = new_inst_details.condition;
+            inst.py_op = Some(new_op.unbind());
         }
         Ok(())
     }
@@ -1017,6 +1125,8 @@ impl CircuitData {
                     duration: inst.duration.clone(),
                     unit: inst.unit.clone(),
                     condition: inst.condition.clone(),
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: inst.py_op.clone(),
                 });
                 self.update_param_table(py, new_index, None)?;
             }
@@ -1307,6 +1417,8 @@ impl CircuitData {
             duration: inst.duration.clone(),
             unit: inst.unit.clone(),
             condition: inst.condition.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: inst.py_op.clone(),
         })
     }
 
@@ -1336,6 +1448,8 @@ impl CircuitData {
             duration: inst.duration.clone(),
             unit: inst.unit.clone(),
             condition: inst.condition.clone(),
+            #[cfg(feature = "cache_pygates")]
+            py_op: inst.py_op.clone(),
         })
     }
 
@@ -1367,6 +1481,8 @@ impl CircuitData {
                 duration: inst.duration.clone(),
                 unit: inst.unit.clone(),
                 condition: inst.condition.clone(),
+                #[cfg(feature = "cache_pygates")]
+                py_op: inst.py_op.clone(),
             },
         )
     }

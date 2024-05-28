@@ -109,7 +109,7 @@ impl DAGOpNode {
             }
             None => qargs.str()?.into_any(),
         };
-        let res = convert_py_to_operation_type(py, op)?;
+        let res = convert_py_to_operation_type(py, op.clone_ref(py))?;
 
         Ok((
             DAGOpNode {
@@ -122,6 +122,8 @@ impl DAGOpNode {
                     duration: res.duration,
                     unit: res.unit,
                     condition: res.condition,
+                    #[cfg(feature = "cache_pygates")]
+                    py_op: Some(op),
                 },
                 sort_key: sort_key.unbind(),
             },

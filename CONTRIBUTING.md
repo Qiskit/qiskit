@@ -135,6 +135,18 @@ Note that in order to run `python setup.py ...` commands you need have build
 dependency packages installed in your environment, which are listed in the
 `pyproject.toml` file under the `[build-system]` section.
 
+### Compile time options
+
+When building qiskit from source there are options available to control how
+Qiskit is build. Right now the only option is if you set the environment
+variable `QISKIT_NO_CACHE_GATES=1` this will disable runtime caching of
+Python gate objects when accessing them from a `QuantumCircuit` or `DAGCircuit`.
+This makes a tradeoff between runtime performance for Python access and memory
+overhead. Caching gates will result in better runtime for users of Python at
+the cost of increased memory consumption. If you're working with any custom
+transpiler passes written in python or are otherwise using a workflow that
+repeatedly accesses the `operation` attribute of a `CircuitInstruction` or `op`
+attribute of `DAGOpNode` enabling caching is recommended.
 
 ## Issues and pull requests
 
