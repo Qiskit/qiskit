@@ -3386,6 +3386,90 @@ class QuantumCircuit:
 
         return max(op_stack)
 
+    def depth_2q(self, include_directives: bool = False) -> int:
+        """Returns the depth in terms of two-qubit quantum gates, excluding directives by default.
+
+        Args:
+            include_directives (bool): Whether to include directives such as barriers
+
+        Returns:
+            int: Quantum circuit depth in terms of two-qubit gates
+        """
+        if not include_directives:
+            return self.depth(
+                lambda x: not getattr(x.operation, "_directive", False) and x.qubits == 2
+            )
+        else:
+            return self.depth(lambda x: x.qubits == 2)
+
+    def depth_nq(self, n: int, include_directives: bool = False) -> int:
+        """Returns the depth in terms of quantum gates with at least n-qubits,
+        excluding directives by default.
+
+        Args:
+            n (int): The minimum number of qubits in an instruction that counts towards the depth.
+            include_directives (bool): Whether to include directives such as barriers
+        Returns:
+            int: Quantum circuit depth in terms of n-qubit gates
+        """
+        if not include_directives:
+            return self.depth(
+                lambda x: not getattr(x.operation, "_directive", False) and x.qubits >= n
+            )
+        else:
+            return self.depth(lambda x: x.qubits >= n)
+
+    def num_2q_gates(self, include_directives: bool = False) -> int:
+        """Returns the number of gates with exactly 2-qubits, excluding directives by default.
+
+        Args:
+            include_directives (bool): Whether to include directives such as barriers
+
+        Returns:
+            int: The number of gates in the quantum circuit with exactly n-qubits.
+        """
+        if not include_directives:
+            return self.size(
+                lambda x: not getattr(x.operation, "_directive", False) and x.qubits == 2
+            )
+        else:
+            return self.size(lambda x: x.qubits == 2)
+
+    def num_nq_gates(self, n: int, include_directives: bool = False) -> int:
+        """Returns the number of gates with exactly n-qubits, excluding directives by default.
+        See :meth:`.num_nonlocal_gates` to retrieve the number of gates with at least two-qubits,
+        (excluding directives).
+
+        Args:
+            n (int): The exact number of qubits in an instruction.
+            include_directives (bool): Whether to include directives such as barriers
+
+        Returns:
+            int: The number of gates in the quantum circuit with exactly n-qubits.
+        """
+        if not include_directives:
+            return self.size(
+                lambda x: not getattr(x.operation, "_directive", False) and x.qubits == n
+            )
+        else:
+            return self.size(lambda x: x.qubits == n)
+
+    def num_nonidle_qubits(self) -> int:
+        """Returns the number of qubits in the quantum circuit that are non-idle,
+        i.e. are part of at least one gate.
+
+        Returns:
+            int: The number of non-idle qubits in the quantum circuit.
+        """
+        return len(
+            {
+                qubit
+                for inst in self.data
+                for qubit in inst.qubits
+                if not getattr(inst.operation, "_directive", False)
+            }
+        )
+
     def width(self) -> int:
         """Return number of qubits plus clbits in circuit.
 
