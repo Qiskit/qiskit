@@ -293,8 +293,8 @@ class InstructionScheduleMap:
 
         :meta public:
         """
-        self._map[instruction_name][_to_tuple(qubits)] = entry
-        self._qubit_instructions[_to_tuple(qubits)].add(instruction_name)
+        self._map[instruction_name][qubits] = entry
+        self._qubit_instructions[qubits].add(instruction_name)
 
     def remove(
         self, instruction: str | circuit.instruction.Instruction, qubits: int | Iterable[int]

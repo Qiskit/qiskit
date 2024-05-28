@@ -50,11 +50,7 @@ impl BaseInstructionProperties {
         Ok((self.duration, self.error))
     }
 
-    fn __setstate__(
-        &mut self,
-        _py: Python<'_>,
-        state: (Option<f64>, Option<f64>, Bound<PyAny>),
-    ) -> PyResult<()> {
+    fn __setstate__(&mut self, _py: Python<'_>, state: (Option<f64>, Option<f64>)) -> PyResult<()> {
         self.duration = state.0;
         self.error = state.1;
         Ok(())

@@ -127,7 +127,7 @@ class BasisTranslator(TransformationPass):
             self._qargs_with_non_global_operation = defaultdict(set)
             for gate in self._non_global_operations:
                 for qarg in self._target[gate]:
-                    self._qargs_with_non_global_operation[tuple(qarg)].add(gate)
+                    self._qargs_with_non_global_operation[qarg].add(gate)
 
     def run(self, dag):
         """Translate an input DAGCircuit to the target basis.

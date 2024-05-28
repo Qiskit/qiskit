@@ -61,7 +61,7 @@ class TestBackendV2(QiskitTestCase):
                 qubits,
                 target_set,
                 f"qargs: {qubits} not found in target for operation {instruction.operation.name}:"
-                f" {target_set}",
+                f" {set(target_set)}",
             )
 
     def test_qubit_properties(self):

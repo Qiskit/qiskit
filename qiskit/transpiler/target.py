@@ -146,6 +146,14 @@ class InstructionProperties(BaseInstructionProperties):
             f", calibration={self._calibration})"
         )
 
+    def __getstate__(self) -> tuple:
+        return (super().__getstate__(), self.calibration, self._calibration)
+
+    def __setstate__(self, state: tuple):
+        super().__setstate__(state[0])
+        self.calibration = state[1]
+        self._calibration = state[2]
+
 
 class Target(Target2):
     """
@@ -555,7 +563,6 @@ class Target(Target2):
     def qargs(self):
         """The set of qargs in the target."""
         qargs = super().qargs
-        print(qargs)
         if qargs is None:
             return None
         qargs = set(tuple(qarg) for qarg in qargs)
@@ -882,7 +889,9 @@ class Target(Target2):
                 prop_str_pieces = [f"\t\t{qarg}:\n"]
                 duration = getattr(props, "duration", None)
                 if duration is not None:
-                    prop_str_pieces.append(f"\t\t\tDuration: {duration if duration > 0 else 0} sec.\n")
+                    prop_str_pieces.append(
+                        f"\t\t\tDuration: {duration if duration > 0 else 0} sec.\n"
+                    )
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error if error > 0 else 0}\n")

@@ -564,7 +564,7 @@ def _build_gate_lengths(props=None, target=None):
             gate_lengths[gate] = {}
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.duration is not None:
-                    gate_lengths[gate][tuple(qubit)] = gate_props.duration
+                    gate_lengths[gate][qubit] = gate_props.duration
     elif props is not None:
         for gate in props._gates:
             gate_lengths[gate] = {}
@@ -590,7 +590,7 @@ def _build_gate_errors(props=None, target=None):
             gate_errors[gate] = {}
             for qubit, gate_props in prop_dict.items():
                 if gate_props is not None and gate_props.error is not None:
-                    gate_errors[gate][tuple(qubit)] = gate_props.error
+                    gate_errors[gate][qubit] = gate_props.error
     if props is not None:
         for gate in props._gates:
             gate_errors[gate] = {}
@@ -622,7 +622,7 @@ def _build_gate_lengths_by_qubit(props=None, target=None):
                 if duration:
                     operation_and_durations.append((operation, duration))
             if operation_and_durations:
-                gate_lengths[tuple(qubits)] = operation_and_durations
+                gate_lengths[qubits] = operation_and_durations
     elif props is not None:
         for gate_name, gate_props in props._gates.items():
             gate = GateNameToGate[gate_name]
@@ -655,7 +655,7 @@ def _build_gate_errors_by_qubit(props=None, target=None):
                 if error:
                     operation_and_errors.append((operation, error))
             if operation_and_errors:
-                gate_errors[tuple(qubits)] = operation_and_errors
+                gate_errors[qubits] = operation_and_errors
     elif props is not None:
         for gate_name, gate_props in props._gates.items():
             gate = GateNameToGate[gate_name]
