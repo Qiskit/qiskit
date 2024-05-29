@@ -852,10 +852,9 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(is_unitary_matrix(base_mat))
         self.assertTrue(matrix_equal(cop_mat, test_op.data))
 
-    @data(1, 2, 3, 4, 5)
-    def test_controlled_random_unitary(self, num_ctrl_qubits):
+    @combine(num_ctrl_qubits=(1, 2, 3, 4, 5), num_target=(2, 3))
+    def test_controlled_random_unitary(self, num_ctrl_qubits, num_target):
         """Test the matrix data of an Operator based on a random UnitaryGate."""
-        num_target = 2
         base_gate = random_unitary(2**num_target).to_instruction()
         base_mat = base_gate.to_matrix()
         cgate = base_gate.control(num_ctrl_qubits)
