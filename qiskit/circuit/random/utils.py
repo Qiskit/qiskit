@@ -141,7 +141,7 @@ def random_circuit_with_graph(
     edges_probs = pydi_graph.edges()
 
     # Just a switch for the probability weighted selection of a particular qubit-pair
-    prob_weighted_mapping = None
+    prob_weighted_mapping = True
 
     # If any value of the probability is None or the whole probability list is None,
     # then, the probability weighted selection of qubit-pair would be turned off.
@@ -203,8 +203,9 @@ def random_circuit_with_graph(
 
     qubits = np.array(qc.qubits, dtype=object, copy=True)
     edge_prob_map = None
+
     if prob_weighted_mapping:
-        edge_prob_map = dict(pydi_graph.edge_list(), edges_probs)
+        edge_prob_map = {"edge": pydi_graph.edge_list(), "prob": edges_probs}
     else:
         edge_prob_map = {edge: None for edge in pydi_graph.edge_list()}
 
@@ -283,10 +284,10 @@ def random_circuit_with_graph(
                     qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
                 elif num_gate_qubits == 2:
                     for edge in rng.choice(
-                        list(edge_prob_map.keys()),
+                        edge_prob_map["edge"],
                         size=1,
                         replace=False,
-                        p=list(edge_prob_map.values()) if prob_weighted_mapping else None,
+                        p=edge_prob_map["prob"] if prob_weighted_mapping else None,
                     ):
                         edge = tuple(edge)
                         control_qubit, target_qubit = edge
@@ -336,10 +337,10 @@ def random_circuit_with_graph(
                     qubit_idx_not_used = qubit_idx_not_used - qubit_idx_used
                 elif num_gate_qubits == 2:
                     for edge in rng.choice(
-                        list(edge_prob_map.keys()),
+                        edge_prob_map["edge"],
                         size=1,
                         replace=False,
-                        p=list(edge_prob_map.values()) if prob_weighted_mapping else None,
+                        p=edge_prob_map["prob"] if prob_weighted_mapping else None,
                     ):
                         edge = tuple(edge)
                         control_qubit, target_qubit = edge

@@ -173,11 +173,11 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
 
         circ = random_circuit_with_graph(
             interaction_graph=interaction_graph,
-            max_num_qubit_usage=2,
+            max_num_qubit_usage=3,
             measure=True,
             conditional=True,
             reset=True,
-            seed=0,
+            seed=2589,
         )
         # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
         # Do not change the function signature.
