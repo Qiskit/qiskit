@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 # import target class from the rust side
 from qiskit._accelerate.target import (  # pylint: disable=unused-import
-    Target as Target2,
+    BaseTarget,
     BaseInstructionProperties,
 )
 
@@ -155,7 +155,7 @@ class InstructionProperties(BaseInstructionProperties):
         self._calibration = state[2]
 
 
-class Target(Target2):
+class Target(BaseTarget):
     """
     The intent of the ``Target`` object is to inform Qiskit's compiler about
     the constraints of a particular backend so the compiler can compile an
@@ -854,6 +854,12 @@ class Target(Target2):
 
     def __getitem__(self, key):
         return self._gate_map[key]
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def __len__(self):
         return len(self._gate_map)
