@@ -2,6 +2,6 @@
 features:
   - |
     Added convenience methods to the :class:`.QuantumCircuit` class that return the depth in terms of
-    gates that have exactly two-qubits (:meth:`.QuantumCircuit.depth_2q`) or at least n-qubits (:meth:`.QuantumCircuit.depth_nq`).
+    gates that have at least two-qubits (:meth:`.QuantumCircuit.depth_2q`) or at least n-qubits (:meth:`.QuantumCircuit.depth_nq`).
     Also, convenience methods were added for determining the number of 2-qubit (:meth:`.QuantumCircuit.num_2q_gates`) and n-qubit gates (:meth:`.QuantumCircuit.num_nq_gates`).
     Another method was added that returns the number of non-idle qubits in the quantum circuit, i.e. qubits that are part of at least one gate (:meth:`.QuantumCircuit.num_nonidle_qubits`).
