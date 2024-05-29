@@ -22,14 +22,18 @@ from __future__ import annotations
 import itertools
 
 from typing import Optional, List, Any
-from collections.abc import Mapping
-from collections import defaultdict
 import datetime
 import io
 import logging
 import inspect
 
 import rustworkx as rx
+
+# import target class from the rust side
+from qiskit._accelerate.target import (  # pylint: disable=unused-import
+    BaseTarget,
+    BaseInstructionProperties,
+)
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -54,13 +58,6 @@ from qiskit.providers.models.backendproperties import BackendProperties
 logger = logging.getLogger(__name__)
 
 
-# import target class from the rust side
-from qiskit._accelerate.target import (  # pylint: disable=unused-import
-    BaseTarget,
-    BaseInstructionProperties,
-)
-
-
 class InstructionProperties(BaseInstructionProperties):
     """A representation of the properties of a gate implementation.
 
@@ -82,8 +79,8 @@ class InstructionProperties(BaseInstructionProperties):
 
     def __init__(
         self,
-        duration: float | None = None,
-        error: float | None = None,
+        duration: float | None = None,  # pylint: disable=unused-argument
+        error: float | None = None,  # pylint: disable=unused-argument
         calibration: Schedule | ScheduleBlock | CalibrationEntry | None = None,
     ):
         """Create a new ``InstructionProperties`` object
@@ -239,7 +236,7 @@ class Target(BaseTarget):
         would potentially be invalidated by removals.
     """
 
-    def __new__(
+    def __new__(  # pylint: disable=keyword-arg-before-vararg
         cls,
         description: str | None = None,
         num_qubits: int = 0,
@@ -250,7 +247,7 @@ class Target(BaseTarget):
         acquire_alignment: int = 1,
         qubit_properties: list | None = None,
         concurrent_measurements: list | None = None,
-        *args,  # pylint: disable=unused-argument
+        *args,  # pylint: disable=unused-argument disable=keyword-arg-before-vararg
         **kwargs,  # pylint: disable=unused-argument
     ):
         """
@@ -510,7 +507,7 @@ class Target(BaseTarget):
                         continue
                 try:
                     # Update gate error if provided.
-                    props.error = error_dict[inst_name][qargs]
+                    setattr(props, "error", error_dict[inst_name][qargs])
                 except (KeyError, TypeError):
                     pass
                 out_props[qargs] = props
@@ -565,7 +562,7 @@ class Target(BaseTarget):
         qargs = super().qargs
         if qargs is None:
             return None
-        qargs = set(tuple(qarg) for qarg in qargs)
+        qargs = {tuple(qarg) for qarg in qargs}
         return qargs
 
     def qargs_for_operation_name(self, operation):
@@ -856,6 +853,7 @@ class Target(BaseTarget):
         return self._gate_map[key]
 
     def get(self, key, default=None):
+        """Gets an item from the Target. If not found return a provided default or `None`."""
         try:
             return self[key]
         except KeyError:
@@ -868,12 +866,15 @@ class Target(BaseTarget):
         return item in self._gate_map
 
     def keys(self):
+        """Return the keys (operation_names) of the Target"""
         return self._gate_map.keys()
 
     def values(self):
+        """Return the Property Map (qargs -> InstructionProperties) of every instruction in the Target"""
         return self._gate_map.values()
 
     def items(self):
+        """Returns pairs of Gate names and its property map (str, dict[tuple, InstructionProperties])"""
         return self._gate_map.items()
 
     def __str__(self):
