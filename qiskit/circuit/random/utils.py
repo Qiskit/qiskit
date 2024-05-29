@@ -141,12 +141,9 @@ def random_circuit_with_graph(
     edges_probs = pydi_graph.edges()
 
     # Just a switch for the probability weighted selection of a particular qubit-pair
-    prob_weighted_mapping = True
-
     # If any value of the probability is None or the whole probability list is None,
     # then, the probability weighted selection of qubit-pair would be turned off.
-    if None in edges_probs:
-        prob_weighted_mapping = False
+    prob_weighted_mapping = not None in edges_probs
 
     if prob_weighted_mapping and not np.isclose(np.sum(edges_probs), 1.000, rtol=0.001):
         raise ValueError(
@@ -204,10 +201,10 @@ def random_circuit_with_graph(
     qubits = np.array(qc.qubits, dtype=object, copy=True)
     edge_prob_map = None
 
-    if prob_weighted_mapping:
-        edge_prob_map = {"edge": pydi_graph.edge_list(), "prob": edges_probs}
-    else:
-        edge_prob_map = {edge: None for edge in pydi_graph.edge_list()}
+    edge_prob_map = {
+        "edge": pydi_graph.edge_list(),
+        "prob": edges_probs if prob_weighted_mapping else None,
+    }
 
     def _get_extra_1q_oper(extra_1q_gates, parameters):
         current_gate = extra_1q_gates[0]
@@ -287,7 +284,7 @@ def random_circuit_with_graph(
                         edge_prob_map["edge"],
                         size=1,
                         replace=False,
-                        p=edge_prob_map["prob"] if prob_weighted_mapping else None,
+                        p=edge_prob_map["prob"],
                     ):
                         edge = tuple(edge)
                         control_qubit, target_qubit = edge
@@ -340,7 +337,7 @@ def random_circuit_with_graph(
                         edge_prob_map["edge"],
                         size=1,
                         replace=False,
-                        p=edge_prob_map["prob"] if prob_weighted_mapping else None,
+                        p=edge_prob_map["prob"],
                     ):
                         edge = tuple(edge)
                         control_qubit, target_qubit = edge
