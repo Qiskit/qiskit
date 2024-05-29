@@ -12,9 +12,11 @@
 
 
 """Test random circuit generation utility."""
+import rustworkx as rx
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
+from qiskit.circuit.random.utils import random_circuit_with_graph
 from qiskit.converters import circuit_to_dag
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
@@ -81,3 +83,157 @@ class TestCircuitRandom(QiskitTestCase):
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ
         ]
         self.assertEqual([False, False, False, True], conditions)
+
+
+class TestRandomCircuitWithGraph(QiskitTestCase):
+    """Testing random_circuit_with_graph from
+    qiskit.circuit.random.utils.py"""
+
+    def setUp(self):
+        super().setUp()
+        n_q = 10
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(n_q))
+        # Some arbitrary coupling map
+        cp_map = [
+            (0, 2, None),
+            (1, 3, None),
+            (2, 4, None),
+            (3, 4, None),
+            (5, 7, None),
+            (4, 7, None),
+            (7, 9, None),
+            (5, 8, None),
+        ]
+        pydi_graph.add_edges_from(cp_map)
+        self.interaction_graph = (pydi_graph, None, None, None)
+
+    def test_simple_random(self):
+        """Test creating a simple random circuit."""
+        circ = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph, max_num_qubit_usage=2
+        )
+        self.assertIsInstance(circ, QuantumCircuit)
+        self.assertEqual(circ.width(), 10)
+
+    def test_max_times_qubit_usage(self):
+        """Test number of gates on a qubit doesn't exceeds the `max_num_qubit_usage`."""
+        qc = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph, max_num_qubit_usage=4
+        )
+        # can go for qc.depth() == 4 for all these.
+        dag = circuit_to_dag(qc)
+        max_usage_per_qubit = [
+            len([dag_op_node.name for dag_op_node in dag.nodes_on_wire(wire, only_ops=True)])
+            for wire in dag.wires
+        ]
+        for usage in max_usage_per_qubit:
+            self.assertLessEqual(usage, 4)
+
+    def test_random_measure(self):
+        """Test random circuit with final measurement."""
+        qc = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph, max_num_qubit_usage=1, measure=True
+        )
+        self.assertIn("measure", qc.count_ops())
+
+    def test_random_circuit_conditional_reset(self):
+        """Test generating random circuits with conditional and reset."""
+        # Presence of 'reset' in the circuit is probabilistic, at seed 0 reset exists in circuit.
+        qc = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph,
+            max_num_qubit_usage=2,
+            conditional=True,
+            reset=True,
+            seed=0,
+        )
+        self.assertIn("reset", qc.count_ops())
+
+    def test_large_conditional_weighted_qubits(self):
+        """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
+        # This is to test the call actually returns without raising an exception.
+        # In this case every qubit-pair is associated with a probability of being selected.
+        n_q = 10
+        pydi_graph = rx.PyDiGraph()
+        pydi_graph.add_nodes_from(range(n_q))
+        # Some arbitrary coupling map
+        # ( control, target, probability-of-being-selected )
+        cp_map = [
+            (0, 2, 0.1),
+            (1, 3, 0.05),
+            (2, 4, 0.15),
+            (3, 4, 0.2),
+            (5, 7, 0.03),
+            (4, 7, 0.07),
+            (7, 9, 0.2),
+            (5, 8, 0.2),
+        ]
+        pydi_graph.add_edges_from(cp_map)
+        interaction_graph = (pydi_graph, None, None, None)
+
+        circ = random_circuit_with_graph(
+            interaction_graph=interaction_graph,
+            max_num_qubit_usage=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+        )
+        # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
+        # Do not change the function signature.
+        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
+        conditions = [x for x in conditions if x is not None]
+        self.assertNotEqual(conditions, [])
+        for register, value in conditions:
+            self.assertIsInstance(register, (ClassicalRegister, Clbit))
+            # Condition values always have to be Python bigints (of which `bool` is a subclass), not
+            # any of Numpy's fixed-width types, for example.
+            self.assertIsInstance(value, int)
+
+    def test_large_conditional(self):
+        """Test that conditions do not fail with large conditionals.  Regression test of gh-6994."""
+        # This is to test the call actually returns without raising an exception.
+        circ = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph,
+            max_num_qubit_usage=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+        )
+        # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
+        # Do not change the function signature.
+        conditions = (getattr(instruction.operation, "condition", None) for instruction in circ)
+        conditions = [x for x in conditions if x is not None]
+        self.assertNotEqual(conditions, [])
+        for register, value in conditions:
+            self.assertIsInstance(register, (ClassicalRegister, Clbit))
+            # Condition values always have to be Python bigints (of which `bool` is a subclass), not
+            # any of Numpy's fixed-width types, for example.
+            self.assertIsInstance(value, int)
+
+    def test_random_mid_circuit_measure_conditional(self):
+        """Test random circuit with mid-circuit measurements for conditionals."""
+        qc = random_circuit_with_graph(
+            interaction_graph=self.interaction_graph,
+            max_num_qubit_usage=2,
+            measure=True,
+            conditional=True,
+            reset=True,
+            seed=0,
+        )
+        dag = circuit_to_dag(qc)
+
+        # Before a condition, there needs to be measurement of atleast one of the qubits.
+        measure_at = None
+        condition_at = None
+        for layer_num, wire in enumerate(dag.wires):
+            if condition_at is not None and measure_at is not None:
+                break
+            for oper_num, dag_op_node in enumerate(dag.nodes_on_wire(wire, only_ops=True)):
+                if condition_at is None and getattr(dag_op_node.op, "condition", None) is not None:
+                    condition_at = {"layer_no": layer_num + 1, "oper_num": oper_num + 1}
+                elif measure_at is None and dag_op_node.op.name == "measure":
+                    measure_at = {"layer_no": layer_num + 1, "oper_num": oper_num + 1}
+
+        self.assertGreater(condition_at["layer_no"], measure_at["layer_no"])
