@@ -104,7 +104,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
             if power[0].shape[0]:
                 if output == "qasm":
                     if ndigits is None:
-                        str_out = f"{single_inpt}"
+                        str_out = str(single_inpt)
                     else:
                         str_out = f"{single_inpt:.{ndigits}g}"
                 elif output == "latex":
