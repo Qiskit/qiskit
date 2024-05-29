@@ -102,6 +102,15 @@ impl Operation for OperationType {
             Self::Operation(op) => op.standard_gate(),
         }
     }
+
+    fn directive(&self) -> bool {
+        match self {
+            Self::Standard(op) => op.directive(),
+            Self::Gate(op) => op.directive(),
+            Self::Instruction(op) => op.directive(),
+            Self::Operation(op) => op.directive(),
+        }
+    }
 }
 
 /// Trait for generic circuit operations these define the common attributes
@@ -115,6 +124,7 @@ pub trait Operation {
     fn matrix(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>>;
     fn definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
+    fn directive(&self) -> bool;
 }
 
 #[derive(Clone, Debug)]
@@ -311,6 +321,10 @@ impl Operation for StandardGate {
     }
 
     fn control_flow(&self) -> bool {
+        false
+    }
+
+    fn directive(&self) -> bool {
         false
     }
 
@@ -644,6 +658,18 @@ impl Operation for PyInstruction {
     fn standard_gate(&self) -> Option<StandardGate> {
         None
     }
+
+    fn directive(&self) -> bool {
+        Python::with_gil(|py| -> bool {
+            match self.instruction.getattr(py, intern!(py, "_directive")) {
+                Ok(directive) => {
+                    let res: bool = directive.extract(py).unwrap();
+                    res
+                }
+                Err(_) => false,
+            }
+        })
+    }
 }
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
@@ -733,6 +759,9 @@ impl Operation for PyGate {
             }
         })
     }
+    fn directive(&self) -> bool {
+        false
+    }
 }
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
@@ -770,5 +799,17 @@ impl Operation for PyOperation {
     }
     fn standard_gate(&self) -> Option<StandardGate> {
         None
+    }
+
+    fn directive(&self) -> bool {
+        Python::with_gil(|py| -> bool {
+            match self.operation.getattr(py, intern!(py, "_directive")) {
+                Ok(directive) => {
+                    let res: bool = directive.extract(py).unwrap();
+                    res
+                }
+                Err(_) => false,
+            }
+        })
     }
 }

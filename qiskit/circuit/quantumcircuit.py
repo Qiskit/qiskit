@@ -3453,13 +3453,7 @@ class QuantumCircuit:
 
         Conditional nonlocal gates are also included.
         """
-        multi_qubit_gates = 0
-        for instruction in self._data:
-            if instruction.operation.num_qubits > 1 and not getattr(
-                instruction.operation, "_directive", False
-            ):
-                multi_qubit_gates += 1
-        return multi_qubit_gates
+        return self._data.num_nonlocal_gates()
 
     def get_instructions(self, name: str) -> list[CircuitInstruction]:
         """Get instructions matching name.

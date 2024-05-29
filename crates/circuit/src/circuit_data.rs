@@ -20,6 +20,7 @@ use crate::parameter_table::{ParamEntry, ParamTable};
 use crate::SliceOrInt;
 use smallvec::SmallVec;
 
+use crate::operations::Operation;
 use hashbrown::{HashMap, HashSet};
 use pyo3::exceptions::{PyIndexError, PyKeyError, PyRuntimeError, PyValueError};
 use pyo3::intern;
@@ -1331,6 +1332,13 @@ impl CircuitData {
             .getattr(py, intern!(py, "int"))?
             .extract(py)?;
         Ok(self.param_table.table[&uuid].index_ids.len())
+    }
+
+    pub fn num_nonlocal_gates(&self) -> usize {
+        self.data
+            .iter()
+            .filter(|inst| inst.op.num_qubits() > 1 && !inst.op.directive())
+            .count()
     }
 }
 

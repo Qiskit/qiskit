@@ -48,7 +48,7 @@ setup(
             "crates/pyext/Cargo.toml",
             binding=Binding.PyO3,
             debug=rust_debug,
-            features=features
+            features=features,
         )
     ],
     options={"bdist_wheel": {"py_limited_api": "cp38"}},
