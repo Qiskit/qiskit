@@ -12,10 +12,16 @@
 
 #![allow(clippy::too_many_arguments)]
 
+mod err;
 mod instruction_properties;
 
+use std::ops::Index;
+
 use hashbrown::HashSet;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::{
+    map::{Keys, Values},
+    IndexMap, IndexSet,
+};
 use itertools::Itertools;
 use pyo3::{
     exceptions::{PyAttributeError, PyIndexError, PyKeyError, PyValueError},
@@ -24,10 +30,12 @@ use pyo3::{
     sync::GILOnceCell,
     types::{PyList, PyType},
 };
+
 use smallvec::{smallvec, SmallVec};
 
 use crate::nlayout::PhysicalQubit;
 
+use err::TargetKeyError;
 use instruction_properties::BaseInstructionProperties;
 
 use self::exceptions::TranspilerError;
@@ -391,17 +399,12 @@ impl Target {
         is_class: bool,
         properties: Option<PropsMap>,
     ) -> PyResult<()> {
-        // Unwrap instruction name
-        let properties = properties;
-
         if self.gate_map.contains_key(&name) {
             return Err(PyAttributeError::new_err(format!(
                 "Instruction {:?} is already in the target",
                 name
             )));
         }
-        self._gate_name_map
-            .insert(name.clone(), instruction.clone().unbind());
         let mut qargs_val: PropsMap = PropsMap::new();
         if is_class {
             qargs_val = IndexMap::from_iter([(None, None)].into_iter());
@@ -451,9 +454,7 @@ impl Target {
                     .or_insert(Some(HashSet::from([name.clone()])));
             }
         }
-        self.gate_map.insert(name, qargs_val);
-        self.non_global_basis = None;
-        self.non_global_strict_basis = None;
+        self.add_inst(instruction.to_object(_py), name, Some(qargs_val));
         Ok(())
     }
 
@@ -472,25 +473,10 @@ impl Target {
         qargs: Option<Qargs>,
         properties: Option<BaseInstructionProperties>,
     ) -> PyResult<()> {
-        if !self.gate_map.contains_key(&instruction) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided instruction: '{:?}' not in this Target.",
-                &instruction
-            )));
-        };
-        let mut prop_map = self.gate_map[&instruction].clone();
-        if !(prop_map.contains_key(&qargs)) {
-            return Err(PyKeyError::new_err(format!(
-                "Provided qarg {:?} not in this Target for {:?}.",
-                &qargs.unwrap_or_default(),
-                &instruction
-            )));
+        match self.update_inst(instruction, qargs, properties) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(PyKeyError::new_err(e.message)),
         }
-        prop_map.entry(qargs).and_modify(|e| *e = properties);
-        self.gate_map
-            .entry(instruction)
-            .and_modify(|e| *e = prop_map);
-        Ok(())
     }
 
     /// Get the qargs for a given operation name
@@ -501,16 +487,9 @@ impl Target {
     ///     set: The set of qargs the gate instance applies to.
     #[pyo3(text_signature = "(operation, /,)")]
     fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
-        if let Some(gate_map_oper) = self.gate_map.get(&operation) {
-            if gate_map_oper.contains_key(&None) {
-                return Ok(None);
-            }
-            let qargs: Vec<Qargs> = gate_map_oper.keys().flatten().cloned().collect();
-            Ok(Some(qargs))
-        } else {
-            Err(PyKeyError::new_err(format!(
-                "Operation: {operation} not in Target."
-            )))
+        match self.qargs_for_op_name(&operation) {
+            Ok(set) => Ok(set),
+            Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
 
@@ -555,6 +534,7 @@ impl Target {
         py: Python<'_>,
         qargs: Option<Qargs>,
     ) -> PyResult<Vec<PyObject>> {
+        // Move to rust native once Gates are in rust
         let mut res: Vec<PyObject> = vec![];
         if let Some(qargs) = qargs.as_ref() {
             if qargs
@@ -577,7 +557,7 @@ impl Target {
             }
         }
         for (name, op) in self._gate_name_map.iter() {
-            if self.gate_map[name].contains_key(&None) {
+            if self.gate_map[name].contains_key(&None){
                 res.push(op.clone_ref(py));
             }
         }
@@ -610,37 +590,10 @@ impl Target {
         _py: Python<'_>,
         qargs: Option<Qargs>,
     ) -> PyResult<HashSet<&String>> {
-        // When num_qubits == 0 we return globally defined operators
-        let mut res = HashSet::new();
-        let mut qargs = qargs;
-        if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
-            qargs = None;
+        match self.op_names_for_qargs(&qargs) {
+            Ok(set) => Ok(set),
+            Err(e) => Err(PyKeyError::new_err(e.message)),
         }
-        if let Some(qargs) = qargs.as_ref() {
-            if qargs
-                .iter()
-                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
-            {
-                return Err(PyKeyError::new_err(format!("{:?}", qargs)));
-            }
-        }
-        if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(&qargs).as_ref() {
-            res.extend(qarg_gate_map_arg);
-        }
-        for name in self._gate_name_map.keys() {
-            if self.gate_map[name].contains_key(&None) {
-                res.insert(name);
-            }
-        }
-        if let Some(qargs) = qargs.as_ref() {
-            if let Some(global_gates) = self.global_operations.get(&qargs.len()) {
-                res.extend(global_gates)
-            }
-        }
-        if res.is_empty() {
-            return Err(PyKeyError::new_err(format!("{:?} not in target", qargs)));
-        }
-        Ok(res)
     }
 
     /// Return whether the instruction (operation + qubits) is supported by the target
@@ -1178,16 +1131,133 @@ impl Target {
         Ok(())
     }
 
-    fn keys(&self) -> Vec<String> {
-        self.gate_map.keys().cloned().collect()
-    }
-
-    fn values(&self) -> Vec<PropsMap> {
-        self.gate_map.values().cloned().collect()
-    }
-
     fn items(&self) -> Vec<(String, PropsMap)> {
         self.gate_map.clone().into_iter().collect_vec()
+    }
+}
+
+// Rust native methods
+impl Target {
+    /// Add an instruction to the Target:
+    pub fn add_inst(&mut self, instruction: PyObject, name: String, properties: Option<PropsMap>) {
+        // Modify logic once gates are in rust.
+        self._gate_name_map.insert(name.clone(), instruction);
+        self.gate_map.insert(
+            name,
+            properties.unwrap_or(IndexMap::from_iter([(None, None)])),
+        );
+        self.non_global_basis = None;
+        self.non_global_strict_basis = None;
+    }
+
+    /// Update an instructions property
+    pub fn update_inst(
+        &mut self,
+        instruction: String,
+        qargs: Option<Qargs>,
+        properties: Option<BaseInstructionProperties>,
+    ) -> Result<(), TargetKeyError> {
+        if !self.contains_key(&instruction) {
+            return Err(TargetKeyError::new_err(format!(
+                "Provided instruction: '{:?}' not in this Target.",
+                &instruction
+            )));
+        };
+        let mut prop_map = self[&instruction].clone();
+        if !(prop_map.contains_key(&qargs)) {
+            return Err(TargetKeyError::new_err(format!(
+                "Provided qarg {:?} not in this Target for {:?}.",
+                &qargs.unwrap_or_default(),
+                &instruction
+            )));
+        }
+        prop_map.entry(qargs).and_modify(|e| *e = properties);
+        self.gate_map
+            .entry(instruction)
+            .and_modify(|e| *e = prop_map);
+        Ok(())
+    }
+
+    pub fn op_names_for_qargs(
+        &self,
+        qargs: &Option<Qargs>,
+    ) -> Result<HashSet<&String>, TargetKeyError> {
+        // When num_qubits == 0 we return globally defined operators
+        let mut res = HashSet::new();
+        let mut qargs = qargs;
+        if self.num_qubits.unwrap_or_default() == 0 || self.num_qubits.is_none() {
+            qargs = &None;
+        }
+        if let Some(qargs) = qargs.as_ref() {
+            if qargs
+                .iter()
+                .any(|x| !(0..self.num_qubits.unwrap_or_default()).contains(&x.index()))
+            {
+                return Err(TargetKeyError::new_err(format!("{:?}", qargs)));
+            }
+        }
+        if let Some(Some(qarg_gate_map_arg)) = self.qarg_gate_map.get(qargs).as_ref() {
+            res.extend(qarg_gate_map_arg);
+        }
+        for name in self._gate_name_map.keys() {
+            if self.gate_map[name].contains_key(&None) {
+                res.insert(name);
+            }
+        }
+        if let Some(qargs) = qargs.as_ref() {
+            if let Some(global_gates) = self.global_operations.get(&qargs.len()) {
+                res.extend(global_gates)
+            }
+        }
+        if res.is_empty() {
+            return Err(TargetKeyError::new_err(format!(
+                "{:?} not in target",
+                qargs
+            )));
+        }
+        Ok(res)
+    }
+
+    pub fn qargs_for_op_name(
+        &self,
+        operation: &String,
+    ) -> Result<Option<Vec<Qargs>>, TargetKeyError> {
+        if let Some(gate_map_oper) = self.gate_map.get(operation) {
+            if gate_map_oper.contains_key(&None) {
+                return Ok(None);
+            }
+            let qargs: Vec<Qargs> = gate_map_oper.keys().flatten().cloned().collect();
+            Ok(Some(qargs))
+        } else {
+            Err(TargetKeyError::new_err(format!(
+                "Operation: {operation} not in Target."
+            )))
+        }
+    }
+
+    // IndexMap methods
+
+    /// Retreive all the gate names in the Target
+    pub fn keys(&self) -> Keys<String, PropsMap> {
+        self.gate_map.keys()
+    }
+
+    /// Retrieves an iterator over the property maps stored within the Target
+    pub fn values(&self) -> Values<String, PropsMap> {
+        self.gate_map.values()
+    }
+
+    /// Checks if a key exists in the Target
+    pub fn contains_key(&self, key: &String) -> bool {
+        self.gate_map.contains_key(key)
+    }
+}
+
+// To access the Target's gate map by gate name.
+impl Index<&String> for Target {
+    type Output = PropsMap;
+    fn index(&self, index: &String) -> &Self::Output {
+        self.gate_map.index(index)
     }
 }
 
