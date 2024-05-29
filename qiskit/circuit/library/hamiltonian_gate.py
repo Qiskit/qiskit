@@ -103,7 +103,7 @@ class HamiltonianGate(Gate):
             time = float(self.params[1])
         except TypeError as ex:
             raise TypeError(
-                "Unable to generate Unitary matrix for " f"unbound t parameter {self.params[1]}"
+                f"Unable to generate Unitary matrix for unbound t parameter {self.params[1]}"
             ) from ex
         arr = scipy.linalg.expm(-1j * self.params[0] * time)
         dtype = complex if dtype is None else dtype
