@@ -9,10 +9,8 @@ features_circuits:
 
     Arguments accepted by the function are
     :code:`interaction_graph` Takes in the interaction graph
-    :code:`max_number_qubit_used` Takes the maximum number of times a qubit should be used
-           in the circuit.
-    :code:`max_operands` Take the maximum number of operands a gate should have.
-          (Possible values are 1 or 2)
+    :code:`max_number_qubit_used` Takes the maximum number of times a qubit should be used in the circuit.
+    :code:`max_operands` Take the maximum number of operands a gate should have. (Possible values are 1 or 2)
     :code:`measure` Should the circuit have measure instruction (True or False)
     :code:`conditional` Should the circuit have conditional operations. (True or False)
     :code:`reset` Should the cirucit have reset instruciton (True or False)
@@ -30,5 +28,4 @@ features_circuits:
       inter_graph = (pydi_graph, None, None, None)
       qc = random_circuit_with_graph(inter_graph, max_num_qubit_usage = 2, measure = True, conditional=True, reset = True, seed=0)
       qc.draw(output='mpl', scale = 0.75)
-
 
