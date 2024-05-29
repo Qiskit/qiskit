@@ -35,7 +35,8 @@ def duration_in_dt(duration_in_sec: float, dt_in_sec: float) -> int:
     rounding_error = abs(duration_in_sec - res * dt_in_sec)
     if rounding_error > 1e-15:
         warnings.warn(
-            f"Duration is rounded to {res} [dt] = {res * dt_in_sec} [s] from {duration_in_sec} [s]",
+            f"Duration is rounded to {res:d} [dt] = {res * dt_in_sec:e} [s] "
+            f"from {duration_in_sec:e} [s]",
             UserWarning,
         )
     return res
