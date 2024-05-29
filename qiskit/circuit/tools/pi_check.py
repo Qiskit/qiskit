@@ -119,7 +119,7 @@ def pi_check(inpt, eps=1e-9, output="text", ndigits=None):
         # multiple or power of pi, since no fractions will exceed MAX_FRAC * pi
         if abs(single_inpt) >= (MAX_FRAC * np.pi):
             if ndigits is None:
-                str_out = f"{single_inpt}"
+                str_out = str(single_inpt)
             else:
                 str_out = f"{single_inpt:.{ndigits}g}"
             return str_out
