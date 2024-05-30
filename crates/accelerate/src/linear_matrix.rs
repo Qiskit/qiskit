@@ -11,6 +11,8 @@
 // that they have been altered from the originals.
 
 use ndarray::{s, Array2};
+use numpy::{AllowTypeChange, IntoPyArray, PyArray2, PyArrayLike2};
+use pyo3::prelude::*;
 
 // Perform ROW operation on a matrix mat
 fn _row_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
@@ -29,8 +31,7 @@ fn _col_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
 // Gauss elimination of a matrix mat with m rows and n columns.
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 // Returns the matrix mat.
-
-fn _gauss_elimination(
+fn gauss_elimination(
     mut mat: Array2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
@@ -87,4 +88,24 @@ fn _gauss_elimination(
         r += 1;
     }
     mat
+}
+
+#[pyfunction]
+#[pyo3(signature = (mat, ncols=None, full_elim=false))]
+fn _gauss_elimination(
+    py: Python,
+    mat: PyArrayLike2<bool, AllowTypeChange>,
+    ncols: Option<usize>,
+    full_elim: Option<bool>,
+) -> PyResult<Py<PyArray2<bool>>> {
+    let view = mat.as_array().to_owned();
+    Ok(gauss_elimination(view, ncols, full_elim)
+        .into_pyarray_bound(py)
+        .unbind())
+}
+
+#[pymodule]
+pub fn linear_matrix(m: &Bound<PyModule>) -> PyResult<()> {
+    m.add_wrapped(wrap_pyfunction!(_gauss_elimination))?;
+    Ok(())
 }
