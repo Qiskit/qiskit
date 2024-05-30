@@ -454,9 +454,12 @@ impl BaseTarget {
     /// Returns:
     ///     set: The set of qargs the gate instance applies to.
     #[pyo3(text_signature = "(operation, /,)")]
-    pub fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
+    fn qargs_for_operation_name(&self, operation: String) -> PyResult<Option<Vec<Qargs>>> {
         match self.qargs_for_op_name(&operation) {
-            Ok(set) => Ok(set),
+            Ok(option_set) => match option_set {
+                Some(set) => Ok(Some(set.into_iter().cloned().collect())),
+                None => Ok(None),
+            },
             Err(e) => Err(PyKeyError::new_err(e.message)),
         }
     }
@@ -497,7 +500,7 @@ impl BaseTarget {
     /// Raises:
     ///     KeyError: If qargs is not in target
     #[pyo3(text_signature = "(/, qargs=None)")]
-    pub fn operations_for_qargs(
+    fn operations_for_qargs(
         &self,
         py: Python<'_>,
         qargs: Option<Qargs>,
@@ -942,14 +945,9 @@ impl BaseTarget {
 
     /// The set of qargs in the target.
     #[getter]
-    pub fn qargs(&self) -> Option<Vec<Qargs>> {
-        let qargs: Vec<Option<Qargs>> = self.qarg_gate_map.keys().cloned().collect();
-        // Modify logic to account for the case of {None}
-        let next_entry = qargs.iter().flatten().next();
-        if qargs.len() == 1 && (qargs.first().unwrap().is_none() || next_entry.is_none()) {
-            return None;
-        }
-        Some(qargs.into_iter().flatten().collect_vec())
+    fn qargs(&self) -> Option<Vec<Option<Qargs>>> {
+        self.get_qargs()
+            .map(|qargs| qargs.into_iter().cloned().collect())
     }
 
     /// Get the list of tuples ``(:class:`~qiskit.circuit.Instruction`, (qargs))``
@@ -1114,18 +1112,33 @@ impl BaseTarget {
     pub fn qargs_for_op_name(
         &self,
         operation: &String,
-    ) -> Result<Option<Vec<Qargs>>, TargetKeyError> {
+    ) -> Result<Option<Vec<&Qargs>>, TargetKeyError> {
         if let Some(gate_map_oper) = self.gate_map.get(operation) {
             if gate_map_oper.contains_key(&None) {
                 return Ok(None);
             }
-            let qargs: Vec<Qargs> = gate_map_oper.keys().flatten().cloned().collect();
+            let qargs: Vec<&Qargs> = gate_map_oper.keys().flatten().collect();
             Ok(Some(qargs))
         } else {
             Err(TargetKeyError::new_err(format!(
                 "Operation: {operation} not in Target."
             )))
         }
+    }
+
+    /// Rust-native method to get all the qargs of a specific Target object
+    pub fn get_qargs(&self) -> Option<IndexSet<&Option<Qargs>>> {
+        let qargs: IndexSet<&Option<Qargs>> = self.qarg_gate_map.keys().collect();
+        // Modify logic to account for the case of {None}
+        let next_entry = qargs.iter().next();
+        if qargs.len() == 1
+            && (qargs.first().unwrap().is_none()
+                || next_entry.is_none()
+                || next_entry.unwrap().is_none())
+        {
+            return None;
+        }
+        Some(qargs)
     }
 
     // IndexMap methods

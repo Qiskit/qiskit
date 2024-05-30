@@ -562,7 +562,7 @@ class Target(BaseTarget):
         qargs = super().qargs
         if qargs is None:
             return None
-        qargs = {tuple(qarg) for qarg in qargs}
+        qargs = {None if qarg is None else tuple(qarg) for qarg in qargs}
         return qargs
 
     def qargs_for_operation_name(self, operation):
