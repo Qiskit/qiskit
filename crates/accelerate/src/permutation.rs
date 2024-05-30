@@ -78,7 +78,7 @@ fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
     swaps
 }
 
-///Finds inverse of a permutation pattern.
+/// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
 fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> PyResult<PyObject> {
