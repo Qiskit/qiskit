@@ -120,10 +120,10 @@ class BlueprintCircuit(QuantumCircuit, ABC):
             self._build()
         return super().parameters
 
-    def _append(self, instruction, _qargs=None, _cargs=None):
+    def _append(self, instruction, _qargs=None, _cargs=None, *, _standard_gate=False):
         if not self._is_built:
             self._build()
-        return super()._append(instruction, _qargs, _cargs)
+        return super()._append(instruction, _qargs, _cargs, _standard_gate=_standard_gate)
 
     def compose(
         self,

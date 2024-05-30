@@ -10,7 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use pyo3::exceptions::PyIndexError;
 use pyo3::prelude::*;
 use pyo3::{import_exception, intern, PyObject};
 
@@ -18,7 +17,7 @@ import_exception!(qiskit.circuit.exceptions, CircuitError);
 
 use hashbrown::{HashMap, HashSet};
 
-#[pyclass]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub(crate) struct ParamEntryKeys {
     keys: Vec<(usize, usize)>,
     iter_pos: usize,
@@ -42,7 +41,7 @@ impl ParamEntryKeys {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub(crate) struct ParamEntry {
     /// Mapping of tuple of instruction index (in CircuitData) and parameter index to the actual
     /// parameter object
@@ -85,7 +84,7 @@ impl ParamEntry {
 }
 
 #[derive(Clone, Debug)]
-#[pyclass(mapping)]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub(crate) struct ParamTable {
     /// Mapping of parameter uuid (as an int) to the Parameter Entry
     pub table: HashMap<u128, ParamEntry>,
@@ -145,28 +144,10 @@ impl ParamTable {
         }
     }
 
-    fn __len__(&self) -> usize {
-        self.table.len()
-    }
-
     pub fn clear(&mut self) {
         self.table.clear();
         self.names.clear();
         self.uuid_map.clear();
-    }
-
-    fn __contains__(&self, key: u128) -> bool {
-        self.table.contains_key(&key)
-    }
-
-    fn __getitem__(&self, key: u128) -> PyResult<ParamEntry> {
-        match self.table.get(&key) {
-            Some(res) => Ok(res.clone()),
-            None => Err(PyIndexError::new_err(format!(
-                "No param uuid entry {:?}",
-                key
-            ))),
-        }
     }
 
     pub fn pop(&mut self, key: u128, name: String) -> Option<ParamEntry> {

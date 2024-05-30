@@ -187,7 +187,7 @@ impl ToPyObject for Param {
 }
 
 #[derive(Clone, Debug, Copy, Eq, PartialEq, Hash)]
-#[pyclass]
+#[pyclass(module = "qiskit._accelerate.circuit")]
 pub enum StandardGate {
     ZGate = 0,
     YGate = 1,
@@ -609,7 +609,7 @@ const FLOAT_ZERO: Param = Param::Float(0.0);
 
 /// This class is used to wrap a Python side Instruction that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub struct PyInstruction {
     pub qubits: u32,
     pub clbits: u32,
@@ -674,7 +674,7 @@ impl Operation for PyInstruction {
 
 /// This class is used to wrap a Python side Gate that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub struct PyGate {
     pub qubits: u32,
     pub clbits: u32,
@@ -766,7 +766,7 @@ impl Operation for PyGate {
 
 /// This class is used to wrap a Python side Operation that is not in the standard library
 #[derive(Clone, Debug)]
-#[pyclass]
+#[pyclass(freelist = 20, module = "qiskit._accelerate.circuit")]
 pub struct PyOperation {
     pub qubits: u32,
     pub clbits: u32,

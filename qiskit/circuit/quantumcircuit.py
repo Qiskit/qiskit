@@ -2321,7 +2321,7 @@ class QuantumCircuit:
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
             instruction = CircuitInstruction(op, qarg, carg, params=params, label=label)
-            circuit_scope.append(instruction)
+            circuit_scope.append(instruction, _standard_gate=True)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
         return instructions
 
@@ -2431,7 +2431,9 @@ class QuantumCircuit:
 
     # Preferred new style.
     @typing.overload
-    def _append(self, instruction: CircuitInstruction) -> CircuitInstruction: ...
+    def _append(
+        self, instruction: CircuitInstruction, *, _standard_gate: bool
+    ) -> CircuitInstruction: ...
 
     # To-be-deprecated old style.
     @typing.overload
@@ -2442,7 +2444,7 @@ class QuantumCircuit:
         cargs: Sequence[Clbit],
     ) -> Operation: ...
 
-    def _append(self, instruction, qargs=(), cargs=()):
+    def _append(self, instruction, qargs=(), cargs=(), *, _standard_gate: bool = False):
         """Append an instruction to the end of the circuit, modifying the circuit in place.
 
         .. warning::
@@ -2483,6 +2485,14 @@ class QuantumCircuit:
 
         :meta public:
         """
+        if _standard_gate:
+            new_param = self._data.append(instruction)
+            if new_param:
+                self._parameters = None
+            self.duration = None
+            self.unit = "dt"
+            return instruction
+
         old_style = not isinstance(instruction, CircuitInstruction)
         if old_style:
             instruction = CircuitInstruction(instruction, qargs, cargs)
@@ -6575,9 +6585,9 @@ class _OuterCircuitScopeInterface(CircuitScopeInterface):
     def instructions(self):
         return self.circuit._data
 
-    def append(self, instruction):
+    def append(self, instruction, *, _standard_gate: bool = False):
         # QuantumCircuit._append is semi-public, so we just call back to it.
-        return self.circuit._append(instruction)
+        return self.circuit._append(instruction, _standard_gate=_standard_gate)
 
     def extend(self, data: CircuitData):
         self.circuit._data.extend(data)
