@@ -507,9 +507,7 @@ class QASM3Builder:
                 for block in operation.blocks:
                     self.hoist_declarations(block.data, opaques=opaques, gates=gates)
                 continue
-            if operation in self.global_namespace or isinstance(
-                operation, self.builtins
-            ):
+            if operation in self.global_namespace or isinstance(operation, self.builtins):
                 continue
 
             if isinstance(operation, standard_gates.CXGate):
@@ -525,9 +523,7 @@ class QASM3Builder:
             elif not isinstance(operation, Gate):
                 raise QASM3ExporterError("Exporting non-unitary instructions is not yet supported.")
             else:
-                self.hoist_declarations(
-                    operation.definition.data, opaques=opaques, gates=gates
-                )
+                self.hoist_declarations(operation.definition.data, opaques=opaques, gates=gates)
                 self._register_gate(operation)
                 gates.append(operation)
         return opaques, gates
@@ -934,10 +930,7 @@ class QASM3Builder:
                 ast.AssignmentStatement(target, real_target),
                 ast.SwitchStatementPreview(
                     target,
-                    (
-                        case(values, block)
-                        for values, block in operation.cases_specifier()
-                    ),
+                    (case(values, block) for values, block in operation.cases_specifier()),
                 ),
             ]
 
