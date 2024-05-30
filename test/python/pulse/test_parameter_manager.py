@@ -24,12 +24,8 @@ from qiskit.circuit import Parameter
 from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.parameter_manager import ParameterGetter, ParameterSetter
 from qiskit.pulse.transforms import AlignEquispaced, AlignLeft, inline_subroutines
-<<<<<<< HEAD
-from qiskit.test import QiskitTestCase
-=======
 from qiskit.pulse.utils import format_parameter_value
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
->>>>>>> f48d81983 (Fix pulse parameter value formatter bug (#11972))
 
 
 class ParameterTestBase(QiskitTestCase):
