@@ -12,10 +12,12 @@
 
 
 """Test random circuit generation utility."""
+import numpy as np
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.exceptions import CircuitError
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -81,3 +83,24 @@ class TestCircuitRandom(QiskitTestCase):
             bool(getattr(instruction.operation, "condition", None)) for instruction in circ
         ]
         self.assertEqual([False, False, False, True], conditions)
+
+    def test_random_circuit_num_operand_distribution(self):
+        """Test that num_operand_distribution argument generates gates in correct proportion"""
+        num_qubits = depth = 8
+        num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist, seed=5555555)
+        total_gates = circ.size()
+        self.assertEqual(circ.width(), num_qubits)
+        self.assertEqual(circ.depth(), depth)
+        gate_qubits = [instruction.operation.num_qubits for instruction in circ]
+        gate_type_counter = np.bincount(gate_qubits, minlength=5)
+        for gate_type, prob in sorted(num_op_dist.items()):
+            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
+
+    def test_random_circuit_with_max_operands_and_num_op_dist(self):
+        """Test that when num_operand_distribution and max_operands are specified together the function raises an error"""
+        num_qubits = depth = 4
+        num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
+        max_op = 4
+        circ = random_circuit(num_qubits, depth)
+        self.assertRaises(CircuitError, random_circuit, num_qubits, depth, num_op_dist, max_op)
