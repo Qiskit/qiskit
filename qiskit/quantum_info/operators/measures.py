@@ -416,7 +416,8 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         d = _find_poly_distance(eigenvals)
         return 2 * np.sqrt(1 - d**2)
     elif isinstance(op1, Pauli) and isinstance(op2, Pauli):
-        if op1 == op2:
+        # Check Pauli equality up to phase
+        if (op1.z == op2.z).all() and (op1.x == op2.x).all():
             return 0.0
         else:
             return 2.0
