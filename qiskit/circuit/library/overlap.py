@@ -59,7 +59,12 @@ class UnitaryOverlap(QuantumCircuit):
     """
 
     def __init__(
-        self, unitary1: QuantumCircuit, unitary2: QuantumCircuit, prefix1="p1", prefix2="p2"
+        self,
+        unitary1: QuantumCircuit,
+        unitary2: QuantumCircuit,
+        prefix1: str = "p1",
+        prefix2: str = "p2",
+        insert_barrier: bool = False,
     ):
         """
         Args:
@@ -69,6 +74,7 @@ class UnitaryOverlap(QuantumCircuit):
                 if it is parameterized. Defaults to ``"p1"``.
             prefix2: The name of the parameter vector associated to ``unitary2``,
                 if it is parameterized. Defaults to ``"p2"``.
+            insert_barrier: Whether to insert a barrier between the two unitaries.
 
         Raises:
             CircuitError: Number of qubits in ``unitary1`` and ``unitary2`` does not match.
@@ -95,6 +101,8 @@ class UnitaryOverlap(QuantumCircuit):
         # Generate the actual overlap circuit
         super().__init__(unitaries[0].num_qubits, name="UnitaryOverlap")
         self.compose(unitaries[0], inplace=True)
+        if insert_barrier:
+            self.barrier()
         self.compose(unitaries[1].inverse(), inplace=True)
 
 
