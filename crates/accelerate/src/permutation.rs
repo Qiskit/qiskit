@@ -88,15 +88,15 @@ fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> 
     Ok(inverse_i64.to_object(py))
 }
 
-///Sorts the input permutation by iterating through the permutation list
-///and putting each element to its correct position via a SWAP (if it's not
-///at the correct position already). If ``n`` is the length of the input
-///permutation, this requires at most ``n`` SWAPs.
+/// Sorts the input permutation by iterating through the permutation list
+/// and putting each element to its correct position via a SWAP (if it's not
+/// at the correct position already). If ``n`` is the length of the input
+/// permutation, this requires at most ``n`` SWAPs.
 ///
-///More precisely, if the input permutation is a cycle of length ``m``,
-///then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
-///if the input  permutation consists of several disjoint cycles, then each cycle
-///is essentially treated independently.
+/// More precisely, if the input permutation is a cycle of length ``m``,
+/// then this creates a quantum circuit with ``m-1`` SWAPs (and of depth ``m-1``);
+/// if the input  permutation consists of several disjoint cycles, then each cycle
+/// is essentially treated independently.
 #[pyfunction]
 #[pyo3(signature = (permutation_in))]
 fn _get_ordered_swap(
