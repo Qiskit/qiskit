@@ -907,6 +907,7 @@ class QASM3Builder:
 
     def build_switch_statement(self, instruction: CircuitInstruction) -> Iterable[ast.Statement]:
         """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
+        operation = instruction.operation
         real_target = self.build_expression(expr.lift(operation.target))
         global_scope = self.global_scope()
         target = self._reserve_variable_name(
@@ -935,7 +936,7 @@ class QASM3Builder:
                     target,
                     (
                         case(values, block)
-                        for values, block in instruction.operation.cases_specifier()
+                        for values, block in operation.cases_specifier()
                     ),
                 ),
             ]
@@ -943,7 +944,7 @@ class QASM3Builder:
         # Handle the stabilised syntax.
         cases = []
         default = None
-        for values, block in instruction.operation.cases_specifier():
+        for values, block in operation.cases_specifier():
             self.push_scope(block, instruction.qubits, instruction.clbits)
             case_body = ast.ProgramBlock(self.build_current_scope())
             self.pop_scope()
@@ -972,6 +973,7 @@ class QASM3Builder:
 
     def build_for_loop(self, instruction: CircuitInstruction) -> ast.ForLoopStatement:
         """Build a :obj:`.ForLoopOp` into a :obj:`.ast.ForLoopStatement`."""
+        operation = instruction.operation
         indexset, loop_parameter, loop_circuit = operation.params
         self.push_scope(loop_circuit, instruction.qubits, instruction.clbits)
         scope = self.current_scope()
