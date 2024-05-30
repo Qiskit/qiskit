@@ -12,7 +12,9 @@
 
 
 """Test random circuit generation utility."""
+from collections import defaultdict
 import rustworkx as rx
+
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.circuit import Measure
 from qiskit.circuit.random import random_circuit
@@ -104,36 +106,41 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
             (4, 7, None),
             (7, 9, None),
             (5, 8, None),
+            (6, 9, None),
         ]
         pydi_graph.add_edges_from(cp_map)
         self.interaction_graph = (pydi_graph, None, None, None)
 
     def test_simple_random(self):
         """Test creating a simple random circuit."""
-        circ = random_circuit_with_graph(
-            interaction_graph=self.interaction_graph, max_num_qubit_usage=2
-        )
+        circ = random_circuit_with_graph(interaction_graph=self.interaction_graph, depth=1)
         self.assertIsInstance(circ, QuantumCircuit)
         self.assertEqual(circ.width(), 10)
 
-    def test_max_times_qubit_usage(self):
-        """Test number of gates on a qubit doesn't exceeds the `max_num_qubit_usage`."""
+    def test_min_times_qubit_pair_usage(self):
+        """Test at-least depth number of times qubit-pair is used."""
+        depth = 1
         qc = random_circuit_with_graph(
-            interaction_graph=self.interaction_graph, max_num_qubit_usage=4
+            interaction_graph=self.interaction_graph, depth=depth, seed=0
         )
-        # can go for qc.depth() == 4 for all these.
         dag = circuit_to_dag(qc)
-        max_usage_per_qubit = [
-            len([dag_op_node.name for dag_op_node in dag.nodes_on_wire(wire, only_ops=True)])
-            for wire in dag.wires
-        ]
-        for usage in max_usage_per_qubit:
-            self.assertLessEqual(usage, 4)
+        count_register = defaultdict(int)
+
+        for wire in dag.wires:
+            for node in dag.nodes_on_wire(wire, only_ops=True):
+                if node.op.name == "measure" or node.op.num_qubits < 2:
+                    continue
+                key = node.sort_key
+                control, target = key.split(",")
+                count_register[(control, target)] += 1
+
+        for occurence in count_register.values():
+            self.assertLessEqual(depth, occurence)
 
     def test_random_measure(self):
         """Test random circuit with final measurement."""
         qc = random_circuit_with_graph(
-            interaction_graph=self.interaction_graph, max_num_qubit_usage=1, measure=True
+            interaction_graph=self.interaction_graph, depth=1, measure=True
         )
         self.assertIn("measure", qc.count_ops())
 
@@ -142,10 +149,11 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
         # Presence of 'reset' in the circuit is probabilistic, at seed 0 reset exists in circuit.
         qc = random_circuit_with_graph(
             interaction_graph=self.interaction_graph,
-            max_num_qubit_usage=2,
+            depth=1,
             conditional=True,
             reset=True,
-            seed=0,
+            seed=0,  # Do not change the seed or the args.
+            insert_1q_oper=True,
         )
         self.assertIn("reset", qc.count_ops())
 
@@ -160,24 +168,25 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
         # ( control, target, probability-of-being-selected )
         cp_map = [
             (0, 2, 0.1),
-            (1, 3, 0.05),
+            (1, 3, 0.15),
             (2, 4, 0.15),
-            (3, 4, 0.2),
-            (5, 7, 0.03),
+            (3, 4, 0.1),
+            (5, 7, 0.13),
             (4, 7, 0.07),
-            (7, 9, 0.2),
-            (5, 8, 0.2),
+            (7, 9, 0.1),
+            (5, 8, 0.1),
+            (6, 9, 0.1),
         ]
         pydi_graph.add_edges_from(cp_map)
         interaction_graph = (pydi_graph, None, None, None)
 
         circ = random_circuit_with_graph(
             interaction_graph=interaction_graph,
-            max_num_qubit_usage=3,
+            depth=1,
             measure=True,
             conditional=True,
             reset=True,
-            seed=2589,
+            seed=778,  # Do not change the seed or the args.
         )
         # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
         # Do not change the function signature.
@@ -195,11 +204,11 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
         # This is to test the call actually returns without raising an exception.
         circ = random_circuit_with_graph(
             interaction_graph=self.interaction_graph,
-            max_num_qubit_usage=2,
+            depth=1,
             measure=True,
             conditional=True,
             reset=True,
-            seed=0,
+            seed=0,  # Do not change the seed or the args.
         )
         # Test that at least one instruction having a conditional is generated.  Keep seed as 0.
         # Do not change the function signature.
@@ -216,7 +225,7 @@ class TestRandomCircuitWithGraph(QiskitTestCase):
         """Test random circuit with mid-circuit measurements for conditionals."""
         qc = random_circuit_with_graph(
             interaction_graph=self.interaction_graph,
-            max_num_qubit_usage=2,
+            depth=1,
             measure=True,
             conditional=True,
             reset=True,
