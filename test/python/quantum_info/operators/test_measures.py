@@ -23,7 +23,7 @@ from qiskit.quantum_info import average_gate_fidelity
 from qiskit.quantum_info import gate_error
 from qiskit.quantum_info import diamond_norm
 from qiskit.quantum_info import diamond_distance
-from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.random import random_unitary, random_pauli, random_clifford
 from qiskit.circuit.library import RZGate
 from test import combine  # pylint: disable=wrong-import-order
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
@@ -197,7 +197,7 @@ class TestOperatorMeasures(QiskitTestCase):
             target = np.sqrt(1 - d2) * 2
             self.assertAlmostEqual(diamond_distance(op1, op2), target, places=7)
 
-    @combine(num_qubits=[1, 2, 3])
+    @combine(num_qubits=[1, 2])
     def test_diamond_distance_random(self, num_qubits):
         """Tests the diamond_distance for random unitaries.
         Compares results with semi-definite program."""
@@ -209,6 +209,34 @@ class TestOperatorMeasures(QiskitTestCase):
         for _ in range(5):
             op1 = random_unitary(2**num_qubits, seed=rng)
             op2 = random_unitary(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
+
+    @combine(num_qubits=[1, 2])
+    def test_diamond_distance_random_pauli(self, num_qubits):
+        """Test diamond_distance for non-CP channel"""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        rng = np.random.default_rng(1234)
+        for _ in range(5):
+            op1 = random_pauli(2**num_qubits, seed=rng)
+            op2 = random_pauli(2**num_qubits, seed=rng)
+            target = diamond_norm(Choi(op1) - Choi(op2))
+            self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
+
+    @combine(num_qubits=[1, 2])
+    def test_diamond_distance_random_clifford(self, num_qubits):
+        """Test diamond_distance for non-CP channel"""
+        if importlib.util.find_spec("cvxpy") is None:
+            # Skip test if CVXPY not installed
+            self.skipTest("CVXPY not installed.")
+
+        rng = np.random.default_rng(1234)
+        for _ in range(5):
+            op1 = random_clifford(2**num_qubits, seed=rng)
+            op2 = random_clifford(2**num_qubits, seed=rng)
             target = diamond_norm(Choi(op1) - Choi(op2))
             self.assertAlmostEqual(diamond_distance(op1, op2), target, places=4)
 

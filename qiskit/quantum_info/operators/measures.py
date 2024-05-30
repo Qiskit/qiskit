@@ -22,6 +22,7 @@ from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel import Choi, SuperOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
@@ -376,6 +377,8 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         compute the distance :math:`d` between the origin and the convex hull of
         the eigenvalues of :math:`U^\dag V` which is plugged into :math:`\sqrt{1 - d^2}`.
 
+        If the operators are `Pauli` objects, we use an optimisation to find eigenvalues.
+
     Reference:
         D. Aharonov, A. Kitaev, and N. Nisan. “Quantum circuits with
         mixed states” in Proceedings of the thirtieth annual ACM symposium
@@ -412,6 +415,11 @@ def diamond_distance(op1: BaseOperator, op2: BaseOperator) -> float:
         eigenvals = np.linalg.eigvals(pre_diag)
         d = _find_poly_distance(eigenvals)
         return 2 * np.sqrt(1 - d**2)
+    elif isinstance(op1, Pauli) and isinstance(op2, Pauli):
+        if op1 == op2:
+            return 0.0
+        else:
+            return 2.0
     else:
         # TODO: Implement special case for pauli channels (Benenti and Strini 2010)
         # as well as a potential optimisation for clifford circuits
@@ -477,6 +485,10 @@ def _input_formatter(obj, fallback_class, func_name, arg_name):
         return obj.to_quantumchannel()
     if hasattr(obj, "to_channel"):
         return obj.to_channel()
+
+    # Pauli-like input
+    if isinstance(obj, Pauli):
+        return obj
 
     # Unitary-like input
     if isinstance(obj, (Gate, BaseOperator)):
