@@ -2315,6 +2315,9 @@ class QuantumCircuit:
 
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
+        if params is not None:
+            for param in params:
+                Gate.validate_parameter(op, param)
 
         instructions = InstructionSet(resource_requester=circuit_scope.resolve_classical_resource)
         broadcast_iter = Gate.broadcast_arguments(op, expanded_qargs, expanded_cargs)

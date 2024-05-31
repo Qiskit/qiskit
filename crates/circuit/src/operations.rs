@@ -237,6 +237,11 @@ impl StandardGate {
     pub fn get_num_clbits(&self) -> u32 {
         self.num_clbits()
     }
+
+    #[getter]
+    pub fn get_name(&self) -> &str {
+        self.name()
+    }
 }
 
 // This must be kept up-to-date with `StandardGate` when adding or removing
