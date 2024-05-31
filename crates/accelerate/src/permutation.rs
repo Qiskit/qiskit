@@ -14,7 +14,6 @@ use ndarray::{Array1, ArrayView1};
 use numpy::{AllowTypeChange, PyArrayLike1};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::wrap_pymodule;
 use std::vec::Vec;
 
 fn validate_permutation(pattern: &ArrayView1<i64>) -> PyResult<()> {
@@ -109,14 +108,8 @@ fn _get_ordered_swap(
 }
 
 #[pymodule]
-pub fn permutation_utils(m: &Bound<PyModule>) -> PyResult<()> {
+pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(_inverse_pattern, m)?)?;
     m.add_function(wrap_pyfunction!(_get_ordered_swap, m)?)?;
-    Ok(())
-}
-
-#[pymodule]
-pub fn permutation(m: &Bound<PyModule>) -> PyResult<()> {
-    m.add_wrapped(wrap_pymodule!(permutation_utils))?;
     Ok(())
 }
