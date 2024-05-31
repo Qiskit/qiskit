@@ -579,6 +579,33 @@ class ParameterExpression:
             return False
         return self._symbol_expr.is_real
 
+    def _numeric(self) -> int | float | complex:
+        """ported from https://github.com/Qiskit/qiskit/pull/11109 as private
+        Returns:
+            A Python number representing the object.
+
+        Raises:
+            TypeError: if there are unbound parameters.
+        """
+        if self._parameter_symbols:
+            raise TypeError(
+                f"Expression with unbound parameters '{self.parameters}' is not numeric"
+            )
+        if self._symbol_expr.is_integer:
+            # Integer evaluation is reliable, as far as we know.
+            return int(self._symbol_expr)
+        # We've come across several ways in which symengine's general-purpose evaluators
+        # introduce spurious imaginary components can get involved in the output.  The most
+        # reliable strategy "try it and see" while forcing real floating-point evaluation.
+        try:
+            real_expr = self._symbol_expr.evalf(real=True)
+        except RuntimeError:
+            # Symengine returns `complex` if any imaginary floating-point enters at all, even if
+            # the result is zero.  The best we can do is detect that and decay to a float.
+            out = complex(self._symbol_expr)
+            return out.real if out.imag == 0.0 else out
+        return float(real_expr)
+
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.
 

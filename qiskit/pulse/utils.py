@@ -54,7 +54,7 @@ def format_parameter_value(
     """
     if isinstance(operand, ParameterExpression):
         try:
-            operand = operand.numeric()
+            operand = operand._numeric()
         except TypeError:
             # Unassigned expression
             return operand
