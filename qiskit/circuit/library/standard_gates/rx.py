@@ -54,10 +54,24 @@ class RXGate(Gate):
     _standard_gate = StandardGate.RXGate
 
     def __init__(
-        self, theta: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        *,
+        duration=None,
+        unit="dt",
+        _skip_validation=False,
     ):
         """Create new RX gate."""
-        super().__init__("rx", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__(
+            "rx",
+            1,
+            [theta],
+            label=label,
+            duration=duration,
+            unit=unit,
+            _skip_validation=_skip_validation,
+        )
 
     def _define(self):
         """

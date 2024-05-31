@@ -626,12 +626,20 @@ pub(crate) fn operation_type_and_data_to_py(
             } else {
                 PyTuple::new_bound(py, params)
             };
-            let kwargs = [
+            let mut kwargs_list = vec![
                 ("label", label.to_object(py)),
                 ("unit", unit.to_object(py)),
                 ("duration", duration.to_object(py)),
-            ]
-            .into_py_dict_bound(py);
+            ];
+            if let Some(params) = params {
+                if !params.is_empty() {
+                    kwargs_list.push(
+                        ("_skip_validation", true.to_object(py))
+                    );
+                }
+            }
+
+            let kwargs = kwargs_list.into_py_dict_bound(py);
             let mut out = gate_class.call_bound(py, args, Some(&kwargs))?;
             if condition.is_some() {
                 out = out.call_method0(py, "to_mutable")?;

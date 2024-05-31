@@ -79,10 +79,24 @@ class PhaseGate(Gate):
     _standard_gate = StandardGate.PhaseGate
 
     def __init__(
-        self, theta: ParameterValueType, label: str | None = None, *, duration=None, unit="dt"
+        self,
+        theta: ParameterValueType,
+        label: str | None = None,
+        *,
+        duration=None,
+        unit="dt",
+        _skip_validation=False,
     ):
         """Create new Phase gate."""
-        super().__init__("p", 1, [theta], label=label, duration=duration, unit=unit)
+        super().__init__(
+            "p",
+            1,
+            [theta],
+            label=label,
+            duration=duration,
+            unit=unit,
+            _skip_validation=_skip_validation,
+        )
 
     def _define(self):
         # pylint: disable=cyclic-import
