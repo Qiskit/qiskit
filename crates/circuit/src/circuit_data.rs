@@ -494,6 +494,11 @@ impl CircuitData {
         self.qubits.clone_ref(py)
     }
 
+    #[getter]
+    pub fn num_qubits(&self) -> usize {
+        self.qubits_native.len()
+    }
+
     /// Returns the current sequence of registered :class:`.Clbit`
     /// instances as a list.
     ///
@@ -509,6 +514,15 @@ impl CircuitData {
         self.clbits.clone_ref(py)
     }
 
+    #[getter]
+    pub fn num_clbits(&self) -> usize {
+        self.clbits_native.len()
+    }
+
+    pub fn width(&self) -> usize {
+        self.num_qubits() + self.num_clbits()
+    }
+
     /// Registers a :class:`.Qubit` instance.
     ///
     /// Args:
@@ -520,13 +534,13 @@ impl CircuitData {
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
     pub fn add_qubit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        if self.qubits_native.len() != self.qubits.bind(bit.py()).len() {
+        if self.num_qubits() != self.qubits.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'qubits' list has become out of sync with the circuit data.",
                 " Did something modify it?"
             )));
         }
-        let idx: BitType = self.qubits_native.len().try_into().map_err(|_| {
+        let idx: BitType = self.num_qubits().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of qubits in the circuit has exceeded the maximum capacity",
             )
@@ -558,13 +572,13 @@ impl CircuitData {
     ///         was provided.
     #[pyo3(signature = (bit, *, strict=true))]
     pub fn add_clbit(&mut self, py: Python, bit: &Bound<PyAny>, strict: bool) -> PyResult<()> {
-        if self.clbits_native.len() != self.clbits.bind(bit.py()).len() {
+        if self.num_clbits() != self.clbits.bind(bit.py()).len() {
             return Err(PyRuntimeError::new_err(concat!(
                 "This circuit's 'clbits' list has become out of sync with the circuit data.",
                 " Did something modify it?"
             )));
         }
-        let idx: BitType = self.clbits_native.len().try_into().map_err(|_| {
+        let idx: BitType = self.num_clbits().try_into().map_err(|_| {
             PyRuntimeError::new_err(
                 "The number of clbits in the circuit has exceeded the maximum capacity",
             )
@@ -874,11 +888,11 @@ impl CircuitData {
     ) -> PyResult<()> {
         let mut temp = CircuitData::new(py, qubits, clbits, None, 0, self.global_phase.clone())?;
         if qubits.is_some() {
-            if temp.qubits_native.len() < self.qubits_native.len() {
+            if temp.num_qubits() < self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
                     "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
-                    temp.qubits_native.len(),
-                    self.qubits_native.len(),
+                    temp.num_qubits(),
+                    self.num_qubits(),
                 )));
             }
             std::mem::swap(&mut temp.qubits, &mut self.qubits);
@@ -889,11 +903,11 @@ impl CircuitData {
             );
         }
         if clbits.is_some() {
-            if temp.clbits_native.len() < self.clbits_native.len() {
+            if temp.num_clbits() < self.num_clbits() {
                 return Err(PyValueError::new_err(format!(
                     "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
-                    temp.clbits_native.len(),
-                    self.clbits_native.len(),
+                    temp.num_clbits(),
+                    self.num_clbits(),
                 )));
             }
             std::mem::swap(&mut temp.clbits, &mut self.clbits);
