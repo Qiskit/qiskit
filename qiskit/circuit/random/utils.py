@@ -79,7 +79,8 @@ def random_circuit(
         for key, prob in num_operand_distribution.items():
             if key > num_qubits and prob != 0.0:
                 raise CircuitError(
-                    f"'num_operand_distribution' cannot have {key}-qubit gates for circuit with {num_qubits} qubits"
+                    f"'num_operand_distribution' cannot have {key}-qubit gates"
+                    f" for circuit with {num_qubits} qubits"
                 )
         num_operand_distribution = dict(sorted(num_operand_distribution.items()))
 
@@ -221,7 +222,8 @@ def random_circuit(
             gate_type: counter[gate_type] / total_gates for gate_type in range(1, 5)
         }
 
-        # Slack handling loop, this loop will add gates to fill slack while respecting the 'num_operand_distribution'
+        # Slack handling loop, this loop will add gates to fill
+        # the slack while respecting the 'num_operand_distribution'
         while slack > 0:
             gate_added_flag = False
 

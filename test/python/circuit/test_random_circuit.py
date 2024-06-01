@@ -98,9 +98,11 @@ class TestCircuitRandom(QiskitTestCase):
             self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
 
     def test_random_circuit_with_max_operands_and_num_op_dist(self):
-        """Test that when num_operand_distribution and max_operands are specified together the function raises an error"""
+        """
+        Test that when num_operand_distribution and max_operands are specified
+        together the function raises an error
+        """
         num_qubits = depth = 4
         num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
         max_op = 4
-        circ = random_circuit(num_qubits, depth)
         self.assertRaises(CircuitError, random_circuit, num_qubits, depth, num_op_dist, max_op)
