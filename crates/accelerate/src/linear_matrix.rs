@@ -15,14 +15,14 @@ use numpy::{AllowTypeChange, IntoPyArray, PyArray2, PyArrayLike2};
 use pyo3::prelude::*;
 
 // Perform ROW operation on a matrix mat
-fn _row_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
+fn _row_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
     let row0 = mat.row(ctrl).to_owned();
     let mut row1 = mat.row_mut(trgt);
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
 // Perform COL operation on a matrix mat
-fn _col_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
+fn _col_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
     let col0 = mat.column(ctrl).to_owned();
     let mut col1 = mat.column_mut(trgt);
     col1.zip_mut_with(&col0, |x, &y| *x ^= y);
@@ -32,10 +32,10 @@ fn _col_op(mat: &mut Array2<bool>, ctrl: usize, trgt: usize) {
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 // Returns the matrix mat.
 fn gauss_elimination(
-    mut mat: Array2<bool>,
+    mut mat: Array2<i8>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
-) -> Array2<bool> {
+) -> Array2<i8> {
     let (m, mut n) = (mat.nrows(), mat.ncols()); // no. of rows and columns
     if let Some(ncols_val) = ncols {
         n = usize::min(n, ncols_val); // no. of active columns
@@ -50,7 +50,7 @@ fn gauss_elimination(
         for j in k..n {
             new_k = k;
             for i in r..m {
-                if mat[(i, j)] {
+                if mat[(i, j)] == 1 {
                     is_non_zero = true;
                     new_k = j;
                     new_r = i;
@@ -72,16 +72,16 @@ fn gauss_elimination(
             mat.slice_mut(s![new_r, ..]).assign(&temp_r);
         }
 
-        if full_elim.is_some() {
+        if full_elim.is_some() && full_elim == Some(true) {
             for i in 0..r {
-                if mat[(i, new_k)] {
+                if mat[(i, new_k)] == 1 {
                     _row_op(&mut mat, r, i);
                 }
             }
         }
 
         for i in r + 1..m {
-            if mat[(i, new_k)] {
+            if mat[(i, new_k)] == 1 {
                 _row_op(&mut mat, r, i);
             }
         }
@@ -94,10 +94,10 @@ fn gauss_elimination(
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 fn _gauss_elimination(
     py: Python,
-    mat: PyArrayLike2<bool, AllowTypeChange>,
+    mat: PyArrayLike2<i8, AllowTypeChange>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
-) -> PyResult<Py<PyArray2<bool>>> {
+) -> PyResult<Py<PyArray2<i8>>> {
     let view = mat.as_array().to_owned();
     Ok(gauss_elimination(view, ncols, full_elim)
         .into_pyarray_bound(py)
