@@ -328,10 +328,10 @@ class ParameterExpression:
         return self._apply_operation(operator.mul, other)
 
     def __pos__(self):
-        return self._apply_operation(operator.mul, 1.0)
+        return self._apply_operation(operator.mul, 1)
 
     def __neg__(self):
-        return self._apply_operation(operator.mul, -1.0)
+        return self._apply_operation(operator.mul, -1)
 
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
