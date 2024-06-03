@@ -144,10 +144,6 @@ fn magic_basis_transform(
     }
 }
 
-fn transform_from_magic_basis(unitary: ArrayView2<Complex64>) -> Array2<Complex64> {
-    magic_basis_transform(unitary, MagicBasisTransform::OutOf)
-}
-
 // faer::c64 and num_complex::Complex<f64> are both structs
 // holding two f64's. But several functions are not defined for
 // c64. So we implement them here. These things should be contribute
@@ -228,7 +224,7 @@ fn decompose_two_qubit_product_gate(
 
 fn __weyl_coordinates(unitary: ArrayView2<Complex64>) -> [f64; 3] {
     let uscaled = (C1 / determinant_4x4(unitary).powf(0.25)) * &unitary;
-    let uup = transform_from_magic_basis(uscaled.view());
+    let uup = magic_basis_transform(uscaled.view(), MagicBasisTransform::OutOf);
     let mut darg: Vec<_> = matrix_multiply_4x4(uup.t(), uup.view())
         .view()
         .into_faer_complex()
