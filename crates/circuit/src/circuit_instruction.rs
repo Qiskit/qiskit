@@ -633,9 +633,7 @@ pub(crate) fn operation_type_and_data_to_py(
             ];
             if let Some(params) = params {
                 if !params.is_empty() {
-                    kwargs_list.push(
-                        ("_skip_validation", true.to_object(py))
-                    );
+                    kwargs_list.push(("_skip_validation", true.to_object(py)));
                 }
             }
 

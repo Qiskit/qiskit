@@ -3580,11 +3580,6 @@ class QuantumCircuit:
         """
         cpy = self.copy_empty_like(name)
         cpy._data = self._data.copy()
-
-        def memo_copy(op):
-            return op.copy()
-
-        cpy._data.map_ops(memo_copy)
         return cpy
 
     def copy_empty_like(

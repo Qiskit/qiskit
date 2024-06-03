@@ -601,6 +601,38 @@ impl CircuitData {
         res.intern_context = self.intern_context.clone();
         res.data.clone_from(&self.data);
         res.param_table.clone_from(&self.param_table);
+
+        for inst in &mut res.data {
+            match &mut inst.op {
+                OperationType::Standard(_) => {
+                    #[cfg(feature = "cache_pygates")]
+                    {
+                        inst.py_op = None;
+                    }
+                }
+                OperationType::Gate(ref mut op) => {
+                    op.gate = op.gate.call_method0(py, intern!(py, "copy"))?;
+                    #[cfg(feature = "cache_pygates")]
+                    {
+                        inst.py_op = None;
+                    }
+                }
+                OperationType::Instruction(ref mut op) => {
+                    op.instruction = op.instruction.call_method0(py, intern!(py, "copy"))?;
+                    #[cfg(feature = "cache_pygates")]
+                    {
+                        inst.py_op = None;
+                    }
+                }
+                OperationType::Operation(ref mut op) => {
+                    op.operation = op.operation.call_method0(py, intern!(py, "copy"))?;
+                    #[cfg(feature = "cache_pygates")]
+                    {
+                        inst.py_op = None;
+                    }
+                }
+            };
+        }
         Ok(res)
     }
 
