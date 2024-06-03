@@ -30,11 +30,12 @@ use pyo3::{
     types::{PyList, PyType},
 };
 
+use rustworkx_core::petgraph::graph::DiGraph;
 use smallvec::{smallvec, SmallVec};
 
 use crate::nlayout::PhysicalQubit;
 
-use errors::TargetKeyError;
+use errors::{TargetKeyError, TargetTwoQubitInstError};
 use instruction_properties::BaseInstructionProperties;
 
 use self::exceptions::TranspilerError;
@@ -53,6 +54,8 @@ type GateMapState = Vec<(
     String,
     Vec<(Option<Qargs>, Option<BaseInstructionProperties>)>,
 )>;
+type CouplingGraphType =
+    DiGraph<Option<BaseInstructionProperties>, IndexMap<String, Option<BaseInstructionProperties>>>;
 
 /// Temporary interpretation of Gate
 #[derive(Debug, Clone)]
@@ -224,6 +227,7 @@ pub struct BaseTarget {
     qarg_gate_map: IndexMap<Option<Qargs>, Option<HashSet<String>>>,
     non_global_strict_basis: Option<Vec<String>>,
     non_global_basis: Option<Vec<String>>,
+    coupling_graph: Option<CouplingGraphType>,
 }
 
 #[pymethods]
@@ -321,6 +325,7 @@ impl BaseTarget {
             qarg_gate_map: IndexMap::new(),
             non_global_basis: None,
             non_global_strict_basis: None,
+            coupling_graph: None,
         })
     }
 
@@ -1103,6 +1108,155 @@ impl BaseTarget {
 
 // Rust native methods
 impl BaseTarget {
+    /// Builds coupling graph
+    fn build_coupling_graph(&mut self) {
+        let mut coupling_graph: CouplingGraphType = DiGraph::new();
+        let mut indices = vec![];
+        for _ in 0..self.num_qubits.unwrap_or_default() {
+            indices.push(coupling_graph.add_node(None));
+        }
+        for (gate, qarg_map) in self.gate_map.iter() {
+            for (qarg, properties) in qarg_map.iter() {
+                if let Some(qarg) = qarg {
+                    if qarg.len() == 1 {
+                        coupling_graph[indices[qarg[0].index()]] = properties.clone();
+                    } else if qarg.len() == 2 {
+                        if let Some(edge_data) = coupling_graph
+                            .find_edge(indices[qarg[0].index()], indices[qarg[1].index()])
+                        {
+                            let edge_weight = coupling_graph.edge_weight_mut(edge_data).unwrap();
+                            edge_weight
+                                .entry(gate.to_string())
+                                .and_modify(|e| *e = properties.clone())
+                                .or_insert(properties.clone());
+                        } else {
+                            coupling_graph.add_edge(
+                                indices[qarg[0].index()],
+                                indices[qarg[1].index()],
+                                IndexMap::from_iter([(gate.to_owned(), properties.clone())]),
+                            );
+                        }
+                    }
+                } else {
+                    if self._gate_name_map[gate].num_qubits.unwrap_or_default() == 2 {
+                        self.coupling_graph = None;
+                        return;
+                    }
+                    continue;
+                }
+            }
+        }
+        let qargs = self.get_qargs();
+        if coupling_graph.edge_references().len() == 0
+            && (qargs.is_none() || qargs.unwrap().iter().any(|x| x.is_none()))
+        {
+            self.coupling_graph = None;
+            return;
+        }
+        self.coupling_graph = Some(coupling_graph);
+    }
+
+    fn filter_coupling_graph(&self) -> Option<CouplingGraphType> {
+        let qargs = self.get_qargs().unwrap_or_default();
+        let has_operation: IndexSet<usize> = qargs
+            .into_iter()
+            .flatten()
+            .flat_map(|x| x.iter().map(|y| y.index()))
+            .collect();
+        let mut graph: Option<CouplingGraphType> = self.coupling_graph.clone();
+        if let Some(graph) = graph.as_mut() {
+            let graph_nodes = graph.node_indices().collect_vec();
+            let to_remove: IndexSet<usize> =
+                IndexSet::from_iter(graph.node_indices().map(|x| x.index()));
+            let to_remove: Vec<&usize> = to_remove.difference(&has_operation).collect();
+            if !to_remove.is_empty() {
+                for node in to_remove {
+                    graph.remove_node(graph_nodes[*node]);
+                }
+            }
+        }
+        graph
+    }
+
+    /// Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
+    /// If there is a mix of two qubit operations that have a connectivity
+    /// constraint and those that are globally defined this will also return
+    /// ``None`` because the globally connectivity means there is no constraint
+    /// on the target. If you wish to see the constraints of the two qubit
+    /// operations that have constraints you should use the ``two_q_gate``
+    /// argument to limit the output to the gates which have a constraint.
+    ///
+    /// Args:
+    /// two_q_gate (str): An optional gate name for a two qubit gate in
+    /// the ``Target`` to generate the coupling map for. If specified the
+    /// output coupling map will only have edges between qubits where
+    /// this gate is present.
+    /// filter_idle_qubits (bool): If set to ``True`` the output :class:`~.CouplingMap`
+    /// will remove any qubits that don't have any operations defined in the
+    /// target. Note that using this argument will result in an output
+    /// :class:`~.CouplingMap` object which has holes in its indices
+    /// which might differ from the assumptions of the class. The typical use
+    /// case of this argument is to be paired with
+    /// :meth:`.CouplingMap.connected_components` which will handle the holes
+    /// as expected.
+    /// Returns:
+    /// CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
+    ///     for this target. If there are no connectivity constraints in
+    ///     the target this will return ``None``.
+    ///
+    /// Raises:
+    ///     ValueError: If a non-two qubit gate is passed in for ``two_q_gate``.
+    ///     IndexError: If an Instruction not in the ``Target`` is passed in for
+    ///         ``two_q_gate``.
+    pub fn build_coupling_map(
+        &mut self,
+        two_q_gate: Option<String>,
+        filter_idle_qubits: bool,
+    ) -> Result<Option<CouplingGraphType>, TargetTwoQubitInstError> {
+        if self.get_qargs().is_none() {
+            return Ok(None);
+        }
+
+        if let Some(two_qubit_gates) = two_q_gate {
+            let mut coupling_graph: CouplingGraphType = CouplingGraphType::new();
+            let mut graph_indices = vec![];
+            for _ in 0..self.num_qubits.unwrap_or_default() {
+                graph_indices.push(coupling_graph.add_node(None));
+            }
+
+            for (qargs, properties) in self[&two_qubit_gates].iter() {
+                if let Some(qargs) = qargs {
+                    if qargs.len() == 2 {
+                        return Err(TargetTwoQubitInstError::new_err(format!(
+                            "Specified two_q_gate: {} is not a 2 qubit instruction",
+                            two_qubit_gates
+                        )));
+                    }
+                    coupling_graph.add_edge(
+                        graph_indices[qargs[0].index()],
+                        graph_indices[qargs[1].index()],
+                        IndexMap::from_iter([(two_qubit_gates.to_owned(), properties.to_owned())]),
+                    );
+                }
+            }
+            return Ok(Some(coupling_graph));
+        }
+        let graph;
+        if self.coupling_graph.is_none() {
+            self.build_coupling_graph();
+        }
+        if self.coupling_graph.is_some() {
+            if filter_idle_qubits {
+                graph = self.filter_coupling_graph()
+            } else {
+                graph = self.coupling_graph.clone();
+            }
+            Ok(graph)
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
     pub fn op_names_for_qargs(
         &self,
