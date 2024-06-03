@@ -68,9 +68,18 @@ pub struct GateRep {
 
 impl FromPyObject<'_> for GateRep {
     fn extract(ob: &'_ PyAny) -> PyResult<Self> {
-        let num_qubits = ob.getattr("num_qubits")?.extract::<usize>().ok();
-        let label = ob.getattr("label")?.extract::<String>().ok();
-        let params = ob.getattr("params")?.extract::<Vec<Param>>().ok();
+        let num_qubits = match ob.getattr("num_qubits") {
+            Ok(num_qubits) => num_qubits.extract::<usize>().ok(),
+            Err(_) => None,
+        };
+        let label = match ob.getattr("label") {
+            Ok(label) => label.extract::<String>().ok(),
+            Err(_) => None,
+        };
+        let params = match ob.getattr("params") {
+            Ok(params) => params.extract::<Vec<Param>>().ok(),
+            Err(_) => None,
+        };
         Ok(Self {
             object: ob.into(),
             num_qubits,
