@@ -187,12 +187,18 @@ class TestQuantumCircuitData(QiskitTestCase):
     def test_map_ops(self):
         """Test all operations are replaced."""
         qr = QuantumRegister(5)
+
+        # Use a custom gate to ensure we get a gate class returned and not
+        # a standard gate.
+        class CustomXGate(XGate):
+            _standard_gate = None
+
         data_list = [
-            CircuitInstruction(XGate(), [qr[0]], []),
-            CircuitInstruction(XGate(), [qr[1]], []),
-            CircuitInstruction(XGate(), [qr[2]], []),
-            CircuitInstruction(XGate(), [qr[3]], []),
-            CircuitInstruction(XGate(), [qr[4]], []),
+            CircuitInstruction(CustomXGate(), [qr[0]], []),
+            CircuitInstruction(CustomXGate(), [qr[1]], []),
+            CircuitInstruction(CustomXGate(), [qr[2]], []),
+            CircuitInstruction(CustomXGate(), [qr[3]], []),
+            CircuitInstruction(CustomXGate(), [qr[4]], []),
         ]
         data = CircuitData(qubits=list(qr), data=data_list)
         data.map_ops(lambda op: op.to_mutable())

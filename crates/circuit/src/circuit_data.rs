@@ -934,8 +934,7 @@ impl CircuitData {
                     inst.op = OperationType::Operation(op);
                 }
                 OperationInput::Object(new_op) => {
-                    let new_inst_details =
-                        convert_py_to_operation_type(py, new_op.clone_ref(py))?;
+                    let new_inst_details = convert_py_to_operation_type(py, new_op.clone_ref(py))?;
                     inst.op = new_inst_details.operation;
                     inst.params = new_inst_details.params;
                     inst.label = new_inst_details.label;
