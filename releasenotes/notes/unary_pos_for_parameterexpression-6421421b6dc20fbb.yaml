@@ -1,0 +1,4 @@
+---
+features_circuits:
+  - |
+    Added `__pos__` for the `qiskit.circuit.ParameterExpression` class
