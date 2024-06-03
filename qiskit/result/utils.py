@@ -12,10 +12,12 @@
 
 
 """Utility functions for working with Results."""
+from __future__ import annotations
 
-from typing import Sequence, Union, Optional, Dict, List
 from collections import Counter
+from collections.abc import Collection, Sequence
 from copy import deepcopy
+from typing import Any
 
 import numpy as np
 
@@ -31,12 +33,12 @@ from qiskit._accelerate import results as results_rs  # pylint: disable=no-name-
 
 
 def marginal_counts(
-    result: Union[dict, Result],
-    indices: Optional[List[int]] = None,
+    result: dict[str, int] | Result,
+    indices: Collection[int] | None = None,
     inplace: bool = False,
     format_marginal: bool = False,
-    marginalize_memory: Optional[bool] = True,
-) -> Union[Dict[str, int], Result]:
+    marginalize_memory: bool | None = True,
+) -> dict[str, int] | Result:
     """Marginalize counts from an experiment over some indices of interest.
 
     Args:
@@ -99,7 +101,7 @@ def marginal_counts(
         return marg_counts
 
 
-def _adjust_creg_sizes(creg_sizes, indices):
+def _adjust_creg_sizes(creg_sizes, indices: Collection[int]):
     """Helper to reduce creg_sizes to match indices"""
 
     # Zero out creg_sizes list
@@ -126,13 +128,13 @@ def _adjust_creg_sizes(creg_sizes, indices):
 
 
 def marginal_memory(
-    memory: Union[List[str], np.ndarray],
-    indices: Optional[List[int]] = None,
+    memory: list[str] | np.ndarray,
+    indices: list[int] | None = None,
     int_return: bool = False,
     hex_return: bool = False,
     avg_data: bool = False,
     parallel_threshold: int = 1000,
-) -> Union[List[str], np.ndarray]:
+) -> list[str] | np.ndarray:
     """Marginalize shot memory
 
     This function is multithreaded and will launch a thread pool with threads equal to the number
@@ -197,10 +199,10 @@ def marginal_memory(
 
 
 def marginal_distribution(
-    counts: dict,
-    indices: Optional[Sequence[int]] = None,
+    counts: dict[str, int] | Counts | ProbDistribution | QuasiDistribution,
+    indices: Sequence[int] | None = None,
     format_marginal: bool = False,
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """Marginalize counts from an experiment over some indices of interest.
 
     Unlike :func:`~.marginal_counts` this function respects the order of
@@ -243,7 +245,7 @@ def marginal_distribution(
     return res
 
 
-def _marginalize(counts, indices=None):
+def _marginalize(counts, indices: Collection[int] | None = None) -> dict[str, Any]:
     """Get the marginal counts for the given set of indices"""
     num_clbits = len(next(iter(counts)).replace(" ", ""))
     # Check if we do not need to marginalize and if so, trim
@@ -263,14 +265,14 @@ def _marginalize(counts, indices=None):
     indices = sorted(indices, reverse=True)
 
     # Build the return list
-    new_counts = Counter()
+    new_counts: Counter[str] = Counter()
     for key, val in counts.items():
         new_key = "".join([_remove_space_underscore(key)[-idx - 1] for idx in indices])
         new_counts[new_key] += val
     return dict(new_counts)
 
 
-def _format_marginal(counts, marg_counts, indices):
+def _format_marginal(counts, marg_counts, indices: Collection[int]) -> dict[str, Any]:
     """Take the output of marginalize and add placeholders for
     multiple cregs and non-indices."""
     format_counts = {}

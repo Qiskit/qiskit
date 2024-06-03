@@ -12,15 +12,22 @@
 """
 Readout mitigation data handling utils
 """
+from __future__ import annotations
 
 import logging
 import math
-from typing import Optional, List, Tuple, Dict
+import typing
+from collections.abc import Sequence, Collection
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+
 from ..utils import marginal_counts
 from ..counts import Counts
+
+if typing.TYPE_CHECKING:
+    from .. import Result  # pylint: disable=cyclic-import
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +40,7 @@ def z_diagonal(dim, dtype=float):
     return (-1) ** np.mod(parity, 2)
 
 
-def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> Tuple[float, float]:
+def expval_with_stddev(coeffs: np.ndarray, probs: np.ndarray, shots: int) -> list[float]:
     """Compute expectation value and standard deviation.
     Args:
         coeffs: array of diagonal operator coefficients.
@@ -85,7 +92,7 @@ def str2diag(string):
     return ret
 
 
-def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
+def counts_to_vector(counts: Counts, num_qubits: int) -> tuple[np.ndarray, int]:
     """Transforms Counts to a probability vector"""
     vec = np.zeros(2**num_qubits, dtype=float)
     shots = 0
@@ -97,7 +104,7 @@ def counts_to_vector(counts: Counts, num_qubits: int) -> Tuple[np.ndarray, int]:
 
 
 def remap_qubits(
-    vec: np.ndarray, num_qubits: int, qubits: Optional[List[int]] = None
+    vec: np.ndarray, num_qubits: int, qubits: Sequence[int] | None = None
 ) -> np.ndarray:
     """Remapping the qubits"""
     if qubits is not None:
@@ -110,10 +117,10 @@ def remap_qubits(
 
 def marganalize_counts(
     counts: Counts,
-    qubit_index: Dict[int, int],
-    qubits: Optional[List[int]] = None,
-    clbits: Optional[List[int]] = None,
-) -> np.ndarray:
+    qubit_index: dict[int, int],
+    qubits: Collection[int] | None = None,
+    clbits: Collection[int] | None = None,
+) -> dict[str, int] | Result | Counts:
     """Marginalization of the Counts. Verify that number of clbits equals to the number of qubits."""
     if clbits is not None:
         qubits_len = len(qubits) if not qubits is None else 0
@@ -133,10 +140,10 @@ def marganalize_counts(
 
 def counts_probability_vector(
     counts: Counts,
-    qubit_index: Dict[int, int],
-    qubits: Optional[List[int]] = None,
-    clbits: Optional[List[int]] = None,
-) -> Tuple[np.ndarray, int]:
+    qubit_index: dict[int, int],
+    qubits: Sequence[int] | None = None,
+    clbits: Collection[int] | None = None,
+) -> tuple[np.ndarray, int]:
     """Compute a probability vector for all count outcomes.
 
     Args:
@@ -152,11 +159,11 @@ def counts_probability_vector(
         np.ndarray: a probability vector for all count outcomes.
         int: Number of shots in the counts
     """
-    counts = marganalize_counts(counts, qubit_index, qubits, clbits)
+    marginalized_counts = marganalize_counts(counts, qubit_index, qubits, clbits)
     if qubits is not None:
         num_qubits = len(qubits)
     else:
         num_qubits = len(qubit_index.keys())
-    vec, shots = counts_to_vector(counts, num_qubits)
+    vec, shots = counts_to_vector(marginalized_counts, num_qubits)
     vec = remap_qubits(vec, num_qubits, qubits)
     return vec, shots
