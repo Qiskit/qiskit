@@ -736,11 +736,10 @@ class Target(BaseTarget):
         return instruction_properties[index]
 
     def _build_coupling_graph(self):
-        self._coupling_graph = rx.PyDiGraph(  # pylint: disable=attribute-defined-outside-init
-            multigraph=False
-        )
-        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
-        for gate, qarg_map in self.items():
+        self._coupling_graph = rx.PyDiGraph(multigraph=False)
+        if self.num_qubits is not None:
+            self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
+        for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
                     self._coupling_graph = None  # pylint: disable=attribute-defined-outside-init
