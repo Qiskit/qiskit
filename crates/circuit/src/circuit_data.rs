@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use crate::circuit_instruction::{
-    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction,
+    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction, OperationInput,
 };
 use crate::imports::{BUILTIN_LIST, CLBIT, QUBIT};
 use crate::intern_context::{BitType, IndexType, InternContext};
@@ -604,7 +604,9 @@ impl CircuitData {
         res.param_table.clone_from(&self.param_table);
 
         if deepcopy {
-            let deepcopy = py.import_bound(intern!(py, "copy"))?.getattr(intern!(py, "deepcopy"))?;
+            let deepcopy = py
+                .import_bound(intern!(py, "copy"))?
+                .getattr(intern!(py, "deepcopy"))?;
             for inst in &mut res.data {
                 match &mut inst.op {
                     OperationType::Standard(_) => {
@@ -813,6 +815,12 @@ impl CircuitData {
     /// Invokes callable ``func`` with each instruction's operation,
     /// replacing the operation with the result.
     ///
+    /// .. note::
+    ///
+    ///     This is only to be used by map_vars() in quantumcircuit.py it
+    ///     assumes that a full Python instruction will only be returned from
+    ///     standard gates iff a condition is set.
+    ///
     /// Args:
     ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
     ///         A callable used to map original operation to their
@@ -821,29 +829,62 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn map_ops(&mut self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter_mut() {
-            let old_op = operation_type_and_data_to_py(
-                py,
-                &inst.op,
-                &inst.params,
-                &inst.label,
-                &inst.duration,
-                &inst.unit,
-                &inst.condition,
-            )?;
-            let new_op = func.call1((old_op,))?;
-            let new_inst_details = convert_py_to_operation_type(py, new_op.into())?;
-            inst.op = new_inst_details.operation;
-            inst.params = new_inst_details.params;
-            inst.label = new_inst_details.label;
-            inst.duration = new_inst_details.duration;
-            inst.unit = new_inst_details.unit;
-            inst.condition = new_inst_details.condition;
+            let old_op = match &inst.op {
+                OperationType::Standard(op) => {
+                    if inst.condition.is_some() {
+                        operation_type_and_data_to_py(
+                            py,
+                            &inst.op,
+                            &inst.params,
+                            &inst.label,
+                            &inst.duration,
+                            &inst.unit,
+                            &inst.condition,
+                        )?
+                    } else {
+                        op.into_py(py)
+                    }
+                }
+                OperationType::Gate(op) => op.gate.clone_ref(py),
+                OperationType::Instruction(op) => op.instruction.clone_ref(py),
+                OperationType::Operation(op) => op.operation.clone_ref(py),
+            };
+            let result: OperationInput = func.call1((old_op,))?.extract()?;
+            match result {
+                OperationInput::Standard(op) => {
+                    inst.op = OperationType::Standard(op);
+                }
+                OperationInput::Gate(op) => {
+                    inst.op = OperationType::Gate(op);
+                }
+                OperationInput::Instruction(op) => {
+                    inst.op = OperationType::Instruction(op);
+                }
+                OperationInput::Operation(op) => {
+                    inst.op = OperationType::Operation(op);
+                }
+                OperationInput::Object(new_op) => {
+                    let new_inst_details = convert_py_to_operation_type(py, new_op)?;
+                    inst.op = new_inst_details.operation;
+                    inst.params = new_inst_details.params;
+                    inst.label = new_inst_details.label;
+                    inst.duration = new_inst_details.duration;
+                    inst.unit = new_inst_details.unit;
+                    inst.condition = new_inst_details.condition;
+                }
+            }
         }
         Ok(())
     }
 
     /// Invokes callable ``func`` with each instruction's operation,
     /// replacing the operation with the result.
+    ///
+    /// .. note::
+    ///
+    ///     This is only to be used by map_vars() in quantumcircuit.py it
+    ///     assumes that a full Python instruction will only be returned from
+    ///     standard gates iff a condition is set.
     ///
     /// Args:
     ///     func (Callable[[:class:`~.Operation`], :class:`~.Operation`]):
@@ -855,29 +896,55 @@ impl CircuitData {
         for inst in self.data.iter_mut() {
             let old_op = match &inst.py_op {
                 Some(op) => op.clone_ref(py),
-                None => {
-                    let new_op = operation_type_and_data_to_py(
-                        py,
-                        &inst.op,
-                        &inst.params,
-                        &inst.label,
-                        &inst.duration,
-                        &inst.unit,
-                        &inst.condition,
-                    )?;
-                    inst.py_op = Some(new_op.clone_ref(py));
-                    new_op
-                }
+                None => match &inst.op {
+                    OperationType::Standard(op) => {
+                        if inst.condition.is_some() {
+                            let new_op = operation_type_and_data_to_py(
+                                py,
+                                &inst.op,
+                                &inst.params,
+                                &inst.label,
+                                &inst.duration,
+                                &inst.unit,
+                                &inst.condition,
+                            )?;
+                            inst.py_op = Some(new_op.clone_ref(py));
+                            new_op
+                        } else {
+                            op.into_py(py)
+                        }
+                    }
+                    OperationType::Gate(op) => op.gate.clone_ref(py),
+                    OperationType::Instruction(op) => op.instruction.clone_ref(py),
+                    OperationType::Operation(op) => op.operation.clone_ref(py),
+                },
             };
-            let new_op = func.call1((old_op,))?;
-            let new_inst_details = convert_py_to_operation_type(py, new_op.clone().into())?;
-            inst.op = new_inst_details.operation;
-            inst.params = new_inst_details.params;
-            inst.label = new_inst_details.label;
-            inst.duration = new_inst_details.duration;
-            inst.unit = new_inst_details.unit;
-            inst.condition = new_inst_details.condition;
-            inst.py_op = Some(new_op.unbind());
+            let result: OperationInput = func.call1((old_op,))?.extract()?;
+            match result {
+                OperationInput::Standard(op) => {
+                    inst.op = OperationType::Standard(op);
+                }
+                OperationInput::Gate(op) => {
+                    inst.op = OperationType::Gate(op);
+                }
+                OperationInput::Instruction(op) => {
+                    inst.op = OperationType::Instruction(op);
+                }
+                OperationInput::Operation(op) => {
+                    inst.op = OperationType::Operation(op);
+                }
+                OperationInput::Object(new_op) => {
+                    let new_inst_details =
+                        convert_py_to_operation_type(py, new_op.clone_ref(py))?;
+                    inst.op = new_inst_details.operation;
+                    inst.params = new_inst_details.params;
+                    inst.label = new_inst_details.label;
+                    inst.duration = new_inst_details.duration;
+                    inst.unit = new_inst_details.unit;
+                    inst.condition = new_inst_details.condition;
+                    inst.py_op = Some(new_op);
+                }
+            }
         }
         Ok(())
     }
