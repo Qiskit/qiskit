@@ -921,74 +921,12 @@ impl BaseTarget {
     /// Returns:
     ///     List[str]: A list of operation names for operations that aren't global in this target
     #[pyo3(signature = (/, strict_direction=false,), text_signature = "(/, strict_direction=False)")]
-    pub fn get_non_global_operation_names(&mut self, strict_direction: bool) -> Vec<String> {
-        let mut search_set: HashSet<Option<Qargs>> = HashSet::new();
-        if strict_direction {
-            if let Some(global_strict) = &self.non_global_strict_basis {
-                return global_strict.to_owned();
-            }
-            // Build search set
-            for qarg_key in self.qarg_gate_map.keys().cloned() {
-                search_set.insert(qarg_key);
-            }
-        } else {
-            if let Some(global_basis) = &self.non_global_basis {
-                return global_basis.to_owned();
-            }
-            for qarg_key in self.qarg_gate_map.keys().flatten() {
-                if qarg_key.len() != 1 {
-                    let mut vec = qarg_key.clone();
-                    vec.sort();
-                    let qarg_key = Some(vec);
-                    search_set.insert(qarg_key);
-                }
-            }
-        }
-        let mut incomplete_basis_gates: Vec<String> = vec![];
-        let mut size_dict: IndexMap<usize, usize> = IndexMap::new();
-        *size_dict
-            .entry(1)
-            .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
-        for qarg in &search_set {
-            if qarg.is_none() || qarg.as_ref().unwrap_or(&smallvec![]).len() == 1 {
-                continue;
-            }
-            *size_dict
-                .entry(qarg.to_owned().unwrap_or_default().len())
-                .or_insert(0) += 1;
-        }
-        for (inst, qargs_props) in self.gate_map.iter() {
-            let mut qarg_len = qargs_props.len();
-            let qargs_keys: IndexSet<&Option<Qargs>> = qargs_props.keys().collect();
-            let qarg_sample = qargs_keys.iter().next().cloned();
-            if let Some(qarg_sample) = qarg_sample {
-                if !strict_direction {
-                    let mut qarg_set = HashSet::new();
-                    for qarg in qargs_keys {
-                        let mut qarg_set_vec: Qargs = smallvec![];
-                        if let Some(qarg) = qarg {
-                            let mut to_vec = qarg.to_owned();
-                            to_vec.sort();
-                            qarg_set_vec = to_vec;
-                        }
-                        qarg_set.insert(qarg_set_vec);
-                    }
-                    qarg_len = qarg_set.len();
-                }
-                if let Some(qarg_sample) = qarg_sample {
-                    if qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0) {
-                        incomplete_basis_gates.push(inst.to_owned());
-                    }
-                }
-            }
-        }
-        if strict_direction {
-            self.non_global_strict_basis = Some(incomplete_basis_gates.to_owned());
-            incomplete_basis_gates
-        } else {
-            self.non_global_basis = Some(incomplete_basis_gates.to_owned());
-            incomplete_basis_gates
-        }
+    pub fn get_non_global_operation_names(
+        &mut self,
+        py: Python<'_>,
+        strict_direction: bool,
+    ) -> PyObject {
+        self.get_non_global_op_names(strict_direction).to_object(py)
     }
 
     // Class properties
@@ -1112,6 +1050,83 @@ impl BaseTarget {
 
 // Rust native methods
 impl BaseTarget {
+    /// Generate non global operations if missing
+    fn generate_non_global_op_names(&mut self, strict_direction: bool) -> &Vec<String> {
+        let mut search_set: HashSet<Option<Qargs>> = HashSet::new();
+        if strict_direction {
+            // Build search set
+            for qarg_key in self.qarg_gate_map.keys().cloned() {
+                search_set.insert(qarg_key);
+            }
+        } else {
+            for qarg_key in self.qarg_gate_map.keys().flatten() {
+                if qarg_key.len() != 1 {
+                    let mut vec = qarg_key.clone();
+                    vec.sort();
+                    let qarg_key = Some(vec);
+                    search_set.insert(qarg_key);
+                }
+            }
+        }
+        let mut incomplete_basis_gates: Vec<String> = vec![];
+        let mut size_dict: IndexMap<usize, usize> = IndexMap::new();
+        *size_dict
+            .entry(1)
+            .or_insert(self.num_qubits.unwrap_or_default()) = self.num_qubits.unwrap_or_default();
+        for qarg in &search_set {
+            if qarg.is_none() || qarg.as_ref().unwrap_or(&smallvec![]).len() == 1 {
+                continue;
+            }
+            *size_dict
+                .entry(qarg.to_owned().unwrap_or_default().len())
+                .or_insert(0) += 1;
+        }
+        for (inst, qargs_props) in self.gate_map.iter() {
+            let mut qarg_len = qargs_props.len();
+            let qargs_keys: IndexSet<&Option<Qargs>> = qargs_props.keys().collect();
+            let qarg_sample = qargs_keys.iter().next().cloned();
+            if let Some(qarg_sample) = qarg_sample {
+                if !strict_direction {
+                    let mut qarg_set = HashSet::new();
+                    for qarg in qargs_keys {
+                        let mut qarg_set_vec: Qargs = smallvec![];
+                        if let Some(qarg) = qarg {
+                            let mut to_vec = qarg.to_owned();
+                            to_vec.sort();
+                            qarg_set_vec = to_vec;
+                        }
+                        qarg_set.insert(qarg_set_vec);
+                    }
+                    qarg_len = qarg_set.len();
+                }
+                if let Some(qarg_sample) = qarg_sample {
+                    if qarg_len != *size_dict.entry(qarg_sample.len()).or_insert(0) {
+                        incomplete_basis_gates.push(inst.to_owned());
+                    }
+                }
+            }
+        }
+        if strict_direction {
+            self.non_global_strict_basis = Some(incomplete_basis_gates);
+            self.non_global_strict_basis.as_ref().unwrap()
+        } else {
+            self.non_global_basis = Some(incomplete_basis_gates.to_owned());
+            self.non_global_basis.as_ref().unwrap()
+        }
+    }
+
+    /// Get all non_global operation names.
+    pub fn get_non_global_op_names(&mut self, strict_direction: bool) -> Option<&Vec<String>> {
+        if strict_direction {
+            if self.non_global_strict_basis.is_some() {
+                return self.non_global_strict_basis.as_ref();
+            }
+        } else if self.non_global_basis.is_some() {
+            return self.non_global_basis.as_ref();
+        }
+        return Some(self.generate_non_global_op_names(strict_direction));
+    }
+
     /// Gets all the operation names that use these qargs. Rust native equivalent of ``BaseTarget.operation_names_for_qargs()``
     pub fn op_names_for_qargs(
         &self,
