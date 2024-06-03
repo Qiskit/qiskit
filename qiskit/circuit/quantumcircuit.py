@@ -1902,7 +1902,7 @@ class QuantumCircuit:
                 clbits = self.clbits[: other.num_clbits]
             if front:
                 # Need to keep a reference to the data for use after we've emptied it.
-                old_data = dest._data.copy()
+                old_data = dest._data.copy(copy_instructions=copy)
                 dest.clear()
                 dest.append(other, qubits, clbits, copy=copy)
                 for instruction in old_data:
@@ -2030,14 +2030,14 @@ class QuantumCircuit:
                     )
                 return n_op.copy() if n_op is op and copy else n_op
 
-            instructions = source._data.copy()
+            instructions = source._data.copy(copy_instructions=copy)
             instructions.replace_bits(qubits=new_qubits, clbits=new_clbits)
             instructions.map_ops(map_vars)
             dest._current_scope().extend(instructions)
 
         append_existing = None
         if front:
-            append_existing = dest._data.copy()
+            append_existing = dest._data.copy(copy_instructions=copy)
             dest.clear()
         copy_with_remapping(
             other,
