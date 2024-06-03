@@ -1756,10 +1756,11 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(float(bound_expr2), 3)
 
     def test_positive_expression(self):
-            x = Parameter("x")
-            y = +x
-            self.assertEqual(float(y.bind({x:  1})), 1.)
-            self.assertIsInstance(+x, type(-x))
+        """This tests parameter unary plus."""
+        x = Parameter("x")
+        y = +x
+        self.assertEqual(float(y.bind({x:  1})), 1.)
+        self.assertIsInstance(+x, type(-x))
 
     def test_standard_cu3(self):
         """This tests parameter negation in standard extension gate cu3."""
