@@ -1759,7 +1759,7 @@ class TestParameterExpressions(QiskitTestCase):
         """This tests parameter unary plus."""
         x = Parameter("x")
         y = +x
-        self.assertEqual(float(y.bind({x:  1})), 1.)
+        self.assertEqual(float(y.bind({x: 1})), 1.0)
         self.assertIsInstance(+x, type(-x))
 
     def test_standard_cu3(self):
