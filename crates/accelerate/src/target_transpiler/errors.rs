@@ -32,24 +32,3 @@ impl Display for TargetKeyError {
 }
 
 impl Error for TargetKeyError {}
-
-/// Error thrown when operation key is not present in the Target
-#[derive(Debug)]
-pub struct TargetTwoQubitInstError {
-    pub message: String,
-}
-
-impl TargetTwoQubitInstError {
-    /// Initializes the new error
-    pub fn new_err(message: String) -> Self {
-        Self { message }
-    }
-}
-
-impl Display for TargetTwoQubitInstError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
-    }
-}
-
-impl Error for TargetTwoQubitInstError {}
