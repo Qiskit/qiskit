@@ -327,7 +327,7 @@ class ParameterExpression:
     def __mul__(self, other):
         return self._apply_operation(operator.mul, other)
 
-    def _pos__(self):
+    def __pos__(self):
         return self._apply_operation(operator.mul, 1.0)
 
     def __neg__(self):
