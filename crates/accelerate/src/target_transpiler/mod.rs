@@ -30,7 +30,6 @@ use pyo3::{
     types::{PyList, PyType},
 };
 
-
 use smallvec::{smallvec, SmallVec};
 
 use crate::nlayout::PhysicalQubit;
