@@ -1388,12 +1388,11 @@ class QuantumCircuit:
 
         # Avoids pulling self._data into a Python list
         # like we would when pickling.
-        result._data = self._data.copy()
+        result._data = self._data.copy(deepcopy=True)
         result._data.replace_bits(
             qubits=_copy.deepcopy(self._data.qubits, memo),
             clbits=_copy.deepcopy(self._data.clbits, memo),
         )
-        result._data.map_ops(lambda op: _copy.deepcopy(op, memo))
         return result
 
     @classmethod

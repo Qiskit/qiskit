@@ -589,8 +589,8 @@ impl CircuitData {
     ///
     /// Returns:
     ///     CircuitData: The shallow copy.
-    #[pyo3(signature = (copy_instructions=true))]
-    pub fn copy(&self, py: Python<'_>, copy_instructions: bool) -> PyResult<Self> {
+    #[pyo3(signature = (copy_instructions=true, deepcopy=false))]
+    pub fn copy(&self, py: Python<'_>, copy_instructions: bool, deepcopy: bool) -> PyResult<Self> {
         let mut res = CircuitData::new(
             py,
             Some(self.qubits.bind(py)),
@@ -603,7 +603,40 @@ impl CircuitData {
         res.data.clone_from(&self.data);
         res.param_table.clone_from(&self.param_table);
 
-        if copy_instructions {
+        if deepcopy {
+            let deepcopy = py.import_bound(intern!(py, "copy"))?.getattr(intern!(py, "deepcopy"))?;
+            for inst in &mut res.data {
+                match &mut inst.op {
+                    OperationType::Standard(_) => {
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            inst.py_op = None;
+                        }
+                    }
+                    OperationType::Gate(ref mut op) => {
+                        op.gate = deepcopy.call1((&op.gate,))?.unbind();
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            inst.py_op = None;
+                        }
+                    }
+                    OperationType::Instruction(ref mut op) => {
+                        op.instruction = deepcopy.call1((&op.instruction,))?.unbind();
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            inst.py_op = None;
+                        }
+                    }
+                    OperationType::Operation(ref mut op) => {
+                        op.operation = deepcopy.call1((&op.operation,))?.unbind();
+                        #[cfg(feature = "cache_pygates")]
+                        {
+                            inst.py_op = None;
+                        }
+                    }
+                };
+            }
+        } else if copy_instructions {
             for inst in &mut res.data {
                 match &mut inst.op {
                     OperationType::Standard(_) => {
