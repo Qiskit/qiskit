@@ -677,8 +677,8 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if not np.isclose(complex_amp1, complex_amp2):
                 return False
 
-        for key in self.parameters:
-            if key not in ["amp", "angle"] and self.parameters[key] != other.parameters[key]:
+        for key, value in self.parameters.items():
+            if key not in ["amp", "angle"] and value != other.parameters[key]:
                 return False
 
         return True

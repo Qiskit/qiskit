@@ -68,8 +68,8 @@ class MCGupDiag(Gate):
     def _define(self):
         mcg_up_diag_circuit, _ = self._dec_mcg_up_diag()
         gate = mcg_up_diag_circuit.to_instruction()
-        q = QuantumRegister(self.num_qubits)
-        mcg_up_diag_circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, "q")
+        mcg_up_diag_circuit = QuantumCircuit(q, name="mcg_up_to_diagonal")
         mcg_up_diag_circuit.append(gate, q[:])
         self.definition = mcg_up_diag_circuit
 
@@ -108,8 +108,8 @@ class MCGupDiag(Gate):
             q=[q_target,q_controls,q_ancilla_zero,q_ancilla_dirty]
         """
         diag = np.ones(2 ** (self.num_controls + 1)).tolist()
-        q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, "q")
+        circuit = QuantumCircuit(q, name="mcg_up_to_diagonal")
         (q_target, q_controls, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         # ToDo: Keep this threshold updated such that the lowest gate count is achieved:
         # ToDo: we implement the MCG with a UCGate up to diagonal if the number of controls is

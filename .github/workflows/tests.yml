@@ -5,6 +5,7 @@ on:
     branches: [ main, 'stable/*' ]
   pull_request:
     branches: [ main, 'stable/*' ]
+  merge_group:
 
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
