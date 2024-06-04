@@ -255,6 +255,11 @@ impl CircuitData {
         self.clbits_native.len()
     }
 
+    /// Return the width of the circuit. This is the number of qubits plus the
+    /// number of clbits.
+    ///
+    /// Returns:
+    ///     int: The width of the circuit.
     pub fn width(&self) -> usize {
         self.num_qubits() + self.num_clbits()
     }
