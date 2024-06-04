@@ -89,7 +89,7 @@ class InstructionToQobjConverter:
     The transfer layer format must be the text representation that coforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
     Extention to the OpenPulse can be achieved by subclassing this this with
-    extra methods corresponding to each augumented instruction. For example,
+    extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
 
@@ -503,7 +503,7 @@ class QobjToInstructionConverter:
     The transfer layer format must be the text representation that coforms to
     the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
     Extention to the OpenPulse can be achieved by subclassing this this with
-    extra methods corresponding to each augumented instruction. For example,
+    extra methods corresponding to each augmented instruction. For example,
 
     .. code-block:: python
 

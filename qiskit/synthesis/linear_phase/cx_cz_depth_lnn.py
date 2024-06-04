@@ -39,7 +39,7 @@ from qiskit.synthesis.linear.linear_depth_lnn import _optimize_cx_circ_depth_5n_
 def _initialize_phase_schedule(mat_z):
     """
     Given a CZ layer (represented as an n*n CZ matrix Mz)
-    Return a scheudle of phase gates implementing Mz in a SWAP-only netwrok
+    Return a schedule of phase gates implementing Mz in a SWAP-only netwrok
     (c.f. Alg 1, [2])
     """
     n = len(mat_z)
@@ -173,7 +173,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
                 of exactly n layers of boxes, each being either a SWAP or a SWAP+. That is,
                 each northwest diagonalization circuit can be uniquely represented by which
                 of its n(n-1)/2 boxes are SWAP+ and which are SWAP.
-    Return a QuantumCircuit that computes the phase scheudle S inside CX
+    Return a QuantumCircuit that computes the phase schedule S inside CX
     """
     cir = QuantumCircuit(n)
 

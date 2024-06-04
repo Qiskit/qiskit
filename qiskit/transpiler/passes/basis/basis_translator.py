@@ -550,7 +550,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    # This is only neccessary since gates in target basis are currently reported by
+    # This is only necessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
     target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 

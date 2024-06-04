@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Compatiblity helpers for the Numpy 1.x to 2.0 transition."""
+"""compatibility helpers for the Numpy 1.x to 2.0 transition."""
 
 import re
 import typing

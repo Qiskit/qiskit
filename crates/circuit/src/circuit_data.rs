@@ -26,9 +26,9 @@ use std::hash::{Hash, Hasher};
 struct PackedInstruction {
     /// The Python-side operation instance.
     op: PyObject,
-    /// The index under which the interner has stored `qubits`.
+    /// The index under which the interned has stored `qubits`.
     qubits_id: IndexType,
-    /// The index under which the interner has stored `clbits`.
+    /// The index under which the interned has stored `clbits`.
     clbits_id: IndexType,
 }
 

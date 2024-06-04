@@ -421,7 +421,7 @@ fn decompose_dense_inner(
 ) {
     if num_qubits == 0 {
         // It would be safe to `return` here, but if it's unreachable then LLVM is allowed to
-        // optimise out this branch entirely in release mode, which is good for a ~2% speedup.
+        // optimize out this branch entirely in release mode, which is good for a ~2% speedup.
         unreachable!("should not call this with an empty operator")
     }
     // Base recursion case.

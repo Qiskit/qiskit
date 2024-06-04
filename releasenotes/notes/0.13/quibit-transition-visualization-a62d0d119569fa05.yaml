@@ -6,7 +6,7 @@ features:
     single qubit gate transitions has been added. It takes in a single qubit
     circuit and returns an animation of qubit state transitions on a Bloch
     sphere. To use this function you must have installed
-    the dependencies for and configured globally a matplotlib animtion
+    the dependencies for and configured globally a matplotlib animation
     writer. You can refer to the `matplotlib documentation
     <https://matplotlib.org/api/animation_api.html#writer-classes>`_ for
     more details on this. However, in the default case simply ensuring

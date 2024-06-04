@@ -228,7 +228,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
         # This should be a call to la.eigh, but there is an OpenBlas
         # threading issue that is causing segfaults.
         # Need schur here since la.eig does not
-        # guarentee orthogonality in degenerate subspaces
+        # guarantee orthogonality in degenerate subspaces
         w, v = la.schur(data, output="complex")
         w = w.diagonal().real
         # Check eigenvalues are non-negative
@@ -352,7 +352,7 @@ def _superop_to_ptm(data, input_dim):
 
 
 def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
-    """Tensor product (A ⊗ B) to bipartite matrices and reravel indices.
+    """Tensor product (A ⊗ B) to bipartite matrices and reveal indices.
 
     This is used for tensor product of superoperators and Choi matrices.
 
@@ -363,7 +363,7 @@ def _bipartite_tensor(mat1, mat2, shape1=None, shape2=None):
         shape2 (tuple): bipartite-shape for matrix B (b0, b1, b2, b3)
 
     Returns:
-        np.array: a bipartite matrix for reravel(A ⊗ B).
+        np.array: a bipartite matrix for reveal(A ⊗ B).
 
     Raises:
         QiskitError: if input matrices are wrong shape.

@@ -422,7 +422,7 @@ class ParameterExpression:
             # In symengine, if an expression was complex at any time, its type is likely to have
             # stayed "complex" even when the imaginary part symbolically (i.e. exactly)
             # cancelled out.  Sympy tends to more aggressively recognise these as symbolically
-            # real.  This second attempt at a cast is a way of unifying the behaviour to the
+            # real.  This second attempt at a cast is a way of unifying the behavior to the
             # more expected form for our users.
             cval = complex(self)
             if cval.imag == 0.0:

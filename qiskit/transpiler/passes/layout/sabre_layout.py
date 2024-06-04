@@ -420,7 +420,7 @@ class SabreLayout(TransformationPass):
         )
 
     def _ancilla_allocation_no_pass_manager(self, dag):
-        """Run the ancilla-allocation and -enlargment passes on the DAG chained onto our
+        """Run the ancilla-allocation and -enlargement passes on the DAG chained onto our
         ``property_set``, skipping the DAG-to-circuit conversion cost of using a ``PassManager``."""
         ancilla_pass = FullAncillaAllocation(self.coupling_map)
         ancilla_pass.property_set = self.property_set

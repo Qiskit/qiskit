@@ -159,7 +159,7 @@ class Condition(IntEnum):
     """Type keys for the ``conditional_key`` field of the INSTRUCTION struct."""
 
     # This class is deliberately raw integers and not in terms of ASCII characters for backwards
-    # compatiblity in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
+    # compatibility in the form as an old Boolean value was expanded; `NONE` and `TWO_TUPLE` must
     # have the enumeration values 0 and 1.
 
     NONE = 0

@@ -1613,7 +1613,7 @@ class TestCircuitControlFlowProperties(QiskitTestCase):
         qc.h(0)
         qc.measure(0, 0)
         # The depth of an if-else is the path through the longest block (regardless of the
-        # condition).  The size is the sum of both blocks (mostly for optimisation-target purposes).
+        # condition).  The size is the sum of both blocks (mostly for optimization-target purposes).
         with qc.if_test((qc.clbits[0], True)) as else_:
             qc.x(1)
             qc.cx(2, 3)
@@ -2422,11 +2422,11 @@ class TestDagSubstitute(QiskitTestCase):
     def test_raise_if_substituting_dag_modifies_its_conditional(self):
         """Verify that we raise if the input dag modifies any of the bits in node.op.condition."""
 
-        # The `propagate_condition=True` argument (and behaviour of `substitute_node_with_dag`
+        # The `propagate_condition=True` argument (and behavior of `substitute_node_with_dag`
         # before the parameter was added) treats the replacement DAG as implementing only the
         # un-controlled operation.  The original contract considers it an error to replace a node
         # with an operation that may modify one of the condition bits in case this affects
-        # subsequent operations, so when `propagate_condition=True`, this error behaviour is
+        # subsequent operations, so when `propagate_condition=True`, this error behavior is
         # maintained.
 
         instr = Instruction("opaque", 1, 1, [])

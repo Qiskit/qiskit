@@ -67,7 +67,7 @@ features:
   - |
     Added two new transpiler passes :class:`~.ALAPScheduleAnalysis` and :class:`~.ASAPScheduleAnalysis`
     which superscede the :class:`~.ALAPSchedule` and :class:`~.ASAPSchedule` as part of the
-    reworked transpiler workflow for schedling. The new passes perform the same scheduling but
+    reworked transpiler workflow for scheduling. The new passes perform the same scheduling but
     in the property set and relying on a :class:`~.BasePadding` pass to adjust the circuit
     based on all the scheduling alignment analysis.
 

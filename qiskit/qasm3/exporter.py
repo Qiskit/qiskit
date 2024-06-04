@@ -676,7 +676,7 @@ class QASM3Builder:
         doesn't involve the declaration of *new* bits or registers in inner scopes; only the
         :class:`.expr.Var` mechanism allows that.
 
-        The behaviour of this function depends on the setting ``allow_aliasing``. If this
+        The behavior of this function depends on the setting ``allow_aliasing``. If this
         is ``True``, then the output will be in the same form as the output of
         :meth:`.build_classical_declarations`, with the registers being aliases.  If ``False``, it
         will instead return a :obj:`.ast.ClassicalDeclaration` for each classical register, and one

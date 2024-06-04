@@ -1482,7 +1482,7 @@ class TestParameterExpressions(QiskitTestCase):
     def test_cast_to_float_intermediate_complex_value(self):
         """Verify expression can be cast to a float when it is fully bound, but an intermediate part
         of the expression evaluation involved complex types.  Sympy is generally more permissive
-        than symengine here, and sympy's tends to be the expected behaviour for our users."""
+        than symengine here, and sympy's tends to be the expected behavior for our users."""
         x = Parameter("x")
         bound_expr = (x + 1.0 + 1.0j).bind({x: -1.0j})
         self.assertEqual(float(bound_expr), 1.0)
@@ -2163,7 +2163,7 @@ class TestParameterEquality(QiskitTestCase):
         self.assertEqual(theta, expr)
 
     def test_parameter_symbol_equal_after_ufunc(self):
-        """Verfiy ParameterExpression phi
+        """Verify ParameterExpression phi
         and ParameterExpression cos(phi) have the same symbol map"""
         phi = Parameter("phi")
         cos_phi = numpy.cos(phi)

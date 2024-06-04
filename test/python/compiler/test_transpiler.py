@@ -499,7 +499,7 @@ class TestTranspile(QiskitTestCase):
         self.assertIsInstance(circuits, QuantumCircuit)
 
     def test_transpile_bell_discrete_basis(self):
-        """Test that it's possible to transpile a very simple circuit to a discrete stabiliser-like
+        """Test that it's possible to transpile a very simple circuit to a discrete stabilizer-like
         basis.  In general, we do not make any guarantees about the possibility or quality of
         transpilation in these situations, but this is at least useful as a check that stuff that
         _could_ be possible remains so."""
@@ -1890,7 +1890,7 @@ class TestTranspile(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_transpile_with_custom_control_flow_target(self, opt_level):
-        """Test transpile() with a target and constrol flow ops."""
+        """Test transpile() with a target and control flow ops."""
         target = GenericBackendV2(num_qubits=8, control_flow=True).target
 
         circuit = QuantumCircuit(6, 1)

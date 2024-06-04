@@ -189,7 +189,7 @@ class VF2Layout(AnalysisPass):
             if len(cm_graph) == len(im_graph):
                 chosen_layout = mapping_to_layout(layout_mapping)
                 break
-            # If there is no error map avilable we can just skip the scoring stage as there
+            # If there is no error map available we can just skip the scoring stage as there
             # is nothing to score with, so any match is the best we can find.
             if self.avg_error_map is None:
                 chosen_layout = mapping_to_layout(layout_mapping)

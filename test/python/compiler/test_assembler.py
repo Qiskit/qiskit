@@ -233,7 +233,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
     def test_assemble_unroll_parametervector(self):
-        """Verfiy that assemble unrolls parametervectors ref #5467"""
+        """Verify that assemble unrolls parametervectors ref #5467"""
         pv1 = ParameterVector("pv1", 3)
         pv2 = ParameterVector("pv2", 3)
         qc = QuantumCircuit(2, 2)

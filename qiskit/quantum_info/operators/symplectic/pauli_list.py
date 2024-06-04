@@ -647,7 +647,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         index = index[sort_inds]
         unique = PauliList(BasePauli(self._z[index], self._x[index], self._phase[index]))
 
-        # Concatinate return tuples
+        # Concatenate return tuples
         ret = (unique,)
         if return_index:
             ret += (index,)

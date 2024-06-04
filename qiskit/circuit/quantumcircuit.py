@@ -110,7 +110,7 @@ BitType = TypeVar("BitType", Qubit, Clbit)
 #
 # If you're adding methods or attributes to `QuantumCircuit`, be sure to update the class docstring
 # to document them in a suitable place.  The class is huge, so we do its documentation manually so
-# it has at least some amount of organisational structure.
+# it has at least some amount of organizational structure.
 
 
 class QuantumCircuit:
@@ -2789,7 +2789,7 @@ class QuantumCircuit:
         # name, and to be a bit less ergonomic than `add_var` (i.e. not allowing the (name, type)
         # overload) to discourage people from using it when they should use `add_var`.
         #
-        # This function exists so that there is a method to emulate `copy_empty_like`'s behaviour of
+        # This function exists so that there is a method to emulate `copy_empty_like`'s behavior of
         # adding uninitialised variables, which there's no obvious way around.  We need to be sure
         # that _some_ sort of handling of uninitialised variables is taken into account in our
         # structures, so that doesn't become a huge edge case, even though we make no assertions
@@ -2823,7 +2823,7 @@ class QuantumCircuit:
         """
         if self._control_flow_scopes:
             # Allow manual capturing.  Not sure why it'd be useful, but there's a clear expected
-            # behaviour here.
+            # behavior here.
             self._control_flow_scopes[-1].use_var(var)
             return
         if self._vars_input:
@@ -4262,7 +4262,7 @@ class QuantumCircuit:
             target._increment_instances()
             target._name_update()
 
-        # Normalise the inputs into simple abstract interfaces, so we've dispatched the "iteration"
+        # Normalize the inputs into simple abstract interfaces, so we've dispatched the "iteration"
         # logic in one place at the start of the function.  This lets us do things like calculate
         # and cache expensive properties for (e.g.) the sequence format only if they're used; for
         # many large, close-to-hardware circuits, we won't need the extra handling for
@@ -5933,7 +5933,7 @@ class QuantumCircuit:
 
             This does not account for the possibility for the same instruction instance being added
             more than once to the circuit.  At the time of writing (2021-11-17, main commit 271a82f)
-            there is a defensive ``deepcopy`` of parameterised instructions inside
+            there is a defensive ``deepcopy`` of parameterized instructions inside
             :meth:`.QuantumCircuit.append`, so this should be safe.  Trying to account for it would
             involve adding a potentially quadratic-scaling loop to check each entry in ``data``.
         """

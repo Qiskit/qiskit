@@ -114,7 +114,7 @@ class Instruction(Operation):
         The "base class" of an instruction is the lowest class in its inheritance tree that the
         object should be considered entirely compatible with for _all_ circuit applications.  This
         typically means that the subclass is defined purely to offer some sort of programmer
-        convenience over the base class, and the base class is the "true" class for a behavioural
+        convenience over the base class, and the base class is the "true" class for a behavioral
         perspective.  In particular, you should *not* override :attr:`base_class` if you are
         defining a custom version of an instruction that will be implemented differently by
         hardware, such as an alternative measurement strategy, or a version of a parametrised gate

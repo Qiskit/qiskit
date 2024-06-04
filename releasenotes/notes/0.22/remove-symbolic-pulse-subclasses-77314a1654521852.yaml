@@ -15,7 +15,7 @@ upgrade:
     these pulse subclasses are no longer instantiated.  They will still work in Terra 0.22,
     but you should begin transitioning immediately.
     Instead of using type information, :attr:`SymbolicPulse.pulse_type` should be used.
-    This is assumed to be a unique string identifer for pulse envelopes,
+    This is assumed to be a unique string identifier for pulse envelopes,
     and we can use string equality to investigate the pulse types. For example,
 
     .. code-block:: python

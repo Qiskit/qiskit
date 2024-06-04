@@ -21,7 +21,7 @@
 //! keyword; the spec technically says that any real number is valid, but in reality that leads to
 //! weirdness like `200.0e-2` being a valid version specifier.  We do things with a custom
 //! context-dependent match after seeing an `OPENQASM` token, to avoid clashes with the general
-//! real-number tokenisation.
+//! real-number tokenization.
 
 use hashbrown::HashMap;
 use pyo3::prelude::PyResult;

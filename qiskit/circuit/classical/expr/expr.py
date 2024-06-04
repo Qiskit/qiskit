@@ -193,7 +193,7 @@ class Var(Expr):
         return self
 
     def __deepcopy__(self, memo):
-        # ... as are all my consituent parts.
+        # ... as are all my constituent parts.
         return self
 
 

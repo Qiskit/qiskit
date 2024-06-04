@@ -311,7 +311,7 @@ class PadDynamicalDecoupling(BasePadding):
         # slack = 992 dt - 4 x 160 dt = 352 dt
         #
         # unconstraind sequence: 44dt-X1-88dt-Y2-88dt-X3-88dt-Y4-44dt
-        # constraind sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
+        # constrained sequence  : 32dt-X1-80dt-Y2-80dt-X3-80dt-Y4-32dt + extra slack 48 dt
         #
         # Now we evenly split extra slack into start and end of the sequence.
         # The distributed slack should be multiple of 16.

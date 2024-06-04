@@ -79,7 +79,7 @@ class CommutativeCancellation(TransformationPass):
         var_z_gate = None
         z_var_gates = [gate for gate in dag.count_ops().keys() if gate in self._var_z_map]
         if z_var_gates:
-            # priortize z gates in circuit
+            # prioritize z gates in circuit
             var_z_gate = self._var_z_map[next(iter(z_var_gates))]
         else:
             z_var_gates = [gate for gate in self.basis if gate in self._var_z_map]

@@ -104,7 +104,7 @@ impl From<TokenType> for Op {
     }
 }
 
-/// An atom of the operator-precendence expression parsing.  This is a stripped-down version of the
+/// An atom of the operator-precedence expression parsing.  This is a stripped-down version of the
 /// [Token] and [TokenType] used in the main parser.  We can use a data enum here because we do not
 /// need all the expressive flexibility in expecting and accepting many different token types as
 /// we do in the main parser; it does not significantly harm legibility to simply do
@@ -233,7 +233,7 @@ fn binary_power(op: Op) -> (u8, u8) {
 /// A subparser used to do the operator-precedence part of the parsing for individual parameter
 /// expressions.  The main parser creates a new instance of this struct for each expression it
 /// expects, and the instance lives only as long as is required to parse that expression, because
-/// it takes temporary resposibility for the [TokenStream] that backs the main parser.
+/// it takes temporary responsibility for the [TokenStream] that backs the main parser.
 pub struct ExprParser<'a> {
     pub tokens: &'a mut Vec<TokenStream>,
     pub context: &'a mut TokenContext,

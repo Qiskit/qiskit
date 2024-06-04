@@ -228,7 +228,7 @@ class TestReadoutMitigation(QiskitTestCase):
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator),
+                "Mitigator {} did not correctly marginalize for qubits 1,2".format(mitigator),
             )
 
             mitigated_probs_02 = (
@@ -240,7 +240,7 @@ class TestReadoutMitigation(QiskitTestCase):
             self.assertLess(
                 mitigated_error,
                 0.001,
-                "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator),
+                "Mitigator {} did not correctly marginalize for qubits 0,2".format(mitigator),
             )
 
     def test_qubits_parameter(self):

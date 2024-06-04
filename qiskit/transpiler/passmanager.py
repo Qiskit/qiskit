@@ -337,7 +337,7 @@ class StagedPassManager(PassManager):
             "scheduling",
         ]
         self._validate_stages(stages)
-        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        # Set through parent class since `__setattr__` requires `expanded_stages` to be defined
         super().__setattr__("_stages", tuple(stages))
         super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
         super().__init__()

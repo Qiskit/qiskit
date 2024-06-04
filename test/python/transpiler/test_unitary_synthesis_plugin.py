@@ -153,7 +153,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         # We need to mock out DefaultUnitarySynthesis.run, except it will actually get called as an
         # instance method, so we can't just wrap the method defined on the class, but instead we
         # need to wrap a method that has been bound to a particular instance.  This is slightly
-        # frgaile, because we're likely wrapping a _different_ instance, but since there are no
+        # fragile, because we're likely wrapping a _different_ instance, but since there are no
         # arguments to __init__, and no internal state, it should be ok.  It doesn't matter if we
         # dodged the patching of the manager class that happens elsewhere in this test suite,
         # because we're always accessing something that the patch would delegate to the inner
