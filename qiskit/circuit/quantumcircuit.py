@@ -3394,7 +3394,7 @@ class QuantumCircuit:
             n (int): The minimum number of qubits in an instruction that counts towards the depth.
             include_directives (bool): Whether to include directives such as barriers
         Returns:
-            int: Quantum circuit depth in terms of n-qubit gates (default n=2).
+            int: Quantum circuit depth in terms of gates with at least n qubits (default n=2).
         """
         if not include_directives:
             return self.depth(
