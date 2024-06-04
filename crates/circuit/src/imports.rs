@@ -40,7 +40,7 @@ pub static SINGLETON_GATE: GILOnceCell<PyObject> = GILOnceCell::new();
 /// qiskit.circuit.singleton.SingletonControlledGate
 pub static SINGLETON_CONTROLLED_GATE: GILOnceCell<PyObject> = GILOnceCell::new();
 
-/// A mapping from the enum varian in crate::operations::StandardGate to the python
+/// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table
 /// when a gate is added directly via the StandardGate path and there isn't a Python object
 /// to poll the _standard_gate attribute for.

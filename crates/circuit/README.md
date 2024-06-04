@@ -30,7 +30,7 @@ enum. The `OperationType` enum has four variants which are used to define the di
 operation objects that can be on a circuit:
 
  - `StandardGate`: a rust native representation of a member of the Qiskit standard gate library. This is
-    an `enum` that enuerates all the gates in the library and statically defines all the gate properties
+    an `enum` that enumerates all the gates in the library and statically defines all the gate properties
     except for gates that take parameters,
  - `PyGate`: A struct that wraps a gate outside the standard library defined in Python. This struct wraps
     a `Gate` instance (or subclass) as a `PyObject`. The static properties of this object (such as name,
@@ -53,7 +53,7 @@ operation objects that can be on a circuit:
     the struct.
 
 There is also an `Operation` trait defined which defines the common access pattern interface to these
-4 types along with the `OperationType` parent. This trait defined methods to access the standard data
+4 types along with the `OperationType` parent. This trait defines methods to access the standard data
 model attributes of operations in Qiskit. This includes things like the name, number of qubits, the matrix, the definition, etc.
 
 ## ParameterTable
