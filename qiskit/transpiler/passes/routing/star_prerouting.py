@@ -122,10 +122,6 @@ class StarPreRouting(TransformationPass):
     Bellevue, WA, USA, 2023, pp. 1020-1032, doi: 10.1109/QCE57702.2023.00116.
     """
 
-    def __init__(self):
-        """StarPreRouting"""
-        super().__init__()
-
     def run(self, dag):
         # Extract StarBlocks from DAGCircuit / DAGDependency / DAGDependencyV2
         star_blocks, processing_order = self.determine_star_blocks_processing(dag, min_block_size=2)

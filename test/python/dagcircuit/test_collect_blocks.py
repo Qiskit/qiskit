@@ -12,6 +12,7 @@
 
 """Test functionality to collect, split and consolidate blocks from DAGCircuits."""
 
+# pylint: disable=missing-function-docstring, unused-argument
 
 import unittest
 
@@ -986,6 +987,7 @@ class TestCollectBlocks(QiskitTestCase):
 
 
 class InvalidBlock:
+    """An example of an invalid block class that does not subclass Block."""
 
     def append_node(self, node):
         return True
@@ -1004,6 +1006,8 @@ class InvalidBlock:
 
 
 class DummyBlock(Block):
+    """An example of a block class that only implements the bare necessary methods."""
+
     def __init__(self):
         self.nodes = []
 
