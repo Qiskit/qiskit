@@ -212,7 +212,6 @@ fn construct_basis_states(
         } else if i == target_label {
             e2 += 1;
         } else {
-            assert!(j <= 1);
             e1 += state_free[j] as usize;
             e2 += state_free[j] as usize;
             j += 1
