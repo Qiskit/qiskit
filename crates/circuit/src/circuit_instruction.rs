@@ -722,12 +722,12 @@ pub(crate) fn convert_py_to_operation_type(
         None => op_obj.unbind(),
     };
     let op_type: Bound<PyType> = raw_op_type.into_bound(py);
-    let mut standard: Option<StandardGate> = match op_type.getattr(attr).ok() {
-        Some(stdgate) => match stdgate.extract().ok() {
+    let mut standard: Option<StandardGate> = match op_type.getattr(attr) {
+        Ok(stdgate) => match stdgate.extract().ok() {
             Some(gate) => gate,
             None => None,
         },
-        None => None,
+        Err(_) => None,
     };
     // If the input instruction is a standard gate and a singleton instance
     // we should check for mutable state. A mutable instance should be treated
@@ -769,31 +769,11 @@ pub(crate) fn convert_py_to_operation_type(
         populate_std_gate_map(py, op, base_class);
         return Ok(OperationTypeConstruct {
             operation: OperationType::Standard(op),
-            params: py_op
-                .getattr(py, intern!(py, "params"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
-            label: py_op
-                .getattr(py, intern!(py, "label"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
-            duration: py_op
-                .getattr(py, intern!(py, "duration"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
-            unit: py_op
-                .getattr(py, intern!(py, "unit"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
-            condition: py_op
-                .getattr(py, intern!(py, "condition"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
+            params: py_op.getattr(py, intern!(py, "params"))?.extract(py)?,
+            label: py_op.getattr(py, intern!(py, "label"))?.extract(py)?,
+            duration: py_op.getattr(py, intern!(py, "duration"))?.extract(py)?,
+            unit: py_op.getattr(py, intern!(py, "unit"))?.extract(py)?,
+            condition: py_op.getattr(py, intern!(py, "condition"))?.extract(py)?,
         });
     }
     let gate_class = GATE
@@ -807,54 +787,20 @@ pub(crate) fn convert_py_to_operation_type(
         .bind(py);
 
     if op_type.is_subclass(gate_class)? {
-        let params = py_op
-            .getattr(py, intern!(py, "params"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let label = py_op
-            .getattr(py, intern!(py, "label"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let duration = py_op
-            .getattr(py, intern!(py, "duration"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let unit = py_op
-            .getattr(py, intern!(py, "unit"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let condition = py_op
-            .getattr(py, intern!(py, "condition"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
+        let params = py_op.getattr(py, intern!(py, "params"))?.extract(py)?;
+        let label = py_op.getattr(py, intern!(py, "label"))?.extract(py)?;
+        let duration = py_op.getattr(py, intern!(py, "duration"))?.extract(py)?;
+        let unit = py_op.getattr(py, intern!(py, "unit"))?.extract(py)?;
+        let condition = py_op.getattr(py, intern!(py, "condition"))?.extract(py)?;
 
         let out_op = PyGate {
-            qubits: py_op
-                .getattr(py, intern!(py, "num_qubits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
-            clbits: py_op
-                .getattr(py, intern!(py, "num_clbits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
+            qubits: py_op.getattr(py, intern!(py, "num_qubits"))?.extract(py)?,
+            clbits: py_op.getattr(py, intern!(py, "num_clbits"))?.extract(py)?,
             params: py_op
-                .getattr(py, intern!(py, "params"))
-                .ok()
-                .unwrap()
+                .getattr(py, intern!(py, "params"))?
                 .downcast_bound::<PyList>(py)?
                 .len() as u32,
-            op_name: py_op
-                .getattr(py, intern!(py, "name"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
+            op_name: py_op.getattr(py, intern!(py, "name"))?.extract(py)?,
             gate: py_op,
         };
         return Ok(OperationTypeConstruct {
@@ -876,54 +822,20 @@ pub(crate) fn convert_py_to_operation_type(
         })
         .bind(py);
     if op_type.is_subclass(instruction_class)? {
-        let params = py_op
-            .getattr(py, intern!(py, "params"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let label = py_op
-            .getattr(py, intern!(py, "label"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let duration = py_op
-            .getattr(py, intern!(py, "duration"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let unit = py_op
-            .getattr(py, intern!(py, "unit"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
-        let condition = py_op
-            .getattr(py, intern!(py, "condition"))
-            .ok()
-            .unwrap()
-            .extract(py)?;
+        let params = py_op.getattr(py, intern!(py, "params"))?.extract(py)?;
+        let label = py_op.getattr(py, intern!(py, "label"))?.extract(py)?;
+        let duration = py_op.getattr(py, intern!(py, "duration"))?.extract(py)?;
+        let unit = py_op.getattr(py, intern!(py, "unit"))?.extract(py)?;
+        let condition = py_op.getattr(py, intern!(py, "condition"))?.extract(py)?;
 
         let out_op = PyInstruction {
-            qubits: py_op
-                .getattr(py, intern!(py, "num_qubits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
-            clbits: py_op
-                .getattr(py, intern!(py, "num_clbits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
+            qubits: py_op.getattr(py, intern!(py, "num_qubits"))?.extract(py)?,
+            clbits: py_op.getattr(py, intern!(py, "num_clbits"))?.extract(py)?,
             params: py_op
-                .getattr(py, intern!(py, "params"))
-                .ok()
-                .unwrap()
+                .getattr(py, intern!(py, "params"))?
                 .downcast_bound::<PyList>(py)?
                 .len() as u32,
-            op_name: py_op
-                .getattr(py, intern!(py, "name"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
+            op_name: py_op.getattr(py, intern!(py, "name"))?.extract(py)?,
             instruction: py_op,
         };
         return Ok(OperationTypeConstruct {
@@ -946,34 +858,22 @@ pub(crate) fn convert_py_to_operation_type(
         })
         .bind(py);
     if op_type.is_subclass(operation_class)? {
-        let params = match py_op.getattr(py, intern!(py, "params")).ok() {
-            Some(value) => value.extract(py)?,
-            None => smallvec![],
+        let params = match py_op.getattr(py, intern!(py, "params")) {
+            Ok(value) => value.extract(py)?,
+            Err(_) => smallvec![],
         };
         let label = None;
         let duration = None;
         let unit = None;
         let condition = None;
         let out_op = PyOperation {
-            qubits: py_op
-                .getattr(py, intern!(py, "num_qubits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
-            clbits: py_op
-                .getattr(py, intern!(py, "num_clbits"))
-                .ok()
-                .map(|x| x.extract(py).unwrap())
-                .unwrap_or(0),
-            params: match py_op.getattr(py, intern!(py, "params")).ok() {
-                Some(value) => value.downcast_bound::<PyList>(py)?.len() as u32,
-                None => 0,
+            qubits: py_op.getattr(py, intern!(py, "num_qubits"))?.extract(py)?,
+            clbits: py_op.getattr(py, intern!(py, "num_clbits"))?.extract(py)?,
+            params: match py_op.getattr(py, intern!(py, "params")) {
+                Ok(value) => value.downcast_bound::<PyList>(py)?.len() as u32,
+                Err(_) => 0,
             },
-            op_name: py_op
-                .getattr(py, intern!(py, "name"))
-                .ok()
-                .unwrap()
-                .extract(py)?,
+            op_name: py_op.getattr(py, intern!(py, "name"))?.extract(py)?,
             operation: py_op,
         };
         return Ok(OperationTypeConstruct {
