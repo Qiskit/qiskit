@@ -23,6 +23,18 @@ use crate::imports::{
 };
 use crate::operations::{OperationType, Param, PyGate, PyInstruction, PyOperation, StandardGate};
 
+/// These are extra mutable attributes for a circuit instruction's state. In general we don't
+/// typically deal with this in rust space and the majority of the time they're not used in Python
+/// space either. To save memory these are put in a separate struct and are stored inside a
+/// `Box` on `CircuitInstruction` and `PackedInstruction`.
+#[derive(Debug, Clone)]
+pub struct ExtraInstructionAttributes {
+    pub label: Option<String>,
+    pub duration: Option<PyObject>,
+    pub unit: Option<String>,
+    pub condition: Option<PyObject>,
+}
+
 /// A single instruction in a :class:`.QuantumCircuit`, comprised of the :attr:`operation` and
 /// various operands.
 ///
@@ -66,10 +78,7 @@ pub struct CircuitInstruction {
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
     pub params: Option<SmallVec<[Param; 3]>>,
-    pub label: Option<String>,
-    pub duration: Option<PyObject>,
-    pub unit: Option<String>,
-    pub condition: Option<PyObject>,
+    pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: Option<PyObject>,
 }
@@ -127,6 +136,18 @@ impl CircuitInstruction {
             }
         }
 
+        let extra_attrs =
+            if label.is_some() || duration.is_some() || unit.is_some() || condition.is_some() {
+                Some(Box::new(ExtraInstructionAttributes {
+                    label,
+                    duration,
+                    unit,
+                    condition,
+                }))
+            } else {
+                None
+            };
+
         match operation {
             OperationInput::Standard(operation) => {
                 let operation = OperationType::Standard(operation);
@@ -135,10 +156,7 @@ impl CircuitInstruction {
                     qubits: as_tuple(py, qubits)?,
                     clbits: as_tuple(py, clbits)?,
                     params,
-                    label,
-                    duration,
-                    unit,
-                    condition,
+                    extra_attrs,
                     #[cfg(feature = "cache_pygates")]
                     py_op: None,
                 })
@@ -150,10 +168,7 @@ impl CircuitInstruction {
                     qubits: as_tuple(py, qubits)?,
                     clbits: as_tuple(py, clbits)?,
                     params,
-                    label,
-                    duration,
-                    unit,
-                    condition,
+                    extra_attrs,
                     #[cfg(feature = "cache_pygates")]
                     py_op: None,
                 })
@@ -165,10 +180,7 @@ impl CircuitInstruction {
                     qubits: as_tuple(py, qubits)?,
                     clbits: as_tuple(py, clbits)?,
                     params,
-                    label,
-                    duration,
-                    unit,
-                    condition,
+                    extra_attrs,
                     #[cfg(feature = "cache_pygates")]
                     py_op: None,
                 })
@@ -180,16 +192,28 @@ impl CircuitInstruction {
                     qubits: as_tuple(py, qubits)?,
                     clbits: as_tuple(py, clbits)?,
                     params,
-                    label,
-                    duration,
-                    unit,
-                    condition,
+                    extra_attrs,
                     #[cfg(feature = "cache_pygates")]
                     py_op: None,
                 })
             }
             OperationInput::Object(old_op) => {
                 let op = convert_py_to_operation_type(py, old_op.clone_ref(py))?;
+                let extra_attrs = if op.label.is_some()
+                    || op.duration.is_some()
+                    || op.unit.is_some()
+                    || op.condition.is_some()
+                {
+                    Some(Box::new(ExtraInstructionAttributes {
+                        label: op.label,
+                        duration: op.duration,
+                        unit: op.unit,
+                        condition: op.condition,
+                    }))
+                } else {
+                    None
+                };
+
                 match op.operation {
                     OperationType::Standard(operation) => {
                         let operation = OperationType::Standard(operation);
@@ -198,10 +222,7 @@ impl CircuitInstruction {
                             qubits: as_tuple(py, qubits)?,
                             clbits: as_tuple(py, clbits)?,
                             params: op.params,
-                            label: op.label,
-                            duration: op.duration,
-                            unit: op.unit,
-                            condition: op.condition,
+                            extra_attrs,
                             #[cfg(feature = "cache_pygates")]
                             py_op: Some(old_op.clone_ref(py)),
                         })
@@ -213,10 +234,7 @@ impl CircuitInstruction {
                             qubits: as_tuple(py, qubits)?,
                             clbits: as_tuple(py, clbits)?,
                             params: op.params,
-                            label: op.label,
-                            duration: op.duration,
-                            unit: op.unit,
-                            condition: op.condition,
+                            extra_attrs,
                             #[cfg(feature = "cache_pygates")]
                             py_op: Some(old_op.clone_ref(py)),
                         })
@@ -228,10 +246,7 @@ impl CircuitInstruction {
                             qubits: as_tuple(py, qubits)?,
                             clbits: as_tuple(py, clbits)?,
                             params: op.params,
-                            label: op.label,
-                            duration: op.duration,
-                            unit: op.unit,
-                            condition: op.condition,
+                            extra_attrs,
                             #[cfg(feature = "cache_pygates")]
                             py_op: Some(old_op.clone_ref(py)),
                         })
@@ -243,10 +258,7 @@ impl CircuitInstruction {
                             qubits: as_tuple(py, qubits)?,
                             clbits: as_tuple(py, clbits)?,
                             params: op.params,
-                            label: op.label,
-                            duration: op.duration,
-                            unit: op.unit,
-                            condition: op.condition,
+                            extra_attrs,
                             #[cfg(feature = "cache_pygates")]
                             py_op: Some(old_op.clone_ref(py)),
                         })
@@ -318,21 +330,33 @@ impl CircuitInstruction {
 
         let label = match label {
             Some(label) => Some(label),
-            None => self.label.clone(),
+            None => match &self.extra_attrs {
+                Some(extra_attrs) => extra_attrs.label.clone(),
+                None => None,
+            },
         };
         let duration = match duration {
             Some(duration) => Some(duration),
-            None => self.duration.clone(),
+            None => match &self.extra_attrs {
+                Some(extra_attrs) => extra_attrs.duration.clone(),
+                None => None,
+            },
         };
 
         let unit: Option<String> = match unit {
             Some(unit) => Some(unit),
-            None => self.unit.clone(),
+            None => match &self.extra_attrs {
+                Some(extra_attrs) => extra_attrs.unit.clone(),
+                None => None,
+            },
         };
 
         let condition: Option<PyObject> = match condition {
             Some(condition) => Some(condition),
-            None => self.condition.clone(),
+            None => match &self.extra_attrs {
+                Some(extra_attrs) => extra_attrs.condition.clone(),
+                None => None,
+            },
         };
 
         CircuitInstruction::new(
@@ -363,10 +387,18 @@ impl CircuitInstruction {
         self.params = op.params;
         self.qubits = state.get_item(1)?.extract()?;
         self.clbits = state.get_item(2)?.extract()?;
-        self.label = op.label;
-        self.duration = op.duration;
-        self.unit = op.unit;
-        self.condition = op.condition;
+        if op.label.is_some()
+            || op.duration.is_some()
+            || op.unit.is_some()
+            || op.condition.is_some()
+        {
+            self.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
+                label: op.label,
+                duration: op.duration,
+                unit: op.unit,
+                condition: op.condition,
+            }));
+        }
         Ok(())
     }
 
@@ -588,14 +620,32 @@ pub(crate) fn operation_type_to_py(
     py: Python,
     circuit_inst: &CircuitInstruction,
 ) -> PyResult<PyObject> {
+    let label;
+    let duration;
+    let unit;
+    let condition;
+    match &circuit_inst.extra_attrs {
+        None => {
+            label = None;
+            duration = None;
+            unit = None;
+            condition = None;
+        }
+        Some(extra_attrs) => {
+            label = extra_attrs.label.clone();
+            duration = extra_attrs.duration.clone();
+            unit = extra_attrs.unit.clone();
+            condition = extra_attrs.condition.clone();
+        }
+    }
     operation_type_and_data_to_py(
         py,
         &circuit_inst.operation,
         &circuit_inst.params,
-        &circuit_inst.label,
-        &circuit_inst.duration,
-        &circuit_inst.unit,
-        &circuit_inst.condition,
+        &label,
+        &duration,
+        &unit,
+        &condition,
     )
 }
 

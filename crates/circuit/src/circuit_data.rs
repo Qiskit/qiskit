@@ -11,7 +11,8 @@
 // that they have been altered from the originals.
 
 use crate::circuit_instruction::{
-    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction, OperationInput,
+    convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction,
+    ExtraInstructionAttributes, OperationInput,
 };
 use crate::imports::{BUILTIN_LIST, CLBIT, QUBIT};
 use crate::intern_context::{BitType, IndexType, InternContext};
@@ -39,10 +40,7 @@ struct PackedInstruction {
     /// The index under which the interner has stored `clbits`.
     clbits_id: IndexType,
     params: Option<SmallVec<[Param; 3]>>,
-    label: Option<String>,
-    duration: Option<PyObject>,
-    unit: Option<String>,
-    condition: Option<PyObject>,
+    extra_attrs: Option<Box<ExtraInstructionAttributes>>,
     #[cfg(feature = "cache_pygates")]
     py_op: Option<PyObject>,
 }
@@ -246,10 +244,7 @@ impl CircuitData {
                     qubits,
                     clbits: clbits.into(),
                     params,
-                    label: None,
-                    duration: None,
-                    unit: None,
-                    condition: None,
+                    extra_attrs: None,
                     #[cfg(feature = "cache_pygates")]
                     py_op: None,
                 },
@@ -713,14 +708,33 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for inst in self.data.iter() {
+            let label;
+            let duration;
+            let unit;
+            let condition;
+            match &inst.extra_attrs {
+                Some(extra_attrs) => {
+                    label = &extra_attrs.label;
+                    duration = &extra_attrs.duration;
+                    unit = &extra_attrs.unit;
+                    condition = &extra_attrs.condition;
+                }
+                None => {
+                    label = &None;
+                    duration = &None;
+                    unit = &None;
+                    condition = &None;
+                }
+            }
+
             let op = operation_type_and_data_to_py(
                 py,
                 &inst.op,
                 &inst.params,
-                &inst.label,
-                &inst.duration,
-                &inst.unit,
-                &inst.condition,
+                label,
+                duration,
+                unit,
+                condition,
             )?;
             func.call1((op,))?;
         }
@@ -739,14 +753,32 @@ impl CircuitData {
             let op = match &inst.py_op {
                 Some(op) => op.clone_ref(py),
                 None => {
+                    let label;
+                    let duration;
+                    let unit;
+                    let condition;
+                    match &inst.extra_attrs {
+                        Some(extra_attrs) => {
+                            label = &extra_attrs.label;
+                            duration = &extra_attrs.duration;
+                            unit = &extra_attrs.unit;
+                            condition = &extra_attrs.condition;
+                        }
+                        None => {
+                            label = &None;
+                            duration = &None;
+                            unit = &None;
+                            condition = &None;
+                        }
+                    }
                     let new_op = operation_type_and_data_to_py(
                         py,
                         &inst.op,
                         &inst.params,
-                        &inst.label,
-                        &inst.duration,
-                        &inst.unit,
-                        &inst.condition,
+                        label,
+                        duration,
+                        unit,
+                        condition,
                     )?;
                     inst.py_op = Some(new_op.clone_ref(py));
                     new_op
@@ -767,14 +799,33 @@ impl CircuitData {
     #[pyo3(signature = (func))]
     pub fn foreach_op_indexed(&self, py: Python<'_>, func: &Bound<PyAny>) -> PyResult<()> {
         for (index, inst) in self.data.iter().enumerate() {
+            let label;
+            let duration;
+            let unit;
+            let condition;
+            match &inst.extra_attrs {
+                Some(extra_attrs) => {
+                    label = &extra_attrs.label;
+                    duration = &extra_attrs.duration;
+                    unit = &extra_attrs.unit;
+                    condition = &extra_attrs.condition;
+                }
+                None => {
+                    label = &None;
+                    duration = &None;
+                    unit = &None;
+                    condition = &None;
+                }
+            }
+
             let op = operation_type_and_data_to_py(
                 py,
                 &inst.op,
                 &inst.params,
-                &inst.label,
-                &inst.duration,
-                &inst.unit,
-                &inst.condition,
+                label,
+                duration,
+                unit,
+                condition,
             )?;
             func.call1((index, op))?;
         }
@@ -794,14 +845,32 @@ impl CircuitData {
             let op = match &inst.py_op {
                 Some(op) => op.clone_ref(py),
                 None => {
+                    let label;
+                    let duration;
+                    let unit;
+                    let condition;
+                    match &inst.extra_attrs {
+                        Some(extra_attrs) => {
+                            label = &extra_attrs.label;
+                            duration = &extra_attrs.duration;
+                            unit = &extra_attrs.unit;
+                            condition = &extra_attrs.condition;
+                        }
+                        None => {
+                            label = &None;
+                            duration = &None;
+                            unit = &None;
+                            condition = &None;
+                        }
+                    }
                     let new_op = operation_type_and_data_to_py(
                         py,
                         &inst.op,
                         &inst.params,
-                        &inst.label,
-                        &inst.duration,
-                        &inst.unit,
-                        &inst.condition,
+                        label,
+                        duration,
+                        unit,
+                        condition,
                     )?;
                     inst.py_op = Some(new_op.clone_ref(py));
                     new_op
@@ -831,15 +900,33 @@ impl CircuitData {
         for inst in self.data.iter_mut() {
             let old_op = match &inst.op {
                 OperationType::Standard(op) => {
-                    if inst.condition.is_some() {
+                    let label;
+                    let duration;
+                    let unit;
+                    let condition;
+                    match &inst.extra_attrs {
+                        Some(extra_attrs) => {
+                            label = &extra_attrs.label;
+                            duration = &extra_attrs.duration;
+                            unit = &extra_attrs.unit;
+                            condition = &extra_attrs.condition;
+                        }
+                        None => {
+                            label = &None;
+                            duration = &None;
+                            unit = &None;
+                            condition = &None;
+                        }
+                    }
+                    if condition.is_some() {
                         operation_type_and_data_to_py(
                             py,
                             &inst.op,
                             &inst.params,
-                            &inst.label,
-                            &inst.duration,
-                            &inst.unit,
-                            &inst.condition,
+                            label,
+                            duration,
+                            unit,
+                            condition,
                         )?
                     } else {
                         op.into_py(py)
@@ -867,10 +954,18 @@ impl CircuitData {
                     let new_inst_details = convert_py_to_operation_type(py, new_op)?;
                     inst.op = new_inst_details.operation;
                     inst.params = new_inst_details.params;
-                    inst.label = new_inst_details.label;
-                    inst.duration = new_inst_details.duration;
-                    inst.unit = new_inst_details.unit;
-                    inst.condition = new_inst_details.condition;
+                    if new_inst_details.label.is_some()
+                        || new_inst_details.duration.is_some()
+                        || new_inst_details.unit.is_some()
+                        || new_inst_details.condition.is_some()
+                    {
+                        inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
+                            label: new_inst_details.label,
+                            duration: new_inst_details.duration,
+                            unit: new_inst_details.unit,
+                            condition: new_inst_details.condition,
+                        }))
+                    }
                 }
             }
         }
@@ -898,15 +993,33 @@ impl CircuitData {
                 Some(op) => op.clone_ref(py),
                 None => match &inst.op {
                     OperationType::Standard(op) => {
-                        if inst.condition.is_some() {
+                        let label;
+                        let duration;
+                        let unit;
+                        let condition;
+                        match &inst.extra_attrs {
+                            Some(extra_attrs) => {
+                                label = &extra_attrs.label;
+                                duration = &extra_attrs.duration;
+                                unit = &extra_attrs.unit;
+                                condition = &extra_attrs.condition;
+                            }
+                            None => {
+                                label = &None;
+                                duration = &None;
+                                unit = &None;
+                                condition = &None;
+                            }
+                        }
+                        if condition.is_some() {
                             let new_op = operation_type_and_data_to_py(
                                 py,
                                 &inst.op,
                                 &inst.params,
-                                &inst.label,
-                                &inst.duration,
-                                &inst.unit,
-                                &inst.condition,
+                                label,
+                                duration,
+                                unit,
+                                condition,
                             )?;
                             inst.py_op = Some(new_op.clone_ref(py));
                             new_op
@@ -937,10 +1050,18 @@ impl CircuitData {
                     let new_inst_details = convert_py_to_operation_type(py, new_op.clone_ref(py))?;
                     inst.op = new_inst_details.operation;
                     inst.params = new_inst_details.params;
-                    inst.label = new_inst_details.label;
-                    inst.duration = new_inst_details.duration;
-                    inst.unit = new_inst_details.unit;
-                    inst.condition = new_inst_details.condition;
+                    if new_inst_details.label.is_some()
+                        || new_inst_details.duration.is_some()
+                        || new_inst_details.unit.is_some()
+                        || new_inst_details.condition.is_some()
+                    {
+                        inst.extra_attrs = Some(Box::new(ExtraInstructionAttributes {
+                            label: new_inst_details.label,
+                            duration: new_inst_details.duration,
+                            unit: new_inst_details.unit,
+                            condition: new_inst_details.condition,
+                        }))
+                    }
                     inst.py_op = Some(new_op);
                 }
             }
@@ -1256,10 +1377,7 @@ impl CircuitData {
                     qubits_id: self.intern_context.intern(qubits)?,
                     clbits_id: self.intern_context.intern(clbits)?,
                     params: inst.params.clone(),
-                    label: inst.label.clone(),
-                    duration: inst.duration.clone(),
-                    unit: inst.unit.clone(),
-                    condition: inst.condition.clone(),
+                    extra_attrs: inst.extra_attrs.clone(),
                     #[cfg(feature = "cache_pygates")]
                     py_op: inst.py_op.clone(),
                 });
@@ -1313,9 +1431,6 @@ impl CircuitData {
     }
 
     fn __traverse__(&self, visit: PyVisit<'_>) -> Result<(), PyTraverseError> {
-        for packed in self.data.iter() {
-            visit.call(&packed.duration)?;
-        }
         for bit in self.qubits_native.iter().chain(self.clbits_native.iter()) {
             visit.call(bit)?;
         }
@@ -1555,10 +1670,7 @@ impl CircuitData {
             qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.bind(py))?,
             clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.bind(py))?,
             params: inst.params.clone(),
-            label: inst.label.clone(),
-            duration: inst.duration.clone(),
-            unit: inst.unit.clone(),
-            condition: inst.condition.clone(),
+            extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: inst.py_op.clone(),
         })
@@ -1586,10 +1698,7 @@ impl CircuitData {
             qubits_id: interned_bits(&self.qubit_indices_native, inst.qubits.bind(py))?,
             clbits_id: interned_bits(&self.clbit_indices_native, inst.clbits.bind(py))?,
             params: inst.params.clone(),
-            label: inst.label.clone(),
-            duration: inst.duration.clone(),
-            unit: inst.unit.clone(),
-            condition: inst.condition.clone(),
+            extra_attrs: inst.extra_attrs.clone(),
             #[cfg(feature = "cache_pygates")]
             py_op: inst.py_op.clone(),
         })
@@ -1619,10 +1728,7 @@ impl CircuitData {
                 )
                 .unbind(),
                 params: inst.params.clone(),
-                label: inst.label.clone(),
-                duration: inst.duration.clone(),
-                unit: inst.unit.clone(),
-                condition: inst.condition.clone(),
+                extra_attrs: inst.extra_attrs.clone(),
                 #[cfg(feature = "cache_pygates")]
                 py_op: inst.py_op.clone(),
             },

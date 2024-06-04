@@ -12,6 +12,7 @@
 
 use crate::circuit_instruction::{
     convert_py_to_operation_type, operation_type_to_py, CircuitInstruction,
+    ExtraInstructionAttributes,
 };
 use crate::operations::Operation;
 use pyo3::prelude::*;
@@ -111,6 +112,21 @@ impl DAGOpNode {
         };
         let res = convert_py_to_operation_type(py, op.clone_ref(py))?;
 
+        let extra_attrs = if res.label.is_some()
+            || res.duration.is_some()
+            || res.unit.is_some()
+            || res.condition.is_some()
+        {
+            Some(Box::new(ExtraInstructionAttributes {
+                label: res.label,
+                duration: res.duration,
+                unit: res.unit,
+                condition: res.condition,
+            }))
+        } else {
+            None
+        };
+
         Ok((
             DAGOpNode {
                 instruction: CircuitInstruction {
@@ -118,10 +134,7 @@ impl DAGOpNode {
                     qubits: qargs.unbind(),
                     clbits: cargs.unbind(),
                     params: res.params,
-                    label: res.label,
-                    duration: res.duration,
-                    unit: res.unit,
-                    condition: res.condition,
+                    extra_attrs,
                     #[cfg(feature = "cache_pygates")]
                     py_op: Some(op),
                 },
@@ -162,10 +175,21 @@ impl DAGOpNode {
         let res = convert_py_to_operation_type(py, op)?;
         self.instruction.operation = res.operation;
         self.instruction.params = res.params;
-        self.instruction.label = res.label;
-        self.instruction.duration = res.duration;
-        self.instruction.unit = res.unit;
-        self.instruction.condition = res.condition;
+        let extra_attrs = if res.label.is_some()
+            || res.duration.is_some()
+            || res.unit.is_some()
+            || res.condition.is_some()
+        {
+            Some(Box::new(ExtraInstructionAttributes {
+                label: res.label,
+                duration: res.duration,
+                unit: res.unit,
+                condition: res.condition,
+            }))
+        } else {
+            None
+        };
+        self.instruction.extra_attrs = extra_attrs;
         Ok(())
     }
 
