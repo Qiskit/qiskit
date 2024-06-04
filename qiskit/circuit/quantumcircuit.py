@@ -3394,7 +3394,7 @@ class QuantumCircuit:
             include_directives (bool): Whether to include directives such as barriers
 
         Returns:
-            int: Quantum circuit depth in terms of two-qubit gates
+            int: Quantum circuit depth in terms of two or more qubit gates
         """
         if not include_directives:
             return self.depth(
