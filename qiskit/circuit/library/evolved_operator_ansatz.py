@@ -103,7 +103,9 @@ class EvolvedOperatorAnsatz(NLocal):
         if self.operators is None:
             return 0
 
-        if isinstance(self.operators, list) and len(self.operators) > 0:
+        if isinstance(self.operators, list):
+            if len(self.operators) == 0:
+                return 0
             return self.operators[0].num_qubits
 
         return self.operators.num_qubits
@@ -155,7 +157,10 @@ class EvolvedOperatorAnsatz(NLocal):
         operators = _validate_operators(operators)
         self._invalidate()
         self._operators = operators
-        self.qregs = [QuantumRegister(self.num_qubits, name="q")]
+        if self.num_qubits == 0:
+            self.qregs = []
+        else:
+            self.qregs = [QuantumRegister(self.num_qubits, name="q")]
 
     # TODO: the `preferred_init_points`-implementation can (and should!) be improved!
     @property
