@@ -310,7 +310,7 @@ class TestParameters(QiskitTestCase):
         )
 
     def test_bind_parameters_custom_definition_global_phase(self):
-        """Test that a custom gate with a parametrised `global_phase` is assigned correctly."""
+        """Test that a custom gate with a parametrized `global_phase` is assigned correctly."""
         x = Parameter("x")
         custom = QuantumCircuit(1, global_phase=x).to_gate()
         base = QuantumCircuit(1)

@@ -568,7 +568,7 @@ class TestInstructions(QiskitTestCase):
             case(1.0, r"Unknown classical resource specifier: .*")
 
     def test_instructionset_c_if_with_no_requester(self):
-        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resoluer accepts
+        """Test that using a raw :obj:`.InstructionSet` with no classical-resource resolver accepts
         arbitrary :obj:`.Clbit` and `:obj:`.ClassicalRegister` instances, but rejects integers."""
 
         with self.subTest("accepts arbitrary register"):

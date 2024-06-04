@@ -2943,7 +2943,7 @@ class TestControlFlowBuilders(QiskitTestCase):
             self.assertEqual(canonicalize_control_flow(outer), canonicalize_control_flow(expected))
 
     def test_global_phase_of_blocks(self):
-        """It should be possible to set a global phase of a scope independantly of the containing
+        """It should be possible to set a global phase of a scope independently of the containing
         scope and other sibling scopes."""
         qr = QuantumRegister(3)
         cr = ClassicalRegister(3)

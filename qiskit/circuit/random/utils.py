@@ -146,7 +146,7 @@ def random_circuit(
     # Apply arbitrary random operations in layers across all qubits.
     for layer_number in range(depth):
         # We generate all the randomness for the layer in one go, to avoid many separate calls to
-        # the randomisation routines, which can be fairly slow.
+        # the randomization routines, which can be fairly slow.
 
         # This reliably draws too much randomness, but it's less expensive than looping over more
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
@@ -161,9 +161,9 @@ def random_circuit(
         if slack:
             gate_specs = np.hstack((gate_specs, rng.choice(gates_1q, size=slack)))
 
-        # For efficiency in the Python loop, this uses Numpy vectorisation to pre-calculate the
+        # For efficiency in the Python loop, this uses Numpy vectorization to pre-calculate the
         # indices into the lists of qubits and parameters for every gate, and then suitably
-        # randomises those lists.
+        # randomizes those lists.
         q_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         p_indices = np.empty(len(gate_specs) + 1, dtype=np.int64)
         q_indices[0] = p_indices[0] = 0

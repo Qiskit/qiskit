@@ -53,7 +53,7 @@ class Expr(abc.ABC):
     expressions, and it does not make sense to add more outside of Qiskit library code.
 
     All subclasses are responsible for setting their ``type`` attribute in their ``__init__``, and
-    should not call the parent initialiser."""
+    should not call the parent initializer."""
 
     __slots__ = ("type",)
 
@@ -241,7 +241,7 @@ class Unary(Expr):
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`.
         # The opcode integers should be considered a public interface; they are used by
-        # serialisation formats that may transfer data between different versions of Qiskit.
+        # serialization formats that may transfer data between different versions of Qiskit.
         BIT_NOT = 1
         """Bitwise negation. ``~operand``."""
         LOGIC_NOT = 2
@@ -309,7 +309,7 @@ class Binary(Expr):
 
         # If adding opcodes, remember to add helper constructor functions in `constructors.py`
         # The opcode integers should be considered a public interface; they are used by
-        # serialisation formats that may transfer data between different versions of Qiskit.
+        # serialization formats that may transfer data between different versions of Qiskit.
         BIT_AND = 1
         """Bitwise "and". ``lhs & rhs``."""
         BIT_OR = 2

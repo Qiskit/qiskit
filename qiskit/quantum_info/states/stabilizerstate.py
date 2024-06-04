@@ -646,7 +646,7 @@ class StabilizerState(QuantumState):
 
     @staticmethod
     def _rowsum_deterministic(clifford, aux_pauli, row):
-        """Updating an auxilary Pauli aux_pauli in the
+        """Updating an auxiliary Pauli aux_pauli in the
         deterministic rowsum calculation.
         The StabilizerState itself is not updated."""
 

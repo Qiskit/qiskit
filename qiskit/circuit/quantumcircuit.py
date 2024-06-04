@@ -368,7 +368,7 @@ class QuantumCircuit:
     -------------------------------
 
     A :class:`.Bit` instance is, on its own, just a unique handle for circuits to use in their own
-    contexts.  If you have got a :class:`.Bit` instance and a cirucit, just can find the contexts
+    contexts.  If you have got a :class:`.Bit` instance and a circuit, just can find the contexts
     that the bit exists in using :meth:`find_bit`, such as its integer index in the circuit and any
     registers it is contained in.
 
@@ -649,7 +649,7 @@ class QuantumCircuit:
 
     Finally, these methods apply particular generalized multiply controlled gates to the circuit,
     often with eager syntheses.  They are listed in terms of the *base* gate they are controlling,
-    since their exact output is often a synthesised version of a gate.
+    since their exact output is often a synthesized version of a gate.
 
     ===============================   =================================================
     :class:`QuantumCircuit` method    Base :mod:`qiskit.circuit.library` :class:`.Gate`
@@ -2435,7 +2435,7 @@ class QuantumCircuit:
             and the only reference to the circuit the instructions are being appended to is within
             that same function.  In particular, it is not safe to call
             :meth:`QuantumCircuit._append` on a circuit that is received by a function argument.
-            This is because :meth:`.QuantumCircuit._append` will not recognise the scoping
+            This is because :meth:`.QuantumCircuit._append` will not recognize the scoping
             constructs of the control-flow builder interface.
 
         Args:
@@ -2518,7 +2518,7 @@ class QuantumCircuit:
 
                 my_param = Parameter("my_param")
 
-                # Create a parametrised circuit.
+                # Create a parametrized circuit.
                 qc = QuantumCircuit(1)
                 qc.rx(my_param, 0)
 
@@ -2734,8 +2734,8 @@ class QuantumCircuit:
                 # two classical registers we measured into above.
                 qc.add_var(my_var, expr.bit_and(cr1, cr2))
         """
-        # Validate the initialiser first to catch cases where the variable to be declared is being
-        # used in the initialiser.
+        # Validate the initializer first to catch cases where the variable to be declared is being
+        # used in the initializer.
         circuit_scope = self._current_scope()
         # Convenience method to widen Python integer literals to the right width during the initial
         # lift, if the type is already known via the variable.
@@ -2759,7 +2759,7 @@ class QuantumCircuit:
             var = name_or_var
         circuit_scope.add_uninitialized_var(var)
         try:
-            # Store is responsible for ensuring the type safety of the initialisation.
+            # Store is responsible for ensuring the type safety of the initialization.
             store = Store(var, initial)
         except CircuitError:
             circuit_scope.remove_var(var)
@@ -3551,7 +3551,7 @@ class QuantumCircuit:
         cpy._data = self._data.copy()
 
         # The special global-phase sentinel doesn't need copying, but it's
-        # added here to ensure it's recognised. The global phase itself was
+        # added here to ensure it's recognized. The global phase itself was
         # already copied over in `copy_empty_like`.
         operation_copies = {id(ParameterTable.GLOBAL_PHASE): ParameterTable.GLOBAL_PHASE}
 
@@ -3635,7 +3635,7 @@ class QuantumCircuit:
         if vars_mode == "alike":
             # Note that this causes the local variables to be uninitialised, because the stores are
             # not copied.  This can leave the circuit in a potentially dangerous state for users if
-            # they don't re-add initialiser stores.
+            # they don't re-add initializer stores.
             cpy._vars_local = self._vars_local.copy()
             cpy._vars_input = self._vars_input.copy()
             cpy._vars_capture = self._vars_capture.copy()
@@ -4045,7 +4045,7 @@ class QuantumCircuit:
             angle (float, ParameterExpression): radians
         """
         # If we're currently parametric, we need to throw away the references.  This setter is
-        # called by some subclasses before the inner `_global_phase` is initialised.
+        # called by some subclasses before the inner `_global_phase` is initialized.
         global_phase_reference = (ParameterTable.GLOBAL_PHASE, None)
         if isinstance(previous := getattr(self, "_global_phase", None), ParameterExpression):
             self._parameters = None
@@ -5894,7 +5894,7 @@ class QuantumCircuit:
         """Finish a scope used in the control-flow builder interface, and return it to the caller.
 
         This should only be done by the control-flow context managers, since they naturally
-        synchronise the creation and deletion of stack elements."""
+        synchronize the creation and deletion of stack elements."""
         return self._control_flow_scopes.pop()
 
     def _peek_previous_instruction_in_scope(self) -> CircuitInstruction:

@@ -101,7 +101,7 @@ class Counts(dict):
             else:
                 raise TypeError(
                     "Invalid input key type %s, must be either an int "
-                    "key or string key with hexademical value or bit string"
+                    "key or string key with hexadecimal value or bit string"
                 )
         header = {}
         self.creg_sizes = creg_sizes

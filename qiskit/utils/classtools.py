@@ -49,7 +49,7 @@ class _lift_to_method:  # pylint: disable=invalid-name
 
     def __init__(self, method):
         if method is self:
-            # Prevent double-initialisation if we are passed an instance of this object to lift.
+            # Prevent double-initialization if we are passed an instance of this object to lift.
             return
         self._method = method
 

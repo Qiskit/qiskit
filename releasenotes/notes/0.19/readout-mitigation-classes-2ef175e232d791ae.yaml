@@ -25,7 +25,7 @@ features:
   - |
     Added the :class:`~qiskit.result.LocalReadoutMitigator` class for
     performing measurement readout error mitigation of local measurement
-    errors. Local measuerment errors are those that are described by a
+    errors. Local measurement errors are those that are described by a
     tensor-product of single-qubit measurement errors. 
     
     This class can be initialized with a list of :math:`N` single-qubit of

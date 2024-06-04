@@ -782,7 +782,7 @@ class TwoQubitDecomposeUpToDiagonal:
 
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically
 # always made ``two_qubit_cnot_decompose`` available publicly immediately on import, but it's quite
-# expensive to construct, and we want to defer the obejct's creation until it's actually used.  We
+# expensive to construct, and we want to defer the object's creation until it's actually used.  We
 # only need to pass through the public methods that take `self` as a parameter.  Using `__getattr__`
 # doesn't work because it is only called if the normal resolution methods fail.  Using
 # `__getattribute__` is too messy for a simple one-off use object.

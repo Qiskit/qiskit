@@ -204,7 +204,7 @@ class InstructionPlaceholder(Instruction, abc.ABC):
     When appending a placeholder instruction into a circuit scope, you should create the
     placeholder, and then ask it what resources it should be considered as using from the start by
     calling :meth:`.InstructionPlaceholder.placeholder_instructions`.  This set will be a subset of
-    the final resources it asks for, but it is used for initialising resources that *must* be
+    the final resources it asks for, but it is used for initializing resources that *must* be
     supplied, such as the bits used in the conditions of placeholder ``if`` statements.
 
     .. warning::

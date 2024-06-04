@@ -30,7 +30,7 @@ use std::path::Path;
 
 use crate::error::{message_generic, Position, QASM2ParseError};
 
-/// Tokenised version information data.  This is more structured than the real number suggested by
+/// Tokenized version information data.  This is more structured than the real number suggested by
 /// the specification.
 #[derive(Clone, Debug)]
 pub struct Version {
@@ -353,7 +353,7 @@ impl TokenStream {
             line_buffer: Vec::with_capacity(80),
             done: false,
             // The first line is numbered "1", and the first column is "0".  The counts are
-            // initialised like this so the first call to `next_byte` can easily detect that it
+            // initialized like this so the first call to `next_byte` can easily detect that it
             // needs to extract the next line.
             line: 0,
             col: 0,

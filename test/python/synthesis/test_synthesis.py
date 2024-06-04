@@ -219,7 +219,7 @@ class CheckDecompositions(QiskitTestCase):
     ):
         """Check that the two qubit Weyl decomposition gets specialized as expected"""
 
-        # Loop to check both for implicit and explicity specialization
+        # Loop to check both for implicit and explicitly specialization
         for decomposer in (TwoQubitWeylDecomposition, expected_specialization):
             if isinstance(decomposer, TwoQubitWeylDecomposition):
                 with self.assertDebugOnly():

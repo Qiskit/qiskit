@@ -87,7 +87,7 @@ class TestReference(QiskitTestCase):
         self.assertEqual(sched_z1.parameters, sched_y1.parameters)
 
     def test_refer_schedule_parameter_assignment(self):
-        """Test assigning to parametr in referenced schedule"""
+        """Test assigning to parameter in referenced schedule"""
         param = circuit.Parameter("name")
 
         with pulse.build() as sched_x1:

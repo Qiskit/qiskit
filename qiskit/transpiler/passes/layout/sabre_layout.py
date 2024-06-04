@@ -144,7 +144,7 @@ class SabreLayout(TransformationPass):
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
             layout_trials (int): The number of random seed trials to run
-                layout with. When > 1 the trial that resuls in the output with
+                layout with. When > 1 the trial that results in the output with
                 the fewest swap gates will be selected. If this is not specified
                 (and ``routing_pass`` is not set) then the number of local
                 physical CPUs will be used as the default value. This option is

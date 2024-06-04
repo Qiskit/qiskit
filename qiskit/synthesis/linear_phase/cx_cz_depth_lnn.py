@@ -217,7 +217,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
 
 def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray) -> QuantumCircuit:
     """
-    Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
+    Joint synthesis of a -CZ-CX- circuit for linear nearest neighbor (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang.
     This method computes the CZ circuit inside the CX circuit via phase gate insertions.
 

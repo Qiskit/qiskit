@@ -276,7 +276,7 @@ class ScheduleInstruction(TypeKeyBase):
     REFERENCE = b"y"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
-    # Call instructon is not supported by QPY.
+    # Call instruction is not supported by QPY.
     # This instruction has been excluded from ScheduleBlock instructions with
     # qiskit-terra/#8005 and new instruction Reference will be added instead.
     # Call is only applied to Schedule which is not supported by QPY.

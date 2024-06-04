@@ -312,7 +312,7 @@ def _define_custom_operation(operation, gates_to_define):
         lib.U3Gate,
     }
 
-    # In known-good situations we want to use a manually parametrised object as the source of the
+    # In known-good situations we want to use a manually parametrized object as the source of the
     # definition, but still continue to return the given object as the call-site object.
     if operation.base_class in known_good_parameterized:
         parameterized_operation = type(operation)(*_FIXED_PARAMETERS[: len(operation.params)])

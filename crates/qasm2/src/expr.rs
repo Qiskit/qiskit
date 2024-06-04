@@ -504,7 +504,7 @@ impl<'a> ExprParser<'a> {
             // This deliberately parses an _integer_ token as a float, since all OpenQASM 2.0
             // integers can be interpreted as floats, and doing that allows us to gracefully handle
             // cases where a huge float would overflow a `usize`.  Never mind that in such a case,
-            // there's almost certainly precision loss from the floating-point representating
+            // there's almost certainly precision loss from the floating-point representing
             // having insufficient mantissa digits to faithfully represent the angle mod 2pi;
             // that's not our fault in the parser.
             TokenType::Real | TokenType::Integer => Ok(Some(Atom::Const(token.real(self.context)))),

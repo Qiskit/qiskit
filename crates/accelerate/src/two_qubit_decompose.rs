@@ -224,8 +224,8 @@ fn decompose_two_qubit_product_gate(
 }
 
 fn __weyl_coordinates(unitary: MatRef<c64>) -> [f64; 3] {
-    let uscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
-    let uup = transform_from_magic_basis(uscaled);
+    let upscaled = scale(C1 / unitary.determinant().powf(0.25)) * unitary;
+    let uup = transform_from_magic_basis(upscaled);
     let mut darg: Vec<_> = (uup.transpose() * &uup)
         .complex_eigenvalues()
         .into_iter()

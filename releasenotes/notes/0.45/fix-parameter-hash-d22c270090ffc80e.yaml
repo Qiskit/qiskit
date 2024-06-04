@@ -3,7 +3,7 @@ features:
   - |
     :class:`.Parameter` now has an advanced-usage keyword argument ``uuid`` in its constructor,
     which can be used to make the :class:`.Parameter` compare equal to another of the same name.
-    This should not typically be used by users, and is most useful for custom serialisation and
+    This should not typically be used by users, and is most useful for custom serialization and
     deserialization.
 fixes:
   - |

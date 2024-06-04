@@ -20,7 +20,7 @@ formats <qasm2-parse>` and :ref:`exporting back to OpenQASM 2 <qasm2-export>`.
 
 .. note::
 
-    OpenQASM 2 is a simple language, and not suitable for general serialisation of Qiskit objects.
+    OpenQASM 2 is a simple language, and not suitable for general serialization of Qiskit objects.
     See :ref:`some discussion of alternatives below <qasm2-alternatives>`, if that is what you are
     looking for.
 
@@ -95,7 +95,7 @@ letter-of-the-spec mode with ``strict=True``.
 Exporting API
 =============
 
-Similar to other serialisation modules in Python, this module offers two public functions:
+Similar to other serialization modules in Python, this module offers two public functions:
 :func:`dump` and :func:`dumps`, which take a :class:`.QuantumCircuit` and write out a representative
 OpenQASM 2 program to a file-like object or return a string, respectively.
 
@@ -394,7 +394,7 @@ Legacy Compatibility
 
 :meth:`.QuantumCircuit.from_qasm_str` and :meth:`~.QuantumCircuit.from_qasm_file` used to make a few
 additions on top of the raw specification. Qiskit originally tried to use OpenQASM 2 as a sort of
-serialisation format, and expanded its behavior as Qiskit expanded.  The new parser under all its
+serialization format, and expanded its behavior as Qiskit expanded.  The new parser under all its
 defaults implements the specification more strictly.
 
 In particular, in the legacy importers:

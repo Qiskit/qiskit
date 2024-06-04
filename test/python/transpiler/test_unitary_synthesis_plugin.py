@@ -71,7 +71,7 @@ class ControllableSynthesis(UnitarySynthesisPlugin):
     """A dummy synthesis plugin, which can have its ``supports_`` properties changed to test
     different parts of the synthesis plugin interface.  By default, it accepts all keyword arguments
     and accepts all number of qubits, but if its run method is called, it just returns ``None`` to
-    indicate that the gate should not be synthesised."""
+    indicate that the gate should not be synthesized."""
 
     min_qubits = None
     max_qubits = None

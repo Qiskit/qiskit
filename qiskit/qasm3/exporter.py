@@ -462,7 +462,7 @@ class QASM3Builder:
             self.build_gate_definition(instruction) for instruction in gates_to_declare
         ]
 
-        # Early IBM runtime paramterisation uses unbound `Parameter` instances as `input` variables,
+        # Early IBM runtime parametrization uses unbound `Parameter` instances as `input` variables,
         # not the explicit realtime `Var` variables, so we need this explicit scan.
         self.hoist_global_parameter_declarations()
         # Qiskit's clbits and classical registers need to get mapped to implicit OQ3 variables, but
@@ -937,7 +937,7 @@ class QASM3Builder:
                 ),
             ]
 
-        # Handle the stabilised syntax.
+        # Handle the stabilized syntax.
         cases = []
         default = None
         for values, block in instruction.operation.cases_specifier():
