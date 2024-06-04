@@ -2312,6 +2312,9 @@ class QuantumCircuit:
         """An internal method to bypass some checking when directly appending a standard gate."""
         circuit_scope = self._current_scope()
 
+        if params is None:
+            params = []
+
         expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
         if params is not None:

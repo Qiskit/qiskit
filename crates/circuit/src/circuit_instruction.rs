@@ -15,7 +15,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{IntoPyDict, PyList, PyTuple, PyType};
 use pyo3::{intern, IntoPy, PyObject, PyResult};
-use smallvec::SmallVec;
+use smallvec::{smallvec, SmallVec};
 
 use crate::imports::{
     get_std_gate_class, populate_std_gate_map, GATE, INSTRUCTION, OPERATION,
@@ -77,7 +77,7 @@ pub struct CircuitInstruction {
     /// A sequence of the classical bits that this operation reads from or writes to.
     #[pyo3(get)]
     pub clbits: Py<PyTuple>,
-    pub params: Option<SmallVec<[Param; 3]>>,
+    pub params: SmallVec<[Param; 3]>,
     pub extra_attrs: Option<Box<ExtraInstructionAttributes>>,
     #[cfg(feature = "cache_pygates")]
     pub py_op: Option<PyObject>,
@@ -102,12 +102,13 @@ pub enum OperationInput {
 impl CircuitInstruction {
     #[allow(clippy::too_many_arguments)]
     #[new]
+    #[pyo3(signature = (operation, qubits=None, clbits=None, params=smallvec![], label=None, duration=None, unit=None, condition=None))]
     pub fn new(
         py: Python<'_>,
         operation: OperationInput,
         qubits: Option<&Bound<PyAny>>,
         clbits: Option<&Bound<PyAny>>,
-        params: Option<SmallVec<[Param; 3]>>,
+        params: SmallVec<[Param; 3]>,
         label: Option<String>,
         duration: Option<PyObject>,
         unit: Option<String>,
@@ -324,7 +325,7 @@ impl CircuitInstruction {
         };
 
         let params = match params {
-            Some(params) => Some(params),
+            Some(params) => params,
             None => self.params.clone(),
         };
 
@@ -508,13 +509,11 @@ impl CircuitInstruction {
                             if let OperationType::Standard(other) = &v.operation {
                                 if op != other {
                                     false
-                                } else if let Some(self_params) = &self_.params {
-                                    if v.params.is_none() {
-                                        return Ok(Some(false));
-                                    }
-                                    let other_params = v.params.as_ref().unwrap();
+                                } else {
+                                    let other_params = &v.params;
                                     let mut out = true;
-                                    for (param_a, param_b) in self_params.iter().zip(other_params) {
+                                    for (param_a, param_b) in self_.params.iter().zip(other_params)
+                                    {
                                         match param_a {
                                             Param::Float(val_a) => {
                                                 if let Param::Float(val_b) = param_b {
@@ -552,8 +551,6 @@ impl CircuitInstruction {
                                         }
                                     }
                                     out
-                                } else {
-                                    v.params.is_none()
                                 }
                             } else {
                                 false
@@ -657,7 +654,7 @@ pub(crate) fn operation_type_to_py(
 pub(crate) fn operation_type_and_data_to_py(
     py: Python,
     operation: &OperationType,
-    params: &Option<SmallVec<[Param; 3]>>,
+    params: &SmallVec<[Param; 3]>,
     label: &Option<String>,
     duration: &Option<PyObject>,
     unit: &Option<String>,
@@ -667,12 +664,8 @@ pub(crate) fn operation_type_and_data_to_py(
         OperationType::Standard(op) => {
             let gate_class: &PyObject = &get_std_gate_class(py, *op)?;
 
-            let args = if let Some(params) = &params {
-                if params.is_empty() {
-                    PyTuple::empty_bound(py)
-                } else {
-                    PyTuple::new_bound(py, params)
-                }
+            let args = if params.is_empty() {
+                PyTuple::empty_bound(py)
             } else {
                 PyTuple::new_bound(py, params)
             };
@@ -681,10 +674,8 @@ pub(crate) fn operation_type_and_data_to_py(
                 ("unit", unit.to_object(py)),
                 ("duration", duration.to_object(py)),
             ];
-            if let Some(params) = params {
-                if !params.is_empty() {
-                    kwargs_list.push(("_skip_validation", true.to_object(py)));
-                }
+            if !params.is_empty() {
+                kwargs_list.push(("_skip_validation", true.to_object(py)));
             }
 
             let kwargs = kwargs_list.into_py_dict_bound(py);
@@ -706,7 +697,7 @@ pub(crate) fn operation_type_and_data_to_py(
 #[derive(Debug)]
 pub(crate) struct OperationTypeConstruct {
     pub operation: OperationType,
-    pub params: Option<SmallVec<[Param; 3]>>,
+    pub params: SmallVec<[Param; 3]>,
     pub label: Option<String>,
     pub duration: Option<PyObject>,
     pub unit: Option<String>,
@@ -957,7 +948,7 @@ pub(crate) fn convert_py_to_operation_type(
     if op_type.is_subclass(operation_class)? {
         let params = match py_op.getattr(py, intern!(py, "params")).ok() {
             Some(value) => value.extract(py)?,
-            None => None,
+            None => smallvec![],
         };
         let label = None;
         let duration = None;

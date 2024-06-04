@@ -435,7 +435,7 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::PhaseGate),
-                            Some(&[Param::Float(PI)]),
+                            &[Param::Float(PI)],
                             &[0],
                         )],
                         FLOAT_ZERO,
@@ -451,11 +451,11 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::UGate),
-                            Some(&[
+                            &[
                                 Param::Float(PI),
                                 Param::Float(PI / 2.),
                                 Param::Float(PI / 2.),
-                            ]),
+                            ],
                             &[0],
                         )],
                         FLOAT_ZERO,
@@ -471,7 +471,7 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::UGate),
-                            Some(&[Param::Float(PI), Param::Float(0.), Param::Float(PI)]),
+                            &[Param::Float(PI), Param::Float(0.), Param::Float(PI)],
                             &[0],
                         )],
                         FLOAT_ZERO,
@@ -488,9 +488,9 @@ impl Operation for StandardGate {
                         2,
                         0,
                         &[
-                            (OperationType::Standard(Self::HGate), None, &q1),
-                            (OperationType::Standard(Self::CXGate), None, &q0_1),
-                            (OperationType::Standard(Self::HGate), None, &q1),
+                            (OperationType::Standard(Self::HGate), &[], &q1),
+                            (OperationType::Standard(Self::CXGate), &[], &q0_1),
+                            (OperationType::Standard(Self::HGate), &[], &q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -512,7 +512,7 @@ impl Operation for StandardGate {
                             0,
                             &[(
                                 OperationType::Standard(Self::PhaseGate),
-                                Some(&[Param::Float(*theta)]),
+                                &[Param::Float(*theta)],
                                 &[0],
                             )],
                             Param::Float(-0.5 * theta),
@@ -526,7 +526,7 @@ impl Operation for StandardGate {
                             0,
                             &[(
                                 OperationType::Standard(Self::PhaseGate),
-                                Some(&[Param::ParameterExpression(theta.clone_ref(py))]),
+                                &[Param::ParameterExpression(theta.clone_ref(py))],
                                 &[0],
                             )],
                             Param::ParameterExpression(
@@ -548,9 +548,9 @@ impl Operation for StandardGate {
                         2,
                         0,
                         &[
-                            (OperationType::Standard(Self::CXGate), None, &[0, 1]),
-                            (OperationType::Standard(Self::CXGate), None, &[1, 0]),
-                            (OperationType::Standard(Self::CXGate), None, &[0, 1]),
+                            (OperationType::Standard(Self::CXGate), &[], &[0, 1]),
+                            (OperationType::Standard(Self::CXGate), &[], &[1, 0]),
+                            (OperationType::Standard(Self::CXGate), &[], &[0, 1]),
                         ],
                         FLOAT_ZERO,
                     )
@@ -573,7 +573,7 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::UGate),
-                            Some(&[Param::Float(PI / 2.), Param::Float(0.), Param::Float(PI)]),
+                            &[Param::Float(PI / 2.), Param::Float(0.), Param::Float(PI)],
                             &[0],
                         )],
                         FLOAT_ZERO,
@@ -589,11 +589,11 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::UGate),
-                            Some(&[
+                            &[
                                 Param::Float(0.),
                                 Param::Float(0.),
                                 params.unwrap()[0].clone(),
-                            ]),
+                            ],
                             &[0],
                         )],
                         FLOAT_ZERO,

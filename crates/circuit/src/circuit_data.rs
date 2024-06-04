@@ -39,7 +39,7 @@ struct PackedInstruction {
     qubits_id: IndexType,
     /// The index under which the interner has stored `clbits`.
     clbits_id: IndexType,
-    params: Option<SmallVec<[Param; 3]>>,
+    params: SmallVec<[Param; 3]>,
     extra_attrs: Option<Box<ExtraInstructionAttributes>>,
     #[cfg(feature = "cache_pygates")]
     py_op: Option<PyObject>,
@@ -170,7 +170,7 @@ pub struct CircuitData {
     global_phase: Param,
 }
 
-type InstructionEntryType<'a> = (OperationType, Option<&'a [Param]>, &'a [u32]);
+type InstructionEntryType<'a> = (OperationType, &'a [Param], &'a [u32]);
 
 impl CircuitData {
     /// A helper method to build a new CircuitData from an owned definition
@@ -235,8 +235,7 @@ impl CircuitData {
             .unbind();
             let empty: [u8; 0] = [];
             let clbits = PyTuple::new_bound(py, empty);
-            let params: Option<SmallVec<[Param; 3]>> =
-                params.as_ref().map(|p| p.iter().cloned().collect());
+            let params: SmallVec<[Param; 3]> = params.iter().cloned().collect();
             let inst = res.pack_owned(
                 py,
                 &CircuitInstruction {
@@ -294,8 +293,8 @@ impl CircuitData {
         // Update the parameter table
         let mut new_param = false;
         let inst_params = &self.data[inst_index].params;
-        if let Some(raw_params) = inst_params {
-            let params: Vec<(usize, PyObject)> = raw_params
+        if !inst_params.is_empty() {
+            let params: Vec<(usize, PyObject)> = inst_params
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, x)| match x {
@@ -373,8 +372,9 @@ impl CircuitData {
                         .discard_references(uuid, inst_index, param_index, name);
                 }
             }
-        } else if let Some(raw_params) = &self.data[inst_index].params {
-            let params: Vec<(usize, PyObject)> = raw_params
+        } else if !self.data[inst_index].params.is_empty() {
+            let params: Vec<(usize, PyObject)> = self.data[inst_index]
+                .params
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, x)| match x {
