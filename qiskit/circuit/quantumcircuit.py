@@ -37,7 +37,7 @@ from typing import (
 )
 import numpy as np
 from qiskit._accelerate.circuit import CircuitData
-from qiskit._accelerate.circuit import StandardGate
+from qiskit._accelerate.circuit import StandardGate, PyGate, PyInstruction, PyOperation
 from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -2427,9 +2427,38 @@ class QuantumCircuit:
             if isinstance(operation, Instruction)
             else Instruction.broadcast_arguments(operation, expanded_qargs, expanded_cargs)
         )
+        params = None
+        if isinstance(operation, Gate):
+            params = operation.params
+            operation = PyGate(
+                operation.name,
+                operation.num_qubits,
+                operation.num_clbits,
+                len(params),
+                operation,
+            )
+        elif isinstance(operation, Instruction):
+            params = operation.params
+            operation = PyInstruction(
+                operation.name,
+                operation.num_qubits,
+                operation.num_clbits,
+                len(params),
+                operation,
+            )
+        elif isinstance(operation, Operation):
+            params = getattr(operation, "params", ())
+            operation = PyOperation(
+                operation.name,
+                operation.num_qubits,
+                operation.num_clbits,
+                len(params),
+                operation,
+            )
+
         for qarg, carg in broadcast_iter:
             self._check_dups(qarg)
-            instruction = CircuitInstruction(operation, qarg, carg)
+            instruction = CircuitInstruction(operation, qarg, carg, params=params)
             circuit_scope.append(instruction)
             instructions._add_ref(circuit_scope.instructions, len(circuit_scope.instructions) - 1)
         return instructions

@@ -623,6 +623,20 @@ pub struct PyInstruction {
     pub instruction: PyObject,
 }
 
+#[pymethods]
+impl PyInstruction {
+    #[new]
+    fn new(op_name: String, qubits: u32, clbits: u32, params: u32, instruction: PyObject) -> Self {
+        PyInstruction {
+            qubits,
+            clbits,
+            params,
+            op_name,
+            instruction,
+        }
+    }
+}
+
 impl Operation for PyInstruction {
     fn name(&self) -> &str {
         self.op_name.as_str()
@@ -778,6 +792,20 @@ pub struct PyOperation {
     pub params: u32,
     pub op_name: String,
     pub operation: PyObject,
+}
+
+#[pymethods]
+impl PyOperation {
+    #[new]
+    fn new(op_name: String, qubits: u32, clbits: u32, params: u32, operation: PyObject) -> Self {
+        PyOperation {
+            qubits,
+            clbits,
+            params,
+            op_name,
+            operation,
+        }
+    }
 }
 
 impl Operation for PyOperation {
