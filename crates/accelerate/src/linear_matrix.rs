@@ -10,9 +10,10 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{s, Array2};
+use ndarray::{s, Array2, Axis};
 use numpy::{AllowTypeChange, IntoPyArray, PyArray2, PyArrayLike2};
 use pyo3::prelude::*;
+use rayon::prelude::*;
 
 // Perform ROW operation on a matrix mat
 fn _row_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
@@ -72,19 +73,26 @@ fn gauss_elimination(
             mat.slice_mut(s![new_r, ..]).assign(&temp_r);
         }
 
-        if full_elim.is_some() && full_elim == Some(true) {
-            for i in 0..r {
-                if mat[(i, new_k)] == 1 {
-                    _row_op(&mut mat, r, i);
-                }
-            }
+        // Copy source row to avoid trying multiple borrows at once
+        let row0 = mat.row(r).to_owned();
+        if full_elim == Some(true) {
+            mat.axis_iter_mut(Axis(0))
+                .into_par_iter()
+                .enumerate()
+                .filter(|(i, row)| (*i < r) && row[new_k] == 1)
+                .for_each(|(_i, mut row)| {
+                    row.zip_mut_with(&row0, |x, &y| *x ^= y);
+                });
         }
 
-        for i in r + 1..m {
-            if mat[(i, new_k)] == 1 {
-                _row_op(&mut mat, r, i);
-            }
-        }
+        mat.axis_iter_mut(Axis(0))
+            .into_par_iter()
+            .enumerate()
+            .filter(|(i, row)| (*i > r) && (*i < m) && row[new_k] == 1)
+            .for_each(|(_i, mut row)| {
+                row.zip_mut_with(&row0, |x, &y| *x ^= y);
+            });
+
         r += 1;
     }
     mat
