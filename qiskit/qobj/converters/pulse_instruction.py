@@ -243,7 +243,7 @@ class InstructionToQobjConverter:
             "name": "setf",
             "t0": time_offset + instruction.start_time,
             "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
+            "frequency": instruction.frequency / 10**9,
         }
         return self._qobj_model(**command_dict)
 
@@ -266,7 +266,7 @@ class InstructionToQobjConverter:
             "name": "shiftf",
             "t0": time_offset + instruction.start_time,
             "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
+            "frequency": instruction.frequency / 10**9,
         }
         return self._qobj_model(**command_dict)
 
@@ -836,7 +836,7 @@ class QobjToInstructionConverter:
         .. note::
 
             We assume frequency value is expressed in string with "GHz".
-            Operand value is thus scaled by a factor of 1e9.
+            Operand value is thus scaled by a factor of 10^9.
 
         Args:
             instruction: SetFrequency qobj instruction
@@ -845,7 +845,7 @@ class QobjToInstructionConverter:
             Qiskit Pulse set frequency instructions
         """
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * 1e9
+        frequency = self.disassemble_value(instruction.frequency) * 10**9
 
         yield instructions.SetFrequency(frequency, channel)
 
@@ -858,7 +858,7 @@ class QobjToInstructionConverter:
         .. note::
 
             We assume frequency value is expressed in string with "GHz".
-            Operand value is thus scaled by a factor of 1e9.
+            Operand value is thus scaled by a factor of 10^9.
 
         Args:
             instruction: ShiftFrequency qobj instruction
@@ -867,7 +867,7 @@ class QobjToInstructionConverter:
             Qiskit Pulse shift frequency schedule instructions
         """
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * 1e9
+        frequency = self.disassemble_value(instruction.frequency) * 10**9
 
         yield instructions.ShiftFrequency(frequency, channel)
 
