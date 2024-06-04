@@ -220,6 +220,11 @@ impl CircuitData {
         self.qubits.clone_ref(py)
     }
 
+    /// Return the number of qubits. This is equivalent to the length of the list returned by
+    /// :meth:`.CircuitData.qubits`
+    ///
+    /// Returns:
+    ///     int: The number of qubits.
     #[getter]
     pub fn num_qubits(&self) -> usize {
         self.qubits_native.len()
@@ -240,6 +245,11 @@ impl CircuitData {
         self.clbits.clone_ref(py)
     }
 
+    /// Return the number of clbits. This is equivalent to the length of the list returned by
+    /// :meth:`.CircuitData.clbits`.
+    ///
+    /// Returns:
+    ///     int: The number of clbits.
     #[getter]
     pub fn num_clbits(&self) -> usize {
         self.clbits_native.len()
