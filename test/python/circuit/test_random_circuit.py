@@ -73,7 +73,7 @@ class TestCircuitRandom(QiskitTestCase):
     def test_random_mid_circuit_measure_conditional(self):
         """Test random circuit with mid-circuit measurements for conditionals."""
         num_qubits = depth = 2
-        circ = random_circuit(num_qubits, depth, conditional=True, seed=4)
+        circ = random_circuit(num_qubits, depth, conditional=True, seed=16)
         self.assertEqual(circ.width(), 2 * num_qubits)
         op_names = [instruction.operation.name for instruction in circ]
         # Before a condition, there needs to be measurement in all the qubits.
@@ -86,9 +86,10 @@ class TestCircuitRandom(QiskitTestCase):
 
     def test_random_circuit_num_operand_distribution(self):
         """Test that num_operand_distribution argument generates gates in correct proportion"""
-        num_qubits = depth = 8
+        num_qubits = 50
+        depth = 300
         num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
-        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist, seed=5555555)
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist)
         total_gates = circ.size()
         self.assertEqual(circ.width(), num_qubits)
         self.assertEqual(circ.depth(), depth)
@@ -97,12 +98,44 @@ class TestCircuitRandom(QiskitTestCase):
         for gate_type, prob in sorted(num_op_dist.items()):
             self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
 
-    def test_random_circuit_with_max_operands_and_num_op_dist(self):
+    def test_random_circuit_2and3_qubit_gates_only(self):
         """
-        Test that when num_operand_distribution and max_operands are specified
-        together the function raises an error
+        Test that the generated random circuit only has 2 and 3 qubit gates,
+        while disallowing 1-qubit and 4-qubit gates if
+        num_operand_distribution = {2: some_prob, 3: some_prob}
         """
-        num_qubits = depth = 4
-        num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
-        max_op = 4
-        self.assertRaises(CircuitError, random_circuit, num_qubits, depth, num_op_dist, max_op)
+        num_qubits = 10
+        depth = 200
+        num_op_dist = {2: 0.5, 3: 0.5}
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist, seed=200)
+        total_gates = circ.size()
+        gate_qubits = [instruction.operation.num_qubits for instruction in circ]
+        gate_type_counter = np.bincount(gate_qubits, minlength=5)
+        # Testing that the distribution of 2 and 3 qubit gate matches with given distribution
+        for gate_type, prob in sorted(num_op_dist.items()):
+            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
+        # Testing that there are no 1-qubit gate and 4-qubit in the generated random circuit
+        self.assertEqual(gate_type_counter[1], 0.0)
+        self.assertEqual(gate_type_counter[4], 0.0)
+
+    def test_random_circuit_3and4_qubit_gates_only(self):
+        """
+        Test that the generated random circuit only has 3 and 4 qubit gates,
+        while disallowing 1-qubit and 2-qubit gates if
+        num_operand_distribution = {3: some_prob, 4: some_prob}
+        """
+        num_qubits = 10
+        depth = 200
+        num_op_dist = {3: 0.5, 4: 0.5}
+        circ = random_circuit(
+            num_qubits, depth, num_operand_distribution=num_op_dist, seed=11111111
+        )
+        total_gates = circ.size()
+        gate_qubits = [instruction.operation.num_qubits for instruction in circ]
+        gate_type_counter = np.bincount(gate_qubits, minlength=5)
+        # Testing that the distribution of 3 and 4 qubit gate matches with given distribution
+        for gate_type, prob in sorted(num_op_dist.items()):
+            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
+        # Testing that there are no 1-qubit gate and 2-qubit in the generated random circuit
+        self.assertEqual(gate_type_counter[1], 0.0)
+        self.assertEqual(gate_type_counter[2], 0.0)

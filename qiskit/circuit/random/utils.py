@@ -23,12 +23,12 @@ from qiskit.circuit.exceptions import CircuitError
 def random_circuit(
     num_qubits,
     depth,
-    max_operands=None,
-    num_operand_distribution: dict = None,
+    max_operands=4,
     measure=False,
     conditional=False,
     reset=False,
     seed=None,
+    num_operand_distribution: dict = None,
 ):
     """Generate random circuit of arbitrary size and form.
 
@@ -47,12 +47,12 @@ def random_circuit(
         num_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length)
         max_operands (int): maximum qubit operands of each gate (between 1 and 4)
-        num_operand_distribution (dict): a distribution of gates that specifies the ratio
-        of 1-qubit, 2-qubit, 3-qubit,...,n-qubit gates in the random circuit
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
         seed (int): sets random seed (optional)
+        num_operand_distribution (dict): a distribution of gates that specifies the ratio
+        of 1-qubit, 2-qubit, 3-qubit,...,n-qubit gates in the random circuit (optional)
 
     Returns:
         QuantumCircuit: constructed circuit
@@ -60,15 +60,6 @@ def random_circuit(
     Raises:
         CircuitError: when invalid options given
     """
-    if num_operand_distribution and max_operands:
-        raise CircuitError(
-            "Both 'num_operand_distribution' and 'max_operands' cannot be specified together."
-        )
-
-    if not num_operand_distribution and max_operands is None:
-        # Set default max_operands to 4 if not specified
-        max_operands = 4
-
     if seed is None:
         seed = np.random.randint(0, np.iinfo(np.int32).max)
     rng = np.random.default_rng(seed)
@@ -94,7 +85,8 @@ def random_circuit(
         num_operand_distribution = {i + 1: rand_dist[i] for i in range(max_operands)}
         num_operand_distribution = dict(sorted(num_operand_distribution.items()))
 
-    # Here we will use np.isclose() because very rarely there might be floating point precision errors
+    # Here we will use np.isclose() because very rarely there might be floating
+    # point precision errors
     if not np.isclose(sum(num_operand_distribution.values()), 1):
         raise CircuitError("The sum of all the values in 'num_operand_distribution' is not 1.")
 
@@ -172,8 +164,9 @@ def random_circuit(
 
     all_gate_lists = [gates_1q, gates_2q, gates_3q, gates_4q]
 
-    # Here we will create a list 'gates_to_consider' that will have a subset of different n-qubit gates
-    # and will also create a list for ratio (or probability) for each gates
+    # Here we will create a list 'gates_to_consider' that will have a
+    # subset of different n-qubit gates and will also create a list for
+    # ratio (or probability) for each gates
     gates_to_consider = []
     distribution = []
     for n_qubits, ratio in num_operand_distribution.items():
@@ -191,7 +184,8 @@ def random_circuit(
 
     qubits = np.array(qc.qubits, dtype=object, copy=True)
 
-    counter = np.zeros(5, dtype=np.int64)  # Counter to keep track of number of different gate types
+    # Counter to keep track of number of different gate types
+    counter = np.zeros(len(all_gate_lists) + 1, dtype=np.int64)
     total_gates = 0
 
     # Apply arbitrary random operations in layers across all qubits.
@@ -214,13 +208,9 @@ def random_circuit(
 
         # Updating the counter for 1-qubit, 2-qubit, 3-qubit and 4-qubit gates
         gate_qubits = gate_specs["num_qubits"]
-        counter += np.bincount(gate_qubits, minlength=5)
+        counter += np.bincount(gate_qubits, minlength=len(all_gate_lists) + 1)
 
         total_gates += len(gate_specs)
-
-        current_distribution = {
-            gate_type: counter[gate_type] / total_gates for gate_type in range(1, 5)
-        }
 
         # Slack handling loop, this loop will add gates to fill
         # the slack while respecting the 'num_operand_distribution'
@@ -228,7 +218,7 @@ def random_circuit(
             gate_added_flag = False
 
             for key, dist in sorted(num_operand_distribution.items(), reverse=True):
-                if slack >= key and current_distribution[key] < dist:
+                if slack >= key and counter[key] / total_gates < dist:
                     gate_to_add = np.array(
                         all_gate_lists[key - 1][rng.integers(0, len(all_gate_lists[key - 1]))]
                     )
