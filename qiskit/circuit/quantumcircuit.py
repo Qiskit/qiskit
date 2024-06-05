@@ -3398,10 +3398,10 @@ class QuantumCircuit:
         """
         if not include_directives:
             return self.depth(
-                lambda x: not getattr(x.operation, "_directive", False) and x.qubits >= n
+                lambda x: not getattr(x.operation, "_directive", False) and len(x.qubits) >= n
             )
         else:
-            return self.depth(lambda x: x.qubits >= n)
+            return self.depth(lambda x: len(x.qubits) >= n)
 
     def num_nq_gates(self, n: int = 2, include_directives: bool = False) -> int:
         """Returns the number of gates with exactly n qubits (default: n=2), excluding directives by
@@ -3417,10 +3417,10 @@ class QuantumCircuit:
         """
         if not include_directives:
             return self.size(
-                lambda x: not getattr(x.operation, "_directive", False) and x.qubits == n
+                lambda x: not getattr(x.operation, "_directive", False) and len(x.qubits) == n
             )
         else:
-            return self.size(lambda x: x.qubits == n)
+            return self.size(lambda x: len(x.qubits) == n)
 
     def num_nonidle_qubits(self) -> int:
         """Returns the number of qubits in the quantum circuit that are non-idle,
