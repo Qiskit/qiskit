@@ -1246,7 +1246,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         """Test transpiling with RZZ in basis of backendv2."""
         num_qubits = 2
         seed = 9169
-        basis_gates = ["rz", "rx", "rzz"]            
+        basis_gates = ["rz", "rx", "rzz"]
         qc = QuantumCircuit(num_qubits)
         mat = scipy.stats.unitary_group.rvs(2**num_qubits, random_state=seed)
         qc.unitary(mat, range(num_qubits))
