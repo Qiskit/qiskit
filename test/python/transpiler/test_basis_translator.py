@@ -1229,7 +1229,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         self.assertEqual(out, expected)
 
     def test_fractional_gate_in_basis_from_string(self):
-        """Test transpiling to target with RZZ in basis."""
+        """Test transpiling with RZZ in basis with only basis_gates option."""
         num_qubits = 2
         seed = 9169
         basis_gates = ["rz", "rx", "rzz"]
@@ -1243,7 +1243,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(cqc))
 
     def test_fractional_gate_in_basis_from_backendv2(self):
-        """Test transpiling to target with RZZ in basis."""
+        """Test transpiling with RZZ in basis of backendv2."""
         num_qubits = 2
         seed = 9169
         basis_gates = ["rz", "rx", "rzz"]            
@@ -1257,7 +1257,7 @@ class TestBasisTranslatorWithTarget(QiskitTestCase):
         self.assertEqual(Operator(qc), Operator(cqc))
 
     def test_fractional_gate_in_basis_from_custom_target(self):
-        """Test transpiling to target with RZZ in basis."""
+        """Test transpiling with RZZ in basis of custom target."""
         num_qubits = 2
         seed = 9169
         qc = QuantumCircuit(num_qubits)
