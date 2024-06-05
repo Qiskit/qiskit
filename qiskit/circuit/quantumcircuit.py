@@ -43,6 +43,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.circuit.final_permutation import FinalPermutation
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .controlflow import ControlFlowOp
@@ -1115,6 +1116,7 @@ class QuantumCircuit:
         # within that register.
         self._qubit_indices: dict[Qubit, BitLocations] = {}
         self._clbit_indices: dict[Clbit, BitLocations] = {}
+        self.final_permutation = FinalPermutation()
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
@@ -1158,6 +1160,7 @@ class QuantumCircuit:
 
         Qiskit will not examine the content of this mapping, but it will pass it through the
         transpiler and reattach it to the output, so you can track your own metadata."""
+
 
     @staticmethod
     def from_instructions(
@@ -2919,6 +2922,7 @@ class QuantumCircuit:
                         self._qubit_indices[bit] = BitLocations(
                             self._data.num_qubits - 1, [(register, idx)]
                         )
+                        self.final_permutation.add_qubit()
 
             elif isinstance(register, ClassicalRegister):
                 self.cregs.append(register)
@@ -2951,6 +2955,7 @@ class QuantumCircuit:
             if isinstance(bit, Qubit):
                 self._data.add_qubit(bit)
                 self._qubit_indices[bit] = BitLocations(self._data.num_qubits - 1, [])
+                self.final_permutation.add_qubit()
             elif isinstance(bit, Clbit):
                 self._data.add_clbit(bit)
                 self._clbit_indices[bit] = BitLocations(self._data.num_clbits - 1, [])
@@ -6581,6 +6586,19 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
+
+    def convert_final_permutation_to_gate(self):
+        from qiskit.circuit.library import PermutationGate
+        if not self.final_permutation.is_identity():
+            self.append(PermutationGate(), self.qubits)
+        self.final_permutation.to_identity()
+
+
+    def _check_final_permutation(self, property_set=None):
+        if self.final_permutation.num_qubits() != len(self.qubits):
+            raise CircuitError("Final permutation has an incorrect number of qubits.")
+
+
 
 
 class _OuterCircuitScopeInterface(CircuitScopeInterface):

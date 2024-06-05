@@ -439,6 +439,16 @@ class Operator(LinearOp):
 
         return op
 
+    @classmethod
+    def from_circuit_new(
+        cls,
+        circuit: QuantumCircuit,
+    ) -> Operator:
+        # This is slow and inefficient
+        circuit2 = circuit.copy()
+        circuit2.convert_final_permutation_to_gate()
+        return Operator(circuit2)
+
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         if atol is None:

@@ -52,6 +52,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
+from qiskit.circuit.final_permutation import FinalPermutation
 from qiskit.circuit.bit import Bit
 from qiskit.pulse import Schedule
 
@@ -145,6 +146,9 @@ class DAGCircuit:
 
         self.duration = None
         self.unit = "dt"
+
+        # implicit final permutation on the DAG's qubits
+        self.final_permutation = FinalPermutation()
 
     @property
     def wires(self):
@@ -277,6 +281,7 @@ class DAGCircuit:
             self.qubits.append(qubit)
             self._qubit_indices[qubit] = BitLocations(len(self.qubits) - 1, [])
             self._add_wire(qubit)
+            self.final_permutation.add_qubit()
 
     def add_clbits(self, clbits):
         """Add individual clbit wires."""
@@ -309,6 +314,7 @@ class DAGCircuit:
                     len(self.qubits) - 1, registers=[(qreg, j)]
                 )
                 self._add_wire(qreg[j])
+                self.final_permutation.add_qubit()
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -2334,6 +2340,12 @@ class DAGCircuit:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+    def _check_final_permutation(self, property_set=None):
+        if self.final_permutation.num_qubits() != len(self.qubits):
+            raise DAGCircuitError("Final permutation has an incorrect number of qubits.")
+
+
 
 
 class _DAGVarType(enum.Enum):

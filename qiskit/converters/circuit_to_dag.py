@@ -100,4 +100,6 @@ def circuit_to_dag(circuit, copy_operations=True, *, qubit_order=None, clbit_ord
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit
+    dagcircuit.final_permutation = circuit.final_permutation
+
     return dagcircuit
