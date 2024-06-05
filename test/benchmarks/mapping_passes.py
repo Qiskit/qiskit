@@ -232,12 +232,6 @@ class RoutedPassBenchmarks:
         self.backend_props = Fake20QV1().properties()
         self.routed_dag = StochasticSwap(self.coupling_map, seed=42).run(self.dag)
 
-    def time_cxdirection(self, _, __):
-        CXDirection(self.coupling_map).run(self.routed_dag)
-
-    def time_check_cx_direction(self, _, __):
-        CheckCXDirection(self.coupling_map).run(self.routed_dag)
-
     def time_gate_direction(self, _, __):
         GateDirection(self.coupling_map).run(self.routed_dag)
 
