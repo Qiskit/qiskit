@@ -138,3 +138,23 @@ class TestCircuitRandom(QiskitTestCase):
         # Testing that there are no 1-qubit gate and 2-qubit in the generated random circuit
         self.assertEqual(gate_type_counter[1], 0.0)
         self.assertEqual(gate_type_counter[2], 0.0)
+
+    def test_random_circuit_with_zero_distribution(self):
+        """
+        Test that the generated random circuit only has 3 and 4 qubit gates,
+        while disallowing 1-qubit and 2-qubit gates if
+        num_operand_distribution = {1: 0.0, 2: 0.0, 3: some_prob, 4: some_prob}
+        """
+        num_qubits = 10
+        depth = 200
+        num_op_dist = {1: 0.0, 2: 0.0, 3: 0.5, 4: 0.5}
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist)
+        total_gates = circ.size()
+        gate_qubits = [instruction.operation.num_qubits for instruction in circ]
+        gate_type_counter = np.bincount(gate_qubits, minlength=5)
+        # Testing that the distribution of 3 and 4 qubit gate matches with given distribution
+        for gate_type, prob in sorted(num_op_dist.items()):
+            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.15)
+        # Testing that there are no 1-qubit gate and 2-qubit in the generated random circuit
+        self.assertEqual(gate_type_counter[1], 0.0)
+        self.assertEqual(gate_type_counter[2], 0.0)
