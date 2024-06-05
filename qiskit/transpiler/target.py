@@ -426,7 +426,9 @@ class Target(Mapping):
                         f"of qubits in the properties dictionary: {qarg}"
                     )
                 if qarg is not None:
-                    self.num_qubits = max(self.num_qubits, max(qarg) + 1)
+                    self.num_qubits = max(
+                        self.num_qubits if self.num_qubits is not None else 0, max(qarg) + 1
+                    )
                 qargs_val[qarg] = properties[qarg]
                 self._qarg_gate_map[qarg].add(instruction_name)
         self._gate_map[instruction_name] = qargs_val
@@ -987,7 +989,8 @@ class Target(Mapping):
 
     def _build_coupling_graph(self):
         self._coupling_graph = rx.PyDiGraph(multigraph=False)
-        self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
+        if self.num_qubits is not None:
+            self._coupling_graph.add_nodes_from([{} for _ in range(self.num_qubits)])
         for gate, qarg_map in self._gate_map.items():
             if qarg_map is None:
                 if self._gate_name_map[gate].num_qubits == 2:
