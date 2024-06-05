@@ -191,6 +191,8 @@ class TestQuantumCircuitData(QiskitTestCase):
         # Use a custom gate to ensure we get a gate class returned and not
         # a standard gate.
         class CustomXGate(XGate):
+            """A custom X gate that doesn't have rust native representation."""
+
             _standard_gate = None
 
         data_list = [
