@@ -1946,6 +1946,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
     def test_basis_gates(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
+        qc.h(1)
         qc.cx(1, 2)
         qc.barrier()
         qc.cx(0, 1)
