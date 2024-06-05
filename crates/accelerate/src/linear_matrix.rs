@@ -16,14 +16,14 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 
 // Perform ROW operation on a matrix mat
-fn _row_op(mat: &mut ArrayViewMut2<i8>, ctrl: usize, trgt: usize) {
+fn _row_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
     let row0 = mat.row(ctrl).to_owned();
     let mut row1 = mat.row_mut(trgt);
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
 // Perform COL operation on a matrix mat
-fn _col_op(mat: &mut ArrayViewMut2<i8>, ctrl: usize, trgt: usize) {
+fn _col_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
     let col0 = mat.column(ctrl).to_owned();
     let mut col1 = mat.column_mut(trgt);
     col1.zip_mut_with(&col0, |x, &y| *x ^= y);
@@ -32,7 +32,7 @@ fn _col_op(mat: &mut ArrayViewMut2<i8>, ctrl: usize, trgt: usize) {
 // Gauss elimination of a matrix mat with m rows and n columns.
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 // Returns the matrix mat.
-fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim: Option<bool>) {
+fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_elim: Option<bool>) {
     let (m, mut n) = (mat.nrows(), mat.ncols()); // no. of rows and columns
     if let Some(ncols_val) = ncols {
         n = usize::min(n, ncols_val); // no. of active columns
@@ -47,7 +47,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim
         for j in k..n {
             new_k = k;
             for i in r..m {
-                if mat[(i, j)] == 1 {
+                if mat[(i, j)] {
                     is_non_zero = true;
                     new_k = j;
                     new_r = i;
@@ -75,7 +75,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim
             mat.axis_iter_mut(Axis(0))
                 .into_par_iter()
                 .enumerate()
-                .filter(|(i, row)| (*i < r) && row[new_k] == 1)
+                .filter(|(i, row)| (*i < r) && row[new_k])
                 .for_each(|(_i, mut row)| {
                     row.zip_mut_with(&row0, |x, &y| *x ^= y);
                 });
@@ -84,7 +84,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim
         mat.axis_iter_mut(Axis(0))
             .into_par_iter()
             .enumerate()
-            .filter(|(i, row)| (*i > r) && (*i < m) && row[new_k] == 1)
+            .filter(|(i, row)| (*i > r) && (*i < m) && row[new_k])
             .for_each(|(_i, mut row)| {
                 row.zip_mut_with(&row0, |x, &y| *x ^= y);
             });
@@ -96,7 +96,7 @@ fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 fn _gauss_elimination(
-    mut mat: PyReadwriteArray2<i8>,
+    mut mat: PyReadwriteArray2<bool>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
 ) {
