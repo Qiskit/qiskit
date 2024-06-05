@@ -10,20 +10,20 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-use ndarray::{s, Array2, Axis};
-use numpy::{AllowTypeChange, IntoPyArray, PyArray2, PyArrayLike2};
+use ndarray::{s, ArrayViewMut2, Axis};
+use numpy::PyReadwriteArray2;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 
 // Perform ROW operation on a matrix mat
-fn _row_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
+fn _row_op(mat: &mut ArrayViewMut2<i8>, ctrl: usize, trgt: usize) {
     let row0 = mat.row(ctrl).to_owned();
     let mut row1 = mat.row_mut(trgt);
     row1.zip_mut_with(&row0, |x, &y| *x ^= y);
 }
 
 // Perform COL operation on a matrix mat
-fn _col_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
+fn _col_op(mat: &mut ArrayViewMut2<i8>, ctrl: usize, trgt: usize) {
     let col0 = mat.column(ctrl).to_owned();
     let mut col1 = mat.column_mut(trgt);
     col1.zip_mut_with(&col0, |x, &y| *x ^= y);
@@ -32,11 +32,7 @@ fn _col_op(mat: &mut Array2<i8>, ctrl: usize, trgt: usize) {
 // Gauss elimination of a matrix mat with m rows and n columns.
 // If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
 // Returns the matrix mat.
-fn gauss_elimination(
-    mut mat: Array2<i8>,
-    ncols: Option<usize>,
-    full_elim: Option<bool>,
-) -> Array2<i8> {
+fn gauss_elimination(mut mat: ArrayViewMut2<i8>, ncols: Option<usize>, full_elim: Option<bool>) {
     let (m, mut n) = (mat.nrows(), mat.ncols()); // no. of rows and columns
     if let Some(ncols_val) = ncols {
         n = usize::min(n, ncols_val); // no. of active columns
@@ -63,7 +59,7 @@ fn gauss_elimination(
             }
         }
         if !is_non_zero {
-            return mat; // A is in the canonical form
+            return; // A is in the canonical form
         }
 
         if new_r != r {
@@ -95,21 +91,17 @@ fn gauss_elimination(
 
         r += 1;
     }
-    mat
 }
 
 #[pyfunction]
 #[pyo3(signature = (mat, ncols=None, full_elim=false))]
 fn _gauss_elimination(
-    py: Python,
-    mat: PyArrayLike2<i8, AllowTypeChange>,
+    mut mat: PyReadwriteArray2<i8>,
     ncols: Option<usize>,
     full_elim: Option<bool>,
-) -> PyResult<Py<PyArray2<i8>>> {
-    let view = mat.as_array().to_owned();
-    Ok(gauss_elimination(view, ncols, full_elim)
-        .into_pyarray_bound(py)
-        .unbind())
+) {
+    let view = mat.as_array_mut();
+    gauss_elimination(view, ncols, full_elim);
 }
 
 #[pymodule]
