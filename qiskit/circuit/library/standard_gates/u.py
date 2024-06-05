@@ -80,18 +80,9 @@ class UGate(Gate):
         *,
         duration=None,
         unit="dt",
-        _skip_validation=False,
     ):
         """Create new U gate."""
-        super().__init__(
-            "u",
-            1,
-            [theta, phi, lam],
-            label=label,
-            duration=duration,
-            unit=unit,
-            _skip_validation=_skip_validation,
-        )
+        super().__init__("u", 1, [theta, phi, lam], label=label, duration=duration, unit=unit)
 
     def inverse(self, annotated: bool = False):
         r"""Return inverted U gate.

@@ -63,24 +63,10 @@ class RZGate(Gate):
     _standard_gate = StandardGate.RZGate
 
     def __init__(
-        self,
-        phi: ParameterValueType,
-        label: Optional[str] = None,
-        *,
-        duration=None,
-        unit="dt",
-        _skip_validation=False,
+        self, phi: ParameterValueType, label: Optional[str] = None, *, duration=None, unit="dt"
     ):
         """Create new RZ gate."""
-        super().__init__(
-            "rz",
-            1,
-            [phi],
-            label=label,
-            duration=duration,
-            unit=unit,
-            _skip_validation=_skip_validation,
-        )
+        super().__init__("rz", 1, [phi], label=label, duration=duration, unit=unit)
 
     def _define(self):
         """

@@ -18,7 +18,6 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
-from qiskit._accelerate.circuit import StandardGate
 from .annotated_operation import AnnotatedOperation, ControlModifier, PowerModifier
 from .instruction import Instruction
 
@@ -34,7 +33,6 @@ class Gate(Instruction):
         label: str | None = None,
         duration=None,
         unit="dt",
-        _skip_validation=False,
     ) -> None:
         """Create a new gate.
 
@@ -44,7 +42,6 @@ class Gate(Instruction):
             params: A list of parameters.
             label: An optional label for the gate.
         """
-        self._skip_validation = _skip_validation
         self.definition = None
         super().__init__(name, num_qubits, 0, params, label=label, duration=duration, unit=unit)
 
@@ -241,9 +238,7 @@ class Gate(Instruction):
         else:
             raise CircuitError("This gate cannot handle %i arguments" % len(qargs))
 
-    def validate_parameter(self, parameter, _force_validation=False):
-        if (isinstance(self, StandardGate) or self._skip_validation) and not _force_validation:
-            return parameter
+    def validate_parameter(self, parameter):
         """Gate parameters should be int, float, or ParameterExpression"""
         if isinstance(parameter, ParameterExpression):
             if len(parameter.parameters) > 0:
