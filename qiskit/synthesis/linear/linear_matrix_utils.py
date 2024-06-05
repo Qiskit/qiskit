@@ -118,7 +118,7 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
         verify: if True asserts that the multiplication of mat and its inverse is the identity matrix.
 
     Returns:
-        np.ndarray: the inverse matrix.
+        np.ndarray: the inverse boolean matrix.
 
     Raises:
          QiskitError: if the matrix is not square.
@@ -130,8 +130,9 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
 
     n = mat.shape[0]
     # concatenate the matrix and identity
-    mat1 = np.concatenate((mat, np.eye(n, dtype=int)), axis=1)
-    mat1 = _gauss_elimination(mat1, None, full_elim=True)
+    mat1 = np.concatenate((mat.astype(bool), np.eye(n, dtype=bool)), axis=1)
+    _gauss_elimination(mat1, None, full_elim=True)
+    mat1 = mat1.astype(int)
 
     r = _compute_rank_after_gauss_elim(mat1[:, 0:n])
 
@@ -148,14 +149,15 @@ def calc_inverse_matrix(mat: np.ndarray, verify: bool = False):
 
 
 def _compute_rank_after_gauss_elim(mat):
-    """Given a matrix A after Gaussian elimination, computes its rank
+    """Given a boolean matrix A after Gaussian elimination, computes its rank
     (i.e. simply the number of nonzero rows)"""
     return np.sum(mat.any(axis=1))
 
 
 def _compute_rank(mat):
-    """Given a matrix A computes its rank"""
-    mat = _gauss_elimination(mat)
+    """Given a boolean matrix A computes its rank"""
+    mat = mat.astype(bool)
+    _gauss_elimination(mat)
     return np.sum(mat.any(axis=1))
 
 

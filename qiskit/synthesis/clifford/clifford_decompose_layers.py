@@ -209,7 +209,8 @@ def _create_graph_state(cliff, validate=False):
 
     if rank < num_qubits:
         stab = cliff.stab[:, :-1]
-        stab = _gauss_elimination(stab, num_qubits)
+        stab = stab.astype(bool)
+        _gauss_elimination(stab, num_qubits)
 
         Cmat = stab[rank:num_qubits, num_qubits:]
         Cmat = np.transpose(Cmat)
