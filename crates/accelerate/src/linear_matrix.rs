@@ -71,20 +71,13 @@ fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_el
 
         // Copy source row to avoid trying multiple borrows at once
         let row0 = mat.row(r).to_owned();
-        if full_elim == Some(true) {
-            mat.axis_iter_mut(Axis(0))
-                .into_par_iter()
-                .enumerate()
-                .filter(|(i, row)| (*i < r) && row[new_k])
-                .for_each(|(_i, mut row)| {
-                    row.zip_mut_with(&row0, |x, &y| *x ^= y);
-                });
-        }
-
         mat.axis_iter_mut(Axis(0))
             .into_par_iter()
             .enumerate()
-            .filter(|(i, row)| (*i > r) && (*i < m) && row[new_k])
+            .filter(|(i, row)| {
+                (full_elim == Some(true) && (*i < r) && row[new_k])
+                    || (*i > r && *i < m && row[new_k])
+            })
             .for_each(|(_i, mut row)| {
                 row.zip_mut_with(&row0, |x, &y| *x ^= y);
             });
