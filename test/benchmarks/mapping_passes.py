@@ -124,12 +124,12 @@ class PassBenchmarks:
     def time_layout_2q_distance(self, _, __):
         layout = Layout2qDistance(self.coupling_map)
         layout.property_set["layout"] = self.layout
-        layout.run(self.enlarge_dag )
+        layout.run(self.enlarge_dag)
 
     def time_apply_layout(self, _, __):
         layout = ApplyLayout()
         layout.property_set["layout"] = self.layout
-        layout.run(self.enlarge_dag )
+        layout.run(self.enlarge_dag)
 
     def time_full_ancilla_allocation(self, _, __):
         ancilla = FullAncillaAllocation(self.coupling_map)
