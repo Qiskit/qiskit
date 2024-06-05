@@ -782,7 +782,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         def is_supercontrolled(gate):
             try:
                 operator = Operator(gate)
-            except QiskitError:
+            except (QiskitError, TypeError):  # TypeError: parametrized gate
                 return False
             kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
@@ -790,7 +790,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         def is_controlled(gate):
             try:
                 operator = Operator(gate)
-            except QiskitError:
+            except (QiskitError, TypeError):  # TypeError: parametrized gate
                 return False
             kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)

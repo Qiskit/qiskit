@@ -73,10 +73,14 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             init = None
             if (
                 pass_manager_config.initial_layout
-                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.coupling_map
+                    and pass_manager_config.coupling_map.size() >= 3
+                )
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
+                    and pass_manager_config.target.build_coupling_map().size() >= 3
                 )
             ):
                 init = common.generate_unroll_3q(
@@ -91,10 +95,14 @@ class DefaultInitPassManager(PassManagerStagePlugin):
             init = PassManager()
             if (
                 pass_manager_config.initial_layout
-                or pass_manager_config.coupling_map
+                or (
+                    pass_manager_config.coupling_map
+                    and pass_manager_config.coupling_map.size() >= 3
+                )
                 or (
                     pass_manager_config.target is not None
                     and pass_manager_config.target.build_coupling_map() is not None
+                    and pass_manager_config.target.build_coupling_map().size() >= 3
                 )
             ):
                 init += common.generate_unroll_3q(
