@@ -1197,6 +1197,7 @@ version = "1.2.0"
 dependencies = [
  "hashbrown 0.14.5",
  "pyo3",
+ "rustworkx-core",
 ]
 
 [[package]]

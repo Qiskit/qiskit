@@ -12,3 +12,4 @@ doctest = false
 [dependencies]
 hashbrown.workspace = true
 pyo3.workspace = true
+rustworkx-core = "0.14.2"
