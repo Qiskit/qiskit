@@ -375,7 +375,7 @@ def generate_latex_label(label):
 
 
 def _get_layered_instructions(
-    circuit, reverse_bits=False, justify=None, idle_wires=True, wire_order=None, wire_map=None
+    circuit, reverse_bits=False, justify="left", idle_wires=True, wire_order=None, wire_map=None
 ):
     """
     Given a circuit, return a tuple (qubits, clbits, nodes) where
@@ -402,14 +402,7 @@ def _get_layered_instructions(
         justify = justify.lower()
 
     # If wrong input, default ('left') will be used.
-    if justify not in ("left", "right", "none"):
-        if justify is not None:
-            warn(
-                f"justify must be 'left, right or none', not: '{justify}'. Default (left) will be used.",
-                UserWarning,
-                2,
-            )
-        justify = "left"
+    justify = justify if justify in ("left", "right", "none") else "left"
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
