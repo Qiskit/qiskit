@@ -3121,7 +3121,7 @@ class QuantumCircuit:
         since="1.1.0",
         deprecation_description="Setting QuantumCircuit.draw()’s justify argument to a value other than "
         "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
-        predicate=lambda justify: justify not in ["left", "right", "none"],
+        predicate=_is_valid_justify_arg,
     )
     def draw(
         self,
@@ -3270,6 +3270,9 @@ class QuantumCircuit:
         from qiskit.visualization.circuit._utils import _is_valid_justify_arg
 
         # To not raise the same deprecation warning multiple times, with different origins
+        # We set this here to avoid the deprecation triggering again
+        # from circuit_drawer. This code should be removed once
+        # the deprecation is complete.
         justify = justify if _is_valid_justify_arg(justify) else "left"
 
         return circuit_drawer(

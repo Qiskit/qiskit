@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
     since="1.1.0",
     deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
     "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
-    predicate=lambda justify: justify not in ["left", "right", "none"],
+    predicate=_is_valid_justify_arg,
 )
 def circuit_drawer(
     circuit: QuantumCircuit,
