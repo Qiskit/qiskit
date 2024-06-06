@@ -12,8 +12,8 @@
 
 """Utility functions for generating random circuits."""
 
-import numpy as np
 from math import isclose
+import numpy as np
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, CircuitInstruction
 from qiskit.circuit import Reset
