@@ -60,9 +60,9 @@ logger = logging.getLogger(__name__)
     "justify",
     since="1.1.0",
     deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
-    "'left', 'right', or 'none'. Default 'left' will be used. Starting in Qiskit 2.0, "
-    "invalid arguments will error.",
+    "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
     predicate=_is_valid_justify_arg,
+    pending=True,
 )
 def circuit_drawer(
     circuit: QuantumCircuit,
