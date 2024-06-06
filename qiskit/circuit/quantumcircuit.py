@@ -3269,6 +3269,7 @@ class QuantumCircuit:
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
 
+        # To not raise the same deprecation warning multiple times, with different origins
         justify = justify if _is_valid_justify_arg(justify) else "left"
 
         return circuit_drawer(
