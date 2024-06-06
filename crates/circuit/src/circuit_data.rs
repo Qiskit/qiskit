@@ -397,11 +397,14 @@ impl CircuitData {
             if let Some(inst) = self_.data.get(index) {
                 let qubits = self_.qargs_interner.intern(inst.qubits_id);
                 let clbits = self_.cargs_interner.intern(inst.clbits_id);
-                CircuitInstruction::new(
+                Py::new(
                     py,
-                    inst.op.clone_ref(py),
-                    self_.qubits.map_indices(qubits.value),
-                    self_.clbits.map_indices(clbits.value),
+                    CircuitInstruction::new(
+                        py,
+                        inst.op.clone_ref(py),
+                        self_.qubits.map_indices(qubits.value),
+                        self_.clbits.map_indices(clbits.value),
+                    ),
                 )
             } else {
                 Err(PyIndexError::new_err(format!(

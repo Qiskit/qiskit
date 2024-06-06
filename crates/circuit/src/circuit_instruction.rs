@@ -69,19 +69,18 @@ impl CircuitInstruction {
         operation: PyObject,
         qubits: impl IntoIterator<Item = T1, IntoIter = U1>,
         clbits: impl IntoIterator<Item = T2, IntoIter = U2>,
-    ) -> PyResult<Py<Self>>
+    ) -> Self
     where
         T1: ToPyObject,
         T2: ToPyObject,
         U1: ExactSizeIterator<Item = T1>,
         U2: ExactSizeIterator<Item = T2>,
     {
-        CircuitInstruction::py_new(
-            py,
+        CircuitInstruction {
             operation,
-            Some(&PyTuple::new_bound(py, qubits)),
-            Some(&PyTuple::new_bound(py, clbits)),
-        )
+            qubits: PyTuple::new_bound(py, qubits).unbind(),
+            clbits: PyTuple::new_bound(py, clbits).unbind(),
+        }
     }
 }
 
