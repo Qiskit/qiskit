@@ -165,6 +165,16 @@ impl CircuitData {
         self.qubits.cached().clone_ref(py)
     }
 
+    /// Return the number of qubits. This is equivalent to the length of the list returned by
+    /// :meth:`.CircuitData.qubits`
+    ///
+    /// Returns:
+    ///     int: The number of qubits.
+    #[getter]
+    pub fn num_qubits(&self) -> usize {
+        self.qubits_native.len()
+    }
+
     /// Returns the current sequence of registered :class:`.Clbit`
     /// instances as a list.
     ///
@@ -178,6 +188,25 @@ impl CircuitData {
     #[getter]
     pub fn clbits(&self, py: Python<'_>) -> Py<PyList> {
         self.clbits.cached().clone_ref(py)
+    }
+
+    /// Return the number of clbits. This is equivalent to the length of the list returned by
+    /// :meth:`.CircuitData.clbits`.
+    ///
+    /// Returns:
+    ///     int: The number of clbits.
+    #[getter]
+    pub fn num_clbits(&self) -> usize {
+        self.clbits_native.len()
+    }
+
+    /// Return the width of the circuit. This is the number of qubits plus the
+    /// number of clbits.
+    ///
+    /// Returns:
+    ///     int: The width of the circuit.
+    pub fn width(&self) -> usize {
+        self.num_qubits() + self.num_clbits()
     }
 
     /// Registers a :class:`.Qubit` instance.
@@ -358,21 +387,21 @@ impl CircuitData {
     ) -> PyResult<()> {
         let mut temp = CircuitData::new(py, qubits, clbits, None, 0)?;
         if qubits.is_some() {
-            if temp.qubits.len() < self.qubits.len() {
+            if temp.num_qubits() < self.num_qubits() {
                 return Err(PyValueError::new_err(format!(
                     "Replacement 'qubits' of size {:?} must contain at least {:?} bits.",
-                    temp.qubits.len(),
-                    self.qubits.len(),
+                    temp.num_qubits(),
+                    self.num_qubits(),
                 )));
             }
             mem::swap(&mut temp.qubits, &mut self.qubits);
         }
         if clbits.is_some() {
-            if temp.clbits.len() < self.clbits.len() {
+            if temp.num_clbits() < self.num_clbits() {
                 return Err(PyValueError::new_err(format!(
                     "Replacement 'clbits' of size {:?} must contain at least {:?} bits.",
-                    temp.clbits.len(),
-                    self.clbits.len(),
+                    temp.num_clbits(),
+                    self.num_clbits(),
                 )));
             }
             mem::swap(&mut temp.clbits, &mut self.clbits);
