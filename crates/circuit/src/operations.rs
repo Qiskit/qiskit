@@ -21,7 +21,6 @@ use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPy, Python};
-use smallvec::SmallVec;
 
 /// Valid types for OperationType
 #[derive(FromPyObject, Clone, Debug)]
@@ -67,7 +66,7 @@ impl Operation for OperationType {
             Self::Operation(op) => op.num_params(),
         }
     }
-    fn matrix(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>> {
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
             Self::Standard(op) => op.matrix(params),
             Self::Gate(op) => op.matrix(params),
@@ -85,7 +84,7 @@ impl Operation for OperationType {
         }
     }
 
-    fn definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         match self {
             Self::Standard(op) => op.definition(params),
             Self::Gate(op) => op.definition(params),
@@ -121,8 +120,8 @@ pub trait Operation {
     fn num_clbits(&self) -> u32;
     fn num_params(&self) -> u32;
     fn control_flow(&self) -> bool;
-    fn matrix(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>>;
-    fn definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData>;
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>>;
+    fn definition(&self, params: &[Param]) -> Option<CircuitData>;
     fn standard_gate(&self) -> Option<StandardGate>;
     fn directive(&self) -> bool;
 }
@@ -216,16 +215,17 @@ impl StandardGate {
     }
 
     // These pymethods are for testing:
-    pub fn _to_matrix(&self, py: Python, params: Option<SmallVec<[Param; 3]>>) -> Option<PyObject> {
-        self.matrix(params).map(|x| x.into_pyarray_bound(py).into())
+    pub fn _to_matrix(&self, py: Python, params: Vec<Param>) -> Option<PyObject> {
+        self.matrix(&params)
+            .map(|x| x.into_pyarray_bound(py).into())
     }
 
     pub fn _num_params(&self) -> u32 {
         self.num_params()
     }
 
-    pub fn _get_definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
-        self.definition(params)
+    pub fn _get_definition(&self, params: Vec<Param>) -> Option<CircuitData> {
+        self.definition(&params)
     }
 
     #[getter]
@@ -333,97 +333,88 @@ impl Operation for StandardGate {
         false
     }
 
-    fn matrix(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>> {
+    fn matrix(&self, params: &[Param]) -> Option<Array2<Complex64>> {
         match self {
-            Self::ZGate => Some(aview2(&gate_matrix::ZGATE).to_owned()),
-            Self::YGate => Some(aview2(&gate_matrix::YGATE).to_owned()),
-            Self::XGate => Some(aview2(&gate_matrix::XGATE).to_owned()),
-            Self::CZGate => Some(aview2(&gate_matrix::CZGATE).to_owned()),
-            Self::CYGate => Some(aview2(&gate_matrix::CYGATE).to_owned()),
-            Self::CXGate => Some(aview2(&gate_matrix::CXGATE).to_owned()),
-            Self::CCXGate => Some(aview2(&gate_matrix::CCXGATE).to_owned()),
-            Self::RXGate => {
-                let theta = &params.unwrap()[0];
-                match theta {
-                    Param::Float(theta) => Some(aview2(&gate_matrix::rx_gate(*theta)).to_owned()),
-                    _ => None,
+            Self::ZGate => match params {
+                [] => Some(aview2(&gate_matrix::ZGATE).to_owned()),
+                _ => None,
+            },
+            Self::YGate => match params {
+                [] => Some(aview2(&gate_matrix::YGATE).to_owned()),
+                _ => None,
+            },
+            Self::XGate => match params {
+                [] => Some(aview2(&gate_matrix::XGATE).to_owned()),
+                _ => None,
+            },
+            Self::CZGate => match params {
+                [] => Some(aview2(&gate_matrix::CZGATE).to_owned()),
+                _ => None,
+            },
+            Self::CYGate => match params {
+                [] => Some(aview2(&gate_matrix::CYGATE).to_owned()),
+                _ => None,
+            },
+            Self::CXGate => match params {
+                [] => Some(aview2(&gate_matrix::CXGATE).to_owned()),
+                _ => None,
+            },
+            Self::CCXGate => match params {
+                [] => Some(aview2(&gate_matrix::CCXGATE).to_owned()),
+                _ => None,
+            },
+            Self::RXGate => match params {
+                [Param::Float(theta)] => Some(aview2(&gate_matrix::rx_gate(*theta)).to_owned()),
+                _ => None,
+            },
+            Self::RYGate => match params {
+                [Param::Float(theta)] => Some(aview2(&gate_matrix::ry_gate(*theta)).to_owned()),
+                _ => None,
+            },
+            Self::RZGate => match params {
+                [Param::Float(theta)] => Some(aview2(&gate_matrix::rz_gate(*theta)).to_owned()),
+                _ => None,
+            },
+            Self::ECRGate => match params {
+                [] => Some(aview2(&gate_matrix::ECRGATE).to_owned()),
+                _ => None,
+            },
+            Self::SwapGate => match params {
+                [] => Some(aview2(&gate_matrix::SWAPGATE).to_owned()),
+                _ => None,
+            },
+            Self::SXGate => match params {
+                [] => Some(aview2(&gate_matrix::SXGATE).to_owned()),
+                _ => None,
+            },
+            Self::GlobalPhaseGate => match params {
+                [Param::Float(theta)] => {
+                    Some(aview2(&gate_matrix::global_phase_gate(*theta)).to_owned())
                 }
-            }
-            Self::RYGate => {
-                let theta = &params.unwrap()[0];
-                match theta {
-                    Param::Float(theta) => Some(aview2(&gate_matrix::ry_gate(*theta)).to_owned()),
-                    _ => None,
+                _ => None,
+            },
+            Self::IGate => match params {
+                [] => Some(aview2(&gate_matrix::ONE_QUBIT_IDENTITY).to_owned()),
+                _ => None,
+            },
+            Self::HGate => match params {
+                [] => Some(aview2(&gate_matrix::HGATE).to_owned()),
+                _ => None,
+            },
+            Self::PhaseGate => match params {
+                [Param::Float(theta)] => Some(aview2(&gate_matrix::phase_gate(*theta)).to_owned()),
+                _ => None,
+            },
+            Self::UGate => match params {
+                [Param::Float(theta), Param::Float(phi), Param::Float(lam)] => {
+                    Some(aview2(&gate_matrix::u_gate(*theta, *phi, *lam)).to_owned())
                 }
-            }
-            Self::RZGate => {
-                let theta = &params.unwrap()[0];
-                match theta {
-                    Param::Float(theta) => Some(aview2(&gate_matrix::rz_gate(*theta)).to_owned()),
-                    _ => None,
-                }
-            }
-            Self::ECRGate => Some(aview2(&gate_matrix::ECRGATE).to_owned()),
-            Self::SwapGate => Some(aview2(&gate_matrix::SWAPGATE).to_owned()),
-            Self::SXGate => Some(aview2(&gate_matrix::SXGATE).to_owned()),
-            Self::GlobalPhaseGate => {
-                let theta = &params.unwrap()[0];
-                match theta {
-                    Param::Float(theta) => {
-                        Some(aview2(&gate_matrix::global_phase_gate(*theta)).to_owned())
-                    }
-                    _ => None,
-                }
-            }
-            Self::IGate => Some(aview2(&gate_matrix::ONE_QUBIT_IDENTITY).to_owned()),
-            Self::HGate => Some(aview2(&gate_matrix::HGATE).to_owned()),
-            Self::PhaseGate => {
-                let theta = &params.unwrap()[0];
-                match theta {
-                    Param::Float(theta) => {
-                        Some(aview2(&gate_matrix::phase_gate(*theta)).to_owned())
-                    }
-                    _ => None,
-                }
-            }
-            Self::UGate => {
-                let params = params.unwrap();
-                let theta: Option<f64> = match params[0] {
-                    Param::Float(val) => Some(val),
-                    Param::ParameterExpression(_) => None,
-                    Param::Obj(_) => None,
-                };
-                let phi: Option<f64> = match params[1] {
-                    Param::Float(val) => Some(val),
-                    Param::ParameterExpression(_) => None,
-                    Param::Obj(_) => None,
-                };
-                let lam: Option<f64> = match params[2] {
-                    Param::Float(val) => Some(val),
-                    Param::ParameterExpression(_) => None,
-                    Param::Obj(_) => None,
-                };
-                // If let chains as needed here are unstable ignore clippy to
-                // workaround. Upstream rust tracking issue:
-                // https://github.com/rust-lang/rust/issues/53667
-                #[allow(clippy::unnecessary_unwrap)]
-                if theta.is_none() || phi.is_none() || lam.is_none() {
-                    None
-                } else {
-                    Some(
-                        aview2(&gate_matrix::u_gate(
-                            theta.unwrap(),
-                            phi.unwrap(),
-                            lam.unwrap(),
-                        ))
-                        .to_owned(),
-                    )
-                }
-            }
+                _ => None,
+            },
         }
     }
 
-    fn definition(&self, params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
+    fn definition(&self, params: &[Param]) -> Option<CircuitData> {
         // TODO: Add definition for completeness. This shouldn't be necessary in practice
         // though because nothing will rely on this in practice.
         match self {
@@ -503,7 +494,6 @@ impl Operation for StandardGate {
             Self::RXGate => todo!("Add when we have R"),
             Self::RYGate => todo!("Add when we have R"),
             Self::RZGate => Python::with_gil(|py| -> Option<CircuitData> {
-                let params = params.unwrap();
                 match &params[0] {
                     Param::Float(theta) => Some(
                         CircuitData::build_new_from(
@@ -560,7 +550,7 @@ impl Operation for StandardGate {
             Self::SXGate => todo!("Add when we have S dagger"),
             Self::GlobalPhaseGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(py, 0, 0, &[], params.unwrap()[0].clone())
+                    CircuitData::build_new_from(py, 0, 0, &[], params[0].clone())
                         .expect("Unexpected Qiskit python bug"),
                 )
             }),
@@ -589,11 +579,7 @@ impl Operation for StandardGate {
                         0,
                         &[(
                             OperationType::Standard(Self::UGate),
-                            &[
-                                Param::Float(0.),
-                                Param::Float(0.),
-                                params.unwrap()[0].clone(),
-                            ],
+                            &[Param::Float(0.), Param::Float(0.), params[0].clone()],
                             &[0],
                         )],
                         FLOAT_ZERO,
@@ -653,10 +639,10 @@ impl Operation for PyInstruction {
     fn control_flow(&self) -> bool {
         false
     }
-    fn matrix(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>> {
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
     }
-    fn definition(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.instruction.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => {
@@ -732,7 +718,7 @@ impl Operation for PyGate {
     fn control_flow(&self) -> bool {
         false
     }
-    fn matrix(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>> {
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         Python::with_gil(|py| -> Option<Array2<Complex64>> {
             match self.gate.getattr(py, intern!(py, "to_matrix")) {
                 Ok(to_matrix) => {
@@ -749,7 +735,7 @@ impl Operation for PyGate {
             }
         })
     }
-    fn definition(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         Python::with_gil(|py| -> Option<CircuitData> {
             match self.gate.getattr(py, intern!(py, "definition")) {
                 Ok(definition) => {
@@ -824,10 +810,10 @@ impl Operation for PyOperation {
     fn control_flow(&self) -> bool {
         false
     }
-    fn matrix(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<Array2<Complex64>> {
+    fn matrix(&self, _params: &[Param]) -> Option<Array2<Complex64>> {
         None
     }
-    fn definition(&self, _params: Option<SmallVec<[Param; 3]>>) -> Option<CircuitData> {
+    fn definition(&self, _params: &[Param]) -> Option<CircuitData> {
         None
     }
     fn standard_gate(&self) -> Option<StandardGate> {
