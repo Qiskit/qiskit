@@ -13,12 +13,14 @@
 """Tests the layout object"""
 
 import copy
+import pickle
 import unittest
 import numpy
 
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
+from qiskit._accelerate.nlayout import NLayout
 from qiskit.test import QiskitTestCase
 
 
@@ -427,6 +429,55 @@ class LayoutTest(QiskitTestCase):
         self.assertIn(0, layout)
         self.assertNotIn(qr[1], layout)
         self.assertNotIn(1, layout)
+
+
+class TestNLayout(QiskitTestCase):
+    """This is a private class, so mostly doesn't need direct tests."""
+
+    def test_pickle(self):
+        """Test that the layout roundtrips through pickle."""
+        v2p = [3, 5, 1, 2, 0, 4]
+        size = len(v2p)
+        layout = NLayout.from_virtual_to_physical(v2p)
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        roundtripped = pickle.loads(pickle.dumps(layout))
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], v2p)
+
+        # No changes to `layout`.
+        roundtripped.swap_virtual(0, 1)
+        expected = [5, 3, 1, 2, 0, 4]
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], expected)
+
+    def test_copy(self):
+        """Test that the layout roundtrips through copy."""
+        v2p = [3, 5, 1, 2, 0, 4]
+        size = len(v2p)
+        layout = NLayout.from_virtual_to_physical(v2p)
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        roundtripped = copy.copy(layout)
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], v2p)
+
+        # No changes to `layout`.
+        roundtripped.swap_virtual(0, 1)
+        expected = [5, 3, 1, 2, 0, 4]
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], expected)
+
+    def test_deepcopy(self):
+        """Test that the layout roundtrips through deepcopy."""
+        v2p = [3, 5, 1, 2, 0, 4]
+        size = len(v2p)
+        layout = NLayout.from_virtual_to_physical(v2p)
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        roundtripped = copy.deepcopy(layout)
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], v2p)
+
+        # No changes to `layout`.
+        roundtripped.swap_virtual(0, 1)
+        expected = [5, 3, 1, 2, 0, 4]
+        self.assertEqual([layout.virtual_to_physical(x) for x in range(size)], v2p)
+        self.assertEqual([roundtripped.virtual_to_physical(x) for x in range(size)], expected)
 
 
 if __name__ == "__main__":
