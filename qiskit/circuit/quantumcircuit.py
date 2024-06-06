@@ -44,7 +44,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.visualization.circuit._utils import _is_valid_justify_arg
 from . import _classical_resource_map
 from ._utils import sort_parameters
 from .controlflow import ControlFlowOp
@@ -3268,6 +3267,7 @@ class QuantumCircuit:
 
         # pylint: disable=cyclic-import
         from qiskit.visualization import circuit_drawer
+        from qiskit.visualization.circuit._utils import _is_valid_justify_arg
 
         # To not raise the same deprecation warning multiple times, with different origins
         justify = justify if _is_valid_justify_arg(justify) else "left"
