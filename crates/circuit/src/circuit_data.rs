@@ -172,7 +172,7 @@ impl CircuitData {
     ///     int: The number of qubits.
     #[getter]
     pub fn num_qubits(&self) -> usize {
-        self.qubits_native.len()
+        self.qubits.len()
     }
 
     /// Returns the current sequence of registered :class:`.Clbit`
@@ -197,7 +197,7 @@ impl CircuitData {
     ///     int: The number of clbits.
     #[getter]
     pub fn num_clbits(&self) -> usize {
-        self.clbits_native.len()
+        self.clbits.len()
     }
 
     /// Return the width of the circuit. This is the number of qubits plus the
