@@ -443,11 +443,47 @@ class Operator(LinearOp):
     def from_circuit_new(
         cls,
         circuit: QuantumCircuit,
+        ignore_set_layout: bool = False,
+        layout: Layout | None = None,
     ) -> Operator:
-        # This is slow and inefficient
-        circuit2 = circuit.copy()
-        circuit2.convert_final_permutation_to_gate()
-        return Operator(circuit2)
+        if layout is None:
+            if not ignore_set_layout:
+                layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
+
+        initial_layout = layout.initial_layout if layout is not None else None
+
+        from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
+
+        if initial_layout is not None:
+            input_qubits = [None] * len(layout.input_qubit_mapping)
+            for q, p in layout.input_qubit_mapping.items():
+                input_qubits[p] = q
+
+            initial_permutation = initial_layout.to_permutation(input_qubits)
+            initial_permutation_inverse = _inverse_pattern(initial_permutation)
+
+        final_permutation = circuit.final_permutation.permutation
+        final_permutation_inverse = _inverse_pattern(final_permutation)
+        print(f"==> In Operation::from_circuit_new {final_permutation = }")
+
+        op = Operator(circuit)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation, True)
+
+        op = op.apply_permutation(final_permutation_inverse, False)
+
+        if initial_layout:
+            op = op.apply_permutation(initial_permutation_inverse, False)
+
+        return op
 
     def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""

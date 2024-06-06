@@ -36,6 +36,11 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is no layout in the property set or not set at init time.
         """
+        print(f"------------------------------------------")
+        print(f"-- EnlargeWithAncilla [START]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
+
         layout = self.property_set["layout"]
 
         if layout is None:
@@ -45,5 +50,10 @@ class EnlargeWithAncilla(TransformationPass):
 
         for qreg in new_qregs:
             dag.add_qreg(qreg)
+
+        print(f"------------------------------------------")
+        print(f"-- EnlargeWithAncilla [END]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
 
         return dag

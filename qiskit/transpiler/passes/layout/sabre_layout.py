@@ -206,6 +206,12 @@ class SabreLayout(TransformationPass):
         Raises:
             TranspilerError: if dag wider than self.coupling_map
         """
+
+        print(f"------------------------------------------")
+        print(f"-- SabreLayout [START]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
+
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
 
@@ -318,6 +324,7 @@ class SabreLayout(TransformationPass):
         self.property_set["original_qubit_indices"] = {
             bit: index for index, bit in enumerate(dag.qubits)
         }
+
         final_layout = Layout(
             {
                 mapped_dag.qubits[
@@ -333,6 +340,40 @@ class SabreLayout(TransformationPass):
             self.property_set["final_layout"] = final_layout.compose(
                 self.property_set["final_layout"], dag.qubits
             )
+
+        sabre_final_permutation = {
+            component.coupling_map.graph[initial]: component.coupling_map.graph[final]
+            for component in components
+            for initial, final in enumerate(component.final_permutation)
+        }
+        print(f"HERE: {sabre_final_permutation = }")
+        print(f"AND: {dag.final_permutation = }")
+        print(f"{full_initial_layout = }")
+        print(f"{self.property_set['layout'] = }")
+
+
+        # TODO: APPLY THIS ON MAPPED DAG, NOT ON THE ORIGINAL ONE!!
+        forward_map = {
+            logic: component.coupling_map.graph[phys]
+            for component in components
+                for logic, phys in component.initial_layout.layout_mapping()
+            # A physical component of the coupling map might be wider than the DAG that we're
+            # laying out onto it.  We shouldn't include these implicit ancillas right now as the
+            # ancilla-allocation pass will run on the whole map in one go.
+            if logic < len(component.dag.qubits)
+        }
+        print(f"{forward_map = }")
+        for logic, phys in forward_map.items():
+            print(f"-------------> {logic = }, {phys = }")
+        forward_map = [forward_map[i] for i in range(len(forward_map))]
+
+        dag.final_permutation.push_forward(forward_map)
+        print(f"AFTER PUSH: {dag.final_permutation = } ")
+        dag.final_permutation.compose(sabre_final_permutation, front=True)
+        print(f"AFTER COMPOSE: {dag.final_permutation = } ")
+
+
+
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout
@@ -361,6 +402,13 @@ class SabreLayout(TransformationPass):
                 component.circuit_to_dag_dict,
             )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
+
+        mapped_dag.final_permutation = dag.final_permutation
+        print(f"------------------------------------------")
+        print(f"-- SabreLayout [END]")
+        print(f"{mapped_dag.final_permutation = }")
+        print(f"------------------------------------------")
+
         return mapped_dag
 
     def _inner_run(self, dag, coupling_map, starting_layouts=None):
