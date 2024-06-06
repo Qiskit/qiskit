@@ -14,6 +14,7 @@
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
@@ -47,6 +48,13 @@ class ApplyLayout(TransformationPass):
         Raises:
             TranspilerError: if no layout is found in ``property_set`` or no full physical qubits.
         """
+
+        print(f"------------------------------------------")
+        print(f"-- ApplyLayout [START]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
+
+
         layout = self.property_set["layout"]
         if not layout:
             raise TranspilerError(
@@ -71,6 +79,12 @@ class ApplyLayout(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
         if post_layout is None:
+
+            print(f" => NO POST-LAYOUT IS SET")
+            print(f"{layout = }")
+
+
+
             self.property_set["original_qubit_indices"] = {
                 bit: index for index, bit in enumerate(dag.qubits)
             }
@@ -80,7 +94,21 @@ class ApplyLayout(TransformationPass):
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_physical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, check=False)
+
+            # IMPROVE ME TO AVOID USING to_permutation method
+            forward_map_inverse = layout.to_permutation(dag.qubits)
+            forward_map = _inverse_pattern(forward_map_inverse)
+            print(f"{forward_map = }")
+
+            print(f"{virtual_physical_map = }, {layout.to_permutation(dag.qubits) = }")
+            new_dag.final_permutation = dag.final_permutation.copy()
+            print(f"HERE {new_dag.final_permutation = }")
+            new_dag.final_permutation.push_forward(forward_map)
+            print(f"AND HERE {new_dag.final_permutation = }")
+
         else:
+
+            print(f" => POST-LAYOUT IS SET")
             # First build a new layout object going from:
             # old virtual -> old physical -> new virtual -> new physical
             # to:
@@ -109,5 +137,14 @@ class ApplyLayout(TransformationPass):
                 out_layout = Layout(final_layout_mapping)
                 self.property_set["final_layout"] = out_layout
         new_dag._global_phase = dag._global_phase
+
+
+
+
+
+        print(f"------------------------------------------")
+        print(f"-- ApplyLayout [END]")
+        print(f"{new_dag.final_permutation = }")
+        print(f"------------------------------------------")
 
         return new_dag

@@ -16,8 +16,11 @@ import unittest
 
 from qiskit import transpile
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit.library import PermutationGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import ElidePermutations, StarPreRouting
+from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -64,6 +67,32 @@ class TestFinalPermutationInTranspile(QiskitTestCase):
         self.assertTrue(Operator.from_circuit(qct).equiv(op))
         self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
+    def test3(self):
+        """Both StarPreRouting+Elide."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.append(PermutationGate([0, 2, 1]), [0, 1, 2])
+        qc.h(1)
+
+        op = Operator(qc)
+        spm = generate_preset_pass_manager(
+            optimization_level=3,
+            seed_transpiler=1234,
+            coupling_map=CouplingMap.from_line(5),
+            basis_gates=["u", "cz"],
+        )
+        spm.init += ElidePermutations()
+        spm.init += StarPreRouting()
+        qct = spm.run(qc)
+        self.assertTrue(Operator.from_circuit(qct).equiv(op))
+        self.assertTrue(Operator.from_circuit_new(qct).equiv(op))
 
 
 if __name__ == "__main__":
