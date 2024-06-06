@@ -3116,12 +3116,17 @@ class QuantumCircuit:
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
+    # pylint: disable=cyclic-import
+    from qiskit.visualization.circuit._utils import _is_valid_justify_arg
+
     @deprecate_arg(
         "justify",
         since="1.1.0",
         deprecation_description="Setting QuantumCircuit.draw()’s justify argument to a value other than "
-        "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
+        "'left', 'right', or 'none'. Default 'left' will be used. Starting in Qiskit 2.0, "
+        "invalid arguments will error.",
         predicate=_is_valid_justify_arg,
+        pending=True,
     )
     def draw(
         self,
@@ -3269,10 +3274,9 @@ class QuantumCircuit:
         from qiskit.visualization import circuit_drawer
         from qiskit.visualization.circuit._utils import _is_valid_justify_arg
 
-        # To not raise the same deprecation warning multiple times, with different origins
-        # We set this here to avoid the deprecation triggering again
-        # from circuit_drawer. This code should be removed once
-        # the deprecation is complete.
+        # We set this here to avoid the same deprecation warning
+        # from ``circuit_drawer()`` triggering again. This code
+        # should be removed once the deprecation is complete.
         justify = justify if _is_valid_justify_arg(justify) else "left"
 
         return circuit_drawer(

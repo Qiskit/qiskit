@@ -375,14 +375,7 @@ def generate_latex_label(label):
 
 
 def _is_valid_justify_arg(justify):
-    """Given a justify argument, return True if it is valid, False otherwise.
-    
-    Args:
-        justify (str): The justify argument to check.
-
-    Returns:
-        bool: True if the justify argument is valid, False otherwise.
-    """
+    """Return True if the `justify` argument is valid."""
     if isinstance(justify, str):
         justify = justify.lower()
 
