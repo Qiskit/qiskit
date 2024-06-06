@@ -38,7 +38,6 @@ from qiskit import user_config
 from qiskit.circuit import ControlFlowOp, Measure
 from qiskit.utils import deprecate_arg
 from qiskit.utils import optionals as _optionals
-from qiskit.visualization.circuit._utils import _is_valid_justify_arg
 
 from ..exceptions import VisualizationError
 from ..utils import _trim as trim_image
@@ -61,7 +60,7 @@ logger = logging.getLogger(__name__)
     since="1.1.0",
     deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
     "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
-    predicate=_is_valid_justify_arg,
+    predicate=lambda justify: isinstance(justify, str) or justify.lower() in ("left", "right", "none"),
     pending=True,
 )
 def circuit_drawer(

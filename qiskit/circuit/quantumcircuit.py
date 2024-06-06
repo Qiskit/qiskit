@@ -3116,15 +3116,12 @@ class QuantumCircuit:
         # do not copy operations, this is done in the conversion with circuit_to_dag
         return dag_to_circuit(dag, copy_operations=False)
 
-    # pylint: disable=cyclic-import
-    from qiskit.visualization.circuit._utils import _is_valid_justify_arg
-
     @deprecate_arg(
         "justify",
         since="1.1.0",
         deprecation_description="Setting QuantumCircuit.draw()’s justify argument to a value other than"
         "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
-        predicate=_is_valid_justify_arg,
+        predicate=lambda justfy: isinstance(justfy, str) or justfy.lower() in ("left", "right", "none"),
         pending=True,
     )
     def draw(
