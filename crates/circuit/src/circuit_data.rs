@@ -14,9 +14,9 @@ use crate::circuit_instruction::{
     convert_py_to_operation_type, operation_type_and_data_to_py, CircuitInstruction,
     ExtraInstructionAttributes, OperationInput,
 };
-use crate::imports::{BUILTIN_LIST, CLBIT, QUBIT};
+use crate::imports::{BUILTIN_LIST, QUBIT};
 use crate::intern_context::{BitType, IndexType, InternContext};
-use crate::operations::{OperationType, Param};
+use crate::operations::{OperationType, Param, StandardGate};
 use crate::parameter_table::{ParamEntry, ParamTable};
 use crate::SliceOrInt;
 use smallvec::SmallVec;
@@ -170,25 +170,41 @@ pub struct CircuitData {
     global_phase: Param,
 }
 
-type InstructionEntryType<'a> = (OperationType, &'a [Param], &'a [u32]);
-
 impl CircuitData {
-    /// A helper method to build a new CircuitData from an owned definition
-    /// as a slice of OperationType, parameters, and qubits.
-    pub fn build_new_from(
+    /// An alternate constructor to build a new `CircuitData` from an iterator
+    /// of standard gates. This can be used to build a circuit from a sequence
+    /// of standard gates, such as for a `StandardGate` definition or circuit
+    /// synthesis without needing to involve Python.
+    ///
+    /// This can be connected with the Python space
+    /// QuantumCircuit.from_circuit_data() constructor to build a full
+    /// QuantumCircuit from Rust.
+    ///
+    /// # Arguments
+    ///
+    /// * py: A GIL handle this is needed to instantiate Qubits in Python space
+    /// * num_qubits: The number of qubits in the circuit. These will be created
+    ///     in Python as loose bits without a register.
+    /// * instructions: An iterator of the standard gate params and qubits to
+    ///     add to the circuit
+    /// * global_phase: The global phase to use for the circuit
+    pub fn from_standard_gates<I>(
         py: Python,
-        num_qubits: usize,
-        num_clbits: usize,
-        instructions: &[InstructionEntryType],
+        num_qubits: u32,
+        instructions: I,
         global_phase: Param,
-    ) -> PyResult<Self> {
+    ) -> PyResult<Self>
+    where
+        I: IntoIterator<Item = (StandardGate, SmallVec<[Param; 3]>, SmallVec<[u32; 2]>)>,
+    {
+        let instruction_iter = instructions.into_iter();
         let mut res = CircuitData {
-            data: Vec::with_capacity(instructions.len()),
+            data: Vec::with_capacity(instruction_iter.size_hint().0),
             intern_context: InternContext::new(),
-            qubits_native: Vec::with_capacity(num_qubits),
-            clbits_native: Vec::with_capacity(num_clbits),
-            qubit_indices_native: HashMap::with_capacity(num_qubits),
-            clbit_indices_native: HashMap::with_capacity(num_clbits),
+            qubits_native: Vec::with_capacity(num_qubits as usize),
+            clbits_native: Vec::new(),
+            qubit_indices_native: HashMap::with_capacity(num_qubits as usize),
+            clbit_indices_native: HashMap::new(),
             qubits: PyList::empty_bound(py).unbind(),
             clbits: PyList::empty_bound(py).unbind(),
             param_table: ParamTable::new(),
@@ -201,14 +217,7 @@ impl CircuitData {
                 res.add_qubit(py, &bit, true)?;
             }
         }
-        if num_clbits > 0 {
-            let clbit_cls = CLBIT.get_bound(py);
-            for _i in 0..num_clbits {
-                let bit = clbit_cls.call0()?;
-                res.add_clbit(py, &bit, true)?;
-            }
-        }
-        for (operation, params, qargs) in instructions {
+        for (operation, params, qargs) in instruction_iter {
             let qubits = PyTuple::new_bound(
                 py,
                 qargs
@@ -219,11 +228,10 @@ impl CircuitData {
             .unbind();
             let empty: [u8; 0] = [];
             let clbits = PyTuple::new_bound(py, empty);
-            let params: SmallVec<[Param; 3]> = params.iter().cloned().collect();
             let inst = res.pack_owned(
                 py,
                 &CircuitInstruction {
-                    operation: operation.clone(),
+                    operation: OperationType::Standard(operation),
                     qubits,
                     clbits: clbits.into(),
                     params,

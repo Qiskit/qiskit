@@ -21,8 +21,11 @@ use numpy::IntoPyArray;
 use numpy::PyReadonlyArray2;
 use pyo3::prelude::*;
 use pyo3::{intern, IntoPy, Python};
+use smallvec::{smallvec, SmallVec};
 
-/// Valid types for OperationType
+/// Valid types for an operation field in a CircuitInstruction
+///
+/// These are basically the types allowed in a QuantumCircuit
 #[derive(FromPyObject, Clone, Debug)]
 pub enum OperationType {
     Standard(StandardGate),
@@ -399,20 +402,13 @@ impl Operation for StandardGate {
     }
 
     fn definition(&self, params: &[Param]) -> Option<CircuitData> {
-        // TODO: Add definition for completeness. This shouldn't be necessary in practice
-        // though because nothing will rely on this in practice.
         match self {
             Self::ZGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         1,
-                        0,
-                        &[(
-                            OperationType::Standard(Self::PhaseGate),
-                            &[Param::Float(PI)],
-                            &[0],
-                        )],
+                        [(Self::PhaseGate, smallvec![Param::Float(PI)], smallvec![0])],
                         FLOAT_ZERO,
                     )
                     .expect("Unexpected Qiskit python bug"),
@@ -420,18 +416,17 @@ impl Operation for StandardGate {
             }),
             Self::YGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         1,
-                        0,
-                        &[(
-                            OperationType::Standard(Self::UGate),
-                            &[
+                        [(
+                            Self::UGate,
+                            smallvec![
                                 Param::Float(PI),
                                 Param::Float(PI / 2.),
                                 Param::Float(PI / 2.),
                             ],
-                            &[0],
+                            smallvec![0],
                         )],
                         FLOAT_ZERO,
                     )
@@ -440,14 +435,13 @@ impl Operation for StandardGate {
             }),
             Self::XGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         1,
-                        0,
-                        &[(
-                            OperationType::Standard(Self::UGate),
-                            &[Param::Float(PI), Param::Float(0.), Param::Float(PI)],
-                            &[0],
+                        [(
+                            Self::UGate,
+                            smallvec![Param::Float(PI), Param::Float(0.), Param::Float(PI)],
+                            smallvec![0],
                         )],
                         FLOAT_ZERO,
                     )
@@ -455,17 +449,16 @@ impl Operation for StandardGate {
                 )
             }),
             Self::CZGate => Python::with_gil(|py| -> Option<CircuitData> {
-                let q1: Vec<u32> = vec![1];
-                let q0_1: Vec<u32> = vec![0, 1];
+                let q1: SmallVec<[u32; 2]> = smallvec![1];
+                let q0_1: SmallVec<[u32; 2]> = smallvec![0, 1];
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         2,
-                        0,
-                        &[
-                            (OperationType::Standard(Self::HGate), &[], &q1),
-                            (OperationType::Standard(Self::CXGate), &[], &q0_1),
-                            (OperationType::Standard(Self::HGate), &[], &q1),
+                        [
+                            (Self::HGate, smallvec![], q1.clone()),
+                            (Self::CXGate, smallvec![], q0_1),
+                            (Self::HGate, smallvec![], q1),
                         ],
                         FLOAT_ZERO,
                     )
@@ -480,28 +473,26 @@ impl Operation for StandardGate {
             Self::RZGate => Python::with_gil(|py| -> Option<CircuitData> {
                 match &params[0] {
                     Param::Float(theta) => Some(
-                        CircuitData::build_new_from(
+                        CircuitData::from_standard_gates(
                             py,
                             1,
-                            0,
-                            &[(
-                                OperationType::Standard(Self::PhaseGate),
-                                &[Param::Float(*theta)],
-                                &[0],
+                            [(
+                                Self::PhaseGate,
+                                smallvec![Param::Float(*theta)],
+                                smallvec![0],
                             )],
                             Param::Float(-0.5 * theta),
                         )
                         .expect("Unexpected Qiskit python bug"),
                     ),
                     Param::ParameterExpression(theta) => Some(
-                        CircuitData::build_new_from(
+                        CircuitData::from_standard_gates(
                             py,
                             1,
-                            0,
-                            &[(
-                                OperationType::Standard(Self::PhaseGate),
-                                &[Param::ParameterExpression(theta.clone_ref(py))],
-                                &[0],
+                            [(
+                                Self::PhaseGate,
+                                smallvec![Param::ParameterExpression(theta.clone_ref(py))],
+                                smallvec![0],
                             )],
                             Param::ParameterExpression(
                                 theta
@@ -517,14 +508,13 @@ impl Operation for StandardGate {
             Self::ECRGate => todo!("Add when we have RZX"),
             Self::SwapGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         2,
-                        0,
-                        &[
-                            (OperationType::Standard(Self::CXGate), &[], &[0, 1]),
-                            (OperationType::Standard(Self::CXGate), &[], &[1, 0]),
-                            (OperationType::Standard(Self::CXGate), &[], &[0, 1]),
+                        [
+                            (Self::CXGate, smallvec![], smallvec![0, 1]),
+                            (Self::CXGate, smallvec![], smallvec![1, 0]),
+                            (Self::CXGate, smallvec![], smallvec![0, 1]),
                         ],
                         FLOAT_ZERO,
                     )
@@ -534,21 +524,20 @@ impl Operation for StandardGate {
             Self::SXGate => todo!("Add when we have S dagger"),
             Self::GlobalPhaseGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(py, 0, 0, &[], params[0].clone())
+                    CircuitData::from_standard_gates(py, 0, [], params[0].clone())
                         .expect("Unexpected Qiskit python bug"),
                 )
             }),
             Self::IGate => None,
             Self::HGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         1,
-                        0,
-                        &[(
-                            OperationType::Standard(Self::UGate),
-                            &[Param::Float(PI / 2.), Param::Float(0.), Param::Float(PI)],
-                            &[0],
+                        [(
+                            Self::UGate,
+                            smallvec![Param::Float(PI / 2.), Param::Float(0.), Param::Float(PI)],
+                            smallvec![0],
                         )],
                         FLOAT_ZERO,
                     )
@@ -557,14 +546,13 @@ impl Operation for StandardGate {
             }),
             Self::PhaseGate => Python::with_gil(|py| -> Option<CircuitData> {
                 Some(
-                    CircuitData::build_new_from(
+                    CircuitData::from_standard_gates(
                         py,
                         1,
-                        0,
-                        &[(
-                            OperationType::Standard(Self::UGate),
-                            &[Param::Float(0.), Param::Float(0.), params[0].clone()],
-                            &[0],
+                        [(
+                            Self::UGate,
+                            smallvec![Param::Float(0.), Param::Float(0.), params[0].clone()],
+                            smallvec![0],
                         )],
                         FLOAT_ZERO,
                     )
