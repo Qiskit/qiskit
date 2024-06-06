@@ -195,6 +195,13 @@ def random_circuit(
         # This reliably draws too much randomness, but it's less expensive than looping over more
         # calls to the rng. After, trim it down by finding the point when we've used all the qubits.
 
+        # Due to the stochastic nature of generating a random circuit, the resulting ratios
+        # may not precisely match the specified values from `num_operand_distribution`. Expect
+        # greater deviations from the target ratios in quantum circuits with fewer qubits and
+        # shallower depths, and smaller deviations in larger and deeper quantum circuits.
+        # For more information on how the distribution changes with number of qubits and depth
+        # refer to the pull request #12483 on Qiskit GitHub.
+
         gate_specs = rng.choice(gates, size=len(qubits), p=distribution)
         cumulative_qubits = np.cumsum(gate_specs["num_qubits"], dtype=np.int64)
 

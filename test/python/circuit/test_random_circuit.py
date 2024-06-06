@@ -88,7 +88,9 @@ class TestCircuitRandom(QiskitTestCase):
         num_qubits = 50
         depth = 300
         num_op_dist = {2: 0.25, 3: 0.25, 1: 0.25, 4: 0.25}
-        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist)
+        circ = random_circuit(
+            num_qubits, depth, num_operand_distribution=num_op_dist, seed=123456789
+        )
         total_gates = circ.size()
         self.assertEqual(circ.width(), num_qubits)
         self.assertEqual(circ.depth(), depth)
@@ -148,13 +150,13 @@ class TestCircuitRandom(QiskitTestCase):
         num_qubits = 10
         depth = 200
         num_op_dist = {1: 0.0, 2: 0.0, 3: 0.5, 4: 0.5}
-        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist)
+        circ = random_circuit(num_qubits, depth, num_operand_distribution=num_op_dist, seed=12)
         total_gates = circ.size()
         gate_qubits = [instruction.operation.num_qubits for instruction in circ]
         gate_type_counter = np.bincount(gate_qubits, minlength=5)
         # Testing that the distribution of 3 and 4 qubit gate matches with given distribution
         for gate_type, prob in sorted(num_op_dist.items()):
-            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.15)
+            self.assertAlmostEqual(prob, gate_type_counter[gate_type] / total_gates, delta=0.1)
         # Testing that there are no 1-qubit gate and 2-qubit in the generated random circuit
         self.assertEqual(gate_type_counter[1], 0.0)
         self.assertEqual(gate_type_counter[2], 0.0)
