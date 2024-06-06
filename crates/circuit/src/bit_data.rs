@@ -42,7 +42,7 @@ impl BitAsKey {
             // This really shouldn't fail, but if it does,
             // we'll just use 0.
             hash: bit.hash().unwrap_or(0),
-            bit: bit.into_py(bit.py()),
+            bit: bit.clone().unbind(),
         }
     }
 }
