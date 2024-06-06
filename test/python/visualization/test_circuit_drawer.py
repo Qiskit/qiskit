@@ -238,14 +238,26 @@ class TestCircuitDrawer(QiskitTestCase):
         result = visualization.circuit_drawer(circuit, output="text", reverse_bits=True)
         self.assertEqual(result.__str__(), expected)
 
-    def test_justify_warning(self):
-        """Test that a warning is raised when the justify parameter is badly input."""
+    def test_warning_for_bad_justify_argument(self):
+        """Test that the correct DeprecationWarning is raised when the justify parameter is badly input,
+        for both of the public interfaces."""
         circuit = QuantumCircuit()
-        with self.assertWarnsRegex(
-            UserWarning,
-            "justify must be 'left, right or none', not: 'bad'. Default \\(left\\) will be used.",
-        ):
-            visualization.circuit_drawer(circuit, justify="bad")
+
+        for bad_justify in ["bad", None]:
+
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                "Setting circuit_drawer()’s justify argument to a value other than "
+                "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
+            ):
+                visualization.circuit_drawer(circuit, justify=bad_justify)
+
+            with self.assertWarnsRegex(
+                DeprecationWarning,
+                "Setting QuantumCircuit.draw()’saa justify argument to a value other than "
+                "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
+            ):
+                circuit.draw(justify=bad_justify)
 
     @unittest.skipUnless(optionals.HAS_PYLATEX, "needs pylatexenc for LaTeX conversion")
     def test_no_explict_cregbundle(self):

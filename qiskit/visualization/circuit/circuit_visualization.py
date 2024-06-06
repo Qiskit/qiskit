@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 @deprecate_arg(
     "justify",
     since="1.1.0",
-    ddeprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
+    deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
     "'left', 'right', or 'none'. Until deprecation, default 'left' will be used instead.",
     predicate=lambda justify: justify not in ["left", "right", "none"],
 )
