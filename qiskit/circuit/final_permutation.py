@@ -14,9 +14,11 @@
 
 class FinalPermutation:
 
-    def __init__(self):
+    def __init__(self, permutation=None):
         # for now: original index -> mapped to index
-        self.permutation = []
+        if permutation is None:
+            permutation = []
+        self.permutation = permutation
 
     def add_qubit(self):
         self.permutation.append(len(self.permutation))
@@ -52,6 +54,9 @@ class FinalPermutation:
         forward_map_inverse = _invert_permutation(forward_map)
         self.permutation = _compose_permutations(forward_map_inverse, self.permutation, forward_map)
 
+    def copy(self):
+        print(f"COPY")
+        return FinalPermutation(self.permutation.copy())
 
 def _invert_permutation(perm):
     assert isinstance(perm, list)

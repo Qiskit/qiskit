@@ -22,6 +22,7 @@ import time
 import numpy as np
 import rustworkx as rx
 
+from qiskit.circuit.final_permutation import FinalPermutation
 from qiskit.converters import dag_to_circuit
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
@@ -341,39 +342,6 @@ class SabreLayout(TransformationPass):
                 self.property_set["final_layout"], dag.qubits
             )
 
-        sabre_final_permutation = {
-            component.coupling_map.graph[initial]: component.coupling_map.graph[final]
-            for component in components
-            for initial, final in enumerate(component.final_permutation)
-        }
-        print(f"HERE: {sabre_final_permutation = }")
-        print(f"AND: {dag.final_permutation = }")
-        print(f"{full_initial_layout = }")
-        print(f"{self.property_set['layout'] = }")
-
-
-        # TODO: APPLY THIS ON MAPPED DAG, NOT ON THE ORIGINAL ONE!!
-        forward_map = {
-            logic: component.coupling_map.graph[phys]
-            for component in components
-                for logic, phys in component.initial_layout.layout_mapping()
-            # A physical component of the coupling map might be wider than the DAG that we're
-            # laying out onto it.  We shouldn't include these implicit ancillas right now as the
-            # ancilla-allocation pass will run on the whole map in one go.
-            if logic < len(component.dag.qubits)
-        }
-        print(f"{forward_map = }")
-        for logic, phys in forward_map.items():
-            print(f"-------------> {logic = }, {phys = }")
-        forward_map = [forward_map[i] for i in range(len(forward_map))]
-
-        dag.final_permutation.push_forward(forward_map)
-        print(f"AFTER PUSH: {dag.final_permutation = } ")
-        dag.final_permutation.compose(sabre_final_permutation, front=True)
-        print(f"AFTER COMPOSE: {dag.final_permutation = } ")
-
-
-
         for component in components:
             # Sabre routing still returns all its swaps as on virtual qubits, so we need to expand
             # each component DAG with the virtual ancillas that were allocated to it, so the layout
@@ -403,7 +371,31 @@ class SabreLayout(TransformationPass):
             )
         disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
 
-        mapped_dag.final_permutation = dag.final_permutation
+        # Update final_permutation
+        sabre_final_permutation = {
+            component.coupling_map.graph[initial]: component.coupling_map.graph[final]
+            for component in components
+            for initial, final in enumerate(component.final_permutation)
+        }
+
+        forward_map = {
+            logic: component.coupling_map.graph[phys]
+            for component in components
+                for logic, phys in component.initial_layout.layout_mapping()
+            if logic < len(component.dag.qubits)
+        }
+        forward_map = [forward_map[i] for i in range(len(forward_map))]
+        print(f"{forward_map = }")
+
+        mapped_dag.final_permutation = dag.final_permutation.copy()
+        print(f"SabreLayout: final_permutation [initially] {mapped_dag.final_permutation}")
+
+        mapped_dag.final_permutation.push_forward(forward_map)
+        print(f"SabreLayout: final_permutation [after push] {mapped_dag.final_permutation}")
+
+        mapped_dag.final_permutation.compose(sabre_final_permutation, front=True)
+        print(f"SabreLayout: final_permutation [after compose] {mapped_dag.final_permutation}")
+
         print(f"------------------------------------------")
         print(f"-- SabreLayout [END]")
         print(f"{mapped_dag.final_permutation = }")
