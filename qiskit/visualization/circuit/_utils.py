@@ -374,6 +374,20 @@ def generate_latex_label(label):
     return final_str.replace(" ", "\\,")  # Put in proper spaces
 
 
+def _is_valid_justify_arg(justify):
+    """Given a justify argument, return True if it is valid, False otherwise.
+    Args:
+        justify (str): The justify argument to check.
+
+    Returns:
+        bool: True if the justify argument is valid, False otherwise.
+    """
+    if isinstance(justify, str):
+        justify = justify.lower()
+
+    return justify in ("left", "right", "none")
+
+
 def _get_layered_instructions(
     circuit, reverse_bits=False, justify="left", idle_wires=True, wire_order=None, wire_map=None
 ):
@@ -398,11 +412,7 @@ def _get_layered_instructions(
     Raises:
         VisualizationError: if both reverse_bits and wire_order are entered.
     """
-    if justify:
-        justify = justify.lower()
-
-    # If wrong input, default ('left') will be used.
-    justify = justify if justify in ("left", "right", "none") else "left"
+    justify = justify.lower() if _is_valid_justify_arg(justify) else "left"
 
     if wire_map is not None:
         qubits = [bit for bit in wire_map if isinstance(bit, Qubit)]
