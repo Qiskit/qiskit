@@ -3118,7 +3118,7 @@ class QuantumCircuit:
 
     @deprecate_arg(
         "justify",
-        since="1.1.0",
+        since="1.2.0",
         deprecation_description="Setting QuantumCircuit.draw()’s justify argument to a value other than"
         "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
         predicate=lambda justfy: isinstance(justfy, str) or justfy.lower() in ("left", "right", "none"),
