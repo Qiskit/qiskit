@@ -31,11 +31,11 @@ pub enum SliceOrInt<'a> {
     Slice(Bound<'a, PySlice>),
 }
 
-type BitType = u32;
+pub type BitType = u32;
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-struct Qubit(BitType);
+pub struct Qubit(BitType);
 #[derive(Copy, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
-struct Clbit(BitType);
+pub struct Clbit(BitType);
 
 impl From<BitType> for Qubit {
     fn from(value: BitType) -> Self {
