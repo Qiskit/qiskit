@@ -124,7 +124,7 @@ class ElidePermutations(TransformationPass):
         print(f"{qubit_mapping = }")
         qubit_mapping_inverse = _inverse_pattern(qubit_mapping)
         new_dag.final_permutation = dag.final_permutation.copy()
-        new_dag.final_permutation.compose(qubit_mapping_inverse, front=True)
+        new_dag.final_permutation.compose(qubit_mapping, front=True)
 
         print(f"------------------------------------------")
         print(f"-- ElidePermutations [END]")

@@ -377,6 +377,7 @@ class SabreLayout(TransformationPass):
             for component in components
             for initial, final in enumerate(component.final_permutation)
         }
+        print(f"{sabre_final_permutation = }")
 
         forward_map = {
             logic: component.coupling_map.graph[phys]
@@ -393,7 +394,7 @@ class SabreLayout(TransformationPass):
         mapped_dag.final_permutation.push_forward(forward_map)
         print(f"SabreLayout: final_permutation [after push] {mapped_dag.final_permutation}")
 
-        mapped_dag.final_permutation.compose(sabre_final_permutation, front=True)
+        mapped_dag.final_permutation.compose(sabre_final_permutation, front=False)
         print(f"SabreLayout: final_permutation [after compose] {mapped_dag.final_permutation}")
 
         print(f"------------------------------------------")

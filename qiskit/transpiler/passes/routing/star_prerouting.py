@@ -16,6 +16,7 @@ from math import floor, log10
 
 from qiskit.circuit import Barrier
 from qiskit.dagcircuit import DAGOpNode, DAGDepNode, DAGDependency, DAGCircuit
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit.library import SwapGate
@@ -280,6 +281,9 @@ class StarPreRouting(TransformationPass):
             )
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
+
+        print(f"{qubit_mapping = }")
+        qubit_mapping_inverse = _inverse_pattern(qubit_mapping)
 
         new_dag.final_permutation = dag.final_permutation.copy()
         new_dag.final_permutation.compose(qubit_mapping, front=True)

@@ -486,12 +486,11 @@ class Operator(LinearOp):
         if initial_layout:
             print(f"{initial_permutation = }, {initial_permutation_inverse = }")
 
-        print(f"{final_permutation = }")
 
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
 
-        op = op.apply_permutation(final_permutation_inverse, False)
+        op = op.apply_permutation(final_permutation, False)
 
         if initial_layout:
             op = op.apply_permutation(initial_permutation_inverse, False)
