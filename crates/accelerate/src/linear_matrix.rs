@@ -13,7 +13,6 @@
 use ndarray::{s, ArrayViewMut2, Axis};
 use numpy::PyReadwriteArray2;
 use pyo3::prelude::*;
-use rayon::prelude::*;
 
 // Perform ROW operation on a matrix mat
 fn _row_op(mat: &mut ArrayViewMut2<bool>, ctrl: usize, trgt: usize) {
@@ -72,7 +71,6 @@ fn gauss_elimination(mut mat: ArrayViewMut2<bool>, ncols: Option<usize>, full_el
         // Copy source row to avoid trying multiple borrows at once
         let row0 = mat.row(r).to_owned();
         mat.axis_iter_mut(Axis(0))
-            .into_par_iter()
             .enumerate()
             .filter(|(i, row)| {
                 (full_elim == Some(true) && (*i < r) && row[new_k])
