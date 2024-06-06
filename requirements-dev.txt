@@ -17,8 +17,8 @@ black[jupyter]~=24.1
 #
 # These versions are pinned precisely because pylint frequently includes new
 # on-by-default lint failures in new versions, which breaks our CI.
-astroid==2.14.2
-pylint==2.16.2
+astroid==3.2.2
+pylint==3.2.2
 ruff==0.0.267
 
 
