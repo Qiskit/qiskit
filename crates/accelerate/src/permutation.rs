@@ -11,7 +11,7 @@
 // that they have been altered from the originals.
 
 use ndarray::{Array1, ArrayView1};
-use numpy::{AllowTypeChange, PyArrayLike1};
+use numpy::PyArrayLike1;
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::vec::Vec;
@@ -80,7 +80,7 @@ fn get_ordered_swap(pattern: &ArrayView1<i64>) -> Vec<(i64, i64)> {
 /// Finds inverse of a permutation pattern.
 #[pyfunction]
 #[pyo3(signature = (pattern))]
-fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> PyResult<PyObject> {
+fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = pattern.as_array();
     validate_permutation(&view)?;
     let inverse_i64: Vec<i64> = invert(&view).iter().map(|&x| x as i64).collect();
@@ -98,10 +98,7 @@ fn _inverse_pattern(py: Python, pattern: PyArrayLike1<i64, AllowTypeChange>) -> 
 /// is essentially treated independently.
 #[pyfunction]
 #[pyo3(signature = (permutation_in))]
-fn _get_ordered_swap(
-    py: Python,
-    permutation_in: PyArrayLike1<i64, AllowTypeChange>,
-) -> PyResult<PyObject> {
+fn _get_ordered_swap(py: Python, permutation_in: PyArrayLike1<i64>) -> PyResult<PyObject> {
     let view = permutation_in.as_array();
     validate_permutation(&view)?;
     Ok(get_ordered_swap(&view).to_object(py))
