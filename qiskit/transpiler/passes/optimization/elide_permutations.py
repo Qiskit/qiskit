@@ -17,6 +17,7 @@ import logging
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.circuit.library.generalized_gates import PermutationGate
+from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
 
@@ -120,8 +121,10 @@ class ElidePermutations(TransformationPass):
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
 
+        print(f"{qubit_mapping = }")
+        qubit_mapping_inverse = _inverse_pattern(qubit_mapping)
         new_dag.final_permutation = dag.final_permutation.copy()
-        new_dag.final_permutation.compose(qubit_mapping, front=True)
+        new_dag.final_permutation.compose(qubit_mapping_inverse, front=True)
 
         print(f"------------------------------------------")
         print(f"-- ElidePermutations [END]")

@@ -428,6 +428,13 @@ class Operator(LinearOp):
 
         op = Operator(circuit)
 
+        print(f"FromCircuit: {initial_layout = }, {final_layout = }")
+        if initial_layout:
+            print(f"{initial_permutation = }, {initial_permutation_inverse = }")
+        if final_layout:
+            print(f"{final_permutation_inverse = }")
+
+
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
 
@@ -471,9 +478,15 @@ class Operator(LinearOp):
 
         final_permutation = circuit.final_permutation.permutation
         final_permutation_inverse = _inverse_pattern(final_permutation)
-        print(f"==> In Operation::from_circuit_new {final_permutation = }")
+        print(f"==> In Operation::from_circuit_new {final_permutation = }, {final_permutation_inverse = }")
 
         op = Operator(circuit)
+
+        print(f"FromCircuitNew: {initial_layout = }")
+        if initial_layout:
+            print(f"{initial_permutation = }, {initial_permutation_inverse = }")
+
+        print(f"{final_permutation = }")
 
         if initial_layout:
             op = op.apply_permutation(initial_permutation, True)
