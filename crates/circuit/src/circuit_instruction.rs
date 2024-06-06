@@ -736,28 +736,11 @@ pub(crate) fn convert_py_to_operation_type(
     // this check.
     if standard.is_some() {
         let mutable: bool = py_op.getattr(py, intern!(py, "mutable"))?.extract(py)?;
-        if mutable {
-            let singleton_class = SINGLETON_GATE
-                .get_or_init(py, || {
-                    let singleton_mod = py.import_bound("qiskit.circuit.singleton").unwrap();
-                    singleton_mod.getattr("SingletonGate").unwrap().unbind()
-                })
-                .bind(py);
-            let singleton_control = SINGLETON_CONTROLLED_GATE
-                .get_or_init(py, || {
-                    let singleton_mod = py.import_bound("qiskit.circuit.singleton").unwrap();
-                    singleton_mod
-                        .getattr("SingletonControlledGate")
-                        .unwrap()
-                        .unbind()
-                })
-                .bind(py);
-
-            if py_op_bound.is_instance(singleton_class)?
-                || py_op_bound.is_instance(singleton_control)?
-            {
-                standard = None;
-            }
+        if mutable
+            && (py_op_bound.is_instance(SINGLETON_GATE.get_bound(py))?
+                || py_op_bound.is_instance(SINGLETON_CONTROLLED_GATE.get_bound(py))?)
+        {
+            standard = None;
         }
     }
     if let Some(op) = standard {
@@ -772,17 +755,7 @@ pub(crate) fn convert_py_to_operation_type(
             condition: py_op.getattr(py, intern!(py, "condition"))?.extract(py)?,
         });
     }
-    let gate_class = GATE
-        .get_or_init(py, || {
-            py.import_bound("qiskit.circuit.gate")
-                .unwrap()
-                .getattr("Gate")
-                .unwrap()
-                .unbind()
-        })
-        .bind(py);
-
-    if op_type.is_subclass(gate_class)? {
+    if op_type.is_subclass(GATE.get_bound(py))? {
         let params = py_op.getattr(py, intern!(py, "params"))?.extract(py)?;
         let label = py_op.getattr(py, intern!(py, "label"))?.extract(py)?;
         let duration = py_op.getattr(py, intern!(py, "duration"))?.extract(py)?;
@@ -808,16 +781,7 @@ pub(crate) fn convert_py_to_operation_type(
             condition,
         });
     }
-    let instruction_class = INSTRUCTION
-        .get_or_init(py, || {
-            py.import_bound("qiskit.circuit.instruction")
-                .unwrap()
-                .getattr("Instruction")
-                .unwrap()
-                .unbind()
-        })
-        .bind(py);
-    if op_type.is_subclass(instruction_class)? {
+    if op_type.is_subclass(INSTRUCTION.get_bound(py))? {
         let params = py_op.getattr(py, intern!(py, "params"))?.extract(py)?;
         let label = py_op.getattr(py, intern!(py, "label"))?.extract(py)?;
         let duration = py_op.getattr(py, intern!(py, "duration"))?.extract(py)?;
@@ -844,16 +808,7 @@ pub(crate) fn convert_py_to_operation_type(
         });
     }
 
-    let operation_class = OPERATION
-        .get_or_init(py, || {
-            py.import_bound("qiskit.circuit.operation")
-                .unwrap()
-                .getattr("Operation")
-                .unwrap()
-                .unbind()
-        })
-        .bind(py);
-    if op_type.is_subclass(operation_class)? {
+    if op_type.is_subclass(OPERATION.get_bound(py))? {
         let params = match py_op.getattr(py, intern!(py, "params")) {
             Ok(value) => value.extract(py)?,
             Err(_) => smallvec![],

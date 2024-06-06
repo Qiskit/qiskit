@@ -19,26 +19,58 @@ use pyo3::sync::GILOnceCell;
 
 use crate::operations::{StandardGate, STANDARD_GATE_SIZE};
 
-/// builtin list
-pub static BUILTIN_LIST: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.operation.Operation
-pub static OPERATION: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.instruction.Instruction
-pub static INSTRUCTION: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.gate.Gate
-pub static GATE: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.quantumregister.Qubit
-pub static QUBIT: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.classicalregister.Clbit
-pub static CLBIT: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.parameterexpression.ParameterExpression
-pub static PARAMETER_EXPRESSION: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.quantumcircuit.QuantumCircuit
-pub static QUANTUM_CIRCUIT: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.singleton.SingletonGate
-pub static SINGLETON_GATE: GILOnceCell<PyObject> = GILOnceCell::new();
-/// qiskit.circuit.singleton.SingletonControlledGate
-pub static SINGLETON_CONTROLLED_GATE: GILOnceCell<PyObject> = GILOnceCell::new();
+/// Helper wrapper around `GILOnceCell` instances that are just intended to store a Python object
+/// that is lazily imported.
+pub struct ImportOnceCell {
+    module: &'static str,
+    object: &'static str,
+    cell: GILOnceCell<Py<PyAny>>,
+}
+
+impl ImportOnceCell {
+    const fn new(module: &'static str, object: &'static str) -> Self {
+        Self {
+            module,
+            object,
+            cell: GILOnceCell::new(),
+        }
+    }
+
+    /// Get the underlying GIL-independent reference to the contained object, importing if
+    /// required.
+    #[inline]
+    pub fn get(&self, py: Python) -> &Py<PyAny> {
+        self.cell.get_or_init(py, || {
+            py.import_bound(self.module)
+                .unwrap()
+                .getattr(self.object)
+                .unwrap()
+                .unbind()
+        })
+    }
+
+    /// Get a GIL-bound reference to the contained object, importing if required.
+    #[inline]
+    pub fn get_bound<'py>(&self, py: Python<'py>) -> &Bound<'py, PyAny> {
+        self.get(py).bind(py)
+    }
+}
+
+pub static BUILTIN_LIST: ImportOnceCell = ImportOnceCell::new("builtins", "list");
+pub static OPERATION: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.operation", "Operation");
+pub static INSTRUCTION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.instruction", "Instruction");
+pub static GATE: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.gate", "Gate");
+pub static QUBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.quantumregister", "Qubit");
+pub static CLBIT: ImportOnceCell = ImportOnceCell::new("qiskit.circuit.classicalregister", "Clbit");
+pub static PARAMETER_EXPRESSION: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.parameterexpression", "ParameterExpression");
+pub static QUANTUM_CIRCUIT: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.quantumcircuit", "QuantumCircuit");
+pub static SINGLETON_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.singleton", "SingletonGate");
+pub static SINGLETON_CONTROLLED_GATE: ImportOnceCell =
+    ImportOnceCell::new("qiskit.circuit.singleton", "SingletonControlledGate");
 
 /// A mapping from the enum variant in crate::operations::StandardGate to the python
 /// module path and class name to import it. This is used to populate the conversion table

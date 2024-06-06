@@ -195,30 +195,14 @@ impl CircuitData {
             global_phase,
         };
         if num_qubits > 0 {
-            let qubit_cls = QUBIT
-                .get_or_init(py, || {
-                    py.import_bound("qiskit.circuit.quantumregister")
-                        .unwrap()
-                        .getattr("Qubit")
-                        .unwrap()
-                        .unbind()
-                })
-                .bind(py);
+            let qubit_cls = QUBIT.get_bound(py);
             for _i in 0..num_qubits {
                 let bit = qubit_cls.call0()?;
                 res.add_qubit(py, &bit, true)?;
             }
         }
         if num_clbits > 0 {
-            let clbit_cls = CLBIT
-                .get_or_init(py, || {
-                    py.import_bound("qiskit.circuit.classicalregister")
-                        .unwrap()
-                        .getattr("Clbit")
-                        .unwrap()
-                        .unbind()
-                })
-                .bind(py);
+            let clbit_cls = CLBIT.get_bound(py);
             for _i in 0..num_clbits {
                 let bit = clbit_cls.call0()?;
                 res.add_clbit(py, &bit, true)?;
@@ -303,16 +287,7 @@ impl CircuitData {
                 })
                 .collect();
             if !params.is_empty() {
-                let list_builtin = BUILTIN_LIST
-                    .get_or_init(py, || {
-                        PyModule::import_bound(py, "builtins")
-                            .unwrap()
-                            .getattr("list")
-                            .unwrap()
-                            .unbind()
-                    })
-                    .bind(py);
-
+                let list_builtin = BUILTIN_LIST.get_bound(py);
                 for (param_index, param) in &params {
                     let temp: PyObject = param.getattr(py, intern!(py, "parameters"))?;
                     let raw_param_objs: Vec<PyObject> = list_builtin.call1((temp,))?.extract()?;
@@ -348,16 +323,7 @@ impl CircuitData {
 
     /// Remove an index's entries from the parameter table.
     fn remove_from_parameter_table(&mut self, py: Python, inst_index: usize) -> PyResult<()> {
-        let list_builtin = BUILTIN_LIST
-            .get_or_init(py, || {
-                PyModule::import_bound(py, "builtins")
-                    .unwrap()
-                    .getattr("list")
-                    .unwrap()
-                    .unbind()
-            })
-            .bind(py);
-
+        let list_builtin = BUILTIN_LIST.get_bound(py);
         if inst_index == usize::MAX {
             if let Param::ParameterExpression(global_phase) = &self.global_phase {
                 let temp: PyObject = global_phase.getattr(py, intern!(py, "parameters"))?;
@@ -1484,16 +1450,7 @@ impl CircuitData {
 
     #[setter]
     pub fn global_phase(&mut self, py: Python, angle: Param) -> PyResult<()> {
-        let list_builtin = BUILTIN_LIST
-            .get_or_init(py, || {
-                PyModule::import_bound(py, "builtins")
-                    .unwrap()
-                    .getattr("list")
-                    .unwrap()
-                    .unbind()
-            })
-            .bind(py);
-
+        let list_builtin = BUILTIN_LIST.get_bound(py);
         self.remove_from_parameter_table(py, usize::MAX)?;
         match angle {
             Param::Float(angle) => {

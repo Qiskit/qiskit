@@ -135,26 +135,10 @@ pub enum Param {
 
 impl<'py> FromPyObject<'py> for Param {
     fn extract_bound(b: &Bound<'py, PyAny>) -> Result<Self, PyErr> {
-        let param_class = PARAMETER_EXPRESSION
-            .get_or_init(b.py(), || {
-                PyModule::import_bound(b.py(), "qiskit.circuit.parameterexpression")
-                    .unwrap()
-                    .getattr("ParameterExpression")
-                    .unwrap()
-                    .unbind()
-            })
-            .bind(b.py());
-        let circuit_class = QUANTUM_CIRCUIT
-            .get_or_init(b.py(), || {
-                PyModule::import_bound(b.py(), "qiskit.circuit.quantumcircuit")
-                    .unwrap()
-                    .getattr("QuantumCircuit")
-                    .unwrap()
-                    .unbind()
-            })
-            .bind(b.py());
         Ok(
-            if b.is_instance(param_class)? || b.is_instance(circuit_class)? {
+            if b.is_instance(PARAMETER_EXPRESSION.get_bound(b.py()))?
+                || b.is_instance(QUANTUM_CIRCUIT.get_bound(b.py()))?
+            {
                 Param::ParameterExpression(b.clone().unbind())
             } else if let Ok(val) = b.extract::<f64>() {
                 Param::Float(val)
