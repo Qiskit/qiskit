@@ -245,6 +245,13 @@ class StarPreRouting(TransformationPass):
         return matching_blocks, processing_order
 
     def run(self, dag):
+
+        print(f"------------------------------------------")
+        print(f"-- StarPreRouting [START]")
+        print(f"{dag.final_permutation = }")
+        print(f"------------------------------------------")
+
+
         # Extract StarBlocks from DAGCircuit / DAGDependency / DAGDependencyV2
         star_blocks, processing_order = self.determine_star_blocks_processing(dag, min_block_size=2)
 
@@ -273,6 +280,15 @@ class StarPreRouting(TransformationPass):
             )
         else:
             self.property_set["virtual_permutation_layout"] = new_layout
+
+        new_dag.final_permutation = dag.final_permutation.copy()
+        new_dag.final_permutation.compose(qubit_mapping, front=True)
+
+
+        print(f"------------------------------------------")
+        print(f"-- StarPreRouting [START]")
+        print(f"{new_dag.final_permutation = }")
+        print(f"------------------------------------------")
 
         return new_dag
 
