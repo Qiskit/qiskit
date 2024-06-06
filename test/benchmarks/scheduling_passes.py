@@ -109,14 +109,6 @@ class SchedulingPassBenchmarks:
             dt=1e-9,
         )
         self.timed_dag = TimeUnitConversion(self.durations).run(self.dag)
-        dd_sequence = [XGate(), XGate()]
-        pm = PassManager(
-            [
-                ALAPScheduleAnalysis(self.durations),
-                PadDynamicalDecoupling(self.durations, dd_sequence),
-            ]
-        )
-        self.scheduled_dag = pm.run(self.timed_dag)
 
     def time_time_unit_conversion_pass(self, _, __):
         TimeUnitConversion(self.durations).run(self.dag)
@@ -140,8 +132,3 @@ class SchedulingPassBenchmarks:
             ]
         )
         pm.run(self.transpiled_circuit)
-
-    def time_dynamical_decoupling_pass(self, _, __):
-        PadDynamicalDecoupling(self.durations, dd_sequence=[XGate(), XGate()]).run(
-            self.timed_dag
-        )
