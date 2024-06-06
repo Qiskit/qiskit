@@ -890,7 +890,7 @@ class Target(Mapping):
             return False
         if qargs not in self._gate_map[operation_name]:
             return False
-        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+        return getattr(self._gate_map[operation_name][qargs], "_calibration", None) is not None
 
     def get_calibration(
         self,
