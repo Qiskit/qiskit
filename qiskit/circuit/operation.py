@@ -25,7 +25,7 @@ class Operation(ABC):
     :class:`~qiskit.circuit.Reset`, :class:`~qiskit.circuit.Barrier`,
     :class:`~qiskit.circuit.Measure`, and operators such as :class:`~qiskit.quantum_info.Clifford`.
 
-    The main purpose is to add allow abstract mathematical objects to be added directly onto
+    The main purpose is to allow abstract mathematical objects to be added directly onto
     abstract circuits, and for the exact syntheses of these to be determined later, during
     compilation.
 
