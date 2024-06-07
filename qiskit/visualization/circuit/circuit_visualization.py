@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
     deprecation_description="Setting circuit_drawer()’s justify argument to a value other than "
     "'left', 'right', or 'none'. Default 'left' will be used. Support for invalid justify arguments",
     predicate=lambda justify: (
-        isinstance(justify, str) or justify.lower() in ("left", "right", "none")
+        not isinstance(justify, str) or justify.lower() not in ("left", "right", "none")
     ),
     pending=True,
 )
