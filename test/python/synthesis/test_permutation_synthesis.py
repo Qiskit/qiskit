@@ -25,7 +25,11 @@ from qiskit.synthesis.permutation import (
     synth_permutation_basic,
     synth_permutation_reverse_lnn_kms,
 )
-from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern, _get_ordered_swap
+from qiskit.synthesis.permutation.permutation_utils import (
+    _inverse_pattern,
+    _get_ordered_swap,
+    _validate_permutation,
+)
 from test import QiskitTestCase  # pylint: disable=wrong-import-order
 
 
@@ -58,7 +62,7 @@ class TestPermutationSynthesis(QiskitTestCase):
 
     @data(10, 20)
     def test_invalid_permutations(self, width):
-        """Check that synth_permutation_basic raises exceptions when the
+        """Check that _validate_permutation raises exceptions when the
         input is not a permutation."""
         np.random.seed(1)
         for _ in range(5):
@@ -67,13 +71,13 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern_out_of_range = np.copy(pattern)
             pattern_out_of_range[0] = -1
             with self.assertRaises(ValueError) as exc:
-                _ = synth_permutation_basic(pattern_out_of_range)
+                _validate_permutation(pattern_out_of_range)
                 self.assertIn("input contains a negative number", str(exc.exception))
 
             pattern_out_of_range = np.copy(pattern)
             pattern_out_of_range[0] = width
             with self.assertRaises(ValueError) as exc:
-                _ = synth_permutation_basic(pattern_out_of_range)
+                _validate_permutation(pattern_out_of_range)
                 self.assertIn(
                     "input has length {0} and contains {0}".format(width), str(exc.exception)
                 )
@@ -81,7 +85,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern_duplicate = np.copy(pattern)
             pattern_duplicate[-1] = pattern[0]
             with self.assertRaises(ValueError) as exc:
-                _ = synth_permutation_basic(pattern_duplicate)
+                _validate_permutation(pattern_duplicate)
                 self.assertIn(
                     "input contains {} more than once".format(pattern[0]), str(exc.exception)
                 )
